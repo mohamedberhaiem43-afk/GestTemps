@@ -1,0 +1,25 @@
+export type Societe = { 
+    soccod: string;
+    soclib: string;
+    socresp: string;
+    socadr: string;
+    soctel: string;
+    socfax: string;
+    socemail: string;
+    socccb: string;
+    soctva: string;
+    soctva1: string;
+    soctva2: string;
+    soctva3: string;
+    soctva000: string;
+    socreg: number;
+    socmois: number;
+    soctype: string;
+    socpresence: string;
+    sochsup: string;
+    socmere: string;
+    socsmig: string;
+    soclibar: string;
+    socadrar: string;
+    socrespar: string;
+  };

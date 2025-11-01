@@ -1,0 +1,23 @@
+#simple-tabpanel-0 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div
+{
+    position: relative;
+    padding: 16px;
+}
+.leftpart
+{
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    position: absolute;
+    right:5px;
+    bottom:15px;
+}
+#simple-tabpanel-0 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(4),
+#simple-tabpanel-0 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(5)
+{
+    flex-direction: row-reverse;
+    justify-content: start;
+    gap: 10px;
+    max-width: fit-content;
+    padding: 5px;
+}

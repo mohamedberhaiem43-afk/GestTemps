@@ -1,0 +1,10 @@
+.absence-container
+{
+    margin-top: -30px;
+}
+.saisie-absence
+{
+    max-height: 30vh;
+    overflow: hidden;
+
+}

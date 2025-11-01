@@ -1,0 +1,30 @@
+.container{
+    display: flex;
+    flex-direction: column;
+}
+
+#root > div.container > div.directionContainer > form > div{
+    width: 15%;
+    /* border: black solid 1px; */
+
+}
+.form
+{
+    display: flex;
+    flex-wrap: wrap;
+    max-height: 40vh;
+    justify-content: start;
+    width: 65vw;
+    gap: 5px;
+}
+#root > div.container > div.directionContainer > form > div:nth-child(16)
+{
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    width: max-content;
+}
+#root > div.container > div.directionContainer > form > div:nth-child(16) > div
+{
+    max-width: 60px;
+}

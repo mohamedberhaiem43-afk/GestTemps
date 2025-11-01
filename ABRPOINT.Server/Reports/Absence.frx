@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/27/2025 08:36:08" ReportInfo.Modified="07/27/2025 12:35:22" ReportInfo.CreatorVersion="2024.2.20.0">
+  <Dictionary>
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGs6DPzoJjdyNiQWYUwMeqzw319CJ4OWcvBmPrM/DeITLwRznFHHEa7EyTwLv1sbcgcjOmn3YXIhjcLd5t6rO3d3v+U6XpMlyHXrOXGk8vOrcMgSuBFLp4zERKW7kJyGW+/Au4iZSehAhnajiaYjiSX381bp3OgVV5LEWKxxz4BRgo3l3qK/Cc+DeHQU/uWTJ7g==">
+      <TableDataSource Name="Table" Alias="Absence" DataType="System.Int32" Enabled="true" SelectCommand="select s.soclib,s.socadr,abs.abslib,sanc.concod,sanc.conmotif,sanc.condep,sanc.conret,sanc.connbjour,e.empmat,e.emplib,e.empfonc,e.empadr&#13;&#10;from societe s,absence abs,sanction sanc,employe e&#13;&#10;where s.soccod = e.soccod and e.empcod = sanc.empcod and abs.abscod = sanc.abscod&#13;&#10;and s.soccod = @soccod and e.empcod = @empcod and concod = @concod">
+        <Column Name="soclib" DataType="System.String"/>
+        <Column Name="socadr" DataType="System.String"/>
+        <Column Name="abslib" DataType="System.String"/>
+        <Column Name="concod" DataType="System.String"/>
+        <Column Name="conmotif" DataType="System.String"/>
+        <Column Name="condep" DataType="System.DateTime"/>
+        <Column Name="conret" DataType="System.DateTime"/>
+        <Column Name="connbjour" DataType="System.Single"/>
+        <Column Name="empmat" DataType="System.String"/>
+        <Column Name="emplib" DataType="System.String"/>
+        <Column Name="empfonc" DataType="System.String"/>
+        <Column Name="empadr" DataType="System.String"/>
+        <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
+        <CommandParameter Name="empcod" DataType="22" Expression="[empcod]"/>
+        <CommandParameter Name="concod" DataType="22" Expression="[concod]"/>
+      </TableDataSource>
+    </MsSqlDataConnection>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitle1" Width="718.2"/>
+    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="718.2" Height="94.5">
+      <ShapeObject Name="Shape1" Width="718.2" Height="94.5"/>
+      <LineObject Name="Line1" Left="189" Height="94.5"/>
+      <LineObject Name="Line2" Left="529.2" Height="94.5"/>
+      <TextObject Name="Text1" Top="9.45" Width="189" Height="37.8" Text="[Absence.soclib]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text2" Top="47.25" Width="189" Height="47.25" Text="[Absence.socadr]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text3" Left="189" Top="18.9" Width="340.2" Height="18.9" Text="[Absence.abslib]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text4" Left="189" Top="56.7" Width="340.2" Height="18.9" Text="N°[Absence.concod]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text5" Left="557.55" Top="18.9" Width="160.65" Height="18.9" Text="Date: [FormatDateTime([Date],&quot;dd/MM/yyyy&quot;)]" Font="Arial, 10pt"/>
+      <TextObject Name="Text6" Left="529.2" Top="56.7" Width="189" Height="18.9" Text="Sanction" HorzAlign="Center" Font="Arial, 10pt"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="100.9" Width="718.2" Height="604.8">
+      <TextObject Name="Text7" Left="9.45" Top="56.7" Width="75.6" Height="18.9" Text="Matricule:" Font="Arial, 10pt"/>
+      <TextObject Name="Text8" Left="9.45" Top="94.5" Width="113.4" Height="18.9" Text="Nom et Prénom:" Font="Arial, 10pt"/>
+      <TextObject Name="Text9" Left="9.45" Top="132.3" Width="75.6" Height="18.9" Text="Fonction:" Font="Arial, 10pt"/>
+      <TextObject Name="Text10" Left="9.45" Top="170.1" Width="66.15" Height="18.9" Text="Adresse:" Font="Arial, 10pt"/>
+      <TextObject Name="Text11" Left="9.45" Top="207.9" Width="56.7" Height="18.9" Text="Motif:" Font="Arial, 10pt"/>
+      <ShapeObject Name="Shape2" Top="264.6" Width="529.2" Height="113.4"/>
+      <LineObject Name="Line3" Top="302.4" Width="529.2"/>
+      <TextObject Name="Text12" Top="274.05" Width="189" Height="18.9" Text="Date Début" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text13" Left="189" Top="274.05" Width="189" Height="18.9" Text="Date Reprise" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text14" Left="378" Top="274.05" Width="151.2" Height="18.9" Text="Nb. Jours" HorzAlign="Center" Font="Arial, 10pt"/>
+      <LineObject Name="Line4" Left="189" Top="264.6" Height="113.4"/>
+      <LineObject Name="Line5" Left="378" Top="264.6" Height="113.4"/>
+      <TextObject Name="Text15" Left="94.5" Top="56.7" Width="132.3" Height="18.9" Text="[Absence.empmat]" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text16" Left="122.85" Top="94.5" Width="226.8" Height="18.9" Text="[Absence.emplib]" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text17" Left="85.05" Top="132.3" Width="264.6" Height="18.9" Text="[Absence.empfonc]" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text18" Left="75.6" Top="170.1" Width="245.7" Height="18.9" Text="[Absence.empadr]" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text19" Left="66.15" Top="207.9" Width="207.9" Height="18.9" Text="[Absence.conmotif]" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text20" Top="321.3" Width="189" Height="18.9" Text=" [FormatDateTime([Absence.condep],&quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text21" Left="189" Top="321.3" Width="189" Height="18.9" Text=" [FormatDateTime([Absence.conret],&quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text22" Left="378" Top="321.3" Width="151.2" Height="18.9" Text="[Absence.connbjour]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <ShapeObject Name="Shape3" Top="491.4" Width="567" Height="113.4"/>
+      <LineObject Name="Line6" Top="529.2" Width="567"/>
+      <TextObject Name="Text23" Top="500.85" Width="189" Height="18.9" Text="Avis Chef Hiérarchique" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text24" Left="189" Top="500.85" Width="189" Height="18.9" Text="Avis Direction Générale" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text25" Left="378" Top="500.85" Width="189" Height="18.9" Text="Signature Employé" HorzAlign="Center" Font="Arial, 10pt"/>
+      <LineObject Name="Line7" Left="189" Top="491.4" Height="113.4"/>
+      <LineObject Name="Line8" Left="378" Top="491.4" Height="113.4"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="708.9" Width="718.2" Height="18.9"/>
+  </ReportPage>
+</Report>

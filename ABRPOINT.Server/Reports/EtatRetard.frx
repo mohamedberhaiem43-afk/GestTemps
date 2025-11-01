@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/15/2025 11:04:09" ReportInfo.Modified="07/28/2025 17:00:08" ReportInfo.CreatorVersion="2024.2.20.0">
+  <Dictionary>
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGs6DPzoJjdyNiQWYUwMeqzw319CJ4OWcvBmPrM/DeITLwRznFHHEa7EyTwLv1sbcgcjOmn3YXIhjcLd5t6rO3d3v+U6XpMlyHXrOXGk8vOrcMgSuBFLp4zERKW7kJyGW+/Au4iZSehAhnajiaYjiSX381bp3OgVV5LEWKxxz4BRgbmZvBPZRbtrQyPPTA5sVQg==">
+      <TableDataSource Name="Table" Alias="EtatRetard" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;    e.empmat,&#13;&#10;    e.emplib,&#13;&#10;    s.soclib,&#13;&#10;    p.*&#13;&#10;FROM presence p&#13;&#10;JOIN employe e ON p.empcod = e.empcod AND e.soccod = p.soccod&#13;&#10;JOIN societe s ON e.soccod = s.soccod&#13;&#10;WHERE p.predat BETWEEN @datedebut AND @datefin&#13;&#10;  AND e.soccod = @soccod&#13;&#10;  AND (&#13;&#10;        @empcod = '' &#13;&#10;        OR e.empcod IN (&#13;&#10;            SELECT value &#13;&#10;            FROM STRING_SPLIT(@empcod, ',')&#13;&#10;        )&#13;&#10;      );&#13;&#10;">
+        <Column Name="empcod" DataType="System.String"/>
+        <Column Name="predat" DataType="System.DateTime"/>
+        <Column Name="ordre" DataType="System.Int32"/>
+        <Column Name="empmat" DataType="System.String"/>
+        <Column Name="sercod" DataType="System.String"/>
+        <Column Name="codposte" DataType="System.String"/>
+        <Column Name="preentmat" DataType="System.String"/>
+        <Column Name="presortmat" DataType="System.String"/>
+        <Column Name="preentamidi" DataType="System.String"/>
+        <Column Name="presortamidi" DataType="System.String"/>
+        <Column Name="preentmatup" DataType="System.String"/>
+        <Column Name="presortmatup" DataType="System.String"/>
+        <Column Name="preentamidiup" DataType="System.String"/>
+        <Column Name="presortamidiup" DataType="System.String"/>
+        <Column Name="preentsup" DataType="System.String"/>
+        <Column Name="presortsup" DataType="System.String"/>
+        <Column Name="preentasup" DataType="System.String"/>
+        <Column Name="presortasup" DataType="System.String"/>
+        <Column Name="preentsupup" DataType="System.String"/>
+        <Column Name="presortsupup" DataType="System.String"/>
+        <Column Name="preentasupup" DataType="System.String"/>
+        <Column Name="presortasupup" DataType="System.String"/>
+        <Column Name="presem" DataType="System.Int32"/>
+        <Column Name="prerepos" DataType="System.String"/>
+        <Column Name="prerepas" DataType="System.Int32"/>
+        <Column Name="preretmate" DataType="System.DateTime"/>
+        <Column Name="preretmats" DataType="System.DateTime"/>
+        <Column Name="preretame" DataType="System.DateTime"/>
+        <Column Name="preretams" DataType="System.DateTime"/>
+        <Column Name="preretmateup" DataType="System.DateTime"/>
+        <Column Name="preretmatsup" DataType="System.DateTime"/>
+        <Column Name="preretameup" DataType="System.DateTime"/>
+        <Column Name="preretamsup" DataType="System.DateTime"/>
+        <Column Name="preavantent" DataType="System.Int32"/>
+        <Column Name="preapresent" DataType="System.Int32"/>
+        <Column Name="preavantsort" DataType="System.Int32"/>
+        <Column Name="preapressort" DataType="System.Int32"/>
+        <Column Name="soccod" DataType="System.String"/>
+        <Column Name="sitcod" DataType="System.String"/>
+        <Column Name="empreg" DataType="System.String"/>
+        <Column Name="empcharge" DataType="System.String"/>
+        <Column Name="preobs" DataType="System.String"/>
+        <Column Name="dmdate" DataType="System.DateTime"/>
+        <Column Name="catcod" DataType="System.String"/>
+        <Column Name="tothre" DataType="System.String"/>
+        <Column Name="tothabs" DataType="System.String"/>
+        <Column Name="tothsup" DataType="System.String"/>
+        <Column Name="tothnuit" DataType="System.String"/>
+        <Column Name="optimise" DataType="System.String"/>
+        <Column Name="totcmp" DataType="System.Int32"/>
+        <Column Name="predouche" DataType="System.Single"/>
+        <Column Name="emplib" DataType="System.String"/>
+        <Column Name="soclib" DataType="System.String"/>
+        <Column Name="empmat1" DataType="System.String"/>
+        <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
+        <CommandParameter Name="datefin" DataType="31" Expression="[datefin]"/>
+        <CommandParameter Name="datedebut" DataType="31" Expression="[datedebut]"/>
+        <CommandParameter Name="empcod" DataType="22" Expression="[empcod]"/>
+      </TableDataSource>
+    </MsSqlDataConnection>
+    <Parameter Name="datedebut" DataType="System.String" AsString=""/>
+    <Parameter Name="datefin" DataType="System.String" AsString=""/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitle1" Width="718.2"/>
+    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="718.2" Height="179.55">
+      <ShapeObject Name="Shape1" Left="9.45" Width="699.3" Height="94.5"/>
+      <LineObject Name="Line1" Left="189" Height="94.5"/>
+      <LineObject Name="Line2" Left="529.2" Height="94.5"/>
+      <TextObject Name="Text1" Left="189" Top="9.45" Width="330.75" Height="37.8" Text="ETAT DETAILLE DES RETARDS" HorzAlign="Center" VertAlign="Center" Font="Arial, 14pt, style=Bold"/>
+      <TextObject Name="Text2" Left="189" Top="47.25" Width="330.75" Height="37.8" Text="DU [FormatDateTime([datedebut], &quot;dd/MM/yyyy&quot;)] AU [FormatDateTime([datefin], &quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="Text3" Left="538.65" Top="18.9" Width="141.75" Height="18.9" Text="[IIf([Date] == null, &quot;&quot;, FormatDateTime([Date], &quot;dd/MM/yyyy&quot;))]&#13;&#10;" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text4" Left="529.2" Top="56.7" Width="160.65" Height="18.9" Text="[Page#]/[TotalPages#]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text5" Left="18.9" Top="18.9" Width="160.65" Height="56.7" Text="[EtatRetard.soclib]" HorzAlign="Center" VertAlign="Center" Font="Arial, 14pt, style=Bold"/>
+      <ShapeObject Name="Shape2" Left="9.45" Top="122.85" Width="699.3" Height="56.7"/>
+      <TextObject Name="Text6" Left="9.45" Top="122.85" Width="66.15" Height="56.7" Text="Badge" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text7" Left="66.15" Top="122.85" Width="75.6" Height="56.7" Text="Matricule" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text8" Left="141.75" Top="122.85" Width="113.4" Height="56.7" Text="Nom et Prénom" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text9" Left="255.15" Top="151.2" Width="37.8" Height="28.35" Text="Entrée" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text10" Left="292.95" Top="151.2" Width="47.25" Height="28.35" Text="Ret. Ent. Hre" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text11" Left="340.2" Top="151.2" Width="37.8" Height="28.35" Text="Sortie" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text12" Left="378" Top="151.2" Width="37.8" Height="28.35" Text="Ret.  S. Hre" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text13" Left="255.15" Top="122.85" Width="160.65" Height="28.35" Border.Color="RoyalBlue" Text="Matin" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line3" Left="75.6" Top="122.85" Height="56.7"/>
+      <LineObject Name="Line4" Left="141.75" Top="122.85" Height="56.7"/>
+      <LineObject Name="Line5" Left="255.15" Top="122.85" Height="56.7"/>
+      <LineObject Name="Line6" Left="255.15" Top="151.2" Width="160.65"/>
+      <LineObject Name="Line7" Left="415.8" Top="122.85" Height="56.7"/>
+      <TextObject Name="Text14" Left="415.8" Top="151.2" Width="37.8" Height="28.35" Text="Entrée" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text15" Left="453.6" Top="151.2" Width="37.8" Height="28.35" Text="Ret. E. Hre" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text16" Left="491.4" Top="151.2" Width="37.8" Height="28.35" Text="Sortie" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text17" Left="529.2" Top="151.2" Width="37.8" Height="28.35" Text="Ret.  S. Hre" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text18" Left="415.8" Top="122.85" Width="160.65" Height="28.35" Border.Color="RoyalBlue" Text="Aprés Midi" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line8" Left="415.8" Top="151.2" Width="160.65"/>
+      <LineObject Name="Line9" Left="292.95" Top="151.2" Height="28.35"/>
+      <LineObject Name="Line10" Left="340.2" Top="151.2" Height="28.35"/>
+      <LineObject Name="Line11" Left="378" Top="151.2" Height="28.35"/>
+      <LineObject Name="Line12" Left="453.6" Top="151.2" Height="28.35"/>
+      <LineObject Name="Line13" Left="491.4" Top="151.2" Height="28.35"/>
+      <LineObject Name="Line14" Left="529.2" Top="151.2" Height="28.35"/>
+      <LineObject Name="Line15" Left="576.45" Top="122.85" Height="56.7"/>
+      <TextObject Name="Text19" Left="576.45" Top="122.85" Width="56.7" Height="56.7" Text="Total Retard" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text20" Left="623.7" Top="122.85" Width="85.05" Height="56.7" Text="Date" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line16" Left="623.7" Top="122.85" Height="56.7"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="185.95" Width="718.2" Height="28.35" DataSource="Table">
+      <ShapeObject Name="Shape3" Left="9.45" Width="699.3" Height="28.35"/>
+      <TextObject Name="Text21" Left="9.45" Width="66.15" Height="28.35" Text="[EtatRetard.empmat1]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text22" Left="75.6" Width="66.15" Height="28.35" Text="[EtatRetard.empmat1]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text23" Left="141.75" Width="113.4" Height="28.35" Text="[EtatRetard.emplib]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text24" Left="255.15" Width="37.8" Height="28.35" Text="[EtatRetard.preentmatup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text25" Left="292.95" Width="47.25" Height="28.35" Text="[FormatDateTime([EtatRetard.preretameup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text26" Left="340.2" Width="37.8" Height="28.35" Text="[EtatRetard.presortmatup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text27" Left="378" Width="37.8" Height="28.35" Text="[FormatDateTime([EtatRetard.preretmatsup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text28" Left="415.8" Width="37.8" Height="28.35" Text="[EtatRetard.preentamidiup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text29" Left="491.4" Width="37.8" Height="28.35" Text="[EtatRetard.presortamidiup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text30" Left="576.45" Width="37.8" Height="28.35" Text="[EtatRetard.preretmate]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text31" Left="623.7" Width="85.05" Height="28.35" Text="[IIf([EtatRetard.predat] == null, &quot;&quot;, FormatDateTime([EtatRetard.predat], &quot;dd/MM/yyyy&quot;))]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text32" Left="529.2" Width="47.25" Height="28.35" Text="[FormatDateTime([EtatRetard.preretamsup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text33" Left="453.6" Width="37.8" Height="28.35" Text="[FormatDateTime([EtatRetard.preretameup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <LineObject Name="Line17" Left="75.6" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line18" Left="141.75" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line19" Left="255.15" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line20" Left="292.95" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line21" Left="340.2" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line22" Left="378" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line23" Left="415.8" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line24" Left="453.6" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line25" Left="491.4" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line26" Left="529.2" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line27" Left="576.45" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line28" Left="623.7" Top="28.35" Height="-28.35"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="217.5" Width="718.2" Height="18.9"/>
+  </ReportPage>
+</Report>

@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/16/2025 13:55:27" ReportInfo.Modified="07/28/2025 12:12:18" ReportInfo.CreatorVersion="2024.2.20.0">
+  <Dictionary>
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGs6DPzoJjdyNiQWYUwMeqzw319CJ4OWcvBmPrM/DeITLwRznFHHEa7EyTwLv1sbcgcjOmn3YXIhjcLd5t6rO3d3v+U6XpMlyHXrOXGk8vOrcMgSuBFLp4zERKW7kJyGW+/Au4iZSehAhnajiaYjiSX381bp3OgVV5LEWKxxz4BRgWwXyBs4/X8r+gKJ5nfGRpA==">
+      <TableDataSource Name="Table" Alias="EcheanceContrat" DataType="System.Int32" Enabled="true" SelectCommand="select e.empmat, e.emplib, e.empfonc, c.concod, c.condat, c.empemb, c.empsort, s.soclib from employe e,contrat c,societe s&#13;&#10;where e.empcod = c.empcod and c.soccod = e.soccod and s.soccod = e.soccod&#13;&#10;and s.soccod = @soccod&#13;&#10;and c.empsort&gt;=@datedebut and c.empsort&lt;=@datefin;">
+        <Column Name="empmat" DataType="System.String"/>
+        <Column Name="emplib" DataType="System.String"/>
+        <Column Name="empfonc" DataType="System.String"/>
+        <Column Name="concod" DataType="System.String"/>
+        <Column Name="condat" DataType="System.DateTime"/>
+        <Column Name="empemb" DataType="System.DateTime"/>
+        <Column Name="empsort" DataType="System.DateTime"/>
+        <Column Name="soclib" DataType="System.String"/>
+        <CommandParameter Name="datedebut" DataType="4" Expression="[datedebut]"/>
+        <CommandParameter Name="datefin" DataType="4" Expression="[datefin]"/>
+        <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
+      </TableDataSource>
+    </MsSqlDataConnection>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitle1" Width="718.2"/>
+    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="718.2" Height="151.2">
+      <ShapeObject Name="Shape1" Width="718.2" Height="94.5"/>
+      <LineObject Name="Line1" Left="189" Height="94.5"/>
+      <LineObject Name="Line2" Left="538.65" Height="94.5"/>
+      <TextObject Name="Text1" Left="189" Top="9.45" Width="349.65" Height="85.05" Text="ECHEANCE CONTRAT DE TRAVAIL&#13;&#10;DU [FormatDateTime([datedebut], &quot;dd/MM/yyyy&quot;)] AU [FormatDateTime([datefin], &quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 14pt, style=Bold"/>
+      <TextObject Name="Text2" Top="18.9" Width="189" Height="56.7" Text="[EcheanceContrat.soclib]" HorzAlign="Center" VertAlign="Center" Font="Arial, 14pt, style=Bold"/>
+      <TextObject Name="Text3" Left="538.65" Top="18.9" Width="170.1" Height="28.35" Text="Date [IIf([Date] == null, &quot;&quot;, FormatDateTime([Date], &quot;dd/MM/yyyy&quot;))]&#13;&#10;" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text4" Left="538.65" Top="56.7" Width="170.1" Height="28.35" Text="[Page#]/[TotalPages#]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <ShapeObject Name="Shape2" Top="113.4" Width="718.2" Height="37.8"/>
+      <TextObject Name="Text5" Top="113.4" Width="75.6" Height="37.8" Text="Matricule" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text6" Left="75.6" Top="113.4" Width="160.65" Height="37.8" Text="Nom et Prénom" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text7" Left="236.25" Top="113.4" Width="75.6" Height="37.8" Text="N°Contrat" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text8" Left="311.85" Top="113.4" Width="66.15" Height="37.8" Text="Date" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text9" Left="378" Top="113.4" Width="141.75" Height="37.8" Text="Fonction" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text10" Left="519.75" Top="113.4" Width="94.5" Height="37.8" Text="Date Début" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text11" Left="614.25" Top="113.4" Width="94.5" Height="37.8" Text="Date Fin" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <LineObject Name="Line3" Left="75.6" Top="113.4" Height="37.8"/>
+      <LineObject Name="Line4" Left="236.25" Top="113.4" Height="37.8"/>
+      <LineObject Name="Line5" Left="311.85" Top="113.4" Height="37.8"/>
+      <LineObject Name="Line6" Left="378" Top="113.4" Height="37.8"/>
+      <LineObject Name="Line7" Left="519.75" Top="113.4" Height="37.8"/>
+      <LineObject Name="Line8" Left="614.25" Top="113.4" Height="37.8"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="157.6" Width="718.2" Height="37.8" DataSource="Table">
+      <ShapeObject Name="Shape3" Width="718.2" Height="37.8"/>
+      <LineObject Name="Line9" Left="75.6" Height="37.8"/>
+      <LineObject Name="Line10" Left="236.25" Height="37.8"/>
+      <LineObject Name="Line11" Left="311.85" Height="37.8"/>
+      <LineObject Name="Line12" Left="378" Height="37.8"/>
+      <LineObject Name="Line13" Left="519.75" Height="37.8"/>
+      <LineObject Name="Line14" Left="614.25" Height="37.8"/>
+      <TextObject Name="Text12" Width="75.6" Height="37.8" Text="[EcheanceContrat.empmat]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text13" Left="75.6" Width="160.65" Height="37.8" Text="[EcheanceContrat.emplib]" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text14" Left="236.25" Width="75.6" Height="37.8" Text="[EcheanceContrat.concod]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text15" Left="311.85" Width="66.15" Height="37.8" Text="[FormatDateTime([EcheanceContrat.condat], &quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text16" Left="519.75" Width="94.5" Height="37.8" Text="[FormatDateTime([EcheanceContrat.empemb], &quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text17" Left="614.25" Width="94.5" Height="37.8" Text="[FormatDateTime([EcheanceContrat.empsort], &quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text18" Left="378" Width="141.75" Height="37.8" Text="[EcheanceContrat.empfonc]" VertAlign="Center" Font="Arial, 8pt"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="198.6" Width="718.2" Height="18.9"/>
+  </ReportPage>
+</Report>

@@ -1,0 +1,22 @@
+export default interface EtatPresence{
+    empcod:string,
+    empmat:string,
+    emplib:string,
+    empreg:string,
+    predat:Date,
+    motif:string,
+    entree1:string,
+    preretmateup:string,
+    sortie1:string,
+    preretmatsup:string,
+    entree2:string,
+    preretameup:string,
+    sortie2:string,
+    preretamsup:string,
+    allaitement:string,
+    hasConge:string,
+    totalHeure:string,
+    totalRetard:string,
+    tothnuit:string,
+
+}
