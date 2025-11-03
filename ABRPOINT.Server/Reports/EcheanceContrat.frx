@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report ScriptLanguage="CSharp" ReportInfo.Created="07/16/2025 13:55:27" ReportInfo.Modified="07/28/2025 12:12:18" ReportInfo.CreatorVersion="2024.2.20.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGs6DPzoJjdyNiQWYUwMeqzw319CJ4OWcvBmPrM/DeITLwRznFHHEa7EyTwLv1sbcgcjOmn3YXIhjcLd5t6rO3d3v+U6XpMlyHXrOXGk8vOrcMgSuBFLp4zERKW7kJyGW+/Au4iZSehAhnajiaYjiSX381bp3OgVV5LEWKxxz4BRgWwXyBs4/X8r+gKJ5nfGRpA==">
-      <TableDataSource Name="Table" Alias="EcheanceContrat" DataType="System.Int32" Enabled="true" SelectCommand="select e.empmat, e.emplib, e.empfonc, c.concod, c.condat, c.empemb, c.empsort, s.soclib from employe e,contrat c,societe s&#13;&#10;where e.empcod = c.empcod and c.soccod = e.soccod and s.soccod = e.soccod&#13;&#10;and s.soccod = @soccod&#13;&#10;and c.empsort&gt;=@datedebut and c.empsort&lt;=@datefin;">
+	  <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
+		  <TableDataSource Name="Table" Alias="EcheanceContrat" DataType="System.Int32" Enabled="true" SelectCommand="select e.empmat, e.emplib, e.empfonc, c.concod, c.condat, c.empemb, c.empsort, s.soclib from employe e,contrat c,societe s&#13;&#10;where e.empcod = c.empcod and c.soccod = e.soccod and s.soccod = e.soccod&#13;&#10;and s.soccod = @soccod&#13;&#10;and c.empsort&gt;=@datedebut and c.empsort&lt;=@datefin;">
         <Column Name="empmat" DataType="System.String"/>
         <Column Name="emplib" DataType="System.String"/>
         <Column Name="empfonc" DataType="System.String"/>

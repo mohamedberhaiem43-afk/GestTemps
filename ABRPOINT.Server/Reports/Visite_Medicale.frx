@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="02/03/2025 17:56:52" ReportInfo.Modified="07/29/2025 11:39:33" ReportInfo.CreatorVersion="2024.2.20.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="02/03/2025 17:56:52" ReportInfo.Modified="11/03/2025 17:23:57" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGs6DPzoJjdyNiQWYUwMeqzw319CJ4OWcvBmPrM/DeITLwRznFHHEa7EyTwLv1sbcgcjOmn3YXIhjcLd5t6rO3d3v+U6XpMlyHXrOXGk8vOrcMgSuBFLp4zERKW7kJyGW+/Au4iZSehAhnajiaYjiSX381bp3OgVV5LEWKxxz4BRgb/pnwFO+xEhajIz+6XHM1w==">
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
       <TableDataSource Name="Table" Alias="empsoc" DataType="System.Int32" Enabled="true" SelectCommand="SELECT e.emplib,e.empfonc,s.soclib,s.socadr&#13;&#10;FROM EMPLOYE e,SOCIETE s&#13;&#10;WHERE e.empcod = @Empcod AND e.soccod = s.soccod and s.soccod=@Soccod">
         <Column Name="emplib" DataType="System.String"/>
         <Column Name="empfonc" DataType="System.String"/>
@@ -14,7 +14,7 @@
   </Dictionary>
   <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
     <ReportTitleBand Name="ReportTitle1" Width="718.2"/>
-    <PageHeaderBand Name="PageHeader1" Top="4.27" Width="718.2" Height="75.6">
+    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="718.2" Height="75.6">
       <ShapeObject Name="Shape1" Width="718.2" Height="75.6"/>
       <LineObject Name="Line1" Left="226.8" Top="75.6" Height="-75.6"/>
       <LineObject Name="Line2" Left="567" Top="75.6" Height="-75.6"/>
@@ -25,7 +25,7 @@
       <TextObject Name="Text5" Left="9.45" Top="47.25" Width="236.25" Height="18.9" Text="[UpperCase([empsoc.socadr])]" Font="Arial, 12pt"/>
       <LineObject Name="Line3" Left="567" Top="37.8" Width="151.2"/>
     </PageHeaderBand>
-    <DataBand Name="Data1" Top="84.13" Width="718.2" Height="784.35" DataSource="Table">
+    <DataBand Name="Data1" Top="82" Width="718.2" Height="784.35" DataSource="Table">
       <TextObject Name="Text6" Left="18.9" Top="18.9" Width="66.15" Height="18.9" Text="Objet: " Font="Arial, 12pt, style=Bold"/>
       <TextObject Name="Text7" Left="75.6" Top="18.9" Width="132.3" Height="18.9" Text="Visite Médicale" Font="Arial, 12pt"/>
       <TextObject Name="Text9" Left="18.9" Top="170.1" Width="56.7" Height="18.9" Text="Pour:" Font="Arial, 12pt"/>
@@ -46,6 +46,6 @@
       <TextObject Name="Text16" Left="463.05" Top="500.85" Width="179.55" Height="18.9" Text="Signature et Cachet" Font="Arial, 12pt, style=Bold"/>
       <TextObject Name="Text17" Left="18.9" Top="56.7" Width="670.95" Height="75.6" Text="Je vous prix de bien vouloir prendre en charge Monsieur [UpperCase([empsoc.emplib])]&#13;&#10;Oeuvre au sein de notre entreprise [UpperCase([empsoc.soclib])]&#13;&#10;Occupant le poste: [UpperCase([empsoc.empfonc])]." VertAlign="Bottom" Font="Arial, 12pt"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="872.75" Width="718.2" Height="18.9"/>
+    <PageFooterBand Name="PageFooter1" Top="869.55" Width="718.2" Height="18.9"/>
   </ReportPage>
 </Report>

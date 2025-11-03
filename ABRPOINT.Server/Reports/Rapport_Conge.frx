@@ -23,8 +23,8 @@ namespace FastReport
 }
 </ScriptText>
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGs6DPzoJjdyNiQWYUwMeqzw319CJ4OWcvBmPrM/DeITLwRznFHHEa7EyTwLv1sbcgcjOmn3YXIhjcLd5t6rO3d3v+U6XpMlyHXrOXGk8vOrcMgSuBFLp4zERKW7kJyGW+/Au4iZSehAhnajiaYjiSX381bp3OgVV5LEWKxxz4BRgDMUR5vdRkhohOSejfYTIpA==">
-      <TableDataSource Name="Table" Alias="empcongedata" DataType="System.Int32" Enabled="true" SelectCommand="SELECT  e.emplib,&#13;&#10;	e.empfonc,&#13;&#10;	e.empadr,&#13;&#10;	e.emptel,&#13;&#10;	e.empmob,&#13;&#10;	c.condat,&#13;&#10;	concod,&#13;&#10;	condep,&#13;&#10;	conret,&#13;&#10;	connbjour,&#13;&#10;	s.soccod,&#13;&#10;	s.soclib,&#13;&#10;	s.soctel,&#13;&#10;	s.socfax,&#13;&#10;	s.socadr&#13;&#10;FROM EMPLOYE e,Conge c,Societe s&#13;&#10;WHERE concod = @Concod AND c.empcod = e.empcod AND s.soccod = c.soccod">
+	  <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
+		  <TableDataSource Name="Table" Alias="empcongedata" DataType="System.Int32" Enabled="true" SelectCommand="SELECT  e.emplib,&#13;&#10;	e.empfonc,&#13;&#10;	e.empadr,&#13;&#10;	e.emptel,&#13;&#10;	e.empmob,&#13;&#10;	c.condat,&#13;&#10;	concod,&#13;&#10;	condep,&#13;&#10;	conret,&#13;&#10;	connbjour,&#13;&#10;	s.soccod,&#13;&#10;	s.soclib,&#13;&#10;	s.soctel,&#13;&#10;	s.socfax,&#13;&#10;	s.socadr&#13;&#10;FROM EMPLOYE e,Conge c,Societe s&#13;&#10;WHERE concod = @Concod AND c.empcod = e.empcod AND s.soccod = c.soccod">
         <Column Name="emplib" DataType="System.String"/>
         <Column Name="empfonc" DataType="System.String"/>
         <Column Name="empadr" DataType="System.String"/>
