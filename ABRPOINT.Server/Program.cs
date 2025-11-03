@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
@@ -71,12 +72,6 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
-
-
-//builder.WebHost.ConfigureKestrel(options =>
-//{
-//    options.ListenAnyIP(8080); // Must match exposed port in docker-compose
-//});
 
 var app = builder.Build();
 // Apply EF Core migrations automatically
