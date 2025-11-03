@@ -13,16 +13,37 @@ namespace ABRPOINT.Server.Repository
             // 👇 Register MsSqlDataConnection before any report loading
             FastReport.Utils.RegisteredObjects.AddConnection(typeof(MsSqlDataConnection));
             var connStr = config.GetConnectionString("DefaultConnection");
-            _sqlConnection = new MsSqlDataConnection { ConnectionString = connStr };
+            var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
+            var dbName = Environment.GetEnvironmentVariable("DB_NAME");
+            var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+            var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
+
+
+            var connectionString = $"Server={dbHost};Database={dbName};User Id={dbUser};Password={dbPassword};TrustServerCertificate=True;";
+            _sqlConnection = new MsSqlDataConnection { ConnectionString = connectionString };
         }
 
         private Report CreateReport(string reportFilePath)
         {
-            var report = new Report();
-            report.Dictionary.Connections.Add(_sqlConnection);
-            report.Load(reportFilePath);
-            return report;
+            try
+            {
+                var report = new Report();
+
+                // Ajouter la connexion construite à partir des variables d'env
+                report.Dictionary.Connections.Add(_sqlConnection);
+
+                // Charger le rapport
+                report.Load(reportFilePath);
+
+                return report;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
         }
+
         public byte[] GenerateCahierCongeReport(string soccod, DateTime? datedebut,DateTime? datefin,List<string>empcods)
         {
             try
@@ -203,9 +224,9 @@ namespace ABRPOINT.Server.Repository
                     return ms.ToArray();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                throw ex;
             }
         }
 
