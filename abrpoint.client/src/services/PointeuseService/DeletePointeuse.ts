@@ -4,7 +4,7 @@ import { Pointeuse } from "../../models/PointeuseModel";
 const pointeuseApiClient = new ApiClient<Pointeuse>("Pointeuse");
 
 const DeletePointeuse = {
-    delete: (soccod: string, code: string) => pointeuseApiClient.delete(soccod, code),
+    delete: (soccod: string | null, code: string) => pointeuseApiClient.delete(soccod, code),
 };
 
 export default DeletePointeuse;

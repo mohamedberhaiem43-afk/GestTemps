@@ -202,7 +202,7 @@ const AutoriserList = () => {
       <ListItemIcon>
         <Edit />
       </ListItemIcon>
-      Editer
+        Editer
       </MenuItem>,
       <MenuItem
         key="delete"

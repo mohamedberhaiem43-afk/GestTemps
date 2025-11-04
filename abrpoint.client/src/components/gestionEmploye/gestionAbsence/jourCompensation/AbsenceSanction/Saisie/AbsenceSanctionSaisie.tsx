@@ -20,17 +20,18 @@ import useGetSanctions from '../../../../../../hooks/sanctionHooks/useGetSanctio
 import { useSanctionContext } from '../../../../../helper/SanctionContext';
 import useUpdateSanction from '../../../../../../hooks/sanctionHooks/useUpdateSanction';
 import { Sanction } from '../../../../../../models/Sanction';
+import getDatePart from '../../../../../helper/TimeConverter/ExtractDateOnly';
 
 export default function AbsenceSanctionSaisie() {
   const { selectedSanction } = useSanctionContext();
   const soccod = sessionStorage.getItem('soccod')
   const [empcod, setEmploye] = useState('');
   const [concod, setOrdre] = useState('');
-  const [condat, setDate] = useState<Date|null>();
+  const [condat, setDate] = useState<Date|string>();
   const [conref, setReference] = useState('');
-  const [condep, setDateDepart] = useState<Date|null>();
+  const [condep, setDateDepart] = useState<Date|string>();
   const [conamdep, setApresMidiDepart] = useState(false);
-  const [conret, setDateReprise] = useState<Date|null>();
+  const [conret, setDateReprise] = useState<Date|string>();
   const [conamret, setApresMidiReprise] = useState(false);
   const [conjour, setTimePeriod] = useState('touteLaJournee');
   const [abscod, setAbscod] = useState('');
@@ -49,11 +50,12 @@ export default function AbsenceSanctionSaisie() {
     if(selectedSanction){
       setEmploye(selectedSanction?.empcod || '');
       setOrdre(selectedSanction?.concod || '');
-      setDate(selectedSanction?.condat);
+      setDate(getDatePart(selectedSanction?.condat?.toString() || ''));
       setReference(selectedSanction?.conref || '');
-      setDateDepart(selectedSanction?.condep) ;
+      setDateDepart(getDatePart(selectedSanction?.condep?.toString() || '')) ;
       setApresMidiDepart(selectedSanction?.conamdep === "1");
-      setDateReprise(selectedSanction?.conret);
+      setDateReprise(getDatePart(selectedSanction?.conret?.toString() || ''));
+      
       setApresMidiReprise(selectedSanction?.conamret === "1");
       setTimePeriod(selectedSanction?.conjour || 'J');
       setAbscod(selectedSanction?.abscod || '');

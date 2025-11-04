@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import EmployeService from "../../services/EmployeService/EmployeService";
+import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetEmloye = (empcod:string) => {
-  const soccod = sessionStorage.getItem('soccod');
+  const soccod = useAuth();
 
   return useQuery({
     queryKey: ["employe", soccod,empcod],

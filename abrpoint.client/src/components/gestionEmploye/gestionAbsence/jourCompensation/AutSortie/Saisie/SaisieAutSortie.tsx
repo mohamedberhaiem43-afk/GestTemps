@@ -77,7 +77,7 @@ export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
       const { mutate:updateSortie } = useUpdateSortie();
       const { refetch } = useGetSortie(uticod);
       useEffect(() => {
-        if (selectedSortieGeneral && type != 'generale') {
+        if (selectedSortieGeneral) {
           setAbscod(selectedSortieGeneral?.abscod);
           setConcod(selectedSortieGeneral?.concod);
           setConmotif(selectedSortieGeneral?.conmotif);
@@ -96,7 +96,7 @@ export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
       
       // Function to handle saving the compensation data
       const handleSave = async () => {
-      if(type=='generale')
+      if(type=='generale' && mode==='save')
       {
         const employeesArray = Object.entries(employes);
         // Employees who are not checked in the exception list

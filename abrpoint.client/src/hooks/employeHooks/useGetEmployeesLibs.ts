@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import ListeService from "../../services/ListeService";
-  const soccod = sessionStorage.getItem('soccod');
+import { useAuth } from "../../components/helper/AuthProvider";
+  
 
-    const useGetEmployeesLibs = () => {
+const useGetEmployeesLibs = () => {
+    const { soccod } = useAuth();
     const uticod = localStorage.getItem('Uticod');
     return useQuery({
     queryKey: ["employees", soccod,uticod],
