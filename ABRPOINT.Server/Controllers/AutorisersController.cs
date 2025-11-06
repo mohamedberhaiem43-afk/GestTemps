@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.AutSortieAttributes;
+using ABRPOINT.Server.Annotations.AutSortieAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -94,11 +94,18 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
-        [HttpPost("bulk")]
+        [HttpPut("bulk")]
         [CanAddAutSortieGeneral]
         public async Task BulkPost([FromBody] List<Autoriser> autorisers)
         {
-            await _autoriserRepository.AddMultipleAutorisation(autorisers);
+            try
+            {
+                await _autoriserRepository.AddMultipleAutorisation(autorisers);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         // PUT api/<DirectionsController>/5
