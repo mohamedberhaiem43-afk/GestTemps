@@ -13,10 +13,10 @@ export default function  TitreConge (){
         <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'} mt={-2} >
           <CongeProvider>
             <Grid item xs={12}>
-            <TitreCongeForm titre="Titre de Congés" />
+              <TitreCongeForm titre="Titre de Congés" />
             </Grid>
             <Grid item xs={12}>
-            <TitreCongeList />
+              <TitreCongeList />
             </Grid>
           </CongeProvider>  
         </Box>
