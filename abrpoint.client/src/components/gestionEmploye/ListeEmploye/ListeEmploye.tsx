@@ -261,7 +261,7 @@ const ListEmploye = () => {
             size: 90,
             Cell({ cell }) {
               const dateValue = cell.getValue();
-              const formattedDate = dateValue ? getDatePart(dateValue) : "-";
+              const formattedDate = getDatePart(String(dateValue ?? ""));
               
               return formattedDate;
             },
@@ -272,7 +272,7 @@ const ListEmploye = () => {
             size: 90,
             Cell({ cell }) {
               const dateValue = cell.getValue();
-              const formattedDate = dateValue ? getDatePart(dateValue) : "-";
+              const formattedDate = getDatePart(String(dateValue ?? ""));
               
               return formattedDate;
             },
