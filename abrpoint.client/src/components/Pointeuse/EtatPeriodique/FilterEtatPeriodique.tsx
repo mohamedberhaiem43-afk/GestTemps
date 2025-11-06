@@ -6,10 +6,11 @@ import { useEffect, useState } from "react";
 import { useDateRange } from "./FilterContext";
 import { Print, Search } from "@mui/icons-material";
 import useGetEmployee from "../../../hooks/employeHooks/useGetEmployee";
+import { useAuth } from "../../helper/AuthProvider";
 
 function FilterEtatPeriodique() {
     const token = localStorage.getItem('authToken');
-    const soccod = sessionStorage.getItem('soccod');
+    const { soccod } = useAuth();
     const headers = { Authorization: `Bearer ${token}` };
     const regime = {
         'M': "Mensuelle",
