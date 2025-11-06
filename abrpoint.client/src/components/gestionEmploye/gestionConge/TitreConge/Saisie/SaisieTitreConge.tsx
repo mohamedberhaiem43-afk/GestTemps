@@ -17,15 +17,16 @@ import { useCongeContext } from '../../../../helper/CongeContext';
 import useUpdateTitreConge from '../../../../../hooks/congeHooks/useUpdateTitreConge';
 import { Conge } from '../../../../../models/Conge';
 import EtatConge from '../../../../../models/EtatConge';
+import getDatePart from '../../../../helper/TimeConverter/ExtractDateOnly';
 
 
 export default function TitreCongeForm({ titre }:{titre:string}) {
-  const today = new Date();
-  const [condep, setDateDepart] = useState<Date | null>(today);
-  const [conret, setDateReprise] = useState<Date | null>(null);
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
+  const [condep, setDateDepart] = useState<string | null>(getTodayDate());
+  const [conret, setDateReprise] = useState<string | null>(getTodayDate());
   const [empcod, setEmploye] = useState('');
   const [concod, setOrdre] = useState('');
-  const [condat, setDate] = useState<Date | null>(null);
+  const [condat, setDate] = useState<string | null>(getTodayDate());
   const [conref, setReference] = useState('');
   const [conamdep, setApresMidiDepart] = useState(false);
   const [conamret, setApresMidiReprise] = useState(false);
@@ -92,11 +93,11 @@ useEffect(() => {
     if (congeToEdit.concod && titre != "Titre de Congés Génerale") {
       setEmploye(congeToEdit?.empcod || '');
       setOrdre(congeToEdit?.concod || '');
-      setDate(congeToEdit?.condat || '');
+      setDate(getDatePart(congeToEdit?.condat) || null);
+      setDateDepart(getDatePart(congeToEdit?.condep) || null);
+      setDateReprise(getDatePart(congeToEdit?.conret) || null);
       setReference(congeToEdit?.conref || '');
-      setDateDepart(congeToEdit?.condep || '');
       setApresMidiDepart(congeToEdit?.conamdep === '1');
-      setDateReprise(congeToEdit?.conret || '');
       setApresMidiReprise(congeToEdit?.conamret ==='1');
       setImputationAdresse(congeToEdit?.conadr || '');
       setTelephones(congeToEdit?.contel || '');
@@ -196,11 +197,11 @@ useEffect(() => {
         soccod: soccod || "01",
         empcod,
         concod,
-        condat,
+        condat:new Date(condat || ''),
         conref,
-        condep,
+        condep:new Date(condep || ''),
         conamdep: conamdep ? '1' : '0',
-        conret,
+        conret:new Date(conret || ''),
         conamret: conamdep ? '1' : '0',
         conadr,
         contel,
@@ -303,8 +304,8 @@ useEffect(() => {
           <InputComponent
             label="Date Départ"
             type="date"
-            value={condep ? condep.toISOString().split("T")[0] : ""}
-            setValue={(val: string) => setDateDepart(val ? new Date(val) : null)}
+            value={condep}
+            setValue={setDateDepart}
             />
           </Grid>
 
@@ -317,8 +318,8 @@ useEffect(() => {
         <InputComponent
           label="Date Retour"
           type="date"
-          value={conret ? conret.toISOString().split("T")[0] : ""}
-          setValue={(val: string) => setDateReprise(val ? new Date(val) : null)}
+          value={conret}
+          setValue={(val: string) => setDateReprise(val)}
         />
         </Grid>
 
