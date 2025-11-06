@@ -3,7 +3,7 @@ import {
   MaterialReactTable,
   useMaterialReactTable,
 } from 'material-react-table';
-import { Box, Checkbox, Dialog, DialogContent, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip } from '@mui/material';
+import { Box, Checkbox, CircularProgress, Dialog, DialogContent, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EmployeeContext } from './EmployeeContext';
@@ -14,6 +14,7 @@ import SaisieConge from './SaisieConge';
 import SaisieAutorisation from './SaisieAutorisation';
 import EmpEtat from '../../../models/EmpEtat';
 import EmpEtatService from '../../../services/PersenceService/EmpEtatService';
+import { useAuth } from '../../helper/AuthProvider';
 
 type EmployeeContextType = {
   selectedEmpMat: string;
@@ -37,7 +38,6 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const [selectedRow, setSelectedRow] = useState<EmpEtat | null>(null);
   const [motif, setMotif] = useState<string>('');
 
-
   const { setSelectedEmpPoste } = useContext(EmployeeContext);
 
   const handleSaveRow = async ({
@@ -48,7 +48,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     table: any;
   }) => {
     setValidationErrors({});
-    const soccod = sessionStorage.getItem('soccod');
+    const { soccod } = useAuth();
     if (!soccod) {
         return;
     }
@@ -394,15 +394,17 @@ function EmpEtatPeriodique() {
   const [empetat, setEmpEtat] = useState<EmpEtat[]>([]);
   const { selectedEmpMat } = useContext(EmployeeContext) as EmployeeContextType;
   const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date;pres?:string,mois:string } };
-  const soccod = sessionStorage.getItem('soccod');
+  const { soccod } = useAuth();
+  const [loading, setLoading] = useState<boolean>(false);
 
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-
     const fetchData = async () => {
       if (soccod && selectedEmpMat && dateRange?.dateDebut && dateRange?.dateFin) {
         try {
+          if(intervalId == undefined)
+            setLoading(true);
           const formattedDateDebut = new Date(dateRange.dateDebut)
             .toISOString()
             .replace('Z', '');
@@ -421,6 +423,9 @@ function EmpEtatPeriodique() {
         } catch (err) {
           setEmpEtat([]);
         }
+        finally {
+          setLoading(false);
+        }
       }
     };
 
@@ -429,7 +434,6 @@ function EmpEtatPeriodique() {
 
     // Répéter toutes les 10 secondes
     intervalId = setInterval(fetchData, 5000);
-
     // Nettoyer quand le composant se démonte
     return () => {
       clearInterval(intervalId);
@@ -438,8 +442,25 @@ function EmpEtatPeriodique() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Example empetat={empetat} />
-    </QueryClientProvider>
+      {loading ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "300px",
+                }}
+              >
+                <CircularProgress />
+                <Typography variant="body2" sx={{ mt: 2 }}>
+                  Chargement des données...
+                </Typography>
+              </Box>
+            ) : (
+              <Example empetat={empetat} />
+            )}
+      </QueryClientProvider>
   );
 }
 

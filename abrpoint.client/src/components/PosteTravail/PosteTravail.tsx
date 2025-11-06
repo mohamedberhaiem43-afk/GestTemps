@@ -15,6 +15,15 @@ import AlertModal from "../AlertModal/AlertModal";
 import useGetAllPostes from "../../hooks/posteHooks/useGetAllPostes";
 
 export default function PosteDeTravail() {
+      const emptySchedule = [
+      { jour: 'Lundi', DebEntree: "",Entrée: "",FinEntree: "", Sortie: "", repasBonus: "0", repos: "0",DebEntree2: "",Entree2:"",Sortie2:"",FinEntree2: "",maxhre:"",minhjour:"",minhdemijour:"",Douche:"" },
+      { jour: 'Mardi', DebEntree: "",Entrée: "",FinEntree: "", Sortie: "", repasBonus: "0", repos: "0",DebEntree2: "",Entree2:"",Sortie2:"",FinEntree2: "",maxhre:"",minhjour:"",minhdemijour:"",Douche:"" },
+      { jour: 'Mercredi', DebEntree: "",Entrée: "",FinEntree: "", Sortie: "", repasBonus: "0", repos: "0",DebEntree2: "",Entree2:"",Sortie2:"",FinEntree2: "",maxhre:"",minhjour:"",minhdemijour:"",Douche:"" },
+      { jour: 'Jeudi', DebEntree: "",Entrée: "",FinEntree: "", Sortie: "", repasBonus: "0", repos: "0",DebEntree2: "",Entree2:"",Sortie2:"",FinEntree2: "",maxhre:"",minhjour:"",minhdemijour:"",Douche:"" },
+      { jour: 'Vendredi', DebEntree: "",Entrée: "",FinEntree: "", Sortie: "", repasBonus: "0", repos: "0",DebEntree2: "",Entree2:"",Sortie2:"",FinEntree2: "",maxhre:"",minhjour:"",minhdemijour:"",Douche:"" },
+      { jour: 'Samedi', DebEntree: "",Entrée: "",FinEntree: "", Sortie: "", repasBonus: "0", repos: "0",DebEntree2: "",Entree2:"",Sortie2:"",FinEntree2: "",maxhre:"",minhjour:"",minhdemijour:"",Douche:"" },
+      { jour: 'Dimanche', DebEntree: "",Entrée: "",FinEntree: "", Sortie: "", repasBonus: "0", repos: "0",DebEntree2: "",Entree2:"",Sortie2:"",FinEntree2: "",maxhre:"",minhjour:"",minhdemijour:"",Douche:"" },
+    ];
   const [saisieData, setSaisieData] = useState<Poste>({} as Poste);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -38,27 +47,31 @@ export default function PosteDeTravail() {
   // ✅ Update schedule data when poste changes
   useEffect(() => {
     if (poste) {
-      setScheduleData([
-        { jour: "Lundi", DebutEntree: poste.lunhdematin, Entrée: poste.lunhdmat, FinEntree: poste.lunhfematin, Sortie: poste.lunhfmat, repasBonus: poste.lunrepas, repos: poste.lunrepos },
-        { jour: "Mardi", DebutEntree: poste.marhdematin, Entrée: poste.marhdmat, FinEntree: poste.marhfematin, Sortie: poste.marhfmat, repasBonus: poste.marrepas, repos: poste.marrepos },
-        { jour: "Mercredi", DebutEntree: poste.merhdematin, Entrée: poste.merhdmat, FinEntree: poste.merhfematin, Sortie: poste.merhfmat, repasBonus: poste.merrepas, repos: poste.merrepos },
-        { jour: "Jeudi", DebutEntree: poste.jeuhdematin, Entrée: poste.jeuhdmat, FinEntree: poste.jeuhfematin, Sortie: poste.jeuhfmat, repasBonus: poste.jeurepas, repos: poste.jeurepos },
-        { jour: "Vendredi", DebutEntree: poste.venhdematin, Entrée: poste.venhdmat, FinEntree: poste.venhfematin, Sortie: poste.venhfmat, repasBonus: poste.venrepas, repos: poste.venrepos },
-        { jour: "Samedi", DebutEntree: poste.samhdematin, Entrée: poste.samhdmat, FinEntree: poste.samhfematin, Sortie: poste.samhfmat, repasBonus: poste.samrepas, repos: poste.samrepos },
-        { jour: "Dimanche", DebutEntree: poste.dimhdematin, Entrée: poste.dimhdmat, FinEntree: poste.dimhfematin, Sortie: poste.dimhfmat, repasBonus: poste.dimrepas, repos: poste.dimrepos },
-      ]);
+    setScheduleData([
+      { jour: 'Lundi', DebEntree: poste?.lunhdematin,Entrée: poste?.lunhdmat,FinEntree: poste?.lunhfematin, Sortie: poste?.lunhfmat, repasBonus: poste?.lunrepas, repos: poste?.lunrepos,DebEntree2: poste?.lunhdeamidi,Entree2:poste?.lunhdam,Sortie2:poste?.lunhfam,FinEntree2: poste?.lunhfeamidi,maxhre:poste?.maxhrelun,minhjour:poste?.minhjourlun,minhdemijour:poste?.minhdemijourlun,Douche:poste?.lundouche },
+      { jour: 'Mardi', DebEntree: poste?.marhdematin,Entrée: poste?.marhdmat,FinEntree: poste?.marhfematin, Sortie: poste?.marhfmat, repasBonus: poste?.marrepas, repos: poste?.marrepos,DebEntree2: poste?.marhdeamidi,Entree2:poste?.marhdam,Sortie2:poste?.marhfam,FinEntree2: poste?.marhfeamidi,maxhre:poste?.maxhremar,minhjour:poste?.minhjourmar,minhdemijour:poste?.minhdemijourmar,Douche:poste?.mardouche },
+      { jour: 'Mercredi', DebEntree: poste?.merhdematin,Entrée: poste?.merhdmat,FinEntree: poste?.merhfematin, Sortie: poste?.merhfmat, repasBonus: poste?.merrepas, repos: poste?.merrepos,DebEntree2: poste?.merhdeamidi,Entree2:poste?.merhdam,Sortie2:poste?.merhfam,FinEntree2: poste?.merhfeamidi,maxhre:poste?.maxhremer,minhjour:poste?.minhjourmer,minhdemijour:poste?.minhdemijourmer,Douche:poste?.merdouche },
+      { jour: 'Jeudi', DebEntree: poste?.jeuhdematin,Entrée: poste?.jeuhdmat,FinEntree: poste?.jeuhfematin, Sortie: poste?.jeuhfmat, repasBonus: poste?.jeurepas, repos: poste?.jeurepos,DebEntree2: poste?.jeuhdeamidi,Entree2:poste?.jeuhdam,Sortie2:poste?.jeuhfam,FinEntree2: poste?.jeuhfeamidi,maxhre:poste?.maxhrejeu,minhjour:poste?.minhjourjeu,minhdemijour:poste?.minhdemijourjeu,Douche:poste?.jeudouche },
+      { jour: 'Vendredi', DebEntree: poste?.venhdematin,Entrée: poste?.venhdmat,FinEntree: poste?.venhfematin, Sortie: poste?.venhfmat, repasBonus: poste?.venrepas, repos: poste?.venrepos,DebEntree2: poste?.venhdeamidi,Entree2:poste?.venhdam,Sortie2:poste?.venhfam,FinEntree2: poste?.venhfeamidi,maxhre:poste?.maxhreven,minhjour:poste?.minhjourven,minhdemijour:poste?.minhdemijourven,Douche:poste?.vendouche },
+      { jour: 'Samedi', DebEntree: poste?.samhdematin,Entrée: poste?.samhdmat,FinEntree: poste?.samhfematin, Sortie: poste?.samhfmat, repasBonus: poste?.samrepas, repos: poste?.samrepos,DebEntree2: poste?.samhdeamidi,Entree2:poste?.samhdam,Sortie2:poste?.samhfam,FinEntree2: poste?.samhfeamidi,maxhre:poste?.maxhresam,minhjour:poste?.minhjoursam,minhdemijour:poste?.minhdemijoursam,Douche:poste?.samdouche },
+      { jour: 'Dimanche', DebEntree: poste?.dimhdematin,Entrée: poste?.dimhdmat,FinEntree: poste?.dimhfematin, Sortie: poste?.dimhfmat, repasBonus: poste?.dimrepas, repos: poste?.dimrepos,DebEntree2: poste?.dimhdeamidi,Entree2:poste?.dimhdam,Sortie2:poste?.dimhfam,FinEntree2: poste?.dimhfeamidi,maxhre:poste?.maxhredim,minhjour:poste?.minhjourdim,minhdemijour:poste?.minhdemijourdim,Douche:poste?.dimdouche },
+    ]);
     }
   }, [poste]);
 
   // ✅ Show snackbar on success
   useEffect(() => {
-    if (addSuccess) showSnackbar("Poste ajouté avec succès", "success");
+    if (addSuccess) {
+      showSnackbar("Poste ajouté avec succès", "success");
+      resetForm();
+    }
     if (updateSuccess) showSnackbar("Poste mis à jour avec succès", "success");
     if (deleteSuccess) {
       showSnackbar("Poste supprimé avec succès", "success");
       resetForm();
     }
   }, [addSuccess, updateSuccess, deleteSuccess]);
+
 
   // ✅ Show snackbar for forbidden or other errors
   useEffect(() => {
@@ -84,24 +97,50 @@ export default function PosteDeTravail() {
     if (!saisieData) return;
 
     const scheduleMap: any = {
-      0: ["lunhdematin", "lunhdmat", "lunhfematin", "lunhfmat", "lunrepas", "lunrepos"],
-      1: ["marhdematin", "marhdmat", "marhfematin", "marhfmat", "marrepas", "marrepos"],
-      2: ["merhdematin", "merhdmat", "merhfematin", "merhfmat", "merrepas", "merrepos"],
-      3: ["jeuhdematin", "jeuhdmat", "jeuhfematin", "jeuhfmat", "jeurepas", "jeurepos"],
-      4: ["venhdematin", "venhdmat", "venhfematin", "venhfmat", "venrepas", "venrepos"],
-      5: ["samhdematin", "samhdmat", "samhfematin", "samhfmat", "samrepas", "samrepos"],
-      6: ["dimhdematin", "dimhdmat", "dimhfematin", "dimhfmat", "dimrepas", "dimrepos"],
+      0: ["lunhdematin", "lunhdmat", "lunhfematin", "lunhfmat", "lunrepas", "lunrepos",
+          "lunhdeamidi", "lunhdam", "lunhfam", "lunhfeamidi",
+          "maxhrelun", "minhjourlun", "minhdemijourlun", "lundouche"],
+      1: ["marhdematin", "marhdmat", "marhfematin", "marhfmat", "marrepas", "marrepos",
+          "marhdeamidi", "marhdam", "marhfam", "marhfeamidi",
+          "maxhremar", "minhjourmar", "minhdemijourmar", "mardouche"],
+      2: ["merhdematin", "merhdmat", "merhfematin", "merhfmat", "merrepas", "merrepos",
+          "merhdeamidi", "merhdam", "merhfam", "merhfeamidi",
+          "maxhremer", "minhjourmer", "minhdemijourmer", "merdouche"],
+      3: ["jeuhdematin", "jeuhdmat", "jeuhfematin", "jeuhfmat", "jeurepas", "jeurepos",
+          "jeuhdeamidi", "jeuhdam", "jeuhfam", "jeuhfeamidi",
+          "maxhrejeu", "minhjourjeu", "minhdemijourjeu", "jeudouche"],
+      4: ["venhdematin", "venhdmat", "venhfematin", "venhfmat", "venrepas", "venrepos",
+          "venhdeamidi", "venhdam", "venhfam", "venhfeamidi",
+          "maxhreven", "minhjourven", "minhdemijourven", "vendouche"],
+      5: ["samhdematin", "samhdmat", "samhfematin", "samhfmat", "samrepas", "samrepos",
+          "samhdeamidi", "samhdam", "samhfam", "samhfeamidi",
+          "maxhresam", "minhjoursam", "minhdemijoursam", "samdouche"],
+      6: ["dimhdematin", "dimhdmat", "dimhfematin", "dimhfmat", "dimrepas", "dimrepos",
+          "dimhdeamidi", "dimhdam", "dimhfam", "dimhfeamidi",
+          "maxhredim", "minhjourdim", "minhdemijourdim", "dimdouche"]
     };
-
     const mergedData: any = { ...saisieData, soccod };
     scheduleData.forEach((row, i) => {
-      const [deb, ent, fin, sort, rep, rep2] = scheduleMap[i];
-      mergedData[deb] = row.DebutEntree;
-      mergedData[ent] = row.Entrée;
-      mergedData[fin] = row.FinEntree;
-      mergedData[sort] = row.Sortie;
-      mergedData[rep] = row.repasBonus;
-      mergedData[rep2] = row.repos;
+      const [
+        debMatin, entreeMatin, finMatin, sortieMatin, repas, repos,
+        debAprem, entreeAprem, sortieAprem, finAprem,
+        maxh, minhjour, minhdemijour, douche
+      ] = scheduleMap[i];
+
+      mergedData[debMatin] = row.DebEntree;
+      mergedData[entreeMatin] = row.Entrée;
+      mergedData[finMatin] = row.FinEntree;
+      mergedData[sortieMatin] = row.Sortie;
+      mergedData[repas] = row.repasBonus;
+      mergedData[repos] = row.repos;
+      mergedData[debAprem] = row.DebEntree2;
+      mergedData[entreeAprem] = row.Entree2;
+      mergedData[sortieAprem] = row.Sortie2;
+      mergedData[finAprem] = row.FinEntree2;
+      mergedData[maxh] = row.maxhre;
+      mergedData[minhjour] = row.minhjour;
+      mergedData[minhdemijour] = row.minhdemijour;
+      mergedData[douche] = row.Douche;
     });
 
     if (mode === "update") {
@@ -122,13 +161,13 @@ export default function PosteDeTravail() {
   const resetForm = () => {
     setSelectedPoste(undefined);
     setSaisieData({} as Poste);
-    setScheduleData([]);
+    setScheduleData(emptySchedule);
     setMode("add");
   };
 
   return (
     <Box>
-      <Grid container spacing={0.5} height={"85vh"} mt={-3}>
+      <Grid container spacing={0.5} height={"90vh"} width={'95vw'} mt={-3} >
         <Grid item xs={12}>
           <Typography fontWeight="bold" variant="h6" textAlign="center" color="primary" mb={2}>
             Gestion poste de Travail
@@ -143,11 +182,11 @@ export default function PosteDeTravail() {
           <PosteTable />
         </Grid>
 
-        <Grid item xs={7} sx={{ mt: -2 }}>
+        <Grid item xs={10} sx={{ mt: -2 }}>
           <PosteList scheduleData={scheduleData} onChange={handleScheduleChange} />
         </Grid>
 
-        <Grid item xs={1.5} display="flex" justifyContent="space-around">
+        <Grid item xs={1.5} display="flex" justifyContent="space-around" gap={3} p={2} height={'max-content'}>
           <IconButton color="primary" onClick={handleSave}>
             <SaveIcon />
           </IconButton>

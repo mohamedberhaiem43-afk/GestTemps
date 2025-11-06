@@ -23,20 +23,23 @@ import useGetDemConges from '../../../../hooks/congeHooks/useGetDemConges';
 import { useCongeContext } from '../../../helper/CongeContext';
 import useUpdateDemConge from '../../../../hooks/congeHooks/useUpdateConge';
 import { Conge } from '../../../../models/Conge';
+import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
 
 export default function CongeForm() {
   const { selectedConge } = useCongeContext();
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
+
   const soccod = sessionStorage.getItem('soccod')||'';
   const [empcod, setEmploye] = useState('');
   const [concod, setOrdre] = useState('');
   // Valeur par défaut: date d'aujourd'hui
-  const [condat, setDate] = useState<Date>(new Date());
+const [condat, setDate] = useState<Date | string>(getTodayDate());
   const [conref, setReference] = useState('');
   // Valeur par défaut: date d'aujourd'hui
-  const [condep, setDateDepart] = useState<Date>(new Date());
+  const [condep, setDateDepart] = useState<Date | string>(getTodayDate());
   const [conamdep, setApresMidiDepart] = useState(false);
   // Valeur par défaut: date d'aujourd'hui
-  const [conret, setDateReprise] = useState<Date>(new Date());
+  const [conret, setDateReprise] = useState<Date | string>(getTodayDate());
   const [conamret, setApresMidiReprise] = useState(false);
   const [conadr, setImputationAdresse] = useState('');
   const [contel, setTelephones] = useState('');
@@ -60,15 +63,15 @@ export default function CongeForm() {
       setAbscod(selectedConge.abscod);
       setReference(selectedConge.conref);
       setTelephones(selectedConge.contel);
-      setDateReprise(selectedConge.conret ? new Date(selectedConge.conret) : new Date());
+      setDateReprise(getDatePartFromDate(selectedConge.conret));
+      setDate(getDatePartFromDate(selectedConge.condat));
+      setDateDepart(getDatePartFromDate(selectedConge.condep));
       setApresMidiDepart(selectedConge.conamdep === '1');
       setTimePeriod(selectedConge.conjour);
       setConnbjour(selectedConge.connbjour);
       setOrdre(selectedConge.concod);
       setImputationAdresse(selectedConge.conadr);
-      setDate(selectedConge.condat ? new Date(selectedConge.condat) : new Date());
       setApresMidiReprise(selectedConge.conamret === '1');
-      setDateDepart(selectedConge.condep ? new Date(selectedConge.condep): new Date());
       setWritable(false);
       setMode('edit');
     }

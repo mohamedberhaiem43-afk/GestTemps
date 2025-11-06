@@ -7,10 +7,11 @@ import {  useDateMoisPointageRange } from "./FilterPointageMoisContext";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import { Search } from "@mui/icons-material";
 import './WeeklyHoursTable.css'
+import { useAuth } from "../../helper/AuthProvider";
 
 function FilterPointageMois() {
     const token = localStorage.getItem('authToken');
-    const soccod = sessionStorage.getItem('soccod');
+    const { soccod } = useAuth();
     const headers = { Authorization: `Bearer ${token}` };
     // Add this new state
     const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);

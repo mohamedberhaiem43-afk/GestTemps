@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import PosteService from "../../services/PosteService";
+import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetEmployePoste = (codpost:string,day:string) => {
-  const soccod = sessionStorage.getItem('soccod');
+  const { soccod } = useAuth();
 
   return useQuery({
     queryKey: ["postes", soccod,codpost,day],

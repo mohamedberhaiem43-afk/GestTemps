@@ -3,7 +3,7 @@ import { createTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { AppProvider, Router, Session } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core';
-import { Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings, AttachMoney, Autorenew, Domain, EventNote, HolidayVillageRounded, Insights, Money, MoneyOffCsredSharp, Settings, WorkOutline} from '@mui/icons-material';
+import { Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings, Assessment, AttachMoney, Autorenew, DevicesOther, Domain, EventNote, HolidayVillageRounded, Insights, Money, MoneyOffCsredSharp, Settings, SyncAlt, WorkOutline} from '@mui/icons-material';
 import { Box } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Filiale } from '../DonneeDeBase/Filiale/Filiale';
@@ -69,6 +69,7 @@ import Main from '../PosteTravail/Main';
 import Lecture from '../Pointeuse/Lecture/Lecture';
 import DroitAccessPointeuse from '../Admin/PointeuseAccees/DroitAcceesPointeuse';
 import Profile from '../ParamSoc/Profile/Profile';
+import Optimisation from '../Pointeuse/Optimisation/Optimisation';
 
 interface DemoProps {
     window?: () => Window;
@@ -159,24 +160,29 @@ const NAVIGATION = [
     ],
   },
   {
-    segment: 'dashboard',
-    title: 'Pointeuse',
-    icon: <Fingerprint  />,
-    children: [
+  segment: 'dashboard',
+      title: 'Pointeuse',
+      icon: <Fingerprint />,
+      children: [
       {
         segment: 'lecture-pointeuse',
         title: 'Lecture Pointeuses',
-        icon: <PeopleIcon />,
+        icon: <SyncAlt />, // ou <CloudSync /> pour synchronisation/lecture
       },
       {
         segment: 'liste-pointeuse',
         title: 'Liste Pointeuses',
-        icon: <PeopleIcon />,
+        icon: <DevicesOther />, // ou <Devices /> pour liste d'appareils
+      },
+      {
+        segment: 'optimisation-pointage',
+        title: 'Optimisation Pointage',
+        icon: <DevicesOther />, // ou <Speed /> pour optimisation
       },
       {
         segment: 'etat-periodique',
         title: 'Etat Périodique',
-        icon: <PeopleIcon />,
+        icon: <Assessment />, // ou <BarChart /> pour rapports/états
       },
     ]
   },
@@ -423,6 +429,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
             break;
         case '/dashboard/liste-pointeuse':
             content = <Pointeuse />;
+            break;
+        case '/dashboard/optimisation-pointage':
+            content = <Optimisation />;
             break;
         case '/dashboard/etat-periodique':
             content = <EtatPeriodique />;

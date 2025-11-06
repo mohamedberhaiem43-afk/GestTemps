@@ -10,23 +10,17 @@ import {
   TableRow,
   CircularProgress,
   Typography,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
 } from '@mui/material';
-import FilterPointageMois from './FilterPointageMois';
-import WeeklyHoursTable from './WeeklyHoursTable';
-import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './FilterPointageMoisContext';
+
 import { useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { PointageMois } from '../../../models/PointageMois';
 import DataList from '../../lists/list';
 import { MRT_ColumnDef } from 'material-react-table';
-import { getWeeksFromStartToSunday } from '../../helper/HelperFunctions';
 import GetPointageMoisService from '../../../services/GetPointageMoisService';
 import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
-import CloseIcon from '@mui/icons-material/Close';
+import FilterPointageMois from '../../PreparationPaie/PointageDuMois/FilterPointageMois';
+import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from '../../PreparationPaie/PointageDuMois/FilterPointageMoisContext';
 
 const PointageDuMoisContent = () => {
   const context = useDateMoisPointageRange();
@@ -35,20 +29,14 @@ const PointageDuMoisContent = () => {
   const mois = dateRange?.mois || '';
   const annee = dateRange?.annee || '2025';
   const semaine = dateRange?.semaine || '1';
-  const debutmois = dateRange?.dateDebut;
-  const finmois = dateRange?.dateFin;
   const empcods = dateRange?.empcods || [];
-  const [openDialog, setOpenDialog] = useState(false);
-  const [numSem, setNumSem] = useState(1);
 
   const [selectedEmp, setSelectedEmp] = useState<PointageMois | null>(null);
   const [pointageMois, setPointageMois] = useState<PointageMois[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedWeekDetails, setSelectedWeekDetails] = useState<Record<string, string> | null>(null);
   const [majorerHeures, setMajorerHeures] = useState<boolean>(false);
 
-  const weekRanges = (debutmois && finmois) ? getWeeksFromStartToSunday(debutmois, finmois) : [];
 
   const queryParams = new URLSearchParams();
   empcods.forEach(code => queryParams.append("empcods", code));
@@ -90,6 +78,7 @@ const PointageDuMoisContent = () => {
           { accessorKey: 'empMat', header: 'Matricule', size: 50 },
           { accessorKey: 'empLib', header: 'Nom et Prénom', size: 60 },
           { accessorKey: 'empReg', header: 'Régime', size: 50 },
+          { accessorKey: 'empSite', header: 'Site', size: 50 },
         ],
       },
     ],
@@ -157,7 +146,7 @@ const PointageDuMoisContent = () => {
               </Box>
             </Grid>
 
-            <Grid item xs={7} mt={4}>
+            <Grid item xs={7}>
               {/* TABLE PRINCIPALE */}
               {selectedEmp && (
                 <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
@@ -192,11 +181,6 @@ const PointageDuMoisContent = () => {
                         <TableRow
                           key={idx}
                           hover
-                          onDoubleClick={() => {
-                            setNumSem(idx + 1);
-                            setSelectedWeekDetails(res.weekDetails as Record<string, string>);
-                            setOpenDialog(true);
-                          }}
                         >
                           <TableCell>{idx + 1}</TableCell>
                           <TableCell>{(res.tothre ?? 0).toFixed(2)}</TableCell>
@@ -247,74 +231,16 @@ const PointageDuMoisContent = () => {
                 </TableContainer>
               )}
             </Grid>
-
-       
-
-            {/* Ligne finale : Weekly Hours */}
-            <Grid item xs={12}>
-              <WeeklyHoursTable
-                weekRanges={weekRanges}
-                weeklyHours={selectedEmp?.heuresSupplementairesResultats?.map((r) => r.nbhCalendSem) || []}
-              />
-            </Grid>
           </>
         )}
       </Grid>
-      {/* 🔹 Popup for week details */}
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        sx={{
-        '& .MuiDialog-container': {
-          alignItems: 'center',
-        },
-        '& .MuiDialog-paper': {
-          margin: { xs: 0, sm: '32px' },
-          width: { xs: '60%', sm: 'auto' },
-          maxWidth: { xs: '70%', sm: '500px' },
-        },
-      }}
-      >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography color={'secondary'} variant="h6">Détails de la semaine {numSem}</Typography>
-          <IconButton onClick={() => setOpenDialog(false)}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent>
-          {selectedWeekDetails && (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  {Object.keys(selectedWeekDetails).map((key) => (
-                    <TableCell
-                      key={key}
-                      sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', backgroundColor: '#f5f5f5' , color: '#1976d2' }}
-                    >
-                      {key.substring(0,10)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow>
-                  {Object.values(selectedWeekDetails).map((value, idx) => (
-                    <TableCell key={idx}>{value}</TableCell>
-                  ))}
-                </TableRow>
-              </TableBody>
-            </Table>
-          )}
-        </DialogContent>
-      </Dialog>
 
     </Box>
   );
 
 };
 
-const PointageDuMois = () => {
+const Optimisation = () => {
   const queryClient = new QueryClient();
 
   return (
@@ -328,4 +254,4 @@ const PointageDuMois = () => {
   );
 };
 
-export default PointageDuMois;
+export default Optimisation;
