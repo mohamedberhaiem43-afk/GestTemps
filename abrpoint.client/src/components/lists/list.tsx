@@ -40,13 +40,13 @@ type DataListProps = {
 export default function DataList({ data, columns, message, deleteMethod, idKey,refetchMethod,setData,pageSize,purge,
                                     reportGeneration1,reportGeneration2,reportGeneration3,reportGeneration4,empHoraires,actions,onRowClick }: DataListProps)
 {
-    const [selectedRow, setSelectedRow] = useState(null);
+    const [selectedRow, setSelectedRow] = useState<any>(null);
     const [openModal, setOpenModal] = useState(false);
     const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
     const [resMessage, setResMessage] = useState('');
     const [severity, setSeverity] = useState<'success'|'error'>('success');
 
-    const handleOpenModal = (row: SetStateAction<null>) => {
+    const handleOpenModal = (row: SetStateAction<string | number | null>) => {
         setSelectedRow(row);
         setOpenModal(true);
     };
@@ -127,11 +127,13 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
         muiTableBodyRowProps: ({ row }) => ({
             onClick: () => {
                 if (onRowClick) {
-                    onRowClick(row.original); // 👈 send clicked row's data
+                    onRowClick(row.original);
                 }
+                setSelectedRow(row.index); // ✅ Save clicked row ID for highlighting
             },
             sx: {
-                cursor: onRowClick ? 'pointer' : 'default', // Optional: visual cue
+                cursor: onRowClick ? 'pointer' : 'default',
+                backgroundColor: selectedRow === row.index ? '#e3f2fd' : 'inherit',
                 '&:hover': {
                     backgroundColor: onRowClick ? '#f5f5f5' : 'inherit',
                 },
