@@ -39,6 +39,7 @@ const PointageDuMoisContent = () => {
   const finmois = dateRange?.dateFin;
   const empcods = dateRange?.empcods || [];
   const [openDialog, setOpenDialog] = useState(false);
+  const [numSem, setNumSem] = useState(1);
 
   const [selectedEmp, setSelectedEmp] = useState<PointageMois | null>(null);
   const [pointageMois, setPointageMois] = useState<PointageMois[]>([]);
@@ -95,18 +96,6 @@ const PointageDuMoisContent = () => {
     []
   );
 
-  // 🌀 Indicateur de chargement
-  // if (loading) {
-  //   return (
-  //     <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="60vh" width={'95vw'} >
-  //       <CircularProgress />
-  //       <Typography mt={2} color="text.secondary">
-  //         Chargement des pointages en cours...
-  //       </Typography>
-  //     </Box>
-  //   );
-  // }
-
   // ⚠️ Affichage de l'erreur
   if (error) {
     return (
@@ -121,13 +110,10 @@ const PointageDuMoisContent = () => {
     <Box p={4} sx={{ minHeight: '100vh' }}>
       <Grid container spacing={2}>
         {/* 🔹 Filtre */}
-        {
-          !loading && (
-          <Grid item xs={12}>
+      
+          <Grid item xs={12} display={loading ? 'none' : 'block'}>
             <FilterPointageMois />
           </Grid>
-          )
-        }
 
         {/* 🔹 Loader */}
         {loading && (
@@ -142,7 +128,7 @@ const PointageDuMoisContent = () => {
         {!loading && (
           <>
             {/* Ligne principale : DataList + Tableau principal */}
-            <Grid item xs={3}>
+            <Grid item xs={5}>
               <Box display="flex" flexDirection="column" gap={1}>
                 <CheckboxComponent
                   label="Majorer H.Férié et Congé aux Hre Normales"
@@ -171,7 +157,7 @@ const PointageDuMoisContent = () => {
               </Box>
             </Grid>
 
-            <Grid item xs={9}>
+            <Grid item xs={7} mt={4}>
               {/* TABLE PRINCIPALE */}
               {selectedEmp && (
                 <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
@@ -207,6 +193,7 @@ const PointageDuMoisContent = () => {
                           key={idx}
                           hover
                           onDoubleClick={() => {
+                            setNumSem(idx + 1);
                             setSelectedWeekDetails(res.weekDetails as Record<string, string>);
                             setOpenDialog(true);
                           }}
@@ -287,11 +274,9 @@ const PointageDuMoisContent = () => {
           maxWidth: { xs: '70%', sm: '500px' },
         },
       }}
-        //maxWidth="xl"
-        //fullWidth
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Détails de la semaine</Typography>
+          <Typography color={'secondary'} variant="h6">Détails de la semaine {numSem}</Typography>
           <IconButton onClick={() => setOpenDialog(false)}>
             <CloseIcon />
           </IconButton>
@@ -305,9 +290,9 @@ const PointageDuMoisContent = () => {
                   {Object.keys(selectedWeekDetails).map((key) => (
                     <TableCell
                       key={key}
-                      sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', backgroundColor: '#f5f5f5' }}
+                      sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', backgroundColor: '#f5f5f5' , color: '#1976d2' }}
                     >
-                      {key}
+                      {key.substring(0,10)}
                     </TableCell>
                   ))}
                 </TableRow>
