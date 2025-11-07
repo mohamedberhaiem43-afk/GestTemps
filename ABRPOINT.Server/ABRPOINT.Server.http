@@ -1,0 +1,6 @@
+@ABRPOINT.Server_HostAddress = http://localhost:5125
+
+GET {{ABRPOINT.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

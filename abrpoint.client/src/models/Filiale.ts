@@ -1,0 +1,16 @@
+export type Filiale = { 
+    sitcod: string,
+    soccod: string,
+    sitlib: string,
+    sitadr: string,
+    sittel: string,
+    sitfax: string,
+    sitemail: string,
+    sitmois: number,
+    sitconge: number,
+    sitcongem: number,
+    sitsoc: string,
+    sitpaie: string,
+    sitsanch: string,
+    sitsancm: string,
+};

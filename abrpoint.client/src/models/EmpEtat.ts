@@ -1,0 +1,22 @@
+export default interface EmpEtat {
+  predat: string;
+  prerepos: string;
+  preentmatup: string;
+  presortmatup: string;
+  prerepas: string;
+  preentamidiup: string;
+  presortamidiup: string;
+  preentsupup: string;
+  presortsupup: string;
+  etat: string;
+  TotalHeure: string;
+  tothabs: string;
+  tothre: string;
+  totret: string;
+  tothnuit: string;
+  totcmp: string;
+  empcod: string;
+  codposte: string;
+  preobs: string;
+  hreaut: number;
+};

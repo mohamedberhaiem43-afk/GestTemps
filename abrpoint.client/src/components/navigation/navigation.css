@@ -1,0 +1,75 @@
+
+/* Default styles for larger screens */
+.css-1xot77b-MuiDrawer-docked .MuiDrawer-paper {
+    width: 250px !important;
+    box-sizing: border-box;
+    background-image: none;
+}
+
+.css-10hburv-MuiTypography-root {
+    margin: 0;
+    font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+    font-weight: 400;
+    font-size: 0.9rem !important;
+    line-height: 1.5;
+    letter-spacing: 0.00938em;
+    display: block;
+}
+#root > div.MuiBox-root.css-k008qs > header > div > div.MuiBox-root.css-d47f85{
+    border: black solid 2px;
+}
+/* Styles for medium screens (tablets) */
+@media (max-width: 1024px) {
+    .css-1xot77b-MuiDrawer-docked .MuiDrawer-paper {
+        width: 200px !important; /* Reduce drawer width */
+    }
+
+    .css-10hburv-MuiTypography-root {
+        font-size: 0.8rem !important; /* Adjust font size for readability */
+    }
+}
+
+
+
+/* Styles for small screens (mobile) */
+@media (max-width: 600px) {
+    .css-1xot77b-MuiDrawer-docked .MuiDrawer-paper {
+        width: 150px !important; /* Further reduce drawer width for small screens */
+    }
+
+    .css-10hburv-MuiTypography-root {
+        font-size: 0.7rem !important; /* Adjust font size for smaller screens */
+    }
+    .MuiTypography-root MuiTypography-h6 css-1oj6sux-MuiTypography-root{
+        /* Add your styles here */
+        width: 150px !important; 
+    }
+
+.css-4t3x6l-MuiPaper-root-MuiDrawer-paper {
+    background-color: #fff;
+    color: rgba(0, 0, 0, 0);
+    -webkit-transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+    transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+    box-shadow: 0px 8px 10px -5px rgba(0, 0, 0, 0.2), 0px 16px 24px 2px rgba(0, 0, 0, 0.14), 0px 6px 30px 5px rgba(0, 0, 0, 0.12);
+    overflow-y: auto;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex
+;
+    -webkit-flex-direction: column;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    height: 100%;
+    -webkit-flex: 1 0 auto;
+    -ms-flex: 1 0 auto;
+    flex: 1 0 auto;
+    z-index: 1200;
+    -webkit-overflow-scrolling: touch;
+    position: fixed;
+    top: 0;
+    outline: 0;
+    left: 0;
+}
+    
+}

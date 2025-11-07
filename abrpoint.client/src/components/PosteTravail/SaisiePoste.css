@@ -1,0 +1,6 @@
+.tolerence-poste-entree,.tolerence-poste-sortie
+{
+    max-width: 10vw;
+    display: flex;
+    justify-content: space-between;
+}

@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="02/03/2025 17:56:52" ReportInfo.Modified="11/03/2025 17:23:57" ReportInfo.CreatorVersion="2024.1.7.0">
+  <Dictionary>
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
+      <TableDataSource Name="Table" Alias="empsoc" DataType="System.Int32" Enabled="true" SelectCommand="SELECT e.emplib,e.empfonc,s.soclib,s.socadr&#13;&#10;FROM EMPLOYE e,SOCIETE s&#13;&#10;WHERE e.empcod = @Empcod AND e.soccod = s.soccod and s.soccod=@Soccod">
+        <Column Name="emplib" DataType="System.String"/>
+        <Column Name="empfonc" DataType="System.String"/>
+        <Column Name="soclib" DataType="System.String"/>
+        <Column Name="socadr" DataType="System.String"/>
+        <CommandParameter Name="Empcod" DataType="22" Expression="[Empcod]"/>
+        <CommandParameter Name="Soccod" DataType="22" Expression="[Soccod]"/>
+      </TableDataSource>
+    </MsSqlDataConnection>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitle1" Width="718.2"/>
+    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="718.2" Height="75.6">
+      <ShapeObject Name="Shape1" Width="718.2" Height="75.6"/>
+      <LineObject Name="Line1" Left="226.8" Top="75.6" Height="-75.6"/>
+      <LineObject Name="Line2" Left="567" Top="75.6" Height="-75.6"/>
+      <TextObject Name="Text1" Left="302.4" Top="18.9" Width="207.9" Height="37.8" Text="A l'attention de Docteur&#13;&#10;HAMMADI BAKOUR" Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="Text2" Left="567" Top="9.45" Width="151.2" Height="18.9" Text="Le: [DateTime.Now.Day]/[DateTime.Now.Month]/[DateTime.Now.Year]" Font="Arial, 12pt"/>
+      <TextObject Name="Text3" Left="567" Top="47.25" Width="151.2" Height="18.9" Text="Date Congé: " Font="Arial, 12pt"/>
+      <TextObject Name="Text4" Left="9.45" Top="9.45" Width="245.7" Height="18.9" Text="[UpperCase([empsoc.soclib])]" Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="Text5" Left="9.45" Top="47.25" Width="236.25" Height="18.9" Text="[UpperCase([empsoc.socadr])]" Font="Arial, 12pt"/>
+      <LineObject Name="Line3" Left="567" Top="37.8" Width="151.2"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="82" Width="718.2" Height="784.35" DataSource="Table">
+      <TextObject Name="Text6" Left="18.9" Top="18.9" Width="66.15" Height="18.9" Text="Objet: " Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="Text7" Left="75.6" Top="18.9" Width="132.3" Height="18.9" Text="Visite Médicale" Font="Arial, 12pt"/>
+      <TextObject Name="Text9" Left="18.9" Top="170.1" Width="56.7" Height="18.9" Text="Pour:" Font="Arial, 12pt"/>
+      <CellularTextObject Name="CellularText1" Left="18.9" Top="226.8" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
+      <CellularTextObject Name="CellularText2" Left="18.9" Top="264.6" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
+      <CellularTextObject Name="CellularText3" Left="18.9" Top="302.4" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
+      <CellularTextObject Name="CellularText4" Left="18.9" Top="340.2" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
+      <CellularTextObject Name="CellularText5" Left="18.9" Top="378" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
+      <TextObject Name="Text10" Left="56.7" Top="236.25" Width="151.2" Height="18.9" Text="Visite d'embauche" Font="Arial, 12pt"/>
+      <TextObject Name="Text11" Left="56.7" Top="274.05" Width="151.2" Height="18.9" Text="Visite périodique" Font="Arial, 12pt"/>
+      <TextObject Name="Text12" Left="56.7" Top="311.85" Width="151.2" Height="18.9" Text="Visite Médicale" Font="Arial, 12pt"/>
+      <TextObject Name="Text13" Left="56.7" Top="349.65" Width="151.2" Height="18.9" Text="Visite spontannée" Font="Arial, 12pt"/>
+      <TextObject Name="Text14" Left="56.7" Top="387.45" Width="151.2" Height="18.9" Text="Visite de reprise" Font="Arial, 12pt"/>
+      <CellularTextObject Name="CellularText6" Left="18.9" Top="415.8" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
+      <TextObject Name="Text15" Left="56.7" Top="425.25" Width="217.35" Height="18.9" Text="Visite de controle d'aptitude" Font="Arial, 12pt"/>
+      <ShapeObject Name="Shape2" Left="434.7" Top="491.4" Width="226.8" Height="151.2"/>
+      <LineObject Name="Line4" Left="434.7" Top="529.2" Width="226.8"/>
+      <TextObject Name="Text16" Left="463.05" Top="500.85" Width="179.55" Height="18.9" Text="Signature et Cachet" Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="Text17" Left="18.9" Top="56.7" Width="670.95" Height="75.6" Text="Je vous prix de bien vouloir prendre en charge Monsieur [UpperCase([empsoc.emplib])]&#13;&#10;Oeuvre au sein de notre entreprise [UpperCase([empsoc.soclib])]&#13;&#10;Occupant le poste: [UpperCase([empsoc.empfonc])]." VertAlign="Bottom" Font="Arial, 12pt"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="869.55" Width="718.2" Height="18.9"/>
+  </ReportPage>
+</Report>

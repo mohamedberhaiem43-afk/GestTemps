@@ -1,0 +1,75 @@
+version: '3.8'
+
+volumes:
+  sqlserver-data:
+
+networks:
+  app-network:
+
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+    - "80:80"
+    volumes:
+    - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+    - abrpoint.server
+    - abrpoint.client
+    networks:
+    - app-network
+
+
+  abrpoint.database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: abrpoint.database
+    environment:
+      SA_PASSWORD: "Admin123.!"
+      ACCEPT_EULA: "Y"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./sql-backup:/var/opt/sql-backup
+    networks:
+      - app-network
+    ports:
+      - "1430:1433"
+    # healthcheck:
+    #   test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Admin123.0' -Q 'SELECT 1'"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 10
+    #   start_period: 40s
+
+
+
+  abrpoint.server:
+    container_name: abrpoint.server
+    build:
+      context: .
+      dockerfile: ABRPOINT.Server/Dockerfile
+    environment:
+      DB_HOST: "abrpoint.database"
+      DB_NAME: "ABRPOINT"
+      DB_USER: "sa"
+      DB_PASSWORD: "Admin123.!"
+      ASPNETCORE_URLS: "http://+:8080"
+    depends_on: 
+      - abrpoint.database
+        # condition: service_healthy
+    networks:
+      - app-network
+    expose:
+      - "8080"
+
+  abrpoint.client:
+    container_name: abrpoint.client
+    build:
+      context: .
+      dockerfile: abrpoint.client/Dockerfile
+      args:
+        # Client makes requests to /api which nginx will proxy
+        VITE_REACT_APP_API_URL: /api
+    depends_on:
+      - abrpoint.server
+    networks:
+      - app-network

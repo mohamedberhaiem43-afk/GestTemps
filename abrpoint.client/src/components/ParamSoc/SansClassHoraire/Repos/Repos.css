@@ -1,0 +1,17 @@
+#simple-tabpanel-3 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div
+{
+    min-width: 10vw;
+    margin: 10px;
+}
+#simple-tabpanel-3 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > label:nth-child(4),
+#simple-tabpanel-3 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > label:nth-child(5)
+ {
+    flex-direction: row-reverse;
+    gap: 5px;
+    margin: 15px;
+ }
+ #simple-tabpanel-3 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > label:nth-child(4) > div > input,
+ #simple-tabpanel-3 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > label:nth-child(5) > div > input
+ {
+    max-width:5vw;
+ }

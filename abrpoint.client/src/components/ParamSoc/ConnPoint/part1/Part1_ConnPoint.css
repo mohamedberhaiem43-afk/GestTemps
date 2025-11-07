@@ -1,0 +1,8 @@
+#simple-tabpanel-2 > div > div > div > div > div > div > label:nth-child(1),
+#simple-tabpanel-2 > div > div > div > div > div > div > label:nth-child(2),
+#simple-tabpanel-2 > div > div > div > div > div > div > label:nth-child(5)
+{
+    flex-direction: row-reverse;
+    justify-content: start;
+    margin: 5px;
+}
