@@ -230,17 +230,32 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // DELETE api/employes/soccod/empcod
-        [HttpDelete("{soccod}/{empcod}/{sitcod}")]
+        [HttpDelete("{soccod}/{empcod}")]
         [CanDeleteEmploye]
-        public async Task<IActionResult> Delete(string soccod, string empcod, string sitcod)
+        public async Task<IActionResult> Delete(string soccod, string empcod)
         {
-            var employe = await _employeRepository.GetByEmpcod(soccod, empcod);
-            if (employe == null)
+            try
             {
-                return NotFound();
+                var employe = await _employeRepository.GetByEmpcod(soccod, empcod);
+
+                if (employe == null)
+                {
+                    return BadRequest(new { message = "Employé introuvable." });
+                }
+
+                var (success, message) = await _employeRepository.DeleteAsync(employe);
+
+                if (!success)
+                {
+                    return BadRequest(new { message });
+                }
+
+                return Ok(new { message });
             }
-            _employeRepository.Delete(employe);
-            return NoContent();
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Erreur serveur : {ex.Message}" });
+            }
         }
     }
 }

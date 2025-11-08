@@ -25,5 +25,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<List<EmpDepassMxHre>> GetEmployesDepassantMaxHeure(string soccod,string uticod);
         Task<Employe> UpdateAsync(Employe employe);
         Task<string> GetByEmpMat(string user_id);
+        Task<(bool Success, string Message)> DeleteAsync(Employe employe);
     }
 }

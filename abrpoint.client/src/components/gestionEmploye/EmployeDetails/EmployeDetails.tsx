@@ -46,10 +46,11 @@ interface EmployeDetailsProps {
 
 export default function EmployeDetails({ onCombinedDataChange,empData }: EmployeDetailsProps) {
   const [value, setValue] = useState(0);
-  const [combinedData, setCombinedData] = useState<Employe>();
+  const [combinedData, setCombinedData] = useState<Employe>(empData);
   const [formData, setFormData] = useState(empData || {});
   useEffect(() => {
     setFormData(empData); // Update form when empData changes (e.g., from context)
+    setCombinedData(empData);
   }, [empData]);
 
 
@@ -73,10 +74,12 @@ export default function EmployeDetails({ onCombinedDataChange,empData }: Employe
   };
 
   const handleEmployeInfoChange = (data: any) => {
-    const newData = { ...combinedData, ...data };
+    const base = combinedData || formData;
+    const newData = { ...base, ...data };
     setCombinedData(newData);
     onCombinedDataChange(newData);
   };
+
 
   const handleCordoneesChange = (data: any) => {
     const newData = { ...combinedData, ...data };

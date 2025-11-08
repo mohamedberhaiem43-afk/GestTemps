@@ -825,5 +825,39 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public async Task<(bool Success, string Message)> DeleteAsync(Employe employe)
+        {
+            try
+            {
+                // Check if employee has presence records
+                bool inPresence = await _dbContext.Presences
+                    .AnyAsync(p => p.Empcod == employe.Empcod && p.Soccod == employe.Soccod);
+
+                if (inPresence)
+                {
+                    return (false, "Impossible de supprimer l'employé : il existe des enregistrements de présence associés.");
+                }
+
+                // Check if employee has contracts
+                bool hasContract = await _dbContext.Contrats
+                    .AnyAsync(p => p.Empcod == employe.Empcod && p.Soccod == employe.Soccod);
+
+                if (hasContract)
+                {
+                    return (false, "Impossible de supprimer l'employé : il existe des contrats associés.");
+                }
+
+                // Delete the employee
+                _dbContext.Employes.Remove(employe);
+                await _dbContext.SaveChangesAsync();
+
+                return (true, "Employé supprimé avec succès.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Erreur lors de la suppression : {ex.Message}");
+            }
+        }
     }
 }

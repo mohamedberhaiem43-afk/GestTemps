@@ -6,6 +6,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import SelectInputComponent from '../../SelectInputComponent/SelectInputComponent';
 import InputComponent from '../../Inputs/Input';
 import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
+import { useAuth } from '../../helper/AuthProvider';
+import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 
 const SaisieContrat = () => {
   const contratTypes = {
@@ -16,10 +18,10 @@ const SaisieContrat = () => {
 };
 
   const token = localStorage.getItem("authToken");
-  const soccod = sessionStorage.getItem("soccod");
+  const { soccod } = useAuth();
   const sitcod = sessionStorage.getItem("sitcod");
   const headers = { Authorization: `Bearer ${token}` };
-
+  const [isForbidden, setIsForbidden] = useState(false);
   const [numOrdre, setNumOrdre] = useState('');
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
@@ -103,6 +105,10 @@ const SaisieContrat = () => {
         }
       })
       .catch((err) => {
+        if (err.response?.status === 403) {
+          setIsForbidden(true);
+          return;
+        }
         const errorMessage = err.response?.data?.message || "Une erreur inconnue est survenue";
         setMessage(errorMessage);
         setSeverity('error');
@@ -181,18 +187,24 @@ const SaisieContrat = () => {
               </Grid>
 
             {/* Save Button */}
-              <Button
-                variant="text"
-                color="primary"
-                startIcon={<SaveIcon />}
-                onClick={saveContrat}
-              >
-                Enregistrer
-              </Button>
+            <Grid>
+                <Button
+                  variant="text"
+                  color="primary"
+                  startIcon={<SaveIcon />}
+                  onClick={saveContrat}
+                  
+                  >
+                  Enregistrer
+                </Button>
+                </Grid>
 
           </Grid>
 
         </Grid>
+        {isForbidden && (
+          <ForbiddenMessage message={'Vous n\'êtes pas autorisé à effectuer cette action.'} />
+        )}
       </Box>
       <Snackbar open={isSnackbarOpen} autoHideDuration={6000} onClose={() => setIsSnackbarOpen(false)}>
         <Alert onClose={() => setIsSnackbarOpen(false)} severity={severity}>

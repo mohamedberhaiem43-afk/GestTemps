@@ -88,7 +88,11 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                 </FormControl>
             </Grid>
             <Grid item xs={1.5} mt={2}>
-                <CheckboxComponent label='Actif' value={formData.actif=='A'} setValue={(value)=> handleChange({target:{name:'actif',value}})} />
+                <CheckboxComponent 
+                label='Actif' 
+                value={formData.actif=='A'} 
+                setValue={(value)=> handleChange({target:{name:'actif',value: value ? 'A' : 'N'}})} 
+                />
             </Grid>
             <Grid item xs={2.5}>
                 <SelectInputComponent label='Fonction' value={formData.foncod} setValue={(value)=>handleChange({target:{ name: 'foncod', value }})} maplist={fonctions} />

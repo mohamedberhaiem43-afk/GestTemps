@@ -66,7 +66,7 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
     try {
         await deleteMethod({ [idKey]: selectedRow[idKey] });
         await refetchMethod();
-        handleSnackbarOpening("Suppression réussie", "success");
+        //handleSnackbarOpening("Suppression réussie", "success");
         handleCloseModal();
     } catch (error: any) {
         if (error?.response?.status === 403) {

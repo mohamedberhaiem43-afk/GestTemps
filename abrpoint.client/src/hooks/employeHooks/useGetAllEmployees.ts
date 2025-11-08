@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import EmployeService from "../../services/EmployeService/EmployeService";
+import { useAuth } from "../../components/helper/AuthProvider";
 
-const useGetAllEmployees = (soccod: string | null, uticod: string | null) => {
-  
+const useGetAllEmployees = (uticod: string | null) => {
+  const { soccod } = useAuth();
 
 
   return useQuery({

@@ -7,6 +7,8 @@ import {
   Button,
   CircularProgress,
   Grid,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { jsPDF } from 'jspdf';
 import './ListeEmploye.css';
@@ -23,14 +25,63 @@ import { EmployeeContext } from '../../Pointeuse/EtatPeriodique/EmployeeContext'
 import EmpHoraire from '../../../models/EmpHoraire';
 import EmpHoraireService from '../../../services/EmployeService/EmpHoraireService';
 import EmployeReportService from '../../../services/EmployeService/EmployeReportService';
+import useDeleteEmploye from '../../../hooks/employeHooks/useDeleteEmploye';
+import { useAuth } from '../../helper/AuthProvider';
+import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 
 const ListEmploye = () => {
-  const soccod = sessionStorage.getItem("soccod");
   const uticod = localStorage.getItem("Uticod");
-  const{ selectedEmpMat, setSelectedEmpMat,setSelectedEmp } = useContext(EmployeeContext);
-  const {data = [],isLoading,refetch} = useGetAllEmployees(soccod,uticod);
-  const [empHoraires, setEmpHoraires] = useState<EmpHoraire[]|undefined>([]);
+  const { selectedEmpMat, setSelectedEmpMat, setSelectedEmp } = useContext(EmployeeContext);
+  const { data = [], isLoading, refetch } = useGetAllEmployees(uticod);
+  const [empHoraires, setEmpHoraires] = useState<EmpHoraire[] | undefined>([]);
+  const { soccod } = useAuth();
+  
+  // State for snackbar messages
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  
+  // State for forbidden message
+  const [showForbidden, setShowForbidden] = useState(false);
+  const [forbiddenMessage, setForbiddenMessage] = useState<string>('');
+
+  // Use the delete hook
+  const { mutate: deleteEmployeMutation } = useDeleteEmploye();
+
+  const deleteEmploye = (data: any) => {
+    deleteEmployeMutation(
+      { empcod: data.empcod },
+      {
+        onSuccess: (response: any) => {
+          const message = response?.message || 'Employé supprimé avec succès';
+          setSnackbarMessage(message);
+          setSnackbarSeverity('success');
+          setSnackbarOpen(true);
+          refetch();
+        },
+        onError: (error: any) => {
+          console.error('Error deleting employee:', error);
+          
+          const status = error?.response?.status;
+          const errorMessage = error?.response?.data?.message || 'Erreur lors de la suppression';
+          
+          // Check if it's a 403 Forbidden error
+          if (status === 403) {
+            setForbiddenMessage(errorMessage);
+            setShowForbidden(true);
+          } else {
+            setSnackbarMessage(errorMessage);
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+          }
+        },
+      }
+    );
+  };
+
+  // FIX: Only fetch employee details when selectedEmpMat changes AND is not empty
   useEffect(() => {
+    if (selectedEmpMat) {
       EmployeService.getWithParams(`get-employe/${soccod}/${selectedEmpMat}`)
         .then((res) => {
           const formatted = {
@@ -44,8 +95,13 @@ const ListEmploye = () => {
           };
 
           setSelectedEmp(formatted);
+        })
+        .catch((error) => {
+          console.error('Error fetching employee details:', error);
         });
-    }, [selectedEmpMat]);
+    }
+  }, [selectedEmpMat]);
+
   const handleGenerateContract = (employe: Employe) => {
     const doc = new jsPDF();
   
@@ -72,6 +128,7 @@ const ListEmploye = () => {
     // Save the PDF
     doc.save(`contrat-${employe.empcod}.pdf`);
   };
+
   const handleGenerateAttestation = (employe: Employe) => {
     const doc = new jsPDF();
   
@@ -101,33 +158,33 @@ const ListEmploye = () => {
     let y = yStart;
   
     doc.text("Nous Soussignés Société", 20, y);
-    doc.setFont("helvetica", "bold"); // Bold for company name
+    doc.setFont("helvetica", "bold");
     doc.text("SOCIETE MEUNIERE TUNISIE,", 70, y);
-    doc.setFont("helvetica", "normal"); // Back to normal
+    doc.setFont("helvetica", "normal");
     doc.text("attestons par la présente que", 20, (y += 10));
   
     doc.text("Mr/Mme/Mlle", 20, (y += 10));
-    doc.setFont("helvetica", "bold"); // Bold for employee name
+    doc.setFont("helvetica", "bold");
     doc.text(employe.emplib, 50, y);
-    doc.setFont("helvetica", "normal"); // Back to normal
+    doc.setFont("helvetica", "normal");
     doc.text("Titulaire de la CIN :", 20, (y += 10));
-    doc.setFont("helvetica", "bold"); // Bold for CIN
+    doc.setFont("helvetica", "bold");
     doc.text(employe.empcin, 60, y);
     doc.setFont("helvetica", "normal");
     doc.text("délivrée à", 20, (y += 10));
-    doc.setFont("helvetica", "bold"); // Bold for city
+    doc.setFont("helvetica", "bold");
     doc.text(employe.empacin, 45, y);
     doc.setFont("helvetica", "normal");
     doc.text("le :", 80, y);
-    doc.setFont("helvetica", "bold"); // Bold for CIN date
+    doc.setFont("helvetica", "bold");
     doc.text(dayjs(employe.empdcin).format('DD/MM/YYYY'), 90, y);
     doc.setFont("helvetica", "normal");
     doc.text("a travaillé au sein de notre société en qualité de :", 20, (y += 10));
-    doc.setFont("helvetica", "bold"); // Bold for job title
+    doc.setFont("helvetica", "bold");
     doc.text(employe.empfonc.toUpperCase(), 120, y);
     doc.setFont("helvetica", "normal");
     doc.text("et ce à partir du :", 20, (y += 10));
-    doc.setFont("helvetica", "bold"); // Bold for employment start date
+    doc.setFont("helvetica", "bold");
     doc.text(dayjs(employe.empemb).format('DD/MM/YYYY'), 90, y);
   
     // Footer
@@ -181,47 +238,49 @@ const ListEmploye = () => {
     // Save the PDF
     doc.save(`fiche-individuelle-${employe.empcod}.pdf`);
   };
+
   const getVisiteMedicaleReport = async (original: Employe) => {
-    
-      try {
-          // Fetch the report as a Blob
-          const response = await EmployeReportService.getReport(`get-report/${original.soccod}/${original.empcod}`,'blob');
+    try {
+      // Fetch the report as a Blob
+      const response = await EmployeReportService.getReport(
+        `get-report/${original.soccod}/${original.empcod}`,
+        'blob'
+      );
   
-          // Create a Blob from the response
-          const blob = new Blob([response], { type: 'application/pdf' });
+      // Create a Blob from the response
+      const blob = new Blob([response], { type: 'application/pdf' });
   
-          // Create a temporary download link
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = 'Visite Médicale.pdf';
+      // Create a temporary download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Visite Médicale.pdf';
   
-          // Trigger the download
-          link.click();
+      // Trigger the download
+      link.click();
   
-          // Clean up the temporary URL
-          window.URL.revokeObjectURL(url);
-      } catch (error) {
-          console.error('Error downloading the report:', error);
-      }
+      // Clean up the temporary URL
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading the report:', error);
+    }
   };
+
   const getEmpHoraires = async (original: Employe) => {
     try {
-        const response = await EmpHoraireService.getAllWithParams(
-            `get-emp-horaires/${soccod}/${original.empcod}`
-        );
-
-        return response;
+      const response = await EmpHoraireService.getAllWithParams(
+        `get-emp-horaires/${soccod}/${original.empcod}`
+      );
+      return response;
     } catch (error) {
-        console.error("Error fetching employee schedules:", error);
+      console.error("Error fetching employee schedules:", error);
     }
-};
+  };
 
   const fetchHoraires = async (employe: Employe) => {
     const horaires = await getEmpHoraires(employe);
     setEmpHoraires(horaires);
-};
-  
+  };
 
   const columns = useMemo<MRT_ColumnDef<Employe>[]>(
     () => [
@@ -262,7 +321,6 @@ const ListEmploye = () => {
             Cell({ cell }) {
               const dateValue = cell.getValue();
               const formattedDate = getDatePart(String(dateValue ?? ""));
-              
               return formattedDate;
             },
           },
@@ -273,11 +331,9 @@ const ListEmploye = () => {
             Cell({ cell }) {
               const dateValue = cell.getValue();
               const formattedDate = getDatePart(String(dateValue ?? ""));
-              
               return formattedDate;
             },
           },
-          
           {
             accessorKey: 'actif',
             header: 'Active',
@@ -297,107 +353,103 @@ const ListEmploye = () => {
               </Box>
             ),
           },
-          
         ],
       },
     ],
     [],
   );
 
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    let data = new Uint8Array(e.target?.result as ArrayBuffer);
-    const workbook = XLSX.read(data, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    let jsonData: Employe[] = XLSX.utils.sheet_to_json(sheet);
-  // Normalize data
-    const normalizedData: Employe[] = jsonData.map((emp) => ({
-      empcod: String(emp.empcod ?? '').trim(),
-      soccod: String(emp.soccod ?? '').trim(),
-      sitcod: String(emp.sitcod ?? '').trim(),
-      emplib: emp.emplib ?? null,
-      empmat: emp.empmat ?? null,
-      empsexe: emp.empsexe ?? null,
-      sercod: emp.sercod ?? null,
-      empfonc: emp.empfonc ?? null,
-      empreg: emp.empreg ?? null,
-      catcod: emp.catcod ?? null,
-      empnbp: emp.empnbp != null ? Number(emp.empnbp) : null,
-      natcod: emp.natcod ?? null,
-      vilcod: emp.vilcod ?? null,
-      empadr: emp.empadr ?? null,
-      emptel: emp.emptel ?? null,
-      empmob: emp.empmob ?? null,
-      empemb: emp.empemb ? new Date(emp.empemb) : null,
-      empsort: emp.empsort ? new Date(emp.empsort) : null,
-      empmotif: emp.empmotif ?? null,
-      actif: emp.actif ?? null,
-      empdnais: emp.empdnais ?? null,
-      emplnais: emp.emplnais ?? null,
-      empcin: emp.empcin ?? null,
-      empdcin: emp.empdcin ? new Date(emp.empdcin) : null,
-      empacin: emp.empacin ?? null,
-      empsbase: emp.empsbase != null ? Number(emp.empsbase) : null,
-      empsbrut: emp.empsbrut != null ? Number(emp.empsbrut) : null,
-      empdir: emp.empdir ?? null,
-      emptype: emp.emptype ?? null,
-      empniv: emp.empniv != null ? String(emp.empniv) : null,
-      emplibar: emp.emplibar ?? null,
-      empadrar: emp.empadrar ?? null,
-      empfoncar: emp.empfoncar ?? null,
-      foncod: emp.foncod ?? null,
-      quacod: emp.quacod ?? null,
-      empmaxhre: emp.empmaxhre != null ? Number(emp.empmaxhre) : null,
-      empoptim: emp.empoptim ? new Date(emp.empoptim) : null,
-      dircod: emp.dircod ?? null,
-      empretraite: emp.empretraite ? new Date(emp.empretraite) : null,
-      caltype: emp.caltype ?? null,
-      empmaxjour: emp.empmaxjour != null ? Number(emp.empmaxjour) : null,
-      empretard: emp.empretard ?? null,
-      empemail: emp.empemail ?? null,
-      empresp: emp.empresp ?? null,
-      empsnet: emp.empsnet != null ? Number(emp.empsnet) : null,
-      empcontrat: emp.empcontrat ?? null,
-      empsitfam: emp.empsitfam ?? null,
-      empech: emp.empech ?? null,
-      empelon: emp.empelon ?? null,
-      empcat: emp.empcat ?? null,
-      empscat: emp.empscat ?? null,
-      empnuit: emp.empnuit ?? null,
-      empminhjour: emp.empminhjour != null ? Number(emp.empminhjour) : null,
-      emppanier: emp.emppanier ?? null,
-      seccod: emp.soccod ?? null,
-      poscod: emp.poscod ?? null,
-      parmois: emp.parmois ?? null,
-    }));
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      let data = new Uint8Array(e.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      let jsonData: Employe[] = XLSX.utils.sheet_to_json(sheet);
 
+      // Normalize data
+      const normalizedData: Employe[] = jsonData.map((emp) => ({
+        empcod: String(emp.empcod ?? '').trim(),
+        soccod: String(emp.soccod ?? '').trim(),
+        sitcod: String(emp.sitcod ?? '').trim(),
+        emplib: emp.emplib ?? null,
+        empmat: emp.empmat ?? null,
+        empsexe: emp.empsexe ?? null,
+        sercod: emp.sercod ?? null,
+        empfonc: emp.empfonc ?? null,
+        empreg: emp.empreg ?? null,
+        catcod: emp.catcod ?? null,
+        empnbp: emp.empnbp != null ? Number(emp.empnbp) : null,
+        natcod: emp.natcod ?? null,
+        vilcod: emp.vilcod ?? null,
+        empadr: emp.empadr ?? null,
+        emptel: emp.emptel ?? null,
+        empmob: emp.empmob ?? null,
+        empemb: emp.empemb ? new Date(emp.empemb) : null,
+        empsort: emp.empsort ? new Date(emp.empsort) : null,
+        empmotif: emp.empmotif ?? null,
+        actif: emp.actif ?? null,
+        empdnais: emp.empdnais ?? null,
+        emplnais: emp.emplnais ?? null,
+        empcin: emp.empcin ?? null,
+        empdcin: emp.empdcin ? new Date(emp.empdcin) : null,
+        empacin: emp.empacin ?? null,
+        empsbase: emp.empsbase != null ? Number(emp.empsbase) : null,
+        empsbrut: emp.empsbrut != null ? Number(emp.empsbrut) : null,
+        empdir: emp.empdir ?? null,
+        emptype: emp.emptype ?? null,
+        empniv: emp.empniv != null ? String(emp.empniv) : null,
+        emplibar: emp.emplibar ?? null,
+        empadrar: emp.empadrar ?? null,
+        empfoncar: emp.empfoncar ?? null,
+        foncod: emp.foncod ?? null,
+        quacod: emp.quacod ?? null,
+        empmaxhre: emp.empmaxhre != null ? Number(emp.empmaxhre) : null,
+        empoptim: emp.empoptim ? new Date(emp.empoptim) : null,
+        dircod: emp.dircod ?? null,
+        empretraite: emp.empretraite ? new Date(emp.empretraite) : null,
+        caltype: emp.caltype ?? null,
+        empmaxjour: emp.empmaxjour != null ? Number(emp.empmaxjour) : null,
+        empretard: emp.empretard ?? null,
+        empemail: emp.empemail ?? null,
+        empresp: emp.empresp ?? null,
+        empsnet: emp.empsnet != null ? Number(emp.empsnet) : null,
+        empcontrat: emp.empcontrat ?? null,
+        empsitfam: emp.empsitfam ?? null,
+        empech: emp.empech ?? null,
+        empelon: emp.empelon ?? null,
+        empcat: emp.empcat ?? null,
+        empscat: emp.empscat ?? null,
+        empnuit: emp.empnuit ?? null,
+        empminhjour: emp.empminhjour != null ? Number(emp.empminhjour) : null,
+        emppanier: emp.emppanier ?? null,
+        seccod: emp.soccod ?? null,
+        poscod: emp.poscod ?? null,
+        parmois: emp.parmois ?? null,
+      }));
 
-    // Appelle un service d'importation si besoin :
-    try {
-      await EmployeService.putWithoutParamsList(normalizedData); // à implémenter dans EmployeService
-      refetch(); // recharge les données
-    } catch (error) {
-      console.error('Erreur importation :', error);
-    }
+      try {
+        await EmployeService.putWithoutParamsList(normalizedData);
+        refetch();
+      } catch (error) {
+        console.error('Erreur importation :', error);
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
   };
 
-  reader.readAsArrayBuffer(file);
-};
-
-
-return (
-  <Box justifyContent="center" alignItems="center" height="100%" mt={-15}>
-    {isLoading ? (
-      <CircularProgress />
-    ) : (
-      <>
-        {/* Upload Button */}
+  return (
+    <Box justifyContent="center" alignItems="center" height="100%" mt={-15}>
+      {isLoading ? (
+        <CircularProgress />
+      ) : (
+        <>
+          {/* Upload Button */}
           <Box
             sx={{
               position: 'fixed',
@@ -422,19 +474,20 @@ return (
               </Button>
             </label>
           </Box>
-        {/* Side-by-side DataList and TableEtat */}
-        <Box display="flex" gap={2}>
-          <Grid container spacing={2}>
-            <Grid item xs={5}>
-              <TableEtat data={empHoraires} />
-            </Grid>
+          
+          {/* Side-by-side DataList and TableEtat */}
+          <Box display="flex" gap={2}>
+            <Grid container spacing={2}>
+              <Grid item xs={5}>
+                <TableEtat data={empHoraires} />
+              </Grid>
 
-            <Grid item xs={7}>
-              <DataList
+              <Grid item xs={7}>
+                <DataList
                   data={data}
                   columns={columns}
                   message="Êtes-vous sûr de vouloir supprimer cet employé ?"
-                  deleteMethod={undefined}
+                  deleteMethod={deleteEmploye}
                   idKey="empcod"
                   refetchMethod={refetch}
                   reportGeneration1={handleGenerateAttestation}
@@ -443,18 +496,41 @@ return (
                   reportGeneration4={getVisiteMedicaleReport}
                   empHoraires={fetchHoraires}
                   setData={setSelectedEmpMat}
-                  actions={true} pageSize={5}
-                  purge={undefined}/>
+                  actions={true}
+                  pageSize={5}
+                  purge={undefined}
+                />
+              </Grid>
             </Grid>
-          </Grid>
-        </Box>
-      </>
-    )}
-  </Box>
-);
+          </Box>
 
+          {/* Regular Snackbar for success/error messages */}
+          <Snackbar 
+            open={snackbarOpen} 
+            autoHideDuration={6000} 
+            onClose={() => setSnackbarOpen(false)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            <Alert 
+              onClose={() => setSnackbarOpen(false)} 
+              severity={snackbarSeverity}
+              sx={{ width: '100%' }}
+            >
+              {snackbarMessage}
+            </Alert>
+          </Snackbar>
 
-
+          {/* Forbidden Message Component for 403 errors */}
+          {showForbidden && (
+            <ForbiddenMessage 
+              message={forbiddenMessage}
+              autoHideDuration={6000}
+            />
+          )}
+        </>
+      )}
+    </Box>
+  );
 };
 
 export default ListEmploye;

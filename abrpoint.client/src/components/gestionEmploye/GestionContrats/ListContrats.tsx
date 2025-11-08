@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -21,6 +21,7 @@ import CustomizedSnackbars from '../../Snackbar/Snackbar';
 import useGetContrats from '../../../hooks/contratHooks/useGetContrats';
 import useGetAllContrats from '../../../hooks/contratHooks/useGetAllContrats';
 import useDeleteContrat from '../../../hooks/contratHooks/useDeleteContrat';
+import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 
 type Contrat = {
   soccod: string;
@@ -41,11 +42,12 @@ const ListContrats = ({ req, filters }:ListContratsProps) => {
   const [openModal, setOpenModal] = useState(false);  
   const [contractToDelete, setContractToDelete] = useState<Contrat | null>(null);  
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);  
-  const soccod = sessionStorage.getItem('soccod')||'';
   const uticod = localStorage.getItem('Uticod')||'';
-  const { data: allContracts } = useGetAllContrats("", "", { soccod, uticod });
+  const { data: allContracts, error } = useGetAllContrats("", "", { uticod });
+  const [forbiddenError, setForbiddenError] = useState(false);
+  const [forbiddenDeleteError, setForbiddenDeleteError] = useState(false);
 
-  const { data: filteredContracts } = useGetContrats(req, filters);
+  const { data: filteredContracts, error: filteredError } = useGetContrats(req, filters);
 
   
   const data = filters === undefined ? allContracts || [] : filteredContracts || [];
@@ -65,6 +67,11 @@ const ListContrats = ({ req, filters }:ListContratsProps) => {
     }
   };
   const { mutate } = useDeleteContrat();
+useEffect(() => {
+  if (error?.message?.includes("403") || filteredError?.message?.includes("403")) {
+    setForbiddenError(true);
+  }
+}, [error, filteredError]);
 
 const handleDeleteConfirm = () => {
   if (contractToDelete) {
@@ -75,14 +82,16 @@ const handleDeleteConfirm = () => {
           setOpenModal(false);
           setShowSuccessAlert(true);
         },
-        onError: (error) => {
+        onError: (error: any) => {
           console.error("Error deleting contract:", error);
+          if (error?.response?.status === 403) {
+            setForbiddenDeleteError(true);
+          }
         },
       }
     );
   }
 };
-
 
   const formatDate = (date?: Date | string) => {
     if (!date) return '';
@@ -303,6 +312,14 @@ const handleDeleteConfirm = () => {
         onConfirm={handleDeleteConfirm}
         message="Voulez-vous vraiment supprimer ce contrat ?"
       />
+      {forbiddenDeleteError && (
+      <ForbiddenMessage message="Vous n'avez pas les droits nécessaires pour supprimer ce contrat." />
+    )}
+    {forbiddenError && (
+      <ForbiddenMessage message="Vous n'avez pas les droits nécessaires pour consulter les contrats." />
+    )}
+
+
     </div>
   );
 };

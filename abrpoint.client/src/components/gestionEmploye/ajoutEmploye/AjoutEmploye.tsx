@@ -12,9 +12,10 @@ import { EmployeeContext, EmployeeProvider } from '../../Pointeuse/EtatPeriodiqu
 import SaveIcon from '@mui/icons-material/Save';
 import useAddEmploye from '../../../hooks/employeHooks/useAddEmploye';
 import useUpdateEmploye from '../../../hooks/employeHooks/useUpdateEmploye';
+import { useAuth } from '../../helper/AuthProvider';
 
 export default function BasicGrid() {
-  const soccod = sessionStorage.getItem("soccod") || '';
+  const { soccod } = useAuth();
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [severity, setSeverity] = useState<'success' | 'error'>();
@@ -25,7 +26,7 @@ export default function BasicGrid() {
   // Initialize employeData with proper default values
   const getDefaultEmployeData = (): Employe => ({
     empcod: '',
-    soccod: soccod,
+    soccod: soccod || '',
     sitcod: '',
     emplib: '',
     empmat: '',
@@ -91,18 +92,19 @@ export default function BasicGrid() {
       setEmployeData(selectedEmp);
       setCombinedData(selectedEmp);
       setMode('update');
-    } else {
+    } else if (!combinedData.empcod) {
+      // Only reset if there's no existing data
       const defaultData = getDefaultEmployeData();
       setEmployeData(defaultData);
       setCombinedData(defaultData);
       setMode('save');
     }
-  }, [soccod, selectedEmp]);
+  }, [selectedEmp]);
 
   const handleCombinedDataChange = (data: Employe) => {
     setCombinedData(data);
+    setEmployeData(data); // Keep employeData in sync
   };
-  
   const { mutate: addEmploye } = useAddEmploye();
   const { mutate: updateEmploye } = useUpdateEmploye();
 
@@ -128,7 +130,7 @@ export default function BasicGrid() {
     try {
       const employeToSave: Employe = {
         ...combinedData,
-        soccod: soccod,
+        soccod: soccod || '',
         empemb: formatDate(combinedData.empemb),
         empretraite: formatDate(combinedData.empretraite),
         empsort: formatDate(combinedData.empsort),
@@ -166,7 +168,7 @@ export default function BasicGrid() {
     try {
       const employeToUpdate: Employe = {
         ...combinedData,
-        actif: combinedData.actif?'A':'N' ,
+        actif: combinedData.actif,
         empemb: formatDate(combinedData.empemb),
         empretraite: formatDate(combinedData.empretraite),
         empsort: formatDate(combinedData.empsort),

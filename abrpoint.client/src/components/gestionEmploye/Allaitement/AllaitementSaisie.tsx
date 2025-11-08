@@ -40,10 +40,8 @@ export default function AllaitementSaisie() {
   const [message, setMessage] = useState<string | null>(null);
   const [emp,setEmp] = useState<string>('');
   const [severity, setSeverity] = useState<'success'|'error'>('error');
-  const soccod = sessionStorage.getItem('soccod')||'';
   const { control, reset, handleSubmit } = useForm<AllaitementDto>({
     defaultValues: {
-      soccod: soccod || "01",
       empcod: '',
       concod: '',
       condat: '',
@@ -58,7 +56,7 @@ export default function AllaitementSaisie() {
       samedi:0
     },
   });
-  const {refetch} = useGetAllaitement(soccod);
+  const {refetch} = useGetAllaitement();
   const {mutate: addAllaitement} = useAddAllaitement();
   const [isEditMode, setIsEditMode] = useState(false);
   const {mutate:updateAllaitement} = useUpdateAllaitement();
@@ -70,7 +68,6 @@ export default function AllaitementSaisie() {
       // Prepare payload with hoursData merged
       const payload:AllaitementDto = {
         ...data,
-        soccod: soccod || "01", // Include `soccod` in the payload
       };
   
       if(!isEditMode){

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, createMRTColumnHelper, MRT_RowSelectionState, MRT_GlobalFilterTextField, MRT_ToggleFiltersButton } from 'material-react-table';
 import { Box, Button, lighten, ListItemIcon, MenuItem } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -11,18 +11,19 @@ import useDeleteAllaitement from '../../../hooks/allaitementHooks/useDeleteAllai
 import AlertModal from '../../AlertModal/AlertModal';
 import CustomizedSnackbars from '../../Snackbar/Snackbar';
 import { useAllaitementContext } from '../../helper/AllaitementContext';
+import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 
 const columnHelper = createMRTColumnHelper<AllaitementDto>();
 
 export const ListAllaitement: React.FC = () => {
   const { setSelectedAllaitement } = useAllaitementContext();
-  const soccod = sessionStorage.getItem('soccod')||'';
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
   const [AllaitementToDelete, setAllaitementToDelete] = useState<{soccod:string,concod:string}| null>(null);
   const [openModal, setOpenModal] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [forbiddenError, setForbiddenError] = useState(false);
 
-  const {data = [], refetch} = useGetAllaitement(soccod);
+  const {data = [], error, refetch} = useGetAllaitement();
   const{mutate:deleteAllaitement} = useDeleteAllaitement();
  
   
@@ -31,6 +32,12 @@ export const ListAllaitement: React.FC = () => {
     if(selectedAllaitement)
       setSelectedAllaitement(selectedAllaitement);
   }
+    // 🔒 Détection des erreurs 403 lors du fetch
+    useEffect(() => {
+      if (error?.message?.includes("403")) {
+        setForbiddenError(true);
+      }
+    }, [error]);
  
   const handleSnackbarClose = () => {
     setShowSuccessAlert(false);  // Reset Snackbar state after it closes
@@ -291,6 +298,10 @@ export const ListAllaitement: React.FC = () => {
             onClose={handleSnackbarClose}
           />
         )}
+        {forbiddenError && (
+        <ForbiddenMessage message="Vous n'avez pas les droits nécessaires pour consulter ou supprimer ces données." />
+      )}
+
       <MaterialReactTable table={table} />
       {rowSelection && (
         <AlertModal
