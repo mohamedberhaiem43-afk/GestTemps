@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Delete } from '@mui/icons-material';
+import { Delete, Edit } from '@mui/icons-material';
 import AlertModal from '../../AlertModal/AlertModal';
 import CustomizedSnackbars from '../../Snackbar/Snackbar';
 import useGetContrats from '../../../hooks/contratHooks/useGetContrats';
@@ -36,9 +36,10 @@ type Contrat = {
 };
 interface ListContratsProps{
   req:string,
-  filters:any
+  filters:any,
+  onEdit?: (contract: Contrat) => void;
 }
-const ListContrats = ({ req, filters }:ListContratsProps) => {
+const ListContrats = ({ req, filters, onEdit }:ListContratsProps) => {
   const [openModal, setOpenModal] = useState(false);  
   const [contractToDelete, setContractToDelete] = useState<Contrat | null>(null);  
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);  
@@ -52,6 +53,11 @@ const ListContrats = ({ req, filters }:ListContratsProps) => {
   
   const data = filters === undefined ? allContracts || [] : filteredContracts || [];
   
+  const handleEdit = (contract: Contrat) => {
+    if (onEdit) {
+      onEdit(contract);
+    }
+  };
   const formatContractType = (type?: string) => {
     switch (type) {
       case '0':
@@ -105,13 +111,11 @@ const handleDeleteConfirm = () => {
         accessorKey: 'concod',
         header: 'N° Contrat',
         size: 100,
-        enableEditing: false,
       },
       {
         accessorKey: 'empcod',
         header: 'Employé',
         size: 100,
-        enableEditing: false,
       },
       {
         accessorKey: 'condat',
@@ -165,13 +169,13 @@ const handleDeleteConfirm = () => {
   const table = useMaterialReactTable({
     columns,
     data,
-    enableEditing: true,
+    enableEditing: false,
     enableColumnFilterModes: true,
     enableColumnOrdering: true,
     enableGrouping: true,
     enableColumnPinning: true,
     enableFacetedValues: true,
-    enableRowActions: false,
+    enableRowActions: true,
 
     enableRowSelection: req !== "Contrats/get-list-echeance/01",
 
@@ -208,6 +212,19 @@ const handleDeleteConfirm = () => {
       },
     },
     renderRowActionMenuItems: ({ closeMenu, row }) => [
+      <MenuItem
+        key="edit"
+        onClick={() => {
+          handleEdit(row.original);
+          closeMenu();
+        }}
+        sx={{ m: 0 }}
+      >
+        <ListItemIcon>
+          <Edit />
+        </ListItemIcon>
+        Editer
+      </MenuItem>,
       <MenuItem
         key={0}
         onClick={() => {

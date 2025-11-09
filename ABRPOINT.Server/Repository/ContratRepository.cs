@@ -3,6 +3,7 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -18,8 +19,27 @@ namespace ABRPOINT.Server.Repository
         }
         public void Add(Contrat contrat)
         {
+            try
+            {
                 _dbContext.Contrats.Add(contrat);
                 _dbContext.SaveChanges();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        public async Task AddAsync(Contrat contrat)
+        {
+            try
+            {
+                await _dbContext.Contrats.AddAsync(contrat);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
 
@@ -30,6 +50,21 @@ namespace ABRPOINT.Server.Repository
             {
                 _dbContext.Contrats.Remove(contrat);
                 _dbContext.SaveChanges();
+            }
+        }
+        public async Task DeleteAsync(Contrat contrat)
+        {
+            try
+            {
+                if (contrat != null)
+                {
+                    _dbContext.Contrats.Remove(contrat);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 
@@ -107,9 +142,17 @@ namespace ABRPOINT.Server.Repository
         }
 
 
-        public Contrat GetByConcod(string soccod, string concod)
+        public async Task<Contrat> GetByConcod(string soccod, string concod)
         {
-            return _dbContext.Contrats.Where(s => s.Soccod == soccod && s.Concod == concod ).Single();
+            try
+            {
+                return await _dbContext.Contrats.Where(s => s.Soccod == soccod && s.Concod == concod )
+                    .SingleOrDefaultAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public void Update(Contrat employe)
@@ -118,6 +161,31 @@ namespace ABRPOINT.Server.Repository
             {
                 _dbContext.Contrats.Update(employe);
                 _dbContext.SaveChanges();
+            }
+        }
+        public async Task UpdateAsync(Contrat contrat)
+        {
+            try
+            {
+                if (contrat != null)
+                {
+                    await _dbContext.Contrats
+                        .Where(c => c.Soccod == contrat.Soccod && c.Concod == contrat.Concod)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(c => c.Condat, contrat.Condat)
+                            .SetProperty(c => c.Empemb, contrat.Empemb)
+                            .SetProperty(c => c.Empsort, contrat.Empsort)
+                            .SetProperty(c => c.Contype, contrat.Contype)
+                            .SetProperty(c => c.Empcontrat, contrat.Empcontrat)
+                            .SetProperty(c => c.Conmois, contrat.Conmois)
+                            .SetProperty(c => c.Condg, contrat.Condg)
+                            .SetProperty(c => c.Empmotif, contrat.Empmotif)
+                        );
+                }
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 

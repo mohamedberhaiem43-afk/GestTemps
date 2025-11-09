@@ -113,11 +113,15 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpPost]
         [CanAddContrat]
-        public IActionResult Add(Contrat contrat)
+        public async Task<IActionResult> Add(Contrat contrat)
         {
             try
             {
-                _contratRepository.Add(contrat);
+                Contrat dbcontrat = await _contratRepository.GetByConcod(contrat.Soccod, contrat.Concod);
+                if (dbcontrat == null)
+                    await _contratRepository.AddAsync(contrat);
+                else
+                    await Put(contrat);
                 return Ok(new { message = "Contrat ajouté avec succès" });
             }
             catch (Exception ex)
@@ -125,22 +129,18 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de l'ajout du contrat", details = ex.Message });
             }
         }
-
-
-
+        
         // PUT api/<DirectionsController>/5
-        [HttpPut("{soccod}/{concod}")]
+        [HttpPut]
         [CanUpdateContrat]
-        public IActionResult Put(string foncod, [FromBody] Contrat contrat)
+        public async Task<IActionResult> Put([FromBody] Contrat contrat)
         {
             try
             {
-                if (contrat == null || foncod != contrat.Empcod)
-                {
+                if (contrat == null)
                     return BadRequest();
-                }
 
-                _contratRepository.Update(contrat);
+                await _contratRepository.UpdateAsync(contrat);
                 return NoContent();
             }
             catch (Exception ex)
@@ -154,16 +154,14 @@ namespace ABRPOINT.Server.Controllers
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{concod}")]
         [CanDeleteContrat]
-        public IActionResult Delete(string soccod, string concod)
+        public async Task<IActionResult> Delete(string soccod, string concod)
         {
             try
             {
-                Contrat contrat = _contratRepository.GetByConcod(soccod, concod);
+                Contrat contrat = await _contratRepository.GetByConcod(soccod, concod);
                 if (contrat == null)
-                {
                     return NotFound();
-                }
-                _contratRepository.Delete(contrat);
+                await _contratRepository.DeleteAsync(contrat);
                 return NoContent();
             }
             catch (Exception ex)

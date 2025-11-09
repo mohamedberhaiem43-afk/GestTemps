@@ -8,8 +8,15 @@ import InputComponent from '../../Inputs/Input';
 import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
 import { useAuth } from '../../helper/AuthProvider';
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
+import getDatePart from '../../helper/TimeConverter/ExtractDateOnly';
+import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
 
-const SaisieContrat = () => {
+interface SaisieContratProps {
+  editingContract?: any;
+  setEditingContract?: (contract: any) => void;
+}
+
+const SaisieContrat = ({ editingContract, setEditingContract }: SaisieContratProps) => {
   const contratTypes = {
     "0": "CDD",
     "1": "CDI",
@@ -35,7 +42,8 @@ const SaisieContrat = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [severity, setSeverity] = useState<'error'|'success'>('success');
   const {data:employees = []} = useGetEmployee();
-  
+  const updateContrat = useUpdateContrat();
+
   const formatDate = (dateString: string): string => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -43,6 +51,34 @@ const SaisieContrat = () => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}T00:00:00.000`;
+  };
+    // Load contract data when editing
+  useEffect(() => {
+    if (editingContract) {
+      setNumOrdre(editingContract.concod || '');
+      setSelectedEmployee(editingContract.empcod || '');
+      setDateContrat(getDatePart(editingContract.condat));
+      setTypeContrat(editingContract.contype || '');
+      setDateDebut(getDatePart(editingContract.empemb));
+      setDateFin(getDatePart(editingContract.empsort));
+      setMois(editingContract.conmois?.toString() || '0');
+      setObservations(editingContract.observations || '');
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [editingContract]);
+  const resetForm = () => {
+    setNumOrdre('');
+    setDateDebut('');
+    setDateFin('');
+    setJours('');
+    setMois('0');
+    setDateContrat('');
+    setObservations('');
+    setTypeContrat('');
+    setSelectedEmployee('');
+    if (setEditingContract) setEditingContract(null);
   };
  // Helper function to calculate the difference in months
  const calculateMonths = (start: string, end: string): number => {
@@ -62,46 +98,70 @@ const SaisieContrat = () => {
       setMois('0');
     }
   }, [dateDebut, dateFin]);
-  const saveContrat = () => {
-    const contrat = {
-      soccod: soccod,                        // Required
-      concod: numOrdre,                    // Required, ensure it's 9 characters
-      empcod: selectedEmployee,            // Required, selected from dropdown
-      condat: formatDate(dateContrat),     // Formatted date
-      contype: typeContrat.slice(0, 1),    // Single character for contype
-      sitcod: sitcod,                        // Optional fields
-      sercod: "SR01",
-      empreg: "Y",
-      catcod: "",
-      vilcod: "",
-      empadr: "",
-      emppost: "",
-      emptel: "",                          // Ensure it doesn't exceed 20 characters
-      empemb: formatDate(dateDebut),       // Formatted date
-      empsort: formatDate(dateFin),        // Formatted date
-      condg: "",
-      empmotif: "",
-      empdcin: formatDate(dateFin),
-      empacin: "",
-      quacod: "",
-      empech: "",
-      empelon: "",
-      empcat: "",
-      empscat: "",
-      cnscod: "",
-      empsbase: 0,
-      empsbrut: 0,
-      socresp: "",
-      dircod: "",
-      empcontrat: "",
-      conmois: parseFloat(mois),
-    };
-     axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Contrats`, contrat, { headers })
+const saveContrat = () => {
+  const contrat = {
+    soccod: soccod || '',
+    concod: numOrdre,
+    empcod: selectedEmployee,
+    condat: new Date(formatDate(dateContrat)),
+    contype: typeContrat.slice(0, 1),
+    sitcod: sitcod || '',
+    sercod: "SR01",
+    empreg: "Y",
+    catcod: "",
+    vilcod: "",
+    empadr: "",
+    emppost: "",
+    emptel: "",
+    empemb: new Date(formatDate(dateDebut)),
+    empsort: new Date(formatDate(dateFin)),
+    condg: "",
+    empmotif: "",
+    empdcin: new Date(formatDate(dateFin)),
+    empacin: "",
+    quacod: "",
+    empech: "",
+    empelon: "",
+    empcat: "",
+    empscat: "",
+    cnscod: "",
+    empsbase: 0,
+    empsbrut: 0,
+    socresp: "",
+    dircod: "",
+    empcontrat: "",
+    conmois: parseFloat(mois),
+  };
+
+  // If editing, call PUT (update), otherwise POST (create)
+  if (editingContract) {
+    updateContrat.mutate(contrat, {
+      onSuccess: (res: any) => {
+        setMessage("Contrat modifié avec succès !");
+        setSeverity('success');
+        setIsSnackbarOpen(true);
+        if (setEditingContract) setEditingContract(null);
+        resetForm();
+      },
+      onError: (err: any) => {
+        if (err.response?.status === 403) {
+          setIsForbidden(true);
+          return;
+        }
+        const errorMessage = err.response?.data?.message || "Erreur lors de la modification du contrat";
+        setMessage(errorMessage);
+        setSeverity('error');
+        setIsSnackbarOpen(true);
+      },
+    });
+  } else {
+    axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Contrats`, contrat, { headers })
       .then((res) => {
         if (res.status === 200) {
-          setMessage(res.data.message);
+          setMessage(res.data.message || "Contrat enregistré avec succès !");
           setSeverity('success');
           setIsSnackbarOpen(true);
+          resetForm();
         }
       })
       .catch((err) => {
@@ -109,12 +169,14 @@ const SaisieContrat = () => {
           setIsForbidden(true);
           return;
         }
-        const errorMessage = err.response?.data?.message || "Une erreur inconnue est survenue";
+        const errorMessage = err.response?.data?.message || "Erreur lors de l’enregistrement du contrat";
         setMessage(errorMessage);
         setSeverity('error');
         setIsSnackbarOpen(true);
       });
-  };
+  }
+};
+
   const handleSubmit = (e: any) => {
     e.preventDefault();
     saveContrat();
@@ -187,17 +249,26 @@ const SaisieContrat = () => {
               </Grid>
 
             {/* Save Button */}
-            <Grid>
-                <Button
-                  variant="text"
-                  color="primary"
-                  startIcon={<SaveIcon />}
-                  onClick={saveContrat}
-                  
-                  >
-                  Enregistrer
-                </Button>
-                </Grid>
+          <Grid>
+            <Button
+              variant="text"
+              color="primary"
+              startIcon={<SaveIcon />}
+              onClick={saveContrat}
+            >
+              {editingContract ? 'Modifier' : 'Enregistrer'}
+            </Button>
+            {editingContract && (
+              <Button
+                variant="text"
+                color="secondary"
+                onClick={resetForm}
+                sx={{ ml: 2 }}
+              >
+                Annuler
+              </Button>
+            )}
+          </Grid>
 
           </Grid>
 
