@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MaterialReactTable, useMaterialReactTable, type MRT_Row, createMRTColumnHelper, MRT_RowSelectionState, MRT_GlobalFilterTextField, MRT_ToggleFiltersButton } from 'material-react-table';
+import { MaterialReactTable, useMaterialReactTable, type MRT_Row, MRT_RowSelectionState, MRT_GlobalFilterTextField, MRT_ToggleFiltersButton, MRT_ColumnDef } from 'material-react-table';
 import { Box, Button, lighten, ListItemIcon, MenuItem } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { jsPDF } from 'jspdf';
@@ -12,9 +12,13 @@ import AlertModal from '../../AlertModal/AlertModal';
 import CustomizedSnackbars from '../../Snackbar/Snackbar';
 import { useAllaitementContext } from '../../helper/AllaitementContext';
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
+import { getDatePart1 } from '../../helper/TimeConverter/ExtractDateOnly';
 
-const columnHelper = createMRTColumnHelper<AllaitementDto>();
-
+const formatDate = (date?: Date | string) => {
+    if (!date) return '';
+    const parsedDate = new Date(date);
+    return parsedDate.toLocaleDateString();
+  };
 export const ListAllaitement: React.FC = () => {
   const { setSelectedAllaitement } = useAllaitementContext();
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
@@ -22,98 +26,118 @@ export const ListAllaitement: React.FC = () => {
   const [openModal, setOpenModal] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [forbiddenError, setForbiddenError] = useState(false);
+  const [forbiddenDeleteError, setForbiddenDeleteError] = useState(false);
 
-  const {data = [], error, refetch} = useGetAllaitement();
-  const{mutate:deleteAllaitement} = useDeleteAllaitement();
- 
+  const { data = [], error, refetch } = useGetAllaitement();
+  const{ mutate:deleteAllaitement } = useDeleteAllaitement();
   
   const getAllaitementToEdit = (original: AllaitementDto) =>{
-    const selectedAllaitement = data.find((allaitement:AllaitementDto)=>allaitement.concod == original.concod);
-    if(selectedAllaitement)
+    const selectedAllaitement = data.find((allaitement:any)=>allaitement.concod == original.concod);
+    if(selectedAllaitement){
       setSelectedAllaitement(selectedAllaitement);
+    }
+
   }
     // 🔒 Détection des erreurs 403 lors du fetch
     useEffect(() => {
       if (error?.message?.includes("403")) {
         setForbiddenError(true);
+        setTimeout(() => setForbiddenError(false), 5000);
       }
     }, [error]);
  
   const handleSnackbarClose = () => {
     setShowSuccessAlert(false);  // Reset Snackbar state after it closes
   };
-  const columns = useMemo(() => [
-    columnHelper.accessor('concod', {
-      header: 'N°Ordre',
-      size: 60,
-    }),
-    columnHelper.accessor('empcod', {
-      header: 'Code',
-      size: 100,
-    }),
-    columnHelper.accessor('emplib', {
-      header: 'Nom et Prénom',
-      size: 100,
-    }),
-    columnHelper.accessor('condat', {
-      header: 'Date',
-      size: 100,
-      Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
-    }),
-    columnHelper.accessor('condep', {
-      header: 'Date Départ',
-      size: 100,
-      Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(), // Updated to remove time
-    }),
-    columnHelper.accessor('conret', {
-      header: 'Date Retour',
-      size: 100,
-      Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(), // Updated to remove time
-    }),
-    columnHelper.accessor('lundi', {
-      header: 'Lundi',
-      size: 60,
-    }),
-    {
-      accessorKey: 'mardi',
-      header: 'Mardi',
-      size: 60,
-    },
-    {
-      accessorKey: 'mercredi',
-      header: 'Mercredi',
-      size: 60,
-    },
-    {
-      accessorKey: 'jeudi',
-      header: 'Jeudi',
-      size: 60,
-    },
-    {
-      accessorKey: 'vendredi',
-      header: 'Vendredi',
-      size: 60,
-    },
-    {
-      accessorKey: 'samedi',
-      header: 'Samedi',
-      size: 60,
-    },
-    {
-      accessorKey: 'conjour',
-      header: 'Période',
-      size: 60,
-    },
-  ], []);
+  const columns = useMemo<MRT_ColumnDef<AllaitementDto>[]>(
+    () => [
+      {
+        accessorKey: 'concod',
+        header: 'N°Ordre',
+        size: 60,
+      },
+      {
+        accessorKey: 'empcod',
+        header: 'Code',
+        size: 100,
+      },
+      {
+        accessorKey: 'emplib',
+        header: 'Nom et Prénom',
+        size: 150,
+      },
+      {
+        accessorKey: 'condep',
+        header: 'Date Début',
+        size: 100,
+        Cell: ({ cell }) => formatDate(cell.getValue<string>()),
+      },
+      {
+        accessorKey: 'conret',
+        header: 'Date Fin',
+        size: 100,
+        Cell: ({ cell }) => formatDate(cell.getValue<string>()),
+      },
+      {
+        accessorKey: 'lundi',
+        header: 'Lundi',
+        size: 60,
+      },
+      {
+        accessorKey: 'mardi',
+        header: 'Mardi',
+        size: 60,
+      },
+      {
+        accessorKey: 'mercredi',
+        header: 'Mercredi',
+        size: 60,
+      },
+      {
+        accessorKey: 'jeudi',
+        header: 'Jeudi',
+        size: 60,
+      },
+      {
+        accessorKey: 'vendredi',
+        header: 'Vendredi',
+        size: 60,
+      },
+      {
+        accessorKey: 'samedi',
+        header: 'Samedi',
+        size: 60,
+      },
+      {
+        accessorKey: 'conjour',
+        header: 'Période',
+        size: 60,
+      },
+    ],
+    []
+  );
+
   
- const deleteAllaitementFunction = (soccod:string ,concod:string )=>{
-  deleteAllaitement({ soccod, concod }, {
-  onSuccess() {
-    setShowSuccessAlert(true);
-    refetch();
-  },
-});
- }
+
+  const deleteAllaitementFunction = (soccod: string, concod: string) => {
+  deleteAllaitement(
+    { soccod, concod },
+    {
+      onSuccess() {
+        setShowSuccessAlert(true);
+        refetch();
+      },
+      onError(error: any) {
+        // Check if it's a 403 Forbidden error
+        if (error?.response?.status === 403 || error?.message?.includes('403')) {
+          setForbiddenDeleteError(true);
+        }
+      },
+    }
+  );
+};
+
+
   const handleExportRows = (rows: MRT_Row<AllaitementDto>[]) => {
     const doc = new jsPDF();
 
@@ -188,6 +212,7 @@ export const ListAllaitement: React.FC = () => {
       <MenuItem
         key="delete"
         onClick={() => {
+          console.log('Row to delete:', row.original);
           setAllaitementToDelete({ soccod: row.original.soccod, concod: row.original.concod });
           setOpenModal(true);
           closeMenu();
@@ -293,13 +318,13 @@ export const ListAllaitement: React.FC = () => {
       {showSuccessAlert && (
           <CustomizedSnackbars
             open={showSuccessAlert}
-            message="Autorisation de sortie a été supprimée avec succès!"
+            message="Allaitement a été supprimée avec succès!"
             severity="success"
             onClose={handleSnackbarClose}
           />
         )}
         {forbiddenError && (
-        <ForbiddenMessage message="Vous n'avez pas les droits nécessaires pour consulter ou supprimer ces données." />
+        <ForbiddenMessage message="Vous n'avez pas les droits nécessaires pour consulter ces données." />
       )}
 
       <MaterialReactTable table={table} />
@@ -314,6 +339,10 @@ export const ListAllaitement: React.FC = () => {
           message="Vous etes sure de supprimer cette allaitement?"
         />
       )}
+      {forbiddenDeleteError && (
+        <ForbiddenMessage message="Vous n'avez pas les droits nécessaires pour supprimer ces données." />
+      )}
+
     </Box>
   );
 };

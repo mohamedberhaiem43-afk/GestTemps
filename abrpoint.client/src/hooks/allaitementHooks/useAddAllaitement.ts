@@ -1,12 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
-import AllaitementService from "../../services/AllaitementService";
-import { AllaitementDto } from "../../models/Allaitement";
+import AllaitementModel from "../../models/Allaitement";
+import AddAllaitementService from "../../services/AddAllaitementService";
 
 
 const useAddAllaitement = () => {
     return useMutation({
         mutationKey: ["allaitements"],
-        mutationFn: (data:AllaitementDto) => AllaitementService.post(data),
+        mutationFn: (data:AllaitementModel) => AddAllaitementService.post(data),
     });
 };  
 

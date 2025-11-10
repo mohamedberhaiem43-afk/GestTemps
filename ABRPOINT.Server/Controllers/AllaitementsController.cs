@@ -24,7 +24,8 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return await _allaitementRepository.GetAll(soccod,uticod);
+                var allaitements = await _allaitementRepository.GetAll(soccod,uticod);
+                return allaitements;
             }
             catch (Exception)
             {

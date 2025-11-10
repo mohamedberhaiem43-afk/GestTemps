@@ -53,6 +53,10 @@ namespace ABRPOINT.Server.Repository
                 // Décaler si première entrée vide
                 foreach (var item in presences)
                 {
+                    var lpoint = await _context.Lpointjours
+                        .FirstOrDefaultAsync(lp => lp.Soccod == soccod && lp.Empcod == item.Empcod && lp.Saljour == item.Predat);
+                    if(lpoint != null)
+                        continue;
                     if (string.IsNullOrEmpty(item.Preentmatup))
                     {
                         item.Preentmatup = item.Presortmatup;
@@ -65,6 +69,10 @@ namespace ABRPOINT.Server.Repository
                 // Gérer les shifts de nuit
                 for (int i = 0; i < presences.Count; i++)
                 {
+                    var lpoint = await _context.Lpointjours
+                        .FirstOrDefaultAsync(lp => lp.Soccod == soccod && lp.Empcod == presences[i].Empcod && lp.Saljour == presences[i].Predat);
+                    if (lpoint != null)
+                        continue;
                     var item = presences[i];
 
                     if ((GenericMethodes.ConvertTimeToDecimal(item.Preentmatup) >= GenericMethodes.ConvertTimeToDecimal(nuitparam.Nuitdeb)
@@ -87,7 +95,6 @@ namespace ABRPOINT.Server.Repository
                             {
                                 item.Presortamidiup = nextDayItem.Preentmatup;
                             }
-
                             // Vider l'entrée du jour suivant
                             nextDayItem.Preentmatup = null;
                         }

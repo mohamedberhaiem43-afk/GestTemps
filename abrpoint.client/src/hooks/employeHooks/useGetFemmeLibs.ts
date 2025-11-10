@@ -10,7 +10,7 @@ const useGetFemmeLibs = () => {
     return useQuery({
     queryKey: ["employees", soccod,uticod],
     queryFn:()=> ListeService.getAllWithParams(`Employes/get-femme-libs/${soccod}/${uticod}`),
-    enabled: !!soccod,
+    enabled: !!soccod && !! uticod,
   });
 };
 

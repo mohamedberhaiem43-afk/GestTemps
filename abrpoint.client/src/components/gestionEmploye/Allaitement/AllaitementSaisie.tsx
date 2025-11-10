@@ -18,35 +18,32 @@ import {
 import SaveIcon from "@mui/icons-material/Save";
 import './Allaitement.css';
 import useGetAllaitement from '../../../hooks/allaitementHooks/useGetAllaitement';
-import { AllaitementDto } from '../../../models/Allaitement';
+import AllaitementModel from '../../../models/Allaitement';
 import useAddAllaitement from '../../../hooks/allaitementHooks/useAddAllaitement';
 import useGetFemmeLibs from '../../../hooks/employeHooks/useGetFemmeLibs';
 import { useAllaitementContext } from '../../helper/AllaitementContext';
 import useUpdateAllaitement from '../../../hooks/allaitementHooks/useUpdateAllaitement';
 import SelectInputComponent from '../../SelectInputComponent/SelectInputComponent';
-
-
-// Helper function to format the date
-const formatDate = (dateString: string | undefined) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-CA'); // Format as 'YYYY-MM-DD' in local time
-};
-
+import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
+import { useAuth } from '../../helper/AuthProvider';
+import { getDatePart1 } from '../../helper/TimeConverter/ExtractDateOnly';
 
 export default function AllaitementSaisie() {
   const { selectedAllaitement,setSelectedAllaitement } = useAllaitementContext();  // Using context to get selected Allaitement and hoursData
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [emp,setEmp] = useState<string>('');
+  const [empcod,setEmpcod] = useState<string>('');
+  const [forbiddenError, setForbiddenError] = useState<string | null>(null);
+  const [forbiddenPutError, setForbiddenPutError] = useState<string | null>(null);
   const [severity, setSeverity] = useState<'success'|'error'>('error');
-  const { control, reset, handleSubmit } = useForm<AllaitementDto>({
+  const { soccod } = useAuth();
+  const { control, reset, handleSubmit } = useForm<AllaitementModel>({
     defaultValues: {
-      empcod: '',
+      empcod: empcod,
       concod: '',
-      condat: '',
-      condep: '',
-      conret: '',
+      condat: new Date(),
+      condep: new Date(),
+      conret: new Date(),
       conjour: 'touteLaJournee',
       lundi:0,
       mardi:0,
@@ -64,36 +61,54 @@ export default function AllaitementSaisie() {
   const {data : employes = []} = useGetFemmeLibs();
 
   // Function to handle form submission
-  const onSubmit = async (data: AllaitementDto) => {
-      // Prepare payload with hoursData merged
-      const payload:AllaitementDto = {
-        ...data,
-      };
-  
-      if(!isEditMode){
-        addAllaitement(payload, {
-          onSuccess: () => {
-              handleSnackbarOpening('Allaitement ajoutée avec succées','success');
-              reset();
-          },
-          onError: () => {
-            handleSnackbarOpening("Echéc lors l'ajout d'allaitement",'error');
-          },
-        });
-      }else{
-        updateAllaitement(payload,{
-          onSuccess() {
-            handleSnackbarOpening('Allaitement modifiée avec succées','success');
-            setSelectedAllaitement(null);
-            reset();
-          },
-          onError() {
-            handleSnackbarOpening("Echéc lors la modification de l'allaitement",'error');
-          },
-        })
-      }
-
+const onSubmit = async (data: AllaitementModel) => {
+  // clear forbidden msg before new submit
+  setForbiddenError(null);
+  const payload: AllaitementModel = {
+    ...data,
   };
+  payload.empcod = data.empcod;
+  payload.soccod = soccod || '';
+
+  if (!isEditMode) {
+    console.log(payload);
+    // payload.condat = new Date(formatDate(data.condat));
+    // payload.condep = new Date(formatDate(data.condep));
+    // payload.conret = new Date(formatDate(data.conret));
+    
+    addAllaitement(payload, {
+      onSuccess: () => {
+        handleSnackbarOpening('Allaitement ajoutée avec succès', 'success');
+        reset();
+      },
+      onError: (error: any) => {
+        if (error?.response?.status === 403) {
+          // Show forbidden message
+          setForbiddenError("Vous n'avez pas l'autorisation d'effectuer cette action.");
+        } else {
+          handleSnackbarOpening("Échec lors de l'ajout d'allaitement", 'error');
+        }
+      },
+    });
+  } else {
+    updateAllaitement(payload, {
+      onSuccess() {
+        handleSnackbarOpening('Allaitement modifiée avec succès', 'success');
+        setSelectedAllaitement(null);
+        reset();
+      },
+      onError(error: any) {
+        if (error?.response?.status === 403) {
+          // Show forbidden message
+          setForbiddenPutError("Vous n'avez pas l'autorisation de modifier une allaitement.");
+        } else {
+          handleSnackbarOpening("Échec lors de la modification de l'allaitement", 'error');
+        }
+      },
+    });
+  }
+};
+
   const handleSnackbarOpening = (message:string,severity:string) => {
     refetch();
     setMessage(message);
@@ -105,29 +120,31 @@ export default function AllaitementSaisie() {
   useEffect(() => {
     if (selectedAllaitement) {
       reset({
-        empcod: selectedAllaitement.empcod || '',
         concod: selectedAllaitement.concod || '',
-        condat: formatDate(selectedAllaitement.condat), // Format the date
-        condep: formatDate(selectedAllaitement.condep), // Format the date
-        conret: formatDate(selectedAllaitement.conret), // Format the date
-        lundi:selectedAllaitement.lundi,
-        mardi:selectedAllaitement.mardi,
-        mercredi:selectedAllaitement.mercredi,
-        jeudi:selectedAllaitement.jeudi,
-        vendredi:selectedAllaitement.vendredi,
-        samedi:selectedAllaitement.samedi,
+        empcod: selectedAllaitement.empcod || '',
+        condat: getDatePart1(selectedAllaitement.condat), // Format the date
+        condep: getDatePart1(selectedAllaitement.condep), // Format the date
+        conret: getDatePart1(selectedAllaitement.conret), // Format the date
+        lundi:Number(selectedAllaitement.lundi),
+        mardi:Number(selectedAllaitement.mardi),
+        mercredi:Number(selectedAllaitement.mercredi),
+        jeudi:Number(selectedAllaitement.jeudi),
+        vendredi:Number(selectedAllaitement.vendredi),
+        samedi:Number(selectedAllaitement.samedi),
         conjour: selectedAllaitement.conjour || 'J',
       });
+      setEmpcod(selectedAllaitement.empcod || '')
       setIsEditMode(true); // Switch to edit mode if an Allaitement is selected
     } else {
       reset({
-        empcod: '',
         concod: '',
-        condat: '',
-        condep: '',
-        conret: '',
+        empcod: '',
+        condat: new Date(),
+        condep: new Date(),
+        conret: new Date(),
         conjour: 'J',
       });
+      setEmpcod('')
       setIsEditMode(false); // Switch to save mode if no Allaitement is selected
     }
   }, [selectedAllaitement, reset]);
@@ -140,9 +157,21 @@ export default function AllaitementSaisie() {
         <Grid item xs={8}>
             <Grid container spacing={2}>
               {/* Employee Select */}
-              <Grid item xs={2} mt={1}>
-                <SelectInputComponent label={'Employé'} value={emp} setValue={setEmp} maplist={employes} />
-              </Grid>
+            <Grid item xs={2} mt={1}>
+              <Controller
+                name="empcod"
+                control={control}
+                render={({ field }) => (
+                  <SelectInputComponent
+                    label={'Employé'}
+                    value={field.value}
+                    setValue={field.onChange}
+                    maplist={employes}
+                  />
+                )}
+              />
+            </Grid>
+
 
               {/* N° Ordre */}
               <Grid item xs={1.5} mt={0.5}>
@@ -227,6 +256,7 @@ export default function AllaitementSaisie() {
                       fullWidth
                       {...field}
                       required
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   )}
                 />
@@ -244,6 +274,7 @@ export default function AllaitementSaisie() {
                       fullWidth
                       {...field}
                       required
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   )}
                 />
@@ -261,6 +292,7 @@ export default function AllaitementSaisie() {
                       fullWidth
                       {...field}
                       required
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   )}
                 />
@@ -277,6 +309,7 @@ export default function AllaitementSaisie() {
                       fullWidth
                       {...field}
                       required
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   )}
                 />
@@ -293,6 +326,7 @@ export default function AllaitementSaisie() {
                       fullWidth
                       {...field}
                       required
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   )}
                 />
@@ -309,6 +343,7 @@ export default function AllaitementSaisie() {
                       fullWidth
                       {...field}
                       required
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   )}
                 />
@@ -324,7 +359,8 @@ export default function AllaitementSaisie() {
                 >
                   {/* Switch between 'Save' and 'Update' */}
                 </Button>
-                <Button   onClick={() => {
+                <Button
+                onClick={() => {
                           reset(); 
                           setIsEditMode(false); 
                           setSelectedAllaitement(null);
@@ -374,6 +410,19 @@ export default function AllaitementSaisie() {
         {message}
       </Alert>
     </Snackbar>
+    {forbiddenError && (
+      <ForbiddenMessage
+        message={forbiddenError}
+        autoHideDuration={6000}
+      />
+    )}
+    {forbiddenPutError && (
+      <ForbiddenMessage
+        message={forbiddenPutError}
+        autoHideDuration={6000}
+      />
+    )}
+  
 
     </Box>
   );

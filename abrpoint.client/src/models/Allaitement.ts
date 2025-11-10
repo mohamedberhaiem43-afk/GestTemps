@@ -2,9 +2,9 @@ export default interface AllaitementModel {
   soccod:string,
   empcod: string;
   concod: string;
-  condat: string;
-  condep: string;
-  conret: string;
+  condat: Date | string;
+  condep: Date | string;
+  conret: Date | string;
   conjour: string;
   lundi:number;
   mardi:number;

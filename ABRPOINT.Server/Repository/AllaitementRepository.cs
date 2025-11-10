@@ -45,10 +45,20 @@ namespace ABRPOINT.Server.Repository
                              select new AllaitementDto
                              {
                                  Soccod = a.Soccod,
+                                 Conjour = a.Conjour,
                                  Empcod = a.Empcod,
-                                 DateDebut = a.Condep,
-                                 DateFin = a.Condep,
-                                 Emplib = e.Emplib
+                                 Condat = a.Condat,
+                                 Condep = a.Condep,
+                                 Conret = a.Conret,
+                                 Lundi = a.Lundi,
+                                 Mardi = a.Mardi,
+                                 Mercredi = a.Mercredi,
+                                 Jeudi = a.Jeudi,
+                                 Vendredi = a.Vendredi,
+                                 Samedi = a.Samedi,
+                                 Dimanche = a.Dimanche,
+                                 Emplib = e.Emplib,
+                                 Concod = a.Concod,
                              };
 
                 return await result.ToListAsync();
