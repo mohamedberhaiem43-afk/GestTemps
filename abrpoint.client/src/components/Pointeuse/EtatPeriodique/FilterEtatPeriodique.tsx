@@ -16,6 +16,7 @@ function FilterEtatPeriodique() {
         'M': "Mensuelle",
         'H': "Horaire"
     };
+    const [paramMois, setParamMois] = useState({ joudeb: '01', joufin: '28', moisdeb: 'P', moisfin: 'P' });
     const presence = null;
     const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
     const [filiale, setFiliale] = useState<Record<string,string>>({});
@@ -42,12 +43,13 @@ function FilterEtatPeriodique() {
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
                 // Removed setDebMois as it is unused
-                
+                        setParamMois({ joudeb, joufin, moisdeb, moisfin }); // <-- Save for reuse
+
                 const currentYear = new Date().getFullYear();
                 let currentMonth = new Date().getMonth() + 1; // Add 1 to zero-based month
 
                 let startMonth = moisdeb === 'P' ? currentMonth - 1 : currentMonth;
-                let endMonth = moisfin === 'P' ? currentMonth - 1 : currentMonth;
+                let endMonth = moisfin === 'P' ? currentMonth - 1: currentMonth;
 
                 let startYear = startMonth === 0 ? currentYear - 1 : currentYear;
                 let endYear = endMonth === 0 ? currentYear - 1 : currentYear;
@@ -60,7 +62,7 @@ function FilterEtatPeriodique() {
 
                 const initialDateDebut = `${startYear}-${formattedStartMonth}-${joudeb}`;
                 const initialDateFin = `${endYear}-${formattedEndMonth}-${joufin}`;
-
+                //setMois(formattedStartMonth);
                 setAnnee(currentYear.toString());
                 setStartDate(initialDateDebut);
                 setEndDate(initialDateFin);
@@ -80,15 +82,27 @@ function FilterEtatPeriodique() {
             .catch((err) => console.error(err));
     }, [soccod]);
 
-    // Update dateDebut and dateFin when annee changes
-    useEffect(() => {
-        if (annee) {
-            const startDateParts = dateDebut.split('-');
-            const endDateParts = dateFin.split('-');
-            setStartDate(`${annee}-${startDateParts[1]}-${startDateParts[2]}`);
-            setEndDate(`${annee}-${endDateParts[1]}-${endDateParts[2]}`);
+      useEffect(() => {
+        if (annee && mois && paramMois.joudeb && paramMois.joufin) {
+            const { joudeb, joufin, moisdeb, moisfin } = paramMois;
+    
+            const currentMonth = parseInt(mois, 10);
+            let startMonth = moisdeb === 'P' ? currentMonth - 1 : currentMonth;
+            let endMonth = moisfin === 'P' ? currentMonth - 1 : currentMonth;
+    
+            let startYear = startMonth === 0 ? parseInt(annee) - 1 : parseInt(annee);
+            let endYear = endMonth === 0 ? parseInt(annee) - 1 : parseInt(annee);
+    
+            startMonth = startMonth === 0 ? 12 : startMonth;
+            endMonth = endMonth === 0 ? 12 : endMonth;
+    
+            const formattedStartMonth = String(startMonth).padStart(2, '0');
+            const formattedEndMonth = String(endMonth).padStart(2, '0');
+    
+            setStartDate(`${startYear}-${formattedStartMonth}-${joudeb}`);
+            setEndDate(`${endYear}-${formattedEndMonth}-${joufin}`);
         }
-    }, [annee]);
+    }, [mois, annee, paramMois]);
     const handleApplyFilter = () => {
        if (setDateRange) {
             setDateRange({

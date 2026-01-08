@@ -18,15 +18,17 @@ import useAddSortie from "../../../hooks/sortieHooks/useAddSortie";
 import { Autoriser } from "../../../models/Autoriser";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
+import generateNumeroOrdre from "../../helper/GenerateNumOrdre";
+import { useAuth } from "../../helper/AuthProvider";
   
 
-export default function SaisieAutorisation({empcod}: { empcod: string }) {
-    const soccod = sessionStorage.getItem('soccod');
-    const [concod, setConcod] = useState("");
+export default function SaisieAutorisation({date, empcod}: { date: string|undefined, empcod: string }) {
+    const { soccod } = useAuth();
+    const [concod, setConcod] = useState(generateNumeroOrdre());
     const [conmotif, setConmotif] = useState("");
     const [abscod, setAbscod] = useState("");
     const [ref, setRef] = useState("");
-    const [condat, setCondat] = useState<[Dayjs | null, Dayjs | null]>([dayjs(), dayjs()]);
+    const [condat, setCondat] = useState<[Dayjs | null, Dayjs | null]>([dayjs(date), dayjs(date)]);
     const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [severity, setSeverity] = useState<'success' | 'error'>('success');

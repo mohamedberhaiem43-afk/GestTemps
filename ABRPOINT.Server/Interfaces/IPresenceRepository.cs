@@ -11,7 +11,7 @@ namespace ABRPOINT.Server.Interfaces
         Task<IEnumerable<PresenceDto>> GetEmpEtatPeriodiqueAsync(string soccod, string empcod, DateTime dateDebut, DateTime dateFin);
         Task CalculatePresence(Presence presence);
         Task UpdateAsync(PresenceDto dbpresence);
-        Task AddPresence(string soccod, string empcod, DateTime date, string poicod);
+        Task<PresenceDto> AddPresence(string soccod, string empcod, DateTime date, string poicod);
         Task<int?> GetPreRepas(string empcod, DateTime? predate);
         Task<float?> GetNbJours(string empcod, DateTime? dateDeb, DateTime? dateFin);
         Task<PresenceSemaineData> GetPresenceSemaineData(string soccod, string empcod, string mois, string annee, string semaine);

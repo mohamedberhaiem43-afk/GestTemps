@@ -310,6 +310,100 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        public async Task<bool> CloneCalendrier(string soccod, int annee)
+        {
+            try
+            {
+                string anneeSource = (annee - 1).ToString();
+                string anneeCible = annee.ToString();
+
+                // 1️⃣ Lire calendrier de l’année précédente
+                var calendrierSource = await _dbContext.Calendsocs
+                    .Where(c => c.Soccod == soccod && c.CalAn == anneeSource)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                if (!calendrierSource.Any())
+                    return false;
+
+                // 2️⃣ Cloner
+                var calendrierClone = calendrierSource.Select(c => new Calendsoc
+                {
+                    Soccod = c.Soccod,
+                    Caltype = c.Caltype,
+                    CalAn = anneeCible,
+                    CalMois = c.CalMois,
+                    CalSem = c.CalSem,
+                    CalNbh = c.CalNbh,
+                    CalTrav = c.CalTrav,
+                    CalHjour = c.CalHjour,
+                    CalHouv = c.CalHouv,
+                    Callib = c.Callib,
+                    CalHsem = c.CalHsem
+                }).ToList();
+
+                await _dbContext.Calendsocs.AddRangeAsync(calendrierClone);
+                await _dbContext.SaveChangesAsync();
+                
+                return true;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        public async Task<bool> CloneLCalendrier(string soccod, int annee)
+        {
+            string anneeSource = (annee - 1).ToString();
+            string anneeCible = annee.ToString();
+
+            // 1️⃣ Charger l’année précédente (sans tracking)
+            var source = await _dbContext.Lcalendsocs
+                .AsNoTracking()
+                .Where(l => l.Soccod == soccod && l.CalAn == anneeSource)
+                .ToListAsync();
+
+            if (!source.Any())
+                return false;
+
+            // 2️⃣ Cloner avec nouvelle année + nouvelle date
+            var clones = source.Select(l =>
+            {
+                DateTime? newDate = null;
+
+                if (l.CalDate.HasValue)
+                {
+                    newDate = new DateTime(
+                        annee,
+                        l.CalDate.Value.Month,
+                        l.CalDate.Value.Day
+                    );
+                }
+
+                return new Lcalendsoc
+                {
+                    Soccod = l.Soccod,
+                    Caltype = l.Caltype,
+                    CalDate = newDate,
+                    CalAn = anneeCible,
+                    CalMois = l.CalMois,
+                    CalSem = l.CalSem,
+                    CalNbh = l.CalNbh,
+                    CalTrav = l.CalTrav,
+                    CalCol = l.CalCol,
+                    CalRow = l.CalRow,
+                    Motif = l.Motif,
+                    Payer = l.Payer
+                };
+            }).ToList();
+
+            await _dbContext.Lcalendsocs.AddRangeAsync(clones);
+            await _dbContext.SaveChangesAsync();
+
+            return true;
+        }
+
+
     }
 }
 

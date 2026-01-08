@@ -27,6 +27,8 @@ import SelectInputComponent from '../../SelectInputComponent/SelectInputComponen
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import { useAuth } from '../../helper/AuthProvider';
 import { getDatePart1 } from '../../helper/TimeConverter/ExtractDateOnly';
+import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
+import getTodayDate from '../../helper/TimeConverter/TodayDate';
 
 export default function AllaitementSaisie() {
   const { selectedAllaitement,setSelectedAllaitement } = useAllaitementContext();  // Using context to get selected Allaitement and hoursData
@@ -40,10 +42,10 @@ export default function AllaitementSaisie() {
   const { control, reset, handleSubmit } = useForm<AllaitementModel>({
     defaultValues: {
       empcod: empcod,
-      concod: '',
-      condat: new Date(),
-      condep: new Date(),
-      conret: new Date(),
+      concod: generateNumeroOrdre(),
+      condat: getTodayDate(),
+      condep: getTodayDate(),
+      conret: getTodayDate(),
       conjour: 'touteLaJournee',
       lundi:0,
       mardi:0,
@@ -71,11 +73,6 @@ const onSubmit = async (data: AllaitementModel) => {
   payload.soccod = soccod || '';
 
   if (!isEditMode) {
-    console.log(payload);
-    // payload.condat = new Date(formatDate(data.condat));
-    // payload.condep = new Date(formatDate(data.condep));
-    // payload.conret = new Date(formatDate(data.conret));
-    
     addAllaitement(payload, {
       onSuccess: () => {
         handleSnackbarOpening('Allaitement ajoutée avec succès', 'success');
@@ -120,7 +117,7 @@ const onSubmit = async (data: AllaitementModel) => {
   useEffect(() => {
     if (selectedAllaitement) {
       reset({
-        concod: selectedAllaitement.concod || '',
+        concod: selectedAllaitement.concod || generateNumeroOrdre(),
         empcod: selectedAllaitement.empcod || '',
         condat: getDatePart1(selectedAllaitement.condat), // Format the date
         condep: getDatePart1(selectedAllaitement.condep), // Format the date
@@ -137,11 +134,11 @@ const onSubmit = async (data: AllaitementModel) => {
       setIsEditMode(true); // Switch to edit mode if an Allaitement is selected
     } else {
       reset({
-        concod: '',
+        concod: generateNumeroOrdre(),
         empcod: '',
-        condat: new Date(),
-        condep: new Date(),
-        conret: new Date(),
+        condat: getTodayDate(),
+        condep: getTodayDate(),
+        conret: getTodayDate(),
         conjour: 'J',
       });
       setEmpcod('')

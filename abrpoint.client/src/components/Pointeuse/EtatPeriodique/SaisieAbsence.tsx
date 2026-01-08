@@ -15,10 +15,12 @@ import useGetAbsencesLibs from '../../../hooks/absenceHooks/useGetAbsenceLibs'
 import {useEffect, useState } from 'react'
 import useAddSanction from '../../../hooks/sanctionHooks/useAddSanction';
 import { Sanction } from '../../../models/Sanction';
+import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
+import { useAuth } from '../../helper/AuthProvider';
 
 function SaisieAbsence({empcod,date}: { empcod: string, date: string }) {
       
-      const [concod, setOrdre] = useState('');
+      const [concod, setOrdre] = useState(generateNumeroOrdre());
       const [condat, setDate] = useState(() => {
   const tomorrow = new Date(date);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -36,7 +38,7 @@ const [condep, setDateDepart] = useState(() => {
     tomorrow.setDate(tomorrow.getDate() + 2);
     return tomorrow.toISOString();
   });
-      const soccod = sessionStorage.getItem('soccod') || '';
+      const { soccod } = useAuth();
       const [conamret, setApresMidiReprise] = useState(false);
       const [conjour, setTimePeriod] = useState('J');
       const [abscod, setAbscod] = useState('');
@@ -64,16 +66,20 @@ const [condep, setDateDepart] = useState(() => {
       conjour,
       abscod,
     };
-        // Send a POST request to insert the sanction data
-        mutate(sanctionData,{
-          onSuccess() {
-            handleSnackbarOpening("Ajout de sanction avec sucées",'success');
-            //resetForm();
-          },
-          onError() {
-            handleSnackbarOpening("Echec d'ajout de sanction",'error');
-          },
-        })
+    if(sanctionData.consanc){
+      // Send a POST request to insert the sanction data
+      mutate(sanctionData,{
+        onSuccess() {
+          handleSnackbarOpening("Ajout de sanction avec sucées",'success');
+          //resetForm();
+        },
+        onError() {
+          handleSnackbarOpening("Echec d'ajout de sanction",'error');
+        },
+      })
+    }else{
+      handleSnackbarOpening("Veuillez remplir l'imputation d'absence",'error');
+    }
     
   }
   const handleSnackbarOpening = (message: string, severity: 'success' | 'error') => {
@@ -95,16 +101,15 @@ const [condep, setDateDepart] = useState(() => {
 }, [condep, conret]);
     function resetForm(event: React.MouseEvent<HTMLButtonElement>): void {
         event?.preventDefault();
-        setOrdre('');
-        setDate('');
+        setOrdre(generateNumeroOrdre());
+        // setDate('');
         setReference('');
-        setDateDepart('');
+        // setDateDepart('');
         setApresMidiDepart(false);
-        setDateReprise('');
+        // setDateReprise('');
         setApresMidiReprise(false);
-        setTimePeriod('touteLaJournee');
+        setTimePeriod('J');
         setAbscod('');
-        setConnbjour(0);
     }
     
 

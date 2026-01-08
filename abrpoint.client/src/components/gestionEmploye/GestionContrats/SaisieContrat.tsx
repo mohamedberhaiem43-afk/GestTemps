@@ -11,6 +11,8 @@ import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import getDatePart from '../../helper/TimeConverter/ExtractDateOnly';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
 import formatDate from '../../helper/formatDate';
+import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
+import getTodayDate from '../../helper/TimeConverter/TodayDate';
 
 interface SaisieContratProps {
   editingContract?: any;
@@ -30,12 +32,12 @@ const SaisieContrat = ({ editingContract, setEditingContract }: SaisieContratPro
   const sitcod = sessionStorage.getItem("sitcod");
   const headers = { Authorization: `Bearer ${token}` };
   const [isForbidden, setIsForbidden] = useState(false);
-  const [numOrdre, setNumOrdre] = useState('');
-  const [dateDebut, setDateDebut] = useState('');
+  const [numOrdre, setNumOrdre] = useState(generateNumeroOrdre());
+  const [dateDebut, setDateDebut] = useState(getTodayDate());
   const [dateFin, setDateFin] = useState('');
   const [jours, setJours] = useState('');
   const [mois, setMois] = useState('0');
-  const [dateContrat, setDateContrat] = useState('');
+  const [dateContrat, setDateContrat] = useState(getTodayDate());
   const [observations, setObservations] = useState('');
   const [typeContrat, setTypeContrat] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');

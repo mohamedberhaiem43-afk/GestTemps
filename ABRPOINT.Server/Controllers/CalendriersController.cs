@@ -40,6 +40,19 @@ namespace ABRPOINT.Server.Controllers
         {
             _IcalendrierRepository.Add(calendrier);
         }
+        [HttpPost("clone/{soccod}/{annee}")]
+        public async Task CloneCalendrier(string soccod,int annee)
+        {
+            try
+            {
+                await _IcalendrierRepository.CloneCalendrier(soccod, annee);
+                await _IcalendrierRepository.CloneLCalendrier(soccod, annee);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
 
         // PUT api/<DirectionsController>/5
         [HttpPut("{soccod}/{ordre}")]

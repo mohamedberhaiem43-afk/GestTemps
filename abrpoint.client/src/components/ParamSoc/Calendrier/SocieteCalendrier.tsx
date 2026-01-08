@@ -22,6 +22,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import useUpdateCalendrier from "../../../hooks/calendrierHooks/useUpdateCalendrier";
 import { useCalendrierContext } from "../../helper/CalendrierContext";
 import useGetCalendrier from "../../../hooks/calendrierHooks/useGetCalendriers";
+import useCloneCalendrier from "../../../hooks/calendrierHooks/useCloneCalendrier";
+import { ContentCopy } from "@mui/icons-material";
 
 const WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const daysRecord = {
@@ -70,6 +72,26 @@ function SocieteCalendrier() {
     tousLesMois ? 1 : 0,
     jourRepos
   );
+  const cloneCalendrier = useCloneCalendrier(
+  Number(selectedCalendrier)
+);
+const handleClone = () => {
+  if (
+    !window.confirm(
+      `Cloner le calendrier ${Number(selectedCalendrier) - 1} vers ${selectedCalendrier} ?`
+    )
+  )
+    return;
+
+  cloneCalendrier.mutate(undefined, {
+    onSuccess: () => {
+      refetch();
+    },
+  });
+};
+
+
+
 
   // ✅ Function to handle Save Click
   const handleSave = () => {
@@ -133,6 +155,15 @@ function SocieteCalendrier() {
         <IconButton onClick={handleSave} color="primary" aria-label="save" type="submit">
               <SaveIcon />
         </IconButton>
+        <IconButton
+          onClick={handleClone}
+          color="secondary"
+          aria-label="clone"
+          title="Cloner l'année précédente"
+        >
+          <ContentCopy />
+        </IconButton>
+
       </Box>
 
       <Table size="small" aria-label="company calendar">

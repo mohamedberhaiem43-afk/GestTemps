@@ -273,11 +273,10 @@ namespace ABRPOINT.Server.Repository
                                         on new { s.Soccod, s.Abscod } equals new { a.Soccod, a.Abscod }
                                     where s.Soccod == soccod
                                           && s.Empcod == empcod
-                                          && s.Condep <= dmdate 
-                                          && s.Conret > dmdate  
+                                          && s.Condep <= dmdate
+                                          && (s.Conamret == "1" ? s.Conret >= dmdate : s.Conret > dmdate)
                                     select a.Abslib)
                                   .FirstOrDefaultAsync();
-
                 return abslib;
             }
             catch (Exception)

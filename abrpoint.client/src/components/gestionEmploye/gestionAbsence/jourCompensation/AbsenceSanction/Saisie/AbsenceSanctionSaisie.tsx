@@ -21,12 +21,13 @@ import { useSanctionContext } from '../../../../../helper/SanctionContext';
 import useUpdateSanction from '../../../../../../hooks/sanctionHooks/useUpdateSanction';
 import { Sanction } from '../../../../../../models/Sanction';
 import getDatePart from '../../../../../helper/TimeConverter/ExtractDateOnly';
+import generateNumeroOrdre from '../../../../../helper/GenerateNumOrdre';
 
 export default function AbsenceSanctionSaisie() {
   const { selectedSanction } = useSanctionContext();
   const soccod = sessionStorage.getItem('soccod')
   const [empcod, setEmploye] = useState('');
-  const [concod, setOrdre] = useState('');
+  const [concod, setOrdre] = useState(generateNumeroOrdre());
   const [condat, setDate] = useState<Date|string>();
   const [conref, setReference] = useState('');
   const [condep, setDateDepart] = useState<Date|string>();

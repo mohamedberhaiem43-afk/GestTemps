@@ -33,9 +33,13 @@ namespace ABRPOINT.Mappings
 
             CreateMap<Utilisateur, UtilisateurDto>();
             CreateMap<UtilisateurDto, Utilisateur>();
+            CreateMap<Utilisateur, UtiProfile>();
+            CreateMap<UtiProfile, Utilisateur>();
 
             CreateMap<Parametre, EtatPresenceParametreDto>();
             CreateMap<EtatPresenceParametreDto, Parametre>();
+
+
         }
     }
 }

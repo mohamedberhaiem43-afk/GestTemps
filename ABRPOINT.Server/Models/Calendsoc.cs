@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Models;
 
-[Keyless]
 [Table("calendsoc")]
+[PrimaryKey("Soccod","CalAn", "CalMois", "CalSem")]
 public partial class Calendsoc
 {
     [Column("soccod")]

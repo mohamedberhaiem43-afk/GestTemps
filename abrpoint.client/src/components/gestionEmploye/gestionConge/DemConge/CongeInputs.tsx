@@ -24,16 +24,19 @@ import { useCongeContext } from '../../../helper/CongeContext';
 import useUpdateDemConge from '../../../../hooks/congeHooks/useUpdateConge';
 import { Conge } from '../../../../models/Conge';
 import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
+import { useAuth } from '../../../helper/AuthProvider';
+import generateNumeroOrdre from '../../../helper/GenerateNumOrdre';
 
 export default function CongeForm() {
   const { selectedConge } = useCongeContext();
   const getTodayDate = () => new Date().toISOString().split('T')[0];
 
-  const soccod = sessionStorage.getItem('soccod')||'';
+  const { soccod } = useAuth();
   const [empcod, setEmploye] = useState('');
-  const [concod, setOrdre] = useState('');
+  const [concod, setOrdre] = useState(generateNumeroOrdre());
+
   // Valeur par défaut: date d'aujourd'hui
-const [condat, setDate] = useState<Date | string>(getTodayDate());
+  const [condat, setDate] = useState<Date | string>(getTodayDate());
   const [conref, setReference] = useState('');
   // Valeur par défaut: date d'aujourd'hui
   const [condep, setDateDepart] = useState<Date | string>(getTodayDate());
@@ -93,7 +96,7 @@ const [condat, setDate] = useState<Date | string>(getTodayDate());
   const handleSubmit = (event:any) => {
     event.preventDefault();
     const congeData:Conge = {
-      soccod, // already aligned with 'Soccod'
+      soccod:soccod || '', // already aligned with 'Soccod'
       empcod, // already aligned with 'Empcod'
       concod, // already aligned with 'Concod'
       condat: condat ? new Date(condat) : null, // Convert string date to DateTime format

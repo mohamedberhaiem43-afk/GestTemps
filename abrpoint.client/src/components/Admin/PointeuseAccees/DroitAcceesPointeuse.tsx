@@ -27,6 +27,7 @@ export default function DroitAccessPointeuse() {
   });
 
 const handleUpdate = () => {
+  console.log("test")
   if (userData && userPermissions.length > 0) {
     const soccod = sessionStorage.getItem("soccod") ?? "";
 

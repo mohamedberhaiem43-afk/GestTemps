@@ -18,6 +18,7 @@ import useUpdateTitreConge from '../../../../../hooks/congeHooks/useUpdateTitreC
 import { Conge } from '../../../../../models/Conge';
 import EtatConge from '../../../../../models/EtatConge';
 import getDatePart from '../../../../helper/TimeConverter/ExtractDateOnly';
+import generateNumeroOrdre from '../../../../helper/GenerateNumOrdre';
 
 
 export default function TitreCongeForm({ titre }:{titre:string}) {
@@ -25,7 +26,7 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
   const [condep, setDateDepart] = useState<string | null>(getTodayDate());
   const [conret, setDateReprise] = useState<string | null>(getTodayDate());
   const [empcod, setEmploye] = useState('');
-  const [concod, setOrdre] = useState('');
+  const [concod, setOrdre] = useState(generateNumeroOrdre());
   const [condat, setDate] = useState<string | null>(getTodayDate());
   const [conref, setReference] = useState('');
   const [conamdep, setApresMidiDepart] = useState(false);

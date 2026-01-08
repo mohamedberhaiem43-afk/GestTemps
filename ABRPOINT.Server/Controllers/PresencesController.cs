@@ -2,6 +2,7 @@
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,12 +14,26 @@ namespace ABRPOINT.Server.Controllers
     public class PresencesController : ControllerBase
     {
         private readonly IPresenceRepository _presenceRepository;
+        private readonly IPointageOptimizerService _pointageOptimizerService;
         private readonly IReportsGenerationService _reportGenerationService;
-        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository)
+        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService)
         {
             _presenceRepository = presenceRepository;
             _reportGenerationService = reportGenerationService;
+            _pointageOptimizerService = pointageOptimizerService;
 
+        }
+        [HttpPut("optimiserPointage/{soccod}/{empmat}/{dateDeb}/{dateFin}")]
+        public async Task OptimizePointage(string soccod,string empMat,DateTime dateDeb,DateTime dateFin)
+        {
+            try
+            {
+                await _pointageOptimizerService.OptimizePointage(soccod, empMat, dateDeb, dateFin);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
         // GET: api/<DirectionsController>
         [HttpGet("{soccod}/{dateDebut}/{dateFin}/{regime}")]
@@ -103,7 +118,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 PresenceDto dbpresence = _presenceRepository.Get(soccod,empcod,predat);
                 if(dbpresence == null)
-                    return NotFound("Presence non trouvé");
+                    dbpresence = await _presenceRepository.AddPresence(soccod, empcod, predat,"");
                 dbpresence.Preentamidiup = presence.preentamidiup;
                 dbpresence.Preentsupup = presence.preentsupup;
                 dbpresence.Preentmatup = presence.preentmatup;

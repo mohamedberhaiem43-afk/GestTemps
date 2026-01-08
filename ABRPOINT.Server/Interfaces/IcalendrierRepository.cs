@@ -12,5 +12,8 @@ namespace ABRPOINT.Server.Interfaces
         Task UpdateCalendrier(string soccod, string caltype, string annee, float nbhJours, float nbhSamedi, string jourRepos, string mois, byte tousMois);
         Task<float?> GetNbHeuresParSemaine(string soccod, string mois, string annee, string semaine, string empcod);
         Task<IDictionary<string, string>> GetCalendriers(string soccod);
+        Task<bool> CloneCalendrier(string soccod, int annee);
+        Task<bool> CloneLCalendrier(string soccod, int annee);
+
     }
 }

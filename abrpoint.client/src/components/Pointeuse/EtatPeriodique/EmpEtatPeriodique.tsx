@@ -15,6 +15,13 @@ import SaisieAutorisation from './SaisieAutorisation';
 import EmpEtat from '../../../models/EmpEtat';
 import EmpEtatService from '../../../services/PersenceService/EmpEtatService';
 import { useAuth } from '../../helper/AuthProvider';
+import OptimisationPointage from '../Optimisation/OptimisationPointage';
+import type {
+  MRT_Cell,
+  MRT_Column,
+  MRT_Row,
+  MRT_TableInstance,
+} from 'material-react-table';
 
 type EmployeeContextType = {
   selectedEmpMat: string;
@@ -26,54 +33,72 @@ type EmployeeContextType = {
 const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const {mutate:updatePresence} = useUpdatePresence(); 
+  const { soccod } = useAuth(); // Déplacer ici au niveau du composant
+  
   // Handle editing row
   
   const formatDateToLocalISO = (date: Date): string => {
     const tzOffset = date.getTimezoneOffset() * 60000; // Offset in milliseconds
     const localISODate = new Date(date.getTime() - tzOffset).toISOString().slice(0, -1); // Remove the 'Z'
     return localISODate;
-};
+  };
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<EmpEtat | null>(null);
   const [motif, setMotif] = useState<string>('');
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   const { setSelectedEmpPoste } = useContext(EmployeeContext);
 
-  const handleSaveRow = async ({
-    values,
-    table,
-  }: {
-    values: Record<string, any>;
-    table: any;
-  }) => {
-    setValidationErrors({});
-    const { soccod } = useAuth();
-    if (!soccod) {
-        return;
-    }
+ const handleSaveRow = async ({
+  values,
+  table,
+}: {
+  values: Record<string, any>;
+  table: any;
+}) => {
+  setValidationErrors({});
+  if (!soccod) {
+      return;
+  }
 
-    const presenceData = {
-        ...values,
-        predat: formatDateToLocalISO(new Date(values.predat)), // Use the local ISO formatter
-      };
-    updatePresence(
-        { soccod, empcod:empetat[0].empcod, predat: presenceData.predat, presence: presenceData },
-        {
-            onSuccess: () => {
-            },
-            onError: () => {
-            },
-        }
-    );
+  const presenceData = {
+      predat: formatDateToLocalISO(new Date(values.predat)),
+      preentamidiup: values.preentamidiup || "",
+      preentmatup: values.preentmatup || "",
+      preentsupup: values.preentsupup || "",
+      prerepas: values.prerepas || 0,
+      prerepos: values.prerepos || "0",
+      presortamidiup: values.presortamidiup || "",
+      presortmatup: values.presortmatup || "",
+      presortsupup: values.presortsupup || "",
+      tothnuit: values.tothnuit || "",
+      tothre: values.tothre || "",
+    };
+  
+  const encodedPredat = encodeURIComponent(presenceData.predat);
+  
+  updatePresence(
+      { soccod, empcod: empetat[0].empcod, predat: encodedPredat, presence: presenceData },
+      {
+          onSuccess: () => {
+          },
+          onError: (error) => {
+              console.error("Erreur lors de la mise à jour:", error);
+          },
+      }
+  );
 
-    table.setEditingRow(null);
-  };
+  table.setEditingRow(null);
+};
+  
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setMotif('');
     setSelectedRow(null);
   };
+
+  // ... reste du code inchangé
 
   const columns = useMemo<any[]>(() => [
     {
@@ -97,13 +122,38 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
       size: 30,
     },
     {
-      accessorKey: 'prerepos',
-      header: 'Rep',
-      size: 10,
-      Cell: ({ row }: { row: import('material-react-table').MRT_Row<EmpEtat> }) => (
-        <Checkbox size="small" checked={row.original.prerepos === '1'} disabled />
-      ),
-    },
+    accessorKey: 'prerepos',
+    header: 'Rep',
+    size: 10,
+    Cell: ({ row }: { row: MRT_Row<EmpEtat> }) => (
+  <Checkbox
+    size="small"
+    checked={row.getValue('prerepos') === '1'}
+    disabled
+      />
+    ),
+
+    Edit: ({
+      column,
+      row,
+      table,
+    }: {
+      cell: MRT_Cell<EmpEtat>;
+      column: MRT_Column<EmpEtat>;
+      row: MRT_Row<EmpEtat>;
+      table: MRT_TableInstance<EmpEtat>;
+    }) => (
+      <Checkbox
+        size="small"
+        checked={row.getValue(column.id) === '1'}
+        onChange={(e) => {
+          row._valuesCache[column.id] = e.target.checked ? '1' : '0';
+          table.setEditingRow(row);
+        }}
+      />
+    ),
+
+  },
     {
       accessorKey: 'preentmatup',
       header: 'Entrée1',
@@ -306,31 +356,37 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
       </Box>
     ),
     muiTableBodyRowProps: ({ row }) => {
-
-      const isRepos = row.original.prerepos === '1'; // Check if it's '1' for 'repos' (rest)
-      
-      // Check for incomplete rows based on specific conditions
+      const isRepos = row.original.prerepos === '1';
       const isIncomplete =
-        !row.original.presortmatup || // Sortie1 is empty
-        (row.original.preentamidiup && !row.original.presortamidiup) || // Entrée2 has value but Sortie2 is empty
-        (row.original.preentsupup && !row.original.presortsupup); // Entrée3 has value but Sortie3 is empty
-    
+        !row.original.presortmatup ||
+        (row.original.preentamidiup && !row.original.presortamidiup) ||
+        (row.original.preentsupup && !row.original.presortsupup);
+
+      const rowId = row.id;
+
       return {
         onClick: () => {
           setSelectedEmpPoste({
             codposte: row.original.codposte,
             day: new Date(row.original.predat).toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', ''),
           });
+          setSelectedRowId(rowId); // highlight this row
         },
         sx: {
-          backgroundColor: isRepos
-            ? 'rgba(0, 255, 0, 0.1)'  // Green for 'repos' (rest)
-            : isIncomplete
-            ? 'rgba(255, 0, 0, 0.1)'  // Red for incomplete data
-            : 'transparent',           // Default transparent background
+          cursor: 'pointer',
+          backgroundColor:
+            selectedRowId === rowId
+              ? 'rgba(25, 118, 210, 0.2)' // Blue highlight for selected row
+              : isRepos
+              ? 'rgba(0, 255, 0, 0.1)'
+              : isIncomplete
+              ? 'rgba(255, 0, 0, 0.1)'
+              : 'transparent',
+          transition: 'background-color 0.2s ease',
         },
       };
     },
+
     
     muiTableBodyCellProps: {
       sx: {
@@ -371,17 +427,16 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
             <MenuItem value="Absence">Absence</MenuItem>
             <MenuItem value="Congé">Congé</MenuItem>  
             <MenuItem value="Autorisation">Autorisation de sortie</MenuItem>
+            <MenuItem value="Optimisation">Optimisation pointage (journée)</MenuItem>
           </Select>
         </FormControl>
         {/* Conditionally render based on motif value */}
         {motif === 'Absence' && <SaisieAbsence empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
         {motif === 'Congé' && <SaisieConge empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
-        {motif === 'Autorisation' && <SaisieAutorisation empcod={selectedRow?.empcod || ''} />}
+        {motif === 'Autorisation' && <SaisieAutorisation date={selectedRow?.predat} empcod={selectedRow?.empcod || ''} />}
+        {motif === 'Optimisation' && (<OptimisationPointage empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} onSuccess={() => {  setDialogOpen(false); }} />
+        )}
       </DialogContent>
-      {/* <DialogActions>
-         <Button onClick={handleCloseDialog}>Annuler</Button>
-       
-      </DialogActions> */}
     </Dialog>
     </>
 
@@ -433,11 +488,11 @@ function EmpEtatPeriodique() {
     fetchData();
 
     // Répéter toutes les 10 secondes
-    intervalId = setInterval(fetchData, 5000);
+    intervalId = setInterval(fetchData, 500000);
     // Nettoyer quand le composant se démonte
-    return () => {
-      clearInterval(intervalId);
-    };
+    // return () => {
+    //   clearInterval(intervalId);
+    // };
   }, [soccod, selectedEmpMat, dateRange?.dateDebut, dateRange?.dateFin]);
 
   return (

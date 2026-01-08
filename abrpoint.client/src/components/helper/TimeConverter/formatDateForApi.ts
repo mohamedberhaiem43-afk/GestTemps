@@ -7,7 +7,7 @@
     };
     export default formatDateForApi;
     
-export const formatDate = (dateString: string): string => {
+export const formatDate = (dateString: string | Date): string => {
         if (!dateString) return '';
         const date = new Date(dateString);
         const year = date.getFullYear();

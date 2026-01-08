@@ -1,10 +1,11 @@
 import { Alert, Box, Button, Grid, Snackbar, Typography } from "@mui/material"
 import { QueryClientProvider, QueryClient } from "react-query"
 import UserProvider from "../../helper/UserProvider"
-import { useState } from "react"
-import useUpdateUtilisateur from "../../../hooks/utilisateurHookds/useUpdateUtilisateur"
+import { useState, useEffect } from "react"
 import { User, UtilisateurUpdate } from "../../../models/Utilisateur"
-import SaisieUtilisateur from "../../DonneeDeBase/Utilisteur/SaisieUtilisateur"
+import SaisieProfile from "../../DonneeDeBase/Utilisteur/SaisieProfile"
+import useGetProfile from "../../../hooks/profileHooks/useGetProfile"
+import useUpdateProfile from "../../../hooks/profileHooks/useUpdateProfile"
 
 export default function Utilisateur() {
     const queryClient = new QueryClient();
@@ -22,36 +23,45 @@ export default function Utilisateur() {
         Moduser: [],
     };
     // Snackbar state
-    const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" }>({
+    const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" }>( {
         open: false,
         message: "",
         severity: "success",
     });
-    const updateUserMutation = useUpdateUtilisateur();
+    const updateUserMutation = useUpdateProfile();
+
+    // fetch profile
+    const { data: profile, isLoading: profileLoading, error: profileError } = useGetProfile();
+
+    useEffect(() => {
+        if (profile) {
+            setUserData(profile as any);
+        }
+    }, [profile]);
 
     const handleUpdate = () => {
-    if (userData) {
-        utilisateurUpdate.Utilisateur = userData;
+        if (userData) {
+            utilisateurUpdate.Utilisateur = userData;
 
-        updateUserMutation.mutate(utilisateurUpdate, {
-            onSuccess: (response:boolean) => {
-                setSnackbar({
-                    open: true,
-                    message: response ? "Utilisateur mis à jour avec succès !" : "Aucune modification apportée.",
-                    severity: response ? "success" : "info",
-                });
-            },
-            onError: () => {
-                setSnackbar({
-                    open: true,
-                    message: "Erreur lors de la mise à jour.",
-                    severity: "error",
-                });
-            },
-        });
-    }
-};
-0
+            updateUserMutation.mutate(utilisateurUpdate, {
+                onSuccess: (response:boolean) => {
+                    setSnackbar({
+                        open: true,
+                        message: response ? "Utilisateur mis à jour avec succès !" : "Aucune modification apportée.",
+                        severity: response ? "success" : "info",
+                    });
+                },
+                onError: () => {
+                    setSnackbar({
+                        open: true,
+                        message: "Erreur lors de la mise à jour.",
+                        severity: "error",
+                    });
+                },
+            });
+        }
+    };
+
     return (
         <QueryClientProvider client={queryClient}>
             <Box sx={{ flexGrow: 1 }} mt={-2} height={'85vh'} maxHeight={'90vh'} width={'95vw'} overflow={'auto'}>
@@ -60,22 +70,23 @@ export default function Utilisateur() {
                 </Typography>
                 <UserProvider>
                     <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <Button
-                                    sx={{float: 'right', mb: 2}}
-                                    variant="contained" 
-                                    color="primary" 
-                                    onClick={handleUpdate}
-                                    //disabled={updateUserMutation.isLoading}
-                                >
-                                    Enregistrer
-                                </Button>   
-                                <SaisieUtilisateur 
-                                    onDataChange={setUserData} 
-                                    onSave={handleUpdate}
-                                    profil={true}
-                                />
-                            </Grid>
+                        <Grid item xs={12}>
+                            <Button
+                                sx={{float: 'right', mb: 2}}
+                                variant="contained"
+                                color="primary"
+                                onClick={handleUpdate}
+                                //disabled={updateUserMutation.isLoading}
+                            >
+                                Enregistrer
+                            </Button>
+                            
+                            <SaisieProfile
+                                onDataChange={setUserData}
+                                profil={true}
+                                initialData={userData}
+                            />
+                        </Grid>
                     </Grid>
                 </UserProvider>
                 <Snackbar
@@ -88,7 +99,6 @@ export default function Utilisateur() {
                         {snackbar.message}
                     </Alert>
                 </Snackbar>
-
             </Box>
         </QueryClientProvider>
     );

@@ -179,6 +179,24 @@ namespace GestionDesTickets.Server.Controllers
                 throw;
             }
         }
+        [HttpPut("update-profile")]
+        public async Task<bool> UpdateProfile([FromBody] UtilisateurUpdate utilisateur)
+        {
+            try
+            {
+                if (utilisateur.Utilisateur != null)
+                {
+                    await _utilisateurRepository.UpdateUser(utilisateur);
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
 
 
         [HttpPost("upload-profile")]
@@ -205,8 +223,20 @@ namespace GestionDesTickets.Server.Controllers
         }
 
 
-
-
+        [HttpGet("get-profile/{uticod}")]
+        public async Task<UtiProfile> GetProfile(string uticod)
+        {
+            try
+            {
+                UtiProfile profile = await _utilisateurRepository.GetProfile(uticod);
+                return profile;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+         
         // DELETE api/<UtilisateursController>/5
         [HttpDelete]
         public void Delete(Utilisateur utilisateur)

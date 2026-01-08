@@ -13,6 +13,7 @@ namespace ABRPOINT.Server.Services
     {
         public static void AddServicesRegistration(this WebApplicationBuilder builder)
         {
+            builder.Services.AddScoped<IPointageOptimizerService, PointageOptimizer>();
             builder.Services.AddScoped<IPointeuseHttpService, PointeuseHttpService>();
             builder.Services.AddScoped<IPointdroitRepository, PointdroitRepository>();
             builder.Services.AddScoped<IDirectionRepository, DirectionRepository>();

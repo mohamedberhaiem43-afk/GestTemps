@@ -52,7 +52,7 @@ namespace ABRPOINT.Server.Controllers
         [CanAddSanction]
         public IActionResult Post([FromBody] Sanction sanction)
         {
-            if (string.IsNullOrEmpty(sanction.Concod))
+            if (string.IsNullOrEmpty(sanction.Concod) || string.IsNullOrEmpty(sanction.Consanc))
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {

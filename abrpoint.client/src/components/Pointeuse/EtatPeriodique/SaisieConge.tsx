@@ -8,26 +8,28 @@ import InputComponent from '../../Inputs/Input';
 import SelectInputComponent from '../../SelectInputComponent/SelectInputComponent';
 import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
 import RadioGroupComponent, { FormControlLabelComponent } from '../../RadioGroupComponent/RadioGroupComponent';
+import formatDateForApi from '../../helper/TimeConverter/formatDateForApi';
+import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 
 export default function SaisieConge({ empcod,date }: { empcod: string,date:string }) {
-  const [concod, setOrdre] = useState('');
-  const [condat, setDate] = useState<Date|null>(() => {
+const [concod, setOrdre] = useState(generateNumeroOrdre());
+const [condat, setDate] = useState<string>(() => {
   const tomorrow = new Date(date);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow;
+  tomorrow.setDate(tomorrow.getDate());
+  return formatDateForApi(tomorrow);
 });
   const [conref, setReference] = useState('');
-const [condep, setDateDepart] = useState<Date|null>(() => {
-  const tomorrow = new Date(date);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow;
-});  
-  const [conamdep, setApresMidiDepart] = useState(false);
-  const [conret, setDateReprise] = useState<Date|null>(() => {
+  const [condep, setDateDepart] = useState<string|null>(() => {
     const tomorrow = new Date(date);
-    tomorrow.setDate(tomorrow.getDate() + 2);
-    return tomorrow;
+    tomorrow.setDate(tomorrow.getDate());
+    return formatDateForApi(tomorrow);
   });
+    const [conamdep, setApresMidiDepart] = useState(false);
+    const [conret, setDateReprise] = useState<string|null>(() => {
+      const tomorrow = new Date(date);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return formatDateForApi(tomorrow);
+    });
   const [conamret, setApresMidiReprise] = useState(false);
   const [conadr, setImputationAdresse] = useState('');
   const [contel, setTelephones] = useState('');
@@ -65,12 +67,12 @@ const [condep, setDateDepart] = useState<Date|null>(() => {
         empcod,
         emplib:null,
         concod,
-        condat,
+        condat:new Date(condat!),
         conref,
-        condep,
+        condep:new Date(condep!),
         conamdep:conamdep?'1':'0',
-        conret,
-        conamret:conamdep?'1':'0',
+        conret:new Date(conret!),
+        conamret:conamret?'1':'0',
         conadr,
         contel,
         condg,
@@ -80,6 +82,7 @@ const [condep, setDateDepart] = useState<Date|null>(() => {
         conrefus: '',
         consolde: 0
       };
+      console.log(conamret)
       if(congeData.empcod=='' && congeData.concod==''){
         handleSnackbarOpening("Veuillez remplir tous les champs obligatoires",'error');
         return;
@@ -112,7 +115,7 @@ const [condep, setDateDepart] = useState<Date|null>(() => {
     setNbJour(0);
     setOrdre('');
     setImputationAdresse('');
-    setDate(null);
+    setDate('');
     setApresMidiReprise(false);
     setDateDepart(null);
     setWritable(true);

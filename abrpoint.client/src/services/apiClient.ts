@@ -76,6 +76,12 @@ class ApiClient<T>{
                 throw error;
             });
     };
+    postWithoutParams = (url?: string) => {
+    return axiosInstance
+        .post<T>(url ? `${this.endPoint}/${url}` : this.endPoint, {})
+        .then((res) => res.data);
+    };
+
     postWithParams = (params:string,data: T) => {
         return axiosInstance
             .post<T>(`${this.endPoint}/${params}`, data)
@@ -120,6 +126,16 @@ class ApiClient<T>{
     else
         return axiosInstance
         .put(`${this.endPoint}/${params}`)
+        .then((res) => res.data);
+    };
+    putWithManyParams = (param1: string, param2: string, param3: string, param4: string) =>{
+    if (param1 && param2 && param3 && param4)
+        return axiosInstance
+        .put(`${this.endPoint}/${param1}/${param2}/${param3}/${param4}`)
+        .then((res) => res.data);
+    else
+        return axiosInstance
+        .put(`${this.endPoint}/${param1}/${param2}/${param3}`)
         .then((res) => res.data);
     };
     putObject = (params:string,object: T) =>{

@@ -11,6 +11,7 @@ import axios from 'axios';
 import { EmployeeContext } from './EmployeeContext';
 import './EmpPeriodique.css';
 import { useDateRange } from './FilterContext';
+import { useAuth } from '../../helper/AuthProvider';
 
 type EmpRow = {
   empcod: string;
@@ -33,13 +34,13 @@ export default function EmpPeriodique() {
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState('');
   const { setSelectedEmpMat } = useContext(EmployeeContext);
-   const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date; selectedFiliale: string; selectedRegime: string; selectedService: string } };
+  const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date; selectedFiliale: string; selectedRegime: string; selectedService: string } };
 
 
+  const { soccod } = useAuth();
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const uticod = localStorage.getItem('Uticod');
-    const soccod = sessionStorage.getItem('soccod');
     setLoading(true);
       const formatDate = (date: Date) => date.toISOString().split('T')[0]; // yyyy-MM-dd
       const formattedDebut = formatDate(dateRange.dateDebut)+"T00:00:00";

@@ -10,9 +10,11 @@ namespace ABRPOINT.Server.Repository
     public class UtilisateurRepository : IUtilisateurRepository
     {
         private readonly ApplicationDbContext _dbContext;
-        public UtilisateurRepository(ApplicationDbContext dbContext)
+        private readonly IMapper _mapper;
+        public UtilisateurRepository(ApplicationDbContext dbContext,IMapper mapper)
         {
             _dbContext = dbContext;
+            _mapper = mapper;
         }
   
 
@@ -191,6 +193,31 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        public async Task<UtiProfile> GetProfile(string uticod)
+        {
+            try
+            {
+                var utilisateur = await _dbContext.Utilisateurs
+                    .Where(u => u.Uticod == uticod)
+                    .Join(_dbContext.Socusers,
+                        uti => uti.Uticod,
+                        mod => mod.Uticod,
+                        (uti, mod) => new { Utilisateur = uti, ModUser = mod })
+                    .SingleOrDefaultAsync();
 
+                if (utilisateur == null)
+                    return null;
+
+                var profile = _mapper.Map<UtiProfile>(utilisateur.Utilisateur);
+                profile.Sitcod = utilisateur.ModUser.Sitcod;
+                profile.Soccod = utilisateur.ModUser.Soccod;
+
+                return profile;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

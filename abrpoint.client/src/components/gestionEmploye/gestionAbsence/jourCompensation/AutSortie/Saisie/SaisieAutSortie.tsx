@@ -25,6 +25,7 @@ import { Autoriser } from "../../../../../../models/Autoriser";
 import useAddBulkSortie from "../../../../../../hooks/sortieHooks/useAddBulkSortie";
 import useUpdateSortie from "../../../../../../hooks/sortieHooks/useUpdateSortie";
 import useGetSortie from "../../../../../../hooks/sortieHooks/useGetSortie";
+import generateNumeroOrdre from "../../../../../helper/GenerateNumOrdre";
   
 interface SaisieAutSortieProps{
   type:string;
@@ -34,7 +35,7 @@ export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
     const uticod = localStorage.getItem('Uticod');
     const soccod = sessionStorage.getItem('soccod')||'';
     const [empcod, setEmpcod] = useState<string|null>("");
-    const [concod, setConcod] = useState<string>("");
+    const [concod, setConcod] = useState<string>(generateNumeroOrdre());
     const [conmotif, setConmotif] = useState<string|null>("");
     const [abscod, setAbscod] = useState<string|null>("");
     const [conref, setConref] = useState<string|null>("");

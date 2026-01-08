@@ -79,50 +79,68 @@ namespace ABRPOINT.Server.Repository
         // Add this as a class-level cache dictionary
         private static readonly Dictionary<string, int> _longbdgCache = new Dictionary<string, int>();
 
-        public async Task AddPresence(string soccod, string empcod, DateTime date, string poicod)
+        public async Task<PresenceDto?> AddPresence(
+     string soccod,
+     string empcod,
+     DateTime date,
+     string poicod)
         {
-            try
+            PresenceDto? presenceDto = null;
+
+            string formattedEmpcod = await FormatEmpcodCached(soccod, empcod);
+
+            var emp = await _employeRepository.GetByEmpcod(soccod, formattedEmpcod);
+            if (emp == null)
+                return null;
+
+            var poste = await _posteRepository.GetPoste(soccod, emp.Poscod);
+
+            var dbpresence = await _dbContext.Presences
+                .FirstOrDefaultAsync(p =>
+                    p.Soccod == soccod &&
+                    p.Empcod == formattedEmpcod &&
+                    p.Predat.HasValue &&
+                    p.Predat.Value.Date == date.Date);
+
+            if (dbpresence == null)
             {
-                // Format empcod (empmat) if necessary before calling GetByEmpcod
-                string formattedEmpcod = await FormatEmpcodCached(soccod, empcod);
+                dbpresence = await CreateNewPresence(
+                    soccod, formattedEmpcod, date, emp, poste);
 
-                var emp = await _employeRepository.GetByEmpcod(soccod, formattedEmpcod);
-                if (emp != null)
-                {
-                    var poste = await _posteRepository.GetPoste(soccod, emp.Poscod);
-
-                    // ✅ Compare only the DATE part (ignore time)
-                    var dbpresence = await _dbContext.Presences
-                        .FirstOrDefaultAsync(p => p.Soccod == soccod
-                                               && p.Empcod == formattedEmpcod
-                                               && p.Predat.Value.Date == date.Date);
-
-                    if (dbpresence == null)
-                    {
-                        dbpresence = await CreateNewPresence(soccod, formattedEmpcod, date, emp, poste);
-                        await _dbContext.Presences.AddAsync(dbpresence);
-                    }
-                    else
-                    {
-                        await UpdateExistingPresence(dbpresence, date);
-                    }
-
-                    // Map entity → DTO
-                    var presenceDto = _mapper.Map<PresenceDto>(dbpresence);
-
-                    // ✅ Reuse your UpdateAsync (this will handle TotHeure, Retard, Suppl, Nuit, etc.)
-                    await UpdateAsync(presenceDto);
-
-                    // Save also to dmpoint
-                    await _dmpointRepository.AddAsync(dbpresence, date, poicod);
-
-                    await _dbContext.SaveChangesAsync();
-                }
+                await _dbContext.Presences.AddAsync(dbpresence);
             }
-            catch (Exception)
+            else
             {
-                throw;
+                await UpdateExistingPresence(dbpresence, date);
             }
+
+            // 🔹 Mapping
+
+            // 🔹 FORCER null => ""
+            NormalizePresenceDto(dbpresence);
+
+            // 🔹 Calculs métier
+            await UpdateAsync(presenceDto);
+
+            // 🔹 Historique pointage
+            await _dmpointRepository.AddAsync(dbpresence, date, poicod);
+
+            await _dbContext.SaveChangesAsync();
+
+            return presenceDto;
+        }
+        private void NormalizePresenceDto(Presence dto)
+        {
+            dto.Preentmat ??= "";
+            dto.Presortmat ??= "";
+            dto.Preentamidi ??= "";
+            dto.Presortamidi ??= "";
+            dto.Preentsup ??= "";
+            dto.Presortsup ??= "";
+            dto.Tothnuit ??= "";
+            dto.Tothsup ??= "";
+            dto.Tothre ??= "";
+            dto.Preobs ??= "";
         }
 
         // Cached version to avoid repeated database calls
@@ -181,7 +199,8 @@ namespace ABRPOINT.Server.Repository
                 Prerepos = GenericMethodes.GetReposWorkDay(date, poste),
             };
             var presenceDto = _mapper.Map<PresenceDto>(presence);
-            presence.Tothre = await CalcHreTrav(presenceDto);
+            if(presence.Codposte != null)
+                presence.Tothre = await CalcHreTrav(presenceDto);
             return presence;
         }
 
@@ -474,73 +493,130 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                // Récupérer les présences existantes
                 var presenceList = await _dbContext.Presences
                     .ProjectTo<PresenceDto>(_mapper.ConfigurationProvider)
                     .Where(p => p.Soccod == soccod
                                 && p.Empcod == empcod
                                 && p.Predat >= dateDeb
-                                && p.Predat <= dateFin
-                                )
+                                && p.Predat <= dateFin)
                     .OrderByDescending(p => p.Predat)
                     .ToListAsync();
-                foreach (var presence in presenceList)
-                {
-                    string sanction = await _sanctionRepository.GetAbsenceLib(presence.Soccod,presence.Empcod,(DateTime) presence.Dmdate);
-                    AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
 
-                    string conge = await _congeRepository.GetCongeLib(presence.Soccod,presence.Empcod, (DateTime)presence.Dmdate);
+                // Récupérer le poste de l'employé pour les journées sans présence
+                var employePoste = await _dbContext.Employes
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .Select(e => e.Poscod)
+                    .FirstOrDefaultAsync();
+
+                // Créer une liste complète avec toutes les dates de la période
+                var allDates = new List<PresenceDto>();
+
+                for (DateTime date = dateDeb; date <= dateFin; date = date.AddDays(1))
+                {
+                    // Vérifier si une présence existe pour cette date
+                    var existingPresence = presenceList.FirstOrDefault(p => p.Dmdate?.Date == date.Date);
+
+                    if (existingPresence != null)
+                    {
+                        allDates.Add(existingPresence);
+                    }
+                    else
+                    {
+                        // Créer une présence vide pour cette date avec le poste de l'employé
+                        allDates.Add(new PresenceDto
+                        {
+                            Soccod = soccod,
+                            Empcod = empcod,
+                            Dmdate = date,
+                            Predat = date,
+                            Codposte = employePoste // Ajouter le poste de l'employé
+                        });
+                    }
+                }
+
+                // Traiter toutes les dates
+                foreach (var presence in allDates)
+                {
+                    if(presence.Prerepos == "1")
+                    {
+                        presence.Tothre = "00:00";
+                        presence.Tothabs = "00:00";
+                    }
+                    string sanction = await _sanctionRepository.GetAbsenceLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
+                    AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
+                    string conge = await _congeRepository.GetCongeLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
                     Ferier ferier = await _jourFerierRepository.GetByFerdate(presence.Soccod, (DateTime)presence.Dmdate);
-                    string? poicod = await _dmpointRepository.GetPoicod(soccod,empcod,presence.Dmdate);
-                    presence.Tothre = await CalcHreTrav(presence);
+                    string? poicod = await _dmpointRepository.GetPoicod(soccod, empcod, presence.Dmdate);
+
+                    // Vérifier que Codposte n'est pas null avant d'appeler CalcHreTrav
+                    if (!string.IsNullOrEmpty(presence.Codposte))
+                    {
+                        presence.Tothre = await CalcHreTrav(presence);
+                    }
+
                     if (ferier != null)
                         presence.Etat = ferier.Fermotif;
+
                     if (autorisation != null)
                     {
                         presence.Etat = autorisation.Abslib;
                         presence.Hreaut = autorisation.Connbjour;
                     }
-                    if(!string.IsNullOrEmpty(sanction))
+
+                    if (!string.IsNullOrEmpty(sanction))
                         presence.Etat = sanction;
 
-                    if(!string.IsNullOrEmpty(conge))
+                    if (!string.IsNullOrEmpty(conge))
                         presence.Etat = conge;
-                    float? totalHeures = await _posteRepository.GetJourHeures(presence.Soccod,presence.Dmdate,presence.Codposte);
+
+                    // Vérifier que Codposte n'est pas null avant d'appeler GetJourHeures
+                    float? totalHeures = null;
+                    if (!string.IsNullOrEmpty(presence.Codposte))
+                    {
+                        totalHeures = await _posteRepository.GetJourHeures(presence.Soccod, presence.Dmdate, presence.Codposte);
+                    }
                     presence.TotalHeure = totalHeures;
-                    
+
                     TimeSpan totalRetard = TimeSpan.Zero;
-                    
+
                     if (presence.Preretameup.HasValue)
                         totalRetard += presence.Preretameup.Value.TimeOfDay;
-
                     if (presence.Preretamsup.HasValue)
                         totalRetard += presence.Preretamsup.Value.TimeOfDay;
-
                     if (presence.Preretmateup.HasValue)
                         totalRetard += presence.Preretmateup.Value.TimeOfDay;
-
                     if (presence.Preretmatsup.HasValue)
                         totalRetard += presence.Preretmatsup.Value.TimeOfDay;
+
                     var p = _mapper.Map<PresenceDto, Presence>(presence);
-                    presence.Tothabs += await _absenceService.CalculateHeureAbsences(p,soccod,p.Codposte,p.Dmdate,autorisation);
-                    var poste = await _posteRepository.GetPoste(presence.Soccod, presence.Codposte);
+
+                    // Vérifier que Codposte n'est pas null avant d'appeler CalculateHeureAbsences
+                    if (!string.IsNullOrEmpty(p.Codposte))
+                    {
+                        presence.Tothabs += await _absenceService.CalculateHeureAbsences(p, soccod, p.Codposte, p.Dmdate, autorisation);
+                    }
+
+                    // Vérifier que Codposte n'est pas null avant d'appeler GetPoste
+                    Poste poste = null;
+                    if (!string.IsNullOrEmpty(presence.Codposte))
+                    {
+                        poste = await _posteRepository.GetPoste(presence.Soccod, presence.Codposte);
+                    }
+
                     // Format as hh:mm
-                    int retard = await _retardService.CalculateHeureRetard(presence, poste,autorisation);
+                    int retard = await _retardService.CalculateHeureRetard(presence, poste, autorisation);
                     presence.Totret = $"{retard / 60:D2}:{retard % 60:D2}";
                     presence.Poicod = poicod;
-
-
                 }
 
-                return presenceList;
+                return allDates.OrderByDescending(p => p.Predat);
             }
             catch (Exception)
             {
                 throw;
             }
         }
-
-
-
         public async void Update(Presence presence)
         {
             try
