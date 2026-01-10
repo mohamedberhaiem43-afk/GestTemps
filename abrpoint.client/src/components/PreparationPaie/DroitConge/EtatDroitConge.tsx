@@ -1,4 +1,4 @@
-import { Button, Grid, Typography, Box, Container } from "@mui/material";
+import { Button, Grid, Box, Container } from "@mui/material";
 import DataList from "../../lists/list";
 import { MRT_ColumnDef } from "material-react-table";
 import { DroitConge } from "../../../models/DroitConge";
@@ -8,6 +8,7 @@ import SelectInputComponent from "../../SelectInputComponent/SelectInputComponen
 import InputComponent from "../../Inputs/Input";
 import DroitCongeService from "../../../services/CongeService/DroitCongeService";
 import ForbiddenMessage from "../../AlertModal/ForbiddenMessage";
+import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
 
 function EtatDroitConge() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -120,9 +121,7 @@ return (
   <>
     <Container>
       <Box width={'95vw'} height={'80vh'} mt={-5}>
-        <Typography variant="h6" color={'primary'} fontWeight={'bold'}>
-          État Droit de Congé
-        </Typography>
+        <BreadcrumbNavigation />
         {/* ⚠️ Message interdit affiché ici */}
         {errorMsg && <ForbiddenMessage message={errorMsg} />}
 

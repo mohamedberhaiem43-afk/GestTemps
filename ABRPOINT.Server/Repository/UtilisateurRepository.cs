@@ -219,5 +219,34 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public async Task<bool> ChangePassword(UpdatePassword pwd)
+        {
+            try
+            {
+                // 1. Get the user from database
+                var utilisateur = await _dbContext.Utilisateurs
+                    .FirstOrDefaultAsync(u => u.Uticod == pwd.uticod);
+
+                if (utilisateur == null)
+                    return false;
+
+                // 2. Verify current password
+                if (!BCrypt.Net.BCrypt.Verify(pwd.currentPassword, utilisateur.Utimps))
+                    return false;
+
+                // 3. Hash and update new password
+                utilisateur.Utimps = BCrypt.Net.BCrypt.HashPassword(pwd.newPassword);
+
+                _dbContext.Utilisateurs.Update(utilisateur);
+                await _dbContext.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

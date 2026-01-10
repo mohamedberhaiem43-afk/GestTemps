@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { FormControl, InputLabel, Input, Button, Checkbox, FormControlLabel, Grid, Typography, Box} from '@mui/material';
+import { FormControl, InputLabel, Input, Button, Checkbox, FormControlLabel, Grid, Box} from '@mui/material';
 import './Filiale.css'
 import { FilialeList } from './FilialeList';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import useAddSite from '../../../hooks/siteHooks/useAddSite';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 export function Filiale() {
     const [filialData, setFilialeData] = useState({
@@ -85,7 +86,7 @@ export function Filiale() {
         <>
         <QueryClientProvider client={queryClient}>
             <Box height={'90vh'} width={'95vw'}>
-            <Typography gutterBottom variant='h6' color={'primary'} fontWeight={'bold'}>Gestion des Filiales</Typography>
+            <BreadcrumbNavigation />
                 <Box mb={2}>
                     <Grid container item >
                         <Grid item xs={2}>

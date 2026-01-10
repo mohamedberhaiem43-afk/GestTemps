@@ -24,9 +24,9 @@ import { PointageMois } from '../../../models/PointageMois';
 import DataList from '../../lists/list';
 import { MRT_ColumnDef } from 'material-react-table';
 import { getWeeksFromStartToSunday } from '../../helper/HelperFunctions';
-import GetPointageMoisService from '../../../services/GetPointageMoisService';
 import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
 import CloseIcon from '@mui/icons-material/Close';
+import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
 
 const PointageDuMoisContent = () => {
   const context = useDateMoisPointageRange();
@@ -42,43 +42,31 @@ const PointageDuMoisContent = () => {
   const [numSem, setNumSem] = useState(1);
 
   const [selectedEmp, setSelectedEmp] = useState<PointageMois | null>(null);
-  const [pointageMois, setPointageMois] = useState<PointageMois[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [selectedWeekDetails, setSelectedWeekDetails] = useState<Record<string, string> | null>(null);
   const [majorerHeures, setMajorerHeures] = useState<boolean>(false);
 
   const weekRanges = (debutmois && finmois) ? getWeeksFromStartToSunday(debutmois, finmois) : [];
 
-  const queryParams = new URLSearchParams();
-  empcods.forEach(code => queryParams.append("empcods", code));
-  const queryString = queryParams.toString();
+  // Use the hook instead of manual fetching
+  const { data: pointageMoisData = [], isLoading: loading, error } = useGetPointageMois(
+    empcods,
+    mois,
+    annee,
+    semaine
+  );
 
+  // Process the data similar to the original useEffect
+  const pointageMois = useMemo(() => {
+    return pointageMoisData.map((item: any) => ({
+      ...item,
+      heuresSupplementairesResultats: item.heuresSupplementairesResultats || [],
+    }));
+  }, [pointageMoisData]);
+
+  // Reset selectedEmp when data changes
   useEffect(() => {
-    if (mois !== '') {
-      setLoading(true);
-      setError(null);
-
-      GetPointageMoisService.getAllWithParams(
-        `${sessionStorage.getItem('soccod')}/${mois}/${annee}/${semaine}?${queryString}`
-      )
-        .then((response) => {
-          const pointageData = response.map((item: any) => ({
-            ...item,
-            heuresSupplementairesResultats: item.heuresSupplementairesResultats || [],
-          }));
-          setPointageMois(pointageData);
-          setSelectedEmp(null);
-        })
-        .catch((error) => {
-          console.error('Error fetching pointage data:', error);
-          setError("Erreur lors du chargement des données.");
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }, [dateRange]);
+    setSelectedEmp(null);
+  }, [pointageMois]);
 
   const columns = useMemo<MRT_ColumnDef<PointageMois>[]>(
     () => [
@@ -100,7 +88,7 @@ const PointageDuMoisContent = () => {
   if (error) {
     return (
       <Box textAlign="center" mt={4}>
-        <Typography color="error">{error}</Typography>
+        <Typography color="error">Erreur lors du chargement des données.</Typography>
       </Box>
     );
   }

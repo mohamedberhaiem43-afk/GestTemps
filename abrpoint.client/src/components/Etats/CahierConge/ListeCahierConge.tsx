@@ -101,17 +101,13 @@ function ListeCahierConge() {
   ], []);
 
   // 🦴 Skeleton loading view
-  if (isLoading || !data.length) {
+  if (isLoading) {
     return (
+      
       <Box sx={{ p: 2 }}>
-        {[...Array(5)].map((_, i) => (
-          <Skeleton
-            key={i}
-            variant="rectangular"
-            height={40}
-            sx={{ mb: 1, borderRadius: 1 }}
-          />
-        ))}
+         <Skeleton variant="rectangular" height={40} />
+          <Skeleton variant="rectangular" height={40} style={{ marginTop: 10 }} />
+          <Skeleton variant="rectangular" height={40} style={{ marginTop: 10 }} />
       </Box>
     );
   }

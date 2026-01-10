@@ -22,10 +22,11 @@ import useUpdateSanction from '../../../../../../hooks/sanctionHooks/useUpdateSa
 import { Sanction } from '../../../../../../models/Sanction';
 import getDatePart from '../../../../../helper/TimeConverter/ExtractDateOnly';
 import generateNumeroOrdre from '../../../../../helper/GenerateNumOrdre';
+import { useAuth } from '../../../../../helper/AuthProvider';
 
 export default function AbsenceSanctionSaisie() {
   const { selectedSanction } = useSanctionContext();
-  const soccod = sessionStorage.getItem('soccod')
+  const { soccod } = useAuth()
   const [empcod, setEmploye] = useState('');
   const [concod, setOrdre] = useState(generateNumeroOrdre());
   const [condat, setDate] = useState<Date|string>();
@@ -144,7 +145,7 @@ export default function AbsenceSanctionSaisie() {
     setIsSnackbarOpen(false);
   }
   return (
-    <Box component="form" sx={{ maxWidth: 1200, mx: 'auto', p: 1 }} onSubmit={handleSubmit}>
+    <Box component="form" sx={{ mx: 'auto', p: 1 }} onSubmit={handleSubmit}>
       <Grid container spacing={1.5}>
         {/* Employe Selection */}
         <Grid item xs={1.5}>

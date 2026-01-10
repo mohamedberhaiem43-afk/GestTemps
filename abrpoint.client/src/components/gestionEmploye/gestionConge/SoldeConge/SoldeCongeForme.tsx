@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Grid, Box, Typography, IconButton, Snackbar, Alert, Button } from '@mui/material';
+import { Grid, Box, IconButton, Snackbar, Alert, Button } from '@mui/material';
 import SaveIcon from "@mui/icons-material/Save";
 import { Solde } from '../../../../models/Solde';
 import InputComponent from '../../../Inputs/Input';
@@ -9,6 +9,7 @@ import useAddSolde from '../../../../hooks/soldeCongeHooks/useAddSolde';
 import useGetSolde from '../../../../hooks/soldeCongeHooks/useGetSolde';
 import { useSoldeContext } from '../../../helper/SoldeContext';
 import useUpdateSolde from '../../../../hooks/soldeCongeHooks/useUpdateSolde';
+import BreadcrumbNavigation from '../../../helper/BreadcrumbNavigation';
 
 
 
@@ -105,9 +106,7 @@ const SoldeForm = () => {
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mb: 2 }} width={'90vw'}>
-      <Typography variant="h6" color="primary" fontWeight={'bold'} mb={5}>
-        Gestion de solde de Congé
-      </Typography>
+      <BreadcrumbNavigation />
       <Grid container spacing={4}>
         <Grid item xs={3} sm={6} md={2}>
           <SelectInputComponent

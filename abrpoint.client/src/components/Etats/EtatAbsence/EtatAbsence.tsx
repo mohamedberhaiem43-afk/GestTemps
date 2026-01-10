@@ -1,6 +1,5 @@
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import { Typography } from '@mui/material';
 import { Item } from '../../helper/Item/Item';
 import { EmployeeProvider } from '../../Pointeuse/EtatPeriodique/EmployeeContext';
 import { DateRangeProvider } from '../../Pointeuse/EtatPeriodique/FilterContext';
@@ -8,6 +7,7 @@ import FilterPeriode from '../../Pointeuse/EtatPeriodique/FilterPeriode';
 import ListeAbsence from './ListeAbsence';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AbsParamsProvider } from '../../helper/AbsParamsContext';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 
 export default function EtatAbsence() {
@@ -15,9 +15,7 @@ export default function EtatAbsence() {
     return (
         <QueryClientProvider client={queryClient}>
             <Box width={"97vw"} height={'83vh'} sx={{ flexGrow: 1 }} mt={-2}>
-                    <Typography variant='h6' color={'primary'} fontWeight={'bold'} mb={2}>
-                        Etat des Absences
-                    </Typography>
+                    <BreadcrumbNavigation />
                 <Grid container spacing={2}>
                     <EmployeeProvider>
                     <DateRangeProvider>

@@ -5,6 +5,7 @@ import PointageList from "./PointageList";
 import PointageListNonInscrit from "./PointageListNonInscrit";
 import { LogEntry } from "../../../hooks/pointeuseHooks/useGetPointages";
 import PointageEntryService from "../../../services/PointeuseService/PointageEntryService";
+import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
 
 function Lecture() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -37,7 +38,8 @@ function Lecture() {
   };
 
   return (
-    <Box width="95vw" height="80vh" p={2}>
+    <Box width="95vw" height="85vh" >
+      <BreadcrumbNavigation />
       <Grid container spacing={2}>
         <Grid item xs={7}>
           <LectureList onSelectionChange={handleSelectionChange} />

@@ -7,7 +7,7 @@ import ValeurCalcul from './ValeurCalcul/ValeurCalcul';
 import ConnPoint from './ConnPoint/ConnPoint';
 import Affichage from './Affichage/Affichage';
 import SansClassHoraire from './SansClassHoraire/SansClassHoraire';
-import { Alert, Button, Snackbar, Typography } from '@mui/material';
+import { Alert, Button, Snackbar } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import HeureSupp from './HeureSupp/HeureSupp';
 import { useEffect, useState } from 'react';
@@ -16,6 +16,7 @@ import { Parametre } from '../../models/Parametre';
 import useGetParametres from '../../hooks/parametreHooks/useGetParametres';
 import ParTranche from '../../models/ParTranche';
 import useUpdateParTranche from '../../hooks/partrancheHooks/useUpdateParTranche';
+import BreadcrumbNavigation from '../helper/BreadcrumbNavigation';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -227,7 +228,9 @@ export default function BasicTabs() {
   return (
     <QueryClientProvider client={queryClient}>
       <Box sx={{ width: '100%' }} mt={-2} height={'90vh'} minWidth={'95vw'}>
-        <Typography variant='h5' fontWeight={'bold'} color={'primary'}>Paramétre Socièté</Typography>
+        {/* Breadcrumb Navigation */}
+        <BreadcrumbNavigation />
+        
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
             <Tab label="Général" {...a11yProps(0)} />

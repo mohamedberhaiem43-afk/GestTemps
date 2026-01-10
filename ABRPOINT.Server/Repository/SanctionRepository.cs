@@ -164,17 +164,17 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public async Task<bool> IsValid(Presence presence,string soccod,DateTime? date,string codposte)
-        {
-            int actions = 0;
-            if (!string.IsNullOrEmpty(presence?.Preentmatup) && !string.IsNullOrEmpty(presence?.Presortmatup))
-                actions++;
-            if (!string.IsNullOrEmpty(presence?.Preentamidiup) && !string.IsNullOrEmpty(presence?.Presortamidiup))
-                actions++;
-            bool isRepos = await _parametreRepository.IsRepos(soccod, date, codposte);
-            if (actions == 0 && (presence?.Prerepos == "0" || !isRepos)) return true;
-            return actions != 0 && presence?.Prerepos == "0";
-        }
+        //public async Task<bool> IsValid(Presence presence,string soccod,DateTime? date,string codposte)
+        //{
+        //    int actions = 0;
+        //    if (!string.IsNullOrEmpty(presence?.Preentmatup) && !string.IsNullOrEmpty(presence?.Presortmatup))
+        //        actions++;
+        //    if (!string.IsNullOrEmpty(presence?.Preentamidiup) && !string.IsNullOrEmpty(presence?.Presortamidiup))
+        //        actions++;
+        //    bool isRepos = await _parametreRepository.IsRepos(soccod, date, codposte);
+        //    if (actions == 0 && (presence?.Prerepos == "0" || !isRepos)) return true;
+        //    return actions != 0 && presence?.Prerepos == "0";
+        //}
         public async Task<SanctionDto?> GetAbsence(string soccod, string? empcod, DateTime? date)
         {
             try
@@ -199,22 +199,30 @@ namespace ABRPOINT.Server.Repository
                         Abspaye = a.Abspayer
                     }
                 ).FirstOrDefaultAsync();
-                if(result == null)
+
+                if (result == null)
                 {
                     var presence = await _dbContext.Presences
                         .Where(p => p.Predat == date && p.Soccod == soccod && p.Empcod == empcod)
                         .FirstOrDefaultAsync();
-                    string? codpost = await _employeRepository.GetEmpPoste(soccod, empcod, date);
-                    if(GenericMethodes.NotPresent(presence) && await IsValid(presence,soccod,date,codpost))
-                    {
 
-                        result = new SanctionDto()
+                    // Vérifier d'abord si la présence indique une absence
+                    if (GenericMethodes.NotPresent(presence))
+                    {
+                        string? codpost = await _employeRepository.GetEmpPoste(soccod, empcod, date);
+
+                        // Appeler IsValid seulement si on a un codpost ou si on peut gérer le null
+                        if (await IsValid(presence, soccod, date, codpost))
                         {
-                            Soccod = soccod,
-                            Abscng = "3"
-                        };
+                            result = new SanctionDto()
+                            {
+                                Soccod = soccod,
+                                Abscng = "3"
+                            };
+                        }
                     }
                 }
+
                 return result;
             }
             catch (Exception)
@@ -223,6 +231,23 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        public async Task<bool> IsValid(Presence presence, string soccod, DateTime? date, string? codposte)
+        {
+            int actions = 0;
+            if (!string.IsNullOrEmpty(presence?.Preentmatup) && !string.IsNullOrEmpty(presence?.Presortmatup))
+                actions++;
+            if (!string.IsNullOrEmpty(presence?.Preentamidiup) && !string.IsNullOrEmpty(presence?.Presortamidiup))
+                actions++;
+
+            // Gérer le cas où codposte est null
+            bool isRepos = !string.IsNullOrEmpty(codposte) &&
+                           await _parametreRepository.IsRepos(soccod, date, codposte);
+
+            if (actions == 0 && (presence?.Prerepos == "0" || !isRepos))
+                return true;
+
+            return actions != 0 && presence?.Prerepos == "0";
+        }
 
         public Task<bool> IsSanction(string soccod, string? empcod, DateTime? predat)
         {

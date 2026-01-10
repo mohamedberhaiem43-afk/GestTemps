@@ -73,7 +73,8 @@ export default function CredentialsSignInPage() {
       soccod: societe.soccod,
       sitcod: societe.sitcod,
       authToken:token,
-      userName: response.data.utinom,
+      userName: response.data.utilib,
+      soclib: response.data.soclib,
     });
     localStorage.setItem('Uticod',response.data.uticod)
     localStorage.setItem('authToken',token)

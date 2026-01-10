@@ -7,10 +7,11 @@ import { Print, Search } from "@mui/icons-material";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { EmployeeContext } from "../../Pointeuse/EtatPeriodique/EmployeeContext";
+import { useAuth } from "../../helper/AuthProvider";
 
 function FilterRetard() {
     const token = localStorage.getItem('authToken');
-    const soccod = sessionStorage.getItem('soccod');
+    const { soccod } = useAuth();
     const headers = { Authorization: `Bearer ${token}` };
     const regime = {
         'M': "Mensuelle",
@@ -30,7 +31,7 @@ function FilterRetard() {
     const [annee, setAnnee] = useState(new Date().getFullYear().toString());
     const [selectedFiliale, setSelectedFiliale] = useState<string>(sessionStorage.getItem('sitcod') ?? '');
     const [selectedService, setSelectedService] = useState<string>('');
-    const [selectedRegime, setSelectedRegime] = useState<string>('');
+    const [selectedRegime, setSelectedRegime] = useState<string>('T');
     
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;

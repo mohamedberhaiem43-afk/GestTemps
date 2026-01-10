@@ -23,8 +23,13 @@ import useGetEtatPresence from '../../../hooks/presenceHooks/useGetEtatPresence'
 
 const EmpPresence = () => {
 
-  const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date,selectedRegime:string,mois:string } };
-  const { data = [], isLoading } = useGetEtatPresence(dateRange.dateDebut, dateRange.dateFin,dateRange.selectedRegime);
+  const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date,selectedRegime:string,mois:string,empcods:string[] } };
+const { data = [], isLoading } = useGetEtatPresence(
+  dateRange.dateDebut, 
+  dateRange.dateFin,
+  dateRange.empcods,      // empcods should be 3rd parameter
+  dateRange.selectedRegime // regime should be 4th parameter
+  );
   const columns = useMemo<MRT_ColumnDef<EtatPresence>[]>(() => [
     {
       id: 'etat-presence',

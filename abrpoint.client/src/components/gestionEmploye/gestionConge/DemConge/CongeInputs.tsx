@@ -3,7 +3,6 @@ import {
   Box,
   Grid,
   InputLabel,
-  Typography,
   IconButton,
   Input,
   Button,
@@ -13,6 +12,7 @@ import {
 import SaveIcon from "@mui/icons-material/Save";
 import './DemCongeInputs.css'
 import SelectInputComponent from '../../../SelectInputComponent/SelectInputComponent';
+import BreadcrumbNavigation from '../../../helper/BreadcrumbNavigation';
 import InputComponent from '../../../Inputs/Input';
 import CheckboxComponent from '../../../CheckboxComponent/CheckboxComponent';
 import RadioGroupComponent, { FormControlLabelComponent } from '../../../RadioGroupComponent/RadioGroupComponent';
@@ -169,10 +169,8 @@ export default function CongeForm() {
   };
 
   return (
-    <Box component="form" sx={{ maxWidth: 1200, mx: 'auto', p: 3 }} onSubmit={handleSubmit}>
-      <Typography variant="h6" textAlign="center" color={'primary'} fontWeight={'bold'} mb={2}>
-        Demande de Congés
-      </Typography>
+    <Box component="form" sx={{ mx: 'auto' }} onSubmit={handleSubmit}>
+      <BreadcrumbNavigation />
       <Grid container spacing={2}>
         {/* Employe Selection */}
         <Grid item xs={1.5}>

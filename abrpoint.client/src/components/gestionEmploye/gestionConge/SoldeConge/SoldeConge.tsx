@@ -10,7 +10,7 @@ export default function  SoldeConge (){
 
   return (
     <QueryClientProvider client={queryClient}>
-        <Box sx={{ flexGrow: 1 }} ml={7}  mt={-5} width={'90vw'} >
+        <Box sx={{ flexGrow: 1 }} width={'90vw'} height={'90vh'} >
           <SoldeProvider>
             <Grid container item xs={12} >
                 <SoldeForm  />

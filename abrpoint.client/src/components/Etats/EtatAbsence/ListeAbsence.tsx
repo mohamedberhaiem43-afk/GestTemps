@@ -21,8 +21,18 @@ const ListeAbsence = () => {
   }
   const { dateRange } = context;
   const { absParams } = useAbsenceContext();
-  const { data = [], isLoading } = useGetEtatAbsence(dateRange.dateDebut, dateRange.dateFin,selectedEmpMat,
-    absParams.absaut,absParams.absret,absParams.presNonOpt,absParams.sansPointageInvalide,absParams.selectedAbstype);
+
+   const { data = [], isLoading } = useGetEtatAbsence(
+    dateRange.dateDebut, 
+    dateRange.dateFin,
+    dateRange.empcods, // Utilisez empcods au lieu de selectedEmpMat
+    absParams.absaut,
+    absParams.absret,
+    absParams.presNonOpt,
+    absParams.sansPointageInvalide,
+    absParams.selectedAbstype
+  );
+  
   const columns = useMemo<MRT_ColumnDef<EtatAbsence>[]>(() => [
     {
       id: 'etat-absence',

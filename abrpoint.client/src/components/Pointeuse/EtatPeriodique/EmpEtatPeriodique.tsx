@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useContext } from 'react';
+import { useMemo, useState, useContext } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -9,11 +9,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EmployeeContext } from './EmployeeContext';
 import { useDateRange } from './FilterContext';
 import useUpdatePresence from '../../../hooks/presenceHooks/useUpdatePresence';
+import useGetEmpEtat from '../../../hooks/presenceHooks/useGetEmpEtat';
 import SaisieAbsence from './SaisieAbsence';
 import SaisieConge from './SaisieConge';
 import SaisieAutorisation from './SaisieAutorisation';
 import EmpEtat from '../../../models/EmpEtat';
-import EmpEtatService from '../../../services/PersenceService/EmpEtatService';
 import { useAuth } from '../../helper/AuthProvider';
 import OptimisationPointage from '../Optimisation/OptimisationPointage';
 import type {
@@ -22,11 +22,6 @@ import type {
   MRT_Row,
   MRT_TableInstance,
 } from 'material-react-table';
-
-type EmployeeContextType = {
-  selectedEmpMat: string;
-  // add other properties if needed
-};
 
 
 
@@ -446,54 +441,10 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
 const queryClient = new QueryClient();
 
 function EmpEtatPeriodique() {
-  const [empetat, setEmpEtat] = useState<EmpEtat[]>([]);
-  const { selectedEmpMat } = useContext(EmployeeContext) as EmployeeContextType;
+  const { selectedEmpMat } = useContext(EmployeeContext);
   const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date;pres?:string,mois:string } };
   const { soccod } = useAuth();
-  const [loading, setLoading] = useState<boolean>(false);
-
-
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    const fetchData = async () => {
-      if (soccod && selectedEmpMat && dateRange?.dateDebut && dateRange?.dateFin) {
-        try {
-          if(intervalId == undefined)
-            setLoading(true);
-          const formattedDateDebut = new Date(dateRange.dateDebut)
-            .toISOString()
-            .replace('Z', '');
-          const formattedDateFin = new Date(dateRange.dateFin)
-            .toISOString()
-            .replace('Z', '');
-          const data = await EmpEtatService.getAllWithParams(
-            `emp-point-filtrer/${soccod}/${selectedEmpMat}/${formattedDateDebut}/${formattedDateFin}`
-          );
-
-          if (Array.isArray(data)) {
-            setEmpEtat(data);
-          } else {
-            setEmpEtat([]);
-          }
-        } catch (err) {
-          setEmpEtat([]);
-        }
-        finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    // Premier appel immédiat
-    fetchData();
-
-    // Répéter toutes les 10 secondes
-    intervalId = setInterval(fetchData, 500000);
-    // Nettoyer quand le composant se démonte
-    // return () => {
-    //   clearInterval(intervalId);
-    // };
-  }, [soccod, selectedEmpMat, dateRange?.dateDebut, dateRange?.dateFin]);
+  const { data: empetat = [], isLoading: loading, error } = useGetEmpEtat({ soccod, selectedEmpMat, dateRange });
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -510,6 +461,20 @@ function EmpEtatPeriodique() {
                 <CircularProgress />
                 <Typography variant="body2" sx={{ mt: 2 }}>
                   Chargement des données...
+                </Typography>
+              </Box>
+            ) : error ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "300px",
+                }}
+              >
+                <Typography variant="body2" color="error">
+                  Erreur lors du chargement des données
                 </Typography>
               </Box>
             ) : (

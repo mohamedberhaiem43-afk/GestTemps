@@ -1,8 +1,9 @@
-import { Box, Grid, Typography } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 import AutoriserList from "../AutSortie/AutList/AutList";
 import SaisieAutSortie from "../AutSortie/Saisie/SaisieAutSortie";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { SortieGeneralProvider } from "../../../../helper/SortieGeneralContext";
+import BreadcrumbNavigation from "../../../../helper/BreadcrumbNavigation";
 
 
 export default function AutSortieGenerale()
@@ -13,9 +14,7 @@ export default function AutSortieGenerale()
         <QueryClientProvider client={queryClient}>
 
          <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'}>
-            <Typography fontWeight={'bold'} color={'primary'} variant="h6" gutterBottom >
-                Autorisation De Sortie Génerale
-            </Typography>
+                    <BreadcrumbNavigation />
                 <Grid container >
                     <SortieGeneralProvider>
                         <Grid item xs={12} >

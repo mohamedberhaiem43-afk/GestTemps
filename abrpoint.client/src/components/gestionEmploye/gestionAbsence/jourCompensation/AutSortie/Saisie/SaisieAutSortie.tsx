@@ -228,7 +228,7 @@ export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
   }
     return (
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
-        <Box className="saisie-compensation-container" component="form" sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
+        <Box component="form" sx={{ mx: "auto" }}>
           <Grid container alignItems="center" direction="row">
             {/* First box: Inputs */}
             <Grid item xs={7}>

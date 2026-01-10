@@ -15,7 +15,9 @@ import {
   Select,
   MenuItem,
   Input,
+  IconButton,
 } from "@mui/material";
+import AddIcon from '@mui/icons-material/Add';
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
 import { useEffect, useState } from "react";
 import useGetParametres from "../../../hooks/parametreHooks/useGetParametres";
@@ -28,6 +30,14 @@ interface HeureSuppProps {
   onChange1?: (value: any) => void;
 }
 
+interface TrancheData {
+  caltype: string;
+  tranche1: number;
+  taux1: number;
+  tranche2: number;
+  taux2: number;
+}
+
 const HeureSupp: React.FC<HeureSuppProps> = ({ onChange,onChange1 }) => {
     const [hsuphebd, setMethCalcHor] = useState('0');
     const [hsuphebdm, setMethCalcMen] = useState('0');
@@ -37,15 +47,15 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange,onChange1 }) => {
     const [parscomplet, setParscomplet] = useState<string>('0');
     const [parelimftrv, setParelimftrv] = useState('0');
     const [parreptrv, setParreptrv] = useState('0');
-    const [tranche1M, setTranche1M] = useState(0);
-    const [taux1M, setTaux1M] = useState(0);
-    const [tranche2M, setTranche2M] = useState(0);
-    const [taux2M, setTaux2M] = useState(0);
+    
+    // États pour les tranches horaires (H) et mensuelles (M)
+    const [tranchesH, setTranchesH] = useState<TrancheData[]>([
+      { caltype: '', tranche1: 0, taux1: 0, tranche2: 0, taux2: 0 }
+    ]);
+    const [tranchesM, setTranchesM] = useState<TrancheData[]>([
+      { caltype: '', tranche1: 0, taux1: 0, tranche2: 0, taux2: 0 }
+    ]);
 
-    const [partranche1, setTranche1] = useState<number>(0);
-    const [partaux1, setTaux1] = useState(0);
-    const [partranche2, setTranche2] = useState(0);
-    const [partaux2, setTaux2] = useState(0);
     const { data: parametres } = useGetParametres();
     const { data: partranche } = useGetParTranche();
 
@@ -59,41 +69,42 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange,onChange1 }) => {
     parscomplet,
     parelimftrv,
     parreptrv,
-
   };
-const trancheDataList: ParTranche[] = [
-  {
-    partranche1,
-    partaux1,
-    partranche2,
-    partaux2,
-    soccod: sessionStorage.getItem("soccod") || '',
-    ordre: 0,
-    caltype: "",
-    empreg: "H",
-  },
-  {
-    partranche1: tranche1M,
-    partaux1: taux1M,
-    partranche2: tranche2M,
-    partaux2: taux2M,
-    soccod: sessionStorage.getItem("soccod") || '',
-    ordre: 0,
-    caltype: "",
-    empreg: "M",
-  }
-];
-// Send list to parent or API
-onChange1?.(trancheDataList);
 
-// call parent's setter
-onChange?.(data); 
+  // Convertir les tranches en format ParTranche
+  const trancheDataList: ParTranche[] = [
+    ...tranchesH.map((tranche, index) => ({
+      partranche1: tranche.tranche1,
+      partaux1: tranche.taux1,
+      partranche2: tranche.tranche2,
+      partaux2: tranche.taux2,
+      soccod: sessionStorage.getItem("soccod") || '',
+      ordre: index,
+      caltype: tranche.caltype,
+      empreg: "H",
+    })),
+    ...tranchesM.map((tranche, index) => ({
+      partranche1: tranche.tranche1,
+      partaux1: tranche.taux1,
+      partranche2: tranche.tranche2,
+      partaux2: tranche.taux2,
+      soccod: sessionStorage.getItem("soccod") || '',
+      ordre: index,
+      caltype: tranche.caltype,
+      empreg: "M",
+    }))
+  ];
+
+  // Send list to parent or API
+  onChange1?.(trancheDataList);
+
+  // call parent's setter
+  onChange?.(data); 
 }, [
   hsuphebd, hsuphebdm,
   parcadre, parmaitrise, parexec, parscomplet,
   parelimftrv, parreptrv,
-  partranche1, partranche2, partaux1, partaux2,
-  tranche1M, tranche2M, taux1M, taux2M
+  tranchesH, tranchesM
 ]);
 
 
@@ -110,21 +121,29 @@ onChange?.(data);
   }
 
   if (partranche && Array.isArray(partranche)) {
-    const regimeH = partranche.find(p => p.empreg === 'H');
-    const regimeM = partranche.find(p => p.empreg === 'M');
+    const regimeH = partranche.filter(p => p.empreg === 'H');
+    const regimeM = partranche.filter(p => p.empreg === 'M');
 
-    if (regimeH) {
-      setTranche1(regimeH.partranche1 || 0);
-      setTaux1(regimeH.partaux1 || 0);
-      setTranche2(regimeH.partranche2 || 0);
-      setTaux2(regimeH.partaux2 || 0);
+    if (regimeH.length > 0) {
+      const tranchesHData = regimeH.map(p => ({
+        caltype: p.caltype || '',
+        tranche1: p.partranche1 || 0,
+        taux1: p.partaux1 || 0,
+        tranche2: p.partranche2 || 0,
+        taux2: p.partaux2 || 0,
+      }));
+      setTranchesH(tranchesHData.length > 0 ? tranchesHData : [{ caltype: '', tranche1: 0, taux1: 0, tranche2: 0, taux2: 0 }]);
     }
 
-    if (regimeM) {
-      setTranche1M(regimeM.partranche1 || 0);
-      setTaux1M(regimeM.partaux1 || 0);
-      setTranche2M(regimeM.partranche2 || 0);
-      setTaux2M(regimeM.partaux2 || 0);
+    if (regimeM.length > 0) {
+      const tranchesMData = regimeM.map(p => ({
+        caltype: p.caltype || '',
+        tranche1: p.partranche1 || 0,
+        taux1: p.partaux1 || 0,
+        tranche2: p.partranche2 || 0,
+        taux2: p.partaux2 || 0,
+      }));
+      setTranchesM(tranchesMData.length > 0 ? tranchesMData : [{ caltype: '', tranche1: 0, taux1: 0, tranche2: 0, taux2: 0 }]);
     }
   }
 }, [parametres, partranche]);
@@ -141,67 +160,103 @@ onChange?.(data);
  const Taux = [0,25,50,75,100];
   const queryClient = new QueryClient();
 
+  // Fonctions pour ajouter de nouvelles lignes
+  const addTrancheH = () => {
+    setTranchesH([...tranchesH, { caltype: '', tranche1: 0, taux1: 0, tranche2: 0, taux2: 0 }]);
+  };
+
+  const addTrancheM = () => {
+    setTranchesM([...tranchesM, { caltype: '', tranche1: 0, taux1: 0, tranche2: 0, taux2: 0 }]);
+  };
+
+  // Fonctions pour mettre à jour les tranches
+  const updateTrancheH = (index: number, field: keyof TrancheData, value: string | number) => {
+    const newTranches = [...tranchesH];
+    if (field === 'caltype') {
+      newTranches[index] = { ...newTranches[index], [field]: value as string };
+    } else {
+      newTranches[index] = { ...newTranches[index], [field]: value as number };
+    }
+    setTranchesH(newTranches);
+  };
+
+  const updateTrancheM = (index: number, field: keyof TrancheData, value: string | number) => {
+    const newTranches = [...tranchesM];
+    if (field === 'caltype') {
+      newTranches[index] = { ...newTranches[index], [field]: value as string };
+    } else {
+      newTranches[index] = { ...newTranches[index], [field]: value as number };
+    }
+    setTranchesM(newTranches);
+  };
+
  const renderTableRows = (
-  trancheData: any[],
-  tranche1Val: string,
-  setTranche1Val: any,
-  tranche2Val: string,
-  setTranche2Val: any,
-  taux1Val: number,
-  setTaux1Val: any,
-  taux2Val: number,
-  setTaux2Val: any
+  trancheData: TrancheData[],
+  updateFunction: (index: number, field: keyof TrancheData, value: string | number) => void,
+  addFunction: () => void
 ) => {
-  return trancheData.map((row, index) => (
-    <TableRow key={index}>
-      <TableCell>
-        <Input
-          sx={{ width: 80 }}
-          value={row.caltype || ''}
-        />
-      </TableCell>
-      <TableCell>
-        <Input
-          sx={{ width: 80 }}
-          type="number"
-          value={tranche1Val}
-          onChange={(e) => setTranche1Val(e.target.value)}
-        />
-      </TableCell>
-      <TableCell>
-        <Select
-          fullWidth
-          variant="standard"
-          value={taux1Val}
-          onChange={(e) => setTaux1Val(e.target.value)}
-        >
-          {Taux.map((taux) => (
-            <MenuItem key={taux} value={taux}>{taux}</MenuItem>
-          ))}
-        </Select>
-      </TableCell>
-      <TableCell>
-        <Input
-          sx={{ width: 80 }}
-          type="number"
-          value={tranche2Val}
-          onChange={(e) => setTranche2Val(e.target.value)}
-        />
-      </TableCell>
-      <TableCell>
-        <Select
-          fullWidth
-          variant="standard"
-          value={taux2Val}
-          onChange={(e) => setTaux2Val(e.target.value)}
-        >
-          {Taux.map((taux) => (
-            <MenuItem key={taux} value={taux}>{taux}</MenuItem>
-          ))}
-        </Select>
-      </TableCell>
-    </TableRow>
-  ));
+  return (
+    <>
+      {trancheData.map((row, index) => (
+        <TableRow key={index}>
+          <TableCell>
+            <Input
+              sx={{ width: 80 }}
+              value={row.caltype}
+              onChange={(e) => updateFunction(index, 'caltype', e.target.value)}
+            />
+          </TableCell>
+          <TableCell>
+            <Input
+              sx={{ width: 80 }}
+              type="number"
+              value={row.tranche1}
+              onChange={(e) => updateFunction(index, 'tranche1', parseFloat(e.target.value) || 0)}
+            />
+          </TableCell>
+          <TableCell>
+            <Select
+              fullWidth
+              variant="standard"
+              value={row.taux1}
+              onChange={(e) => updateFunction(index, 'taux1', parseInt(e.target.value.toString()))}
+            >
+              {Taux.map((taux) => (
+                <MenuItem key={taux} value={taux}>{taux}</MenuItem>
+              ))}
+            </Select>
+          </TableCell>
+          <TableCell>
+            <Input
+              sx={{ width: 80 }}
+              type="number"
+              value={row.tranche2}
+              onChange={(e) => updateFunction(index, 'tranche2', parseFloat(e.target.value) || 0)}
+            />
+          </TableCell>
+          <TableCell>
+            <Select
+              fullWidth
+              variant="standard"
+              value={row.taux2}
+              onChange={(e) => updateFunction(index, 'taux2', parseInt(e.target.value.toString()))}
+            >
+              {Taux.map((taux) => (
+                <MenuItem key={taux} value={taux}>{taux}</MenuItem>
+              ))}
+            </Select>
+          </TableCell>
+        </TableRow>
+      ))}
+      <TableRow>
+        <TableCell colSpan={5} align="center">
+          <IconButton onClick={addFunction} color="primary">
+            <AddIcon />
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    </>
+  );
 };
 
 
@@ -268,20 +323,9 @@ onChange?.(data);
                           </TableHead>
                           <TableBody>
                             {tableIndex === 0
-                              ? renderTableRows(
-                                  Array.isArray(partranche) ? partranche.filter((p) => p.empreg === 'H') : [],
-                                  partranche1.toString(), setTranche1,
-                                  partranche2.toString(), setTranche2,
-                                  partaux1, setTaux1,
-                                  partaux2, setTaux2
-                                )
-                              : renderTableRows(
-                                  Array.isArray(partranche) ? partranche.filter((p) => p.empreg === 'M') : [],
-                                  tranche1M.toString(), setTranche1M,
-                                  tranche2M.toString(), setTranche2M,
-                                  taux1M, setTaux1M,
-                                  taux2M, setTaux2M
-                                )}
+                              ? renderTableRows(tranchesH, updateTrancheH, addTrancheH)
+                              : renderTableRows(tranchesM, updateTrancheM, addTrancheM)
+                            }
                           </TableBody>
                         </Table>
                       </TableContainer>

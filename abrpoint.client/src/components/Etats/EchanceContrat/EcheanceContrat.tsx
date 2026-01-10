@@ -1,4 +1,4 @@
-import { Box, Container, Grid, IconButton, Typography } from "@mui/material";
+import { Box, Container, Grid, IconButton } from "@mui/material";
 import DataList from "../../lists/list";
 import { useMemo, useState } from "react";
 import { MRT_ColumnDef } from "material-react-table";
@@ -9,6 +9,7 @@ import axios from "axios";
 import formatDateForApi from "../../helper/TimeConverter/formatDateForApi";
 import ContratReportService from "../../../services/ContratService/ContratReportService";
 import CustomizedSnackbars from "../../Snackbar/Snackbar";
+import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
 
 function EcheanceContrat() {
   const [echdeb, setEchdeb] = useState<string>(formatDateForApi(new Date()));
@@ -126,9 +127,7 @@ function EcheanceContrat() {
   return (
     <Container>
       <Box width={'95vw'} height={'85vh'} mt={-1}>
-        <Typography variant="h6" fontWeight={'bold'} color={'primary'}>
-          Echéance Contrat
-        </Typography>
+        <BreadcrumbNavigation />
 
         <Grid container xs={12} spacing={2} display={'flex'} justifyContent={'center'} mt={2}>
           <Grid item xs={2}>

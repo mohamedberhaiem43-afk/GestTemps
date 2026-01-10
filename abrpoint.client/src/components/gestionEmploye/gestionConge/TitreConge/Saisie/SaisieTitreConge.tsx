@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Typography, Grid, IconButton, Button, Snackbar, Alert, Collapse } from '@mui/material';
+import { Box, Grid, IconButton, Button, Snackbar, Alert, Collapse, Typography } from '@mui/material';
 import SaveIcon from "@mui/icons-material/Save";
 import InputComponent from '../../../../Inputs/Input';
 import SelectInputComponent from '../../../../SelectInputComponent/SelectInputComponent';
@@ -13,6 +13,7 @@ import useGetTitreConge from '../../../../../hooks/congeHooks/useGetTitreConge';
 import useGetTitreCongeById from '../../../../../hooks/congeHooks/useGetTitreCongeById';
 import useAddBulkConges from '../../../../../hooks/congeHooks/useAddBulkConges';
 import useGetEtatConge from '../../../../../hooks/employeHooks/useGetEtatConge';
+import BreadcrumbNavigation from '../../../../helper/BreadcrumbNavigation';
 import { useCongeContext } from '../../../../helper/CongeContext';
 import useUpdateTitreConge from '../../../../../hooks/congeHooks/useUpdateTitreConge';
 import { Conge } from '../../../../../models/Conge';
@@ -275,9 +276,7 @@ useEffect(() => {
   
   return (
     <Box component="form" sx={{ mx: 'auto', p: 3 }}>
-      <Typography variant="h6" textAlign="center" color={'primary'} fontWeight={'bold'} mb={2}>
-        {titre}
-      </Typography>
+      <BreadcrumbNavigation />
       <Grid container spacing={2.8}>
       {titre === "Titre de Congés" && (  
         <Grid item xs={1.5}>

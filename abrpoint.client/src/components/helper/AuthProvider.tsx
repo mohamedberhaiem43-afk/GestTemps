@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from 'react';
 
 interface AuthContextType {
   soccod: string | null;
+  soclib: string | null;
   sitcod: string | null;
   authToken: string ;
   userName: string | null;
@@ -10,6 +11,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   soccod: null,
+  soclib: null,
   sitcod: null,
   authToken: '',
   userName: null,
@@ -21,7 +23,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     soccod: sessionStorage.getItem('soccod'),
     authToken:'',
     sitcod: sessionStorage.getItem('sitcod'),
-    userName: sessionStorage.getItem('utiprn') || null,
+    soclib: sessionStorage.getItem('soclib'),
+    userName: sessionStorage.getItem('userName') || null,
   });
 
   const setAuth = (data: Partial<AuthContextType>) => {

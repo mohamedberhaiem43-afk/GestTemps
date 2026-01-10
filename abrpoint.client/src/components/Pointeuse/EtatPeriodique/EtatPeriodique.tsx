@@ -1,6 +1,5 @@
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import { Typography } from '@mui/material';
 import EmpPeriodique from './EmpPeriodique';
 import EmpEtatPeriodique from './EmpEtatPeriodique';
 import { EmployeeProvider } from './EmployeeContext';
@@ -8,6 +7,7 @@ import { DateRangeProvider } from './FilterContext';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Item } from '../../helper/Item/Item';
 import EmpPoste from './EmpPoste';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import FilterEtatPeriodique from './FilterEtatPeriodique';
 
 
@@ -18,9 +18,7 @@ export default function EtatPeriodique() {
     return (
         <QueryClientProvider client={queryClient}>
             <Box width={"95vw"} height={'90vh'} sx={{ flexGrow: 1 }} >
-                    <Typography variant='h6' color={'primary'} fontWeight={'bold'} mb={2}>
-                        Etat Périodique de Présence
-                    </Typography>
+                    <BreadcrumbNavigation />
                 <Grid container spacing={1}>
                     <DateRangeProvider>
                         <Grid item xs={12}>

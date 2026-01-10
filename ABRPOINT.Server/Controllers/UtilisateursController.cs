@@ -146,8 +146,8 @@ namespace GestionDesTickets.Server.Controllers
                     });
 
 
-
-                    return Ok(new { token, dbUser.Uticod, dbUser.Utinom, dbUser.Utiprn, societe,sitcods,soclib,dbUser.Utiadm });
+                    string utilib = dbUser.Utiprn + " "+ dbUser.Utinom;
+                    return Ok(new { token, dbUser.Uticod, utilib, societe,sitcods,soclib,dbUser.Utiadm });
                 }
 
                 return NotFound();
@@ -229,6 +229,19 @@ namespace GestionDesTickets.Server.Controllers
             try
             {
                 UtiProfile profile = await _utilisateurRepository.GetProfile(uticod);
+                return profile;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        [HttpPut("change-password")]
+        public async Task<bool> ChangePassword(UpdatePassword pwd)
+        {
+            try
+            {
+                bool profile = await _utilisateurRepository.ChangePassword(pwd);
                 return profile;
             }
             catch (Exception)

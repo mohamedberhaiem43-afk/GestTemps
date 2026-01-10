@@ -24,3 +24,9 @@ export interface UtilisateurUpdate {
   Utilisateur: User
   Moduser: Moduser[];
 }
+
+export interface PasswordUpdate {
+  uticod: string
+  currentPassword: string
+  newPassword: string
+}

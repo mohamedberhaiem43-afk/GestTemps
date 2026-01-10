@@ -5,7 +5,7 @@ import {
   MRT_Row,
   useMaterialReactTable,
 } from 'material-react-table';
-import { Box, CircularProgress, IconButton, Tooltip, Typography } from '@mui/material';
+import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios from 'axios';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -13,6 +13,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import './Ville.css';
 import { VilleModel } from '../../../models/Ville';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import useGetVilles from '../../../hooks/villeHooks/useGetVilles';
 
 const VilleTable = () => {
@@ -178,9 +179,7 @@ const VilleTable = () => {
 
   return (
     <Box ml={5} width={'90vw'} height={'90vh'}>
-      <Typography fontWeight={'bold'} variant="h6" sx={{ mb: 2 }} color={'primary'}>
-        Gestion Villes
-      </Typography>
+      <BreadcrumbNavigation />
       <MaterialReactTable table={table} />
     </Box>
   );

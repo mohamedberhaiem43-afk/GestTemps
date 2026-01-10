@@ -1,5 +1,4 @@
-import { Box, Grid, Button, Snackbar, Alert } from "@mui/material";
-import SaveIcon from '@mui/icons-material/Save';
+import { Box, Grid, Snackbar, Alert } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import { useState, useEffect } from "react";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
@@ -11,11 +10,9 @@ import Utilisateur from "../../../models/Utilisateur";
 import { useQuery } from "react-query";
 import { useUserContext } from "../../helper/UserProvider";
 import UtilisateurService from "../../../services/UtilisateurService/UtilisateurService";
-import axios from "axios";
 
 interface SaisieUtilisateurProps {
     onDataChange: (data: any) => void;
-    onSave: () => void;
     profil: boolean;
 }
 interface ApiError {
@@ -26,7 +23,7 @@ interface ApiError {
   };
   message?: string;
 }
-function SaisieUtilisateur({ onDataChange, onSave, profil }: SaisieUtilisateurProps) {
+function SaisieUtilisateur({ onDataChange, profil }: SaisieUtilisateurProps) {
     const [uticod, setCode] = useState("");
     const [utiprn, setPrenom] = useState("");
     const [utinom, setNom] = useState("");
@@ -39,7 +36,7 @@ function SaisieUtilisateur({ onDataChange, onSave, profil }: SaisieUtilisateurPr
     const { data: sitLibs = [] } = useGetSiteLibs();
     const { selectedUser } = useUserContext();
 
-    const { error, isLoading } = useAddUser(); 
+    const { error } = useAddUser(); 
 
     // Call onDataChange whenever form data changes
     useEffect(() => {
@@ -87,33 +84,6 @@ function SaisieUtilisateur({ onDataChange, onSave, profil }: SaisieUtilisateurPr
         setSnackbarOpen(false);
     };
 
-    const handleSave = async () => {
-        if (!uticod || !utiprn || !utinom || !utimps || !societe || !site) {
-            handleSnackbarOpen('Veuillez remplir tous les champs obligatoires.', 'error');
-            return;
-        }
-        onSave()
-
-        try {
-        // 1. Upload image first if it exists
-        if (selectedImage) {
-            const formData = new FormData();
-            formData.append("file", selectedImage); // selectedFile is from input
-            await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/upload-profile`, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data"
-                },
-                withCredentials: true, // to include cookies
-            });
-        }
-
-
-        handleSnackbarOpen("Utilisateur mis à jour avec succès", "success");
-    } catch (err) {
-        handleSnackbarOpen("Erreur lors de la mise à jour", "error");
-    }
-
-    };
     
 
     useEffect(() => {
@@ -126,27 +96,6 @@ function SaisieUtilisateur({ onDataChange, onSave, profil }: SaisieUtilisateurPr
             handleSnackbarOpen(errorMessage, 'error');
         }
     }, [error]);
-
-
-    const [selectedImage, setSelectedImage] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file && file.type.startsWith("image/")) {
-            setSelectedImage(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        } else {
-            setSelectedImage(null);
-            setImagePreview(null);
-        }
-    };
-
-
 
     return (
         <Box sx={{ flexGrow: 1 }}>
@@ -193,54 +142,8 @@ function SaisieUtilisateur({ onDataChange, onSave, profil }: SaisieUtilisateurPr
                     <CheckboxComponent label="Administrateur" value={utiadm} setValue={setIsAdmin} />
                     </Grid>
                     <Grid item xs={3}>
-                    <Button
-                        variant="outlined"
-                        component="label"
-                        fullWidth
-                        sx={{ textTransform: 'none' }}
-                    >
-                        Upload Image
-                        <input
-                        type="file"
-                        accept="image/*"
-                        hidden
-                        onChange={handleImageChange}
-                        />
-                    </Button>
-                    {imagePreview && (
-                        <Box
-                        mt={2}
-                        sx={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            border: '1px dashed #ccc',
-                            borderRadius: '8px',
-                            padding: 1,
-                        }}
-                        >
-                        <img
-                            src={imagePreview}
-                            alt="Preview"
-                            style={{
-                            maxHeight: '120px',
-                            objectFit: 'cover',
-                            borderRadius: '4px',
-                            }}
-                        />
-                        </Box>
-                    )}
                     </Grid>
-                <Grid item xs={12}>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<SaveIcon />}
-                        onClick={handleSave}
-                        disabled={isLoading}
-                    >
-                    </Button>
-                </Grid>
+
                 </>
                 )}
     

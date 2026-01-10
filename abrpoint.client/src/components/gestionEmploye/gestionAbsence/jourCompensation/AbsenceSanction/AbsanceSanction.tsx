@@ -1,8 +1,9 @@
-import { Box, Grid, Typography } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 import AbsenceSanctionSaisie from "./Saisie/AbsenceSanctionSaisie";
 import AbsenceSanctionList from "./List/AbsenceSanctionList";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { SanctionProvider } from "../../../../helper/SanctionContext";
+import BreadcrumbNavigation from "../../../../helper/BreadcrumbNavigation";
 
 
 export default function AbsanceSanction()
@@ -12,9 +13,8 @@ export default function AbsanceSanction()
         <>
         <QueryClientProvider client={queryClient}>
          <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'}>
-            <Typography fontWeight={'bold'} variant="h6" gutterBottom color={'primary'} >
-                Absences et Sanctions
-            </Typography>
+            
+             <BreadcrumbNavigation />
                 <Grid container >
                     <SanctionProvider>
                         <Grid item xs={12}>

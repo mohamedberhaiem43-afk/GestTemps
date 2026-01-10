@@ -3,11 +3,12 @@ import {
   type MRT_ColumnDef,
   MRT_Row,
 } from 'material-react-table';
-import { Box, Typography, Select, MenuItem, FormControl } from '@mui/material';
+import { Box, Select, MenuItem, FormControl } from '@mui/material';
 import axios from 'axios';
 import './Section.css';
 import useGetSections from '../../../hooks/sectionHooks/useGetSections';
 import DataList from '../../lists/list';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 const Section = () => {
   const [setEditedSections] = useState<any>();
@@ -144,9 +145,7 @@ const Section = () => {
   
   return (
       <Box height={'90vh'} width={'95vw'}>
-        <Typography gutterBottom fontWeight={'bold'} color={'primary'} variant="h6" component="div" sx={{ mb: 2 }}>
-          Gestion des Sections
-        </Typography>
+        <BreadcrumbNavigation />
         <DataList data={sections} columns={columns} message={undefined} deleteMethod={openDeleteConfirmModal} idKey={'seccod'} refetchMethod={refetch}
       reportGeneration1={undefined} reportGeneration2={undefined} reportGeneration3={undefined} reportGeneration4={undefined}
       empHoraires={undefined} setData={undefined} pageSize={5} purge={undefined} />

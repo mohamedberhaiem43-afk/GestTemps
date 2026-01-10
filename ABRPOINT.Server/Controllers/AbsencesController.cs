@@ -81,7 +81,7 @@ namespace ABRPOINT.Server.Controllers
         [CanGetAbsence]
         public async Task<IActionResult> GetEtatAbsence(string soccod, DateTime datedebut, DateTime datefin, bool absaut, bool absret,
             bool presNonOpt, bool sansPointageInvalide, string? selectedAbsType, [FromQuery] List<string>? empcods)
-        {
+            {
             if(string.IsNullOrEmpty(soccod))
                 return BadRequest(new { Message = "Veuillez saisie le soccod des absences." });
             if(empcods.Count() == 0)

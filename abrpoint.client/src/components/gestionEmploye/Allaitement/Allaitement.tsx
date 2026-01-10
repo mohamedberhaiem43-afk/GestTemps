@@ -1,9 +1,10 @@
 import React from 'react';
-import { Box, Typography, Grid } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 import { ListAllaitement } from './ListeAllaitement';
 import AllaitementSaisie from './AllaitementSaisie';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AllaitementProvider } from '../../helper/AllaitementContext';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 export const Allaitement: React.FC = () => {
   
@@ -13,15 +14,13 @@ export const Allaitement: React.FC = () => {
     <QueryClientProvider client={queryClient}>
     <AllaitementProvider>
       <Box sx={{ display: 'flex', flexDirection: 'column'}} height={'90vh'}width={'95vw'}>
-        <Typography variant="h6" color={'primary'} textAlign="center" mb={3} fontWeight={'bold'}>
-          Gestion Allaitement
-        </Typography>
+        <BreadcrumbNavigation />
         
         <Grid container spacing={1} >
           <Grid spacing={3} item xs={12} ml={5}>
             <AllaitementSaisie />
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={12} mt={3}>
             <ListAllaitement />
           </Grid>
         </Grid>

@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -19,12 +19,10 @@ import autoTable from 'jspdf-autotable';
 import { Delete } from '@mui/icons-material';
 import useGetPresence from '../../../hooks/presenceHooks/useGetPresence';
 import { useDateRange } from '../../Pointeuse/EtatPeriodique/FilterContext';
-import { EmployeeContext } from '../../Pointeuse/EtatPeriodique/EmployeeContext';
 
 const EmpRetard = () => {
   const { dateRange } = useDateRange();
-  const {selectedEmp} = useContext(EmployeeContext)
-  const { data = [], isLoading } = useGetPresence(dateRange.dateDebut, dateRange.dateFin,dateRange.selectedRegime,selectedEmp);
+  const { data = [], isLoading } = useGetPresence(dateRange.dateDebut, dateRange.dateFin,dateRange.selectedRegime,dateRange.empcods);
   
   const columns = useMemo<MRT_ColumnDef<any>[]>(() => [
     {

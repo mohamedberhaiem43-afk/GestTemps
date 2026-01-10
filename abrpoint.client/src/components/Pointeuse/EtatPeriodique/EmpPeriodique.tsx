@@ -61,7 +61,7 @@ export default function EmpPeriodique() {
 
   const handleRowClick = (empmat:string) => {
     setSelectedRow(empmat);
-    setSelectedEmpMat(empmat);
+    setSelectedEmpMat([empmat]);
   };
 
   // Function to convert total minutes to hh:mm format

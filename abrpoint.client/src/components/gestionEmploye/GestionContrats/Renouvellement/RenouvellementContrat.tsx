@@ -1,8 +1,9 @@
-import { Box, Grid, Typography } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 import { useState } from 'react';
 import FiltrageRenouvellement, { Filters } from './FiltrageRenouvellement';
 import ListContrats from '../ListContrats';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import BreadcrumbNavigation from '../../../helper/BreadcrumbNavigation';
 
 function RenouvellementContrat() {
   const [filters, setFilters] = useState<Filters>({
@@ -14,11 +15,9 @@ function RenouvellementContrat() {
   const queryClient = new QueryClient()
   return (
     <QueryClientProvider client={queryClient}>
-      <Box sx={{ flexGrow: 1, mt: '-10%' }}>
+      <Box sx={{ flexGrow: 1 }} height={'80vh'}>
         <Grid container spacing={2}>
-          <Typography variant="h6" color="primary" sx={{ mr: 'auto', ml: 'auto' }}>
-            Renouvellement de Contrats
-          </Typography>
+        <BreadcrumbNavigation />
           <Grid item xs={12}>
             {/* Pass filters and setFilters to FiltrageRenouvellement */}
             <FiltrageRenouvellement filters={filters} setFilters={setFilters} />

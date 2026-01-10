@@ -12,6 +12,7 @@ using ABRPOINT.Server.CalculService.HeureNuit;
 using ABRPOINT.Server.CalculService.Conge;
 using ABRPOINT.Helper;
 using ABRPOINT.Server.CalculService.HeureAbsences;
+using ABRPOINT.Server.Controllers;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -1327,6 +1328,68 @@ namespace ABRPOINT.Server.Repository
             int daysInMonth = DateTime.DaysInMonth(date.Year, date.Month);
             return date.Day > daysInMonth ? new DateTime(date.Year, date.Month, daysInMonth) : date;
         }
-    
+
+        public async Task<PresenceStatistics> GetStatistics(DateTime startDate, DateTime endDate)
+        {
+            var presences = await _dbContext.Presences
+                .Where(p => p.Predat >= startDate && p.Predat <= endDate)
+                .ToListAsync();
+
+            var totalEmployees = presences.Select(p => p.Empcod).Distinct().Count();
+            var today = DateTime.Today;
+            var todayPresences = presences.Where(p => p.Predat.Value.Date == today).ToList();
+
+            return new PresenceStatistics
+            {
+                TotalEmployees = totalEmployees,
+                PresentToday = todayPresences.Count(p => p.Preentmatup != null),
+                AbsentToday = todayPresences.Count(p => p.Preentmatup == null),
+                TotalRetards = presences.Count(p => !string.IsNullOrEmpty(p.Preentmatup)),
+                AttendanceRate = totalEmployees > 0
+                    ? (decimal)todayPresences.Count(p => p.Preentmatup != null) / totalEmployees * 100
+                    : 0
+            };
+        }
+
+        public async Task<List<AbsenceInfo>> GetRecentAbsences(DateTime startDate, DateTime endDate, int limit)
+        {
+            return await _dbContext.Presences
+                .Where(p => p.Predat >= startDate && p.Predat <= endDate && p.Preentmatup == null)
+                .OrderByDescending(p => p.Predat)
+                .Take(limit)
+                .Select(p => new AbsenceInfo
+                {
+                    EmployeeName = p.Empcod,
+                    Date = p.Predat.Value.Date,
+                    Motif = p.Empreg ?? "Non spécifié"
+                })
+                .ToListAsync();
+        }
+
+        public async Task<GlobalStatistics> GetGlobalStatistics()
+        {
+            var totalEmployees = await _dbContext.Employes.CountAsync();
+            var thisMonth = DateTime.Today.Month;
+            var thisYear = DateTime.Today.Year;
+
+            var monthlyPresences = await _dbContext.Presences
+                .Where(p => p.Predat.Value.Month == thisMonth && p.Predat.Value.Year == thisYear)
+                .ToListAsync();
+
+            var totalHours = 20;
+            //var totalHours = monthlyPresences.Sum(p => p.Tothre ?? 0);
+            var workDays = DateTime.DaysInMonth(thisYear, thisMonth);
+            var expectedPresences = totalEmployees * workDays;
+            var actualPresences = monthlyPresences.Count(p => p.Preentmatup != null);
+
+            return new GlobalStatistics
+            {
+                TotalEmployees = totalEmployees,
+                AverageMonthlyAttendance = expectedPresences > 0
+                    ? (decimal)actualPresences / expectedPresences * 100
+                    : 0,
+                TotalHoursThisMonth = totalHours
+            };
+        }
     }
 }

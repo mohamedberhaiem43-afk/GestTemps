@@ -5,7 +5,7 @@ import {
   MRT_Row,
   useMaterialReactTable,
 } from 'material-react-table';
-import { Box, CircularProgress, IconButton, Tooltip, Typography } from '@mui/material';
+import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios from 'axios';
 import { DirectionModel } from '../../../models/DirectionModel';
@@ -13,6 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import './Direction.css'
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 const DirectionTable = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
@@ -258,9 +259,7 @@ const handleEditDirections = async()=>{
 
   return (
         <Box ml={5} width={'95vw'} height={'90vh'}>
-        <Typography fontWeight={'bold'} variant="h6" component="div" sx={{ mb: 2 }} color={'primary'}>
-            Gestion Directions
-        </Typography>
+        <BreadcrumbNavigation />
         <MaterialReactTable table={table} />
         </Box>
   );};

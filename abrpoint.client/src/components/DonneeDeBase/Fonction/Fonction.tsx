@@ -1,7 +1,8 @@
-import { Typography, Container } from '@mui/material';
+import { Container } from '@mui/material';
 import './Fonction.css';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import FonctionList from './FonctionList';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 
 
@@ -12,7 +13,7 @@ export function Fonction() {
     return (
         <QueryClientProvider client={queryClient}>
         <Container>
-            {<Typography fontWeight={'bold'} variant="h6" color={'primary'}>Gestion des Fonctions</Typography>}
+            <BreadcrumbNavigation />
                 {/* <FonctionForm /> */}
                 <FonctionList />
         </Container>

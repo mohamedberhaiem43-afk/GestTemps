@@ -3,7 +3,7 @@ import { createTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { AppProvider, Router, Session } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core';
-import { Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings, Assessment, AttachMoney, Autorenew, DevicesOther, Domain, EventNote, HolidayVillageRounded, Insights, Money, MoneyOffCsredSharp, Settings, SyncAlt, WorkOutline} from '@mui/icons-material';
+import { Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings, Assessment, AttachMoney, Autorenew, Chat, DevicesOther, Domain, EventNote, HolidayVillageRounded, Insights, Money, MoneyOffCsredSharp, Settings, SyncAlt, WorkOutline} from '@mui/icons-material';
 import { Box } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Filiale } from '../DonneeDeBase/Filiale/Filiale';
@@ -70,6 +70,9 @@ import Lecture from '../Pointeuse/Lecture/Lecture';
 import DroitAccessPointeuse from '../Admin/PointeuseAccees/DroitAcceesPointeuse';
 import Profile from '../ParamSoc/Profile/Profile';
 import Optimisation from '../Pointeuse/Optimisation/Optimisation';
+import SocieteImage from '../../assets/Societe.png';
+import { useAuth } from '../helper/AuthProvider';
+import GeminiChat from '../helper/Chatbot/GeminiChat';
 
 interface DemoProps {
     window?: () => Window;
@@ -387,6 +390,11 @@ const NAVIGATION = [
         title: 'Calendrier Société',
         icon: <CalendarIcon  />,
       },
+      {
+        segment: 'chat-bot',
+        title: 'Chat Bot',
+        icon: <Chat  />,
+      },
     ]
   },
   
@@ -541,6 +549,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
         case '/dashboard/calendrier-societe':
             content = <Calendrier />;
             break;
+        case '/dashboard/chat-bot':
+            content = <GeminiChat />;
+            break;
     }
 
     return (
@@ -580,28 +591,37 @@ export default function DashboardLayoutAccount(props: DemoProps) {
     const { window } = props;
     const navigate = useNavigate();
     const location = useLocation();
+    const { userName, soclib } = useAuth();
     const headerRef = useRef<HTMLElement | null>(null);
     headerRef.current = document.querySelector(
       "#root > div.MuiBox-root.css-k008qs > header > div > div.MuiBox-root.css-wxgfmz > a > div > h6"
     );
-    const [session, setSession] = React.useState<Session | null>({
-      user: {
-        name: `${sessionStorage.getItem('utiprn')} ${sessionStorage.getItem('utinom')}`,
-        image: profileImage,
-      },
-    });
+    const [session, setSession] = React.useState<Session | null>(
+      userName ? {
+        user: {
+          name: userName,
+          image: profileImage,
+        },
+      } : null
+    );
+
+    // Update session when userName changes
+    React.useEffect(() => {
+      if (userName) {
+        setSession({
+          user: {
+            name: userName,
+            image: profileImage,
+          },
+        });
+      } else {
+        setSession(null);
+      }
+    }, [userName]);
     const authentication = React.useMemo(() => {
       return {
         signIn: () => {
-          // Example: set default user or fetch from storage
-          const name = `${sessionStorage.getItem('utiprn')} ${sessionStorage.getItem('utinom')}`;
-
-          setSession({
-            user: {
-              name,
-              image : profileImage,
-            },
-          });
+          // The session will be updated automatically by the useEffect when userName changes
           navigate('/dashboard');
         },
         signOut: () => {
@@ -611,7 +631,7 @@ export default function DashboardLayoutAccount(props: DemoProps) {
           navigate('/');
         },
       };
-    }, []);
+    }, [navigate]);
     const pathname = location.pathname; // Get the current pathname from useLocation
 
     const router = React.useMemo<Router>(() => {
@@ -643,6 +663,10 @@ export default function DashboardLayoutAccount(props: DemoProps) {
         router={router}
         theme={demoTheme}
         window={demoWindow}
+        branding={{
+          title: soclib || 'ABR-POINT',
+          logo: <img src={SocieteImage} alt="Societe"  />,
+        }}
       >
       
         <DashboardLayout navigation={NAVIGATION}>

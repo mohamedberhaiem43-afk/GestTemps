@@ -1,10 +1,11 @@
-import { Box, Grid, Typography } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 import ListContrats from './ListContrats';
 import './GestionContrats.css';
 import SaisieContrat from './SaisieContrat';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Item } from '../../helper/Item/Item';
 import { useState } from 'react';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 // Define the Contrat type to match ListContrats
 type Contrat = {
@@ -27,9 +28,7 @@ const GestionContrats = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <Box height={'90vh'} width={'95vw'}>
-        <Typography variant="h6" color={'primary'} textAlign="center" fontWeight={'bold'} gutterBottom>
-          Gestion De Contrats
-        </Typography>
+        <BreadcrumbNavigation />
 
         <Grid>
           <Item>

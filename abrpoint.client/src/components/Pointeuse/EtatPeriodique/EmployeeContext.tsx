@@ -2,8 +2,8 @@ import { ReactNode,createContext, useState } from 'react';
 import Employe from '../../../models/Employe';
 
 type EmployeeContextType = {
-  selectedEmpMat: any;
-  setSelectedEmpMat: React.Dispatch<React.SetStateAction<any>>;
+  selectedEmpMat: string;
+  setSelectedEmpMat: React.Dispatch<React.SetStateAction<string>>;
   selectedEmp: any;
   setSelectedEmp: React.Dispatch<React.SetStateAction<any>>;
   selectedEmpPoste: any;
@@ -11,7 +11,7 @@ type EmployeeContextType = {
 };
 
 export const EmployeeContext = createContext<EmployeeContextType>({
-  selectedEmpMat: null,
+  selectedEmpMat: '',
   setSelectedEmpMat: () => {},
   selectedEmp: null,
   setSelectedEmp: () => {},
@@ -21,7 +21,7 @@ export const EmployeeContext = createContext<EmployeeContextType>({
 
 
 export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedEmpMat, setSelectedEmpMat] = useState<string|null>(null);
+  const [selectedEmpMat, setSelectedEmpMat] = useState<string>('');
   const [selectedEmp, setSelectedEmp] = useState<Employe|null>(null);
   const [selectedEmpPoste, setSelectedEmpPoste] = useState(null);
 

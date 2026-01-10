@@ -152,7 +152,7 @@ export default function SaisieJourCompensation() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box component="form" onSubmit={handleSave} sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
+      <Box component="form" onSubmit={handleSave} sx={{ mx: "auto" }}>
         <Grid container alignItems="center" direction="row">
           <Grid item xs={7}>
             <Grid container spacing={3} alignItems="center" direction="row">

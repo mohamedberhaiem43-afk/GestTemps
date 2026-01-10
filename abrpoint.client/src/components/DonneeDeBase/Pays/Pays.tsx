@@ -10,7 +10,6 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
-  Typography,
 } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios from 'axios';
@@ -18,6 +17,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import './Pays.css';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import { PaysModel } from '../../../models/Pays';
 import useGetPays from '../../../hooks/paysHooks/useGetPays';
 
@@ -196,9 +196,7 @@ const Nation = () => {
 
   return (
     <Box ml={5} width={'95vw'} height={'90vh'}>
-      <Typography fontWeight="bold" color="primary" variant="h6" sx={{ mb: 2 }}>
-        Gestion Pays
-      </Typography>
+      <BreadcrumbNavigation />
       <MaterialReactTable table={table} />
     </Box>
   );

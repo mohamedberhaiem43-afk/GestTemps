@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Server.Controllers;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Models;
 
 namespace ABRPOINT.Server.Interfaces
@@ -16,5 +17,8 @@ namespace ABRPOINT.Server.Interfaces
         Task<float?> GetNbJours(string empcod, DateTime? dateDeb, DateTime? dateFin);
         Task<PresenceSemaineData> GetPresenceSemaineData(string soccod, string empcod, string mois, string annee, string semaine);
         Task<Presence> GetPresenceByEmployeeAndTime(string soccod, string empcode, DateTime time);
+        Task<PresenceStatistics?> GetStatistics(DateTime startDate, DateTime today);
+        Task<List<AbsenceInfo>?> GetRecentAbsences(DateTime startDate, DateTime today, int v);
+        Task<GlobalStatistics?> GetGlobalStatistics();
     }
 }

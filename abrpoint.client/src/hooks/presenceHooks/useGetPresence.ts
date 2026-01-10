@@ -1,13 +1,14 @@
 import { useQuery } from "react-query";
 import PresenceService from "../../services/PersenceService/PresenceService";
+import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetPresence = (
   datedebut: Date,
   datefin: Date,
   regime: string,
-  empcods?: string[]
+  empcods?: string[]|null
 ) => {
-  const soccod = sessionStorage.getItem('soccod');
+  const { soccod } = useAuth();
   
   // Format dates to ISO strings without time (yyyy-MM-dd)
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
@@ -34,7 +35,7 @@ const useGetPresence = (
     ],
     queryFn: () =>
       PresenceService.getAllWithBody(
-        `${soccod}/${formattedDebut}/${formattedFin}/${regime}`,
+        `${soccod}/${formattedDebut}/${formattedFin}/${regime}?${params.toString()}`,
         { params }  // Pass the URLSearchParams object
       ),
     enabled: !!soccod && !!datedebut && !!datefin && !!regime,

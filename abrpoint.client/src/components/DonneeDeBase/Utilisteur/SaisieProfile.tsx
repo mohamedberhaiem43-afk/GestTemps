@@ -6,6 +6,7 @@ import useGetSocLibs from "../../../hooks/societeHooks/useGetSocLibs";
 import useGetSiteLibs from "../../../hooks/siteHooks/useGetSiteLibs";
 import axios from "axios";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
+import useUpdateProfile from "../../../hooks/profileHooks/useChangePassword";
 
 interface SaisieProfileProps {
   onDataChange: (data: any) => void;
@@ -25,6 +26,7 @@ export default function SaisieProfile({ onDataChange, profil, initialData }: Sai
   const [utiadm, setUtiadm] = useState(false);
   const { data: socLibs = [] } = useGetSocLibs();
   const { data: sitLibs = [] } = useGetSiteLibs();
+  const updatePassword = useUpdateProfile();
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export default function SaisieProfile({ onDataChange, profil, initialData }: Sai
 
   // change password dialog state
   const [changePwdOpen, setChangePwdOpen] = useState(false);
-  const [oldPassword, setOldPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
   // Prefill from profile provided by parent
@@ -58,59 +60,75 @@ useEffect(() => {
     utinom,
     utiprn,
     utimail,
-    utimps,
     utiadm: utiadm ? "1" : "0", // ✅ cohérent backend
     soccod: societe,
     sitcod: site,
-    oldPassword, // provided when changing password
   });
-}, [uticod, utinom, utiprn, utimail, utimps, utiadm, societe, site, oldPassword]);
+}, [uticod, utinom, utiprn, utimail, utiadm, societe, site]);
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
+
+      // Call API to save the image
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/upload-profile`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          withCredentials: true,
+        });
+        setSnackbarMessage("Image sauvegardée avec succès.");
+        setSnackbarSeverity("success");
+        setSnackbarOpen(true);
+      } catch (error) {
+        console.error("Erreur lors de la sauvegarde de l'image:", error);
+        setSnackbarMessage("Erreur lors de la sauvegarde de l'image.");
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+      }
     } else {
       setSelectedImage(null);
       setImagePreview(null);
     }
   };
 
-  // optional image upload helper (can be used by parent on save)
-  const uploadImage = async () => {
-    if (!selectedImage) return;
-    const formData = new FormData();
-    formData.append("file", selectedImage);
-    await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/upload-profile`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-      withCredentials: true,
-    });
-  };
-
   const openChangePwd = () => {
-    setOldPassword("");
+    setCurrentPassword("");
     setNewPassword("");
     setChangePwdOpen(true);
   };
   const closeChangePwd = () => setChangePwdOpen(false);
 
-  const handleSavePassword = () => {
-    if (!oldPassword || !newPassword) {
+  const handleSavePassword = async () => {
+    if (!currentPassword || !newPassword) {
       setSnackbarMessage("Veuillez renseigner l'ancien et le nouveau mot de passe.");
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
       return;
     }
-    // set the password that will be sent on parent save
-    setMotPasse(newPassword);
-    // keep oldPassword in state so onDataChange includes it
-    setChangePwdOpen(false);
-    setSnackbarMessage("Mot de passe modifié (à enregistrer).");
-    setSnackbarSeverity("success");
-    setSnackbarOpen(true);
+    try {
+      await updatePassword.mutateAsync({
+        uticod,
+        currentPassword,
+        newPassword,
+      });
+      setChangePwdOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setSnackbarMessage("Mot de passe changé avec succès.");
+      setSnackbarSeverity("success");
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Erreur lors du changement de mot de passe:", error);
+      setSnackbarMessage("Erreur lors du changement de mot de passe.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    }
   };
 
   return (
@@ -180,8 +198,8 @@ useEffect(() => {
             label="Ancien mot de passe"
             type="password"
             fullWidth
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
           />
           <TextField
             margin="dense"

@@ -5,7 +5,7 @@ import {
   MRT_Row,
   useMaterialReactTable,
 } from 'material-react-table';
-import { Box,Snackbar,Alert, CircularProgress, IconButton, Tooltip, Typography, Checkbox } from '@mui/material';
+import { Box,Snackbar,Alert, CircularProgress, IconButton, Tooltip, Checkbox } from '@mui/material';
 import axios from 'axios';
 
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -13,6 +13,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import { ServiceModel } from '../../../models/Service';
 import './Service.css'
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 const Service = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const [editedServices, setEditedServices] = useState<Record<string, ServiceModel>>({});
@@ -280,9 +281,7 @@ const Service = () => {
 
   return (
       <Box height={'90vh'} width={'95vw'}>
-        <Typography fontWeight={'bold'} variant="h6" component="div" sx={{ mb: 2 }} color={'primary'}>
-          Gestion Services
-        </Typography>
+        <BreadcrumbNavigation />
         <MaterialReactTable table={table} />
          {/* Snackbar for error messages */}
     <Snackbar open={isSnackbarOpen} autoHideDuration={6000} onClose={() => setIsSnackbarOpen(false)}>

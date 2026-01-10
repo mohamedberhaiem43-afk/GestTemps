@@ -1,4 +1,4 @@
-import { Box, Button, Grid, IconButton, Typography } from "@mui/material";
+import { Box, Button, Grid, IconButton } from "@mui/material";
 import SaisiePoste from "./SaisiePoste";
 import PosteTable from "./ListePosteTravail";
 import { PosteContext } from "../helper/PostProvider/PostContext";
@@ -8,6 +8,7 @@ import useUpdatePoste from "../../hooks/posteHooks/useUpdatePoste";
 import PosteList from "./PosteTable";
 import { Poste } from "../../models/Poste";
 import useAddPoste from "../../hooks/posteHooks/useAddPoste";
+import BreadcrumbNavigation from "../helper/BreadcrumbNavigation";
 import useDeletePoste from "../../hooks/posteHooks/useDeletePoste";
 import ForbiddenMessage from "../AlertModal/ForbiddenMessage";
 import CustomizedSnackbars from "../Snackbar/Snackbar";
@@ -192,9 +193,7 @@ export default function PosteDeTravail() {
     <Box>
       <Grid container spacing={0.5} height={"90vh"} width={'95vw'} mt={-3} >
         <Grid item xs={12}>
-          <Typography fontWeight="bold" variant="h6" textAlign="center" color="primary" mb={2}>
-            Gestion poste de Travail
-          </Typography>
+          <BreadcrumbNavigation />
         </Grid>
 
         <Grid item xs={9}>

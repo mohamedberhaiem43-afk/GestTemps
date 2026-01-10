@@ -1,25 +1,30 @@
 import { useQuery } from "react-query";
 import EtatAbsenceService from "../../services/AbsenceService/EtatAbsenceService";
+import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetEtatAbsence = (
   datedebut: Date,
   datefin: Date,
-  empcods: string[] = [],
+  empcods: string[] | null,
   absaut: boolean,
   absret: boolean,
   presNonOpt: boolean,
   sansPointageInvalide: boolean,
   selectedAbstype: string,
 ) => {
-  const soccod = sessionStorage.getItem('soccod');
+  const { soccod } = useAuth();
 
-  const formatDate = (date: Date) => date.toISOString().split('T')[0]; // yyyy-MM-dd
-  const formattedDebut = formatDate(datedebut)+"T00:00:00";
-  const formattedFin = formatDate(datefin)+"T00:00:00";
-
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
+  const formattedDebut = formatDate(datedebut) + "T00:00:00";
+  const formattedFin = formatDate(datefin) + "T00:00:00";
 
   const params = new URLSearchParams();
-  empcods?.forEach(cod => params.append("empcods", cod));
+  // Vérifiez que empcods existe et est un tableau
+  if (empcods && Array.isArray(empcods)) {
+    empcods.forEach(cod => params.append("empcods", cod));
+  }
+  
+  console.log("empcods:", empcods);
 
   return useQuery({
     queryKey: [
@@ -38,7 +43,8 @@ const useGetEtatAbsence = (
       EtatAbsenceService.getAllWithParams(
         `get-etat-absence/${soccod}/${formattedDebut}/${formattedFin}/${absaut}/${absret}/${presNonOpt}/${sansPointageInvalide}/0?${params.toString()}`
       ),
-    enabled: !!soccod && !!datedebut && !!datefin,
+    // La requête se lance seulement si les dates sont définies
+    enabled: !!soccod && !!datedebut && !!datefin && (empcods !== null && empcods.length > 0),
   });
 };
 

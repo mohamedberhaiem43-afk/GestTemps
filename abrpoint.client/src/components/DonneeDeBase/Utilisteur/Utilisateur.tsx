@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Grid, Snackbar, Typography } from "@mui/material"
+import { Alert, Box, Button, Grid, Snackbar } from "@mui/material"
 import SaisieUtilisateur from "./SaisieUtilisateur"
 import ListeUtilisateur from "./ListeUtilisateur."
 import DroitAccees from "./DroitAccees"
@@ -8,6 +8,7 @@ import { useState } from "react"
 import useUpdateUtilisateur from "../../../hooks/utilisateurHookds/useUpdateUtilisateur"
 import { Moduser } from "../../../models/moduser"
 import { User, UtilisateurUpdate } from "../../../models/Utilisateur"
+import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation"
 
 export default function Utilisateur() {
     const queryClient = new QueryClient();
@@ -60,9 +61,7 @@ export default function Utilisateur() {
     return (
         <QueryClientProvider client={queryClient}>
             <Box sx={{ flexGrow: 1 }} mt={-2} height={'85vh'} maxHeight={'90vh'} overflow={'auto'}>
-                <Typography fontWeight={'bold'} variant="h6" component="div" gutterBottom color={'primary'} mb={1}>
-                    Gestion des Utilisateurs
-                </Typography>
+                <BreadcrumbNavigation />
                 <UserProvider>
                     <Grid container spacing={2}>
                             <Grid item xs={12}>

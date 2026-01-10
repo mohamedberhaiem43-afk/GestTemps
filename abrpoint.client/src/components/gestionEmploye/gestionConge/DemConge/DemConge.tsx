@@ -17,7 +17,7 @@ export default function  DemConge (){
             <Grid item xs={12} >
                 <CongeForm />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} mt={3}>
                 <CongeList />
             </Grid>
           </CongeProvider>
