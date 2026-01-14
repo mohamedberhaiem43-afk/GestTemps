@@ -96,14 +96,14 @@ public partial class Presence
     public string? Presortasupup { get; set; }
 
     [Column("presem")]
-    public int? Presem { get; set; }
+    public float? Presem { get; set; }
 
     [Column("prerepos")]
     [StringLength(1)]
     public string? Prerepos { get; set; }
 
     [Column("prerepas")]
-    public int? Prerepas { get; set; }
+    public float? Prerepas { get; set; }
 
     [Column("preretmate", TypeName = "datetime")]
     public DateTime? Preretmate { get; set; }
@@ -130,16 +130,16 @@ public partial class Presence
     public DateTime? Preretamsup { get; set; }
 
     [Column("preavantent")]
-    public int? Preavantent { get; set; }
+    public float? Preavantent { get; set; }
 
     [Column("preapresent")]
-    public int? Preapresent { get; set; }
+    public float? Preapresent { get; set; }
 
     [Column("preavantsort")]
-    public int? Preavantsort { get; set; }
+    public float? Preavantsort { get; set; }
 
     [Column("preapressort")]
-    public int? Preapressort { get; set; }
+    public float? Preapressort { get; set; }
 
     [Column("soccod")]
     [StringLength(6)]
@@ -189,8 +189,8 @@ public partial class Presence
     public string? Optimise { get; set; }
 
     [Column("totcmp")]
-    public int? Totcmp { get; set; }
+    public float? Totcmp { get; set; }
     [Column("predouche")]
-    public int? Predouche { get; set; }
+    public float? Predouche { get; set; }
 
 }

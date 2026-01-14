@@ -5,7 +5,6 @@ using ABRPOINT.Server.Exceptions;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ABRPOINT.Server.Controllers
@@ -109,10 +108,58 @@ namespace ABRPOINT.Server.Controllers
             return Ok(response);
         }
         [HttpGet("get-employe-poste/{soccod}/{codpost}/{day}")]
-        public async Task<PosteDto> GetEmployePoste(string soccod, string codpost, string day)
+        public async Task<PosteDto> GetEmployePoste(string soccod, string? codpost, string day)
         {
             try
             {
+                Poste? poste = await _posteRepository.GetPoste(soccod, codpost);
+                if (poste == null)
+                    return null;
+
+                string prefix = day.ToLowerInvariant(); // e.g. "lun", "mar", etc.
+
+                PosteDto dto = new PosteDto
+                {
+                    Codposte = poste.Codposte,
+                    Soccod = poste.Soccod,
+                    Libposte = poste.Libposte,
+                    Avantent = poste.Avantent,
+                    Apresent = poste.Apresent,
+                    Avantsort = poste.Avantsort,
+                    Apressort = poste.Apressort,
+                    Jourhdmat = GenericMethodes.GetPropertyValue(poste, prefix + "hdmat"),
+                    Jourhfmat = GenericMethodes.GetPropertyValue(poste, prefix + "hfmat"),
+                    Jourhdam = GenericMethodes.GetPropertyValue(poste, prefix + "hdam"),
+                    Jourhfam = GenericMethodes.GetPropertyValue(poste, prefix + "hfam"),
+                    Jourrepos = GenericMethodes.GetPropertyValue(poste, prefix + "repos"),
+                    Jourrepas = GenericMethodes.GetNullableInt(poste, prefix + "repas"),
+                    Jourhdrep = GenericMethodes.GetPropertyValue(poste, prefix + "hdrep"),
+                    Jourhfrep = GenericMethodes.GetPropertyValue(poste, prefix + "hfrep"),
+                    Jourhdematin = GenericMethodes.GetPropertyValue(poste, prefix + "hdematin"),
+                    Jourhfematin = GenericMethodes.GetPropertyValue(poste, prefix + "hfematin"),
+                    Jourhdeamidi = GenericMethodes.GetPropertyValue(poste, prefix + "hdeamidi"),
+                    Jourhfeamidi = GenericMethodes.GetPropertyValue(poste, prefix + "hfeamidi"),
+                    Arrondi = poste.Arrondi,
+                    Maxhrejour = GenericMethodes.GetPropertyValue(poste, "maxhre" + prefix),
+                    Minhjour = GenericMethodes.GetNullableFloat(poste, "minhjour" + prefix),
+                    Minhdemijour = GenericMethodes.GetNullableFloat(poste, "minhdemijour" + prefix),
+                    Jourdouche = GenericMethodes.GetNullableFloat(poste, prefix + "douche")
+                };
+
+                return dto;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        
+        [HttpGet("get-employe-poste-by-date/{soccod}/{empcod}/{date}/{day}")]
+        public async Task<PosteDto> GetEmployePoste(string soccod, string empcod, DateTime? date,string day)
+        {
+            try
+            {
+                string? codpost = await _posteRepository.GetEmpPoste(soccod,empcod,date);
                 Poste? poste = await _posteRepository.GetPoste(soccod, codpost);
                 if (poste == null)
                     return null;

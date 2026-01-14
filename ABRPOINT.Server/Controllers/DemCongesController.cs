@@ -22,7 +22,14 @@ namespace ABRPOINT.Server.Controllers
         [CanGetDemConge]
         public async Task<List<DemcongeEmpAbsDto>> GetCongeWithAbsenceAsync(string soccod, string uticod)
         {
-            return await _demandecongeRepository.GetDemongeWithAbsenceAsync(soccod, uticod);
+            try
+            {
+                return await _demandecongeRepository.GetDemongeWithAbsenceAsync(soccod, uticod);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         [HttpPost("accept-demconge/{soccod}/{concod}")]

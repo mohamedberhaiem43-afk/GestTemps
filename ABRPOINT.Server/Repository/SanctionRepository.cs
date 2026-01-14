@@ -52,45 +52,45 @@ namespace ABRPOINT.Server.Repository
             return _dbContext.Sanctions
                 .Where(s=>s.Soccod == soccod).ToList();
         }
-        public async Task<List<SanctionEmpDto>> GetSanctionWithAbsenceAsync(string soccod,string uticod)
+        public async Task<List<SanctionEmpDto>> GetSanctionWithAbsenceAsync(string soccod, string uticod)
         {
             try
             {
-                List<string> sitcods = await _dbContext.Socusers
-                   .Where(s => s.Soccod == soccod && s.Uticod == uticod)
-                   .Select(s => s.Sitcod)
-                   .ToListAsync();
-                // Perform the join between "compenser" and "absence" based on "abscod"
-                var rawResult = await (from c in _dbContext.Sanctions
-                                       join a in _dbContext.Absences on c.Abscod equals a.Abscod
-                                       join e in _dbContext.Employes on c.Empcod equals e.Empcod
-                                       where sitcods.Contains(e.Sitcod)
-                                       select new SanctionEmpDto
-                                       {
-                                           Soccod = c.Soccod,
-                                           Concod = c.Concod,
-                                           Emplib = e.Emplib,
-                                           Empcod = e.Empcod,
-                                           Condat = c.Condat,
-                                           Condep = c.Condep,
-                                           Conret = c.Conret,
-                                           Connbjour = c.Connbjour,
-                                           Abslib = a.Abslib,
-                                       }).ToListAsync();
+                // Utiliser une jointure avec Socusers au lieu de Contains
+                var rawResult = await (
+                    from c in _dbContext.Sanctions
+                    join a in _dbContext.Absences on c.Abscod equals a.Abscod
+                    join e in _dbContext.Employes on c.Empcod equals e.Empcod
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    where c.Soccod == soccod
+                        && su.Uticod == uticod
+                    select new SanctionEmpDto
+                    {
+                        Soccod = c.Soccod,
+                        Concod = c.Concod,
+                        Emplib = e.Emplib,
+                        Empcod = e.Empcod,
+                        Condat = c.Condat,
+                        Condep = c.Condep,
+                        Conret = c.Conret,
+                        Connbjour = c.Connbjour,
+                        Abslib = a.Abslib,
+                    }).ToListAsync();
+
+                // Dédoublonnage et tri en mémoire
                 List<SanctionEmpDto> result = rawResult
-                    .Where(s => s.Soccod == soccod)
                     .DistinctBy(s => s.Concod)
                     .OrderByDescending(s => s.Condat)
                     .ToList();
 
                 return result;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 throw;
             }
         }
-
 
         public async Task<Sanction> GetSanction(string soccod, string concod)
         {

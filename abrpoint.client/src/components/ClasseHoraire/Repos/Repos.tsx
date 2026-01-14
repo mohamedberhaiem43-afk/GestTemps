@@ -12,7 +12,7 @@ export default function Repos()
     return(
         <>
         <QueryClientProvider client={queryClient}>
-         <Box sx={{ flexGrow: 1 }} height={'83vh'} mt={-2}>
+         <Box sx={{ flexGrow: 1 }} height={'85vh'} >
             <BreadcrumbNavigation />
                 <Grid container>
                     <FerierProvider>

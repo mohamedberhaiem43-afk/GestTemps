@@ -29,17 +29,55 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                foreach (var tranche in partrancheList)
+                if (partrancheList == null || !partrancheList.Any())
+                    return false;
+
+                // Récupérer le soccod (on suppose que toutes les tranches ont le même soccod)
+                var soccod = partrancheList.First().Soccod;
+
+                // Récupérer toutes les tranches existantes pour ce soccod
+                var existingTranches = await _context.Partranches
+                    .Where(p => p.Soccod == soccod)
+                    .ToListAsync();
+
+                // Supprimer les tranches qui n'existent plus dans la liste envoyée
+                var tranchesToDelete = existingTranches
+                    .Where(existing => !partrancheList.Any(t =>
+                        t.Soccod == existing.Soccod &&
+                        t.Empreg == existing.Empreg &&
+                        t.Caltype == existing.Caltype))
+                    .ToList();
+
+                if (tranchesToDelete.Any())
                 {
-                    await _context.Partranches
-                        .Where(p => p.Soccod == tranche.Soccod && p.Empreg == tranche.Empreg)
-                        .ExecuteUpdateAsync(p => p
-                            .SetProperty(x => x.Partranche1, tranche.Partranche1)
-                            .SetProperty(x => x.Partaux1, tranche.Partaux1)
-                            .SetProperty(x => x.Partranche2, tranche.Partranche2)
-                            .SetProperty(x => x.Partaux2, tranche.Partaux2));
+                    _context.Partranches.RemoveRange(tranchesToDelete);
                 }
 
+                // Mettre à jour ou ajouter les tranches de la liste
+                foreach (var tranche in partrancheList)
+                {
+                    var existingTranche = existingTranches
+                        .FirstOrDefault(p => p.Soccod == tranche.Soccod
+                                           && p.Empreg == tranche.Empreg
+                                           && p.Caltype == tranche.Caltype);
+
+                    if (existingTranche != null)
+                    {
+                        // Mise à jour si existe
+                        existingTranche.Ordre = tranche.Ordre;
+                        existingTranche.Partranche1 = tranche.Partranche1;
+                        existingTranche.Partaux1 = tranche.Partaux1;
+                        existingTranche.Partranche2 = tranche.Partranche2;
+                        existingTranche.Partaux2 = tranche.Partaux2;
+                    }
+                    else
+                    {
+                        // Ajout si n'existe pas
+                        await _context.Partranches.AddAsync(tranche);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception)
@@ -47,6 +85,5 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-
     }
 }

@@ -223,12 +223,12 @@ namespace GestionDesTickets.Server.Controllers
         }
 
 
-        [HttpGet("get-profile/{uticod}")]
-        public async Task<UtiProfile> GetProfile(string uticod)
+        [HttpGet("get-profile/{soccod}/{uticod}")]
+        public async Task<UtiProfile> GetProfile(string soccod,string uticod)
         {
             try
             {
-                UtiProfile profile = await _utilisateurRepository.GetProfile(uticod);
+                UtiProfile profile = await _utilisateurRepository.GetProfile(soccod,uticod);
                 return profile;
             }
             catch (Exception)

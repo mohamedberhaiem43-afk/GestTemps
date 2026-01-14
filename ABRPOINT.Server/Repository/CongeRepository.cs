@@ -47,28 +47,29 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                List<string> sitcods = await _utilisateurRepository.GetSitcodsAccess(soccod, uticod);
-
-                // Exécuter la requête côté base de données
-                List<CongeAbsenceDto> rawResult = await (from c in _dbContext.Conges
-                                                         join a in _dbContext.Absences on c.Abscod equals a.Abscod
-                                                         join e in _dbContext.Employes on c.Empcod equals e.Empcod
-                                                         where sitcods.Contains(e.Sitcod)
-                                                         select new CongeAbsenceDto
-                                                         {
-                                                             Concod = c.Concod,
-                                                             Emplib = e.Emplib,
-                                                             Condat = c.Condat,
-                                                             Condep = c.Condep,
-                                                             Conret = c.Conret,
-                                                             Connbjour = c.Connbjour,
-                                                             Abslib = a.Abslib,
-                                                             Soccod = e.Soccod
-                                                         }).ToListAsync();
+                // Utiliser une jointure avec Socusers au lieu de Contains
+                List<CongeAbsenceDto> rawResult = await (
+                    from c in _dbContext.Conges
+                    join a in _dbContext.Absences on c.Abscod equals a.Abscod
+                    join e in _dbContext.Employes on c.Empcod equals e.Empcod
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    where e.Soccod == soccod
+                        && su.Uticod == uticod
+                    select new CongeAbsenceDto
+                    {
+                        Concod = c.Concod,
+                        Emplib = e.Emplib,
+                        Condat = c.Condat,
+                        Condep = c.Condep,
+                        Conret = c.Conret,
+                        Connbjour = c.Connbjour,
+                        Abslib = a.Abslib,
+                        Soccod = e.Soccod
+                    }).ToListAsync();
 
                 // Traitement en mémoire
                 List<CongeAbsenceDto> result = rawResult
-                    .Where(c => c.Soccod == soccod)
                     .DistinctBy(c => new { c.Concod, c.Soccod })
                     .OrderByDescending(c => c.Condat)
                     .ToList();
@@ -77,11 +78,9 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-                // Facultatif : gérer l’erreur ici
                 throw;
             }
         }
-
         public Conge GetByConcod(string soccod, string concod)
         {
             try
@@ -498,7 +497,20 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-    
+
+        public async Task<Conge> GetEmpCongeByDate(string soccod, string empcod, DateTime date)
+        {
+            try
+            {
+                var conge = await _dbContext.Conges.Where(c => c.Soccod == soccod && c.Empcod == empcod && c.Condat == date).SingleOrDefaultAsync();
+                return conge;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
     }
 }
 

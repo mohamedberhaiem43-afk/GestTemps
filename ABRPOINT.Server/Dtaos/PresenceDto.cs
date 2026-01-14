@@ -17,15 +17,15 @@
         public string? Preentasupup { get; set; }
         public string? Presortasupup { get; set; }
         public string? Prerepos { get; set; }
-        public int? Prerepas { get; set; }
+        public float? Prerepas { get; set; }
         public DateTime? Preretmateup { get; set; }
         public DateTime? Preretmatsup { get; set; }
         public DateTime? Preretameup { get; set; }
         public DateTime? Preretamsup { get; set; }
-        public int? Preavantent { get; set; }
-        public int? Preapresent { get; set; }
-        public int? Preavantsort { get; set; }
-        public int? Preapressort { get; set; }
+        public float? Preavantent { get; set; }
+        public float? Preapresent { get; set; }
+        public float? Preavantsort { get; set; }
+        public float? Preapressort { get; set; }
         public string? Sitcod { get; set; }
         public string? Preobs { get; set; }
         public DateTime? Dmdate { get; set; }
@@ -36,10 +36,9 @@
         public string? Tothsup { get; set; }
         public string? Tothnuit { get; set; }
         public string? Totret { get; set; }
-        public int? Totcmp { get; set; }
+        public float? Totcmp { get; set; } // Changé de int? à float?
         public string? Etat { get; set; }
         public float? Hreaut { get; set; }
         public string? Poicod { get; set; }
-
     }
 }

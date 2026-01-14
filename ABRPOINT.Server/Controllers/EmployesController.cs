@@ -106,16 +106,23 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-emps/{soccod}/{site}/{uticod}")]
         [CanGetEmploye]
-        public async Task<ActionResult<IList<EmployeePresenceDto>>> GetEmployes(string soccod, string uticod, string site, string? empreg = null, string? service = null,DateTime? debut = null,DateTime? fin = null)
+        public async Task<ActionResult<IList<EmployeePresenceDto>>> GetEmployes(string soccod, string uticod, string site, [FromQuery] List<string>? empcods, string? empreg = null, string? service = null,DateTime? debut = null,DateTime? fin = null)
         {
-            IList<EmployeePresenceDto> emps = await _employeRepository.GetBySitcodAndDircod(soccod, uticod, site, empreg, service,debut,fin);
-            if (emps != null && emps.Count > 0)
-                return Ok(emps);
+            try
+            {
+                IList<EmployeePresenceDto> emps = await _employeRepository.GetBySitcodAndDircod(soccod, uticod, site,empcods, empreg, service,debut,fin);
+                if (emps != null && emps.Count > 0)
+                    return Ok(emps);
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
-
+            
         // GET api/employes/5
         [HttpGet("get-employe/{soccod}/{empcod}")]
         [CanGetEmploye]

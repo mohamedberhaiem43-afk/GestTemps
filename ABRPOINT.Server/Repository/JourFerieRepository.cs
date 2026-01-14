@@ -9,12 +9,10 @@ namespace ABRPOINT.Server.Repository
     public class JourFerieRepository : IJourFerieRepository
     {
 
-        private readonly IPosteRepository _posteRepository;
         private readonly ApplicationDbContext _dbContext;
-        public JourFerieRepository(ApplicationDbContext dbContext, IPosteRepository posteRepository)
+        public JourFerieRepository(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
-            _posteRepository = posteRepository;
         }
         public void Add(Ferier ferier)
         {
@@ -39,6 +37,17 @@ namespace ABRPOINT.Server.Repository
         public async Task<Ferier> GetByFerdate(string soccod, DateTime ferdate)
         {
             return await _dbContext.Feriers.FirstOrDefaultAsync(s => s.Soccod == soccod && s.Ferdate == ferdate);
+        }
+        public async Task<float?> GetFerheure(string soccod,DateTime? ferdate)
+        {
+            try
+            {
+                return await _dbContext.Feriers.Where(s => s.Soccod == soccod && s.Ferdate == ferdate).Select(f=>f.Ferheure).FirstOrDefaultAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
         public async Task<float?> GetHeureFerieTrav(string soccod, DateTime? predat, string? tothre)
         {
@@ -81,6 +90,28 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public async Task<float?> GetTotheureFerierParPeriode(string soccod,DateTime? debut,DateTime? fin)
+        {
+            try
+            {
+                var query = _dbContext.Feriers
+                    .Where(f => f.Soccod == soccod);
+
+                if (debut.HasValue)
+                    query = query.Where(f => f.Ferdate >= debut.Value);
+
+                if (fin.HasValue)
+                    query = query.Where(f => f.Ferdate <= fin.Value);
+
+                return await query.SumAsync(f => (float?)f.Ferheure);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
 
         public async Task<bool> IsFerier(string soccod,DateTime? predat)
         {

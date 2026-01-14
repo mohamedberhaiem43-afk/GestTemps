@@ -434,46 +434,46 @@ public partial class Poste
     public string? Maxhredim { get; set; }
 
     [Column("minhjourlun")]
-    public float? Minhjourlun { get; set; }
+    public int? Minhjourlun { get; set; }
 
     [Column("minhdemijourlun")]
-    public float? Minhdemijourlun { get; set; }
+    public int? Minhdemijourlun { get; set; }
 
     [Column("minhjourmar")]
-    public float? Minhjourmar { get; set; }
+    public int? Minhjourmar { get; set; }
 
     [Column("minhdemijourmar")]
-    public float? Minhdemijourmar { get; set; }
+    public int? Minhdemijourmar { get; set; }
 
     [Column("minhjourmer")]
-    public float? Minhjourmer { get; set; }
+    public int? Minhjourmer { get; set; }
 
     [Column("minhdemijourmer")]
-    public float? Minhdemijourmer { get; set; }
+    public int? Minhdemijourmer { get; set; }
 
     [Column("minhjourjeu")]
-    public float? Minhjourjeu { get; set; }
+    public int? Minhjourjeu { get; set; }
 
     [Column("minhdemijourjeu")]
-    public float? Minhdemijourjeu { get; set; }
+    public int? Minhdemijourjeu { get; set; }
 
     [Column("minhjourven")]
-    public float? Minhjourven { get; set; }
+    public int? Minhjourven { get; set; }
 
     [Column("minhdemijourven")]
-    public float? Minhdemijourven { get; set; }
+    public int? Minhdemijourven { get; set; }
 
     [Column("minhjoursam")]
-    public float? Minhjoursam { get; set; }
+    public int? Minhjoursam { get; set; }
 
     [Column("minhdemijoursam")]
-    public float? Minhdemijoursam { get; set; }
+    public int? Minhdemijoursam { get; set; }
 
     [Column("minhjourdim")]
-    public float? Minhjourdim { get; set; }
+    public int? Minhjourdim { get; set; }
 
     [Column("minhdemijourdim")]
-    public float? Minhdemijourdim { get; set; }
+    public int? Minhdemijourdim { get; set; }
     [Column("lundouche")]
     public float? Lundouche { get; set; }
     [Column("mardouche")]

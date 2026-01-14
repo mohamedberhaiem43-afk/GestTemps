@@ -1,9 +1,9 @@
 ﻿using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
-using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -49,14 +49,29 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500);
             }
         }
+        [HttpGet("get-paie/{soccod}")]
+        public async Task<ActionResult<Parametre>> GetPaie(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                return BadRequest("veuillez préciser la société");
+            try
+            {
+                string paie = await _parametreRepository.GetPaie(soccod);
+                return Ok(paie);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+        }
 
         [HttpPut]
         public async Task<bool> UpdateParametres(Parametre parametre)
         {
             try
             {
-                string isAdmin = Request.Cookies["admin"];
-                if(isAdmin == "1")
+                //string isAdmin = Request.Cookies["admin"];
+                //if(isAdmin == "1")
                     return await _parametreRepository.UpdateParametres(parametre);
                 return false;
             }

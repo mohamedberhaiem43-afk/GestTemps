@@ -27,6 +27,8 @@ import { getWeeksFromStartToSunday } from '../../helper/HelperFunctions';
 import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
 import CloseIcon from '@mui/icons-material/Close';
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
+import IntegrationPaieButton from '../../helper/IntegrationPaieButton';
+import useGetRubriquesPaire from '../../../hooks/rubriqueHooks/useGetRubriquePaire';
 
 const PointageDuMoisContent = () => {
   const context = useDateMoisPointageRange();
@@ -40,7 +42,7 @@ const PointageDuMoisContent = () => {
   const empcods = dateRange?.empcods || [];
   const [openDialog, setOpenDialog] = useState(false);
   const [numSem, setNumSem] = useState(1);
-
+  const {data: rubriques = []} = useGetRubriquesPaire();
   const [selectedEmp, setSelectedEmp] = useState<PointageMois | null>(null);
   const [selectedWeekDetails, setSelectedWeekDetails] = useState<Record<string, string> | null>(null);
   const [majorerHeures, setMajorerHeures] = useState<boolean>(false);
@@ -101,6 +103,12 @@ const PointageDuMoisContent = () => {
       
           <Grid item xs={12} display={loading ? 'none' : 'block'}>
             <FilterPointageMois />
+            <IntegrationPaieButton
+                pointageMoisData={pointageMois}
+                rubriques={rubriques}
+                mois={mois}
+                annee={annee}
+              />
           </Grid>
 
         {/* 🔹 Loader */}

@@ -26,10 +26,10 @@ namespace ABRPOINT.Server.Controllers
             return _qualifRepository.GetAll();
         }
 
-        [HttpGet("get-qualibs")]
-        public Dictionary<string, string> GetQualibs()
+        [HttpGet("get-qualibs/{soccod}")]
+        public Dictionary<string, string> GetQualibs(string soccod)
         {
-            return _qualifRepository.GetQuaLibs();
+            return _qualifRepository.GetQuaLibs(soccod);
         }
 
 

@@ -13,7 +13,7 @@ namespace ABRPOINT.Server.Interfaces
         Task CalculatePresence(Presence presence);
         Task UpdateAsync(PresenceDto dbpresence);
         Task<PresenceDto> AddPresence(string soccod, string empcod, DateTime date, string poicod);
-        Task<int?> GetPreRepas(string empcod, DateTime? predate);
+        Task<double?> GetPreRepas(string empcod, DateTime? predate);
         Task<float?> GetNbJours(string empcod, DateTime? dateDeb, DateTime? dateFin);
         Task<PresenceSemaineData> GetPresenceSemaineData(string soccod, string empcod, string mois, string annee, string semaine);
         Task<Presence> GetPresenceByEmployeeAndTime(string soccod, string empcode, DateTime time);

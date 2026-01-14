@@ -1,18 +1,51 @@
-import { Box, Grid, Button } from "@mui/material";
+import { Box, Grid, Button, CircularProgress } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useAddRubrique from "../../../hooks/rubriqueHooks/useAddRubrique";
+import useUpdateRubrique from "../../../hooks/rubriqueHooks/useUpdateRubrique";
+import useGetRubrique from "../../../hooks/rubriqueHooks/useGetRubrique";
+import { Rubrique } from "../../../models/Rubrique";
+import { useAuth } from "../../helper/AuthProvider";
+import useGetRubriques from "../../../hooks/rubriqueHooks/useGetRubriques";
 
-function RubriqueForm() {
+interface RubriqueFormProps {
+  editingRubrique: Rubrique | null;
+  setEditingRubrique: (rubrique: Rubrique | null) => void;
+}
+
+function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps) {
   const [rubcod, setRubCod] = useState('');
   const [rublib, setRubLib] = useState('');
   const [rubtaux, setRubTaux] = useState(0);
   const [rubuntie, setRubUnite] = useState('');
   const [vartype, setVartype] = useState('');
-  const [rubreg, setRubReg] = useState('');
+  const [rubreg, setRubReg] = useState('T');
+
+  // ✅ Call useAuth at the top level of the component
+  const { soccod } = useAuth();
 
   const addRubriqueMutation = useAddRubrique();
+  const updateRubriqueMutation = useUpdateRubrique();
+  const {refetch} = useGetRubriques();
+  
+  // Fetch rubrique data when editing
+  const { data: fetchedRubrique, isLoading } = useGetRubrique(
+    editingRubrique?.rubcod || ''
+  );
+
+  // Populate form when rubrique data is fetched
+  useEffect(() => {
+    if (fetchedRubrique) {
+      const rubrique = fetchedRubrique;
+      setRubCod(rubrique.rubcod || '');
+      setRubLib(rubrique.rublib || '');
+      setRubTaux(rubrique.rubtaux || 0);
+      setRubUnite(rubrique.rubunite || '');
+      setVartype(rubrique.vartype || '');
+      setRubReg(rubrique.rubregime || '');
+    }
+  }, [fetchedRubrique]);
 
   const regimeOptions = {
     'M': 'Mensuelle',
@@ -21,17 +54,15 @@ function RubriqueForm() {
   };
 
   const uniteOptions = {
-    'EUR': 'Euros',
-    'PCT': 'Pourcentage',
-    'JOU': 'Jours',
-    'HEU': 'Heures'
+    'J': 'Jour',
+    'H': 'Heure'
   };
 
   const affectationOptions = {
-    'EUR': 'Jour Trv',
-    'PCT': 'Heure Trv',
-    'JOU': 'Jour Complet',
-    'HEU': 'Congé A',
+    'T': 'Jour Trv',
+    'H': 'Heure Trv',
+    'J': 'Jour Complet',
+    'C': 'Congé A',
     'S': 'C.S.F',
     'F': 'Férié',
     'R': 'Jour Férié Travaillé',
@@ -64,33 +95,71 @@ function RubriqueForm() {
   };
 
   const handleSubmit = () => {
-    const newRubrique = {
-      soccod: '01',
+    // ✅ Now use the soccod variable from the top level
+    const rubriqueData = {
+      soccod: soccod || '',
       rubcod,
       rublib,
       rubtaux,
-      rubuntie,
-      rubreg,
+      rubunite: rubuntie,
+      rubregime: rubreg,
       vartype,
     };
 
-    addRubriqueMutation.mutate(newRubrique);
+    if (editingRubrique) {
+      // Update existing rubrique
+      updateRubriqueMutation.mutate(rubriqueData, {
+        onSuccess: () => {
+          handleCancel();
+        }
+      });
+    } else {
+      // Add new rubrique
+      addRubriqueMutation.mutate(rubriqueData, {
+        onSuccess: () => {
+          refetch();
+          handleCancel();
+        }
+      });
+    }
   };
+
+  const handleCancel = () => {
+    // Clear form
+    setRubCod('');
+    setRubLib('');
+    setRubTaux(0);
+    setRubUnite('H');
+    setVartype('');
+    setRubReg('T');
+    setEditingRubrique(null);
+  };
+
+  // Show loading indicator while fetching rubrique data
+  if (isLoading && editingRubrique) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
-      {/* First row with 3 inputs */}
       <Grid container spacing={2} alignItems="center">
         <Grid item xs={6}>
-          <InputComponent type="text" label="Code" value={rubcod} setValue={setRubCod} />
+          <InputComponent 
+            type="text" 
+            label="Code" 
+            value={rubcod} 
+            setValue={setRubCod}
+          />
         </Grid>
         <Grid item xs={6}>
           <InputComponent type="text" label="Libellé" value={rublib} setValue={setRubLib} />
         </Grid>
-
       </Grid>
 
-      {/* Second row with 2 select inputs */}
       <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
         <Grid item xs={6}>
           <SelectInputComponent
@@ -110,7 +179,6 @@ function RubriqueForm() {
         </Grid>
       </Grid>
 
-      {/* Third row: Affectation */}
       <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
         <Grid item xs={6}>
           <InputComponent type="number" label="Taux" value={rubtaux} setValue={setRubTaux} />
@@ -125,10 +193,19 @@ function RubriqueForm() {
         </Grid>
       </Grid>
 
-      {/* Submit button */}
-      <Box sx={{ mt: 3, textAlign: "right" }}>
-        <Button variant="contained" color="primary" onClick={handleSubmit}>
-          Enregistrer la Rubrique
+      <Box sx={{ mt: 3, textAlign: "right", display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        {editingRubrique && (
+          <Button variant="outlined" color="secondary" onClick={handleCancel}>
+            Annuler
+          </Button>
+        )}
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={handleSubmit}
+          disabled={isLoading}
+        >
+          {editingRubrique ? 'Modifier la Rubrique' : 'Enregistrer la Rubrique'}
         </Button>
       </Box>
     </Box>

@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import RubriqueService from "../../services/RubriqueService/RubriqueService";
 import { useAuth } from "../../components/helper/AuthProvider";
 
-const useGetRubriques = () => {
+const useGetRubriquesPaire = () => {
   const { soccod } = useAuth();
 
   return useQuery({
     queryKey: ["rubriques",soccod],
-    queryFn:()=> RubriqueService.getAllWithParams(`${soccod}`)
+    queryFn:()=> RubriqueService.getAllWithParams(`get-paires/${soccod}`)
   });
 };
 
-export default useGetRubriques;
+export default useGetRubriquesPaire;

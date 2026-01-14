@@ -1,6 +1,7 @@
 ﻿using ABRPOINT.Helper;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,9 +10,11 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
     public class HeureRetardService : IHeureRetardService
     {
         private readonly ApplicationDbContext _dbContext;
-        public HeureRetardService(ApplicationDbContext dbContext)
+        private readonly IPosteRepository _posteRepository;
+        public HeureRetardService(ApplicationDbContext dbContext,IPosteRepository posteRepository)
         {
             _dbContext = dbContext;
+            _posteRepository = posteRepository;
         }
         private bool IsInAutorisation(TimeSpan time, AutDto autorisation)
         {
@@ -32,7 +35,11 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
         {
             int nbRetard = 0;
             var dayOfWeek = presence.Dmdate?.DayOfWeek ?? DateTime.Now.DayOfWeek;
-
+            if (poste == null)
+            {
+                string codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+            }
             var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) = GenericMethodes.GetStartsWorkDay(presence.Dmdate, poste);
 
             if (string.IsNullOrEmpty(morningStartTime) || string.IsNullOrEmpty(presence.Preentmatup))
@@ -57,9 +64,9 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
 
             // Determine if this is a single-session day (no separate evening session)
             bool isSingleSession = eveningStart == TimeSpan.Zero || eveningEnd == TimeSpan.Zero || string.IsNullOrEmpty(eveningStartTime) || string.IsNullOrEmpty(eveningEndTime);
-
+            //int tolent = poste.Avantent ?? 0;
             int retardTolerance = poste.Apresent ?? 0;
-            int retardToleranceAm = poste.Apressort ?? 0;
+            //int retardToleranceAm = poste.Apressort ?? 0;
             int entreeEveningTolerance = poste.Avantsort ?? 0;
 
             // Morning arrival delay
@@ -81,7 +88,7 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                     int morningEndMinutes = (int)morningEnd.TotalMinutes;
                     int actualDepartureMinutes = (int)actualMorningDepartre.TotalMinutes;
 
-                    if (actualDepartureMinutes < (morningEndMinutes - retardToleranceAm) && !IsInAutorisation(actualMorningDepartre, autoisation))
+                    if (actualDepartureMinutes < (morningEndMinutes - entreeEveningTolerance) && !IsInAutorisation(actualMorningDepartre, autoisation))
                     {
                         int retardDeparture = morningEndMinutes - actualDepartureMinutes;
                         if (retardDeparture / 60 < 3)
@@ -99,7 +106,7 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                     int morningEndMinutes = (int)morningEnd.TotalMinutes;
                     int actualMorningDepartureMinutes = (int)actualMorningDepartre.TotalMinutes;
 
-                    if (actualMorningDepartureMinutes < (morningEndMinutes - retardToleranceAm) && !IsInAutorisation(actualMorningDepartre, autoisation))
+                    if (actualMorningDepartureMinutes < (morningEndMinutes - entreeEveningTolerance) && !IsInAutorisation(actualMorningDepartre, autoisation))
                     {
                         int retardMorning = morningEndMinutes - actualMorningDepartureMinutes;
                         if (retardMorning / 60 < 3)
@@ -127,7 +134,7 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                     int eveningEndMinutes = (int)eveningEnd.TotalMinutes;
                     int actualEveningDepartureMinutes = (int)actualEveningDeparture.TotalMinutes;
 
-                    if (actualEveningDepartureMinutes < (eveningEndMinutes - retardToleranceAm) && !IsInAutorisation(actualEveningDeparture, autoisation))
+                    if (actualEveningDepartureMinutes < (eveningEndMinutes - entreeEveningTolerance) && !IsInAutorisation(actualEveningDeparture, autoisation))
                     {
                         int retardEvening = eveningEndMinutes - actualEveningDepartureMinutes;
                         if (retardEvening / 60 < 3)
@@ -160,5 +167,6 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
 
             return nbRetard;
         }
+    
     }
 }

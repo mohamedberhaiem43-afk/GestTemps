@@ -15,6 +15,7 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IContratRepository _contratRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
+
         public ContratsController(IContratRepository contratRepository, IReportsGenerationService reportsGenerationService)
         {
             _contratRepository = contratRepository;
@@ -74,6 +75,19 @@ namespace ABRPOINT.Server.Controllers
             {
                 byte[] pdfBytes = _reportsGenerationService.GenerateEcheanceContratReport(soccod,echdeb,echfin);
                 return File(pdfBytes, "application/pdf", "EcheanceContrat.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de récupérer des contrats", details = ex.Message });
+            }
+        }
+        [HttpGet("get-contrat-report/{soccod}/{empcod}")]
+        public IActionResult GetContratReport(string soccod, string empcod)
+        {
+            try
+            {
+                byte[] pdfBytes = _reportsGenerationService.GenerateContratReport(soccod,empcod);
+                return File(pdfBytes, "application/pdf", "Contrat.pdf");
             }
             catch (Exception ex)
             {

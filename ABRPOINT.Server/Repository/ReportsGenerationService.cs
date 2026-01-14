@@ -252,5 +252,25 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public byte[] GenerateContratReport(string soccod, string empcod)
+        {
+            try
+            {
+                var report = CreateReport("Reports/Contrat.frx");
+                report.SetParameterValue("soccod", soccod);
+                report.SetParameterValue("empcod", empcod);
+                report.Prepare();
+                using (var ms = new MemoryStream())
+                {
+                    report.Export(new PDFSimpleExport(), ms);
+                    return ms.ToArray();
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

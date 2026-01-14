@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +17,7 @@ public partial class Rubrique
     public string Soccod { get; set; }
 
     [Column("rubtype")]
-    [StringLength(10)]
+    [StringLength(5)]
     public string? Rubtype { get; set; }
 
     [Column("rublib")]
@@ -31,7 +29,7 @@ public partial class Rubrique
     public string? Rubregime { get; set; }
 
     [Column("vartype")]
-    [StringLength(1)]
+    [StringLength(5)]
     public string? Vartype { get; set; }
 
     [Column("rubunite")]

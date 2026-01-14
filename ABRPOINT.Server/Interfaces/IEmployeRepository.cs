@@ -11,7 +11,8 @@ namespace ABRPOINT.Server.Interfaces
         Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod);
         Task<Dictionary<string, string>> GetFemmeLibs(string soccod, string uticod);
         Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod);
-        Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, string empreg, string service, DateTime? debut, DateTime? fin);
+        Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, List<string>? empcods = null, string? empreg = null,
+                                                                           string? service = null, DateTime? debut = null, DateTime? fin = null);
         Task<Dictionary<string, int>> GetEmployeeCountBySexAsync(string soccod);
         Task<EmpEtatConge> GetEmpEtatConge(string soccod, string empcod, string moisdeb, string moisfin, string annee);
         Task<IEnumerable<EmployeDto>> GetAllAsync(string soccod, string uticod);

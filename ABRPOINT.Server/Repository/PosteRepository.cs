@@ -92,12 +92,10 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-
                 throw new RepositoryException("Erreur innatendu ",ex);
             }
-            
-        } 
-        public async Task<IEnumerable<Poste>> GetEmpPostes(string codposte)
+        }
+        public async Task<IEnumerable<Poste>> GetEmpPostes(string? codposte)
         {
             try
             {
@@ -106,7 +104,6 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-
                 throw new RepositoryException("Erreur innatendu ",ex);
             }
             
@@ -133,7 +130,7 @@ namespace ABRPOINT.Server.Repository
            
         }
 
-        public async Task<Poste?> GetPoste(string soccod, string codposte)
+        public async Task<Poste?> GetPoste(string soccod, string? codposte)
         {
             if(string.IsNullOrWhiteSpace(soccod))
                 throw new ArgumentException(nameof(soccod));
@@ -152,6 +149,62 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
+        public async Task<string?> GetEmpPoste(string soccod, string empcod, DateTime? date)
+        {
+            try
+            {
+                if (date == null)
+                    return null;
+
+                // Step 1: Get employee's category
+                string? catcod = await _dbContext.Employes
+                    .Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
+                    .Select(emp => emp.Catcod)
+                    .FirstOrDefaultAsync();
+
+                if (string.IsNullOrEmpty(catcod))
+                    return null;
+
+                // Step 2: Get all valid poste ranges for the exact date
+                var dateMonth = date.Value.Month;
+                var dateDay = date.Value.Day;
+                var matchingPostes = await _dbContext.Lcategories
+                    .Where(c => c.Soccod == soccod &&
+                                c.Catcod == catcod &&
+                                c.Catdu.Value.Month <= dateMonth &&
+                                c.Catau.Value.Month >= dateMonth)
+                    .ToListAsync();
+
+                var dateYear = date.Value.Year;
+                if (!matchingPostes.Any(mp => mp.Catdu.Value.Year == dateYear || mp.Catau.Value.Year == dateYear))
+                {
+                    matchingPostes = matchingPostes.Where(mp => mp.Catfixe == "1").ToList();
+                }
+                if (!matchingPostes.Any())
+                    return null;
+
+                int targetMonth = date.Value.Month;
+
+                Lcategorie posteWithMonthMatch = matchingPostes[0];
+                foreach (var lcat in matchingPostes)
+                {
+                    if (targetMonth >= lcat.Catdu.Value.Month && targetMonth <= lcat.Catau.Value.Month
+                        && posteWithMonthMatch.Catdu <= date && posteWithMonthMatch.Catau >= date)
+                        posteWithMonthMatch = lcat;
+                }
+                // If found, return it
+                if (posteWithMonthMatch != null)
+                    return posteWithMonthMatch.Codposte;
+
+                // Else, fall back to the first valid match
+                return matchingPostes.First().Codposte;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         public async Task<bool> isExisting(string? soccod,string? codposte)
         {
             try

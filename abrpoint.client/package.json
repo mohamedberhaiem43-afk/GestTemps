@@ -33,6 +33,7 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "lucide-react": "^0.544.0",
+    "mammoth": "^1.11.0",
     "material-react": "^1.0.4",
     "material-react-table": "^2.13.1",
     "qs": "^6.13.0",

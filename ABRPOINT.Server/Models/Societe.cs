@@ -60,10 +60,10 @@ public partial class Societe
     public string? Soctva000 { get; set; }
 
     [Column("socreg")]
-    public float? Socreg { get; set; }
+    public int? Socreg { get; set; }
 
     [Column("socmois")]
-    public float? Socmois { get; set; }
+    public int? Socmois { get; set; }
 
     [Column("soctype")]
     [StringLength(1)]

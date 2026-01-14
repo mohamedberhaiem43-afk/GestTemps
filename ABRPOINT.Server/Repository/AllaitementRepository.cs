@@ -36,12 +36,13 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                var sitcods = await _utilisateurRepository.GetSitcodsAccess(soccod, uticod);
-
+                // Utiliser une jointure avec Socusers au lieu de Contains
                 var result = from a in _dbContext.Allaitements
-                             join e in _dbContext.Employes
-                             on a.Empcod equals e.Empcod
-                             where a.Soccod == soccod && sitcods.Contains(e.Sitcod)
+                             join e in _dbContext.Employes on a.Empcod equals e.Empcod
+                             join su in _dbContext.Socusers
+                                 on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                             where a.Soccod == soccod
+                                 && su.Uticod == uticod
                              select new AllaitementDto
                              {
                                  Soccod = a.Soccod,
@@ -63,18 +64,24 @@ namespace ABRPOINT.Server.Repository
 
                 return await result.ToListAsync();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 throw;
             }
         }
 
-
         public async Task<Allaitement> Get(string soccod, string concod)
         {
-            return await _dbContext.Allaitements
-                .Where(a => a.Soccod == soccod && a.Concod == concod)
-                .SingleOrDefaultAsync();
+            try
+            {
+                return await _dbContext.Allaitements
+                    .Where(a => a.Soccod == soccod && a.Concod == concod)
+                    .SingleOrDefaultAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
 

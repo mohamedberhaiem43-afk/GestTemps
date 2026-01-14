@@ -6,6 +6,6 @@
         public string Joufin { get; set; }
         public string Moisdeb { get; set; }
         public string Moisfin { get; set; }
-        public int? Nbhconge { get; set; }
+        public float? Nbhconge { get; set; }
     }
 }

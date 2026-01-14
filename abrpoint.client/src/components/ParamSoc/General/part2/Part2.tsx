@@ -15,16 +15,24 @@ const Part2: React.FC<AffichageProps> = ({ parametre, onChange }) => {
   const [paiearrondi, setPaiearrondi] = useState(parametre?.paiearrondi);
   const [parhnuitspec, setParhnuitspec] = useState(parametre?.parhnuitspec);
   const [parjhnlibre, setParjhnlibre] = useState(parametre?.parjhnlibre);
-  useEffect(()=> {
+  useEffect(() => {
     if (onChange) {
       onChange({
-        paie: paie,
-        paiearrondi: paiearrondi,
-        parhnuitspec: parhnuitspec,
-        parjhnlibre: parjhnlibre
+        paie,
+        paiearrondi,
+        parhnuitspec,
+        parjhnlibre,
       });
     }
-  }, [paie, paiearrondi, parhnuitspec, parjhnlibre, onChange]);
+  }, [paie, paiearrondi, parhnuitspec, parjhnlibre]);
+
+  useEffect(() => {
+    setPaie(parametre?.paie);
+    setPaiearrondi(parametre?.paiearrondi);
+    setParhnuitspec(parametre?.parhnuitspec);
+    setParjhnlibre(parametre?.parjhnlibre);
+  }, [parametre]);
+
   return (
     <FormGroup>
       <Grid container spacing={2}>
@@ -39,9 +47,9 @@ const Part2: React.FC<AffichageProps> = ({ parametre, onChange }) => {
             value={paie}
             onChange={(e) => setPaie(e.target.value)}
           >
-            <MenuItem value={0}>Général</MenuItem>
-            <MenuItem value={1}>ABRPOINT</MenuItem>
-            <MenuItem value={2}>Tableau XLS</MenuItem>
+            <MenuItem value={'1'}>Sage</MenuItem>
+            <MenuItem value={'2'}>Navision</MenuItem>
+            {/* <MenuItem value={'2'}>ABRPOINT</MenuItem> */}
           </Select>
         </Grid>
 

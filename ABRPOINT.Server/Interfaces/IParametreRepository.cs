@@ -16,5 +16,8 @@ namespace ABRPOINT.Server.Interfaces
         Task<bool> UpdateParametres(Parametre parametre);
         Task<EtatPresenceParametreDto> GetEtatPresenceParametres(string soccod);
         Task<short?> GetLongbdg(string soccod);
+        Task<string> GetPaie(string soccod);
+        Task<float?> GetNbhConge(string soccod);
+        Task<float?> GetTotheureCongeParPeriode(string soccod,string empcod, DateTime? debut, DateTime? fin);
     }
 }

@@ -109,40 +109,44 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<List<AutoriserEmployeDto>> GetAutoriserWithAbsenceAsync(string soccod,string uticod)
+        public async Task<List<AutoriserEmployeDto>> GetAutoriserWithAbsenceAsync(string soccod, string uticod)
         {
-            List<string> sitcods = await _dbContext.Socusers
-                  .Where(s => s.Soccod == soccod && s.Uticod == uticod)
-                  .Select(s => s.Sitcod)
-                  .ToListAsync();
+            try
+            {
+                // Utiliser une jointure avec Socusers au lieu de Contains
+                var rawResult = await (
+                    from c in _dbContext.Autorisers
+                    join a in _dbContext.Absences on c.Abscod equals a.Abscod
+                    join e in _dbContext.Employes on c.Empcod equals e.Empcod
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    where e.Soccod == soccod
+                        && su.Uticod == uticod
+                    select new AutoriserEmployeDto
+                    {
+                        Concod = c.Concod,
+                        Soccod = e.Soccod,
+                        Emplib = e.Emplib,
+                        Condat = c.Condat,
+                        Condep = c.Condep,
+                        Conret = c.Conret,
+                        Connbjour = c.Connbjour,
+                        Abslib = a.Abslib,
+                    }).ToListAsync();
 
-            var result = (from c in _dbContext.Autorisers
-                                join a in _dbContext.Absences
-                                on c.Abscod equals a.Abscod
-                                join e in _dbContext.Employes
-                                on c.Empcod equals e.Empcod
-                              where e.Soccod == soccod && sitcods.Contains(e.Sitcod)
-                              select new AutoriserEmployeDto
-                                {
-                                    Concod = c.Concod,
-                                    Soccod = e.Soccod,
-                                    Emplib = e.Emplib,
-                                    Condat = c.Condat,
-                                    Condep = c.Condep,
-                                    Conret = c.Conret,
-                                    Connbjour = c.Connbjour,
-                                    Abslib = a.Abslib,
-                        
-                                })
-                                .AsEnumerable()
-                                .OrderByDescending(a=>a.Condat)
-                                    .DistinctBy(s => s.Concod)
+                // Tri et dédoublonnage en mémoire
+                var result = rawResult
+                    .OrderByDescending(a => a.Condat)
+                    .DistinctBy(s => s.Concod)
+                    .ToList();
 
-                                .ToList();
-
-            return result;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
-
         public async Task<IEnumerable<Autoriser>> GetAllAsync(string soccod,string uticod)
         {
             try

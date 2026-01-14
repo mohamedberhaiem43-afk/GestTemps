@@ -64,7 +64,7 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
 
                 if (parametreNuit.RepasNuit == "1")
                 {
-                    int? prerepas = await _dbContext.Presences.Where(p => p.Empcod == presence.Empcod && p.Predat == presence.Predat).Select(p => p.Prerepas)
+                    double? prerepas = await _dbContext.Presences.Where(p => p.Empcod == presence.Empcod && p.Predat == presence.Predat).Select(p => p.Prerepas)
                     .FirstOrDefaultAsync();
                     if (prerepas == null) prerepas = 0;
                     totalHeuresNuit -= (float)prerepas / 60;

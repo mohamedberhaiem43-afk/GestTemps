@@ -209,7 +209,7 @@ namespace ABRPOINT.Server.Repository
         {
             // ⚡ Récupération du paramètre parecart (en minutes)
             var param = await _dbContext.Parametres.FirstOrDefaultAsync();
-            int parecart = param?.Parecart ?? 0;
+            float parecart = param?.Parecart ?? 0;
 
             string dateStr = date.ToString("HH:mm");
 
@@ -221,7 +221,7 @@ namespace ABRPOINT.Server.Repository
             UpdateNextAvailableTimeSlot(dbpresence, dateStr);
         }
 
-        private bool CanUpdatePresence(Presence dbpresence, DateTime date, int parecart)
+        private bool CanUpdatePresence(Presence dbpresence, DateTime date, float parecart)
         {
             // ✅ Trouver la dernière valeur non vide (dernier log)
             string lastLog = GetLastLogTime(dbpresence);
@@ -385,93 +385,127 @@ namespace ABRPOINT.Server.Repository
             return _dbContext.Presences.ToList();
         }
 
-        public async Task<IEnumerable<EtatEmpPresence>> GetAllAsync(string soccod, DateTime dateDebut, DateTime dateFin, string regime, List<string> empcods)
+        public async Task<IEnumerable<EtatEmpPresence>> GetAllAsync(
+    string soccod,
+    DateTime dateDebut,
+    DateTime dateFin,
+    string regime,
+    List<string> empcods)
         {
             try
             {
-                // Start with base query filtered by employee codes if provided
-                var query = _dbContext.Presences
-                    .Where(p =>
-                        p.Soccod == soccod &&
-                        p.Predat >= dateDebut &&
-                        p.Predat <= dateFin);
+                // =========================
+                // 1️⃣ Requête SQL (SANS empcods.Contains)
+                // =========================
+                var query =
+                    from p in _dbContext.Presences
 
-                // Apply regime filter if not "T"
-                if (regime != "T")
-                {
-                    query = query.Where(p => p.Empreg == regime);
-                }
+                    join e in _dbContext.Employes
+                        on new { p.Soccod, p.Empcod }
+                        equals new { e.Soccod, e.Empcod }
+                        into empJoin
+                    from e in empJoin.DefaultIfEmpty()
 
-                // Apply employee codes filter if provided
+                    where p.Soccod == soccod
+                          && p.Predat >= dateDebut
+                          && p.Predat <= dateFin
+                          && (regime == "T" || p.Empreg == regime)
+
+                    select new
+                    {
+                        Presence = p,
+                        Employe = e,
+
+                        HasConge = _dbContext.Conges.Any(c =>
+                            c.Soccod == p.Soccod &&
+                            c.Empcod == p.Empcod &&
+                            c.Condep <= p.Predat &&
+                            c.Conret >= p.Predat),
+
+                        HasAllaitement = _dbContext.Allaitements.Any(a =>
+                            a.Soccod == p.Soccod &&
+                            a.Empcod == p.Empcod &&
+                            a.Condat == p.Predat)
+                    };
+
+                var data = await query.ToListAsync();
+
+                // =========================
+                // 2️⃣ Filtre empcods EN MÉMOIRE
+                // =========================
                 if (empcods != null && empcods.Any())
                 {
-                    query = query.Where(p => empcods.Contains(p.Empcod));
+                    data = data
+                        .Where(x => empcods.Contains(x.Presence.Empcod))
+                        .ToList();
                 }
 
-                var presences = await query.ToListAsync();
-                var employees = await _dbContext.Employes
-                    .Where(e => e.Soccod == soccod && (empcods == null || !empcods.Any() || empcods.Contains(e.Empcod)))
-                    .ToListAsync();
+                // =========================
+                // 3️⃣ Construction du résultat
+                // =========================
+                var result = new List<EtatEmpPresence>();
 
-                var conges = await _dbContext.Conges
-                    .Where(c => c.Soccod == soccod &&
-                               (c.Conret <= dateFin && c.Condep >= dateDebut) &&
-                               (empcods == null || !empcods.Any() || empcods.Contains(c.Empcod)))
-                    .ToListAsync();
-
-                var allaitements = await _dbContext.Allaitements
-                    .Where(a => a.Soccod == soccod &&
-                               (a.Condat <= dateFin && a.Condat >= dateDebut) &&
-                               (empcods == null || !empcods.Any() || empcods.Contains(a.Empcod)))
-                    .ToListAsync();
-
-                var motifs = new List<string>();
-
-                foreach (var p in presences)
+                foreach (var item in data)
                 {
+                    var p = item.Presence;
+
                     string motif;
-                    if (await _parametreRepository.IsRepos(p.Soccod, p.Predat, p.Codposte))
-                        motif = "J. Repos";
-                    else
-                        motif = await _sanctionRepository.GetAbsenceLib(p.Soccod, p.Empcod, (DateTime)p.Predat);
-
-                    motifs.Add(motif);
-                }
-
-                // Map with motifs
-                var result = presences
-                    .Select((presence, index) =>
+                    if (!string.IsNullOrWhiteSpace(p.Codposte) &&
+                        await _parametreRepository.IsRepos(p.Soccod, p.Predat, p.Codposte))
                     {
-                        var employee = employees.FirstOrDefault(e => e.Empcod == presence.Empcod);
-                        return new EtatEmpPresence
-                        {
-                            Predat = presence.Predat ?? default,
-                            Empcod = presence.Empcod,
-                            EmpSite = presence.Sitcod,
-                            Empmat = presence.Empmat,
-                            Regime = presence.Empreg,
-                            TotalHeure = presence.Tothre,
-                            Emplib = employee?.Emplib ?? "Anonyme",
-                            HeureNuit = presence.Tothnuit,
-                            Entree1 = presence.Preentmatup,
-                            preretmateup = presence.Preretmateup.HasValue ? TimeOnly.FromDateTime(presence.Preretmateup.Value) : default,
-                            preretameup = presence.Preretameup.HasValue ? TimeOnly.FromDateTime(presence.Preretameup.Value) : default,
-                            preretmatsup = presence.Preretmatsup.HasValue ? TimeOnly.FromDateTime(presence.Preretmatsup.Value) : default,
-                            preretamsup = presence.Preretamsup.HasValue ? TimeOnly.FromDateTime(presence.Preretamsup.Value) : default,
-                            Entree2 = presence.Preentamidiup,
-                            Sortie1 = presence.Presortmatup,
-                            Sortie2 = presence.Presortamidiup,
-                            TotalRetard = (presence.Preretmateup?.TimeOfDay ?? TimeSpan.Zero)
-                                .Add(presence.Preretameup?.TimeOfDay ?? TimeSpan.Zero)
-                                .ToString(@"hh\:mm"),
-                            HasConge = conges.Any(c => c.Empcod == presence.Empcod &&
-                                c.Condep <= presence.Predat && c.Conret >= presence.Predat).ToString(),
-                            Allaitement = allaitements.Any(a => a.Empcod == presence.Empcod &&
-                                a.Condat == presence.Predat),
-                            Motif = motifs[index],
-                        };
-                    })
-                    .ToList();
+                        motif = "J. Repos";
+                    }
+                    else
+                    {
+                        motif = await _sanctionRepository.GetAbsenceLib(
+                            p.Soccod,
+                            p.Empcod,
+                            p.Predat ?? default
+                        );
+                    }
+
+                    result.Add(new EtatEmpPresence
+                    {
+                        Predat = p.Predat ?? default,
+                        Empcod = p.Empcod,
+                        EmpSite = p.Sitcod,
+                        Empmat = p.Empmat,
+                        Regime = p.Empreg,
+                        TotalHeure = p.Tothre,
+                        Emplib = item.Employe?.Emplib ?? "Anonyme",
+                        HeureNuit = p.Tothnuit,
+
+                        Entree1 = p.Preentmatup,
+                        Entree2 = p.Preentamidiup,
+                        Sortie1 = p.Presortmatup,
+                        Sortie2 = p.Presortamidiup,
+
+                        preretmateup = p.Preretmateup.HasValue
+                            ? TimeOnly.FromDateTime(p.Preretmateup.Value)
+                            : default,
+
+                        preretameup = p.Preretameup.HasValue
+                            ? TimeOnly.FromDateTime(p.Preretameup.Value)
+                            : default,
+
+                        preretmatsup = p.Preretmatsup.HasValue
+                            ? TimeOnly.FromDateTime(p.Preretmatsup.Value)
+                            : default,
+
+                        preretamsup = p.Preretamsup.HasValue
+                            ? TimeOnly.FromDateTime(p.Preretamsup.Value)
+                            : default,
+
+                        TotalRetard =
+                            (p.Preretmateup?.TimeOfDay ?? TimeSpan.Zero)
+                            .Add(p.Preretameup?.TimeOfDay ?? TimeSpan.Zero)
+                            .ToString(@"hh\:mm"),
+
+                        HasConge = item.HasConge.ToString(),
+                        Allaitement = item.HasAllaitement,
+                        Motif = motif
+                    });
+                }
 
                 return result;
             }
@@ -488,7 +522,7 @@ namespace ABRPOINT.Server.Repository
 
         public async Task<IEnumerable<Presence>> GetEmpEtatPeriodiqueAsync(string soccod,string empcod)
         {
-            return await _dbContext.Presences.Where(p=>p.Soccod == soccod && p.Empcod == empcod).OrderByDescending(p=>p.Predat).ToListAsync();
+            return await _dbContext.Presences.Where(p=>p.Soccod == soccod && p.Empcod == empcod).ToListAsync();
         }
         public async Task<IEnumerable<PresenceDto>> GetEmpEtatPeriodiqueAsync(string soccod, string empcod, DateTime dateDeb, DateTime dateFin)
         {
@@ -501,11 +535,11 @@ namespace ABRPOINT.Server.Repository
                                 && p.Empcod == empcod
                                 && p.Predat >= dateDeb
                                 && p.Predat <= dateFin)
-                    .OrderByDescending(p => p.Predat)
+                    .OrderBy(p => p.Predat)
                     .ToListAsync();
 
                 // Récupérer le poste de l'employé pour les journées sans présence
-                var employePoste = await _dbContext.Employes
+                string? employePoste = await _dbContext.Employes
                     .Where(e => e.Soccod == soccod && e.Empcod == empcod)
                     .Select(e => e.Poscod)
                     .FirstOrDefaultAsync();
@@ -515,6 +549,10 @@ namespace ABRPOINT.Server.Repository
 
                 for (DateTime date = dateDeb; date <= dateFin; date = date.AddDays(1))
                 {
+                    if (string.IsNullOrEmpty(employePoste))
+                    {
+                        employePoste = await _posteRepository.GetEmpPoste(soccod, empcod, date);
+                    }
                     // Vérifier si une présence existe pour cette date
                     var existingPresence = presenceList.FirstOrDefault(p => p.Dmdate?.Date == date.Date);
 
@@ -555,10 +593,7 @@ namespace ABRPOINT.Server.Repository
                     {
                         presence.Tothre = await CalcHreTrav(presence);
                     }
-
-                    if (ferier != null)
-                        presence.Etat = ferier.Fermotif;
-
+                   
                     if (autorisation != null)
                     {
                         presence.Etat = autorisation.Abslib;
@@ -568,15 +603,32 @@ namespace ABRPOINT.Server.Repository
                     if (!string.IsNullOrEmpty(sanction))
                         presence.Etat = sanction;
 
-                    if (!string.IsNullOrEmpty(conge))
-                        presence.Etat = conge;
-
                     // Vérifier que Codposte n'est pas null avant d'appeler GetJourHeures
                     float? totalHeures = null;
-                    if (!string.IsNullOrEmpty(presence.Codposte))
+                    if (!string.IsNullOrEmpty(conge))
                     {
-                        totalHeures = await _posteRepository.GetJourHeures(presence.Soccod, presence.Dmdate, presence.Codposte);
+                        var nbhconge = await _parametreRepository.GetNbhConge(soccod);
+                        var time = TimeSpan.FromHours(nbhconge.Value);
+                        presence.Tothre = time.ToString(@"hh\:mm");
+                        presence.Etat = conge;
                     }
+                    if (ferier != null)
+                    {
+                        presence.Etat = ferier.Fermotif;
+                        totalHeures = await _jourFerierRepository.GetFerheure(soccod, presence.Dmdate);
+
+                        if (totalHeures.HasValue)
+                        {
+                            var time = TimeSpan.FromHours(totalHeures.Value);
+                            presence.Tothre = time.ToString(@"hh\:mm");
+                        }
+                    }
+                    if (string.IsNullOrEmpty(presence.Codposte))
+                    {
+                        presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, presence.Dmdate);
+                    }
+                    if(totalHeures == null)
+                        totalHeures = await _posteRepository.GetJourHeures(presence.Soccod, presence.Dmdate, presence.Codposte);
                     presence.TotalHeure = totalHeures;
 
                     TimeSpan totalRetard = TimeSpan.Zero;
@@ -611,7 +663,7 @@ namespace ABRPOINT.Server.Repository
                     presence.Poicod = poicod;
                 }
 
-                return allDates.OrderByDescending(p => p.Predat);
+                return allDates;
             }
             catch (Exception)
             {
@@ -701,11 +753,11 @@ namespace ABRPOINT.Server.Repository
             }
         }
       
-        public async Task<int?> GetPreRepas(string empcod, DateTime? predate)
+        public async Task<double?> GetPreRepas(string empcod, DateTime? predate)
         {
             try
             {
-                int? prerepas = await _dbContext.Presences.Where(p => p.Empcod == empcod && p.Predat == predate).Select(p => p.Prerepas)
+                double? prerepas = await _dbContext.Presences.Where(p => p.Empcod == empcod && p.Predat == predate).Select(p => p.Prerepas)
                     .SingleOrDefaultAsync();
                 return prerepas;
             }
@@ -1243,7 +1295,7 @@ namespace ABRPOINT.Server.Repository
                                 }
 
                             }
-                            if (presence.Prerepos == "0")
+                            if (presence.Prerepos == "0" && !string.IsNullOrWhiteSpace(presence.Codposte))
                             {
                                 var poste = await _posteRepository.GetPoste(soccod, presence.Codposte);
                                 var presencedto = _mapper.Map<Presence, PresenceDto>(presence);

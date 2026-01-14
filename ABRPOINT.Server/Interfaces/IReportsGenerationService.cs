@@ -11,5 +11,6 @@
         byte[] GenerateAutorisationSortieReport(string soccod, string concod);
         byte[] GenerateAbsenceReport(string soccod,string empcod, string concod);
         byte[] GenerateVisiteMedicalReport(string soccod, string empcod);
+        byte[] GenerateContratReport(string soccod, string empcod);
     }
 }

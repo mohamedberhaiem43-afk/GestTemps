@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using ABRPOINT.Server.Annotations.CongesAttributes.CongeAttributes;
 using ABRPOINT.Server.Annotations.CongesAttributes.CahierCongeAttributes;
 using ABRPOINT.Server.Annotations.CongesAttributes.DemCongeAttributes;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -52,6 +53,19 @@ namespace ABRPOINT.Server.Controllers
                 throw new Exception("Erreur innatendu: "+ex);
             }
             
+        }
+        [HttpGet("get-emp-conge-by-date/{soccod}/{empcod}/{date}")]
+        [CanGetConge]
+        public async Task<Conge> GetEmpCongeByDate(string soccod,string empcod,DateTime date)
+        {
+            try
+            {
+                return await _congeRepository.GetEmpCongeByDate(soccod, empcod,date);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erreur innatendu: "+ex);
+            }
         }
         [HttpGet("get-cahier-conge/{soccod}/{datedebut}/{datefin}")]
         [CanGetCahierConge]

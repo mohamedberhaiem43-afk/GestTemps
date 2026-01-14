@@ -12,6 +12,7 @@ namespace ABRPOINT.Mappings
             CreateMap<Calendsoc, CalendsocDto>();
             CreateMap<Employe, EmployeDto>();
             CreateMap<Rubrique, RubriqueDto>();
+            CreateMap<Rubrique, RubriquePaireDto>();
             CreateMap<Avance, AvanceDto>()
                 .ForMember(dest => dest.Emplib, opt => opt.MapFrom(src => src.Employe.Emplib));
 

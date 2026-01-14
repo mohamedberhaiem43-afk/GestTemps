@@ -41,7 +41,6 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-
                 throw new Exception("Erreur innatendu:",ex);
             }
         }

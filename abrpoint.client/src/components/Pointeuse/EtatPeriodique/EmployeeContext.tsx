@@ -7,6 +7,8 @@ type EmployeeContextType = {
   selectedEmp: any;
   setSelectedEmp: React.Dispatch<React.SetStateAction<any>>;
   selectedEmpPoste: any;
+  date: any;
+  setDate: any;
   setSelectedEmpPoste: React.Dispatch<React.SetStateAction<any>>;
 };
 
@@ -16,6 +18,8 @@ export const EmployeeContext = createContext<EmployeeContextType>({
   selectedEmp: null,
   setSelectedEmp: () => {},
   selectedEmpPoste: null,
+  date: null,
+  setDate: () => {},
   setSelectedEmpPoste: () => {},
 });
 
@@ -24,10 +28,11 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
   const [selectedEmpMat, setSelectedEmpMat] = useState<string>('');
   const [selectedEmp, setSelectedEmp] = useState<Employe|null>(null);
   const [selectedEmpPoste, setSelectedEmpPoste] = useState(null);
-
+  const [date, setDate] = useState(null);
   return (
-    <EmployeeContext.Provider value={{ selectedEmpMat, setSelectedEmpMat,selectedEmp,setSelectedEmp, selectedEmpPoste, setSelectedEmpPoste }}>
+    <EmployeeContext.Provider value={{ selectedEmpMat, setSelectedEmpMat,selectedEmp,setSelectedEmp, selectedEmpPoste, setSelectedEmpPoste,date,setDate }}>
       {children}
     </EmployeeContext.Provider>
   );
 };
+

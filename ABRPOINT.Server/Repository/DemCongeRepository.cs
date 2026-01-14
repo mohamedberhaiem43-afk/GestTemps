@@ -47,44 +47,53 @@ namespace ABRPOINT.Server.Repository
 
         public async Task<List<DemcongeEmpAbsDto>> GetDemongeWithAbsenceAsync(string soccod, string uticod)
         {
-            var sitcods = await _utilisateurRepository.GetSitcodsAccess(soccod, uticod);
+            try
+            {
+                // Utiliser une jointure avec Socusers au lieu de Contains
+                var rawResults = await (
+                    from c in _dbContext.Demconges
+                    join a in _dbContext.Absences on c.Abscod equals a.Abscod
+                    join e in _dbContext.Employes on c.Empcod equals e.Empcod
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    where c.Soccod == soccod
+                        && su.Uticod == uticod
+                    select new DemcongeEmpAbsDto
+                    {
+                        Soccod = c.Soccod,
+                        Abscod = c.Abscod,
+                        Conadr = c.Conadr,
+                        Conamdep = c.Conamdep,
+                        Conamret = c.Conamret,
+                        Conjour = c.Conjour,
+                        Consolde = c.Consolde,
+                        Empcod = c.Empcod,
+                        Contel = c.Contel,
+                        Conref = c.Conref,
+                        Conrefus = c.Conrefus,
+                        Condg = c.Condg,
+                        Concod = c.Concod,
+                        Emplib = e.Emplib,
+                        Condat = c.Condat,
+                        Condep = c.Condep,
+                        Conret = c.Conret,
+                        Connbjour = c.Connbjour,
+                        Abslib = a.Abslib,
+                    }).ToListAsync();
 
-            var rawResults = await (from c in _dbContext.Demconges
-                                    join a in _dbContext.Absences on c.Abscod equals a.Abscod
-                                    join e in _dbContext.Employes on c.Empcod equals e.Empcod
-                                    where sitcods.Contains(e.Sitcod) && c.Soccod == soccod
-                                    select new DemcongeEmpAbsDto
-                                    {
-                                        Soccod = c.Soccod,
-                                        Abscod = c.Abscod,
-                                        Conadr = c.Conadr,
-                                        Conamdep = c.Conamdep,
-                                        Conamret = c.Conamret,
-                                        Conjour = c.Conjour,
-                                        Consolde = c.Consolde,
-                                        Empcod = c.Empcod,
-                                        Contel = c.Contel,
-                                        Conref = c.Conref,
-                                        Conrefus = c.Conrefus,
-                                        Condg = c.Condg,
-                                        Concod = c.Concod,
-                                        Emplib = e.Emplib,
-                                        Condat = c.Condat,
-                                        Condep = c.Condep,
-                                        Conret = c.Conret,
-                                        Connbjour = c.Connbjour,
-                                        Abslib = a.Abslib,
-                                    }).ToListAsync(); // ⚠️ on reste en base jusqu'ici
+                // Dédoublonnage + tri en mémoire
+                var result = rawResults
+                    .DistinctBy(c => new { c.Concod, c.Soccod })
+                    .OrderByDescending(c => c.Condat)
+                    .ToList();
 
-            // Ensuite : dédoublonnage + tri en mémoire
-            var result = rawResults
-                            .DistinctBy(c => new { c.Concod, c.Soccod })
-                            .OrderByDescending(c => c.Condat)
-                            .ToList();
-
-            return result;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
-
         public Demconge GetByConcod(string soccod, string concod)
         {
             try

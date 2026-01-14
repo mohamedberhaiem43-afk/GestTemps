@@ -2,12 +2,12 @@ import { useQuery } from "react-query";
 import ParametreService from "../../services/ParametreService/ParametreService";
 import { useAuth } from "../../components/helper/AuthProvider";
 
-const useGetParametres = () => {
+const useGetPaie = () => {
     const { soccod } = useAuth();
     
     return useQuery({
         queryKey: ["parametres",soccod],
-        queryFn: ()=> ParametreService.getWithParams(`${soccod}`),
+        queryFn: ()=> ParametreService.getWithParams(`get-paie/${soccod}`),
         enabled: !!soccod
           
     })
@@ -15,4 +15,4 @@ const useGetParametres = () => {
 
 }
 
-export default useGetParametres;
+export default useGetPaie;

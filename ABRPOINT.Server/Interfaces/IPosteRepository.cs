@@ -5,7 +5,7 @@ namespace ABRPOINT.Server.Interfaces
 {
     public interface IPosteRepository : IRepository<Poste>
     {
-        Task<Poste?> GetPoste(string soccod, string codposte);
+        Task<Poste?> GetPoste(string soccod, string? codposte);
         Task<Dictionary<string, string>> GetPostLibs(string soccod);
         Task<float?> GetJourHeures(string soccod,DateTime? date,string? codposte);
         Task<PosteHoraireDto?> GetPosteHoraire(string soccod, string codposte, string catcod);
@@ -13,6 +13,7 @@ namespace ABRPOINT.Server.Interfaces
         Task UpdateAsync(Poste poste);
         Task<bool> isExisting(string? soccod, string? codposte);
         Task DeleteAsync(Poste poste);
+        Task<string?> GetEmpPoste(string soccod, string empcod, DateTime? date);
         Task<PosteHoraireDto?> GetAllPostes(string soccod, string codposte);
     }
 }

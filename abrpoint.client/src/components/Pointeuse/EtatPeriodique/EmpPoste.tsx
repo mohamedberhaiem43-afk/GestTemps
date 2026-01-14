@@ -5,13 +5,29 @@ import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
 import { PosteDto } from '../../../models/PosteDto';
 import { useContext } from 'react';
 import { EmployeeContext } from './EmployeeContext';
+import useGetEmpPosteByDate from '../../../hooks/employeHooks/useGetEmpPoste';
 
 const EmpPoste = () => {
-  const { selectedEmpPoste } = useContext(EmployeeContext);
-  const { data, isLoading } = useGetEmployePoste(
+  const { selectedEmpPoste, date: contextDate,selectedEmp } = useContext(EmployeeContext);
+  
+  // Determine if we have a codposte or need to fetch it
+  const hasCodePoste = selectedEmpPoste?.codposte && selectedEmpPoste.codposte.trim() !== '';
+  
+  // Use the appropriate hook based on whether we have a codposte
+  const { data: dataFromPoste, isLoading: isLoadingPoste } = useGetEmployePoste(
     selectedEmpPoste?.codposte || '', 
-    selectedEmpPoste?.day || ''
+    selectedEmpPoste?.day || '',
   );
+  
+  const { data: dataFromDate, isLoading: isLoadingDate } = useGetEmpPosteByDate(
+    selectedEmp || '',
+    contextDate || '',
+    selectedEmpPoste?.day || '',
+  );
+  
+  // Determine which data and loading state to use
+  const data = hasCodePoste ? dataFromPoste : dataFromDate;
+  const isLoading = hasCodePoste ? isLoadingPoste : isLoadingDate;
 
   if (isLoading) {
     return (

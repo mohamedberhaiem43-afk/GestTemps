@@ -5,7 +5,6 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
@@ -17,6 +16,7 @@ namespace ABRPOINT.Server.Repository
         private readonly ICalendrierRepository _calendrierRepository;
         private readonly IParametreRepository _parametreRepository;
         private readonly ICongeRepository _congeRepository;
+        private readonly IJourFerieRepository _ferierRepository;
         private readonly IHeureRetardService _retardService;
         private readonly IUtilisateurRepository _utilisateurRepository;
         private readonly IPosteRepository _posteRepository;
@@ -25,7 +25,7 @@ namespace ABRPOINT.Server.Repository
         private readonly ILogger _logger;   
         public EmployeRepository(ApplicationDbContext dbContext, ISiteRepository siteRepository, ICalendrierRepository icalendrierRepository,
             IParametreRepository parametreRepository, ICongeRepository congeRepository, IMapper mapper, ILogger<EmployeRepository> logger,
-            IHeureRetardService retardService,IPosteRepository posteRepository,
+            IHeureRetardService retardService,IPosteRepository posteRepository,IJourFerieRepository ferierRepository,
             IUtilisateurRepository utilisateurRepository,IautoriserRepository autorisationRepository)
         {
             _dbContext = dbContext;
@@ -36,6 +36,7 @@ namespace ABRPOINT.Server.Repository
             _posteRepository = posteRepository;
             _retardService = retardService;
             _utilisateurRepository = utilisateurRepository;
+            _ferierRepository = ferierRepository;
             _autorisationRepository = autorisationRepository;
             _mapper = mapper;
             _logger = logger;
@@ -194,54 +195,62 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<decimal> GetTotRetards(string empcod, DateTime dateDeb, DateTime dateFin)
+        public async Task<decimal> GetTotRetards(string empcod, DateTime dateDeb, DateTime dateFin,string soccod)
         {
             try
             {
                 var presences = await _dbContext.Presences
-                    .Where(p => p.Empcod == empcod && p.Dmdate >= dateDeb && p.Dmdate <= dateFin)
+                    .Where(p => p.Empcod == empcod && p.Dmdate >= dateDeb && p.Dmdate <= dateFin && p.Soccod == soccod)
                     .ToListAsync();
+
                 decimal totalMinutes = 0;
 
                 foreach (var p in presences)
                 {
-                    var poste = await _posteRepository.GetPoste(p.Soccod, p.Codposte);
+                    string codpost = await _posteRepository.GetEmpPoste(p.Soccod, p.Empcod, p.Predat);
+                    var poste = await _posteRepository.GetPoste(p.Soccod, codpost);
+
                     PresenceDto presence = _mapper.Map<Presence, PresenceDto>(p);
-                    AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
-                    var retard = await _retardService.CalculateHeureRetard(presence, poste,autorisation);
-                    //if(retard<=165 || p.Prerepos =="1")
+
+                    if (presence.Dmdate == null)
+                    {
+                        _logger.LogWarning($"Dmdate est null pour la présence de l'employé {empcod}");
+                        continue;
+                    }
+
+                    AutDto autorisation = await _autorisationRepository.GetAutLib(
+                        presence.Soccod,
+                        presence.Empcod,
+                        presence.Dmdate.Value
+                    );
+
+                    var retard = await _retardService.CalculateHeureRetard(presence, poste, autorisation);
                     totalMinutes += retard;
                 }
-
                 return totalMinutes;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-        
-
-        public async Task<IEnumerable<EmployeDto>> GetAllAsync(string soccod,string uticod)
-        {
-            try
-            {
-                List<string> sitcods = await _dbContext.Socusers
-                   .Where(s => s.Soccod == soccod && s.Uticod == uticod)
-                   .Select(s => s.Sitcod)
-                   .ToListAsync();
-
-                var employes = await _dbContext.Employes
-                    .Where(e => e.Soccod == soccod && sitcods.Contains(e.Sitcod))
-                    .ProjectTo<EmployeDto>(_mapper.ConfigurationProvider)
-                    .ToListAsync();
-
-                return employes;
-
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex, $"Erreur lors du calcul des retards pour l'employé {empcod}");
+                throw;
+            }
+        }
+        public async Task<IEnumerable<EmployeDto>> GetAllAsync(string soccod, string uticod)
+        {
+            try
+            {
+                var employes = await _dbContext.Employes
+                    .Where(e => e.Soccod == soccod &&
+                           _dbContext.Socusers.Any(s => s.Soccod == soccod &&
+                                                        s.Uticod == uticod &&
+                                                        s.Sitcod == e.Sitcod))
+                    .ToListAsync();
+
+                return _mapper.Map<IEnumerable<EmployeDto>>(employes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors de la récupération des employés");
                 throw;
             }
         }
@@ -280,39 +289,56 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+
         public async Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod)
         {
             try
             {
-                List<string> sitcods = await _dbContext.Socusers
-                      .Where(s => s.Soccod == soccod && s.Uticod == uticod)
-                      .Select(s => s.Sitcod)
-                      .ToListAsync();
-                return await _dbContext.Employes
-                                    .Where(e=>e.Soccod == soccod && e.Actif == "A" && sitcods.Contains(e.Sitcod))
-                                   .ToDictionaryAsync(abs => abs.Empcod, abs => abs.Emplib);
+                var employes = await (from e in _dbContext.Employes
+                                      join su in _dbContext.Socusers
+                                          on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                                      where e.Soccod == soccod
+                                            && e.Actif == "A"
+                                            && su.Uticod == uticod
+                                      select new { e.Empcod, e.Emplib })
+                                     .Distinct()
+                                     .ToListAsync();
+
+                var res = employes.ToDictionary(e => e.Empcod, e => e.Emplib);
+
+                return res;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Erreur lors de la récupération des libellés employés");
                 throw;
             }
         }
+
         public async Task<Dictionary<string, string>> GetFemmeLibs(string soccod, string uticod)
         {
             try
             {
-                List<string> sitcods = await _dbContext.Socusers
-                      .Where(s => s.Soccod == soccod && s.Uticod == uticod)
-                      .Select(s => s.Sitcod)
-                      .ToListAsync();
-                var employe = await _dbContext.Employes
-                    .Where(e=> e.Soccod == soccod && e.Empsexe == "F" && (e.Empsitfam =="M" || e.Empsitfam == "D")
-                     && sitcods.Contains(e.Sitcod))
-                                   .ToDictionaryAsync(abs => abs.Empcod, abs => abs.Emplib);
-                return employe;
+                // Utiliser une jointure avec Socusers au lieu de Contains
+                var employes = await (
+                    from e in _dbContext.Employes
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    where e.Soccod == soccod
+                        && e.Empsexe == "F"
+                        && (e.Empsitfam == "M" || e.Empsitfam == "D")
+                        && su.Uticod == uticod
+                    select new { e.Empcod, e.Emplib }
+                ).ToListAsync();
+
+                // Conversion en dictionnaire en mémoire
+                var result = employes.ToDictionary(e => e.Empcod, e => e.Emplib);
+
+                return result;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Erreur lors de la récupération des libellés des employées");
                 throw;
             }
         }
@@ -325,83 +351,101 @@ namespace ABRPOINT.Server.Repository
                 _dbContext.SaveChanges();
             }
         }
-        public async Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, string? empreg = null, string? service = null,DateTime? debut = null,DateTime? fin = null)
+
+
+        public async Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, List<string>? empcods = null, string? empreg = null, string? service = null,
+                                                                            DateTime? debut = null, DateTime? fin = null)
         {
             try
             {
-                var sitcods = await _utilisateurRepository.GetSitcodsAccess(soccod, uticod);
-                // Step 1: Query Employes and join with Presences based on sitcods, apply base filters
-                var employeePresenceData = await (from e in _dbContext.Employes
-                                                  join p in _dbContext.Presences
-                                                      on e.Empcod equals p.Empcod into presenceGroup
-                                                  from p in presenceGroup.DefaultIfEmpty() // Left join
-                                                  where e.Soccod == soccod 
-                                                    && e.Sitcod == site 
-                                                    && e.Actif == "A"
-                                                    && (debut == null || fin == null || (p.Predat >= debut && p.Predat <= fin))
-                                                    && (sitcods.Contains(e.Sitcod))
-                                                  select new
-                                                  {
-                                                      e.Empcod,
-                                                      e.Emplib,
-                                                      e.Empreg,
-                                                      e.Sitcod,
-                                                      e.Sercod,
-                                                      Tothre = p != null ? p.Tothre : null
-                                                      
-                                                  })
-                                                  .ToListAsync();
-                
-                // Step 2: Apply additional filters in-memory, if provided
-                if (!string.IsNullOrEmpty(empreg))
-                {
-                    employeePresenceData = employeePresenceData.Where(e => e.Empreg == empreg).ToList();
-                }
-                if (!string.IsNullOrEmpty(service))
-                {
-                    employeePresenceData = employeePresenceData.Where(e => e.Sercod == service).ToList();
-                }
+                // 1. Base query
+                var query =
+                    from e in _dbContext.Employes
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    join p in _dbContext.Presences
+                        on e.Empcod equals p.Empcod into presGroup
+                    from p in presGroup.DefaultIfEmpty()
+                    where e.Soccod == soccod
+                          && e.Sitcod == site
+                          && e.Actif == "A"
+                          && su.Uticod == uticod
+                    select new { e, p };
 
-                // Step 3: Group and calculate TotalMinutes
+                // 2. SQL filters
+                if (debut.HasValue) query = query.Where(x => x.p.Predat >= debut);
+                if (fin.HasValue) query = query.Where(x => x.p.Predat <= fin);
+                if (!string.IsNullOrEmpty(empreg)) query = query.Where(x => x.e.Empreg == empreg);
+                if (!string.IsNullOrEmpty(service)) query = query.Where(x => x.e.Sercod == service);
+
+                // 3. Heures fériées (globales)
+                float? totferierheure =
+                    await _ferierRepository.GetTotheureFerierParPeriode(soccod, debut, fin);
+
+                TimeSpan ferierTime = totferierheure.HasValue
+                    ? TimeSpan.FromHours(totferierheure.Value)
+                    : TimeSpan.Zero;
+
+                // 4. Fetch data
+                var rawData = await query
+                    .Select(x => new
+                    {
+                        x.e.Empcod,
+                        x.e.Emplib,
+                        RawTothre = x.p != null ? x.p.Tothre : null
+                    })
+                    .ToListAsync();
+
+                // 5. Filtre empcods EN MÉMOIRE
+                if (empcods != null && empcods.Any())
+                    rawData = rawData.Where(x => empcods.Contains(x.Empcod)).ToList();
+
                 var result = new List<EmployeePresenceDto>();
 
-                foreach (var group in employeePresenceData.GroupBy(x => new { x.Empcod, x.Emplib }))
+                // 6. Group + calculs
+                foreach (var grp in rawData.GroupBy(x => new { x.Empcod, x.Emplib }))
                 {
-                    var empcod = group.Key.Empcod;
-                    var tothRetard = await GetTotRetards(empcod, debut ?? DateTime.MinValue, fin ?? DateTime.MaxValue);
-                    var totalMinutes = group
-                        .Where(x => !string.IsNullOrEmpty(x.Tothre) && x.Tothre != "00:00")
-                        .Sum(x =>
+                    TimeSpan total = TimeSpan.Zero;
+
+                    // 1. Total présence
+                    foreach (var item in grp)
+                    {
+                        if (!string.IsNullOrEmpty(item.RawTothre) &&
+                            TimeSpan.TryParseExact(item.RawTothre, @"hh\:mm", null, out var t))
                         {
-                            try
-                            {
-                                int hours = int.Parse(x.Tothre.Substring(0, 2));
-                                int minutes = int.Parse(x.Tothre.Substring(3, 2));
-                                return (hours * 60) + minutes;
-                            }
-                            catch
-                            {
-                                return 0;
-                            }
-                        });
-                    float? nbJours = await GetNbJours(empcod, debut, fin);
+                            total += t;
+                        }
+                    }
+
+                    // 2. Ajout des heures fériées
+                    total += ferierTime;
+
+                    // 3. Heures congés PAR EMPLOYÉ
+                    float? congeHeure = await _parametreRepository
+                        .GetTotheureCongeParPeriode(soccod, grp.Key.Empcod, debut, fin);
+
+                    if (congeHeure.HasValue)
+                        total += TimeSpan.FromHours(congeHeure.Value);
+
                     result.Add(new EmployeePresenceDto
                     {
-                        Empcod = empcod,
-                        Emplib = group.Key.Emplib,
-                        NbJours = nbJours,
-                        TotalMinutes = totalMinutes,
-                        TotalRetards = tothRetard
+                        Empcod = grp.Key.Empcod,
+                        Emplib = grp.Key.Emplib,
+                        NbJours = await GetNbJours(grp.Key.Empcod, debut, fin),
+                        TotalMinutes = (int)total.TotalMinutes,
+                        TotalRetards = await GetTotRetards(
+                            grp.Key.Empcod,
+                            debut ?? DateTime.MinValue,
+                            fin ?? DateTime.MaxValue,
+                            soccod)
                     });
                 }
-
-
                 return result;
             }
             catch (Exception ex)
             {
-                // Log exception details here for debugging, if logging is available
-                throw new Exception("An error occurred while retrieving data", ex);
+                _logger.LogError(ex, "Erreur GetBySitcodAndDircod");
+                throw;
             }
         }
         public async Task<float?> GetNbJours(string empcod, DateTime? dateDeb, DateTime? dateFin)

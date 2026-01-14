@@ -23,7 +23,7 @@ public partial class Employe
     public string Sitcod { get; set; } = null!;
 
     [Column("emplib")]
-    [StringLength(30)]
+    [StringLength(100)]
     public string? Emplib { get; set; }
 
     [Column("empmat")]
@@ -39,7 +39,7 @@ public partial class Employe
     public string? Sercod { get; set; }
 
     [Column("empfonc")]
-    [StringLength(30)]
+    [StringLength(40)]
     public string? Empfonc { get; set; }
 
     [Column("empreg")]
@@ -51,7 +51,7 @@ public partial class Employe
     public string? Catcod { get; set; }
 
     [Column("empnbp")]
-    public int? Empnbp { get; set; }
+    public float? Empnbp { get; set; }
 
     [Column("natcod")]
     [StringLength(4)]
@@ -62,7 +62,7 @@ public partial class Employe
     public string? Vilcod { get; set; }
 
     [Column("empadr")]
-    [StringLength(50)]
+    [StringLength(100)]
     [Unicode(false)]
     public string? Empadr { get; set; }
 
@@ -209,7 +209,7 @@ public partial class Employe
     public string? Empnuit { get; set; }
 
     [Column("empminhjour")]
-    public int? Empminhjour { get; set; }
+    public double? Empminhjour { get; set; }
 
     [Column("emppanier")]
     [StringLength(1)]

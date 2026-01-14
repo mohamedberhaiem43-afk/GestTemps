@@ -193,31 +193,24 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<UtiProfile> GetProfile(string uticod)
+        public async Task<UtiProfile?> GetProfile(string soccod, string uticod)
         {
-            try
-            {
-                var utilisateur = await _dbContext.Utilisateurs
-                    .Where(u => u.Uticod == uticod)
-                    .Join(_dbContext.Socusers,
-                        uti => uti.Uticod,
-                        mod => mod.Uticod,
-                        (uti, mod) => new { Utilisateur = uti, ModUser = mod })
-                    .SingleOrDefaultAsync();
+            var utilisateur = await _dbContext.Utilisateurs
+                .Where(u => u.Uticod == uticod)
+                .Join(_dbContext.Socusers.Where(s => s.Soccod == soccod),
+                    uti => uti.Uticod,
+                    soc => soc.Uticod,
+                    (uti, soc) => new { Utilisateur = uti, SocUser = soc })
+                .SingleOrDefaultAsync();
 
-                if (utilisateur == null)
-                    return null;
+            if (utilisateur == null)
+                return null;
 
-                var profile = _mapper.Map<UtiProfile>(utilisateur.Utilisateur);
-                profile.Sitcod = utilisateur.ModUser.Sitcod;
-                profile.Soccod = utilisateur.ModUser.Soccod;
+            var profile = _mapper.Map<UtiProfile>(utilisateur.Utilisateur);
+            profile.Sitcod = utilisateur.SocUser.Sitcod;
+            profile.Soccod = utilisateur.SocUser.Soccod;
 
-                return profile;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return profile;
         }
 
         public async Task<bool> ChangePassword(UpdatePassword pwd)

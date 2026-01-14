@@ -32,7 +32,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                if(partranche != null && Request.Cookies["admin"] == "1")
+                if(partranche != null)
                 {
                     bool parTranche = await _parTrancheRepository.UpdateParTranche(partranche);
                     return true;

@@ -31,23 +31,23 @@ public partial class Parametre
     public string? Ncom { get; set; }
 
     [Column("vitesse")]
-    public int? Vitesse { get; set; }
+    public float? Vitesse { get; set; }
 
     [Column("parite")]
-    public int? Parite { get; set; }
+    public float? Parite { get; set; }
 
     [Column("nbdigit")]
-    public int? Nbdigit { get; set; }
+    public float? Nbdigit { get; set; }
 
     [Column("xonoff")]
     [StringLength(1)]
     public string? Xonoff { get; set; }
 
     [Column("arrondi")]
-    public int? Arrondi { get; set; }
+    public float? Arrondi { get; set; }
 
     [Column("nbhconge")]
-    public int? Nbhconge { get; set; }
+    public float? Nbhconge { get; set; }
 
     [Column("nbhrepos")]
     public int? Nbhrepos { get; set; }
@@ -111,10 +111,10 @@ public partial class Parametre
     public string? Minuit { get; set; }
 
     [Column("parsom")]
-    public int? Parsom { get; set; }
+    public float? Parsom { get; set; }
 
     [Column("parecart")]
-    public int? Parecart { get; set; }
+    public float? Parecart { get; set; }
 
     [Column("nbhdemij")]
     public double? Nbhdemij { get; set; }
@@ -135,19 +135,19 @@ public partial class Parametre
     public string? Nuitfin { get; set; }
 
     [Column("arrhsortie")]
-    public int? Arrhsortie { get; set; }
+    public float? Arrhsortie { get; set; }
 
     [Column("arrhsmajore")]
-    public int? Arrhsmajore { get; set; }
+    public float? Arrhsmajore { get; set; }
 
     [Column("arrhentree")]
-    public int? Arrhentree { get; set; }
+    public float? Arrhentree { get; set; }
 
     [Column("arrhemajore")]
-    public int? Arrhemajore { get; set; }
+    public float? Arrhemajore { get; set; }
 
     [Column("moinsrepas")]
-    public int? Moinsrepas { get; set; }
+    public float? Moinsrepas { get; set; }
 
     [Column("ajustupd")]
     [StringLength(1)]
@@ -252,13 +252,13 @@ public partial class Parametre
     public string? Parelimftrv { get; set; }
 
     [Column("parmaxfer")]
-    public int? Parmaxfer { get; set; }
+    public float? Parmaxfer { get; set; }
 
     [Column("parminhjour")]
-    public int? Parminhjour { get; set; }
+    public float? Parminhjour { get; set; }
 
     [Column("parmaxhjour")]
-    public int? Parmaxhjour { get; set; }
+    public float? Parmaxhjour { get; set; }
 
     [Column("parpostlundi")]
     [StringLength(1)]

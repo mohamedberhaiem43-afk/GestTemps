@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState} from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   type MRT_ColumnDef,
 } from 'material-react-table';
@@ -9,6 +9,14 @@ import {
   Grid,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
 } from '@mui/material';
 import { jsPDF } from 'jspdf';
 import './ListeEmploye.css';
@@ -28,6 +36,11 @@ import EmployeReportService from '../../../services/EmployeService/EmployeReport
 import useDeleteEmploye from '../../../hooks/employeHooks/useDeleteEmploye';
 import { useAuth } from '../../helper/AuthProvider';
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
+import DescriptionIcon from '@mui/icons-material/Description';
+import DeleteIcon from '@mui/icons-material/Delete';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import * as mammoth from 'mammoth';
+import ContratReportService from '../../../services/ContratService/ContratReportService';
 
 const ListEmploye = () => {
   const uticod = localStorage.getItem("Uticod");
@@ -45,8 +58,72 @@ const ListEmploye = () => {
   const [showForbidden, setShowForbidden] = useState(false);
   const [forbiddenMessage, setForbiddenMessage] = useState<string>('');
 
+  // State for contrat dialog
+  const [contratDialogOpen, setContratDialogOpen] = useState(false);
+  const [selectedEmployeForContrat, setSelectedEmployeForContrat] = useState<Employe | null>(null);
+  const [contratTemplates, setContratTemplates] = useState<Array<{name: string, file: File}>>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<File | null>(null);
+
   // Use the delete hook
   const { mutate: deleteEmployeMutation } = useDeleteEmploye();
+  const getContratPdf = async (employe: Employe) => {
+    try {
+      const response = await ContratReportService.getReport(
+        `get-contrat-report/${employe.soccod}/${employe.empcod}`
+      );
+
+      const blob = new Blob([response], { type: 'application/pdf' });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Contrat-${employe.empcod}.pdf`;
+
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erreur téléchargement contrat :', error);
+      setSnackbarMessage("Erreur lors du téléchargement du contrat");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Load saved templates from localStorage on component mount
+  useEffect(() => {
+    const savedTemplates = localStorage.getItem('contratTemplates');
+    if (savedTemplates) {
+      try {
+        const templates = JSON.parse(savedTemplates);
+        // Convert base64 strings back to File objects
+        const templateFiles = templates.map((template: any) => {
+          const byteCharacters = atob(template.base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          return new File([byteArray], template.name, { type: template.type });
+        });
+        setContratTemplates(templateFiles.map((file: File, index: number) => ({
+          name: templates[index].name,
+          file
+        })));
+      } catch (error) {
+        console.error('Error loading templates:', error);
+      }
+    }
+  }, []);
+
+  // Save templates to localStorage
+  const saveTemplatesToLocalStorage = (templates: Array<{name: string, file: File}>) => {
+    const templatesForStorage = templates.map(async template => ({
+      name: template.name,
+      type: template.file.type,
+      base64: btoa(new Uint8Array(await template.file.arrayBuffer()).reduce((data, byte) => data + String.fromCharCode(byte), ''))
+    }));
+    localStorage.setItem('contratTemplates', JSON.stringify(templatesForStorage));
+  };
 
   const deleteEmploye = (data: any) => {
     deleteEmployeMutation(
@@ -79,7 +156,6 @@ const ListEmploye = () => {
     );
   };
 
-  // FIX: Only fetch employee details when selectedEmpMat changes AND is not empty
   useEffect(() => {
     if (selectedEmpMat) {
       EmployeService.getWithParams(`get-employe/${soccod}/${selectedEmpMat}`)
@@ -102,32 +178,148 @@ const ListEmploye = () => {
     }
   }, [selectedEmpMat]);
 
-  const handleGenerateContract = (employe: Employe) => {
-    const doc = new jsPDF();
-  
-    // Define contract content
-    doc.setFontSize(12);
-    doc.text('Contrat de Travail', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Nom et Prénom: ${employe.emplib}`, 20, 40);
-    doc.text(`Code: ${employe.empcod}`, 20, 50);
-    doc.text(`Site: ${employe.sitcod}`, 20, 60);
-    doc.text(`Fonction: ${employe.empfonc}`, 20, 70);
-    doc.text(`Actif: ${employe.actif ? 'Oui' : 'Non'}`, 20, 80);
-  
-    doc.text(
-      `Nous confirmons par le présent document que ${employe.emplib} est employé(e) à la fonction de ${employe.empfonc} au sein de notre entreprise.`,
-      20,
-      100,
-      { maxWidth: 170 },
-    );
-  
-    // Add a signature area or additional content as needed
-    doc.text('Signature: ____________________________', 20, 140);
-  
-    // Save the PDF
-    doc.save(`contrat-${employe.empcod}.pdf`);
+  // Open contrat dialog
+  const openContratDialog = (employe: Employe) => {
+    setSelectedEmployeForContrat(employe);
+    setContratDialogOpen(true);
   };
+
+  // Handle template file selection
+  const handleTemplateFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && (file.name.endsWith('.doc') || file.name.endsWith('.docx'))) {
+      const newTemplate = {
+        name: file.name,
+        file: file
+      };
+      const updatedTemplates = [...contratTemplates, newTemplate];
+      setContratTemplates(updatedTemplates);
+      saveTemplatesToLocalStorage(updatedTemplates);
+    } else {
+      setSnackbarMessage('Veuillez sélectionner un fichier Word (.doc ou .docx)');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Delete a template
+  const deleteTemplate = (index: number) => {
+    const updatedTemplates = contratTemplates.filter((_, i) => i !== index);
+    setContratTemplates(updatedTemplates);
+    saveTemplatesToLocalStorage(updatedTemplates);
+    if (selectedTemplate === contratTemplates[index].file) {
+      setSelectedTemplate(null);
+    }
+  };
+
+  // Generate contract from template
+  const generateContratFromTemplate = async () => {
+  if (!selectedEmployeForContrat) return;
+  
+  if (!selectedTemplate) {
+    setSnackbarMessage('Veuillez sélectionner un modèle de contrat');
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+    return;
+  }
+
+  try {
+    // Read the Word file and extract text with formatting
+    const arrayBuffer = await selectedTemplate.arrayBuffer();
+    
+    // Use mammoth to extract text from Word document
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    let templateContent = result.value;
+    
+    // Replace placeholders with employee data
+    const replacements: { [key: string]: string } = {
+      '{{NOM}}': selectedEmployeForContrat.emplib || '',
+      '{{PRENOM}}': selectedEmployeForContrat.emplib || '',
+      '{{CIN}}': selectedEmployeForContrat.empcin || '',
+      '{{DATE_CIN}}': selectedEmployeForContrat.empdcin 
+        ? dayjs(selectedEmployeForContrat.empdcin).format('DD/MM/YYYY') 
+        : '',
+      '{{DATE_EMBAUCHE}}': selectedEmployeForContrat.empemb 
+        ? dayjs(selectedEmployeForContrat.empemb).format('DD/MM/YYYY') 
+        : '',
+      '{{FONCTION}}': selectedEmployeForContrat.empfonc || '',
+      '{{SALAIRE}}': selectedEmployeForContrat.empsbase 
+        ? selectedEmployeForContrat.empsbase.toString() 
+        : '0',
+      '{{DATE_JOUR}}': dayjs().format('DD/MM/YYYY'),
+      '{{MATRICULE}}': selectedEmployeForContrat.empcod || '',
+      '{{LIEU_CIN}}': selectedEmployeForContrat.empacin || '',
+      '{{ADRESSE}}': selectedEmployeForContrat.empadr || '',
+      '{{TELEPHONE}}': selectedEmployeForContrat.emptel || '',
+      '{{EMAIL}}': selectedEmployeForContrat.empemail || '',
+      '{{SITE}}': selectedEmployeForContrat.sitcod || '',
+      '{{REGIME}}': selectedEmployeForContrat.empreg || '',
+    };
+
+    // Replace all placeholders in the template
+    let contratContent = templateContent;
+    Object.keys(replacements).forEach(placeholder => {
+      const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
+      contratContent = contratContent.replace(regex, replacements[placeholder]);
+    });
+
+    // Create PDF
+    const doc = new jsPDF();
+    
+    // Set margins
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const maxLineWidth = pageWidth - (margin * 2);
+    
+    // Split content into lines that fit the page width
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    
+    const lines = doc.splitTextToSize(contratContent, maxLineWidth);
+    
+    let y = margin;
+    const lineHeight = 7;
+    
+    // Add content to PDF, handling page breaks
+    lines.forEach((line: string) => {
+      if (y + lineHeight > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      
+      // Check if line is a title/header (you can customize this logic)
+      if (line.match(/^(ARTICLE|CHAPITRE|CONTRAT|TITRE)/i)) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+      }
+      
+      doc.text(line, margin, y);
+      y += lineHeight;
+    });
+    
+    // Save the PDF
+    doc.save(`contrat-${selectedEmployeForContrat.empcod}.pdf`);
+    
+    // Close dialog and show success message
+    setContratDialogOpen(false);
+    setSelectedTemplate(null);
+    
+    setSnackbarMessage('Contrat généré avec succès');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+    
+  } catch (error) {
+    console.error('Error generating contract:', error);
+    setSnackbarMessage('Erreur lors de la génération du contrat');
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  }
+};
+
 
   const handleGenerateAttestation = (employe: Employe) => {
     const doc = new jsPDF();
@@ -491,7 +683,7 @@ const ListEmploye = () => {
                   idKey="empcod"
                   refetchMethod={refetch}
                   reportGeneration1={handleGenerateAttestation}
-                  reportGeneration2={handleGenerateContract}
+                  reportGeneration2={getContratPdf} // Changé ici pour ouvrir la popup
                   reportGeneration3={handleGenerateIndividualSheet}
                   reportGeneration4={getVisiteMedicaleReport}
                   empHoraires={fetchHoraires}
@@ -503,6 +695,93 @@ const ListEmploye = () => {
               </Grid>
             </Grid>
           </Box>
+
+          {/* Dialog pour sélectionner le modèle de contrat */}
+          <Dialog open={contratDialogOpen} onClose={() => setContratDialogOpen(false)} maxWidth="md" fullWidth
+            sx={{
+        '& .MuiDialog-container': {
+          alignItems: 'center',
+        },
+        '& .MuiDialog-paper': {
+          margin: { xs: 0, sm: '32px' },
+          width: { xs: '30%', sm: 'auto' },
+          maxWidth: { xs: '50%', sm: '500px' },
+        },
+      }}>
+            <DialogTitle>
+              <Box display="flex" alignItems="center" gap={1}>
+                <DescriptionIcon />
+                Sélectionner un modèle de contrat pour {selectedEmployeForContrat?.emplib}
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <Box mb={2}>
+                <input
+                  accept=".doc,.docx"
+                  id="contrat-template-upload"
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={handleTemplateFileSelect}
+                />
+                <label htmlFor="contrat-template-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<InsertDriveFileIcon />}
+                    fullWidth
+                  >
+                    Ajouter un nouveau modèle (.doc/.docx)
+                  </Button>
+                </label>
+              </Box>
+              
+              {contratTemplates.length > 0 ? (
+                <List>
+                  {contratTemplates.map((template, index) => (
+                    <ListItem
+                      key={index}
+                      secondaryAction={
+                        <IconButton edge="end" onClick={() => deleteTemplate(index)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                      sx={{
+                        backgroundColor: selectedTemplate === template.file ? '#e3f2fd' : 'inherit',
+                        borderRadius: 1,
+                        mb: 1,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: '#f5f5f5',
+                        },
+                      }}
+                      onClick={() => setSelectedTemplate(template.file)}
+                    >
+                      <ListItemText 
+                        primary={template.name}
+                        secondary={`Sélectionné: ${selectedTemplate === template.file ? 'Oui' : 'Non'}`}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Box textAlign="center" py={4}>
+                  <InsertDriveFileIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                  <p>Aucun modèle de contrat disponible. Ajoutez un fichier Word (.doc/.docx).</p>
+                </Box>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setContratDialogOpen(false)}>Annuler</Button>
+              <Button 
+                onClick={generateContratFromTemplate}
+                variant="contained" 
+                disabled={!selectedTemplate}
+                startIcon={<DescriptionIcon />}
+              >
+                Générer le contrat PDF
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* Regular Snackbar for success/error messages */}
           <Snackbar 

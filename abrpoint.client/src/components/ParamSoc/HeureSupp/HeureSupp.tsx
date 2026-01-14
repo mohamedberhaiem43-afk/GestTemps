@@ -169,6 +169,21 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange,onChange1 }) => {
     setTranchesM([...tranchesM, { caltype: '', tranche1: 0, taux1: 0, tranche2: 0, taux2: 0 }]);
   };
 
+  // Fonctions pour supprimer des tranches
+  const deleteTrancheH = (index: number) => {
+    if (tranchesH.length > 1) {
+      const newTranches = tranchesH.filter((_, i) => i !== index);
+      setTranchesH(newTranches);
+    }
+  };
+
+  const deleteTrancheM = (index: number) => {
+    if (tranchesM.length > 1) {
+      const newTranches = tranchesM.filter((_, i) => i !== index);
+      setTranchesM(newTranches);
+    }
+  };
+
   // Fonctions pour mettre à jour les tranches
   const updateTrancheH = (index: number, field: keyof TrancheData, value: string | number) => {
     const newTranches = [...tranchesH];
@@ -193,7 +208,8 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange,onChange1 }) => {
  const renderTableRows = (
   trancheData: TrancheData[],
   updateFunction: (index: number, field: keyof TrancheData, value: string | number) => void,
-  addFunction: () => void
+  addFunction: () => void,
+  deleteFunction: (index: number) => void
 ) => {
   return (
     <>
@@ -246,10 +262,20 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange,onChange1 }) => {
               ))}
             </Select>
           </TableCell>
+          <TableCell>
+            <IconButton 
+              onClick={() => deleteFunction(index)} 
+              color="error"
+              disabled={trancheData.length === 1}
+              size="small"
+            >
+              _
+            </IconButton>
+          </TableCell>
         </TableRow>
       ))}
       <TableRow>
-        <TableCell colSpan={5} align="center">
+        <TableCell colSpan={6} align="center">
           <IconButton onClick={addFunction} color="primary">
             <AddIcon />
           </IconButton>
@@ -319,12 +345,13 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange,onChange1 }) => {
                               <TableCell>Taux 1</TableCell>
                               <TableCell width={1}>Tranche 2</TableCell>
                               <TableCell>Taux 2</TableCell>
+                              <TableCell width={50}>Action</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {tableIndex === 0
-                              ? renderTableRows(tranchesH, updateTrancheH, addTrancheH)
-                              : renderTableRows(tranchesM, updateTrancheM, addTrancheM)
+                              ? renderTableRows(tranchesH, updateTrancheH, addTrancheH, deleteTrancheH)
+                              : renderTableRows(tranchesM, updateTrancheM, addTrancheM, deleteTrancheM)
                             }
                           </TableBody>
                         </Table>

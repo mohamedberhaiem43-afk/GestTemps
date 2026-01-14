@@ -27,6 +27,31 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
+        [HttpGet("get-paires/{soccod}")]
+        public async Task<IEnumerable<RubriquePaireDto>> GetPaires(string soccod)
+        {
+            try
+            {
+                return await _rubriqueService.GetPaires(soccod);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+        [HttpGet("get-rubrique/{soccod}/{rubcod}")]
+        public async Task<Rubrique> GetRubrique(string soccod,string rubcod)
+        {
+            try
+            {
+                return await _rubriqueService.GetRubrique(soccod, rubcod);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         [HttpDelete("{soccod}/{rubocd}")]
         public async Task<string> DeleteRubrique(string soccod,string rubocd)
         {
@@ -41,12 +66,25 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
-        [HttpGet]
+        [HttpPost]
         public async Task<bool> AddRubrique(Rubrique rubrique)
         {
             try
             {
                 return await _rubriqueService.AddRubrique(rubrique);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+    
+        [HttpPut]
+        public async Task<bool> UpdatRubrique(Rubrique rubrique)
+        {
+            try
+            {
+                return await _rubriqueService.UpdateRubrique(rubrique);
             }
             catch (Exception)
             {

@@ -5,6 +5,7 @@ using ABRPOINT.Server.Models;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -250,5 +251,80 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public async Task<string> GetPaie(string soccod)
+        {
+            try
+            {
+                string? paie = await _dbContext.Parametres.Where(p=>p.Soccod ==soccod).Select(p=>p.Paie).SingleOrDefaultAsync();
+                return paie;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public Task<float?> GetNbhConge(string soccod)
+        {
+            try
+            {
+                var nbhconge =  _dbContext.Parametres.Where(p => p.Soccod == soccod).Select(p => p.Nbhconge).SingleOrDefaultAsync();
+                return nbhconge;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+
+
+        public async Task<float?> GetTotheureCongeParPeriode(string soccod,string empcod,DateTime? debut,DateTime? fin)
+            {
+                try
+                {
+                    // 1. Heures par jour de congé (paramètre système)
+                    float? nbhconge = await GetNbhConge(soccod);
+
+                    if (!nbhconge.HasValue)
+                        return 0f;
+
+                    // 2. Congés de l'employé sur la période
+                    var conges = await _dbContext.Conges
+                        .Where(c =>
+                            c.Soccod == soccod &&
+                            c.Empcod == empcod &&
+                            (!debut.HasValue || c.Condat >= debut) &&
+                            (!fin.HasValue || c.Condat <= fin))
+                        .Select(c => c.Conjour)
+                        .ToListAsync();
+
+                    float totalHeures = 0f;
+
+                    // 3. Calcul
+                    foreach (var conjour in conges)
+                    {
+                        if (!float.TryParse(
+                                conjour,
+                                NumberStyles.Any,
+                                CultureInfo.InvariantCulture,
+                                out float coef))
+                        {
+                            coef = 1f; // sécurité
+                        }
+
+                        totalHeures += nbhconge.Value * coef;
+                    }
+
+                    return totalHeures;
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+            }
+
+
     }
 }

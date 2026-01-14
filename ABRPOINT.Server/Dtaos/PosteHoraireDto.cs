@@ -144,33 +144,33 @@ namespace ABRPOINT.Server.Dtaos
 
         public string? Maxhredim { get; set; }
 
-        public float? Minhjourlun { get; set; }
+        public int? Minhjourlun { get; set; }
 
-        public float? Minhdemijourlun { get; set; }
+        public int? Minhdemijourlun { get; set; }
 
-        public float? Minhjourmar { get; set; }
+        public int? Minhjourmar { get; set; }
 
-        public float? Minhdemijourmar { get; set; }
+        public int? Minhdemijourmar { get; set; }
 
-        public float? Minhjourmer { get; set; }
+        public int? Minhjourmer { get; set; }
 
-        public float? Minhdemijourmer { get; set; }
+        public int? Minhdemijourmer { get; set; }
 
-        public float? Minhjourjeu { get; set; }
+        public int? Minhjourjeu { get; set; }
 
-        public float? Minhdemijourjeu { get; set; }
+        public int? Minhdemijourjeu { get; set; }
 
-        public float? Minhjourven { get; set; }
+        public int? Minhjourven { get; set; }
 
-        public float? Minhdemijourven { get; set; }
+        public int? Minhdemijourven { get; set; }
 
-        public float? Minhjoursam { get; set; }
+        public int? Minhjoursam { get; set; }
 
-        public float? Minhdemijoursam { get; set; }
+        public int? Minhdemijoursam { get; set; }
 
-        public float? Minhjourdim { get; set; }
+        public int? Minhjourdim { get; set; }
 
-       public float? Minhdemijourdim { get; set; }
+       public int? Minhdemijourdim { get; set; }
         public float? Lundouche { get; set; }
         public float? Mardouche { get; set; }
         public float? Merdouche { get; set; }

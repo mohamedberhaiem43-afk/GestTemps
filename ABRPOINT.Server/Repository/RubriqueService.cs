@@ -28,6 +28,8 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                if (rubrique.Rubtype == null)
+                    rubrique.Rubtype = "255";
                 await _dbContext.AddAsync(rubrique);
                 await _dbContext.SaveChangesAsync();
                 return true;
@@ -81,9 +83,72 @@ namespace ABRPOINT.Server.Repository
             throw new NotImplementedException();
         }
 
+        public async Task<IEnumerable<RubriquePaireDto>> GetPaires(string soccod)
+        {
+            try
+            {
+                var rubriques = await _dbContext.Rubriques
+                    .Where(r => r.Soccod == soccod)
+                    .ProjectTo<RubriquePaireDto>(_mapper.ConfigurationProvider)
+                    .ToListAsync();
+                return rubriques;
+            }
+            catch (Exception)
+            {
+               throw;
+            }
+        }
+
+        public async Task<Rubrique> GetRubrique(string soccod, string rubcod)
+        {
+            try
+            {
+                var rubrique = await _dbContext.Rubriques.Where(rub => rub.Soccod == soccod && rub.Rubcod == rubcod).SingleOrDefaultAsync();
+                return rubrique;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         public void Update(RubriqueDto entity)
         {
             throw new NotImplementedException();
         }
+
+        public async Task<bool> UpdateRubrique(Rubrique rubrique)
+        {
+            try
+            {
+                var entity = await _dbContext.Rubriques
+                    .Where(r => r.Soccod == rubrique.Soccod && r.Rubcod == rubrique.Rubcod)
+                    .SingleOrDefaultAsync();
+
+                if (entity == null)
+                    return false;
+                if(rubrique.Rubtype!=null)
+                    entity.Rubtype = rubrique.Rubtype;
+                if(rubrique.Rublib!=null)
+                entity.Rublib = rubrique.Rublib;
+                if(rubrique.Rubregime!=null)
+                entity.Rubregime = rubrique.Rubregime;
+                if(rubrique.Vartype!=null)
+                entity.Vartype = rubrique.Vartype;
+                if(rubrique.Rubunite!=null)
+                entity.Rubunite = rubrique.Rubunite;
+                if(rubrique.Rubtaux!=null)
+                entity.Rubtaux = rubrique.Rubtaux;
+
+                await _dbContext.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+    
     }
+
 }

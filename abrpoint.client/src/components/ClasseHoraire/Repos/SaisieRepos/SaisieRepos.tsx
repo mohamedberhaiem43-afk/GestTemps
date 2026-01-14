@@ -134,7 +134,7 @@ useEffect(() => {
         <Box
           className="saisie-horaire-container"
           component="form"
-          sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}
+          sx={{ mx: 'auto'}}
           onSubmit={handleSubmit}
         >
           <Grid container spacing={1} alignItems="center" direction="row">

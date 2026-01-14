@@ -191,29 +191,41 @@ namespace ABRPOINT.Server.Repository
 
         public async Task<IEnumerable<Contrat>> GetAll(string soccod, string uticod)
         {
-            List<string> sitcods = await _dbContext.Socusers
-                               .Where(s => s.Soccod == soccod && s.Uticod == uticod)
-                               .Select(s => s.Sitcod)
-            .ToListAsync();
+            try
+            {
+                // Utiliser une jointure avec Socusers au lieu de Contains
+                var result = await (
+                    from c in _dbContext.Contrats
+                    join su in _dbContext.Socusers
+                        on new { c.Soccod, c.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    where c.Soccod == soccod
+                        && su.Uticod == uticod
+                    select c
+                ).ToListAsync();
 
-            return await _dbContext.Contrats
-                    .Where(e => e.Soccod == soccod && sitcods.Contains(e.Sitcod))
-                    .ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         public async Task<List<EcheanceContrat>> GetEcheanceContratsByDate(string soccod, DateTime echdeb, DateTime echfin, string uticod)
         {
             try
             {
-                List<string> uticods = await _utilisateurRepository.GetSitcodsAccess(soccod, uticod);
+                // Utiliser une jointure avec Socusers au lieu de Contains
                 var result = await (
                     from s in _dbContext.Societes
                     join e in _dbContext.Employes on s.Soccod equals e.Soccod
                     join c in _dbContext.Contrats on e.Empcod equals c.Empcod
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
                     where s.Soccod == soccod
-                          && c.Condat >= echdeb
-                          && c.Condat <= echfin
-                          && uticods.Contains(e.Sitcod)
+                        && c.Condat >= echdeb
+                        && c.Condat <= echfin
+                        && su.Uticod == uticod
                     select new EcheanceContrat
                     {
                         Soccod = s.Soccod,
@@ -229,11 +241,10 @@ namespace ABRPOINT.Server.Repository
 
                 return result;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 throw;
             }
         }
-
     }
 }

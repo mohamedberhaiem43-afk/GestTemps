@@ -31,11 +31,12 @@ namespace ABRPOINT.Server.Repository
             return _dbContext.Qualifs.ToList();
         }
 
-        public Dictionary<string, string> GetQuaLibs()
+        public Dictionary<string, string> GetQuaLibs(string soccod)
         {
             try
             {
                 return _dbContext.Qualifs
+                    .Where(q=>q.Soccod == soccod)
                                    .ToDictionary(abs => abs.Quacod, abs => abs.Qualib);
             }
             catch (Exception)

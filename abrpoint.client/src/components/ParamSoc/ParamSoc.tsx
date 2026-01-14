@@ -17,6 +17,7 @@ import useGetParametres from '../../hooks/parametreHooks/useGetParametres';
 import ParTranche from '../../models/ParTranche';
 import useUpdateParTranche from '../../hooks/partrancheHooks/useUpdateParTranche';
 import BreadcrumbNavigation from '../helper/BreadcrumbNavigation';
+import { useAuth } from '../helper/AuthProvider';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -52,7 +53,7 @@ export default function BasicTabs() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const [parametreUpdate, setParametreUpdate] = useState<Parametre>({
-    soccod: sessionStorage.getItem('soccod') || '',
+    soccod: useAuth().soccod || '',
     paie:'',
     point:'',
     separe:'',
@@ -158,6 +159,7 @@ export default function BasicTabs() {
     event.preventDefault();
     setValue(newValue);
   };
+  
   const [trancheData, setTrancheData] = useState<ParTranche[]>([]);
   const [heureSuppData, setHeureSuppData] = useState<Partial<Parametre>>({});
   const [ConnPointData, setConnPointData] = useState<Partial<Parametre>>({});
@@ -166,6 +168,7 @@ export default function BasicTabs() {
   const [sansClassHoraireData, setSansClassHoraireData] = useState({});
   const { data: parametres,refetch } = useGetParametres();
   const [affichageData, setAffichageData] = useState<Partial<Parametre>>({});
+
   const handleUpdate = () => {
     const dataToSend: Parametre = {
       ...parametreUpdate,
@@ -219,6 +222,10 @@ export default function BasicTabs() {
 
 
 };
+  const mergedGeneralParametre: Partial<Parametre> = {
+  ...parametres,
+  ...generalData,
+};
         useEffect(() => {
             if (parametres) {           
                 setParametreUpdate(parametres);
@@ -251,7 +258,10 @@ export default function BasicTabs() {
           Enregistrer
         </Button>
           <CustomTabPanel value={value} index={0}>
-            <General parametre={parametres} onChange={(data) => setGeneralData(data)} />
+              <General
+                parametre={mergedGeneralParametre}
+                onChange={setGeneralData}
+              />
           </CustomTabPanel>
           <CustomTabPanel value={value} index={1}>
             <ValeurCalcul parametre={parametres} onChange={(data) => setValeursCalculs(data)} />

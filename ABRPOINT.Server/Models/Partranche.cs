@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ABRPOINT.Server.Models;
 
 [Table("partranche")]
-[PrimaryKey("Soccod","Empreg")]
+[PrimaryKey("Soccod","Caltype","Empreg")]
 public partial class Partranche
 {
     [Column("soccod")]

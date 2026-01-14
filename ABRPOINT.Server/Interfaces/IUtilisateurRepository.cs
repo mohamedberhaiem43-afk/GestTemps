@@ -10,7 +10,7 @@ namespace ABRPOINT.Server.Interfaces
         Task<bool> UpdateUser(UtilisateurUpdate utilisateur);
         Task<List<string>> GetSitcodsAccess(string soccod, string uticod);
         Task<List<Utilisateur>> GetAllUsers(string soccod,string uticod);
-        Task<UtiProfile> GetProfile(string uticod);
+        Task<UtiProfile> GetProfile(string soccod,string uticod);
         Task<bool> ChangePassword(UpdatePassword pwd);
     }
 }

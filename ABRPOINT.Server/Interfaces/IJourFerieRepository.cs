@@ -9,5 +9,7 @@ namespace ABRPOINT.Server.Interfaces
         Task<float?> GetHeureFerieTrav(string soccod, DateTime? predat, string? tothre);
         Task<float?> GetNbHeures(PresenceDto presence, string codpost);
         Task<bool> IsFerier(string soccod, DateTime? predat);
+        Task<float?> GetFerheure(string soccod, DateTime? ferdate);
+        Task<float?> GetTotheureFerierParPeriode(string soccod,DateTime? debut, DateTime? fin);
     }
 }

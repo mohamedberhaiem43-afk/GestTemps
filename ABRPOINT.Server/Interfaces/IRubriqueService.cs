@@ -8,6 +8,8 @@ namespace ABRPOINT.Server.Interfaces
         Task<IEnumerable<RubriqueDto>> GetAll(string soccod);
         Task<bool> AddRubrique(Rubrique rubrique);
         Task DeleteAsync(string soccod, string rubcod);
-
+        Task<Rubrique> GetRubrique(string soccod, string rubcod);
+        Task<bool> UpdateRubrique(Rubrique rubrique);
+        Task<IEnumerable<RubriquePaireDto>> GetPaires(string soccod);
     }
 }
