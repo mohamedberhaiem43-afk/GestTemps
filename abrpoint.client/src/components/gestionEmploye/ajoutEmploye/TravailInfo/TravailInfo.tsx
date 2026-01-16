@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import SelectInputComponent from "../../../SelectInputComponent/SelectInputComponent";
 import InputComponent from "../../../Inputs/Input";
 import CheckboxComponent from "../../../CheckboxComponent/CheckboxComponent";
+import { useAuth } from "../../../helper/AuthProvider";
 
 const TravailInfo = ({
   formData,
@@ -17,7 +18,7 @@ const TravailInfo = ({
 }) => {
   const token = localStorage.getItem("authToken");
   const uticod = localStorage.getItem("Uticod");
-  const soccod = sessionStorage.getItem("soccod");
+  const { soccod } = useAuth();
   const headers = { Authorization: `Bearer ${token}` };
   const [filiales,setFiliales] = useState([]);
   const [services,setServices] = useState([]);

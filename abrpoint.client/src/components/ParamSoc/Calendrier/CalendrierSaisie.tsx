@@ -12,10 +12,11 @@ const joursSemaine = {
   vendredi: "Vendredi",
   samedi: "Samedi",
   dimanche: "Dimanche",
+  "Sam-Dim": "Sam-Dim",
 };
 
 function CalendrierSaisie() {
-  const [jourRepos, setJourRepos] = useState("dimanche");
+  const [jourRepos, setJourRepos] = useState("");
   const [tousLesJours, setTousLesJours] = useState(8);
   const [samedi, setSamedi] = useState(4);
   const [nbHreJour, setNbHreJour] = useState(8);

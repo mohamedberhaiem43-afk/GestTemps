@@ -18,12 +18,11 @@ import {
 import FilterPointageMois from './FilterPointageMois';
 import WeeklyHoursTable from './WeeklyHoursTable';
 import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './FilterPointageMoisContext';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { PointageMois } from '../../../models/PointageMois';
 import DataList from '../../lists/list';
 import { MRT_ColumnDef } from 'material-react-table';
-import { getWeeksFromStartToSunday } from '../../helper/HelperFunctions';
 import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
 import CloseIcon from '@mui/icons-material/Close';
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
@@ -37,8 +36,6 @@ const PointageDuMoisContent = () => {
   const mois = dateRange?.mois || '';
   const annee = dateRange?.annee || '2025';
   const semaine = dateRange?.semaine || '1';
-  const debutmois = dateRange?.dateDebut;
-  const finmois = dateRange?.dateFin;
   const empcods = dateRange?.empcods || [];
   const [openDialog, setOpenDialog] = useState(false);
   const [numSem, setNumSem] = useState(1);
@@ -47,8 +44,7 @@ const PointageDuMoisContent = () => {
   const [selectedWeekDetails, setSelectedWeekDetails] = useState<Record<string, string> | null>(null);
   const [majorerHeures, setMajorerHeures] = useState<boolean>(false);
 
-  const weekRanges = (debutmois && finmois) ? getWeeksFromStartToSunday(debutmois, finmois) : [];
-
+  // const weekRanges = (debutmois && finmois) ? getWeeksFromStartToSunday(debutmois, finmois) : [];
   // Use the hook instead of manual fetching
   const { data: pointageMoisData = [], isLoading: loading, error } = useGetPointageMois(
     empcods,
@@ -56,7 +52,6 @@ const PointageDuMoisContent = () => {
     annee,
     semaine
   );
-
   // Process the data similar to the original useEffect
   const pointageMois = useMemo(() => {
     return pointageMoisData.map((item: any) => ({
@@ -64,12 +59,18 @@ const PointageDuMoisContent = () => {
       heuresSupplementairesResultats: item.heuresSupplementairesResultats || [],
     }));
   }, [pointageMoisData]);
-
-  // Reset selectedEmp when data changes
-  useEffect(() => {
-    setSelectedEmp(null);
-  }, [pointageMois]);
-
+  
+ // Extract week ranges from the selected employee's data
+  const weekRanges = useMemo(() => {
+    if (!selectedEmp?.heuresSupplementairesResultats) return [];
+    
+    return selectedEmp.heuresSupplementairesResultats
+      .filter(r => r.weekStartDate && r.weekEndDate)
+      .map(r => ({
+        start: r.weekStartDate!,
+        end: r.weekEndDate!,
+      }));
+  }, [selectedEmp]);
   const columns = useMemo<MRT_ColumnDef<PointageMois>[]>(
     () => [
       {
@@ -94,6 +95,87 @@ const PointageDuMoisContent = () => {
       </Box>
     );
   }
+const totals = useMemo(() => {
+  if (!selectedEmp?.heuresSupplementairesResultats) return null;
+
+  return selectedEmp.heuresSupplementairesResultats.reduce(
+    (acc, r) => {
+      acc.jourFerier += r.jourFerier ?? 0;
+      acc.panier += r.panier ?? 0;
+      acc.heureFerier += r.heureFerier ?? 0;
+      acc.tothre += r.tothre ?? 0;
+      acc.nbJours += r.nbJours ?? 0;
+      acc.retard += r.retard ?? 0;
+      acc.hs25 += r.heuresSupTranche1 ?? 0;
+      acc.hs50 += r.heuresSupTranche2 ?? 0;
+      acc.hs += r.hreSupSemaine ?? 0;
+      acc.hreFerier += r.hreFerier ?? 0;
+      acc.hreFerieTrv += r.hreFerieTrv ?? 0;
+      acc.hreFerieTrv2 += r.hreFerieTrv2 ?? 0;
+      acc.nbJourFerier += r.nbJourFerier ?? 0;
+      acc.hreAllaitement += r.hreAllaitement ?? 0;
+      acc.absnp += r.absnp ?? 0;
+      acc.totalAbsence += r.totalAbsence ?? 0;
+      acc.nbJourPointer += r.nbJourPointer ?? 0;
+      acc.nbNuits += r.nbNuits ?? 0;
+      acc.nbJourCngPaye += r.nbJourCngPaye ?? 0;
+      acc.nbHeureConge += r.nbHeureConge ?? 0;
+      acc.hcsf += r.hcsf ?? 0;
+      acc.heuresNormales += r.heuresNormales ?? 0;
+      acc.jourRepos += r.jourRepos ?? 0;
+      acc.hreNuits += r.hreNuits ?? 0;
+      acc.heureRepos += r.heureRepos ?? 0;
+      acc.deplacement += r.deplacement ?? 0;
+      acc.act += r.act ?? 0;
+      acc.fm += r.fm ?? 0;
+      acc.absj += r.absj ?? 0;
+      acc.ct += r.ct ?? 0;
+      acc.maladie += r.maladie ?? 0;
+      acc.absnj += r.absnj ?? 0;
+      acc.csf += r.csf ?? 0;
+      acc.css += r.css ?? 0;
+      acc.map += r.map ?? 0;
+      return acc;
+    },
+    {
+      tothre: 0,
+      nbJours: 0,
+      retard: 0,
+      panier: 0,
+      hs25: 0,
+      hs50: 0,
+      hs: 0,
+      jourFerier: 0,
+      heureFerier: 0,
+      hreFerier: 0,
+      hreFerieTrv: 0,
+      hreFerieTrv2: 0,
+      nbJourFerier: 0,
+      hreAllaitement: 0,
+      absnp: 0,
+      totalAbsence: 0,
+      nbJourPointer: 0,
+      nbNuits: 0,
+      nbJourCngPaye: 0,
+      nbHeureConge: 0,
+      hcsf: 0,
+      heuresNormales: 0,
+      jourRepos: 0,
+      hreNuits: 0,
+      heureRepos: 0,
+      deplacement: 0,
+      act: 0,
+      fm: 0,
+      absj: 0,
+      ct: 0,
+      maladie: 0,
+      absnj: 0,
+      csf: 0,
+      css: 0,
+      map: 0,
+    }
+  );
+}, [selectedEmp]);
 
   // ✅ Affichage normal après chargement
   return (
@@ -161,9 +243,9 @@ const PointageDuMoisContent = () => {
                     <TableHead>
                       <TableRow>
                         {[
-                          'Semaine', 'Nb. Heures', 'Nb. Jours', 'Total Retard', 'HS25', 'HS50', 'HS', 'Heures Fériés',
-                          'H.Fériés Travaillé', 'H.Fériés Trav 2', 'J.Férié Travaillé', 'Allaitement',
-                          'J. Abs N/Payé', 'Heure Absences', 'Jours Pointés', 'Nb. Nuits', 'Congé Payé',
+                          'Semaine', 'Nb. Heures', 'Nb. Jours', 'Total Retard', 'HS25', 'HS50', 'HS','Jours Fériés','Heures Fériés','Heures Fériés Trav',
+                          'H.Fériés Trav 1', 'H.Fériés Trav 2', 'J.Férié Travaillé', 'Allaitement',
+                          'J. Abs N/Payé', 'Heure Absences','Jours Pointés' ,'Panier', 'Nb. Nuits', 'Congé Payé',
                           'H.Congé Payé', 'H. Spéc Familiale', 'Heures Normales', 'Jours Repos', 'H.Nuits',
                           'Heure Repos', 'Déplacement', 'ACT', 'Formation Mission', 'Abs. Just',
                           'J. Arrêt  Technique', 'Maladie', 'Abs. NJ.', 'C. Spéc Familiale', 'CSS', 'MAP',
@@ -210,6 +292,8 @@ const PointageDuMoisContent = () => {
                           <TableCell>{(res.heuresSupTranche1 ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.heuresSupTranche2 ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hreSupSemaine ?? 0).toFixed(2)}</TableCell>
+                          <TableCell>{(res.jourFerier ?? 0).toFixed(2)}</TableCell>
+                          <TableCell>{(res.heureFerier ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hreFerier ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hreFerieTrv ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hreFerieTrv2 ?? 0).toFixed(2)}</TableCell>
@@ -218,6 +302,7 @@ const PointageDuMoisContent = () => {
                           <TableCell>{(res.absnp ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.totalAbsence ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.nbJourPointer ?? 0).toFixed(2)}</TableCell>
+                          <TableCell>{(res.panier ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.nbNuits ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.nbJourCngPaye ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.nbHeureConge ?? 0).toFixed(2)}</TableCell>
@@ -238,6 +323,56 @@ const PointageDuMoisContent = () => {
                           <TableCell>{(res.map ?? 0).toFixed(2)}</TableCell>
                         </TableRow>
                       ))}
+                      {totals && (
+  <TableRow sx={{ backgroundColor: '#f0f4ff' }}>
+    <TableCell sx={{ fontWeight: 'bold' }}>TOTAL</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.tothre.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbJours.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>
+      {(() => {
+        const retard = Math.round(totals.retard);
+        const heures = Math.floor(retard / 60);
+        const minutes = retard % 60;
+        return `${heures.toString().padStart(2, '0')}:${minutes
+          .toString()
+          .padStart(2, '0')}`;
+      })()}
+    </TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hs25.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hs50.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hs.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.jourFerier.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.heureFerier.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreFerier.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreFerieTrv.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreFerieTrv2.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbJourFerier.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreAllaitement.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.absnp.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalAbsence.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbJourPointer.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.panier.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbNuits.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbJourCngPaye.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbHeureConge.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hcsf.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.heuresNormales.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.jourRepos.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreNuits.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.heureRepos.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.deplacement.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.act.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.fm.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.absj.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.ct.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.maladie.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.absnj.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.csf.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.css.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.map.toFixed(2)}</TableCell>
+  </TableRow>
+)}
+
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -250,8 +385,10 @@ const PointageDuMoisContent = () => {
             <Grid item xs={12}>
               <WeeklyHoursTable
                 weekRanges={weekRanges}
-                weeklyHours={selectedEmp?.heuresSupplementairesResultats?.map((r) => r.nbhCalendSem) || []}
-              />
+                weeklyHours={selectedEmp?.heuresSupplementairesResultats?.map((r) => {
+                  const hours = r.nbhCalendSem;
+                  return hours !== undefined && hours !== null ? parseFloat(hours.toString()) : undefined;
+                }) || []} />
             </Grid>
           </>
         )}

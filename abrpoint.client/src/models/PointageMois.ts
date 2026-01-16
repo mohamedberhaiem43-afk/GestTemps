@@ -1,5 +1,10 @@
 export type HeuresSupplementairesResultat =
 {
+    weekStartDate?: string;
+    weekEndDate?: string;
+    panier?: number;
+    jourFerier: number;
+    heureFerier: number;
     nbJours: number;
     nbhCalendSem : string;
     heuresNormales :number;

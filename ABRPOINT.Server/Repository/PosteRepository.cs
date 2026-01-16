@@ -350,5 +350,213 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public async Task<Dictionary<string, string?>> GetEmpPosteBatch(string soccod,List<(string Empcod, DateTime Date)> demandes)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                throw new ArgumentException(nameof(soccod));
+
+            if (demandes == null || !demandes.Any())
+                return new Dictionary<string, string?>();
+
+            // =========================
+            // 1️⃣ Catégories employés
+            // =========================
+            var empcods = demandes.Select(d => d.Empcod).Distinct().ToList();
+
+            var empCategories = await _dbContext.Employes
+                .Where(e => e.Soccod == soccod && empcods.Contains(e.Empcod))
+                .Select(e => new { e.Empcod, e.Catcod })
+                .ToDictionaryAsync(x => x.Empcod, x => x.Catcod);
+
+            // =========================
+            // 2️⃣ Lcategories concernées
+            // =========================
+            var catcods = empCategories.Values
+                .Where(c => !string.IsNullOrEmpty(c))
+                .Distinct()
+                .ToList();
+
+            var lcategories = await _dbContext.Lcategories
+                .Where(l =>
+                    l.Soccod == soccod &&
+                    catcods.Contains(l.Catcod))
+                .ToListAsync();
+
+            // =========================
+            // 3️⃣ Calcul en mémoire
+            // =========================
+            var result = new Dictionary<string, string?>();
+
+            foreach (var d in demandes)
+            {
+                if (!empCategories.TryGetValue(d.Empcod, out var catcod) ||
+                    string.IsNullOrEmpty(catcod))
+                {
+                    result[d.Empcod] = null;
+                    continue;
+                }
+
+                var candidates = lcategories
+                    .Where(l => l.Catcod == catcod)
+                    .ToList();
+
+                if (!candidates.Any())
+                {
+                    result[d.Empcod] = null;
+                    continue;
+                }
+
+                var date = d.Date;
+                var month = date.Month;
+                var year = date.Year;
+
+                // 🔹 Filtrage mois
+                var validMonth = candidates
+                    .Where(l =>
+                        l.Catdu.HasValue && l.Catau.HasValue &&
+                        l.Catdu.Value.Month <= month &&
+                        l.Catau.Value.Month >= month)
+                    .ToList();
+
+                // 🔹 Filtrage année / Catfixe
+                if (!validMonth.Any(l =>
+                        l.Catdu!.Value.Year == year ||
+                        l.Catau!.Value.Year == year))
+                {
+                    validMonth = validMonth
+                        .Where(l => l.Catfixe == "1")
+                        .ToList();
+                }
+
+                if (!validMonth.Any())
+                {
+                    result[d.Empcod] = null;
+                    continue;
+                }
+
+                // 🔹 Sélection finale
+                var selected = validMonth.First();
+
+                foreach (var l in validMonth)
+                {
+                    if (date >= l.Catdu && date <= l.Catau)
+                    {
+                        selected = l;
+                        break;
+                    }
+                }
+
+                result[d.Empcod] = selected.Codposte;
+            }
+
+            return result;
+        }
+        public async Task<Dictionary<(string Empcod, DateTime Date), string?>> GetEmployePosteBatch(string soccod,string empcod,DateTime debut,DateTime fin)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                throw new ArgumentException(nameof(soccod));
+
+            // 1️⃣ Créer toutes les dates de la période
+            var demandes = new List<(string Empcod, DateTime Date)>();
+            for (var date = debut.Date; date <= fin.Date; date = date.AddDays(1))
+            {
+                demandes.Add((empcod, date));
+            }
+
+            if (!demandes.Any())
+                return new Dictionary<(string, DateTime), string?>();
+
+            // =========================
+            // 2️⃣ Récupérer la catégorie de l'employé
+            // =========================
+            var empCategory = await _dbContext.Employes
+                .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                .Select(e => e.Catcod)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrEmpty(empCategory))
+                return demandes.ToDictionary(d => d, d => (string?)null);
+
+            // =========================
+            // 3️⃣ Récupérer les lcategories concernées
+            // =========================
+            var lcategories = await _dbContext.Lcategories
+                .Where(l => l.Soccod == soccod && l.Catcod == empCategory)
+                .ToListAsync();
+
+            // =========================
+            // 4️⃣ Calcul en mémoire pour toutes les dates
+            // =========================
+            var result = new Dictionary<(string Empcod, DateTime Date), string?>();
+
+            foreach (var d in demandes)
+            {
+                var date = d.Date;
+                var month = date.Month;
+                var year = date.Year;
+
+                // 🔹 Filtrer par mois
+                var validMonth = lcategories
+                    .Where(l => l.Catdu.HasValue && l.Catau.HasValue &&
+                                l.Catdu.Value.Month <= month &&
+                                l.Catau.Value.Month >= month)
+                    .ToList();
+
+                // 🔹 Filtrer par année ou Catfixe
+                if (!validMonth.Any(l => l.Catdu!.Value.Year == year || l.Catau!.Value.Year == year))
+                {
+                    validMonth = validMonth.Where(l => l.Catfixe == "1").ToList();
+                }
+
+                if (!validMonth.Any())
+                {
+                    result[d] = null;
+                    continue;
+                }
+
+                // 🔹 Sélection finale
+                var selected = validMonth.First();
+                foreach (var l in validMonth)
+                {
+                    if (date >= l.Catdu && date <= l.Catau)
+                    {
+                        selected = l;
+                        break;
+                    }
+                }
+
+                result[d] = selected.Codposte;
+            }
+
+            return result;
+        }
+
+
+        public async Task<Dictionary<string, Poste>> GetPostesBatch(string soccod, List<string> codPostes)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                throw new ArgumentException(nameof(soccod));
+
+            if (codPostes == null || !codPostes.Any())
+                return new Dictionary<string, Poste>();
+
+            // ===============================
+            // 1️⃣ Charger postes en batch
+            // ===============================
+            var postes = await _dbContext.Postes
+                .Where(p => p.Soccod == soccod && codPostes.Contains(p.Codposte))
+                .ToListAsync();
+
+            // ===============================
+            // 2️⃣ Convertir en dictionnaire
+            // ===============================
+            var result = postes.ToDictionary(
+                p => p.Codposte,
+                p => p);
+
+            return result;
+        }
+
     }
 }

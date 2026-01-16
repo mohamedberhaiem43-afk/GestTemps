@@ -82,8 +82,9 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                     onChange={handleChange}
                     
                 >
-                    <MenuItem value="1">1-Panier 7H</MenuItem>
-                    <MenuItem value="2">2-Panier 8H</MenuItem>
+                    <MenuItem value="0">0- Pas de panier</MenuItem>
+                    <MenuItem value="1">1- Panier 7H</MenuItem>
+                    <MenuItem value="2">2- Panier 6H</MenuItem>
                 </Select>
                 </FormControl>
             </Grid>

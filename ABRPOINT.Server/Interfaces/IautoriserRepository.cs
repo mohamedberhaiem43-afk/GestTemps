@@ -10,5 +10,7 @@ namespace ABRPOINT.Server.Interfaces
         Task AddMultipleAutorisation(List<Autoriser> autorisers);
         Task<AutDto?> GetAutLib(string? soccod, string? empcod, DateTime dmdate);
         Task<IEnumerable<Autoriser>>GetAllAsync(string? soccod, string? uticod);
+        Task<Dictionary<(string Empcod, DateTime Date), AutDto?>> GetAutLibBatch(string soccod, string empcod, DateTime dateDeb, DateTime dateFin);
+        Task<Dictionary<(string Empcod, DateTime Date), AutDto>> GetAutLibBatch(string soccod, List<(string Empcod, DateTime Date)> demandes);
     }
 }

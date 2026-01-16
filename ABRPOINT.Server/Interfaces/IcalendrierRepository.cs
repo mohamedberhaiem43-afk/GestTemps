@@ -10,10 +10,9 @@ namespace ABRPOINT.Server.Interfaces
         Task<IEnumerable<CalendsocDto>> GetCumul(string soccod, string annee);
         Task<IEnumerable<Lcalendsoc>> GetAnneeCalendrier(string soccod,string annee);
         Task UpdateCalendrier(string soccod, string caltype, string annee, float nbhJours, float nbhSamedi, string jourRepos, string mois, byte tousMois);
-        Task<float?> GetNbHeuresParSemaine(string soccod, string mois, string annee, string semaine, string empcod);
         Task<IDictionary<string, string>> GetCalendriers(string soccod);
         Task<bool> CloneCalendrier(string soccod, int annee);
         Task<bool> CloneLCalendrier(string soccod, int annee);
-
+        Task<(float? hours, DateTime? startDate, DateTime? endDate,int? jourferier,float? heuresferier,int? panier)> GetNbHeuresParSemaineWithDates(string soccod, string mois, string annee, string semaine, string empcod,string? emppanier);
     }
 }

@@ -40,5 +40,9 @@
         public string? Etat { get; set; }
         public float? Hreaut { get; set; }
         public string? Poicod { get; set; }
+        public float? Arrondi { get; set; }
+        public int? Arrhsup { get; set; }
+        public float? Predouche { get; set; }
+
     }
 }

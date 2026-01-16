@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.CalculService.Conge;
+﻿using ABRPOINT.Server.CalculService.CalcTotHeures;
+using ABRPOINT.Server.CalculService.Conge;
 using ABRPOINT.Server.CalculService.HeureAbsences;
 using ABRPOINT.Server.CalculService.HeureNuit;
 using ABRPOINT.Server.CalculService.HeureRetard;
@@ -49,6 +50,7 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IRubriqueService, RubriqueService>();
             builder.Services.AddScoped<IHeureNuitService, HeureNuitService>();
             builder.Services.AddScoped<IHeureSuppService, HeureSuppSerivce>();
+            builder.Services.AddScoped<ICalcTotHeuresService, CalcTotHeuresService>();
             builder.Services.AddScoped<IHeureRetardService, HeureRetardService>();
             builder.Services.AddScoped<IHeureAbsencesService, HeureAbsencesService>();
             builder.Services.AddScoped<IparTrancheRepository, ParTrancheRepository>();

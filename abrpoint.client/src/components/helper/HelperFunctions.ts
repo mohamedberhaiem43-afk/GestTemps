@@ -25,6 +25,5 @@ export const getWeeksFromStartToSunday = (startStr: string, endStr: string) => {
     // Prochaine semaine commence le lundi suivant
     start = addDays(weekEnd, 1);
   }
-
   return result;
 };

@@ -2,7 +2,7 @@ import { Box, Paper, Grid, Typography, TextField } from "@mui/material";
 
 interface WeeklyHoursTableProps {
   weekRanges: { start: string; end: string }[];
-  weeklyHours: (string | undefined)[];
+  weeklyHours: (number | undefined)[];
 }
 
 const WeeklyHoursTable: React.FC<WeeklyHoursTableProps> = ({
@@ -10,13 +10,33 @@ const WeeklyHoursTable: React.FC<WeeklyHoursTableProps> = ({
   weeklyHours,
 }) => {
   const NUM_WEEKS = 6;
-const paddedWeekRanges = [...weekRanges];
-const paddedWeeklyHours = [...weeklyHours];
+  const paddedWeekRanges = [...weekRanges];
+  const paddedWeeklyHours = [...weeklyHours];
 
-while (paddedWeekRanges.length < NUM_WEEKS) {
-  paddedWeekRanges.push({ start: '', end: '' });
-  paddedWeeklyHours.push('');
-}
+  while (paddedWeekRanges.length < NUM_WEEKS) {
+    paddedWeekRanges.push({ start: '', end: '' });
+    paddedWeeklyHours.push(undefined);
+  }
+
+  // Format date to dd/MM/yyyy
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return '';
+    }
+  };
+
+  // Format hours to 2 decimal places
+  const formatHours = (hours: number | undefined): string => {
+    if (hours === undefined || hours === null) return '';
+    return hours.toFixed(2);
+  };
 
   return (
     <Box mt={4}>
@@ -36,7 +56,13 @@ while (paddedWeekRanges.length < NUM_WEEKS) {
           </Grid>
           {paddedWeekRanges.map((week, i) => (
             <Grid item xs={1.6} key={i}>
-              <TextField variant='standard' fullWidth size="small" value={week.start} InputProps={{ readOnly: true }} />
+              <TextField 
+                variant='standard' 
+                fullWidth 
+                size="small" 
+                value={formatDate(week.start)} 
+                InputProps={{ readOnly: true }} 
+              />
             </Grid>
           ))}
 
@@ -45,7 +71,13 @@ while (paddedWeekRanges.length < NUM_WEEKS) {
           </Grid>
           {paddedWeekRanges.map((week, i) => (
             <Grid item xs={1.6} key={i}>
-              <TextField variant='standard' fullWidth size="small" value={week.end} InputProps={{ readOnly: true }} />
+              <TextField 
+                variant='standard' 
+                fullWidth 
+                size="small" 
+                value={formatDate(week.end)} 
+                InputProps={{ readOnly: true }} 
+              />
             </Grid>
           ))}
 
@@ -54,7 +86,13 @@ while (paddedWeekRanges.length < NUM_WEEKS) {
           </Grid>
           {paddedWeeklyHours.map((hours, i) => (
             <Grid item xs={1.6} key={i}>
-              <TextField variant='standard' fullWidth size="small" value={hours} InputProps={{ readOnly: true }} />
+              <TextField 
+                variant='standard' 
+                fullWidth 
+                size="small" 
+                value={formatHours(hours)} 
+                InputProps={{ readOnly: true }} 
+              />
             </Grid>
           ))}
         </Grid>
@@ -62,4 +100,5 @@ while (paddedWeekRanges.length < NUM_WEEKS) {
     </Box>
   );
 };
+
 export default WeeklyHoursTable;

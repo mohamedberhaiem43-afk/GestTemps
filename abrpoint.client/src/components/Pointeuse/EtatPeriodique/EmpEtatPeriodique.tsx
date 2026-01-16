@@ -41,7 +41,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const [motif, setMotif] = useState<string>('');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
-  const { setSelectedEmpPoste,setDate,setSelectedEmp } = useContext(EmployeeContext);
+  const { setSelectedEmpPoste,setDate,setSelectedEmp,setArrondi,setArrondiSup } = useContext(EmployeeContext);
 
   const handleSaveRow = async ({
     values,
@@ -319,6 +319,15 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
         required: true,
       },
     },
+    {
+      accessorKey: 'predouche',
+      header: 'douche',
+      size: 10,
+      muiEditTextFieldProps: {
+        type: 'text',
+        required: true,
+      },
+    },
   ], [validationErrors]);
 
   const table = useMaterialReactTable({
@@ -365,6 +374,8 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
             codposte: row.original.codposte,
             day: new Date(row.original.predat).toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', ''),
           });
+          setArrondi(row.original.arrondi || 0);
+          setArrondiSup(row.original.arrhsup || 0);
           setSelectedEmp(row.original.empcod);
           setDate(row.original.predat);
           setSelectedRowId(rowId);

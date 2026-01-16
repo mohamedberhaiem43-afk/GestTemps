@@ -1,4 +1,6 @@
 export default interface EmpEtat {
+  arrhsup: number;
+  arrondi: number;
   predat: string;
   prerepos: string;
   preentmatup: string;

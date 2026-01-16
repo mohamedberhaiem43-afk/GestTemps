@@ -33,6 +33,17 @@ namespace ABRPOINT.Server.Repository
         {
             return _dbContext.Feriers.ToList();
         }
+        public async Task<Dictionary<DateTime, Ferier>> GetByFerdateBatch(string soccod, DateTime dateDeb, DateTime dateFin)
+        {
+            var feries = await _dbContext.Feriers
+                .Where(f => f.Soccod == soccod && f.Ferdate.HasValue
+                            && f.Ferdate >= dateDeb
+                            && f.Ferdate <= dateFin)
+                .ToListAsync();
+
+            return feries.ToDictionary(f => f.Ferdate!.Value, f => f);
+        }
+
 
         public async Task<Ferier> GetByFerdate(string soccod, DateTime ferdate)
         {

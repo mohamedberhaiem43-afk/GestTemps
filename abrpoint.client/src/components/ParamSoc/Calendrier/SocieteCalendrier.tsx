@@ -47,6 +47,7 @@ type CalendarEntry = {
   calSem: string;
   calDate: string;
 };
+
 function SocieteCalendrier() {
   const {selectedCalendrier,setSelectedCalendrier} = useCalendrierContext();
 
@@ -63,6 +64,23 @@ function SocieteCalendrier() {
   const { data : calends = [] } = useGetCalendrier();
   const soccod = localStorage.getItem("soccod") || "01"; // Default to "01" if not found
  // ✅ Use the mutation hook
+ // Convertir jourRepos en liste de DayOfWeek
+const joursReposSet: Set<number> = new Set();
+if (jourRepos) {
+  const jours = jourRepos.split("-");
+  jours.forEach((j) => {
+    switch (j.toLowerCase()) {
+      case "lun": joursReposSet.add(1); break; // Lundi
+      case "mar": joursReposSet.add(2); break;
+      case "mer": joursReposSet.add(3); break;
+      case "jeu": joursReposSet.add(4); break;
+      case "ven": joursReposSet.add(5); break;
+      case "sam": joursReposSet.add(6); break;
+      case "dim": joursReposSet.add(0); break;
+    }
+  });
+}
+
   const updateCalendrier = useUpdateCalendrier(
     soccod,
     selectedCalendrier ?? "",

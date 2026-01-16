@@ -119,6 +119,31 @@ namespace ABRPOINT.Server.Repository
                 _dbContext.SaveChanges();
             }
         }
+        
+        public async Task<Dictionary<(string Empcod, DateTime Date), string>> GetAbsenceLibBatch(string soccod,string empcod,DateTime dateDeb,DateTime dateFin)
+        {
+            var result = await (
+                from s in _dbContext.Sanctions
+                join a in _dbContext.Absences
+                    on new { s.Soccod, s.Abscod } equals new { a.Soccod, a.Abscod }
+                where s.Soccod == soccod
+                    && s.Empcod == empcod
+                    && s.Condep <= dateFin
+                    && s.Conret >= dateDeb
+                select new
+                {
+                    s.Empcod,
+                    s.Condep,
+                    s.Conret,
+                    a.Abslib
+                })
+                .ToListAsync();
+
+            return result.ToDictionary(
+                x => (x.Empcod, x.Condep.Value.Date),
+                x => x.Abslib
+            );
+        }
 
         public async Task<string?> GetAbsenceLib(string? soccod, string? empcod, DateTime dmdate)
         {

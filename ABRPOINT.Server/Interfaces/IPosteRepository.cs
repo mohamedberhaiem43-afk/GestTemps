@@ -15,5 +15,11 @@ namespace ABRPOINT.Server.Interfaces
         Task DeleteAsync(Poste poste);
         Task<string?> GetEmpPoste(string soccod, string empcod, DateTime? date);
         Task<PosteHoraireDto?> GetAllPostes(string soccod, string codposte);
-    }
+        Task<Dictionary<string, string?>> GetEmpPosteBatch(string soccod, List<(string Empcod, DateTime Date)> demandes);
+        //Task<Dictionary<string, Poste>> GetPostesBatch(string soccod, object value);
+        Task<Dictionary<string, Poste>> GetPostesBatch(string soccod, List<string> codPostes);
+        Task<Dictionary<(string Empcod, DateTime Date), string?>> GetEmployePosteBatch(string soccod, string Empcod, DateTime debut,DateTime fin);
+
+
+     }
 }

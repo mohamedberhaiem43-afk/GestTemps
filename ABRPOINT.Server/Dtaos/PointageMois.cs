@@ -4,6 +4,8 @@ namespace ABRPOINT.Server.Dtaos
 {
     public class PointageMois
     {
+        public DateTime? DateDeb { get; set; }
+        public DateTime? DateFin { get; set; }
         public string? EmpCode { get; set; }
         public string? EmpMat { get; set; }
         public string? EmpLib { get; set; }

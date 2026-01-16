@@ -1,4 +1,5 @@
 ﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +57,44 @@ namespace ABRPOINT.Server.Repository
             {
                 _dbContext.Societes.Update(entity);
                 _dbContext.SaveChanges();
+            }
+        }
+
+        public async Task<SocHeures?> GetSocHeures(string soccod)
+        {
+            try
+            {
+                return await _dbContext.Societes
+                    .Where(s => s.Soccod == soccod)
+                    .Select(s => new SocHeures
+                    {
+                        Sochsup = s.Sochsup,
+                        Socpresence = s.Socpresence
+                    })
+                    .FirstOrDefaultAsync();
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateSocHeures(string soccod,string socpresence,string sochsup)
+        {
+            try
+            {
+                var rows = await _dbContext.Societes
+                    .Where(s => s.Soccod == soccod)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(s => s.Socpresence, socpresence)
+                        .SetProperty(s => s.Sochsup, sochsup)
+                    );
+
+                return rows > 0;
+            }
+            catch
+            {
+                throw;
             }
         }
     }

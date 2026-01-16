@@ -8,7 +8,7 @@ import { EmployeeContext } from './EmployeeContext';
 import useGetEmpPosteByDate from '../../../hooks/employeHooks/useGetEmpPoste';
 
 const EmpPoste = () => {
-  const { selectedEmpPoste, date: contextDate,selectedEmp } = useContext(EmployeeContext);
+  const { selectedEmpPoste, date: contextDate,selectedEmp,arrondi,arrondisup } = useContext(EmployeeContext);
   
   // Determine if we have a codposte or need to fetch it
   const hasCodePoste = selectedEmpPoste?.codposte && selectedEmpPoste.codposte.trim() !== '';
@@ -28,7 +28,6 @@ const EmpPoste = () => {
   // Determine which data and loading state to use
   const data = hasCodePoste ? dataFromPoste : dataFromDate;
   const isLoading = hasCodePoste ? isLoadingPoste : isLoadingDate;
-
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -116,7 +115,10 @@ const EmpPoste = () => {
               <CheckboxComponent label="Repos" value={poste?.jourrepos === '1'} setValue={() => poste?.jourrepos} />
             </Grid>
             <Grid item xs={2}>
-              <InputComponent type='text' label='Arrondi' value={poste.arrondi?.toString() ?? ''} readOnly />
+              <InputComponent type='text' label='Arrondi' value={arrondi} readOnly />
+            </Grid>
+            <Grid item xs={2}>
+              <InputComponent type='text' label='Arrondi Sup' value={arrondisup} readOnly />
             </Grid>
           </Grid>
         </Box>

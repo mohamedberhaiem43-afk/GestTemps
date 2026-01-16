@@ -27,5 +27,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<Employe> UpdateAsync(Employe employe);
         Task<string> GetByEmpMat(string user_id);
         Task<(bool Success, string Message)> DeleteAsync(Employe employe);
+        Task<string?> GetEmpPanier(string soccod,string empcod);
     }
 }

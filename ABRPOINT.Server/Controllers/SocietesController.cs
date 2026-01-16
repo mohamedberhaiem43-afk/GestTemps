@@ -1,5 +1,7 @@
-﻿using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using FastReport;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -34,6 +36,32 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, "probléme de récuperation sociétés" + ex);
             }
         }
+        
+        [HttpGet("get-socheures/{soccod}")]
+        public async Task<SocHeures> GetSocHeures(string soccod)
+        {
+            try
+            {
+                SocHeures socHeures = await _societeRepository.GetSocHeures(soccod);
+                return socHeures;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+        [HttpPut("update-socheures/{soccod}")]
+        public async Task<bool> UpdateSocHeures(
+          string soccod,
+          [FromBody] SocHeures dto)
+        {
+            return await _societeRepository.UpdateSocHeures(
+                soccod,
+                dto.Socpresence,
+                dto.Sochsup
+            );
+        }
+
 
         // GET api/Services/5
         [HttpGet("{soccod}")]

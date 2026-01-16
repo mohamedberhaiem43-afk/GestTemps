@@ -237,10 +237,104 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+        public async Task<Dictionary<(string Empcod, DateTime Date), AutDto?>> GetAutLibBatch(string soccod, string empcod, DateTime dateDeb, DateTime dateFin)
+        {
+            var result = await (
+                from a in _dbContext.Autorisers
+                join ab in _dbContext.Absences on a.Abscod equals ab.Abscod
+                where a.Soccod == soccod
+                    && a.Empcod == empcod
+                    && a.Condep <= dateFin
+                    && a.Conret >= dateDeb
+                select new
+                {
+                    a.Empcod,
+                    a.Condep,
+                    a.Conret,
+                    ab.Abslib,
+                    a.Connbjour
+                })
+                .ToListAsync();
+
+            return result.ToDictionary(
+                x => (x.Empcod, x.Condep.Value.Date), // clé = (employé, date)
+                x => new AutDto
+                {
+                    Abslib = x.Abslib,
+                    Connbjour = x.Connbjour,
+                    Condep = x.Condep,
+                    Conret = x.Conret
+                });
+        }
 
         public IEnumerable<Autoriser> GetAll()
         {
             throw new NotImplementedException();
         }
+
+        public async Task<Dictionary<(string Empcod, DateTime Date), AutDto>> GetAutLibBatch(string soccod,List<(string Empcod, DateTime Date)> demandes)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                throw new ArgumentException(nameof(soccod));
+
+            if (demandes == null || !demandes.Count.Equals(0) == false)
+                return new Dictionary<(string, DateTime), AutDto>();
+
+            var empcods = demandes.Select(d => d.Empcod).Distinct().ToList();
+            var dates = demandes.Select(d => d.Date.Date).Distinct().ToList();
+
+            DateTime minDate = dates.Min();
+            DateTime maxDate = dates.Max().AddDays(1).AddTicks(-1);
+
+            // ========================
+            // 1️⃣ Requête SQL unique
+            // ========================
+            var data = await (
+                from a in _dbContext.Autorisers
+                join ab in _dbContext.Absences on a.Abscod equals ab.Abscod
+                where a.Soccod == soccod
+                      && empcods.Contains(a.Empcod)
+                      && a.Condep <= maxDate
+                      && a.Conret >= minDate
+                select new
+                {
+                    a.Empcod,
+                    Abslib = ab.Abslib,
+                    a.Condep,
+                    a.Conret,
+                    a.Connbjour
+                }
+            ).ToListAsync();
+
+            // ========================
+            // 2️⃣ Filtrage en mémoire
+            // ========================
+            var result = new Dictionary<(string Empcod, DateTime Date), AutDto>();
+
+            foreach (var d in demandes)
+            {
+                var startOfDay = d.Date.Date;
+                var endOfDay = startOfDay.AddDays(1).AddTicks(-1);
+
+                var aut = data.FirstOrDefault(a =>
+                    a.Empcod == d.Empcod &&
+                    a.Condep <= endOfDay &&
+                    a.Conret >= startOfDay);
+
+                if (aut == null)
+                    continue;
+
+                result[(d.Empcod, startOfDay)] = new AutDto
+                {
+                    Abslib = aut.Abslib,
+                    Connbjour = aut.Connbjour,
+                    Condep = aut.Condep,
+                    Conret = aut.Conret
+                };
+            }
+
+            return result;
+        }
+
     }
 }

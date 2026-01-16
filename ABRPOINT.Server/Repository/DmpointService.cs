@@ -78,6 +78,20 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        public async Task<Dictionary<(string Empcod, DateTime Date), string?>> GetPoicodBatch(string soccod, string empcod, DateTime dateDeb, DateTime dateFin)
+        {
+            var points = await _dbContext.Dmpoints
+                .Where(d => d.Soccod == soccod
+                            && d.Empcod == empcod
+                            && d.Dmdat >= dateDeb && d.Dmdat <= dateFin)
+                .OrderByDescending(d => d.Ordre)
+                .ToListAsync();
+
+            return points
+                .GroupBy(d => (d.Empcod, d.Dmdat.Value.Date))
+                .ToDictionary(g => g.Key, g => g.First().Dmpnt);
+        }
+
         public void Update(Dmpoint entity)
         {
             throw new NotImplementedException();

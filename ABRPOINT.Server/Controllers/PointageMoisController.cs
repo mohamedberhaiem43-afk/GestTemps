@@ -21,44 +21,55 @@ namespace ABRPOINT.Server.Controllers
         [CanGetEtatMensuelle]
         public async Task<IActionResult> GetPointageMois(string soccod,[FromQuery] List<string> empcods,string mois,string annee,string semaine)
         {
-            try
             {
-                List<PointageMois> pointages = new List<PointageMois>();
-                foreach (var empcod in empcods)
+                try
                 {
-                    PointageMois pointageMois = new PointageMois();
-                    pointageMois.EmpCode = empcod;
-                    var employe = await _employeRepository.GetByEmpcod(soccod,empcod);
-                    if (employe == null) continue;
-                    pointageMois.EmpMat = employe.Empmat;
-                    pointageMois.EmpLib = employe.Emplib;
-                    pointageMois.EmpReg = employe.Empreg;
-                    pointageMois.EmpSite = employe.Sitcod;
-                    HeuresSupplementairesResultat resultat = new HeuresSupplementairesResultat();
-                    if (semaine == "0")
+                    List<PointageMois> pointages = new List<PointageMois>();
+
+                    foreach (var empcod in empcods)
                     {
-                        for (int i = 1; i <= 6; i++)
+                        PointageMois pointageMois = new PointageMois();
+                        pointageMois.EmpCode = empcod;
+
+                        var employe = await _employeRepository.GetByEmpcod(soccod, empcod);
+                        if (employe == null) continue;
+
+                        pointageMois.EmpMat = employe.Empmat;
+                        pointageMois.EmpLib = employe.Emplib;
+                        pointageMois.EmpReg = employe.Empreg;
+                        pointageMois.EmpSite = employe.Sitcod;
+
+                        if (semaine == "0")
                         {
-                            semaine = i.ToString();
-                                resultat = await _heuresSupplementairesService
-                                             .CalculerHeuresSupplementairesHebdomadaires(soccod, empcod, mois, annee, semaine,employe.Empreg,employe.Empniv);
+                            for (int i = 1; i <= 6; i++)
+                            {
+                                var resultat = await _heuresSupplementairesService
+                                    .CalculerHeuresSupplementairesHebdomadaires(
+                                        soccod, empcod, mois, annee, i.ToString(),
+                                        employe.Empreg, employe.Empniv);
+
+                                pointageMois.heuresSupplementairesResultats.Add(resultat);
+                            }
+                        }
+                        else
+                        {
+                            var resultat = await _heuresSupplementairesService
+                                .CalculerHeuresSupplementairesHebdomadaires(
+                                    soccod, empcod, mois, annee, semaine,
+                                    employe.Empreg, employe.Empniv);
+
                             pointageMois.heuresSupplementairesResultats.Add(resultat);
                         }
-                        semaine = "0";
+
+                        pointages.Add(pointageMois);
                     }
-                    else
-                    {
-                        resultat = await _heuresSupplementairesService
-                                             .CalculerHeuresSupplementairesHebdomadaires(soccod, empcod, mois, annee, semaine, employe.Empreg, employe.Empniv);
-                        pointageMois.heuresSupplementairesResultats.Add(resultat);
-                    }
-                    pointages.Add(pointageMois);
+
+                    return Ok(pointages);
                 }
-                return Ok(pointages);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
+                catch (Exception ex)
+                {
+                    throw;
+                }
             }
         }
     }

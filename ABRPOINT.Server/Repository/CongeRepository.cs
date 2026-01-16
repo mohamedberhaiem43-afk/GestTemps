@@ -30,6 +30,112 @@ namespace ABRPOINT.Server.Repository
             _dbContext.SaveChanges();
         }
 
+        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date), string?>>GetCongeLibBatch(List<(string Soccod, string Empcod, DateTime Date)> demandes)
+        {
+            if (demandes == null || !demandes.Any())
+                return new Dictionary<(string, string, DateTime), string?>();
+
+            string soccod = demandes.First().Soccod;
+
+            var empcods = demandes
+                .Select(d => d.Empcod)
+                .Distinct()
+                .ToList();
+
+            DateTime minDate = demandes.Min(d => d.Date);
+            DateTime maxDate = demandes.Max(d => d.Date);
+
+            // ===============================
+            // 1️⃣ Charger congés + absences
+            // ===============================
+            var conges = await (
+                from s in _dbContext.Conges
+                join a in _dbContext.Absences
+                    on new { s.Soccod, s.Abscod }
+                    equals new { a.Soccod, a.Abscod }
+                where s.Soccod == soccod
+                      && empcods.Contains(s.Empcod)
+                      && s.Condep <= maxDate
+                      && s.Conret >= minDate
+                select new
+                {
+                    s.Soccod,
+                    s.Empcod,
+                    s.Condep,
+                    s.Conret,
+                    s.Conamret,
+                    a.Abslib
+                }
+            ).ToListAsync();
+
+            // ===============================
+            // 2️⃣ Matching date par date
+            // ===============================
+            var result = new Dictionary<(string, string, DateTime), string?>();
+
+            foreach (var d in demandes)
+            {
+                var conge = conges.FirstOrDefault(c =>
+                    c.Empcod == d.Empcod &&
+                    c.Condep <= d.Date &&
+                    (c.Conamret == "1"
+                        ? c.Conret >= d.Date
+                        : c.Conret > d.Date));
+
+                result[(d.Soccod, d.Empcod, d.Date)] = conge?.Abslib;
+            }
+
+            return result;
+        }
+
+        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date), string?>> GetCongeEmployeLibBatch(
+    string soccod,
+    string empcod,
+    DateTime debut,
+    DateTime fin)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                throw new ArgumentException(nameof(soccod));
+
+            if (string.IsNullOrWhiteSpace(empcod))
+                throw new ArgumentException(nameof(empcod));
+
+            if (debut > fin)
+                throw new ArgumentException("La date de début doit être inférieure ou égale à la date de fin.");
+
+            // 1️⃣ Charger tous les congés de l'employé dans la période
+            var conges = await (
+                from s in _dbContext.Conges
+                join a in _dbContext.Absences
+                    on new { s.Soccod, s.Abscod } equals new { a.Soccod, a.Abscod }
+                where s.Soccod == soccod
+                      && s.Empcod == empcod
+                      && s.Condep <= fin
+                      && s.Conret >= debut
+                select new
+                {
+                    s.Condep,
+                    s.Conret,
+                    s.Conamret,
+                    a.Abslib
+                }
+            ).ToListAsync();
+
+            // 2️⃣ Construire le dictionnaire date par date
+            var result = new Dictionary<(string, string, DateTime), string?>();
+
+            for (DateTime date = debut.Date; date <= fin.Date; date = date.AddDays(1))
+            {
+                var conge = conges.FirstOrDefault(c =>
+                    c.Condep <= date &&
+                    (c.Conamret == "1" ? c.Conret >= date : c.Conret > date));
+
+                result[(soccod, empcod, date)] = conge?.Abslib;
+            }
+
+            return result;
+        }
+
         public void Delete(Conge conge)
         {
             if (conge != null)

@@ -18,6 +18,10 @@ namespace ABRPOINT.Server.Interfaces
         Task<short?> GetLongbdg(string soccod);
         Task<string> GetPaie(string soccod);
         Task<float?> GetNbhConge(string soccod);
-        Task<float?> GetTotheureCongeParPeriode(string soccod,string empcod, DateTime? debut, DateTime? fin);
+        Task<int?> GetNbhFerier(string soccod);
+        //Task<float?> GetTotheureCongeParPeriode(string soccod,List<string> empcod, DateTime? debut, DateTime? fin);
+        Task<Dictionary<string, float>> GetTotheureCongeParPeriode(string soccod, List<string> empcods, DateTime? debut, DateTime? fin);
+        Task<ArrondiParam?> GetEtatPeriodiqueParamAsync(string soccod);
+
     }
 }

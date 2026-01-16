@@ -14,12 +14,17 @@ namespace ABRPOINT.Server.Repository
         private readonly ILogger<CalendrierRepository> _logger;
         private readonly IMapper _mapper;
         private readonly IParametreRepository _parametreRepository;
-        public CalendrierRepository(ApplicationDbContext dbContext,IMapper mapper,ILogger<CalendrierRepository> logger,IParametreRepository parametreRepository)
+        private readonly ICongeRepository _congeRepository;
+        private readonly IJourFerieRepository _ferierRepository;
+        public CalendrierRepository(ApplicationDbContext dbContext,IMapper mapper,ILogger<CalendrierRepository> logger,
+            IParametreRepository parametreRepository,ICongeRepository congeRepository,IJourFerieRepository jourFerieRepository)
         {
             _dbContext = dbContext;
             _mapper = mapper;
             _logger = logger;
             _parametreRepository = parametreRepository;
+            _congeRepository = congeRepository;
+            _ferierRepository = jourFerieRepository;
         }
         public void Add(Calendsoc calendrier)
         {
@@ -168,119 +173,218 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<float?> GetNbHeuresParSemaine(string soccod, string mois, string annee, string semaine, string empcod)
+        public async Task<(float? hours,
+                  DateTime? startDate,
+                  DateTime? endDate,
+                  int? jourferier,
+                  float? heuresferier,
+                  int? panier)>
+GetNbHeuresParSemaineWithDates(
+    string soccod,
+    string mois,
+    string annee,
+    string semaine,
+    string empcod,
+    string? emppanier)
         {
             try
             {
-                // Validate input parameters
-                if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(mois) ||
-                    string.IsNullOrEmpty(annee) || string.IsNullOrEmpty(semaine) ||
+                #region Validation
+                if (string.IsNullOrEmpty(soccod) ||
+                    string.IsNullOrEmpty(mois) ||
+                    string.IsNullOrEmpty(annee) ||
+                    string.IsNullOrEmpty(semaine) ||
                     string.IsNullOrEmpty(empcod))
                 {
-                    return null;
+                    return (0, null, null, 0, 0, 0);
                 }
+                #endregion
 
-                // Get employee's calendar type
+                #region Type calendrier
                 string? type = await _dbContext.Employes
                     .Where(e => e.Empcod == empcod)
                     .Select(e => e.Caltype)
                     .FirstOrDefaultAsync();
 
                 if (string.IsNullOrEmpty(type))
-                    return null;
+                    return (0, null, null, 0, 0, 0);
+                #endregion
 
-                // Get company's month configuration
-                ParametreMoisPointageDto jourDebFinDto = await _parametreRepository.GetParametreMoisPointage(soccod);
-                if (jourDebFinDto == null)
-                {
-                    return null;
-                }
+                #region Paramètres mois
+                var paramMois = await _parametreRepository.GetParametreMoisPointage(soccod);
+                if (paramMois == null)
+                    return (0, null, null, 0, 0, 0);
+                #endregion
 
-                // Parse month and year
-                if (!int.TryParse(mois, out int month) || !int.TryParse(annee, out int year) ||
+                #region Parsing
+                if (!int.TryParse(mois, out int month) ||
+                    !int.TryParse(annee, out int year) ||
                     !int.TryParse(semaine, out int weekNumber))
                 {
-                    return null;
+                    return (0, null, null, 0, 0, 0);
+                }
+                #endregion
+
+                #region Début / fin mois
+                DateTime startMonth;
+                DateTime endMonth;
+
+                if (paramMois.Moisdeb == "P")
+                {
+                    int pm = month == 1 ? 12 : month - 1;
+                    int py = month == 1 ? year - 1 : year;
+                    startMonth = new DateTime(py, pm, int.Parse(paramMois.Joudeb));
+                }
+                else
+                {
+                    startMonth = new DateTime(year, month, int.Parse(paramMois.Joudeb));
                 }
 
-                // Calculate work month start and end dates according to company parameters
-                DateTime startMonth, endMonth;
-
-                // Start date calculation
-                if (jourDebFinDto.Moisdeb == "P") // Previous month
+                if (paramMois.Moisfin == "P")
                 {
-                    var previousMonth = month == 1 ? 12 : month - 1;
-                    var previousYear = month == 1 ? year - 1 : year;
-                    startMonth = new DateTime(previousYear, previousMonth, int.Parse(jourDebFinDto.Joudeb));
+                    int pm = month == 1 ? 12 : month - 1;
+                    int py = month == 1 ? year - 1 : year;
+                    endMonth = new DateTime(py, pm, int.Parse(paramMois.Joufin));
                 }
-                else // Current month
+                else
                 {
-                    startMonth = new DateTime(year, month, int.Parse(jourDebFinDto.Joudeb));
+                    endMonth = new DateTime(year, month, int.Parse(paramMois.Joufin));
                 }
 
-                // End date calculation
-                if (jourDebFinDto.Moisfin == "P") // Previous month
+                if (paramMois.Sochsup == "L")
                 {
-                    var previousMonth = month == 1 ? 12 : month - 1;
-                    var previousYear = month == 1 ? year - 1 : year;
-                    endMonth = new DateTime(previousYear, previousMonth, int.Parse(jourDebFinDto.Joufin));
-                }
-                else // Current month
-                {
-                    endMonth = new DateTime(year, month, int.Parse(jourDebFinDto.Joufin));
+                    int delta = ((int)startMonth.DayOfWeek + 6) % 7;
+                    startMonth = startMonth.AddDays(-delta);
                 }
 
-                // Adjust for month boundaries
                 startMonth = AdjustDayToMonth(startMonth);
                 endMonth = AdjustDayToMonth(endMonth);
+                #endregion
 
-                // Get all calendar days in the work month
+                #region Chargement calendrier
                 var monthDays = await _dbContext.Lcalendsocs
                     .Where(c => c.Soccod == soccod &&
+                                c.Caltype == type &&
                                 c.CalDate >= startMonth &&
-                                c.CalDate <= endMonth &&
-                                c.Caltype == type)
+                                c.CalDate <= endMonth)
                     .OrderBy(c => c.CalDate)
                     .ToListAsync();
 
                 if (!monthDays.Any())
-                    return 0;
+                    return (0, null, null, 0, 0, 0);
+                #endregion
 
-                // Group days into weeks (ending on rest day)
+                #region Découpage semaines + calcul heures
                 var weeks = new List<List<Lcalendsoc>>();
                 var currentWeek = new List<Lcalendsoc>();
 
                 foreach (var day in monthDays)
                 {
+                    bool isFerier = await _ferierRepository.IsFerier(soccod, day.CalDate.Value);
+                    var conge = await _congeRepository.GetEmpCongeByDate(
+                        soccod, empcod, day.CalDate.Value);
+
+                    if (isFerier)
+                    {
+                        day.CalNbh = await _parametreRepository.GetNbhFerier(soccod);
+                    }
+                    else if (conge != null)
+                    {
+                        var nbh = await _parametreRepository.GetNbhConge(soccod);
+                        day.CalNbh = conge.Connbjour == 0.5 ? nbh / 2 : nbh;
+                    }
+
                     currentWeek.Add(day);
 
-                    // If it's a rest day or last day of month, complete the week
-                    if (day.CalNbh == 0 || day == monthDays.Last())
+                    if (day.CalDate.Value.DayOfWeek == DayOfWeek.Sunday ||
+                        day == monthDays.Last())
                     {
                         weeks.Add(currentWeek);
                         currentWeek = new List<Lcalendsoc>();
                     }
                 }
+                #endregion
 
-                // If we want all weeks (semaine = "0"), sum all hours
-                if (semaine == "0")
+                #region TOTAL (semaine = 0)
+                if (weekNumber == 0)
                 {
-                    return weeks.Sum(w => w.Sum(d => d.CalNbh));
+                    var allDays = weeks.SelectMany(w => w).ToList();
+
+                    float totalHours = allDays.Sum(d => d.CalNbh ?? 0);
+                    DateTime? start = allDays.First().CalDate;
+                    DateTime? end = allDays.Last().CalDate;
+
+                    int jourFerier = 0;
+                    float heuresFerier = 0;
+                    int panierTotal = 0;
+
+                    foreach (var day in allDays)
+                    {
+                        bool isFerier = await _ferierRepository.IsFerier(soccod, day.CalDate.Value);
+                        var conge = await _congeRepository.GetEmpCongeByDate(
+                            soccod, empcod, day.CalDate.Value);
+
+                        if (isFerier)
+                        {
+                            jourFerier++;
+                            heuresFerier += day.CalNbh ?? 0;
+                            continue;
+                        }
+
+                        if (conge != null)
+                            continue;
+
+                        if (emppanier == "1" && day.CalNbh >= 7) panierTotal++;
+                        if (emppanier == "2" && day.CalNbh >= 6) panierTotal++;
+                    }
+
+                    return (totalHours, start, end, jourFerier, heuresFerier, panierTotal);
+                }
+                #endregion
+
+                #region Semaine précise
+                if (weekNumber < 1 || weekNumber > weeks.Count)
+                    return (0, null, null, 0, 0, 0);
+
+                var selectedWeek = weeks[weekNumber - 1];
+
+                float weekHours = selectedWeek.Sum(d => d.CalNbh ?? 0);
+                DateTime? weekStart = selectedWeek.First().CalDate;
+                DateTime? weekEnd = selectedWeek.Last().CalDate;
+
+                int jourFerierWeek = 0;
+                float heuresFerierWeek = 0;
+                int panierWeek = 0;
+
+                foreach (var day in selectedWeek)
+                {
+                    bool isFerier = await _ferierRepository.IsFerier(soccod, day.CalDate.Value);
+                    var conge = await _congeRepository.GetEmpCongeByDate(
+                        soccod, empcod, day.CalDate.Value);
+
+                    if (isFerier)
+                    {
+                        jourFerierWeek++;
+                        heuresFerierWeek += day.CalNbh ?? 0;
+                        continue;
+                    }
+
+                    if (conge != null)
+                        continue;
+
+                    if (emppanier == "1" && day.CalNbh >= 7) panierWeek++;
+                    if (emppanier == "2" && day.CalNbh >= 6) panierWeek++;
                 }
 
-                // Validate week number
-                if (weekNumber < 1 || weekNumber > weeks.Count)
-                    return 0;
-
-                // Return hours for the requested week
-                return weeks[weekNumber - 1].Sum(d => d.CalNbh);
+                return (weekHours, weekStart, weekEnd, jourFerierWeek, heuresFerierWeek, panierWeek);
+                #endregion
             }
-            catch (Exception ex)
+            catch
             {
-                // Log error here
                 throw;
             }
         }
+
 
         private DateTime AdjustDayToMonth(DateTime date)
         {

@@ -86,21 +86,52 @@ namespace ABRPOINT.Server.Repository
                 return int.Parse(parancemp);
             return 0;
         }
+
         public async Task<ParametreMoisPointageDto> GetParametreMoisPointage(string soccod)
         {
-            ParametreMoisPointageDto? jourDebFinMois = await _dbContext.Parametres
-                .Where(p => p.Soccod == soccod)
-                .Select(p => new ParametreMoisPointageDto
+            try
+            {
+                var result = await (
+                    from p in _dbContext.Parametres
+                    join s in _dbContext.Societes on p.Soccod equals s.Soccod
+                    where p.Soccod == soccod
+                    select new ParametreMoisPointageDto
+                    {
+                        Joudeb = p.Joudeb,
+                        Joufin = p.Joufin,
+                        Moisdeb = p.Moisdeb,
+                        Moisfin = p.Moisfin,
+                        Nbhconge = p.Nbhconge,
+                        Socpresence = s.Socpresence,
+                        Sochsup = s.Sochsup
+                    }
+                ).FirstOrDefaultAsync();
+
+                if (result == null)
+                    return null;
+
+                // Si Sochsup == "L", ajuster Joudeb pour démarrer le lundi de la semaine
+                if (result.Sochsup == "L" && int.TryParse(result.Joudeb, out int jourDeb))
                 {
-                    Joudeb = p.Joudeb,
-                    Joufin = p.Joufin,
-                    Moisdeb = p.Moisdeb,
-                    Moisfin = p.Moisfin,
-                    Nbhconge = p.Nbhconge
-                })
-                .FirstOrDefaultAsync();
-            return jourDebFinMois;
+                    // Construire une date arbitraire (année/mois = 1/1) juste pour calculer le lundi
+                    DateTime tempDate = new DateTime(2000, 1, jourDeb);
+
+                    // Calculer combien de jours reculer pour atteindre lundi
+                    int daysToMonday = ((int)tempDate.DayOfWeek + 6) % 7; // lundi = 0
+                    tempDate = tempDate.AddDays(-daysToMonday-1);
+
+                    result.Joudeb = tempDate.Day.ToString(); // mettre à jour le jour début
+                }
+
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
+
+
 
         public void Update(Parametre entity)
         {
@@ -251,6 +282,28 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+        public async Task<ArrondiParam?> GetEtatPeriodiqueParamAsync(string soccod)
+        {
+            try
+            {
+                // Récupération du paramètre pour la société
+                var param = await _dbContext.Parametres
+                    .Where(p => p.Soccod == soccod)
+                    .Select(p => new ArrondiParam
+                    {
+                        Arrhsup = p.Arrhsup,
+                        Arrondi = p.Arrondi
+                    })
+                    .FirstOrDefaultAsync();
+
+                return param;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
 
         public async Task<string> GetPaie(string soccod)
         {
@@ -277,54 +330,64 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-
-
-
-        public async Task<float?> GetTotheureCongeParPeriode(string soccod,string empcod,DateTime? debut,DateTime? fin)
+        public Task<int?> GetNbhFerier(string soccod)
+        {
+            try
             {
-                try
-                {
-                    // 1. Heures par jour de congé (paramètre système)
-                    float? nbhconge = await GetNbhConge(soccod);
-
-                    if (!nbhconge.HasValue)
-                        return 0f;
-
-                    // 2. Congés de l'employé sur la période
-                    var conges = await _dbContext.Conges
-                        .Where(c =>
-                            c.Soccod == soccod &&
-                            c.Empcod == empcod &&
-                            (!debut.HasValue || c.Condat >= debut) &&
-                            (!fin.HasValue || c.Condat <= fin))
-                        .Select(c => c.Conjour)
-                        .ToListAsync();
-
-                    float totalHeures = 0f;
-
-                    // 3. Calcul
-                    foreach (var conjour in conges)
-                    {
-                        if (!float.TryParse(
-                                conjour,
-                                NumberStyles.Any,
-                                CultureInfo.InvariantCulture,
-                                out float coef))
-                        {
-                            coef = 1f; // sécurité
-                        }
-
-                        totalHeures += nbhconge.Value * coef;
-                    }
-
-                    return totalHeures;
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
+                var nbhferier =  _dbContext.Parametres.Where(p => p.Soccod == soccod).Select(p => p.Nbhferier).SingleOrDefaultAsync();
+                return nbhferier;
             }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
 
+
+
+        public async Task<Dictionary<string, float>> GetTotheureCongeParPeriode(string soccod, List<string> empcods, DateTime? debut, DateTime? fin)
+        {
+            float? nbhconge = await GetNbhConge(soccod);
+            if (!nbhconge.HasValue)
+                return new Dictionary<string, float>();
+
+            // 1️⃣ Récupérer les données brutes depuis la base
+            var congesData = await _dbContext.Conges
+                .Where(c =>
+                    c.Soccod == soccod &&
+                    empcods.Contains(c.Empcod) &&
+                    (!debut.HasValue || c.Condat >= debut.Value) &&
+                    (!fin.HasValue || c.Condat <= fin.Value))
+                .Select(c => new
+                {
+                    c.Empcod,
+                    c.Conjour  // ✅ Récupérer la valeur string brute
+                })
+                .ToListAsync();
+
+            // 2️⃣ Parser en mémoire (côté client)
+            var conges = congesData
+                .Select(c => new
+                {
+                    c.Empcod,
+                    Coef = float.TryParse(
+                        c.Conjour,
+                        NumberStyles.Any,
+                        CultureInfo.InvariantCulture,
+                        out var coef)
+                        ? coef
+                        : 1f
+                })
+                .ToList();
+
+            // 3️⃣ Grouper et calculer
+            return conges
+                .GroupBy(c => c.Empcod)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Sum(x => x.Coef) * nbhconge.Value
+                );
+        }
 
     }
 }

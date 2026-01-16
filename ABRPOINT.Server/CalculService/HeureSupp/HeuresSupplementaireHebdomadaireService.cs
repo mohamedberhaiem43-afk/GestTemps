@@ -15,6 +15,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         public float? HeuresSupTranche1 { get; set; }
         public float? HeuresSupTranche2 { get; set; }
         public float? HreSupSemaine { get; set; }
+        public int? JourFerier { get; set; }
+        public float? HeureFerier { get; set; }
         public int? NbJourFerier { get; set; }
         public float? HreFerieTrv { get; set; }
         public float? HreFerier { get; set; }
@@ -39,22 +41,27 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         public float? CSF { get; set; }
         public float? HCSF { get; set; }
         public float? ACT { get; set; }
+        public int? Panier { get; set; }
         public IDictionary<string,string> WeekDetails { get; set; }
+        public DateTime? WeekStartDate { get; set; }
+        public DateTime? WeekEndDate { get; set; }
     }
 
     public class HeuresSupplementairesHebdomadairesService : IHeuresSupplementaireHebdomadairesService
     {
         private readonly IparTrancheRepository _parTrancheRepository;
         private readonly ICalendrierRepository _calendrierRepository;
+        private readonly IEmployeRepository _employeRepository;
         private readonly IParametreRepository _parametreRepository;
         private readonly IPresenceRepository _presenceRepository;
         public HeuresSupplementairesHebdomadairesService(IparTrancheRepository parTrancheRepository, ICalendrierRepository calendrierRepository,
-                IParametreRepository parametreRepository, IPresenceRepository presenceRepository)
+                IParametreRepository parametreRepository, IPresenceRepository presenceRepository, IEmployeRepository employeRepository)
         {
             _parTrancheRepository = parTrancheRepository;
             _calendrierRepository = calendrierRepository;
             _parametreRepository = parametreRepository;
             _presenceRepository = presenceRepository;
+            _employeRepository = employeRepository;
         }
 
         public async Task<HeuresSupplementairesResultat> CalculerHeuresSupplementairesHebdomadaires(string soccod, string empcod, string mois,
@@ -64,8 +71,17 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             {
                 var result = new HeuresSupplementairesResultat();
                 float? tranche1 = 0, taux1 = 0, tranche2 = 0, taux2 = 0, heuresTravaillees = 0;
-                result.NbhCalendSem = await _calendrierRepository.GetNbHeuresParSemaine(soccod, mois, annee, semaine, empcod);
+                // Get hours with date range
+                string? emppanier = await _employeRepository.GetEmpPanier(soccod,empcod);
+                var (hours, startDate, endDate,jourferier,heuresferier,panier) = await _calendrierRepository
+                    .GetNbHeuresParSemaineWithDates(soccod, mois, annee, semaine, empcod,emppanier);
 
+                result.Panier = panier;
+                result.NbhCalendSem = hours;
+                result.WeekStartDate = startDate;
+                result.WeekEndDate = endDate;
+                result.JourFerier = jourferier;
+                result.HeureFerier = heuresferier;
                 PresenceSemaineData res = await _presenceRepository.GetPresenceSemaineData(soccod, empcod, mois, annee, semaine);
                 SuppAndFerierParam param = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
                 heuresTravaillees = res.TotalHours;
