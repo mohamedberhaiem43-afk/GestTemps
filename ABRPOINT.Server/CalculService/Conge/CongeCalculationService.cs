@@ -17,7 +17,7 @@ namespace ABRPOINT.Server.CalculService.Conge
             try
             {
                 var nbjourCng = await _congeRepository.GetNbJourEtHreEmpConge(soccod,empcod,predat,codpost);
-                return nbjourCng;  
+                return nbjourCng;
             }
             catch (Exception)
             {

@@ -107,12 +107,12 @@ const TravailInfo = ({
             onChange={handleChange}
           >
             <FormControlLabel
-              value="D"
+              value="1"
               control={<Radio size="small" />}
               label={<Typography fontSize="small">Directe</Typography>}
             />
             <FormControlLabel
-              value="I"
+              value="2"
               control={<Radio size="small" />}
               label={<Typography fontSize="small">Indirecte</Typography>}
             />

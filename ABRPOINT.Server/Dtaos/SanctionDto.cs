@@ -4,6 +4,7 @@
     {
         public string? Concod { get; set; }
         public string? Soccod { get; set; }
+        public DateTime? Condat { get; set; }
         public string? Condep { get; set; }
         public DateTime? Conret { get; set; }
         public string? Abscod { get; set; }

@@ -12,5 +12,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<IEnumerable<Autoriser>>GetAllAsync(string? soccod, string? uticod);
         Task<Dictionary<(string Empcod, DateTime Date), AutDto?>> GetAutLibBatch(string soccod, string empcod, DateTime dateDeb, DateTime dateFin);
         Task<Dictionary<(string Empcod, DateTime Date), AutDto>> GetAutLibBatch(string soccod, List<(string Empcod, DateTime Date)> demandes);
+        Task<List<AutDto>> GetAutorisationsByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate);
     }
 }

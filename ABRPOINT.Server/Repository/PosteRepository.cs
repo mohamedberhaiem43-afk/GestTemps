@@ -23,6 +23,71 @@ namespace ABRPOINT.Server.Repository
             _mapper = mapper;
             _lcategorieRepository = lcategorieRepository;
         }
+        public async Task<Dictionary<DateTime, float>> GetJourHeuresByPeriod(string soccod,List<DateTime> ferierDates,Dictionary<DateTime, string> postesByDate)
+        {
+            try
+            {
+                var result = new Dictionary<DateTime, float>();
+
+                if (!ferierDates.Any())
+                    return result;
+
+                // Group ferier dates by poste
+                var feriersByPoste = ferierDates
+                    .Where(d => postesByDate.ContainsKey(d))
+                    .GroupBy(d => postesByDate[d])
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                // Get unique postes
+                var uniquePostes = feriersByPoste.Keys.ToList();
+
+                // Load all postes
+                var postes = await _dbContext.Postes
+                    .Where(p => p.Soccod == soccod && uniquePostes.Contains(p.Codposte))
+                    .ToDictionaryAsync(p => p.Codposte);
+
+                // Calculate hours for each ferier date
+                foreach (var kvp in feriersByPoste)
+                {
+                    var posteCode = kvp.Key;
+                    var dates = kvp.Value;
+
+                    if (!postes.TryGetValue(posteCode, out var poste))
+                        continue;
+
+                    foreach (var date in dates)
+                    {
+                        //float hours = GetDayHours(poste, date.DayOfWeek);
+                        float? hours = await GetJourHeures(soccod, date, posteCode);
+                        result[date.Date] = (float)hours;
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        //private float GetDayHours(Poste poste, DayOfWeek dayOfWeek)
+        //{
+        //    string hoursStr = dayOfWeek switch
+        //    {
+        //        DayOfWeek.Monday => poste.Nblundi,
+        //        DayOfWeek.Tuesday => poste.Nbmardi,
+        //        DayOfWeek.Wednesday => poste.Nbmercredi,
+        //        DayOfWeek.Thursday => poste.Nbjeudi,
+        //        DayOfWeek.Friday => poste.Nbvendredi,
+        //        DayOfWeek.Saturday => poste.Nbsamedi,
+        //        DayOfWeek.Sunday => poste.Nbdimanche,
+        //        _ => null
+        //    };
+
+        //    return ParseHours(hoursStr);
+        //}
+
+
 
         // Add a new Poste entity to the database
         public void Add(Poste entity)

@@ -103,6 +103,7 @@ const totals = useMemo(() => {
       acc.jourFerier += r.jourFerier ?? 0;
       acc.panier += r.panier ?? 0;
       acc.heureFerier += r.heureFerier ?? 0;
+      acc.nbhFerierTrv += r.nbhFerierTrv ?? 0;
       acc.tothre += r.tothre ?? 0;
       acc.nbJours += r.nbJours ?? 0;
       acc.retard += r.retard ?? 0;
@@ -115,6 +116,7 @@ const totals = useMemo(() => {
       acc.nbJourFerier += r.nbJourFerier ?? 0;
       acc.hreAllaitement += r.hreAllaitement ?? 0;
       acc.absnp += r.absnp ?? 0;
+      acc.caltype += r.caltype ?? '0';
       acc.totalAbsence += r.totalAbsence ?? 0;
       acc.nbJourPointer += r.nbJourPointer ?? 0;
       acc.nbNuits += r.nbNuits ?? 0;
@@ -135,6 +137,8 @@ const totals = useMemo(() => {
       acc.csf += r.csf ?? 0;
       acc.css += r.css ?? 0;
       acc.map += r.map ?? 0;
+      acc.jourSamediTrv += r.jourSamediTrv ?? 0;
+      acc.hreSamediTrv += r.hreSamediTrv ?? 0;
       return acc;
     },
     {
@@ -147,12 +151,14 @@ const totals = useMemo(() => {
       hs: 0,
       jourFerier: 0,
       heureFerier: 0,
+      nbhFerierTrv: 0,
       hreFerier: 0,
       hreFerieTrv: 0,
       hreFerieTrv2: 0,
       nbJourFerier: 0,
       hreAllaitement: 0,
       absnp: 0,
+      caltype: '0',
       totalAbsence: 0,
       nbJourPointer: 0,
       nbNuits: 0,
@@ -173,6 +179,8 @@ const totals = useMemo(() => {
       csf: 0,
       css: 0,
       map: 0,
+      jourSamediTrv: 0,
+      hreSamediTrv: 0,
     }
   );
 }, [selectedEmp]);
@@ -245,10 +253,10 @@ const totals = useMemo(() => {
                         {[
                           'Semaine', 'Nb. Heures', 'Nb. Jours', 'Total Retard', 'HS25', 'HS50', 'HS','Jours Fériés','Heures Fériés','Heures Fériés Trav',
                           'H.Fériés Trav 1', 'H.Fériés Trav 2', 'J.Férié Travaillé', 'Allaitement',
-                          'J. Abs N/Payé', 'Heure Absences','Jours Pointés' ,'Panier', 'Nb. Nuits', 'Congé Payé',
+                          'J. Abs N/Payé','Calend', 'Heure Absences','Jours Pointés' ,'Panier', 'Nb. Nuits', 'Congé Payé',
                           'H.Congé Payé', 'H. Spéc Familiale', 'Heures Normales', 'Jours Repos', 'H.Nuits',
                           'Heure Repos', 'Déplacement', 'ACT', 'Formation Mission', 'Abs. Just',
-                          'J. Arrêt  Technique', 'Maladie', 'Abs. NJ.', 'C. Spéc Familiale', 'CSS', 'MAP',
+                          'J. Arrêt  Technique', 'Maladie', 'Abs. NJ.', 'C. Spéc Familiale', 'CSS', 'MAP','Samedi Trav','Heure R.Samedi Trv',
                         ].map((label) => (
                           <TableCell
                             key={label}
@@ -294,12 +302,13 @@ const totals = useMemo(() => {
                           <TableCell>{(res.hreSupSemaine ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.jourFerier ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.heureFerier ?? 0).toFixed(2)}</TableCell>
-                          <TableCell>{(res.hreFerier ?? 0).toFixed(2)}</TableCell>
+                          <TableCell>{(res.nbhFerierTrv ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hreFerieTrv ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hreFerieTrv2 ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.nbJourFerier ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hreAllaitement ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.absnp ?? 0).toFixed(2)}</TableCell>
+                          <TableCell>{res.caltype ?? '0'}</TableCell>
                           <TableCell>{(res.totalAbsence ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.nbJourPointer ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.panier ?? 0).toFixed(2)}</TableCell>
@@ -321,6 +330,8 @@ const totals = useMemo(() => {
                           <TableCell>{(res.csf ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.css ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.map ?? 0).toFixed(2)}</TableCell>
+                          <TableCell>{(res.jourSamediTrv ?? 0).toFixed(2)}</TableCell>
+                          <TableCell>{(res.hreSamediTrv ?? 0).toFixed(2)}</TableCell>
                         </TableRow>
                       ))}
                       {totals && (
@@ -343,12 +354,13 @@ const totals = useMemo(() => {
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.hs.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.jourFerier.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.heureFerier.toFixed(2)}</TableCell>
-    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreFerier.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbhFerierTrv.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreFerieTrv.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreFerieTrv2.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbJourFerier.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreAllaitement.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.absnp.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.caltype.slice(-2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalAbsence.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbJourPointer.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.panier.toFixed(2)}</TableCell>
@@ -370,6 +382,8 @@ const totals = useMemo(() => {
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.csf.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.css.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.map.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.jourSamediTrv.toFixed(2)}</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{totals.hreSamediTrv.toFixed(2)}</TableCell>
   </TableRow>
 )}
 

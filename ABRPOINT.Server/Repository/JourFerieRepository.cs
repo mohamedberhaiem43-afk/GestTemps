@@ -14,6 +14,21 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
+        public async Task<List<Ferier>> GetFeriersByPeriod(string soccod,DateTime startDate,DateTime endDate)
+        {
+            try
+            {
+                return await _dbContext.Feriers
+                    .Where(f => f.Soccod == soccod &&
+                               f.Ferdate >= startDate &&
+                               f.Ferdate <= endDate)
+                    .ToListAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         public void Add(Ferier ferier)
         {
             _dbContext.Feriers.Add(ferier);

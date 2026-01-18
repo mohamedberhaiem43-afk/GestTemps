@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("conge")]
 [PrimaryKey("Concod","Soccod")]
-public partial class Conge
+public class Conge
 {
     [Key]
     [Required]

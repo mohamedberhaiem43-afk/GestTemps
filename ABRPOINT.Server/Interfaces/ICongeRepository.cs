@@ -16,5 +16,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<float> GetNbCongeRecue(string soccod, string empcod, string annee, string currentMonth);
         Task<List<CahierConge>> GetCahierConge(string soccod, DateTime datedebut, DateTime datefin, List<string> empcods);
         Task<Conge> GetEmpCongeByDate(string soccod, string empcod, DateTime date);
+        Task<List<CongeDto>> GetCongesByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate);
     }
 }

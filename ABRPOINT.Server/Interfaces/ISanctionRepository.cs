@@ -12,5 +12,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<bool> IsDeplacement(string soccod, string empcod, DateTime? predat);
         Task<bool> IsSanction(string soccod, string? empcod, DateTime? predat);
         Task<Dictionary<(string Empcod, DateTime Date), string>> GetAbsenceLibBatch(string soccod, string empcod, DateTime dateDeb, DateTime dateFin);
+        Task<List<SanctionDto>> GetSanctionsByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate);
     }
 }

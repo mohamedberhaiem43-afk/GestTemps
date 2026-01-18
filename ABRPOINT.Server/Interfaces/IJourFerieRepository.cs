@@ -12,5 +12,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<float?> GetFerheure(string soccod, DateTime? ferdate);
         Task<float?> GetTotheureFerierParPeriode(string soccod,DateTime? debut, DateTime? fin);
         Task<Dictionary<DateTime, Ferier>> GetByFerdateBatch(string soccod, DateTime dateDeb, DateTime dateFin);
+        Task<List<Ferier>> GetFeriersByPeriod(string soccod, DateTime startDate, DateTime endDate);
     }
 }

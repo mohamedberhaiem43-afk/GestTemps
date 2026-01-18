@@ -40,6 +40,7 @@ export default function BasicGrid() {
     natcod: '',
     vilcod: '',
     empadr: '',
+    empferepos: '',
     emptel: '',
     empmob: '',
     empemb: null,

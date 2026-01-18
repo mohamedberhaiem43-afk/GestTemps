@@ -47,7 +47,7 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
 
     return (
         <Grid container spacing={2}>
-            <Grid item xs={3} mt={2}>
+            <Grid item xs={2} mt={1}>
                 <RadioGroupComponent value={formData.empniv} setValue={(value)=> handleChange({target:{name:'empniv',value}})}>
                     <FormControlLabelComponent radioValue='2' label='Cadre' />
                     <FormControlLabelComponent radioValue='1' label='Maitrise' />
@@ -134,6 +134,25 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                 >
                     <MenuItem value="Finance">Finance</MenuItem>
                     <MenuItem value="Gestionnaire">Gestionnaire</MenuItem>
+                </Select>
+                </FormControl>
+            </Grid>
+            <Grid item xs={2} mt={1}>
+                <FormControl variant="standard" fullWidth>
+                {/* <SelectInputComponent label='Hre Nuit' value={undefined} setValue={undefined} maplist={undefined} /> */}
+            <InputLabel shrink id="employe-label">Compter Repos</InputLabel>
+                <Select
+                    fullWidth
+                    size="small"
+                    name="empferepos"
+                    value={formData.empferepos}
+                    onChange={handleChange}
+                    
+                >
+                    <MenuItem value="0">0- Sans Compter</MenuItem>
+                    <MenuItem value="1">1- Tout Repos</MenuItem>
+                    <MenuItem value="2">2- Repos Samedi</MenuItem>
+                    <MenuItem value="3">3- Repos Dimanche</MenuItem>
                 </Select>
                 </FormControl>
             </Grid>

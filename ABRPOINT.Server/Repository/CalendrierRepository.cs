@@ -173,19 +173,8 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<(float? hours,
-                  DateTime? startDate,
-                  DateTime? endDate,
-                  int? jourferier,
-                  float? heuresferier,
-                  int? panier)>
-GetNbHeuresParSemaineWithDates(
-    string soccod,
-    string mois,
-    string annee,
-    string semaine,
-    string empcod,
-    string? emppanier)
+        public async Task<(string? calend,float? hours,DateTime? startDate,DateTime? endDate,int? jourferier,float? heuresferier)>GetNbHeuresParSemaineWithDates(string soccod,
+                           string mois,string annee,string semaine,string empcod)
         {
             try
             {
@@ -196,7 +185,7 @@ GetNbHeuresParSemaineWithDates(
                     string.IsNullOrEmpty(semaine) ||
                     string.IsNullOrEmpty(empcod))
                 {
-                    return (0, null, null, 0, 0, 0);
+                    return ("0",0, null, null, 0, 0);
                 }
                 #endregion
 
@@ -207,13 +196,13 @@ GetNbHeuresParSemaineWithDates(
                     .FirstOrDefaultAsync();
 
                 if (string.IsNullOrEmpty(type))
-                    return (0, null, null, 0, 0, 0);
+                    return ("0", 0, null, null, 0, 0);
                 #endregion
 
                 #region Paramètres mois
                 var paramMois = await _parametreRepository.GetParametreMoisPointage(soccod);
                 if (paramMois == null)
-                    return (0, null, null, 0, 0, 0);
+                    return ("0", 0, null, null, 0, 0);
                 #endregion
 
                 #region Parsing
@@ -221,25 +210,37 @@ GetNbHeuresParSemaineWithDates(
                     !int.TryParse(annee, out int year) ||
                     !int.TryParse(semaine, out int weekNumber))
                 {
-                    return (0, null, null, 0, 0, 0);
+                    return ("0", 0, null, null, 0, 0);
                 }
                 #endregion
 
-                #region Début / fin mois
-                DateTime startMonth;
+                #region Début / fin mois (RÉEL vs CALCUL)
+                DateTime startMonthReal;
+                DateTime startMonthCalc;
                 DateTime endMonth;
 
+                // ---- Jour réel (Joudeb)
                 if (paramMois.Moisdeb == "P")
                 {
                     int pm = month == 1 ? 12 : month - 1;
                     int py = month == 1 ? year - 1 : year;
-                    startMonth = new DateTime(py, pm, int.Parse(paramMois.Joudeb));
+                    startMonthReal = new DateTime(py, pm, paramMois.DebutReel);
                 }
                 else
                 {
-                    startMonth = new DateTime(year, month, int.Parse(paramMois.Joudeb));
+                    startMonthReal = new DateTime(year, month, paramMois.DebutCalc);
                 }
 
+                // ---- Jour calcul (peut être déplacé au lundi)
+                startMonthCalc = startMonthReal;
+
+                if (paramMois.Sochsup == "L")
+                {
+                    int delta = ((int)startMonthCalc.DayOfWeek + 6) % 7;
+                    startMonthCalc = startMonthCalc.AddDays(-delta);
+                }
+
+                // ---- Fin mois
                 if (paramMois.Moisfin == "P")
                 {
                     int pm = month == 1 ? 12 : month - 1;
@@ -251,13 +252,8 @@ GetNbHeuresParSemaineWithDates(
                     endMonth = new DateTime(year, month, int.Parse(paramMois.Joufin));
                 }
 
-                if (paramMois.Sochsup == "L")
-                {
-                    int delta = ((int)startMonth.DayOfWeek + 6) % 7;
-                    startMonth = startMonth.AddDays(-delta);
-                }
-
-                startMonth = AdjustDayToMonth(startMonth);
+                startMonthReal = AdjustDayToMonth(startMonthReal);
+                startMonthCalc = AdjustDayToMonth(startMonthCalc);
                 endMonth = AdjustDayToMonth(endMonth);
                 #endregion
 
@@ -265,16 +261,16 @@ GetNbHeuresParSemaineWithDates(
                 var monthDays = await _dbContext.Lcalendsocs
                     .Where(c => c.Soccod == soccod &&
                                 c.Caltype == type &&
-                                c.CalDate >= startMonth &&
+                                c.CalDate >= startMonthCalc &&
                                 c.CalDate <= endMonth)
                     .OrderBy(c => c.CalDate)
                     .ToListAsync();
 
                 if (!monthDays.Any())
-                    return (0, null, null, 0, 0, 0);
+                    return ("0", 0, null, null, 0, 0);
                 #endregion
 
-                #region Découpage semaines + calcul heures
+                #region Découpage en semaines
                 var weeks = new List<List<Lcalendsoc>>();
                 var currentWeek = new List<Lcalendsoc>();
 
@@ -304,7 +300,7 @@ GetNbHeuresParSemaineWithDates(
                     }
                 }
                 #endregion
-
+                string? calend = await _dbContext.Employes.Where(e => e.Empcod == empcod && e.Soccod == soccod).Select(e=>e.Caltype).FirstOrDefaultAsync();
                 #region TOTAL (semaine = 0)
                 if (weekNumber == 0)
                 {
@@ -334,17 +330,15 @@ GetNbHeuresParSemaineWithDates(
                         if (conge != null)
                             continue;
 
-                        if (emppanier == "1" && day.CalNbh >= 7) panierTotal++;
-                        if (emppanier == "2" && day.CalNbh >= 6) panierTotal++;
                     }
 
-                    return (totalHours, start, end, jourFerier, heuresFerier, panierTotal);
+                    return (calend,totalHours, start, end, jourFerier, heuresFerier);
                 }
                 #endregion
 
                 #region Semaine précise
                 if (weekNumber < 1 || weekNumber > weeks.Count)
-                    return (0, null, null, 0, 0, 0);
+                    return (calend,0, null, null, 0, 0);
 
                 var selectedWeek = weeks[weekNumber - 1];
 
@@ -354,7 +348,6 @@ GetNbHeuresParSemaineWithDates(
 
                 int jourFerierWeek = 0;
                 float heuresFerierWeek = 0;
-                int panierWeek = 0;
 
                 foreach (var day in selectedWeek)
                 {
@@ -372,11 +365,12 @@ GetNbHeuresParSemaineWithDates(
                     if (conge != null)
                         continue;
 
-                    if (emppanier == "1" && day.CalNbh >= 7) panierWeek++;
-                    if (emppanier == "2" && day.CalNbh >= 6) panierWeek++;
+                    if (day.CalDate < startMonthReal)
+                        continue;
+
                 }
 
-                return (weekHours, weekStart, weekEnd, jourFerierWeek, heuresFerierWeek, panierWeek);
+                return (calend,weekHours, weekStart, weekEnd, jourFerierWeek, heuresFerierWeek);
                 #endregion
             }
             catch

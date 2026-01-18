@@ -7,6 +7,7 @@ export default interface Employe {
     empsexe: string | null;
     sercod: string | null;
     empfonc: string;
+    empferepos: string;
     empreg: string | null;
     catcod: string | null;
     empnbp: number | null;

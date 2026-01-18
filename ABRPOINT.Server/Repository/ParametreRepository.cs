@@ -29,6 +29,152 @@ namespace ABRPOINT.Server.Repository
         {
             throw new NotImplementedException();
         }
+        public async Task<Dictionary<DateTime, bool>> GetReposDaysByPeriod(string soccod, string empcod, List<DateTime> dates)
+        {
+            try
+            {
+                var result = new Dictionary<DateTime, bool>();
+
+                if (!dates.Any())
+                    return result;
+
+                // Get employee's repos preference
+                string? empferepos = await _dbContext.Employes
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .Select(e => e.Empferepos)
+                    .FirstOrDefaultAsync();
+
+                // If "Sans Compter" (0), no days are repos
+                if (empferepos == "0")
+                {
+                    foreach (var date in dates)
+                    {
+                        result[date.Date] = false;
+                    }
+                    return result;
+                }
+
+                // Get employee's postes for the period
+                var startDate = dates.Min();
+                var endDate = dates.Max();
+                var postesByDate = await GetEmpPostesByPeriod(soccod, empcod, startDate, endDate);
+
+                // Get unique postes
+                var uniquePostes = postesByDate.Values.Distinct().ToList();
+
+                // Load all postes data
+                var postesData = await _dbContext.Postes
+                    .Where(p => p.Soccod == soccod && uniquePostes.Contains(p.Codposte))
+                    .ToDictionaryAsync(p => p.Codposte);
+
+                // Check each date
+                foreach (var date in dates)
+                {
+                    bool isRepos = false;
+
+                    if (postesByDate.TryGetValue(date.Date, out var codposte) &&
+                        postesData.TryGetValue(codposte, out var poste))
+                    {
+                        var dayOfWeek = date.DayOfWeek;
+
+                        // Check based on empferepos setting
+                        if (empferepos == "1") // Tout Repos
+                        {
+                            isRepos = dayOfWeek switch
+                            {
+                                DayOfWeek.Monday => poste.Lunrepos == "1",
+                                DayOfWeek.Tuesday => poste.Marrepos == "1",
+                                DayOfWeek.Wednesday => poste.Merrepos == "1",
+                                DayOfWeek.Thursday => poste.Jeurepos == "1",
+                                DayOfWeek.Friday => poste.Venrepos == "1",
+                                DayOfWeek.Saturday => poste.Samrepos == "1",
+                                DayOfWeek.Sunday => poste.Dimrepos == "1",
+                                _ => false
+                            };
+                        }
+                        else if (empferepos == "2") // Repos Samedi uniquement
+                        {
+                            isRepos = dayOfWeek == DayOfWeek.Saturday && poste.Samrepos == "1";
+                        }
+                        else if (empferepos == "3") // Repos Dimanche uniquement
+                        {
+                            isRepos = dayOfWeek == DayOfWeek.Sunday && poste.Dimrepos == "1";
+                        }
+                    }
+
+                    result[date.Date] = isRepos;
+                }
+
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        // Helper method to get postes for period
+        private async Task<Dictionary<DateTime, string>> GetEmpPostesByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate)
+        {
+            // Get employee's category
+            string? catcod = await _dbContext.Employes
+                .Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
+                .Select(emp => emp.Catcod)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrEmpty(catcod))
+                return new Dictionary<DateTime, string>();
+
+            // Get all lcategories for this employee's category
+            var lcategories = await _dbContext.Lcategories
+                .Where(l => l.Soccod == soccod && l.Catcod == catcod)
+                .ToListAsync();
+
+            if (!lcategories.Any())
+                return new Dictionary<DateTime, string>();
+
+            // Build dictionary for each date in range
+            var result = new Dictionary<DateTime, string>();
+            DateTime currentDate = startDate.Date;
+
+            while (currentDate <= endDate.Date)
+            {
+                var month = currentDate.Month;
+                var year = currentDate.Year;
+
+                var validMonth = lcategories
+                    .Where(l => l.Catdu.HasValue && l.Catau.HasValue &&
+                               l.Catdu.Value.Month <= month &&
+                               l.Catau.Value.Month >= month)
+                    .ToList();
+
+                if (!validMonth.Any(l => l.Catdu!.Value.Year == year || l.Catau!.Value.Year == year))
+                {
+                    validMonth = validMonth.Where(l => l.Catfixe == "1").ToList();
+                }
+
+                if (validMonth.Any())
+                {
+                    var selected = validMonth.First();
+                    foreach (var l in validMonth)
+                    {
+                        if (currentDate >= l.Catdu && currentDate <= l.Catau)
+                        {
+                            selected = l;
+                            break;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(selected.Codposte))
+                    {
+                        result[currentDate] = selected.Codposte;
+                    }
+                }
+
+                currentDate = currentDate.AddDays(1);
+            }
+
+            return result;
+        }
 
         public Parametre GetAll(string soccod)
         {
@@ -87,7 +233,7 @@ namespace ABRPOINT.Server.Repository
             return 0;
         }
 
-        public async Task<ParametreMoisPointageDto> GetParametreMoisPointage(string soccod)
+        public async Task<ParametreMoisPointageDto?> GetParametreMoisPointage(string soccod)
         {
             try
             {
@@ -110,22 +256,26 @@ namespace ABRPOINT.Server.Repository
                 if (result == null)
                     return null;
 
-                // Si Sochsup == "L", ajuster Joudeb pour démarrer le lundi de la semaine
-                if (result.Sochsup == "L" && int.TryParse(result.Joudeb, out int jourDeb))
+                // --- DebutReel ---
+                if (!int.TryParse(result.Joudeb, out int jourDebReel))
+                    jourDebReel = 1; // valeur par défaut si parse échoue
+
+                result.DebutReel = jourDebReel;
+
+                // --- DebutCalc (ajusté si Sochsup = "L") ---
+                DateTime tempDate = new DateTime(2000, 1, jourDebReel);
+
+                if (result.Sochsup == "L")
                 {
-                    // Construire une date arbitraire (année/mois = 1/1) juste pour calculer le lundi
-                    DateTime tempDate = new DateTime(2000, 1, jourDeb);
-
-                    // Calculer combien de jours reculer pour atteindre lundi
-                    int daysToMonday = ((int)tempDate.DayOfWeek + 6) % 7; // lundi = 0
-                    tempDate = tempDate.AddDays(-daysToMonday-1);
-
-                    result.Joudeb = tempDate.Day.ToString(); // mettre à jour le jour début
+                    int daysToMonday = ((int)tempDate.DayOfWeek + 6) % 7;
+                    tempDate = tempDate.AddDays(-daysToMonday);
                 }
+
+                result.DebutCalc = tempDate.Day-1;
 
                 return result;
             }
-            catch (Exception)
+            catch
             {
                 throw;
             }
@@ -201,40 +351,153 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<bool> IsRepos(string soccod, DateTime? predat, string codpost)
+        public async Task<bool> IsEmpfeRepos(string soccod, DateTime? predat, string codpost, string empferepos)
         {
             try
             {
                 if (predat == null)
                     return false;
-                Poste? poste = await _posteRepository.GetPoste(soccod, codpost);
-                      
-                //string jourRepos = await GetJourRepos(soccod); // e.g. "Dimanche", "SamDim"
 
-                //if (jourRepos == "SamDim")
-                //{
-                //    return dayName == "Samedi" || dayName == "Dimanche";
-                //}
+                // Si "Sans Compter" (0), aucun jour n'est considéré comme repos
+                if (empferepos == "0")
+                    return false;
+
+                Poste? poste = await _posteRepository.GetPoste(soccod, codpost);
+
                 // Get the day name in French from predat
-                string dayName = predat.Value.ToString("dddd", new System.Globalization.CultureInfo("fr-FR")); // e.g. "dimanche"
-                dayName = char.ToUpper(dayName[0]) + dayName.Substring(1); // Capitalize: "Dimanche"
-                if((dayName == "Lundi"&& poste?.Lunrepos == "1") ||(dayName == "Mardi"&& poste?.Marrepos == "1") 
-                    ||(dayName == "Mercredi"&& poste?.Merrepos == "1") ||(dayName == "Jeudi"&& poste?.Jeurepos == "1")
-                    ||(dayName == "Vendredi"&& poste?.Venrepos == "1") ||(dayName == "Samedi"&& poste?.Samrepos == "1") 
-                    || (dayName == "Dimanche" && poste?.Dimrepos == "1"))
+                string dayName = predat.Value.ToString("dddd", new System.Globalization.CultureInfo("fr-FR"));
+                dayName = char.ToUpper(dayName[0]) + dayName.Substring(1); // Capitalize
+
+                // Option 1: Tout Repos - vérifier tous les jours selon le poste
+                if (empferepos == "1")
                 {
-                    return true;
+                    if ((dayName == "Lundi" && poste?.Lunrepos == "1") ||
+                        (dayName == "Mardi" && poste?.Marrepos == "1") ||
+                        (dayName == "Mercredi" && poste?.Merrepos == "1") ||
+                        (dayName == "Jeudi" && poste?.Jeurepos == "1") ||
+                        (dayName == "Vendredi" && poste?.Venrepos == "1") ||
+                        (dayName == "Samedi" && poste?.Samrepos == "1") ||
+                        (dayName == "Dimanche" && poste?.Dimrepos == "1"))
+                    {
+                        return true;
+                    }
+                }
+                // Option 2: Repos Samedi uniquement
+                else if (empferepos == "2")
+                {
+                    if (dayName == "Samedi" && poste?.Samrepos == "1")
+                    {
+                        return true;
+                    }
+                }
+                // Option 3: Repos Dimanche uniquement
+                else if (empferepos == "3")
+                {
+                    if (dayName == "Dimanche" && poste?.Dimrepos == "1")
+                    {
+                        return true;
+                    }
                 }
 
                 return false;
-                //return dayName == jourRepos;
             }
             catch (Exception)
             {
                 throw;
             }
         }
+        
+        public async Task<(bool,string)> IsEmpcodRepos(string soccod, DateTime? predat, string codpost, string empcod)
+        {
+            try
+            {
+                if (predat == null)
+                    return (false,"");
+                string? empferepos = await _dbContext.Employes
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .Select(e => e.Empferepos)
+                    .SingleOrDefaultAsync();
+                // Si "Sans Compter" (0), aucun jour n'est considéré comme repos
+                if (empferepos == "0")
+                    return (false, empferepos);
 
+                Poste? poste = await _posteRepository.GetPoste(soccod, codpost);
+
+                // Get the day name in French from predat
+                string dayName = predat.Value.ToString("dddd", new System.Globalization.CultureInfo("fr-FR"));
+                dayName = char.ToUpper(dayName[0]) + dayName.Substring(1); // Capitalize
+
+                // Option 1: Tout Repos - vérifier tous les jours selon le poste
+                if (empferepos == "1")
+                {
+                    if ((dayName == "Lundi" && poste?.Lunrepos == "1") ||
+                        (dayName == "Mardi" && poste?.Marrepos == "1") ||
+                        (dayName == "Mercredi" && poste?.Merrepos == "1") ||
+                        (dayName == "Jeudi" && poste?.Jeurepos == "1") ||
+                        (dayName == "Vendredi" && poste?.Venrepos == "1") ||
+                        (dayName == "Samedi" && poste?.Samrepos == "1") ||
+                        (dayName == "Dimanche" && poste?.Dimrepos == "1"))
+                    {
+                        return (true,empferepos);
+                    }
+                }
+                // Option 2: Repos Samedi uniquement
+                else if (empferepos == "2")
+                {
+                    if (dayName == "Samedi" && poste?.Samrepos == "1")
+                    {
+                        return (true,empferepos);
+                    }
+                }
+                // Option 3: Repos Dimanche uniquement
+                else if (empferepos == "3")
+                {
+                    if (dayName == "Dimanche" && poste?.Dimrepos == "1")
+                    {
+                        return (true, empferepos);
+                    }
+                }
+
+                return (false,"-1");
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        
+        public async Task<bool> IsRepos(string soccod, DateTime? predat, string codpost)
+        {
+            try
+            {
+                if (predat == null)
+                    return false;
+
+                Poste? poste = await _posteRepository.GetPoste(soccod, codpost);
+
+                // Get the day name in French from predat
+                string dayName = predat.Value.ToString("dddd", new System.Globalization.CultureInfo("fr-FR"));
+                dayName = char.ToUpper(dayName[0]) + dayName.Substring(1); // Capitalize
+
+                    if ((dayName == "Lundi" && poste?.Lunrepos == "1") ||
+                        (dayName == "Mardi" && poste?.Marrepos == "1") ||
+                        (dayName == "Mercredi" && poste?.Merrepos == "1") ||
+                        (dayName == "Jeudi" && poste?.Jeurepos == "1") ||
+                        (dayName == "Vendredi" && poste?.Venrepos == "1") ||
+                        (dayName == "Samedi" && poste?.Samrepos == "1") ||
+                        (dayName == "Dimanche" && poste?.Dimrepos == "1"))
+                    {
+                        return true;
+                    }
+
+                return false;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        
         public async Task<bool> UpdateParametres(Parametre updatedParam)
         {
             try
@@ -318,11 +581,11 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public Task<float?> GetNbhConge(string soccod)
+        public async Task<float?> GetNbhConge(string soccod)
         {
             try
             {
-                var nbhconge =  _dbContext.Parametres.Where(p => p.Soccod == soccod).Select(p => p.Nbhconge).SingleOrDefaultAsync();
+                var nbhconge = await  _dbContext.Parametres.Where(p => p.Soccod == soccod).Select(p => p.Nbhconge).SingleOrDefaultAsync();
                 return nbhconge;
             }
             catch (Exception)
@@ -342,8 +605,6 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-
-
 
         public async Task<Dictionary<string, float>> GetTotheureCongeParPeriode(string soccod, List<string> empcods, DateTime? debut, DateTime? fin)
         {

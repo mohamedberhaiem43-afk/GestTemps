@@ -1122,5 +1122,77 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+        public async Task<Dictionary<DateTime, string>> GetEmpPostesByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                // Get employee's category
+                string? catcod = await _dbContext.Employes
+                    .Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
+                    .Select(emp => emp.Catcod)
+                    .FirstOrDefaultAsync();
+
+                if (string.IsNullOrEmpty(catcod))
+                    return new Dictionary<DateTime, string>();
+
+                // Get all lcategories for this employee's category
+                var lcategories = await _dbContext.Lcategories
+                    .Where(l => l.Soccod == soccod && l.Catcod == catcod)
+                    .ToListAsync();
+
+                if (!lcategories.Any())
+                    return new Dictionary<DateTime, string>();
+
+                // Build dictionary for each date in range
+                var result = new Dictionary<DateTime, string>();
+                DateTime currentDate = startDate.Date;
+
+                while (currentDate <= endDate.Date)
+                {
+                    var month = currentDate.Month;
+                    var year = currentDate.Year;
+
+                    // Filter by month
+                    var validMonth = lcategories
+                        .Where(l => l.Catdu.HasValue && l.Catau.HasValue &&
+                                   l.Catdu.Value.Month <= month &&
+                                   l.Catau.Value.Month >= month)
+                        .ToList();
+
+                    // Filter by year or fixed categories
+                    if (!validMonth.Any(l => l.Catdu!.Value.Year == year || l.Catau!.Value.Year == year))
+                    {
+                        validMonth = validMonth.Where(l => l.Catfixe == "1").ToList();
+                    }
+
+                    if (validMonth.Any())
+                    {
+                        // Select best match
+                        var selected = validMonth.First();
+                        foreach (var l in validMonth)
+                        {
+                            if (currentDate >= l.Catdu && currentDate <= l.Catau)
+                            {
+                                selected = l;
+                                break;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(selected.Codposte))
+                        {
+                            result[currentDate] = selected.Codposte;
+                        }
+                    }
+
+                    currentDate = currentDate.AddDays(1);
+                }
+
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

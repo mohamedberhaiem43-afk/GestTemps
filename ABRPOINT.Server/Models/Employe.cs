@@ -222,5 +222,11 @@ public partial class Employe
     [Column("poscod")]
     [StringLength(10)]
     public string? Poscod { get; set; }
+    [Column("empferepos")]
+    [StringLength(1)]
+    public string? Empferepos { get; set; }
+    [Column("empcmp")]
+    [StringLength(1)]
+    public string? Empcmp { get; set; }
 
 }

@@ -335,6 +335,30 @@ namespace ABRPOINT.Server.Repository
 
             return result;
         }
-
+        public async Task<List<AutDto>> GetAutorisationsByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                return await (
+                    from a in _dbContext.Autorisers
+                    join ab in _dbContext.Absences on a.Abscod equals ab.Abscod
+                    where a.Soccod == soccod &&
+                          a.Empcod == empcod &&
+                          a.Condep <= endDate &&
+                          a.Conret >= startDate
+                    select new AutDto
+                    {
+                        Abslib = ab.Abslib,
+                        Connbjour = a.Connbjour,
+                        Condep = a.Condep,
+                        Conret = a.Conret
+                    }
+                ).ToListAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

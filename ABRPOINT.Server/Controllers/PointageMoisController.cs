@@ -38,18 +38,14 @@ namespace ABRPOINT.Server.Controllers
                         pointageMois.EmpLib = employe.Emplib;
                         pointageMois.EmpReg = employe.Empreg;
                         pointageMois.EmpSite = employe.Sitcod;
-
                         if (semaine == "0")
                         {
-                            for (int i = 1; i <= 6; i++)
-                            {
-                                var resultat = await _heuresSupplementairesService
-                                    .CalculerHeuresSupplementairesHebdomadaires(
-                                        soccod, empcod, mois, annee, i.ToString(),
-                                        employe.Empreg, employe.Empniv);
+                            var resultats = await _heuresSupplementairesService
+                                .CalculerHeuresSupplementairesMultiSemaines(
+                                    soccod, empcod, mois, annee,
+                                    employe.Empreg, employe.Empniv);
 
-                                pointageMois.heuresSupplementairesResultats.Add(resultat);
-                            }
+                            pointageMois.heuresSupplementairesResultats.AddRange(resultats);
                         }
                         else
                         {

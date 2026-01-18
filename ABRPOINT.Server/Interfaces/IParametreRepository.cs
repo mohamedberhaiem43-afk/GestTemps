@@ -12,7 +12,8 @@ namespace ABRPOINT.Server.Interfaces
         Task<bool> DroitHeureSupp(string soccod,string empniv);
         Task<string> GetJourRepos(string soccod);
         Task<SuppAndFerierParam> GetSuppAndFerierParam(string soccod, string empniveau);
-        Task<bool> IsRepos(string soccod, DateTime? predat,string codpost);
+        Task<(bool,string)> IsEmpcodRepos(string soccod, DateTime? predat,string codpost,string empcod);
+        Task<bool> IsEmpfeRepos(string soccod, DateTime? predat,string codpost,string empferepos);
         Task<bool> UpdateParametres(Parametre parametre);
         Task<EtatPresenceParametreDto> GetEtatPresenceParametres(string soccod);
         Task<short?> GetLongbdg(string soccod);
@@ -22,6 +23,7 @@ namespace ABRPOINT.Server.Interfaces
         //Task<float?> GetTotheureCongeParPeriode(string soccod,List<string> empcod, DateTime? debut, DateTime? fin);
         Task<Dictionary<string, float>> GetTotheureCongeParPeriode(string soccod, List<string> empcods, DateTime? debut, DateTime? fin);
         Task<ArrondiParam?> GetEtatPeriodiqueParamAsync(string soccod);
-
+        Task<bool> IsRepos(string soccod, DateTime? predat, string codpost);
+        Task<Dictionary<DateTime, bool>> GetReposDaysByPeriod(string soccod, string empcod, List<DateTime> allDates);
     }
 }

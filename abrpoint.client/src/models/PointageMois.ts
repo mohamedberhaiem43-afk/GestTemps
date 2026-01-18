@@ -1,9 +1,12 @@
 export type HeuresSupplementairesResultat =
 {
+    nbhFerierTrv: number;
     weekStartDate?: string;
     weekEndDate?: string;
     panier?: number;
     jourFerier: number;
+    jourSamediTrv: number;
+    hreSamediTrv: number;
     heureFerier: number;
     nbJours: number;
     nbhCalendSem : string;
@@ -36,6 +39,7 @@ export type HeuresSupplementairesResultat =
     absj :number;
     absnj :number;
     absnp :number;
+    caltype :string;
     fm :number;
     maladie :number;
     weekDetails:Record<string, string>;

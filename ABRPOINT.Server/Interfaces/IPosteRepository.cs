@@ -19,7 +19,6 @@ namespace ABRPOINT.Server.Interfaces
         //Task<Dictionary<string, Poste>> GetPostesBatch(string soccod, object value);
         Task<Dictionary<string, Poste>> GetPostesBatch(string soccod, List<string> codPostes);
         Task<Dictionary<(string Empcod, DateTime Date), string?>> GetEmployePosteBatch(string soccod, string Empcod, DateTime debut,DateTime fin);
-
-
-     }
+        Task<Dictionary<DateTime, float>> GetJourHeuresByPeriod(string soccod, List<DateTime> dateTimes, Dictionary<DateTime, string> postesByDate);
+    }
 }

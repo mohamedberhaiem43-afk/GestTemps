@@ -13,6 +13,7 @@
         public string? Actif { get; set; }
         public string? Quacod { get; set; }
         public string? Sercod { get; set; }
+        public string? Empferepos { get; set; }
 
     }
 }

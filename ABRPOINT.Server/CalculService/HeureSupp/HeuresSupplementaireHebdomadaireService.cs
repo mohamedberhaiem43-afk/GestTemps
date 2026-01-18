@@ -6,10 +6,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 {
     public class HeuresSupplementairesResultat
     {
+        public float? NbhFerierTrv { get; set; }
         public float? NbhCalendSem { get; set; }
         public float? HeuresNormales { get; set; }
         public float? Retard { get; set; }
         public float? TotalAbsence { get; set; }
+        public string? Caltype { get; set; }
         public float? HreNuits { get; set; }
         public int? NbNuits { get; set; }
         public float? HeuresSupTranche1 { get; set; }
@@ -42,9 +44,22 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         public float? HCSF { get; set; }
         public float? ACT { get; set; }
         public int? Panier { get; set; }
-        public IDictionary<string,string> WeekDetails { get; set; }
+        public float? JourSamediTrv { get; set; }
+        public float? HreSamediTrv { get; set; }
+        public IDictionary<string, string> WeekDetails { get; set; } = new Dictionary<string, string>();
         public DateTime? WeekStartDate { get; set; }
         public DateTime? WeekEndDate { get; set; }
+    }
+
+    public class WeeklyPresenceComputation
+    {
+        public string? Caltype { get; set; }
+        public float? CalendarHours { get; set; }
+        public int FerierDays { get; set; }
+        public float FerierHours { get; set; }
+        public DateTime WeekStart { get; set; }
+        public DateTime WeekEnd { get; set; }
+        public PresenceSemaineData Presence { get; set; }
     }
 
     public class HeuresSupplementairesHebdomadairesService : IHeuresSupplementaireHebdomadairesService
@@ -53,41 +68,54 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         private readonly ICalendrierRepository _calendrierRepository;
         private readonly IEmployeRepository _employeRepository;
         private readonly IParametreRepository _parametreRepository;
+        private readonly IOptimizedPresenceService _optimizedPresenceService;
         private readonly IPresenceRepository _presenceRepository;
-        public HeuresSupplementairesHebdomadairesService(IparTrancheRepository parTrancheRepository, ICalendrierRepository calendrierRepository,
-                IParametreRepository parametreRepository, IPresenceRepository presenceRepository, IEmployeRepository employeRepository)
+
+        public HeuresSupplementairesHebdomadairesService(
+            IparTrancheRepository parTrancheRepository,
+            ICalendrierRepository calendrierRepository,
+            IParametreRepository parametreRepository,
+            IPresenceRepository presenceRepository,
+            IEmployeRepository employeRepository,
+            IOptimizedPresenceService optimizedPresenceService)
         {
             _parTrancheRepository = parTrancheRepository;
             _calendrierRepository = calendrierRepository;
             _parametreRepository = parametreRepository;
             _presenceRepository = presenceRepository;
             _employeRepository = employeRepository;
+            _optimizedPresenceService = optimizedPresenceService;
         }
 
-        public async Task<HeuresSupplementairesResultat> CalculerHeuresSupplementairesHebdomadaires(string soccod, string empcod, string mois,
-                                                                            string annee, string semaine, string empreg, string empniveau)
+        public async Task<HeuresSupplementairesResultat> CalculerHeuresSupplementairesHebdomadaires(string soccod, string empcod, string mois, string annee, string semaine, string empreg, string empniveau)
         {
             try
             {
                 var result = new HeuresSupplementairesResultat();
-                float? tranche1 = 0, taux1 = 0, tranche2 = 0, taux2 = 0, heuresTravaillees = 0;
-                // Get hours with date range
-                string? emppanier = await _employeRepository.GetEmpPanier(soccod,empcod);
-                var (hours, startDate, endDate,jourferier,heuresferier,panier) = await _calendrierRepository
-                    .GetNbHeuresParSemaineWithDates(soccod, mois, annee, semaine, empcod,emppanier);
 
-                result.Panier = panier;
+                // Get employee panier type
+                string? emppanier = await _employeRepository.GetEmpPanier(soccod, empcod);
+
+                // Get calendar hours for the week
+                var (calend, hours, startDate, endDate, jourferier, heuresferier) =
+                    await _optimizedPresenceService.GetNbHeuresParSemaineWithDates(soccod, mois, annee, semaine, empcod);
+
                 result.NbhCalendSem = hours;
                 result.WeekStartDate = startDate;
                 result.WeekEndDate = endDate;
                 result.JourFerier = jourferier;
                 result.HeureFerier = heuresferier;
-                PresenceSemaineData res = await _presenceRepository.GetPresenceSemaineData(soccod, empcod, mois, annee, semaine);
-                SuppAndFerierParam param = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
-                heuresTravaillees = res.TotalHours;
-                var workDayHours = res.WorkDayHours;
-                result.HreFerieTrv = Math.Min(res.NbhFerierTrv.Value, param.MaxFerier.Value);
-                result.HreFerieTrv2 = res.NbhFerierTrv - result.HreFerieTrv;
+                result.Caltype = calend;
+
+                // Get detailed presence/absence/conge data
+                PresenceSemaineData res = await _optimizedPresenceService
+                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, emppanier);
+
+                result.Panier = res.Panier;
+                result.JourSamediTrv = res.JourSamediTrv;
+                result.HreSamediTrv = res.HreSamediTrv;
+                result.HreFerieTrv = Math.Min(res.NbhFerierTrv ?? 0, (await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau)).MaxFerier ?? 0);
+                result.HreFerieTrv2 = (res.NbhFerierTrv ?? 0) - (result.HreFerieTrv ?? 0);
                 result.NbJourFerier = res.NbJourFerier;
                 result.HreFerier = res.HreFerier;
                 result.HreAllaitement = res.NbhAllaitement;
@@ -113,47 +141,53 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.NbNuits = res.NbNuits;
                 result.HreNuits = res.HreNuits;
                 result.TotalAbsence = res.TotalAbsence;
+
+                // Get par tranche info
                 IList<Partranche> partranche = await _parTrancheRepository.GetPartranche(soccod);
+                float? tranche1 = 0, taux1 = 0, tranche2 = 0, taux2 = 0;
                 if (empreg == "H")
                 {
-
-                    tranche1 = partranche.Where(t => t.Empreg == "H").SingleOrDefault()?.Partranche1;
-                    taux1 = partranche.Where(t => t.Empreg == "H").SingleOrDefault()?.Partaux1;
-                    tranche2 = partranche.Where(t => t.Empreg == "H").SingleOrDefault()?.Partranche2;
-                    taux2 = partranche.Where(t => t.Empreg == "H").SingleOrDefault()?.Partaux2;
+                    var p = partranche.SingleOrDefault(t => t.Empreg == "H");
+                    tranche1 = p?.Partranche1;
+                    tranche2 = p?.Partranche2;
+                    taux1 = p?.Partaux1;
+                    taux2 = p?.Partaux2;
                 }
                 else
                 {
-                    tranche1 = partranche.Where(t => t.Empreg == "M").SingleOrDefault()?.Partranche1;
-                    taux1 = partranche.Where(t => t.Empreg == "M").SingleOrDefault()?.Partaux1;
-                    tranche2 = partranche.Where(t => t.Empreg == "M").SingleOrDefault()?.Partranche2;
-                    taux2 = partranche.Where(t => t.Empreg == "M").SingleOrDefault()?.Partaux2;
+                    var p = partranche.SingleOrDefault(t => t.Empreg == "M");
+                    tranche1 = p?.Partranche1;
+                    tranche2 = p?.Partranche2;
+                    taux1 = p?.Partaux1;
+                    taux2 = p?.Partaux2;
+
+                    var param = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
                     if (!param.HasSupp)
                     {
                         result.HeuresNormales = result.NbhCalendSem;
                         result.HreSupSemaine = 0;
-
                         result.HeuresSupTranche1 = 0;
-
                         result.HeuresSupTranche2 = 0;
                         return result;
-
                     }
                 }
 
-
+                // Calculate weekly overtime
+                float? heuresTravaillees = res.TotalHours;
                 float? heuresSupp = 0;
-                result.HeuresNormales = heuresTravaillees;
                 result.Tothre = heuresTravaillees;
                 result.HeuresNormales = result.Tothre - (res.HeureRepos + res.NbhFerierTrv);
-                if (param.EliminerFerier == "1" && empreg == "H")
+
+                var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
+                if (paramSupp.EliminerFerier == "1" && empreg == "H")
                 {
                     result.HeuresNormales -= res.NbhFerierTrv;
                 }
-                if(result.HeuresNormales > result.NbhCalendSem)
+
+                if (result.HeuresNormales > result.NbhCalendSem)
                     heuresSupp = result.HeuresNormales - result.NbhCalendSem;
 
-                if (param.EliminerFerier != "0" && empreg == "H")
+                if (paramSupp.EliminerFerier != "0" && empreg == "H")
                 {
                     heuresSupp -= res.NbhFerierTrv;
                     heuresSupp = (float?)Math.Max(0, (double)heuresSupp);
@@ -162,18 +196,159 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.HreSupSemaine = heuresSupp;
                 result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);
                 heuresSupp -= result.HeuresSupTranche1;
-
                 result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
                 heuresSupp -= result.HeuresSupTranche2;
+
                 return result;
             }
             catch (Exception)
             {
                 throw;
             }
-            
         }
 
+
+        public async Task<List<HeuresSupplementairesResultat>> CalculerHeuresSupplementairesMultiSemaines(string soccod, string empcod, string mois, string annee, string empreg, string empniveau)
+        {
+            try
+            {
+                var results = new List<HeuresSupplementairesResultat>();
+
+                // Get employee panier type ONCE
+                string? emppanier = await _employeRepository.GetEmpPanier(soccod, empcod);
+
+                // Get parameters ONCE
+                var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
+
+                // Get par tranche info ONCE
+                IList<Partranche> partranche = await _parTrancheRepository.GetPartranche(soccod);
+                float? tranche1 = 0, tranche2 = 0;
+
+                if (empreg == "H")
+                {
+                    var p = partranche.SingleOrDefault(t => t.Empreg == "H");
+                    tranche1 = p?.Partranche1;
+                    tranche2 = p?.Partranche2;
+                }
+                else
+                {
+                    var p = partranche.SingleOrDefault(t => t.Empreg == "M");
+                    tranche1 = p?.Partranche1;
+                    tranche2 = p?.Partranche2;
+                }
+
+                // Check if employee has supp rights
+                bool hasSupp = empreg == "H" || paramSupp.HasSupp;
+
+                // ✅ Load ALL presence data for the ENTIRE MONTH at once
+                var presenceDataMonth = await _optimizedPresenceService
+                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, "0", emppanier);
+
+                // Process each week (1 to 6)
+                for (int i = 1; i <= 6; i++)
+                {
+                    var result = new HeuresSupplementairesResultat();
+                    string semaine = i.ToString();
+
+                    // Get calendar hours for this specific week
+                    var (calend, hours, startDate, endDate, jourferier, heuresferier) =
+                        await _optimizedPresenceService.GetNbHeuresParSemaineWithDates(
+                            soccod, mois, annee, semaine, empcod);
+
+                    // If week doesn't exist, skip
+                    if (startDate == null || endDate == null)
+                        break;
+
+                    result.NbhCalendSem = hours;
+                    result.WeekStartDate = startDate;
+                    result.WeekEndDate = endDate;
+                    result.JourFerier = jourferier;
+                    result.HeureFerier = heuresferier;
+                    result.Caltype = calend;
+
+                    // Get presence data for THIS SPECIFIC WEEK
+                    var res = await _optimizedPresenceService
+                        .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, emppanier);
+
+                    // Map presence data to result
+                    result.Panier = res.Panier;
+                    result.JourSamediTrv = res.JourSamediTrv;
+                    result.HreSamediTrv = res.HreSamediTrv;
+                    result.NbhFerierTrv = res.NbhFerierTrv;
+                    result.HreFerieTrv = Math.Min(res.NbhFerierTrv ?? 0, paramSupp.MaxFerier ?? 0);
+                    result.HreFerieTrv2 = (res.NbhFerierTrv ?? 0) - (result.HreFerieTrv ?? 0);
+                    result.NbJourFerier = res.NbJourFerier;
+                    result.HreFerier = res.HreFerier;
+                    result.HreAllaitement = res.NbhAllaitement;
+                    result.NbJourPointer = res.NbJourPointer;
+                    result.NbJourCngPaye = res.NbJourCngPaye;
+                    result.NbHeureConge = res.NbHeureConge;
+                    result.HeureRepos = res.HeureRepos;
+                    result.JourRepos = res.JourRepos;
+                    result.Deplacement = res.Deplacement;
+                    result.NbJours = res.NbJours;
+                    result.CSF = res.CSF;
+                    result.MAP = res.MAP;
+                    result.Absj = res.Absj;
+                    result.Absnj = res.Absnj;
+                    result.CT = res.CT;
+                    result.CSS = res.CSS;
+                    result.Maladie = res.Maladie;
+                    result.ACT = res.ACT;
+                    result.HCSF = res.HCSF;
+                    result.Absnp = res.Absnp;
+                    result.WeekDetails = res.WeekDetails;
+                    result.Retard = res.TotalRetards;
+                    result.NbNuits = res.NbNuits;
+                    result.HreNuits = res.HreNuits;
+                    result.TotalAbsence = res.TotalAbsence;
+
+                    // Calculate overtime for this week
+                    if (!hasSupp)
+                    {
+                        result.HeuresNormales = result.NbhCalendSem;
+                        result.HreSupSemaine = 0;
+                        result.HeuresSupTranche1 = 0;
+                        result.HeuresSupTranche2 = 0;
+                    }
+                    else
+                    {
+                        float? heuresTravaillees = res.TotalHours;
+                        float? heuresSupp = 0;
+
+                        result.Tothre = heuresTravaillees;
+                        result.HeuresNormales = result.Tothre - (res.HeureRepos + res.NbhFerierTrv);
+
+                        if (paramSupp.EliminerFerier == "1" && empreg == "H")
+                        {
+                            result.HeuresNormales -= res.NbhFerierTrv;
+                        }
+
+                        if (result.HeuresNormales > result.NbhCalendSem)
+                            heuresSupp = result.HeuresNormales - result.NbhCalendSem;
+
+                        if (paramSupp.EliminerFerier != "0" && empreg == "H")
+                        {
+                            heuresSupp -= res.NbhFerierTrv;
+                            heuresSupp = (float?)Math.Max(0, (double)heuresSupp);
+                        }
+
+                        result.HreSupSemaine = heuresSupp;
+                        result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);
+                        heuresSupp -= result.HeuresSupTranche1;
+                        result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
+                    }
+
+                    results.Add(result);
+                }
+
+                return results;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+    
     }
 }
-

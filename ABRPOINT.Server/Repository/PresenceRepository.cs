@@ -448,10 +448,9 @@ namespace ABRPOINT.Server.Repository
                 foreach (var item in data)
                 {
                     var p = item.Presence;
-
                     string motif;
                     if (!string.IsNullOrWhiteSpace(p.Codposte) &&
-                        await _parametreRepository.IsRepos(p.Soccod, p.Predat, p.Codposte))
+                        await _parametreRepository.IsEmpfeRepos(p.Soccod, p.Predat, p.Codposte,item.Employe.Empferepos))
                     {
                         motif = "J. Repos";
                     }
@@ -737,13 +736,18 @@ namespace ABRPOINT.Server.Repository
                     }
                         if (!string.IsNullOrEmpty(presence.Codposte))
                     {
-                        bool isRepos = await _parametreRepository.IsRepos(soccod, date, presence.Codposte);
+                        bool isRepos = false;
+                        var (isPreRepos,emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, presence.Codposte, empcod);
+                        if(presence.Empmat == null)
+                            isRepos = await _parametreRepository.IsRepos(soccod, date, presence.Codposte);
+
                         ArrondiParam arrondiparams = await _parametreRepository.GetEtatPeriodiqueParamAsync(soccod);
                         presence.Arrondi = arrondiparams.Arrondi;
                         presence.Arrhsup = arrondiparams.Arrhsup;
-                        if (isRepos)
+                        if (isPreRepos || isRepos)
                         {
-                            presence.Etat = "J.Repos";
+                            if(emprepos != "0" && emprepos != "-1")
+                                presence.Etat = "J.Repos";
                             presence.Prerepos = "1";
                         }
                         presence.TotalHeure = await _posteRepository.GetJourHeures(soccod, date, presence.Codposte);
@@ -1132,7 +1136,7 @@ namespace ABRPOINT.Server.Repository
                     p.Predat >= startTime &&
                     p.Predat <= endTime);
         }
-        public async Task<PresenceSemaineData> GetPresenceSemaineData(string soccod, string empcod, string mois, string annee, string semaine)
+        public async Task<PresenceSemaineData> GetPresenceSemaineData(string soccod, string empcod, string mois, string annee, string semaine,string emppanier)
         {
             try
             {
@@ -1165,6 +1169,9 @@ namespace ABRPOINT.Server.Repository
                 float? ct = 0;
                 float? hct = 0;
                 float? act = 0;
+                int? panier = 0;
+                float? joursameditrv = 0;
+                float? hresameditrv = 0;
                 IDictionary<string, string> weekDetails = new Dictionary<string, string>();
 
                 // Validate input parameters
@@ -1173,7 +1180,6 @@ namespace ABRPOINT.Server.Repository
                 {
                     return null;
                 }
-
                 // Parse month and year
                 if (!int.TryParse(mois, out int month) || !int.TryParse(annee, out int year))
                 {
@@ -1196,11 +1202,11 @@ namespace ABRPOINT.Server.Repository
                 {
                     var previousMonth = month == 1 ? 12 : month - 1;
                     var previousYear = month == 1 ? year - 1 : year;
-                    startDate = new DateTime(previousYear, previousMonth, int.Parse(parametreMoisPointage.Joudeb));
+                    startDate = new DateTime(previousYear, previousMonth, parametreMoisPointage.DebutCalc);
                 }
                 else // Current month
                 {
-                    startDate = new DateTime(year, month, int.Parse(parametreMoisPointage.Joudeb));
+                    startDate = new DateTime(year, month, parametreMoisPointage.DebutCalc);
                 }
 
                 // For the end date
@@ -1308,7 +1314,6 @@ namespace ABRPOINT.Server.Repository
                 foreach (var date in allDates)
                 {
                     AutDto autorisation = await _autorisationRepository.GetAutLib(soccod, empcod, date);
-
                     IDictionary<string, bool> countedSanction = new Dictionary<string, bool>();
                     //presencesByDate.TryGetValue(date.Date, out var presence); // May be null
                     if(date != null && presencesByDate.TryGetValue(date.Date,out var presence))
@@ -1365,7 +1370,7 @@ namespace ABRPOINT.Server.Repository
                         if (((GenericMethodes.NotPresent(presence) || !GenericMethodes.IsValid(presence)) && sanction == null))
                         {
                             string? poste = await _employeRepository.GetEmpPoste(soccod, empcod, date);
-                            bool isRepos = await _parametreRepository.IsRepos(soccod, date, poste);
+                            var (isRepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, poste, empcod);
                             string conge = await _congeRepository.GetCongeLib(soccod, empcod, date);
                             if (!isRepos && string.IsNullOrEmpty(conge))
                             {
@@ -1408,9 +1413,42 @@ namespace ABRPOINT.Server.Repository
                             }
                         }
 
+
                         // If there's a presence record, process it
                         if (presence != null)
                         {
+                                // ... ton code existant pour les sanctions, congés, fériés, etc. ...
+
+                                bool isFerier = await _jourFerierRepository.IsFerier(soccod, date);
+                                string? conge = await _congeRepository.GetCongeLib(soccod, empcod, date);
+
+                                // Calcul du panier uniquement si ce n'est ni congé ni férié
+                                if (!isFerier && string.IsNullOrEmpty(conge))
+                                {
+                                        float nbHeuresJour = 0;
+
+                                        if (!string.IsNullOrEmpty(presence.Tothre) && TimeSpan.TryParseExact(presence.Tothre, "hh\\:mm", null, out TimeSpan h))
+                                        {
+                                            nbHeuresJour = (float)h.TotalHours;
+                                        }
+                                        DateTime startMonthReal;
+                                        if(month == 1)
+                                            startMonthReal = new DateTime(year, 12, parametreMoisPointage.DebutReel);
+                                        else
+                                            startMonthReal = new DateTime(year, month - 1, parametreMoisPointage.DebutReel);
+                                        if (startMonthReal <= presence.Dmdate)
+                                        {
+                                             if (emppanier == "1" && nbHeuresJour >= 7) panier++;
+                                             if (emppanier == "2" && nbHeuresJour >= 6) panier++;
+                                        }
+                                        var codpost = await _posteRepository.GetEmpPoste(soccod, empcod, date);
+                                        var (isrepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, codpost, empcod); 
+                                        if(presence.Predat.Value.DayOfWeek == DayOfWeek.Saturday && GenericMethodes.ConvertHHmmToDouble(presence.Tothre)>0 && isrepos)
+                                            {
+                                              joursameditrv++;
+                                              hresameditrv += GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                                            }
+                                }
                             ParametreNuitDto parametreNuit = await _parametreRepository.GetParametresNuitAsync(soccod);
                             TimeSpan? heureDebutNuit = TimeSpan.TryParse(parametreNuit.Nuitdeb, out var debut) ? debut : null;
                             TimeSpan? heureFinNuit = TimeSpan.TryParse(parametreNuit.Nuitfin, out var fin) ? fin : null;
@@ -1489,12 +1527,17 @@ namespace ABRPOINT.Server.Repository
                                 totalHours += (float)hours.TotalHours;
                                 if (presence.Prerepos == "1")
                                 {
-                                    hreRepos += (float)hours.TotalHours;
-                                    nbJourRepos++;
+                                    if (string.IsNullOrEmpty(presence.Codposte))
+                                        presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, date);
+                                    var (isrepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod,date,presence.Codposte,empcod);
+                                    if (isrepos)
+                                    {
+                                        hreRepos += (float)hours.TotalHours;
+                                        nbJourRepos++;
+                                    }
                                 }
                             }
                         }
-
                     }
                 }
                 if (nbJours < 0) nbJours = 0;
@@ -1503,7 +1546,7 @@ namespace ABRPOINT.Server.Repository
                     NbhFerierTrv = nbhFerierTrv,HreFerier = nbhFerier,NbhAllaitement = nbhAllaitement, TotalHours = totalHours ,HeureRepos = hreRepos,
                     JourRepos = nbJourRepos,Deplacement = deplacement,NbJours = nbJours,CSF = csf,HCSF = hcsf,Maladie = maladie,CSS = css,MAP = map,
                     FM = fm,Absnj = absnj,Absj = absj,CT = ct,ACT = act,Absnp = absnp,WeekDetails = weekDetails,TotalRetards = retards,
-                    NbNuits = nbNuits,HreNuits = hreNuits, TotalAbsence = hreabs
+                    NbNuits = nbNuits,HreNuits = hreNuits, TotalAbsence = hreabs,Panier = panier,HreSamediTrv = hresameditrv,JourSamediTrv = joursameditrv
                 };
 
             }

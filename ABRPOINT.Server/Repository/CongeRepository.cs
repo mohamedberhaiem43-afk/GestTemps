@@ -29,7 +29,44 @@ namespace ABRPOINT.Server.Repository
             _dbContext.Conges.Add(conge);
             _dbContext.SaveChanges();
         }
+        public async Task<List<CongeDto>> GetCongesByPeriod(
+        string soccod,
+        string empcod,
+        DateTime startDate,
+        DateTime endDate)
+        {
+            try
+            {
+                var conges = await (
+                    from c in _dbContext.Conges
+                    join a in _dbContext.Absences
+                        on new { c.Soccod, c.Abscod } equals new { a.Soccod, a.Abscod }
+                        into absJoin
+                    from a in absJoin.DefaultIfEmpty()
+                    where c.Soccod == soccod &&
+                          c.Empcod == empcod &&
+                          c.Condep <= endDate &&
+                          c.Conret >= startDate
+                    select new CongeDto
+                    {
+                        Concod = c.Concod,
+                        Condat = c.Condat,
+                        Connbjour = c.Connbjour ?? 0,
+                        Abslib = a != null ? a.Abslib : null,
+                        Condep = c.Condep,
+                        Conret = c.Conret,
+                        Conamdep = c.Conamdep,
+                        Conamret = c.Conamret
+                    })
+                    .ToListAsync();
 
+                return conges;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date), string?>>GetCongeLibBatch(List<(string Soccod, string Empcod, DateTime Date)> demandes)
         {
             if (demandes == null || !demandes.Any())
@@ -235,8 +272,9 @@ namespace ABRPOINT.Server.Repository
                 if (result != null && result.Abspayer == "O")
                 {
                     bool isFerier = await _ferierRepository.IsFerier(soccod, predat);
-                    bool isRepos = await _parametreRepository.IsRepos(soccod,predat,codpost);
-                    if ((result.Absrepos == "N" && isRepos && dayRepos) || (result.Absferier == "0" && isFerier))
+                    var (isRepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, predat, codpost, empcod);
+                    var repos = await _parametreRepository.IsRepos(soccod, predat, codpost);
+                    if ((result.Absrepos == "N" && isRepos && dayRepos) || (result.Absferier == "0" && isFerier)|| (result.Absrepos == "N" && repos))
                         return new NombreConge { nbHeureConge = 0, nbJourConge = 0 };
 
                     nombreConge.nbJourConge = result.Connbjour;

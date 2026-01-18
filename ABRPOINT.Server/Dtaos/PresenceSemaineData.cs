@@ -5,6 +5,8 @@
         public float? TotalHours { get; set; }
         public float? TotalRetards { get; set; }
         public float? TotalAbsence { get; set; }
+        public string? Caltype { get; set; }
+        public int? Panier { get; set; }
         public int? NbNuits { get; set; }
         public float? HreNuits { get; set; }
         public float? NbhFerierTrv { get; set; }
@@ -31,6 +33,8 @@
         public float? Absj { get; set; }
         public float? Absnp { get; set; }
         public float? CT { get; set; }
+        public float? JourSamediTrv { get; set; }
+        public float? HreSamediTrv { get; set; }
         public IDictionary<string, string> WeekDetails { get; set; }
     }
 }
