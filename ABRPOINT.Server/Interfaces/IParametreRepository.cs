@@ -25,5 +25,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<ArrondiParam?> GetEtatPeriodiqueParamAsync(string soccod);
         Task<bool> IsRepos(string soccod, DateTime? predat, string codpost);
         Task<Dictionary<DateTime, bool>> GetReposDaysByPeriod(string soccod, string empcod, List<DateTime> allDates);
+        Task<ParametrePresenceCalculDto?> GetParametresPresenceCalcul(string soccod);
     }
 }

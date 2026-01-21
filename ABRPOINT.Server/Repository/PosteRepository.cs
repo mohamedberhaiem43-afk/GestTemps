@@ -517,6 +517,7 @@ namespace ABRPOINT.Server.Repository
 
             return result;
         }
+        
         public async Task<Dictionary<(string Empcod, DateTime Date), string?>> GetEmployePosteBatch(string soccod,string empcod,DateTime debut,DateTime fin)
         {
             if (string.IsNullOrWhiteSpace(soccod))

@@ -34,7 +34,9 @@
         public float? Absnp { get; set; }
         public float? CT { get; set; }
         public float? JourSamediTrv { get; set; }
+        public float? HreDimTrv { get; set; }
         public float? HreSamediTrv { get; set; }
+        public float? ResHreSamediTrv { get; set; }
         public IDictionary<string, string> WeekDetails { get; set; }
     }
 }

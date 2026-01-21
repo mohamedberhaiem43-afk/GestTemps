@@ -141,6 +141,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.NbNuits = res.NbNuits;
                 result.HreNuits = res.HreNuits;
                 result.TotalAbsence = res.TotalAbsence;
+                result.Tothre = res.TotalHours;
 
                 // Get par tranche info
                 IList<Partranche> partranche = await _parTrancheRepository.GetPartranche(soccod);
@@ -302,7 +303,13 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     result.NbNuits = res.NbNuits;
                     result.HreNuits = res.HreNuits;
                     result.TotalAbsence = res.TotalAbsence;
-
+                    result.Tothre = res.TotalHours + res.HreFerier;
+                    if (paramSupp.Parreptrv == "3")
+                        result.Tothre -= res.ResHreSamediTrv - res.HreDimTrv;
+                    else if (paramSupp.Parreptrv == "2")
+                        result.Tothre -= res.HreDimTrv;
+                    else if (paramSupp.Parreptrv == "0")
+                        result.Tothre -= result.HeureRepos;
                     // Calculate overtime for this week
                     if (!hasSupp)
                     {

@@ -29,11 +29,7 @@ namespace ABRPOINT.Server.Repository
             _dbContext.Conges.Add(conge);
             _dbContext.SaveChanges();
         }
-        public async Task<List<CongeDto>> GetCongesByPeriod(
-        string soccod,
-        string empcod,
-        DateTime startDate,
-        DateTime endDate)
+        public async Task<List<CongeDto>> GetCongesByPeriod(string soccod,string empcod,DateTime startDate,DateTime endDate)
         {
             try
             {
@@ -67,13 +63,12 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date), string?>>GetCongeLibBatch(List<(string Soccod, string Empcod, DateTime Date)> demandes)
+        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date), (string? Abslib, float? Connbjour)>> GetCongeLibBatch(List<(string Soccod, string Empcod, DateTime Date)> demandes)
         {
             if (demandes == null || !demandes.Any())
-                return new Dictionary<(string, string, DateTime), string?>();
+                return new Dictionary<(string, string, DateTime), (string?, float?)>();
 
             string soccod = demandes.First().Soccod;
-
             var empcods = demandes
                 .Select(d => d.Empcod)
                 .Distinct()
@@ -101,73 +96,33 @@ namespace ABRPOINT.Server.Repository
                     s.Condep,
                     s.Conret,
                     s.Conamret,
+                    s.Connbjour,
                     a.Abslib
                 }
             ).ToListAsync();
 
             // ===============================
-            // 2️⃣ Matching date par date
+            // 2️⃣ Générer TOUTES les dates entre Condep et Conret pour chaque congé
             // ===============================
-            var result = new Dictionary<(string, string, DateTime), string?>();
+            var result = new Dictionary<(string, string, DateTime), (string?, float?)>();
 
-            foreach (var d in demandes)
+            foreach (var conge in conges)
             {
-                var conge = conges.FirstOrDefault(c =>
-                    c.Empcod == d.Empcod &&
-                    c.Condep <= d.Date &&
-                    (c.Conamret == "1"
-                        ? c.Conret >= d.Date
-                        : c.Conret > d.Date));
+                // Calculer la date de fin en fonction de Conamret
+                DateTime dateDebut = conge.Condep.Value;
+                DateTime? dateFin = conge.Conamret == "1" ? conge.Conret : conge.Conret.Value.AddDays(-1);
 
-                result[(d.Soccod, d.Empcod, d.Date)] = conge?.Abslib;
-            }
-
-            return result;
-        }
-
-        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date), string?>> GetCongeEmployeLibBatch(
-    string soccod,
-    string empcod,
-    DateTime debut,
-    DateTime fin)
-        {
-            if (string.IsNullOrWhiteSpace(soccod))
-                throw new ArgumentException(nameof(soccod));
-
-            if (string.IsNullOrWhiteSpace(empcod))
-                throw new ArgumentException(nameof(empcod));
-
-            if (debut > fin)
-                throw new ArgumentException("La date de début doit être inférieure ou égale à la date de fin.");
-
-            // 1️⃣ Charger tous les congés de l'employé dans la période
-            var conges = await (
-                from s in _dbContext.Conges
-                join a in _dbContext.Absences
-                    on new { s.Soccod, s.Abscod } equals new { a.Soccod, a.Abscod }
-                where s.Soccod == soccod
-                      && s.Empcod == empcod
-                      && s.Condep <= fin
-                      && s.Conret >= debut
-                select new
+                // ✅ Générer toutes les dates entre dateDebut et dateFin
+                for (DateTime date = dateDebut; date <= dateFin; date = date.AddDays(1))
                 {
-                    s.Condep,
-                    s.Conret,
-                    s.Conamret,
-                    a.Abslib
+                    var key = (conge.Soccod, conge.Empcod, date.Date);
+
+                    // ✅ Éviter les doublons - garder le premier congé trouvé
+                    if (!result.ContainsKey(key))
+                    {
+                        result[key] = (conge.Abslib, conge.Connbjour);
+                    }
                 }
-            ).ToListAsync();
-
-            // 2️⃣ Construire le dictionnaire date par date
-            var result = new Dictionary<(string, string, DateTime), string?>();
-
-            for (DateTime date = debut.Date; date <= fin.Date; date = date.AddDays(1))
-            {
-                var conge = conges.FirstOrDefault(c =>
-                    c.Condep <= date &&
-                    (c.Conamret == "1" ? c.Conret >= date : c.Conret > date));
-
-                result[(soccod, empcod, date)] = conge?.Abslib;
             }
 
             return result;
@@ -655,6 +610,66 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date, float? connbjour), string?>> GetCongeEmployeLibBatch(
+        string soccod,
+        string empcod,
+        DateTime debut,
+        DateTime fin)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(soccod))
+                    throw new ArgumentException(nameof(soccod));
+
+                if (string.IsNullOrWhiteSpace(empcod))
+                    throw new ArgumentException(nameof(empcod));
+
+                if (debut > fin)
+                    throw new ArgumentException("La date de début doit être inférieure ou égale à la date de fin.");
+
+                // ===============================
+                // 1️⃣ Charger congés + absences
+                // ===============================
+                var conges = await (
+                    from s in _dbContext.Conges
+                    join a in _dbContext.Absences
+                        on new { s.Soccod, s.Abscod }
+                        equals new { a.Soccod, a.Abscod }
+                    where s.Soccod == soccod
+                          && s.Empcod == empcod
+                          && s.Condep <= fin
+                          && s.Conret >= debut
+                    select new
+                    {
+                        s.Condep,
+                        s.Conret,
+                        s.Conamret,
+                        s.Connbjour,
+                        a.Abslib
+                    }
+                ).ToListAsync();
+
+                // ===============================
+                // 2️⃣ Construire le dictionnaire date par date avec Connbjour
+                // ===============================
+                var result = new Dictionary<(string, string, DateTime, float?), string?>();
+
+                for (DateTime date = debut.Date; date <= fin.Date; date = date.AddDays(1))
+                {
+                    var conge = conges.FirstOrDefault(c =>
+                        c.Condep <= date &&
+                        (c.Conamret == "1" ? c.Conret >= date : c.Conret > date));
+
+                    result[(soccod, empcod, date, conge?.Connbjour)] = conge?.Abslib;
+                }
+
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }
 

@@ -280,6 +280,56 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+        public async Task<ParametrePresenceCalculDto?> GetParametresPresenceCalcul(string soccod)
+        {
+            try
+            {
+                var result = await (
+                    from p in _dbContext.Parametres
+                    join s in _dbContext.Societes on p.Soccod equals s.Soccod
+                    where p.Soccod == soccod
+                    select new ParametrePresenceCalculDto
+                    {
+                        Joudeb = p.Joudeb,
+                        Joufin = p.Joufin,
+                        Moisdeb = p.Moisdeb,
+                        Moisfin = p.Moisfin,
+                        Nbhconge = p.Nbhconge,
+                        Socpresence = s.Socpresence,
+                        Sochsup = s.Sochsup,
+                        Arrondi = p.Arrondi ?? 0f,
+                        Arrhsup = p.Arrhsup
+                    }
+                ).FirstOrDefaultAsync();
+
+                if (result == null)
+                    return null;
+
+                // --- DebutReel ---
+                if (!int.TryParse(result.Joudeb?.ToString(), out int jourDebReel))
+                    jourDebReel = 1;
+
+                result.DebutReel = jourDebReel;
+
+                // --- DebutCalc (ajusté si Sochsup = "L") ---
+                DateTime tempDate = new DateTime(2000, 1, jourDebReel);
+
+                if (result.Sochsup == "L")
+                {
+                    int daysToMonday = ((int)tempDate.DayOfWeek + 6) % 7;
+                    tempDate = tempDate.AddDays(-daysToMonday);
+                }
+
+                result.DebutCalc = tempDate.Day - 1;
+
+                return result;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
 
 
 
@@ -342,7 +392,8 @@ namespace ABRPOINT.Server.Repository
                 {
                     HasSupp = hasSupp,
                     MaxFerier = parametre.Parmaxfer,
-                    EliminerFerier = parametre.Parelimftrv
+                    EliminerFerier = parametre.Parelimftrv,
+                    Parreptrv = parametre.Parreptrv,
                 };
             }
             catch (Exception)

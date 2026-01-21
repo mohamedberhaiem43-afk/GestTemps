@@ -184,6 +184,16 @@ namespace ABRPOINT.Helper
             if (actions == 0) return false;
             return actions != 0 && presence?.Prerepos == "0";
         }
+        public static bool IsPresent(Presence presence)
+        {
+            int actions = 0;
+            if (!string.IsNullOrEmpty(presence?.Preentmatup) && !string.IsNullOrEmpty(presence?.Presortmatup))
+                actions++;
+            if (!string.IsNullOrEmpty(presence?.Preentamidiup) && !string.IsNullOrEmpty(presence?.Presortamidiup))
+                actions++;
+            if (actions == 0) return false;
+            return actions != 0;
+        }
         public static bool IsValid3(Presence presence)
         {
             int actions = 0;

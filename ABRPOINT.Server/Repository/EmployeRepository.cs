@@ -6,6 +6,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -237,11 +238,8 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Dictionary<string, int>> GetTotRetardsBatch(
-    List<string> empcods,
-    DateTime? dateDeb,
-    DateTime? dateFin,
-    string soccod)
+
+        public async Task<Dictionary<string, int>> GetTotRetardsBatch(List<string> empcods, DateTime? dateDeb, DateTime? dateFin, string soccod)
         {
             if (empcods == null || !empcods.Any())
                 return new Dictionary<string, int>();
@@ -265,33 +263,49 @@ namespace ABRPOINT.Server.Repository
                 return new Dictionary<string, int>();
 
             // =====================================
-            // 2️⃣ Préparer les demandes batch
+            // 2️⃣ Charger les congés (batch)
             // =====================================
-            var demandesPoste = presences
-                .Select(p => (p.Empcod, p.Dmdate!.Value))
+            var demandesConge = presences
+                .Select(p => (p.Soccod, p.Empcod, p.Dmdate!.Value.Date))
                 .Distinct()
                 .ToList();
 
-            // =====================================
-            // 3️⃣ Postes employés (batch)
-            // =====================================
-            Dictionary<string, string?> postesEmp =
-                await _posteRepository.GetEmpPosteBatch(soccod, demandesPoste);
+            // ✅ Utiliser la nouvelle signature qui retourne (Abslib, Connbjour)
+            Dictionary<(string Soccod, string Empcod, DateTime Date), (string? Abslib, float? Connbjour)> conges =
+                await _congeRepository.GetCongeLibBatch(demandesConge);
 
-            // Codes poste distincts
-            var codPostes = postesEmp.Values
-                .Where(c => !string.IsNullOrEmpty(c))
+            // =====================================
+            // 3️⃣ Charger les postes (batch)
+            // =====================================
+            var empdates = presences
+                .Select(p => (p.Empcod, p.Dmdate!.Value.Date))
                 .Distinct()
-                .ToList()!;
+                .ToList();
+
+            // Charger tous les postes nécessaires en batch
+            var postesEmp = new Dictionary<(string Empcod, DateTime Date), string?>();
+            foreach (var (empcod, date) in empdates)
+            {
+                var posteEmp = await _posteRepository.GetEmpPoste(soccod, empcod, date);
+                postesEmp[(empcod, date)] = posteEmp;
+            }
+
+            // Charger tous les détails des postes en batch
+            var posteCodes = postesEmp.Values
+                .Where(p => !string.IsNullOrEmpty(p))
+                .Distinct()
+                .ToList();
+
+            var postes = new Dictionary<string, Poste>(); // Remplacer 'object' par le type réel de Poste
+            foreach (var posteCod in posteCodes)
+            {
+                var poste = await _posteRepository.GetPoste(soccod, posteCod);
+                if (poste != null)
+                    postes[posteCod!] = poste;
+            }
 
             // =====================================
-            // 4️⃣ Chargement des postes (batch)
-            // =====================================
-            Dictionary<string, Poste> postes =
-                await _posteRepository.GetPostesBatch(soccod, codPostes);
-
-            // =====================================
-            // 5️⃣ Autorisations (batch)
+            // 4️⃣ Autorisations (batch)
             // =====================================
             var demandesAut = presences
                 .Select(p => (p.Empcod, p.Dmdate!.Value.Date))
@@ -302,28 +316,39 @@ namespace ABRPOINT.Server.Repository
                 await _autorisationRepository.GetAutLibBatch(soccod, demandesAut);
 
             // =====================================
-            // 6️⃣ Calcul des retards
+            // 5️⃣ Calcul des retards
             // =====================================
             var result = new Dictionary<string, int>();
 
             foreach (var p in presences)
             {
-                // Sécurité
-                if (!postesEmp.TryGetValue(p.Empcod, out var codPoste) ||
-                    string.IsNullOrEmpty(codPoste))
+                var date = p.Dmdate!.Value.Date;
+                var congeKey = (p.Soccod, p.Empcod, date);
+
+                // ❌ Skip if employee is on congé
+                if (conges.TryGetValue(congeKey, out var congeData) &&
+                    !string.IsNullOrEmpty(congeData.Abslib))
                     continue;
 
-                if (!postes.TryGetValue(codPoste, out var poste))
+                // ✅ Récupérer le poste depuis le dictionnaire
+                if (!postesEmp.TryGetValue((p.Empcod, date), out var postEmp))
+                    continue;
+
+                // ✅ Récupérer les détails du poste depuis le dictionnaire
+                if (string.IsNullOrEmpty(postEmp) || !postes.TryGetValue(postEmp, out var poste))
                     continue;
 
                 var presenceDto = _mapper.Map<PresenceDto>(p);
 
                 autorisations.TryGetValue(
-                    (p.Empcod, p.Dmdate!.Value.Date),
+                    (p.Empcod, date),
                     out var autorisation);
 
                 int retard = await _retardService
                     .CalculateHeureRetard(presenceDto, poste, autorisation);
+
+                if (retard <= 0)
+                    continue;
 
                 if (!result.ContainsKey(p.Empcod))
                     result[p.Empcod] = 0;
@@ -450,7 +475,16 @@ namespace ABRPOINT.Server.Repository
                 _dbContext.SaveChanges();
             }
         }
-
+        private string SumTimeSpans(List<string> timeSpans)
+        {
+            var total = TimeSpan.Zero;
+            foreach (var ts in timeSpans.Where(t => !string.IsNullOrEmpty(t)))
+            {
+                if (TimeSpan.TryParse(ts, out var parsed))
+                    total += parsed;
+            }
+            return total.ToString(@"hh\:mm\:ss");
+        }
 
         public async Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, List<string>? empcods = null, string? empreg = null, string? service = null,
     DateTime? debut = null, DateTime? fin = null)
@@ -460,7 +494,6 @@ namespace ABRPOINT.Server.Repository
                 if (!debut.HasValue || !fin.HasValue)
                     throw new ArgumentException("debut et fin sont obligatoires");
 
-                // ✅ Vérifier empcods avant de construire la requête
                 if (empcods != null && empcods.Count == 0)
                 {
                     return new List<EmployeePresenceDto>();
@@ -468,9 +501,8 @@ namespace ABRPOINT.Server.Repository
 
                 // 🔹 Récupérer le paramètre d'arrondi
                 var param = await _parametreRepository.GetEtatPeriodiqueParamAsync(soccod);
-                float arrondi = param?.Arrondi ?? 0f; // en minutes
+                float arrondi = param?.Arrondi ?? 0f;
 
-                // Matérialiser la liste pour éviter les problèmes de paramètres
                 var empcodsList = empcods?.ToList();
 
                 // ==========================
@@ -478,99 +510,171 @@ namespace ABRPOINT.Server.Repository
                 // ==========================
                 var baseQuery =
                     from e in _dbContext.Employes
-                    join su in _dbContext.Socusers
-                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    join su in (
+                        _dbContext.Socusers
+                            .Where(s => s.Uticod == uticod && s.Soccod == soccod)
+                            .Select(s => new { s.Soccod, s.Sitcod })
+                            .Distinct()
+                    ) on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
                     join p in _dbContext.Presences
+                        .Where(p => p.Predat >= debut.Value && p.Predat <= fin.Value && p.Soccod == soccod)
                         on e.Empcod equals p.Empcod
                     where e.Soccod == soccod
                           && e.Sitcod == site
                           && e.Actif == "A"
-                          && su.Uticod == uticod
-                          && p.Predat >= debut.Value
-                          && p.Predat <= fin.Value
                           && (string.IsNullOrEmpty(empreg) || e.Empreg == empreg)
                           && (string.IsNullOrEmpty(service) || e.Sercod == service)
+                    orderby e.Empcod, p.Predat, p.Tothre descending
                     select new
                     {
                         e.Empcod,
                         e.Emplib,
-                        p.Tothre
+                        p.Predat,
+                        p.Tothre,
+                        p.Dmdate
                     };
 
-                // ✅ Appliquer le filtre uniquement si la liste existe et n'est pas vide
                 if (empcodsList != null && empcodsList.Any())
                 {
                     baseQuery = baseQuery.Where(x => empcodsList.Contains(x.Empcod));
                 }
 
-                var presenceDataRaw = await baseQuery.ToListAsync();
+                // ================================
+                // 2️⃣ Matérialiser et dédupliquer
+                // ================================
+                var rawData = await baseQuery.ToListAsync();
 
-                // 🔹 Appliquer l'arrondi sur CHAQUE Tothre avant la somme
+                var presenceDataRaw = rawData
+                    .GroupBy(x => new { x.Empcod, x.Predat })
+                    .Select(g => new
+                    {
+                        g.Key.Empcod,
+                        Emplib = g.First().Emplib,
+                        g.Key.Predat,
+                        Dmdate = g.First().Dmdate,
+                        MinutesArrondies = g.Sum(x =>
+                        {
+                            if (TimeSpan.TryParse(x.Tothre ?? "", out var t))
+                            {
+                                int minutes = (int)t.TotalMinutes;
+                                return minutes;
+                            }
+                            return 0;
+                        })
+                    })
+                    .OrderBy(x => x.Empcod)
+                    .ThenBy(x => x.Predat)
+                    .ToList();
+
+                if (!presenceDataRaw.Any())
+                    return new List<EmployeePresenceDto>();
+
+                var empList = presenceDataRaw.Select(x => x.Empcod).Distinct().ToList();
+
+                // ================================
+                // 3️⃣ Récupérer les jours fériés
+                // ================================
+                var feriers = await _ferierRepository.GetByFerdateBatch(soccod, debut.Value, fin.Value);
+                var ferierDates = feriers.Keys.ToHashSet();
+
+                // ================================
+                // 4️⃣ Récupérer TOUS les congés pour la période
+                // ================================
+                // ✅ Créer une liste de TOUTES les dates de la période pour chaque employé
+                var allDatesInPeriod = new List<(string Soccod, string Empcod, DateTime Date)>();
+
+                foreach (var emp in empList)
+                {
+                    for (DateTime date = debut.Value.Date; date <= fin.Value.Date; date = date.AddDays(1))
+                    {
+                        allDatesInPeriod.Add((soccod, emp, date));
+                    }
+                }
+
+                // ✅ Récupérer tous les congés pour toutes les dates
+                var conges = await _congeRepository.GetCongeLibBatch(allDatesInPeriod);
+                var nbhconge = await _parametreRepository.GetNbhConge(soccod) ?? 0;
+
+                // ================================
+                // 5️⃣ Calcul des heures de congés par employé
+                // ================================
+                // ✅ Calculer pour TOUTES les dates de congé, pas seulement celles dans presenceDataRaw
+                var congeMinutesParEmp = allDatesInPeriod
+                    .GroupBy(x => x.Empcod)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Sum(x =>
+                        {
+                            var key = (x.Soccod, x.Empcod, x.Date);
+                            if (conges.TryGetValue(key, out var congeData) &&
+                                !string.IsNullOrEmpty(congeData.Abslib))
+                            {
+                                float heuresConge = (congeData.Connbjour.HasValue && congeData.Connbjour.Value == 0.5f)
+                                    ? nbhconge * 0.5f
+                                    : nbhconge;
+
+                                return (int)TimeSpan.FromHours(heuresConge).TotalMinutes;
+                            }
+                            return 0;
+                        })
+                    );
+
+                // ================================
+                // 6️⃣ Calcul des heures fériées travaillées
+                // ================================
+                var ferierTravailleParEmp = presenceDataRaw
+                    .Where(x => x.MinutesArrondies > 0 && ferierDates.Contains(x.Predat.Value.Date))
+                    .GroupBy(x => x.Empcod)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Sum(x => x.MinutesArrondies)
+                    );
+
+                // ================================
+                // 7️⃣ Calcul des heures fériées non travaillées
+                // ================================
+                float ferierHeure = await _ferierRepository.GetTotheureFerierParPeriode(soccod, debut, fin) ?? 0;
+                int ferierMinutesGlobal = (int)TimeSpan.FromHours(ferierHeure).TotalMinutes;
+
+                // ================================
+                // 8️⃣ Agrégation par employé (heures normales)
+                // ================================
                 var presenceData = presenceDataRaw
                     .GroupBy(x => new { x.Empcod, x.Emplib })
                     .Select(g => new
                     {
                         g.Key.Empcod,
                         g.Key.Emplib,
-                        TotalMinutes = g
-                            .Where(x => !string.IsNullOrEmpty(x.Tothre))
-                            .Sum(x =>
-                            {
-                                if (TimeSpan.TryParse(x.Tothre, out var t))
-                                {
-                                    int minutes = (int)t.TotalMinutes;
-
-                                    // 🔹 Arrondir chaque Tothre individuellement
-                                    if (arrondi > 0)
-                                    {
-                                        minutes = (int)(Math.Ceiling((float)minutes / arrondi) * arrondi);
-                                    }
-
-                                    return minutes;
-                                }
-                                return 0;
-                            })
+                        TotalMinutes = g.Sum(x => x.MinutesArrondies)
                     })
+                    .OrderBy(x => x.Empcod)
                     .ToList();
 
                 if (!presenceData.Any())
                     return new List<EmployeePresenceDto>();
 
-                var empList = presenceData.Select(x => x.Empcod).ToList();
-
                 // ================================
-                // 3️⃣ Heures fériées (globales)
+                // 9️⃣ Données batch complémentaires
                 // ================================
-                float ferierHeure =
-                    await _ferierRepository.GetTotheureFerierParPeriode(soccod, debut, fin) ?? 0;
-
-                int ferierMinutes = (int)TimeSpan.FromHours(ferierHeure).TotalMinutes;
-
-                // ===================================
-                // 4️⃣ Données batch complémentaires
-                // ===================================
-                var conges = await _parametreRepository
-                    .GetTotheureCongeParPeriode(soccod, empList, debut, fin);
-
-                var nbJours = await GetNbJoursBatch(empList, debut, fin);
-
+                var nbJours = await GetNbJoursBatch(empList, debut, fin, soccod);
                 var retards = await GetTotRetardsBatch(empList, debut, fin, soccod);
 
-                // ==========================
-                // 5️⃣ Assemblage final
-                // ==========================
+                // ================================
+                // 🔟 Assemblage final
+                // ================================
                 return presenceData.Select(x =>
                 {
-                    int congeMinutes =
-                        conges.TryGetValue(x.Empcod, out var ch)
-                            ? (int)TimeSpan.FromHours(ch).TotalMinutes
-                            : 0;
+                    int ferierTravMinutes = ferierTravailleParEmp.GetValueOrDefault(x.Empcod);
+                    int congeMinutes = congeMinutesParEmp.GetValueOrDefault(x.Empcod);
 
                     return new EmployeePresenceDto
                     {
                         Empcod = x.Empcod,
                         Emplib = x.Emplib,
-                        TotalMinutes = x.TotalMinutes + ferierMinutes + congeMinutes,
+
+                        // ✅ heures normales + heures fériées travaillées + heures fériées non travaillées + heures de congés
+                        TotalMinutes = x.TotalMinutes + ferierTravMinutes + ferierMinutesGlobal + congeMinutes,
+
                         NbJours = nbJours.GetValueOrDefault(x.Empcod),
                         TotalRetards = retards.GetValueOrDefault(x.Empcod)
                     };
@@ -606,13 +710,12 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public async Task<Dictionary<string, int>> GetNbJoursBatch(
-    List<string> empcods,
-    DateTime? dateDeb,
-    DateTime? dateFin)
+
+
+        public async Task<Dictionary<string, float>> GetNbJoursBatch(List<string> empcods, DateTime? dateDeb, DateTime? dateFin, string soccod)
         {
             if (empcods == null || !empcods.Any())
-                return new Dictionary<string, int>();
+                return new Dictionary<string, float>();
 
             if (!dateDeb.HasValue || !dateFin.HasValue)
                 throw new ArgumentException("dateDeb et dateFin sont obligatoires");
@@ -625,17 +728,23 @@ namespace ABRPOINT.Server.Repository
                     empcods.Contains(p.Empcod) &&
                     p.Dmdate.HasValue &&
                     p.Dmdate.Value >= dateDeb.Value &&
-                    p.Dmdate.Value <= dateFin.Value)
-                .Select(p => new
+                    p.Dmdate.Value <= dateFin.Value
+                    && p.Soccod == soccod)
+                .GroupBy(p => new
                 {
                     p.Empcod,
-                    Date = p.Dmdate!.Value.Date,
-                    Presence = p
+                    Date = p.Dmdate!.Value.Date
+                })
+                .Select(g => new
+                {
+                    g.Key.Empcod,
+                    g.Key.Date,
+                    Presence = g.First()
                 })
                 .ToListAsync();
 
             if (!presences.Any())
-                return new Dictionary<string, int>();
+                return new Dictionary<string, float>();
 
             // =====================================
             // 2️⃣ Charger les congés (batch)
@@ -645,35 +754,36 @@ namespace ABRPOINT.Server.Repository
                 .Distinct()
                 .ToList();
 
-            var conges = await _congeRepository
-                .GetCongeLibBatch(demandesConge);
+            var conges = await _congeRepository.GetCongeLibBatch(demandesConge);
 
             // =====================================
             // 3️⃣ Calcul NbJours
             // =====================================
-            var result = new Dictionary<string, int>();
+            var result = new Dictionary<string, float>();
 
             foreach (var p in presences)
             {
                 var key = (p.Presence.Soccod, p.Empcod, p.Date);
+                var (abslib, connbjour) = conges.GetValueOrDefault(key);
 
                 bool isValid =
-                    GenericMethodes.IsValid1(p.Presence) &&
-                    string.IsNullOrEmpty(conges.GetValueOrDefault(key)) &&
+                    GenericMethodes.IsPresent(p.Presence) &&
+                    string.IsNullOrEmpty(abslib) &&
                     !GenericMethodes.NotPresent(p.Presence);
 
-                if (!isValid)
+                if ((!isValid && connbjour == null) || connbjour == 1)
                     continue;
 
                 if (!result.ContainsKey(p.Empcod))
                     result[p.Empcod] = 0;
 
-                result[p.Empcod]++;
+                // ✅ Si Connbjour = 0.5, ajouter 0.5, sinon ajouter 1
+                float journeeValue = (connbjour.HasValue && connbjour.Value == 0.5f) ? 0.5f : 1f;
+                result[p.Empcod] += journeeValue;
             }
 
             return result;
         }
-
 
         double CustomRound(double value)
         {

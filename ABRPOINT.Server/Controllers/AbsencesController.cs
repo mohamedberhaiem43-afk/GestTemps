@@ -38,7 +38,6 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-
                 return StatusCode(500,"Probléme de recuperation des absences ") ;
             }
         }

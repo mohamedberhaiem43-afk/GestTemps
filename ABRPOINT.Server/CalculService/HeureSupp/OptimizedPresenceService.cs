@@ -8,8 +8,6 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ABRPOINT.Server.CalculService.HeureSupp
 {
@@ -241,18 +239,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             }
         }
 
-        private async Task ProcessDay(
-    DateTime date,
-    DataCache cache,
-    ParametreMoisPointageDto paramMois,
-    ParametreNuitDto paramNuit,
-    string emppanier,
-    Accumulators acc,
-    HashSet<string> countedSanctions,
-    HashSet<string> countedConges,
-    IDictionary<string, string> weekDetails,
-    string soccod,
-    string empcod)
+        private async Task ProcessDay(DateTime date,DataCache cache,ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,string emppanier,Accumulators acc,
+    HashSet<string> countedSanctions,HashSet<string> countedConges,IDictionary<string, string> weekDetails,string soccod,string empcod)
         {
             cache.PresencesByDate.TryGetValue(date.Date, out var presence);
             cache.SanctionsByDate.TryGetValue(date.Date, out var sanction);
@@ -363,11 +351,17 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
             // Check if worked on Saturday
             if (presence.Predat.Value.DayOfWeek == DayOfWeek.Saturday &&
-                GenericMethodes.ConvertHHmmToDouble(presence.Tothre) > 0 &&
-                isRepos)
+                GenericMethodes.ConvertHHmmToDouble(presence.Tothre) > 0)
             {
                 acc.JourSamediTrv++;
-                acc.HreSamediTrv += GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                acc.ResHreSamediTrv += GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                if (isRepos)
+                    acc.HreSamediTrv += GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+            }
+            if (presence.Predat.Value.DayOfWeek == DayOfWeek.Sunday &&
+                GenericMethodes.ConvertHHmmToDouble(presence.Tothre) > 0)
+            {
+                acc.HreDimTrv += GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
             }
 
             // Calculate night hours
@@ -385,6 +379,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             if (isWorkingDay && conge == null && !isFerier)
             {
                 acc.NbJourPointer++;
+                acc.NbJours++;
             }
 
             // Add allaitement hours
@@ -822,6 +817,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             public int Panier { get; set; } = 0;
             public float? JourSamediTrv { get; set; } = 0;
             public float? HreSamediTrv { get; set; } = 0;
+            public float? ResHreSamediTrv { get; set; } = 0;
+            public float? HreDimTrv { get; set; } = 0;
         }
 
         private Accumulators InitializeAccumulators() => new Accumulators();
@@ -858,6 +855,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             result.Panier = acc.Panier;
             result.JourSamediTrv = acc.JourSamediTrv;
             result.HreSamediTrv = acc.HreSamediTrv;
+            result.ResHreSamediTrv = acc.ResHreSamediTrv;
+            result.HreDimTrv = acc.HreDimTrv;
         }
 
         private (DateTime startDate, DateTime endDate) CalculateDateRange(

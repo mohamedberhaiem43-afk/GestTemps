@@ -256,7 +256,6 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest(new { message });
                 }
-
                 return Ok(new { message });
             }
             catch (Exception ex)

@@ -100,6 +100,30 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+        public async Task<float?> GetHeureFerieTravParPeriode(string soccod, DateTime? predat, string? tothre)
+        {
+            try
+            {
+                Ferier? ferier = await _dbContext.Feriers
+                    .Where(f => f.Soccod == soccod && f.Ferdate == predat)
+                    .FirstOrDefaultAsync();
+
+                if (ferier == null) return 0;
+
+                // Convert "09:30" to float (e.g., 9.5)
+                if (TimeSpan.TryParse(tothre, out TimeSpan time))
+                {
+                    float totalHours = (float)time.TotalHours;
+                    return totalHours;
+                }
+
+                return null; // Invalid format
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
 
 
         public async Task<float?> GetNbHeures(PresenceDto presence,string codpost)

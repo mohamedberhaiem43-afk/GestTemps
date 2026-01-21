@@ -11,8 +11,11 @@ namespace ABRPOINT.Server.Interfaces
         Task<NombreConge> GetNbJourEtHreEmpConge(string soccod, string empcod, DateTime? predat,string codpost);
         Task<DroitCongeDto> GetDroitConge(string soccod, string empcod, DateTime? datedebut, DateTime? datefin);
         Task<string> GetCongeLib(string? soccod,string empcod, DateTime dmdate);
-        Task<Dictionary<(string Soccod, string Empcod, DateTime Date), string?>> GetCongeLibBatch(List<(string Soccod, string Empcod, DateTime Date)> demandes);
-        Task<Dictionary<(string Soccod, string Empcod, DateTime Date), string?>> GetCongeEmployeLibBatch(string Soccod, string Empcod, DateTime debut,DateTime fin);
+        Task<Dictionary<(string Soccod, string Empcod, DateTime Date), (string? Abslib, float? Connbjour)>> GetCongeLibBatch(List<(string Soccod, string Empcod, DateTime Date)> demandes);
+
+        //Task<Dictionary<(string Soccod, string Empcod, DateTime Date, float? Connbjour), (string? Abslib, float? Connbjour)>> GetCongeLibBatch(List<(string Soccod, string Empcod, DateTime Date, float? Connbjour)> demandes);
+
+        Task<Dictionary<(string Soccod, string Empcod, DateTime Date,float? connbjour), string?>> GetCongeEmployeLibBatch(string Soccod, string Empcod, DateTime debut,DateTime fin);
         Task<float> GetNbCongeRecue(string soccod, string empcod, string annee, string currentMonth);
         Task<List<CahierConge>> GetCahierConge(string soccod, DateTime datedebut, DateTime datefin, List<string> empcods);
         Task<Conge> GetEmpCongeByDate(string soccod, string empcod, DateTime date);
