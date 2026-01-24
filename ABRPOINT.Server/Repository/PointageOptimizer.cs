@@ -1,6 +1,11 @@
 ﻿using ABRPOINT.Helper;
+using ABRPOINT.Server.CalculService.CalcTotHeures;
+using ABRPOINT.Server.CalculService.HeureSupp;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Models;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
@@ -9,11 +14,17 @@ namespace ABRPOINT.Server.Repository
     {
         private readonly ApplicationDbContext _context;
         private readonly IParametreRepository _parametreRepository;
+        private readonly ICalcTotHeuresService _heuresService;
+        private readonly IHeureSuppService _heuresSuppService;
+        private readonly IMapper _mapper;
 
-        public PointageOptimizer(ApplicationDbContext context,IParametreRepository parametreRepository)
+        public PointageOptimizer(ApplicationDbContext context,IParametreRepository parametreRepository,ICalcTotHeuresService heuresService,IMapper mapper,IHeureSuppService heureSuppService)
         {
             _context = context;
             _parametreRepository = parametreRepository;
+            _heuresService = heuresService;
+            _heuresSuppService = heureSuppService;
+            _mapper = mapper;
         }
 
         public async Task OptimizePointage(string soccod, string empMat, DateTime dateDeb, DateTime dateFin)
@@ -60,6 +71,11 @@ namespace ABRPOINT.Server.Repository
                     select presence
                 ).ToListAsync();
 
+                // 🔹 Charger tous les postes une seule fois
+                var allPostes = await _context.Postes
+                    .Where(p => p.Soccod == soccod)
+                    .ToListAsync();
+
                 var nuitparam = await _parametreRepository
                     .GetParametresNuitAsync(soccod);
 
@@ -89,14 +105,14 @@ namespace ABRPOINT.Server.Repository
                 {
                     var item = presences[i];
 
-                    var lpoint = await _context.Lpointjours
-                        .FirstOrDefaultAsync(lp =>
-                            lp.Soccod == soccod &&
-                            lp.Empcod == item.Empcod &&
-                            lp.Saljour == item.Predat);
+                    //var lpoint = await _context.Lpointjours
+                    //    .FirstOrDefaultAsync(lp =>
+                    //        lp.Soccod == soccod &&
+                    //        lp.Empcod == item.Empcod &&
+                    //        lp.Saljour == item.Predat);
 
-                    if (lpoint != null)
-                        continue;
+                    //if (lpoint != null)
+                    //    continue;
 
                     bool isNuitMatin =
                         !string.IsNullOrEmpty(item.Preentmatup) &&
@@ -124,11 +140,22 @@ namespace ABRPOINT.Server.Repository
                             if (string.IsNullOrEmpty(item.Presortmatup))
                                 item.Presortmatup = nextDayItem.Preentmatup;
                             else if (string.IsNullOrEmpty(item.Presortamidiup))
-                                item.Presortamidiup = nextDayItem.Preentmatup;
+                                item.Presortamidiup = nextDayItem.Preentamidiup;
 
-                            // Vider l’entrée du jour suivant
+                            // Vider l'entrée du jour suivant
                             nextDayItem.Preentmatup = null;
                         }
+                    }
+
+                    // 🔹 NOUVEAU : Déterminer le poste le plus proche
+                    var closestPoste = FindClosestPoste(item, allPostes);
+                    if (closestPoste != null)
+                    {
+                        item.Codposte = closestPoste.Codposte;
+                        var presenceDto = _mapper.Map<Presence, PresenceDto>(item);
+                        item.Tothre = await _heuresService.CalcHreTrav(presenceDto);
+                        item.Tothsup = GenericMethodes.ConvertDoubleToHHmm(await _heuresSuppService
+                            .CalculateHeureSuppOptimise(presenceDto, allPostes.Where(p => p.Soccod == soccod && p.Codposte == closestPoste.Codposte).First()));
                     }
                 }
 
@@ -139,6 +166,104 @@ namespace ABRPOINT.Server.Repository
             {
                 throw new Exception("Optimization failed: " + ex.Message, ex);
             }
+        }
+
+        // 🔹 NOUVELLE MÉTHODE : Trouver le poste le plus proche en utilisant GetStartsWorkDay
+        private Poste FindClosestPoste(Presence presence, List<Poste> postes)
+        {
+            if (postes == null || !postes.Any() || presence?.Predat == null)
+                return null;
+
+            // Extraire les heures d'entrée et de sortie de la présence
+            TimeSpan? presenceEntree = GetFirstEntryTime(presence);
+            TimeSpan? presenceSortie = GetLastExitTime(presence);
+
+            if (!presenceEntree.HasValue || !presenceSortie.HasValue)
+                return null;
+
+            Poste closestPoste = null;
+            double minDifference = double.MaxValue;
+
+            foreach (var poste in postes)
+            {
+                // 🔹 Utiliser GetStartsWorkDay pour obtenir les horaires du poste selon le jour
+                var (morningStart, morningEnd, eveningStart, eveningEnd) =
+                    GenericMethodes.GetStartsWorkDay(presence.Predat, poste);
+
+                // Parser les heures du poste
+                TimeSpan? posteEntree = null;
+                TimeSpan? posteSortie = null;
+
+                // Déterminer l'entrée du poste (matin prioritaire)
+                if (!string.IsNullOrEmpty(morningStart) &&
+                    TimeSpan.TryParse(morningStart, out TimeSpan entMat))
+                {
+                    posteEntree = entMat;
+                }
+                else if (!string.IsNullOrEmpty(eveningStart) &&
+                         TimeSpan.TryParse(eveningStart, out TimeSpan entAm))
+                {
+                    posteEntree = entAm;
+                }
+
+                // Déterminer la sortie du poste (après-midi prioritaire)
+                if (!string.IsNullOrEmpty(eveningEnd) &&
+                    TimeSpan.TryParse(eveningEnd, out TimeSpan sortAm))
+                {
+                    posteSortie = sortAm;
+                }
+                else if (!string.IsNullOrEmpty(morningEnd) &&
+                         TimeSpan.TryParse(morningEnd, out TimeSpan sortMat))
+                {
+                    posteSortie = sortMat;
+                }
+
+                // Si on n'a pas trouvé d'horaires valides, passer au poste suivant
+                if (!posteEntree.HasValue || !posteSortie.HasValue)
+                    continue;
+
+                // Calculer la différence totale (entrée + sortie)
+                double diffEntree = Math.Abs((presenceEntree.Value - posteEntree.Value).TotalMinutes);
+                double diffSortie = Math.Abs((presenceSortie.Value - posteSortie.Value).TotalMinutes);
+                double totalDifference = diffEntree + diffSortie;
+
+                // Garder le poste avec la plus petite différence
+                if (totalDifference < minDifference)
+                {
+                    minDifference = totalDifference;
+                    closestPoste = poste;
+                }
+            }
+
+            return closestPoste;
+        }
+
+        // 🔹 HELPER : Récupérer la première heure d'entrée de la présence
+        private TimeSpan? GetFirstEntryTime(Presence presence)
+        {
+            if (!string.IsNullOrEmpty(presence.Preentmatup) &&
+                TimeSpan.TryParse(presence.Preentmatup, out TimeSpan entmat))
+                return entmat;
+
+            if (!string.IsNullOrEmpty(presence.Preentamidiup) &&
+                TimeSpan.TryParse(presence.Preentamidiup, out TimeSpan entam))
+                return entam;
+
+            return null;
+        }
+
+        // 🔹 HELPER : Récupérer la dernière heure de sortie de la présence
+        private TimeSpan? GetLastExitTime(Presence presence)
+        {
+            if (!string.IsNullOrEmpty(presence.Presortamidiup) &&
+                TimeSpan.TryParse(presence.Presortamidiup, out TimeSpan sortam))
+                return sortam;
+
+            if (!string.IsNullOrEmpty(presence.Presortmatup) &&
+                TimeSpan.TryParse(presence.Presortmatup, out TimeSpan sortmat))
+                return sortmat;
+
+            return null;
         }
 
     }

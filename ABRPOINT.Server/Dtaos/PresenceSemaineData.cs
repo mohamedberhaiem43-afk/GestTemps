@@ -37,6 +37,7 @@
         public float? HreDimTrv { get; set; }
         public float? HreSamediTrv { get; set; }
         public float? ResHreSamediTrv { get; set; }
+        public float? NbHeuresDebutCalcul { get; set; }
         public IDictionary<string, string> WeekDetails { get; set; }
     }
 }

@@ -531,7 +531,9 @@ namespace ABRPOINT.Server.Repository
                         e.Emplib,
                         p.Predat,
                         p.Tothre,
-                        p.Dmdate
+                        p.Dmdate,
+                        p.Tothsup,
+                        p.Totcmp
                     };
 
                 if (empcodsList != null && empcodsList.Any())
@@ -545,26 +547,41 @@ namespace ABRPOINT.Server.Repository
                 var rawData = await baseQuery.ToListAsync();
 
                 var presenceDataRaw = rawData
-                    .GroupBy(x => new { x.Empcod, x.Predat })
-                    .Select(g => new
+                .GroupBy(x => new { x.Empcod, x.Predat })
+                .Select(g => new
+                {
+                    g.Key.Empcod,
+                    Emplib = g.First().Emplib,
+                    g.Key.Predat,
+                    Dmdate = g.First().Dmdate,
+                    MinutesArrondies = g.Sum(x =>
                     {
-                        g.Key.Empcod,
-                        Emplib = g.First().Emplib,
-                        g.Key.Predat,
-                        Dmdate = g.First().Dmdate,
-                        MinutesArrondies = g.Sum(x =>
+                        int totalMinutes = 0;
+
+                        // Tothre
+                        if (TimeSpan.TryParse(x.Tothre ?? "", out var tothre))
                         {
-                            if (TimeSpan.TryParse(x.Tothre ?? "", out var t))
-                            {
-                                int minutes = (int)t.TotalMinutes;
-                                return minutes;
-                            }
-                            return 0;
-                        })
+                            totalMinutes += (int)tothre.TotalMinutes;
+                        }
+
+                        // ✅ Tothsup
+                        if (TimeSpan.TryParse(x.Tothsup ?? "", out var tothsup))
+                        {
+                            totalMinutes += (int)tothsup.TotalMinutes;
+                        }
+
+                        // ✅ Totcmp (heures décimales → minutes)
+                        if (x.Totcmp.HasValue)
+                        {
+                            totalMinutes += (int)TimeSpan.FromHours(x.Totcmp.Value).TotalMinutes;
+                        }
+
+                        return totalMinutes;
                     })
-                    .OrderBy(x => x.Empcod)
-                    .ThenBy(x => x.Predat)
-                    .ToList();
+                })
+                .OrderBy(x => x.Empcod)
+                .ThenBy(x => x.Predat)
+                .ToList();
 
                 if (!presenceDataRaw.Any())
                     return new List<EmployeePresenceDto>();

@@ -552,6 +552,30 @@ namespace ABRPOINT.Helper
             var x = dt.AddDays(-1 * diff).Date;
             return x;
         }
-         
+
+        public static string? ConvertDoubleToHHmm(float? absheure)
+        {
+            if (!absheure.HasValue)
+                return null;
+
+            // Handle negative values
+            bool isNegative = absheure.Value < 0;
+            float absoluteValue = Math.Abs(absheure.Value);
+
+            // Extract hours and minutes
+            int hours = (int)absoluteValue;
+            int minutes = (int)Math.Round((absoluteValue - hours) * 60);
+
+            // Handle rounding edge case (59.5 minutes rounds to 60)
+            if (minutes >= 60)
+            {
+                hours += 1;
+                minutes = 0;
+            }
+
+            // Format with optional negative sign
+            string sign = isNegative ? "-" : "";
+            return $"{sign}{hours:D2}:{minutes:D2}";
+        }
     }
 }

@@ -305,25 +305,44 @@ namespace ABRPOINT.Server.Repository
         }
 
 
-        public async Task<float?> GetJourHeures(string soccod,DateTime? date, string? codposte)
+        public async Task<float?> GetJourHeures(string soccod, DateTime? date, string? codposte)
         {
             Poste? poste = await GetPoste(soccod, codposte);
             if (poste == null) return 0;
-            var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) = GenericMethodes.GetStartsWorkDay(date, poste);
+
+            var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) =
+                GenericMethodes.GetStartsWorkDay(date, poste);
             float? repasTime = GenericMethodes.GetRepasWorkDay(date, poste);
 
-            if (!TimeSpan.TryParse(morningStartTime, out var morningStart) || !TimeSpan.TryParse(morningEndTime, out var morningEnd) ||
+            if (!TimeSpan.TryParse(morningStartTime, out var morningStart) ||
+                !TimeSpan.TryParse(morningEndTime, out var morningEnd) ||
                 !repasTime.HasValue)
             {
                 return 0;
             }
+
             TimeSpan workDuration;
-            if (!TimeSpan.TryParse(eveningStartTime, out var eveningStart) || !TimeSpan.TryParse(eveningEndTime, out var eveningEnd))
+
+            // Handle night shift for morning period (crosses midnight)
+            TimeSpan morningDuration = morningEnd > morningStart
+                ? morningEnd - morningStart
+                : (morningEnd + TimeSpan.FromHours(24)) - morningStart;
+
+            if (!TimeSpan.TryParse(eveningStartTime, out var eveningStart) ||
+                !TimeSpan.TryParse(eveningEndTime, out var eveningEnd))
             {
-                workDuration = (morningEnd - morningStart) - TimeSpan.FromMinutes(repasTime.Value);
+                workDuration = morningDuration - TimeSpan.FromMinutes(repasTime.Value);
             }
             else
-                workDuration = (morningEnd - morningStart) + (eveningEnd - eveningStart) - TimeSpan.FromMinutes(repasTime.Value);
+            {
+                // Handle night shift for evening period (crosses midnight)
+                TimeSpan eveningDuration = eveningEnd > eveningStart
+                    ? eveningEnd - eveningStart
+                    : (eveningEnd + TimeSpan.FromHours(24)) - eveningStart;
+
+                workDuration = morningDuration + eveningDuration - TimeSpan.FromMinutes(repasTime.Value);
+            }
+
             return (float?)workDuration.TotalHours;
         }
 

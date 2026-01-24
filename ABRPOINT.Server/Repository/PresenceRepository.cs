@@ -1,18 +1,19 @@
-﻿using ABRPOINT.Server.Data;
+﻿using ABRPOINT.Helper;
+using ABRPOINT.Server.CalculService.Conge;
+using ABRPOINT.Server.CalculService.HeureAbsences;
+using ABRPOINT.Server.CalculService.HeureNuit;
+using ABRPOINT.Server.CalculService.HeureRetard;
+using ABRPOINT.Server.CalculService.HeureSupp;
+using ABRPOINT.Server.Controllers;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using ABRPOINT.Server.CalculService.HeureSupp;
-using ABRPOINT.Server.CalculService.HeureRetard;
-using ABRPOINT.Server.CalculService.HeureNuit;
-using ABRPOINT.Server.CalculService.Conge;
-using ABRPOINT.Helper;
-using ABRPOINT.Server.CalculService.HeureAbsences;
-using ABRPOINT.Server.Controllers;
+using FastReport.Data;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -80,11 +81,7 @@ namespace ABRPOINT.Server.Repository
         // Add this as a class-level cache dictionary
         private static readonly Dictionary<string, int> _longbdgCache = new Dictionary<string, int>();
 
-        public async Task<PresenceDto?> AddPresence(
-     string soccod,
-     string empcod,
-     DateTime date,
-     string poicod)
+        public async Task<PresenceDto?> AddPresence(string soccod,string empcod,DateTime date,string poicod)
         {
             PresenceDto? presenceDto = null;
 
@@ -201,7 +198,7 @@ namespace ABRPOINT.Server.Repository
             };
             var presenceDto = _mapper.Map<PresenceDto>(presence);
             if(presence.Codposte != null)
-                presence.Tothre = await CalcHreTrav(presenceDto);
+                presence.Tothre = await CalcHreTrav(presenceDto,poste);
             return presence;
         }
 
@@ -286,7 +283,7 @@ namespace ABRPOINT.Server.Repository
 
             // ✅ Calculate overtime hours and format as "HH:mm"
             var overtimeMinutes = await _heureSuppService.CalculateHeureSupp(presenceDto, poste);
-            var hretrav = await CalcHreTrav(presenceDto);
+            var hretrav = await CalcHreTrav(presenceDto,poste);
             dbpresence.Tothsup = FormatMinutesToTimeSpan(overtimeMinutes);
         }
 
@@ -614,16 +611,11 @@ namespace ABRPOINT.Server.Repository
                                 presence.Etat = "J.Repos";
                             presence.Prerepos = "1";
                         }
-
+                        var poste = await _posteRepository.GetPoste(soccod, presence.Codposte);
                         presence.TotalHeure = await _posteRepository.GetJourHeures(soccod, date, presence.Codposte);
-                        presence.Tothre = await CalcHreTrav(presence);
-                        presence.Tothabs += await _absenceService.CalculateHeureAbsences(
-                            _mapper.Map<Presence>(presence),
-                            soccod,
-                            presence.Codposte,
-                            presence.Dmdate,
-                            autorisations.GetValueOrDefault((empcod, date))
-                        );
+                        presence.Tothre = await CalcHreTrav(presence,poste);
+                        //float? absheure = await _absenceService.CalculateHeureAbsences(_mapper.Map<Presence>(presence),soccod,presence.Codposte,presence.Dmdate,autorisations.GetValueOrDefault((empcod, date)));
+                        //presence.Tothabs = GenericMethodes.ConvertDoubleToHHmm(absheure);
 
                         // 🔴 CAS JOUR FÉRIÉ : forcer les heures et ignorer le calcul normal
                         if (ferier != null)
@@ -668,8 +660,30 @@ namespace ABRPOINT.Server.Repository
                             allDates.Add(presence);
                             continue;
                         }
+                        TimeSpan totalTime = TimeSpan.Zero;
 
-                        var poste = await _posteRepository.GetPoste(soccod, presence.Codposte);
+                        // Étape 1 : Ajouter tothsup à tothre
+                        if (!string.IsNullOrEmpty(presence.Tothsup) && !string.IsNullOrEmpty(presence.Tothre))
+                        {
+                            if (TimeSpan.TryParse(presence.Tothsup, out TimeSpan tothsup) &&
+                                TimeSpan.TryParse(presence.Tothre, out TimeSpan tothre))
+                            {
+                                totalTime = tothre.Add(tothsup);
+                                presence.Tothre = $"{(int)totalTime.TotalHours:D2}:{totalTime.Minutes:D2}";
+                            }
+                        }
+
+                        // Étape 2 : Ajouter Totcmp (heures décimales)
+                        if (!string.IsNullOrEmpty(presence.Tothre) && presence.Totcmp.HasValue)
+                        {
+                            if (TimeSpan.TryParse(presence.Tothre, out TimeSpan tothreActuel))
+                            {
+                                totalTime = tothreActuel.Add(TimeSpan.FromHours(presence.Totcmp.Value));
+                                presence.Tothre = $"{(int)totalTime.TotalHours:D2}:{totalTime.Minutes:D2}";
+                            }
+                        }
+
+                        // Calcul du retard
                         int retard = await _retardService.CalculateHeureRetard(presence, poste, autorisations.GetValueOrDefault((empcod, date)));
                         presence.Totret = $"{retard / 60:D2}:{retard % 60:D2}";
                     }
@@ -749,24 +763,40 @@ namespace ABRPOINT.Server.Repository
                 throw new Exception("Error calculating presence", ex);
             }
         }
-        
-       
+
+
         private async Task<(float? nbHeurSupp, int nbRetard)> CalculateDayWorkMetrics(PresenceDto presence)
         {
             try
             {
-                Poste? poste = await _posteRepository.GetPoste(presence.Soccod, presence.Codposte);
+                // Add null check for Dmdate
+                if (!presence.Dmdate.HasValue)
+                {
+                    return (0, 0);
+                }
+                string codpost = presence.Codposte;
+                if(string.IsNullOrEmpty(presence.Codposte))
+                    codpost = await _posteRepository.GetEmpPoste(presence.Soccod,presence.Empcod, presence.Predat);
+                var poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+
                 if (poste == null) return (0, 0);
-                AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
-                return (await _heureSuppService.CalculateHeureSupp(presence,poste), await _heureRetardService.CalculateHeureRetard(presence, poste,autorisation));
+
+                AutDto? autorisation = await _autorisationRepository.GetAutLib(
+                    presence.Soccod,
+                    presence.Empcod,
+                    presence.Dmdate.Value); // Safe to use .Value now
+
+                return (
+                    await _heureSuppService.CalculateHeureSupp(presence, poste),
+                    await _heureRetardService.CalculateHeureRetard(presence, poste, autorisation)
+                );
             }
             catch (Exception ex)
             {
-                // Consider logging the error here
                 throw new ApplicationException("Error calculating work metrics", ex);
             }
         }
-      
+
         public async Task<double?> GetPreRepas(string empcod, DateTime? predate)
         {
             try
@@ -789,12 +819,19 @@ namespace ABRPOINT.Server.Repository
             {
                 if (presence != null)
                 {
+                    Poste? poste = null;
+                    if(string.IsNullOrEmpty(presence.Codposte))
+                    {
+                        string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                        poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+                        presence.Codposte = codpost;
+                    }
                     // Calculs
                     var (nbHeurSupp, nbRetard) = await CalculateDayWorkMetrics(presence);
                     float? heuresNuit = await _heureNuitService.CalculateHeureNuit(presence);
 
                     presence.Totret = $"{nbRetard / 60:D2}:{nbRetard % 60:D2}";
-                    presence.Tothre = await CalcHreTrav(presence);
+                    presence.Tothre = await CalcHreTrav(presence,poste);
 
                     float? tothreInHours = GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
 
@@ -835,7 +872,7 @@ namespace ABRPOINT.Server.Repository
             return TimeSpan.Parse(value);
         }
 
-        private async Task<string?> CalcHreTrav(PresenceDto presence)
+        private async Task<string?> CalcHreTrav(PresenceDto presence,Poste poste)
         {
             try
             {
@@ -845,9 +882,13 @@ namespace ABRPOINT.Server.Repository
 
                 // Étape 1 : Récupération des infos
                 AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
-                Poste? poste = await _posteRepository.GetPoste(presence.Soccod, presence.Codposte);
-                if (poste == null) return null;
-
+                if(poste == null)
+                {
+                    var codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                    presence.Codposte = codpost;
+                    poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+                }
+                presence.Codposte = poste.Codposte;
                 float? totalPosteJourHeures = await _posteRepository.GetJourHeures(presence.Soccod, presence.Dmdate, presence.Codposte);
                 var (nbHeurSupp, nbRetard) = await CalculateDayWorkMetrics(presence);
 
@@ -903,10 +944,11 @@ namespace ABRPOINT.Server.Repository
                 }
                 // ✅ Convertir des heures (double) en TimeSpan
                 TimeSpan totalHeureTimeSpan = TimeSpan.FromHours(hretrv);
-                if(string.IsNullOrEmpty(presence.Tothre))
+                if(string.IsNullOrEmpty(presence.Tothre) || presence.Tothre == "00:00")
                     presence.Tothre = $"{totalHeureTimeSpan.Hours:D2}:{totalHeureTimeSpan.Minutes:D2}";
-                // Étape 4 : Contrôle des plafonds
-                EtatPresenceParametreDto param = await _parametreRepository.GetEtatPresenceParametres(presence.Soccod);
+
+                    // Étape 4 : Contrôle des plafonds
+                    EtatPresenceParametreDto param = await _parametreRepository.GetEtatPresenceParametres(presence.Soccod);
 
                 if (!string.IsNullOrEmpty(presence.Tothre) &&
                     TimeSpan.TryParse(presence.Tothre, out TimeSpan tothreTime) &&

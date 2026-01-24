@@ -48,6 +48,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         public float? HreSamediTrv { get; set; }
         public IDictionary<string, string> WeekDetails { get; set; } = new Dictionary<string, string>();
         public DateTime? WeekStartDate { get; set; }
+        public float? NbHeuresDebutCalcul { get; set; }
         public DateTime? WeekEndDate { get; set; }
     }
 
@@ -110,7 +111,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 // Get detailed presence/absence/conge data
                 PresenceSemaineData res = await _optimizedPresenceService
                     .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, emppanier);
-
+                var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
                 result.Panier = res.Panier;
                 result.JourSamediTrv = res.JourSamediTrv;
                 result.HreSamediTrv = res.HreSamediTrv;
@@ -142,7 +143,16 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.HreNuits = res.HreNuits;
                 result.TotalAbsence = res.TotalAbsence;
                 result.Tothre = res.TotalHours;
-
+                result.Tothre = res.TotalHours + res.HreFerier + res.NbHeureConge;
+                if (empreg == "M")
+                {
+                    if (paramSupp.Parreptrv == "3")
+                        result.Tothre -= res.ResHreSamediTrv - res.HreDimTrv;
+                    else if (paramSupp.Parreptrv == "2")
+                        result.Tothre -= res.HreDimTrv;
+                    else if (paramSupp.Parreptrv == "0")
+                        result.Tothre -= result.HeureRepos;
+                }
                 // Get par tranche info
                 IList<Partranche> partranche = await _parTrancheRepository.GetPartranche(soccod);
                 float? tranche1 = 0, taux1 = 0, tranche2 = 0, taux2 = 0;
@@ -179,7 +189,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.Tothre = heuresTravaillees;
                 result.HeuresNormales = result.Tothre - (res.HeureRepos + res.NbhFerierTrv);
 
-                var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
                 if (paramSupp.EliminerFerier == "1" && empreg == "H")
                 {
                     result.HeuresNormales -= res.NbhFerierTrv;
@@ -195,11 +204,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 }
 
                 result.HreSupSemaine = heuresSupp;
+                result.Tothre += heuresSupp;
                 result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);
                 heuresSupp -= result.HeuresSupTranche1;
                 result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
-                heuresSupp -= result.HeuresSupTranche2;
-
                 return result;
             }
             catch (Exception)
@@ -272,6 +280,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, emppanier);
 
                     // Map presence data to result
+                    result.NbHeuresDebutCalcul = res.NbHeuresDebutCalcul;
                     result.Panier = res.Panier;
                     result.JourSamediTrv = res.JourSamediTrv;
                     result.HreSamediTrv = res.HreSamediTrv;
@@ -303,13 +312,17 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     result.NbNuits = res.NbNuits;
                     result.HreNuits = res.HreNuits;
                     result.TotalAbsence = res.TotalAbsence;
-                    result.Tothre = res.TotalHours + res.HreFerier;
-                    if (paramSupp.Parreptrv == "3")
-                        result.Tothre -= res.ResHreSamediTrv - res.HreDimTrv;
-                    else if (paramSupp.Parreptrv == "2")
-                        result.Tothre -= res.HreDimTrv;
-                    else if (paramSupp.Parreptrv == "0")
-                        result.Tothre -= result.HeureRepos;
+                    result.Tothre = res.TotalHours + res.HreFerier + res.NbHeureConge;
+
+                    if(empreg == "M")
+                    {
+                        if (paramSupp.Parreptrv == "3")
+                            result.Tothre -= res.ResHreSamediTrv - res.HreDimTrv;
+                        else if (paramSupp.Parreptrv == "2")
+                            result.Tothre -= res.HreDimTrv;
+                        else if (paramSupp.Parreptrv == "0")
+                            result.Tothre -= result.HeureRepos;
+                    }
                     // Calculate overtime for this week
                     if (!hasSupp)
                     {
@@ -320,10 +333,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     }
                     else
                     {
-                        float? heuresTravaillees = res.TotalHours;
                         float? heuresSupp = 0;
 
-                        result.Tothre = heuresTravaillees;
                         result.HeuresNormales = result.Tothre - (res.HeureRepos + res.NbhFerierTrv);
 
                         if (paramSupp.EliminerFerier == "1" && empreg == "H")
@@ -331,8 +342,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                             result.HeuresNormales -= res.NbhFerierTrv;
                         }
 
-                        if (result.HeuresNormales > result.NbhCalendSem)
-                            heuresSupp = result.HeuresNormales - result.NbhCalendSem;
+                        if (result.NbHeuresDebutCalcul > result.NbhCalendSem)
+                            //heuresSupp = result.HeuresNormales - result.NbhCalendSem;
+                            heuresSupp = result.NbHeuresDebutCalcul - result.NbhCalendSem;
 
                         if (paramSupp.EliminerFerier != "0" && empreg == "H")
                         {
@@ -344,6 +356,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);
                         heuresSupp -= result.HeuresSupTranche1;
                         result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
+                        //ajouter les sups au total heures
+                        //result.Tothre += heuresSupp;
                     }
 
                     results.Add(result);
