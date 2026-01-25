@@ -124,24 +124,28 @@ namespace ABRPOINT.Server.Repository
             try
             {
                 var empHoraires = await _dbContext.Employes
-                    .Where(emp => emp.Empcod == empcod)
-                    .Join(_dbContext.Lcategories,
+                    .Where(emp => emp.Empcod == empcod && emp.Soccod == soccod)
+
+                    .Join(_dbContext.Lcategories.Where(c => c.Soccod == soccod),
                         emp => emp.Catcod,
                         lcat => lcat.Catcod,
                         (emp, lcat) => new { emp, lcat })
-                    .Join(_dbContext.Postes,
+
+                    .Join(_dbContext.Postes.Where(p => p.Soccod == soccod),
                         combined => combined.lcat.Codposte,
                         p => p.Codposte,
                         (combined, p) => p)
-                .Distinct()
-                .ToListAsync();
 
+                    .Distinct()
+                    .ToListAsync();
 
                 return _mapper.Map<List<EmpHoraireDto>>(empHoraires);
             }
             catch (Exception e)
             {
-                _logger.LogCritical("Problème de récupération des horaires d'employés: {Exception}", e);
+                _logger.LogCritical(
+                    "Problème de récupération des horaires d'employés: {Exception}", e
+                );
                 return Enumerable.Empty<EmpHoraireDto>();
             }
         }
@@ -1315,6 +1319,26 @@ namespace ABRPOINT.Server.Repository
                 }
 
                 return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<EmpparamPointageMois> GetEmpparam(string soccod, string empcod)
+        {
+            try
+            {
+                var emparam = await _dbContext.Employes.Where(e => e.Soccod == soccod && e.Empcod == empcod).Select(e => new EmpparamPointageMois
+                {
+                    Emppanier = e.Emppanier,
+                    Empmaxhre = e.Empmaxhre,
+                    Empmaxjour = e.Empmaxjour,
+                    Empminhjour = e.Empminhjour,
+                })
+                    .FirstOrDefaultAsync();
+                return emparam;
             }
             catch (Exception)
             {

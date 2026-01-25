@@ -95,7 +95,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var result = new HeuresSupplementairesResultat();
 
                 // Get employee panier type
-                string? emppanier = await _employeRepository.GetEmpPanier(soccod, empcod);
+                EmpparamPointageMois? empparam = await _employeRepository.GetEmpparam(soccod, empcod);
 
                 // Get calendar hours for the week
                 var (calend, hours, startDate, endDate, jourferier, heuresferier) =
@@ -110,7 +110,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
                 // Get detailed presence/absence/conge data
                 PresenceSemaineData res = await _optimizedPresenceService
-                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, emppanier);
+                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, empparam);
                 var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
                 result.Panier = res.Panier;
                 result.JourSamediTrv = res.JourSamediTrv;
@@ -224,7 +224,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var results = new List<HeuresSupplementairesResultat>();
 
                 // Get employee panier type ONCE
-                string? emppanier = await _employeRepository.GetEmpPanier(soccod, empcod);
+                EmpparamPointageMois empparam = await _employeRepository.GetEmpparam(soccod, empcod);
 
                 // Get parameters ONCE
                 var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
@@ -251,8 +251,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
                 // ✅ Load ALL presence data for the ENTIRE MONTH at once
                 var presenceDataMonth = await _optimizedPresenceService
-                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, "0", emppanier);
-
+                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, "0", empparam);
+                float totalNbJoursMois = 0;
                 // Process each week (1 to 6)
                 for (int i = 1; i <= 6; i++)
                 {
@@ -277,8 +277,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
                     // Get presence data for THIS SPECIFIC WEEK
                     var res = await _optimizedPresenceService
-                        .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, emppanier);
-
+                        .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, empparam);
                     // Map presence data to result
                     result.NbHeuresDebutCalcul = res.NbHeuresDebutCalcul;
                     result.Panier = res.Panier;
@@ -296,7 +295,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     result.HeureRepos = res.HeureRepos;
                     result.JourRepos = res.JourRepos;
                     result.Deplacement = res.Deplacement;
-                    result.NbJours = res.NbJours;
                     result.CSF = res.CSF;
                     result.MAP = res.MAP;
                     result.Absj = res.Absj;
@@ -312,9 +310,35 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     result.NbNuits = res.NbNuits;
                     result.HreNuits = res.HreNuits;
                     result.TotalAbsence = res.TotalAbsence;
+                    result.NbJours = res.NbJours;
                     result.Tothre = res.TotalHours + res.HreFerier + res.NbHeureConge;
+                    float nbJoursSemaine = res.NbJours ?? 0;
+                    if (empparam.Empmaxjour.HasValue && empparam.Empmaxjour.Value > 0)
+                    {
+                        float joursDisponibles = (float)empparam.Empmaxjour.Value - totalNbJoursMois;
 
-                    if(empreg == "M")
+                        if (joursDisponibles <= 0)
+                        {
+                            // Maximum atteint, cette semaine et les suivantes = 0
+                            nbJoursSemaine = 0;
+                        }
+                        else if (nbJoursSemaine > joursDisponibles)
+                        {
+                            // Prendre seulement ce qui reste disponible
+                            nbJoursSemaine = joursDisponibles;
+                        }
+
+                        totalNbJoursMois += nbJoursSemaine;
+                    }
+                    else
+                    {
+                        // Pas de limite
+                        totalNbJoursMois += nbJoursSemaine;
+                    }
+                    result.NbJours = nbJoursSemaine;
+
+
+                    if (empreg == "M")
                     {
                         if (paramSupp.Parreptrv == "3")
                             result.Tothre -= res.ResHreSamediTrv - res.HreDimTrv;

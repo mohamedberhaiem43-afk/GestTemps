@@ -191,10 +191,31 @@ export default function PosteDeTravail() {
 
   return (
     <Box>
-      <Grid container spacing={0.5} height={"90vh"} width={'95vw'} mt={-3} >
-        <Grid item xs={12}>
+      <Grid container height={"95vh"} width={'97vw'} mt={-3} >
+        <Grid item xs={12} display="flex" alignItems="center" justifyContent="space-between" >
+          {/* Breadcrumb à gauche */}
           <BreadcrumbNavigation />
-        </Grid>
+
+          {/* Boutons à droite */}
+            <Box display="flex" gap={2}>
+              <IconButton color="primary" onClick={handleSave}>
+                <SaveIcon />
+              </IconButton>
+
+              <Button color="secondary" onClick={resetForm}>
+                Nouveau
+              </Button>
+
+              <Button
+                color="error"
+                disabled={!selectedPoste}
+                onClick={() => setModalOpen(true)}
+              >
+                Supprimer
+              </Button>
+            </Box>
+          </Grid>
+
 
         <Grid item xs={9}>
           <SaisiePoste onFormChange={setSaisieData} />
@@ -204,20 +225,8 @@ export default function PosteDeTravail() {
           <PosteTable />
         </Grid>
 
-        <Grid item xs={10} sx={{ mt: -2 }}>
+        <Grid item xs={12} sx={{ mt: -5 }}>
           <PosteList scheduleData={scheduleData} onChange={handleScheduleChange} />
-        </Grid>
-
-        <Grid item xs={1.5} display="flex" justifyContent="space-around" gap={3} p={2} height={'max-content'}>
-          <IconButton color="primary" onClick={handleSave}>
-            <SaveIcon />
-          </IconButton>
-          <Button color="secondary" onClick={resetForm}>
-            Nouveau
-          </Button>
-          <Button color="error" disabled={!selectedPoste} onClick={() => setModalOpen(true)}>
-            Supprimer
-          </Button>
         </Grid>
       </Grid>
 

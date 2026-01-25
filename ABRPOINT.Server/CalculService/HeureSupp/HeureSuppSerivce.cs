@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             _categorieRepository = categorieRepository;
             _parametreRepository = parametreRepository;
         }
-        public async Task<int> CalculateHeureSuppOptimise(PresenceDto presence, Poste poste)
+        public async Task<double> CalculateHeureSuppOptimise(PresenceDto presence, Poste poste)
         {
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (poste == null) throw new ArgumentNullException(nameof(poste));
@@ -97,7 +97,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     UpdateTothre(presence, -diffFromOfficialLeave);
                 }
 
-                return nbHeurSupp;
+                return (double)nbHeurSupp / 60;
             }
             catch (Exception ex)
             {
@@ -107,7 +107,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             }
         }
 
-        public async Task<int> CalculateHeureSupp(PresenceDto presence, Poste poste)
+        public async Task<double> CalculateHeureSupp(PresenceDto presence, Poste poste)
         {
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (poste == null) throw new ArgumentNullException(nameof(poste));
@@ -198,7 +198,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     UpdateTothre(presence, -diffFromOfficialLeave);
                 }
 
-                return nbHeurSupp;
+                return nbHeurSupp / 60;
             }
             catch (Exception ex)
             {

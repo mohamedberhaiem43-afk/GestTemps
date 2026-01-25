@@ -643,5 +643,26 @@ namespace ABRPOINT.Server.Repository
             return result;
         }
 
+        public async Task<PosteRetard> GetPostRetard(string soccod,string codposte)
+        {
+            try
+            {
+                var posteretard = await _dbContext.Postes.Where(p=>p.Soccod == soccod && p.Codposte == codposte)
+                    .Select(posteretard => new PosteRetard
+                {
+                    Retmin = posteretard.Retmin,
+                    Retminam = posteretard.Retminam,
+                    Retsanc = posteretard.Retsanc,
+                    Retsancam = posteretard.Retsancam,
+                    Avamn = posteretard.Avamn,
+                    Avabon = posteretard.Avabon,
+                }).FirstOrDefaultAsync();
+                return posteretard;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

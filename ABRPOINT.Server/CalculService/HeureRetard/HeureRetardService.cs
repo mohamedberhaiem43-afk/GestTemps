@@ -16,6 +16,10 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
             _dbContext = dbContext;
             _posteRepository = posteRepository;
         }
+        private int ApplySanction(int retard, int min, int bonus)
+        {
+            return (min > 0 && retard >= min) ? bonus : 0;
+        }
         private bool IsInAutorisation(TimeSpan time, AutDto autorisation)
         {
             TimeSpan? autorisationStart = autorisation?.Condep?.TimeOfDay;
@@ -34,20 +38,23 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
         public async Task<int> CalculateHeureRetard(PresenceDto presence, Poste poste, AutDto autoisation)
         {
             int nbRetard = 0;
-            var dayOfWeek = presence.Dmdate?.DayOfWeek ?? DateTime.Now.DayOfWeek;
+
             if (poste == null)
             {
-                string codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                string codpost = await _posteRepository.GetEmpPoste(
+                    presence.Soccod, presence.Empcod, presence.Predat);
                 poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
             }
-            var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) = GenericMethodes.GetStartsWorkDay(presence.Dmdate, poste);
+
+            var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) =
+                GenericMethodes.GetStartsWorkDay(presence.Dmdate, poste);
 
             if (string.IsNullOrEmpty(morningStartTime) || string.IsNullOrEmpty(presence.Preentmatup))
                 return 0;
 
             string? empretard = await _dbContext.Employes
-                .Where(emp => emp.Soccod == presence.Soccod && emp.Empcod == presence.Empcod)
-                .Select(emp => emp.Empretard)
+                .Where(e => e.Soccod == presence.Soccod && e.Empcod == presence.Empcod)
+                .Select(e => e.Empretard)
                 .SingleOrDefaultAsync();
 
             if (string.IsNullOrEmpty(empretard) || empretard == "1")
@@ -55,118 +62,106 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
 
             TimeSpan morningStart = TimeSpan.Parse(morningStartTime);
             TimeSpan morningEnd = TimeSpan.Parse(morningEndTime);
+
             TimeSpan actualMorningArrival = TimeSpan.Parse(presence.Preentmatup);
-            TimeSpan actualMorningDepartre = !string.IsNullOrEmpty(presence.Presortmatup) ? TimeSpan.Parse(presence?.Presortmatup) : TimeSpan.Zero;
-            TimeSpan eveningStart = !string.IsNullOrEmpty(eveningStartTime) ? TimeSpan.Parse(eveningStartTime) : TimeSpan.Zero;
-            TimeSpan eveningEnd = !string.IsNullOrEmpty(eveningEndTime) ? TimeSpan.Parse(eveningEndTime) : TimeSpan.Zero;
-            TimeSpan actualEveningArrival = !string.IsNullOrEmpty(presence.Preentamidiup) ? TimeSpan.Parse(presence?.Preentamidiup) : TimeSpan.Zero;
-            TimeSpan actualEveningDeparture = !string.IsNullOrEmpty(presence.Presortamidiup) ? TimeSpan.Parse(presence?.Presortamidiup) : TimeSpan.Zero;
+            TimeSpan actualMorningDeparture =
+                !string.IsNullOrEmpty(presence.Presortmatup)
+                    ? TimeSpan.Parse(presence.Presortmatup)
+                    : TimeSpan.Zero;
 
-            // Determine if this is a single-session day (no separate evening session)
-            bool isSingleSession = eveningStart == TimeSpan.Zero || eveningEnd == TimeSpan.Zero || string.IsNullOrEmpty(eveningStartTime) || string.IsNullOrEmpty(eveningEndTime);
-            //int tolent = poste.Avantent ?? 0;
-            int retardTolerance = poste.Apresent ?? 0;
-            //int retardToleranceAm = poste.Apressort ?? 0;
-            int entreeEveningTolerance = poste.Avantsort ?? 0;
+            TimeSpan eveningStart =
+                !string.IsNullOrEmpty(eveningStartTime) ? TimeSpan.Parse(eveningStartTime) : TimeSpan.Zero;
+            TimeSpan eveningEnd =
+                !string.IsNullOrEmpty(eveningEndTime) ? TimeSpan.Parse(eveningEndTime) : TimeSpan.Zero;
 
-            // Morning arrival delay
-            int morningStartMinutes = (int)morningStart.TotalMinutes;
-            int actualArrivalMinutes = (int)actualMorningArrival.TotalMinutes;
+            TimeSpan actualEveningArrival =
+                !string.IsNullOrEmpty(presence.Preentamidiup)
+                    ? TimeSpan.Parse(presence.Preentamidiup)
+                    : TimeSpan.Zero;
 
-            if (actualArrivalMinutes > (morningStartMinutes + retardTolerance) && !IsInAutorisation(actualMorningArrival, autoisation))
+            TimeSpan actualEveningDeparture =
+                !string.IsNullOrEmpty(presence.Presortamidiup)
+                    ? TimeSpan.Parse(presence.Presortamidiup)
+                    : TimeSpan.Zero;
+
+            bool isSingleSession =
+                eveningStart == TimeSpan.Zero || eveningEnd == TimeSpan.Zero;
+
+            int toleranceEntree = poste.Apresent ?? 0;
+            int toleranceSortie = poste.Avantsort ?? 0;
+
+            // =======================
+            // ⏰ Entrée matin
+            // =======================
+            int retardMatin = (int)(actualMorningArrival - morningStart).TotalMinutes;
+
+            if (retardMatin > toleranceEntree &&
+                !IsInAutorisation(actualMorningArrival, autoisation) &&
+                retardMatin / 60 < 3)
             {
-                int retardMorning = actualArrivalMinutes - morningStartMinutes;
-                if (retardMorning / 60 < 3)
-                    nbRetard += retardMorning;
+                nbRetard += retardMatin;
+                nbRetard += ApplySanction(retardMatin, poste.Retmin ?? 0, poste.Retsanc ?? 0);
             }
 
-            if (isSingleSession)
+            // =======================
+            // 🚪 Sortie matin
+            // =======================
+            if (actualMorningDeparture != TimeSpan.Zero)
             {
-                // For single-session days, only check if they left early from the single session
-                if (actualMorningDepartre != TimeSpan.Zero)
-                {
-                    int morningEndMinutes = (int)morningEnd.TotalMinutes;
-                    int actualDepartureMinutes = (int)actualMorningDepartre.TotalMinutes;
+                int sortieMatin = (int)(morningEnd - actualMorningDeparture).TotalMinutes;
 
-                    if (actualDepartureMinutes < (morningEndMinutes - entreeEveningTolerance) && !IsInAutorisation(actualMorningDepartre, autoisation))
-                    {
-                        int retardDeparture = morningEndMinutes - actualDepartureMinutes;
-                        if (retardDeparture / 60 < 3)
-                            nbRetard += retardDeparture;
-                    }
+                if (sortieMatin > toleranceSortie &&
+                    !IsInAutorisation(actualMorningDeparture, autoisation) &&
+                    sortieMatin / 60 < 3)
+                {
+                    nbRetard += sortieMatin;
+                    nbRetard += ApplySanction(sortieMatin, poste.Avamn ?? 0, poste.Avabon ?? 0);
                 }
             }
-            else
+
+            if (!isSingleSession)
             {
-                // Two-session day: check morning departure and evening arrival/departure
-
-                // Morning session - leaving too early
-                if (actualMorningDepartre != TimeSpan.Zero)
-                {
-                    int morningEndMinutes = (int)morningEnd.TotalMinutes;
-                    int actualMorningDepartureMinutes = (int)actualMorningDepartre.TotalMinutes;
-
-                    if (actualMorningDepartureMinutes < (morningEndMinutes - entreeEveningTolerance) && !IsInAutorisation(actualMorningDepartre, autoisation))
-                    {
-                        int retardMorning = morningEndMinutes - actualMorningDepartureMinutes;
-                        if (retardMorning / 60 < 3)
-                            nbRetard += retardMorning;
-                    }
-                }
-
-                // Evening session - late arrival
+                // =======================
+                // 🌆 Entrée après-midi
+                // =======================
                 if (actualEveningArrival != TimeSpan.Zero)
                 {
-                    int eveningStartMinutes = (int)eveningStart.TotalMinutes;
-                    int actualEveningArrivalMinutes = (int)actualEveningArrival.TotalMinutes;
+                    int retardAm = (int)(actualEveningArrival - eveningStart).TotalMinutes;
 
-                    if (actualEveningArrivalMinutes > (eveningStartMinutes + entreeEveningTolerance) && !IsInAutorisation(actualEveningArrival, autoisation))
+                    if (retardAm > toleranceSortie &&
+                        !IsInAutorisation(actualEveningArrival, autoisation) &&
+                        retardAm / 60 < 3)
                     {
-                        int retardEvening = actualEveningArrivalMinutes - eveningStartMinutes;
-                        if (retardEvening / 60 < 3)
-                            nbRetard += retardEvening;
+                        nbRetard += retardAm;
+                        nbRetard += ApplySanction(
+                            retardAm,
+                            poste.Retminam ?? poste.Retmin ?? 0,
+                            poste.Retsancam ?? poste.Retsanc ?? 0);
                     }
                 }
 
-                // Evening session - leaving too early
+                // =======================
+                // 🌙 Sortie après-midi
+                // =======================
                 if (actualEveningDeparture != TimeSpan.Zero)
                 {
-                    int eveningEndMinutes = (int)eveningEnd.TotalMinutes;
-                    int actualEveningDepartureMinutes = (int)actualEveningDeparture.TotalMinutes;
+                    int sortieAm = (int)(eveningEnd - actualEveningDeparture).TotalMinutes;
 
-                    if (actualEveningDepartureMinutes < (eveningEndMinutes - entreeEveningTolerance) && !IsInAutorisation(actualEveningDeparture, autoisation))
+                    if (sortieAm > toleranceSortie &&
+                        !IsInAutorisation(actualEveningDeparture, autoisation) &&
+                        sortieAm / 60 < 3)
                     {
-                        int retardEvening = eveningEndMinutes - actualEveningDepartureMinutes;
-                        if (retardEvening / 60 < 3)
-                            nbRetard += retardEvening;
-                    }
-                }
-            }
-
-            // Special case: employee has authorization but doesn't return after it expires
-            if (autoisation?.Condep != null && autoisation?.Conret != null)
-            {
-                DateTime conret = autoisation.Conret.Value;
-                TimeSpan conretTime = new TimeSpan(conret.Hour, conret.Minute, 0);
-
-                // Determine the expected end time based on session type
-                TimeSpan endOfDay = isSingleSession ? morningEnd : eveningEnd;
-
-                // Check if employee didn't return or returned very late
-                TimeSpan actualReturnTime = isSingleSession ? actualMorningDepartre : actualEveningArrival;
-
-                if (actualReturnTime == TimeSpan.Zero || actualReturnTime > conretTime.Add(TimeSpan.FromMinutes(10)))
-                {
-                    if (conretTime < endOfDay)
-                    {
-                        TimeSpan unjustifiedAbsence = endOfDay - conretTime;
-                        nbRetard += (int)unjustifiedAbsence.TotalMinutes;
+                        nbRetard += sortieAm;
+                        nbRetard += ApplySanction(
+                            sortieAm,
+                            poste.Avamnam ?? poste.Avamn ?? 0,
+                            poste.Avabonam ?? poste.Avabon ?? 0);
                     }
                 }
             }
 
             return nbRetard;
         }
-    
     }
+
 }

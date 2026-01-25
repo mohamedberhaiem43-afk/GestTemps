@@ -177,12 +177,12 @@ const PosteList = ({ scheduleData, onChange }: PosteListProps) => {
                   size="small"
                 />
               </TableCell>
-
               <TableCell size="small">
-                <Checkbox
+                <TextField
+                  value={row.Douche || ''}
+                  onChange={(e) => onChange(index, 'Douche', e.target.value)}
+                  variant="standard"
                   size="small"
-                  checked={row.Douche === '1'}
-                  onChange={(e) => onChange(index, 'Douche', e.target.checked ? '1' : '0')}
                 />
               </TableCell>
             </TableRow>

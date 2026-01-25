@@ -45,7 +45,7 @@ export default function SancBonusLegend(props: SancBonusLegendProps) {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={4}>
+      <Grid item xs={6}>
         <SancBonus
           title="Sanction Retard pour retard dépassant"
           val1={values.retsanc}
@@ -55,7 +55,7 @@ export default function SancBonusLegend(props: SancBonusLegendProps) {
           }
         />
       </Grid>
-      <Grid item xs={4}>
+      <Grid item xs={6}>
         <SancBonus
           title="Sanction Sortie pour tout avance"
           val1={values.avabon}
@@ -65,7 +65,7 @@ export default function SancBonusLegend(props: SancBonusLegendProps) {
           }
         />
       </Grid>
-      <Grid item xs={4}>
+      {/* <Grid item xs={4}>
         <SancBonus
           title="Bonus présence pour avance dépassant"
           val1={values.retsancam}
@@ -74,7 +74,7 @@ export default function SancBonusLegend(props: SancBonusLegendProps) {
             setValues((prev) => ({ ...prev, retsancam: val1, retminam: val2 }))
           }
         />
-      </Grid>
+      </Grid> */}
     </Grid>
   );
 }

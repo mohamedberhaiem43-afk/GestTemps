@@ -765,7 +765,7 @@ namespace ABRPOINT.Server.Repository
         }
 
 
-        private async Task<(float? nbHeurSupp, int nbRetard)> CalculateDayWorkMetrics(PresenceDto presence)
+        private async Task<(double? nbHeurSupp, int nbRetard)> CalculateDayWorkMetrics(PresenceDto presence)
         {
             try
             {
@@ -844,7 +844,9 @@ namespace ABRPOINT.Server.Repository
 
                     if (tothreInHours == 0)
                         presence.Prerepas = 0;
-
+                    AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime) presence.Dmdate);
+                    var pres = _mapper.Map<Presence>(presence);
+                    presence.Tothabs = GenericMethodes.ConvertDoubleToHHmm(await _absenceService.CalculateHeureAbsences(pres, presence.Soccod, presence.Codposte, presence.Predat, autorisation, tothreInHours));
                     // ✅ Charger l'entité existante
                     var existingPresence = await _dbContext.Presences
                         .FirstOrDefaultAsync(p => p.Empcod == presence.Empcod
@@ -1276,7 +1278,7 @@ namespace ABRPOINT.Server.Repository
                             string conge = await _congeRepository.GetCongeLib(soccod, empcod, date);
                             if (!isRepos && string.IsNullOrEmpty(conge))
                             {
-                                var res = await _absenceService.CalculateHeureAbsences(presence, soccod, poste, date,autorisation);
+                                var res = await _absenceService.CalculateHeureAbsences(presence, soccod, poste, date,autorisation,GenericMethodes.ConvertHHmmToDouble(presence.Tothre));
                                 if (!GenericMethodes.IsValid(presence) || (GenericMethodes.NotPresent(presence)))
                                 {
                                     hreabs += res;

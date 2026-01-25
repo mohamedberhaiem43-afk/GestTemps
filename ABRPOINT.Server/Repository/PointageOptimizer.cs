@@ -1,5 +1,6 @@
 ﻿using ABRPOINT.Helper;
 using ABRPOINT.Server.CalculService.CalcTotHeures;
+using ABRPOINT.Server.CalculService.HeureAbsences;
 using ABRPOINT.Server.CalculService.HeureSupp;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
@@ -7,6 +8,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -16,14 +18,21 @@ namespace ABRPOINT.Server.Repository
         private readonly IParametreRepository _parametreRepository;
         private readonly ICalcTotHeuresService _heuresService;
         private readonly IHeureSuppService _heuresSuppService;
+        private readonly IHeureAbsencesService _heuresAbsenceService;
+        private readonly IautoriserRepository _autorisationRepository;
+        private readonly IPosteRepository _posteRepository;
         private readonly IMapper _mapper;
 
-        public PointageOptimizer(ApplicationDbContext context,IParametreRepository parametreRepository,ICalcTotHeuresService heuresService,IMapper mapper,IHeureSuppService heureSuppService)
+        public PointageOptimizer(ApplicationDbContext context,IParametreRepository parametreRepository,ICalcTotHeuresService heuresService,IMapper mapper,
+            IHeureAbsencesService heureAbsencesService,IHeureSuppService heureSuppService,IautoriserRepository autorisationRepository,IPosteRepository posteRepository)
         {
             _context = context;
             _parametreRepository = parametreRepository;
             _heuresService = heuresService;
             _heuresSuppService = heureSuppService;
+            _heuresAbsenceService = heureAbsencesService;
+            _autorisationRepository = autorisationRepository;
+            _posteRepository = posteRepository;
             _mapper = mapper;
         }
 
@@ -113,7 +122,7 @@ namespace ABRPOINT.Server.Repository
 
                     //if (lpoint != null)
                     //    continue;
-
+                    item.Optimise = "O";
                     bool isNuitMatin =
                         !string.IsNullOrEmpty(item.Preentmatup) &&
                         GenericMethodes.ConvertTimeToDecimal(item.Preentmatup) >=
@@ -148,14 +157,17 @@ namespace ABRPOINT.Server.Repository
                     }
 
                     // 🔹 NOUVEAU : Déterminer le poste le plus proche
-                    var closestPoste = FindClosestPoste(item, allPostes);
+                    var closestPoste = await FindClosestPoste(item, allPostes);
                     if (closestPoste != null)
                     {
                         item.Codposte = closestPoste.Codposte;
                         var presenceDto = _mapper.Map<Presence, PresenceDto>(item);
-                        item.Tothre = await _heuresService.CalcHreTrav(presenceDto);
-                        item.Tothsup = GenericMethodes.ConvertDoubleToHHmm(await _heuresSuppService
+                        item.Tothsup = GenericMethodes.ConvertDoubleToHHmm((float?)await _heuresSuppService
                             .CalculateHeureSuppOptimise(presenceDto, allPostes.Where(p => p.Soccod == soccod && p.Codposte == closestPoste.Codposte).First()));
+                        var hretrav = await _heuresService.CalcHreTrav(presenceDto);
+                        item.Tothre = hretrav;
+                        AutDto autorisation = await _autorisationRepository.GetAutLib(soccod, item.Empcod, (DateTime)item.Predat);
+                        item.Tothabs = GenericMethodes.ConvertDoubleToHHmm(await _heuresAbsenceService.CalculateHeureAbsences(item, soccod, item.Codposte, item.Predat, autorisation,GenericMethodes.ConvertHHmmToDouble(hretrav)));
                     }
                 }
 
@@ -169,7 +181,7 @@ namespace ABRPOINT.Server.Repository
         }
 
         // 🔹 NOUVELLE MÉTHODE : Trouver le poste le plus proche en utilisant GetStartsWorkDay
-        private Poste FindClosestPoste(Presence presence, List<Poste> postes)
+        private async Task<Poste> FindClosestPoste(Presence presence, List<Poste> postes)
         {
             if (postes == null || !postes.Any() || presence?.Predat == null)
                 return null;
@@ -179,7 +191,11 @@ namespace ABRPOINT.Server.Repository
             TimeSpan? presenceSortie = GetLastExitTime(presence);
 
             if (!presenceEntree.HasValue || !presenceSortie.HasValue)
-                return null;
+            {
+                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                Poste? poste = await _posteRepository.GetPoste(presence.Soccod,codpost);
+                return poste;
+            }
 
             Poste closestPoste = null;
             double minDifference = double.MaxValue;

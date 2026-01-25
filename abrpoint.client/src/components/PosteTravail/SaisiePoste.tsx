@@ -1,4 +1,4 @@
-import { Box, FormControl, Grid, Input, InputLabel, MenuItem, Select, Typography } from "@mui/material";
+import { Box, Grid, Input, InputLabel, Typography } from "@mui/material";
 import './SaisiePoste.css';
 import { useContext, useEffect, useState } from "react";
 import { PosteContext } from "../helper/PostProvider/PostContext";
@@ -99,12 +99,12 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
   };
 
   // Handle select changes
-  const handleSelectChange = (field: keyof PosteFormData) => (event: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: event.target.value
-    }));
-  };
+  // const handleSelectChange = (field: keyof PosteFormData) => (event: any) => {
+  //   setFormData(prev => ({
+  //     ...prev,
+  //     [field]: event.target.value
+  //   }));
+  // };
   return (
     <>
       <Box p={2} sx={{ width: '100%' }} mt={-2}>
@@ -134,9 +134,9 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
           {/* Ligne avec SancBonusLegend et Repos Auto */}
           <Grid item xs={12} mt={2}>
             <Grid item xs={12} mb={1}>
-              <Grid container spacing={2}>
+              <Grid container spacing={1}>
                 {/* Tolérance Entrée */}
-                <Grid item xs={3}>
+                <Grid item xs={2}>
                   <Box
                     component="fieldset"
                     sx={{
@@ -174,7 +174,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                 </Grid>
 
                 {/* Tolérance Sortie */}
-                <Grid item xs={4}>
+                <Grid item xs={2}>
                   <Box
                     component="fieldset"
                     sx={{
@@ -210,9 +210,29 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                     </Grid>
                   </Box>
                 </Grid>
+                <Grid item xs={8}>
+                  <SancBonusLegend
+                    retsanc={lposte.retsanc}
+                    retmin={lposte.retmin}
+                    avabon={lposte.avabon}
+                    avamn={lposte.avamn}
+                    retsancam={lposte.retsancam}
+                    retminam={lposte.retminam}
+                    onChange={(sancData) => {
+                      // Fusionner les données de sanction avec formData
+                      if (onFormChange) {
+                        onFormChange({
+                          ...formData,
+                          ...sancData
+                        } as any);
+                      }
+                    }}
+                  />
+                </Grid>
+
 
                 {/* Repos Automatique */}
-                <Grid item xs={4}>
+                {/* <Grid item xs={4}>
                   <Box
                     component="fieldset"
                     sx={{
@@ -251,30 +271,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                       </Grid>
                     </Grid>
                   </Box>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Ligne suivante avec SancBonusLegend */}
-            <Grid item xs={12}>
-              <Grid item xs={12}>
-                <SancBonusLegend
-                  retsanc={lposte.retsanc}
-                  retmin={lposte.retmin}
-                  avabon={lposte.avabon}
-                  avamn={lposte.avamn}
-                  retsancam={lposte.retsancam}
-                  retminam={lposte.retminam}
-                  onChange={(sancData) => {
-                    // Fusionner les données de sanction avec formData
-                    if (onFormChange) {
-                      onFormChange({
-                        ...formData,
-                        ...sancData
-                      } as any);
-                    }
-                  }}
-                />
+                </Grid> */}
               </Grid>
             </Grid>
           </Grid>

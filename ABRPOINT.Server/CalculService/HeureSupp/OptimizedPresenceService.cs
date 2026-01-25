@@ -49,7 +49,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
         // Method 1: Get presence data (OPTIMIZED)
         public async Task<PresenceSemaineData> GetPresenceSemaineDataOptimized(
-            string soccod, string empcod, string mois, string annee, string semaine, string emppanier)
+            string soccod, string empcod, string mois, string annee, string semaine, EmpparamPointageMois empparam)
         {
             try
             {
@@ -94,7 +94,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         dataCache,
                         parametreMoisPointage,
                         parametreNuit,
-                        emppanier,
+                        empparam,
                         accumulators,
                         countedSanctions,
                         countedConges,
@@ -256,7 +256,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     break;
             }
         }
-        private async Task ProcessDay(DateTime date,DataCache cache,ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,string emppanier,Accumulators acc,
+        private async Task ProcessDay(DateTime date,DataCache cache,ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,EmpparamPointageMois empparam, Accumulators acc,
     HashSet<string> countedSanctions,HashSet<string> countedConges,IDictionary<string, string> weekDetails,string soccod,string empcod, DateTime debutReelDate)
         {
             cache.PresencesByDate.TryGetValue(date.Date, out var presence);
@@ -302,7 +302,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             if ((presence == null || GenericMethodes.NotPresent(presence)) && !isRepos)
             {
                 float? hreAbs = await _heureabsenceService
-                    .CalculateHeureAbsences(presence, soccod, poste, date, autorisation);
+                    .CalculateHeureAbsences(presence, soccod, poste, date, autorisation,GenericMethodes.ConvertHHmmToDouble(presence.Tothre));
                 if (presence.Totcmp == null) presence.Totcmp = 0;
                 acc.NbHeuresDebutCalcul += GenericMethodes.ConvertHHmmToDouble(presence.Tothre) + presence.Totcmp;
                 if (hreAbs > 0 && !repos)
@@ -321,7 +321,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 acc.NbHeuresDebutCalcul += GenericMethodes.ConvertHHmmToDouble(presence.Tothre) + presence.Totcmp;
                 await ProcessPresenceDetails(
                     presence, date, isFerier, null, isRepos,repos,
-                    poste, emppanier, paramMois, paramNuit,
+                    poste, empparam, paramMois, paramNuit,
                     cache, acc, countedConges, autorisation,
                     soccod, empcod, true, isAfterDebutReel
                 );
@@ -347,14 +347,14 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
 
         // UPDATED: Process presence details (now only for calculations that require presence)
-        private async Task ProcessPresenceDetails(Presence presence,DateTime date,bool isFerier,CongeDto conge,bool isRepos,bool repos,string poste,string emppanier,
+        private async Task ProcessPresenceDetails(Presence presence,DateTime date,bool isFerier,CongeDto conge,bool isRepos,bool repos,string poste,EmpparamPointageMois empparam,
     ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,DataCache cache,Accumulators acc,HashSet<string> countedConges,AutDto autorisation,string soccod,string empcod,
     bool isWorkingDay,bool isAfterDebutReel)
         {
             // Only calculate panier for non-conge, non-ferier days with presence
             if (!isFerier && conge == null)
             {
-                CalculatePanier(presence, date, emppanier, paramMois, acc);
+                CalculatePanier(presence, date, empparam.Emppanier, paramMois, acc);
             }
 
             // Check if worked on Saturday
@@ -383,7 +383,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var presenceDto = _mapper.Map<Presence, PresenceDto>(presence);
                 acc.Retards += await _retardService.CalculateHeureRetard(presenceDto, posteObj, autorisation);
             }
-
+            //_dbContext.Employes.ge
             // 🔹 MODIFIER : Compter les jours seulement si >= DebutReel
             if (isWorkingDay && conge == null && !isFerier && isAfterDebutReel)
             {

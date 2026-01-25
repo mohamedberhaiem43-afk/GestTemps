@@ -29,7 +29,7 @@ namespace ABRPOINT.Server.CalculService.CalcTotHeures
                 Poste? poste = await _posteRepository.GetPoste(presence.Soccod, presence.Codposte);
                 if (poste == null) return (0, 0);
                 AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
-                return (await _heureSuppService.CalculateHeureSupp(presence, poste), await _heureRetardService.CalculateHeureRetard(presence, poste, autorisation));
+                return ((float?)await _heureSuppService.CalculateHeureSupp(presence, poste), await _heureRetardService.CalculateHeureRetard(presence, poste, autorisation));
             }
             catch (Exception ex)
             {
