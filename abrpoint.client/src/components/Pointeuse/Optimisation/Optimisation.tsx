@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { PointageMois } from '../../../models/PointageMois';
 import DataList from '../../lists/list';
@@ -36,6 +37,7 @@ const PointageDuMoisContent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [majorerHeures, setMajorerHeures] = useState<boolean>(false);
+  const { t } = useTranslation();
 
 
   const queryParams = new URLSearchParams();
@@ -60,7 +62,7 @@ const PointageDuMoisContent = () => {
         })
         .catch((error) => {
           console.error('Error fetching pointage data:', error);
-          setError("Erreur lors du chargement des données.");
+          setError(t('pointageDuMois.errorLoading'));
         })
         .finally(() => {
           setLoading(false);

@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="07/16/2025 08:26:15" ReportInfo.Modified="07/28/2025 17:03:11" ReportInfo.CreatorVersion="2024.2.20.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/16/2025 08:26:15" ReportInfo.Modified="01/29/2026 23:14:54" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-	  <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
-		  <TableDataSource Name="Table" Alias="EtatPresence" DataType="System.Int32" Enabled="true" SelectCommand="select e.empmat,e.emplib,s.soclib,p.* from presence p,employe e, societe s where e.empreg=@empreg&#13;&#10;and @datedebut&lt;=predat and @datefin&gt;=predat&#13;&#10;and e.soccod=@soccod&#13;&#10;and p.empcod = e.empcod and e.soccod = p.soccod">
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM1LTAbaeyCKyH7WKqSnwxEF">
+      <TableDataSource Name="Table" Alias="EtatPresence" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;    e.empmat,&#13;&#10;    e.emplib,&#13;&#10;    s.soclib,&#13;&#10;    p.*,&#13;&#10;    -- Calcul de la somme des retards en minutes (seulement retards d'ENTRÉE)&#13;&#10;    CASE &#13;&#10;        WHEN p.preretmateup IS NOT NULL AND p.preretameup IS NOT NULL&#13;&#10;        THEN &#13;&#10;            -- Somme uniquement des retards d'entrée (matin + après-midi)&#13;&#10;            (DATEPART(HOUR, p.preretmateup) * 60 + DATEPART(MINUTE, p.preretmateup)) +&#13;&#10;            (DATEPART(HOUR, p.preretameup) * 60 + DATEPART(MINUTE, p.preretameup))&#13;&#10;        ELSE 0&#13;&#10;    END AS TotalRetardMinutes,&#13;&#10;    &#13;&#10;    -- Format HH:mm pour affichage&#13;&#10;    CASE &#13;&#10;        WHEN p.preretmateup IS NOT NULL AND p.preretameup IS NOT NULL&#13;&#10;        THEN &#13;&#10;            RIGHT('0' + CAST(&#13;&#10;                ((DATEPART(HOUR, p.preretmateup) * 60 + DATEPART(MINUTE, p.preretmateup)) +&#13;&#10;                 (DATEPART(HOUR, p.preretameup) * 60 + DATEPART(MINUTE, p.preretameup))) / 60 &#13;&#10;                AS VARCHAR), 2&#13;&#10;            ) + ':' + &#13;&#10;            RIGHT('0' + CAST(&#13;&#10;                ((DATEPART(HOUR, p.preretmateup) * 60 + DATEPART(MINUTE, p.preretmateup)) +&#13;&#10;                 (DATEPART(HOUR, p.preretameup) * 60 + DATEPART(MINUTE, p.preretameup))) % 60 &#13;&#10;                AS VARCHAR), 2&#13;&#10;            )&#13;&#10;        ELSE '00:00'&#13;&#10;    END AS TotalRetardFormat&#13;&#10;FROM presence p&#13;&#10;JOIN employe e ON p.empcod = e.empcod AND e.soccod = p.soccod&#13;&#10;JOIN societe s ON e.soccod = s.soccod&#13;&#10;WHERE p.predat BETWEEN @datedebut AND @datefin&#13;&#10;  AND e.soccod = @soccod&#13;&#10;  AND (&#13;&#10;        @empcods = '' &#13;&#10;        OR e.empcod IN (&#13;&#10;            SELECT value &#13;&#10;            FROM STRING_SPLIT(@empcods, ',')&#13;&#10;        )&#13;&#10;      );">
         <Column Name="empmat" DataType="System.String"/>
         <Column Name="emplib" DataType="System.String"/>
         <Column Name="soclib" DataType="System.String"/>
@@ -57,11 +57,13 @@
         <Column Name="optimise" DataType="System.String"/>
         <Column Name="totcmp" DataType="System.Int32"/>
         <Column Name="predouche" DataType="System.Single"/>
-        <Column Name="totret" DataType="System.String"/>
+        <Column Name="TotalRetardMinutes" DataType="System.Int32"/>
+        <Column Name="TotalRetardFormat" DataType="System.String"/>
         <CommandParameter Name="empreg" DataType="22" Expression="[empreg]"/>
         <CommandParameter Name="datedebut" DataType="4" Expression="[datedebut]"/>
         <CommandParameter Name="datefin" DataType="4" Expression="[datefin]"/>
         <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
+        <CommandParameter Name="empcods" DataType="22" Expression="[empcods]"/>
       </TableDataSource>
     </MsSqlDataConnection>
   </Dictionary>
@@ -126,17 +128,17 @@
       <TextObject Name="Text22" Width="56.7" Height="37.8" Text="[EtatPresence.empmat]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
       <TextObject Name="Text23" Left="56.7" Width="66.15" Height="37.8" Text="[EtatPresence.empmat]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
       <TextObject Name="Text24" Left="122.85" Width="103.95" Height="37.8" Text="[EtatPresence.emplib]" VertAlign="Center" Font="Arial, 8pt"/>
-      <TextObject Name="Text25" Left="226.8" Width="66.15" Height="37.8" Text="[FormatDateTime([EtatPresence.predat],&quot;dd/mm/yyyy&quot;)]" VertAlign="Center" Font="Arial, 8pt"/>
-      <TextObject Name="Text26" Left="661.5" Width="47.25" Height="37.8" Text="[EtatPresence.totret]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text25" Left="226.8" Width="66.15" Height="37.8" Text="[FormatDateTime([EtatPresence.predat],&quot;dd/MM/yyyy&quot;)]" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text26" Left="661.5" Width="47.25" Height="37.8" Text="[EtatPresence.tothre]&#13;&#10;" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
       <TextObject Name="Text27" Left="292.95" Width="37.8" Height="37.8" Text="[EtatPresence.preentmatup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
-      <TextObject Name="Text28" Left="330.75" Width="47.25" Height="37.8" Text="[FormatDateTime([EtatPresence.preretameup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text28" Left="330.75" Width="47.25" Height="37.8" Text="[FormatDateTime([EtatPresence.preretmateup], &quot;HH:mm&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
       <TextObject Name="Text29" Left="378" Width="37.8" Height="37.8" Text="[EtatPresence.presortmatup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
-      <TextObject Name="Text30" Left="415.8" Width="47.25" Height="37.8" Text="[FormatDateTime([EtatPresence.preretmatsup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text30" Left="415.8" Width="47.25" Height="37.8" Text="[FormatDateTime([EtatPresence.preretmatsup], &quot;HH:mm&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
       <TextObject Name="Text31" Left="463.05" Width="37.8" Height="37.8" Text="[EtatPresence.preentamidiup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
-      <TextObject Name="Text32" Left="500.85" Width="37.8" Height="37.8" Text="[FormatDateTime([EtatPresence.preretameup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text32" Left="500.85" Width="37.8" Height="37.8" Text="[FormatDateTime([EtatPresence.preretameup], &quot;HH:mm&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
       <TextObject Name="Text33" Left="538.65" Width="37.8" Height="37.8" Text="[EtatPresence.presortamidiup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
-      <TextObject Name="Text34" Left="576.45" Width="47.25" Height="37.8" Text="[FormatDateTime([EtatPresence.preretamsup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
-      <TextObject Name="Text35" Left="614.25" Width="47.25" Height="37.8" Text="[EtatPresence.totret]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text34" Left="576.45" Width="47.25" Height="37.8" Text="[FormatDateTime([EtatPresence.preretamsup], &quot;HH:mm&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Text35" Left="614.25" Width="47.25" Height="37.8" Text="[EtatPresence.TotalRetardFormat]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
     </DataBand>
     <PageFooterBand Name="PageFooter1" Top="226.95" Width="718.2" Height="18.9"/>
   </ReportPage>

@@ -1,4 +1,5 @@
 import { Box, Grid, Input, InputLabel, Typography } from "@mui/material";
+import { useTranslation } from 'react-i18next';
 import './SaisiePoste.css';
 import { useContext, useEffect, useState } from "react";
 import { PosteContext } from "../helper/PostProvider/PostContext";
@@ -26,6 +27,7 @@ interface SaisiePosteProps {
 export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
   const posteContext = useContext(PosteContext);
   const selectedPoste = posteContext?.selectedPoste;
+  const { t } = useTranslation();
   
   const [postes, setPostes] = useState<{ poste?: Poste }>({});
   const { data: lposte = {} as Poste, error, isError } = useGetLPoste(selectedPoste?.codposte);
@@ -112,7 +114,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
           {/* Ligne avec Code, Libellé et PosteTable */}
           <Grid item xs={12} display={"flex"} spacing={1} justifyContent={"space-around"}>
             <Grid item xs={3}>
-              <InputLabel shrink>Code</InputLabel>
+              <InputLabel shrink>{t('common.code')}</InputLabel>
               <Input 
                 size="small" 
                 value={formData.codposte} 
@@ -121,7 +123,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
               />
             </Grid>
             <Grid item xs={6}>
-              <InputLabel shrink>Libellé</InputLabel>
+              <InputLabel shrink>{t('common.label')}</InputLabel>
               <Input 
                 size="small" 
                 value={formData.libposte} 
@@ -146,11 +148,11 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                     }}
                   >
                     <legend>
-                      <Typography color="error">Tolérance Entrée</Typography>
+                      <Typography color="error">{t('post.toleranceEntry')}</Typography>
                     </legend>
                     <Grid container spacing={2}>
                       <Grid item xs={6}>
-                        <InputLabel shrink>Avant</InputLabel>
+                        <InputLabel shrink>{t('common.before')}</InputLabel>
                         <Input 
                           size="small" 
                           type="number" 
@@ -184,11 +186,11 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                     }}
                   >
                     <legend>
-                      <Typography color="error">Tolérance Sortie</Typography>
+                      <Typography color="error">{t('post.toleranceExit')}</Typography>
                     </legend>
                     <Grid container spacing={2}>
                       <Grid item xs={6}>
-                        <InputLabel shrink>Avant</InputLabel>
+                        <InputLabel shrink>{t('common.before')}</InputLabel>
                         <Input 
                           size="small" 
                           type="number" 
@@ -242,7 +244,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                     }}
                   >
                     <legend>
-                      <Typography color="error">Repos Automatique après/avant travail</Typography>
+                      <Typography color="error">{t('post.autoRest')}</Typography>
                     </legend>
                     <Grid container spacing={2}>
                       <Grid item xs={6}>
@@ -252,8 +254,8 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                             value={formData.reposAvant}
                             onChange={handleSelectChange('reposAvant')}
                           >
-                            <MenuItem value="0">0-Avant</MenuItem>
-                            <MenuItem value="1">1-Après</MenuItem>
+                            <MenuItem value="0">{`0-${t('common.before')}`}</MenuItem>
+                            <MenuItem value="1">{`1-${t('common.after')}`}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
@@ -264,8 +266,8 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                             value={formData.reposApres}
                             onChange={handleSelectChange('reposApres')}
                           >
-                            <MenuItem value="0">0-Après</MenuItem>
-                            <MenuItem value="1">1-Avant</MenuItem>
+                            <MenuItem value="0">{`0-${t('common.after')}`}</MenuItem>
+                            <MenuItem value="1">{`1-${t('common.before')}`}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>

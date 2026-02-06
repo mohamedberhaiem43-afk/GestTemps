@@ -1,8 +1,8 @@
 import { MRT_ColumnDef } from 'material-react-table';
 import { useMemo } from 'react';
-import useGetPointeuses from '../../../hooks/pointeuseHooks/useGetPointeuses';
 import { Pointeuse } from '../../../models/PointeuseModel';
 import PointeusesList from '../../lists/PointeusesList';
+import useGetLecturePointeuses from '../../../hooks/pointeuseHooks/useGetLecutrePointeuse';
 
 type LectureListProps = {
   onRowClick?: (row: any) => void;
@@ -10,7 +10,7 @@ type LectureListProps = {
 };
 
 function LectureList({ onRowClick, onSelectionChange }: LectureListProps) {
-  const { data = [] } = useGetPointeuses();
+  const { data = [] } = useGetLecturePointeuses();
 
 const columns = useMemo<MRT_ColumnDef<Pointeuse>[]>(() => [
   {
@@ -26,7 +26,7 @@ const columns = useMemo<MRT_ColumnDef<Pointeuse>[]>(() => [
         size: 100,
       },
       { accessorKey: 'poiport', header: 'N° Port', size: 60 },
-      { accessorKey: 'latest_read', header: 'Dernière lecture', size: 60 },
+      { accessorKey: 'latestDmhre', header: 'Dernière lecture', size: 60 },
     ],
   },
 ], []);
@@ -37,7 +37,7 @@ const columns = useMemo<MRT_ColumnDef<Pointeuse>[]>(() => [
       columns={columns}
       pageSize={20}
       onRowClick={onRowClick}
-      onSelectionChange={onSelectionChange} // 👈 forward it
+      onSelectionChange={onSelectionChange}
     />
   );
 }

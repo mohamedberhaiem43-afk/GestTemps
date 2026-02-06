@@ -7,6 +7,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import { useTranslation } from 'react-i18next';
 
 interface AlertModalProps {
   open: boolean;
@@ -18,6 +19,7 @@ interface AlertModalProps {
 const AlertModal: React.FC<AlertModalProps> = ({ open, onClose, onConfirm, message }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm')); // Adjust breakpoint as needed
+  const { t } = useTranslation();
 
   return (
     <Dialog
@@ -36,13 +38,13 @@ const AlertModal: React.FC<AlertModalProps> = ({ open, onClose, onConfirm, messa
         },
       }}
     >
-      <DialogTitle id="responsive-dialog-title">{"Confirmation"}</DialogTitle>
+      <DialogTitle id="responsive-dialog-title">{t('common.confirmation') || 'Confirmation'}</DialogTitle>
       <DialogContent>
         <DialogContentText>{message}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Annuler</Button>
-        <Button onClick={onConfirm} autoFocus>Oui</Button>
+        <Button onClick={onClose}>{t('common.cancel') || 'Cancel'}</Button>
+        <Button onClick={onConfirm} autoFocus>{t('common.yes') || 'Yes'}</Button>
       </DialogActions>
     </Dialog>
   );

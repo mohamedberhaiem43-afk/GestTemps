@@ -13,6 +13,8 @@ import './EmpPeriodique.css';
 import { useDateRange } from './FilterContext';
 import { useAuth } from '../../helper/AuthProvider';
 import * as XLSX from 'xlsx';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 type EmpRow = {
   empcod: string;
@@ -25,23 +27,54 @@ type EmpRow = {
 type MemoizedTableRowProps = {
   row: EmpRow & { formattedTotalMinutes: string, formattedTotalRetards: string };
   handleRowClick: (empcod: string) => void;
+  handleManageClick: (empcod: string) => void;
+  manageLabel?: string;
   selectedRow: string;
   theme: any;
 };
+  const MemoizedTableRow: React.FC<MemoizedTableRowProps> = React.memo(({ row, handleRowClick, selectedRow, theme }) => (
+    <TableRow
+      key={row.empcod}
+      onClick={() => handleRowClick(row.empcod)}
+      sx={{
+        cursor: 'pointer',
+        backgroundColor: row.empcod === selectedRow ? theme.palette.action.selected : 'inherit',
+        '&:last-child td, &:last-child th': { border: 0 },
+      }}
+    >
+      <TableCell component="th" scope="row" sx={{ width: '80px' }}>
+        {row.empcod}
+      </TableCell>
+      <TableCell>{row.emplib}</TableCell>
+      <TableCell>{row.nbJours}</TableCell>
+      <TableCell>{row.formattedTotalMinutes}</TableCell>
+      <TableCell>{row.formattedTotalRetards}</TableCell>
+    </TableRow>
+  ));
 
 export default function EmpPeriodique() {
+  const { setSelectedEmpMat, setSelectedEmpLib } = useContext(EmployeeContext);
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const theme = useTheme();
   const [rows, setRows] = useState<EmpRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState('');
-  const { setSelectedEmpMat } = useContext(EmployeeContext);
   const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date; selectedFiliale: string; selectedRegime: string; selectedService: string,empcods:string[] } };
   const { soccod } = useAuth();
+
+  const handleManageClick = (empcod: string) => {
+    setSelectedRow(empcod);
+    setSelectedEmpMat(empcod);
+    const emp = rows.find(r => r.empcod === empcod);
+    setSelectedEmpLib(emp?.emplib ?? '');
+    navigate('/gestion-employe');
+  };
 
   // Fonction pour exporter les données dans le format B01T2508.xls
   const exportToExcel = () => {
     if (rows.length === 0) {
-      alert('Aucune donnée à exporter');
+      alert(t('empEtatPeriodique.noDataToExport') || 'Aucune donnée à exporter');
       return;
     }
 
@@ -54,17 +87,17 @@ export default function EmpPeriodique() {
       ['LABORATOIRE NIHEL', ...Array(23).fill('')],
       
       // Ligne 2: Bilan de la période
-      createEmptyRow().map((cell, index) => {
+      createEmptyRow().map((_, index) => {
         if (index === 3) { // Colonne D
           const mois = (dateRange.dateDebut.getMonth() + 1).toString().padStart(2, '0');
           const annee = dateRange.dateDebut.getFullYear();
           return `Bilan de la Période :${annee}/${mois}`;
         }
-        return cell;
+        return '';
       }),
       
       // Ligne 3: En-têtes principaux
-      createEmptyRow().map((cell, index) => {
+      createEmptyRow().map((_, index) => {
         switch(index) {
           case 0: return 'Mat';
           case 1: return 'Nom et Prenom';
@@ -81,7 +114,7 @@ export default function EmpPeriodique() {
       }),
       
       // Ligne 4: Sous-en-têtes
-      createEmptyRow().map((cell, index) => {
+      createEmptyRow().map((_, index) => {
         switch(index) {
           case 2: return 'Prés';
           case 4: return 'Férié';
@@ -93,7 +126,7 @@ export default function EmpPeriodique() {
       }),
       
       // Ligne 5: Sous-sous-en-têtes
-      createEmptyRow().map((cell, index) => {
+      createEmptyRow().map((_, index) => {
         switch(index) {
           case 3: return 'P';
           case 4: return 'NP';
@@ -209,7 +242,6 @@ export default function EmpPeriodique() {
     // Construire l'URL correctement (sans dupliquer empreg et service)
     const url = `${import.meta.env.VITE_REACT_APP_API_URL}/Employes/get-emps/${soccod}/${dateRange.selectedFiliale}/${uticod}?${params.toString()}`;
     
-    console.log('URL appelée:', url); // Pour déboguer
     
     axios
       .get(url, {
@@ -235,7 +267,9 @@ export default function EmpPeriodique() {
 
   const handleRowClick = (empmat: string) => {
     setSelectedRow(empmat);
-    setSelectedEmpMat([empmat]);
+    setSelectedEmpMat(empmat);
+    const emp = rows.find(r => r.empcod === empmat);
+    setSelectedEmpLib(emp?.emplib ?? '');
   };
 
   // Function to convert total minutes to hh:mm format
@@ -262,46 +296,29 @@ export default function EmpPeriodique() {
     [rows]
   );
 
-  const MemoizedTableRow: React.FC<MemoizedTableRowProps> = React.memo(({ row, handleRowClick, selectedRow, theme }) => (
-    <TableRow
-      key={row.empcod}
-      onClick={() => handleRowClick(row.empcod)}
-      sx={{
-        cursor: 'pointer',
-        backgroundColor: row.empcod === selectedRow ? theme.palette.action.selected : 'inherit',
-        '&:last-child td, &:last-child th': { border: 0 },
-      }}
-    >
-      <TableCell component="th" scope="row" sx={{ width: '80px' }}>
-        {row.empcod}
-      </TableCell>
-      <TableCell>{row.emplib}</TableCell>
-      <TableCell>{row.nbJours}</TableCell>
-      <TableCell>{row.formattedTotalMinutes}</TableCell>
-      <TableCell>{row.formattedTotalRetards}</TableCell>
-    </TableRow>
-  ));
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-        <button 
-          onClick={exportToExcel}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '14px',
-          }}
-        >
-          📊 Exporter Excel (Format B01T)
-        </button>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+          <button 
+            onClick={exportToExcel}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+            }}
+          >
+            📊 {t('empEtatPeriodique.exportB01T') || 'Exporter Excel (Format B01T)'}
+          </button>
+        </div>
       </div>
       
       {loading ? (
@@ -315,11 +332,11 @@ export default function EmpPeriodique() {
           <Table stickyHeader sx={{ minWidth: 400 }} size="small" aria-label="a dense table">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ maxWidth: '90px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73' }}>Matricule</TableCell>
-                <TableCell sx={{ maxWidth: '90px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73'}}>Employé</TableCell>
-                <TableCell sx={{ maxWidth: '80px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73' }}>Nb. Jours</TableCell>
-                <TableCell sx={{ maxWidth: '80px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73' }}>Total heures</TableCell>
-                <TableCell sx={{ maxWidth: '80px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73' }}>Total Retards</TableCell>
+                <TableCell sx={{ maxWidth: '90px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73' }}>{t('empEtatPeriodique.headers.matricule') || 'Matricule'}</TableCell>
+                <TableCell sx={{ maxWidth: '90px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73'}}>{t('employee') || 'Employé'}</TableCell>
+                <TableCell sx={{ maxWidth: '80px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73' }}>{t('empEtatPeriodique.headers.nbDays') || 'Nb. Jours'}</TableCell>
+                <TableCell sx={{ maxWidth: '80px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73' }}>{t('empEtatPeriodique.headers.totalHour') || 'Total Heure'}</TableCell>
+                <TableCell sx={{ maxWidth: '80px', fontSize: '16px', fontWeight: 400, fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", color: '#6e6e73' }}>{t('empEtatPeriodique.headers.late') || 'Total Retards'}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -328,6 +345,7 @@ export default function EmpPeriodique() {
                   key={row.empcod}
                   row={row}
                   handleRowClick={handleRowClick}
+                  handleManageClick={handleManageClick}
                   selectedRow={selectedRow}
                   theme={theme}
                 />

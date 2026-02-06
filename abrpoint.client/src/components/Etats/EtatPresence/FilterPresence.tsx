@@ -2,13 +2,12 @@ import { Box, Grid, IconButton } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Print, Search } from "@mui/icons-material";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
+import { EmployeeContext } from "../../Pointeuse/EtatPeriodique/EmployeeContext";
 import { useAuth } from "../../helper/AuthProvider";
-
-
 
 function FilterPresence() {
     const token = localStorage.getItem('authToken');
@@ -20,21 +19,24 @@ function FilterPresence() {
     };
     const presence = null;
     
-    const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
+    const { selectedEmp, setSelectedEmp } = useContext(EmployeeContext);
+    const [selectedEmpCodes, setSelectedEmpCodes] = useState<string[]>([]);
+    
     const [filiale, setFiliale] = useState<Record<string,string>>({});
     const [services, setServices] = useState<Record<string,string>>({});
     const [pres, setPres] = useState('P');
     const [mois] = useState('7');
-    // Removed unused setDebMois state
-    const [dateDebut, setStartDate] = useState(() =>new Date().toISOString().slice(0, 10));
-    const [dateFin, setEndDate] = useState(() =>new Date().toISOString().slice(0, 10));
+    const [dateDebut, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [dateFin, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [annee, setAnnee] = useState(new Date().getFullYear().toString());
     const [selectedFiliale, setSelectedFiliale] = useState<string>(sessionStorage.getItem('sitcod') ?? '');
     const [selectedService, setSelectedService] = useState<string>('');
     const [selectedRegime, setSelectedRegime] = useState<string>('T');
+    
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
-    const {data:emplibs=[]} = useGetEmployeesLibs();
+    const { data: emplibs = [] } = useGetEmployeesLibs();
+
     useEffect(() => {
         axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`)
             .then((res) => setFiliale(res.data))
@@ -43,10 +45,9 @@ function FilterPresence() {
         axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Parametres/deb-mois/${soccod}`, { headers })
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
-                // Removed setDebMois as it is unused
                 
                 const currentYear = new Date().getFullYear();
-                let currentMonth = new Date().getMonth() + 1; // Add 1 to zero-based month
+                let currentMonth = new Date().getMonth() + 1;
 
                 let startMonth = moisdeb === 'P' ? currentMonth - 1 : currentMonth;
                 let endMonth = moisfin === 'P' ? currentMonth - 1 : currentMonth;
@@ -73,17 +74,27 @@ function FilterPresence() {
     }, []);
 
     const handlePrintReport = async () => {
-    let response: any;
-    try {
-            response = await axios.get(
+        try {
+            if (!soccod) return;
+            
+            // Convert selected employees to codes if needed
+            const empCodesToSend = selectedEmpCodes.length > 0 
+                ? selectedEmpCodes 
+                : (selectedEmp ? [selectedEmp.empcod] : []);
+
+
+            const params = new URLSearchParams();
+            empCodesToSend.forEach(code => params.append('empcods', code));
+
+            const response = await axios.get(
                 `${import.meta.env.VITE_REACT_APP_API_URL}/Presences/get-etat-presence-report/${soccod}/${dateDebut}/${dateFin}/${selectedRegime}`,
                 {
                     headers,
-                    responseType: 'blob',
+                    params,
+                    responseType: 'blob'
                 }
             );
 
-        
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -92,9 +103,9 @@ function FilterPresence() {
             document.body.appendChild(link);
             link.click();
             link.remove();
-    } catch (error) {
-        console.error("Erreur génération rapport:", error);
-    }
+        } catch (error) {
+            console.error("Erreur génération rapport:", error);
+        }
     };
 
     useEffect(() => {
@@ -103,7 +114,6 @@ function FilterPresence() {
             .catch((err) => console.error(err));
     }, [soccod]);
 
-    // Update dateDebut and dateFin when annee changes
     useEffect(() => {
         if (annee) {
             const startDateParts = dateDebut.split('-');
@@ -112,25 +122,36 @@ function FilterPresence() {
             setEndDate(`${annee}-${endDateParts[1]}-${endDateParts[2]}`);
         }
     }, [annee]);
+
     const handleApplyFilter = () => {
         if (setDateRange) {
             setDateRange({
-            dateDebut: new Date(dateDebut),
-            dateFin: new Date(dateFin),
-            selectedFiliale: selectedFiliale ?? '',
-            selectedRegime,
-            selectedService,
-            pres,
-            mois,
-            empcods:selectedEmpcods
+                dateDebut: new Date(dateDebut),
+                dateFin: new Date(dateFin),
+                selectedFiliale: selectedFiliale ?? '',
+                selectedRegime,
+                selectedService,
+                pres,
+                mois,
+                empcods: selectedEmpCodes
             });
+        }
+    };
+
+    const handleEmployeeSelection = (selected: string[]) => {
+        setSelectedEmpCodes(selected);
+        // If you need to also set the full employee object in context:
+        if (selected.length === 1) {
+            const emp = emplibs.find(e => e.empcod === selected[0]);
+            setSelectedEmp(emp || null);
+        } else {
+            setSelectedEmp(null);
         }
     };
 
     return (
         <Box>
             <Grid container direction="row" spacing={2} alignItems="end">
-               
                 <Grid item xs={1.5}>
                     {filiale && (
                         <SelectInputComponent
@@ -161,13 +182,13 @@ function FilterPresence() {
                 </Grid>
                 <Grid item xs={1.5}>
                     <SelectInputComponent
-                    label='Employés'
-                    value={selectedEmpcods}
-                    setValue={setSelectedEmpcods}
-                    maplist={emplibs}
-                    multiple={true}
-                />
-               </Grid>
+                        label='Employés'
+                        value={selectedEmpCodes}
+                        setValue={handleEmployeeSelection}
+                        maplist={emplibs}
+                        multiple={true}
+                    />
+                </Grid>
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
@@ -201,7 +222,6 @@ function FilterPresence() {
                         <Search />
                     </IconButton>
                 </Grid>
-                {/* Bouton Imprimer */}
                 <Grid item xs={0.5}>
                     <IconButton
                         color="primary"
@@ -211,9 +231,8 @@ function FilterPresence() {
                         <Print />
                     </IconButton>
                 </Grid>
-              
                 <Grid item xs={1}>
-                {presence && (
+                    {presence && (
                         <SelectInputComponent
                             label='Présence'
                             value={pres}
@@ -225,6 +244,6 @@ function FilterPresence() {
             </Grid>
         </Box>
     );
-
 }
+
 export default FilterPresence;

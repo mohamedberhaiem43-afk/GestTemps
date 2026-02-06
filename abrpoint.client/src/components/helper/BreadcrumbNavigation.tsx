@@ -3,6 +3,7 @@ import { Box, Breadcrumbs, Link, Typography } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import HomeIcon from '@mui/icons-material/Home';
+import { useTranslation } from 'react-i18next';
 
 interface BreadcrumbNavigationProps {
   customTitle?: string;
@@ -10,67 +11,70 @@ interface BreadcrumbNavigationProps {
 
 const BreadcrumbNavigation: React.FC<BreadcrumbNavigationProps> = ({ customTitle }) => {
   const location = useLocation();
+  const { t } = useTranslation();
 
   // Fonction pour générer le breadcrumb basé sur le chemin actuel
   const generateBreadcrumbs = () => {
     const pathnames = location.pathname.split('/').filter((x) => x);
 
-    // Mapping des segments de chemin vers des noms lisibles
-    const pathNameMap: { [key: string]: string } = {
-      'dashboard': 'Dashboard',
-      'param-societe': 'Paramètres Société',
-      'societe': 'Société',
-      'profile': 'Profile',
-      'calendrier-societe': 'Calendrier',
-      'gestion-societe': 'Gestion Société',
-      'gestion-utilisateur': 'Utilisateurs',
-      'droit-accees': 'Droits d\'accès',
-      'direction': 'Direction',
-      'service': 'Service',
-      'ville': 'Ville',
-      'filiale': 'Filiale',
-      'pays': 'Pays',
-      'fonction': 'Fonction',
-      'rubrique': 'Rubrique',
-      'section': 'Section',
-      'gestion-employe': 'Gestion Employés',
-      'saisie-classe-horaire': 'Classe Horaire',
-      'saisie-poste-de-travail': 'Poste de Travail',
-      'intitule-des-absences': 'Natures d\'absences',
-      'Repos': 'Jours Fériés et Repos',
-      'accompte-salaire': 'Accompte Salaire',
-      'pointage-du-mois': 'Pointage du Mois',
-      'droit-de-conge': 'Droit de Congé',
-      'etat-de-presence': 'État de Présence',
-      'etat-de-retard': 'État de Retard',
-      'etat-des-absences': 'État des Absences',
-      'echeance-contrat': 'Échéance Contrat',
-      'cahier-conge': 'Cahier de Congé',
-      'lecture-pointeuse': 'Lecture Pointeuse',
-      'liste-pointeuse': 'Liste Pointeuse',
-      'optimisation-pointage': 'Optimisation Pointage',
-      'etat-periodique': 'État Périodique',
-      'allaitement': 'Allaitement',
-      'contrat': 'Contrat',
-      'renouvellement-contrat': 'Renouvellement',
-      'gestion-de-conge': 'Demande de Congé',
-      'gestion-de-solde': 'Solde de Congé',
-      'titre-de-conge': 'Titre de Congé',
-      'titre-de-conge-general': 'Conge Général',
-      'jour-de-compensation': 'Jour Compensation',
-      'autorisation-de-sortie': 'Autorisation Sortie',
-      'autorisation-de-sortie-generale': 'Sortie Générale',
-      'absence-et-sanction': 'Absence et Sanction',
+    // Mapping des segments de chemin vers des clés de traduction
+    const pathKeyMap: { [key: string]: string } = {
+      'dashboard': 'navigation.dashboard',
+      'param-societe': 'navigation.companyParameter',
+      'societe': 'navigation.society',
+      'profile': 'navigation.profile',
+      'calendrier-societe': 'navigation.companyCalendar',
+      'gestion-societe': 'navigation.companySettings',
+      'gestion-utilisateur': 'navigation.users',
+      'droit-accees': 'navigation.accessRights',
+      'direction': 'navigation.direction',
+      'service': 'navigation.service',
+      'ville': 'navigation.city',
+      'filiale': 'navigation.branch',
+      'pays': 'navigation.country',
+      'fonction': 'navigation.function',
+      'rubrique': 'navigation.rubric',
+      'section': 'navigation.section',
+      'gestion-employe': 'navigation.employeeManagement',
+      'saisie-classe-horaire': 'navigation.timeClass',
+      'saisie-poste-de-travail': 'navigation.workStation',
+      'intitule-des-absences': 'navigation.absenceTypes',
+      'Repos': 'navigation.publicHolidays',
+      'accompte-salaire': 'navigation.salaryAdvance',
+      'pointage-du-mois': 'navigation.monthlyClocking',
+      'droit-de-conge': 'navigation.leaveRights',
+      'etat-de-presence': 'navigation.attendanceReport',
+      'etat-de-retard': 'navigation.lateReport',
+      'etat-des-absences': 'navigation.absenceReport',
+      'echeance-contrat': 'navigation.contractExpiry',
+      'cahier-conge': 'navigation.leaveBook',
+      'lecture-pointeuse': 'navigation.clockingReading',
+      'liste-pointeuse': 'navigation.clockingList',
+      'optimisation-pointage': 'navigation.clockingOptimization',
+      'etat-periodique': 'navigation.periodicReport',
+      'allaitement': 'navigation.breastfeeding',
+      'contrat': 'navigation.contract',
+      'renouvellement-contrat': 'navigation.renewal',
+      'gestion-de-conge': 'navigation.leaveRequest',
+      'gestion-de-solde': 'navigation.leaveBalance',
+      'titre-de-conge': 'navigation.leaveTitle',
+      'titre-de-conge-general': 'navigation.generalLeave',
+      'jour-de-compensation': 'navigation.compensationDay',
+      'autorisation-de-sortie': 'navigation.exitAuthorization',
+      'autorisation-de-sortie-generale': 'navigation.generalExit',
+      'absence-et-sanction': 'navigation.absenceAndSanction',
     };
 
     return pathnames.map((name, index) => {
       const to = `/${pathnames.slice(0, index + 1).join('/')}`;
       const isLast = index === pathnames.length - 1;
-      const displayName = pathNameMap[name] || name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' ');
+      const fallback = name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' ');
+      const translated = pathKeyMap[name] ? t(pathKeyMap[name], { defaultValue: fallback }) : t(`breadcrumb.${name}`, { defaultValue: fallback });
+      const displayName = customTitle || translated;
 
       return isLast ? (
         <Typography key={to} color="text.primary" variant="subtitle1" fontWeight="bold">
-          {customTitle || displayName}
+          {displayName}
         </Typography>
       ) : (
         <Link key={to} color="inherit" href={to} sx={{ textDecoration: 'none' }}>

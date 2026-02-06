@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
             _congeRepository = congeRepository;
         }
         public async Task<float?> CalculateHeureAbsences(Presence presence, string soccod, string? poste,
-            DateTime? date,AutDto autorisation,float? hretrav)
+            DateTime? date,AutDto? autorisation,float? hretrav)
         {
 			try
 			{

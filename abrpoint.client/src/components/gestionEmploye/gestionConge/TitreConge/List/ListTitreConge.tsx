@@ -24,11 +24,13 @@ import { Conge } from '../../../../../models/Conge';
 import AlertModal from '../../../../AlertModal/AlertModal';
 import useGetTitreConge from '../../../../../hooks/congeHooks/useGetTitreConge';
 import useDeleteTitreConge from '../../../../../hooks/congeHooks/useDeleteTitreConge';
+import { useTranslation } from 'react-i18next';
 import { useCongeContext } from '../../../../helper/CongeContext';
 import CongeReportService from '../../../../../services/CongeService/CongeReportService';
 
 const TitreCongeList = () => {
   const { setSelectedConge } = useCongeContext();
+  const { t } = useTranslation();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('error');
@@ -47,12 +49,12 @@ const TitreCongeList = () => {
           refetch();
           setSnackbarOpen(true);
           setSnackbarSeverity("success");
-          setSnackbarMessage("supression avec sucées");
+          setSnackbarMessage(t('conge.messages.deleteSuccess') || 'Deletion successful');
         },
         onError: () => {
           setSnackbarSeverity("error");
-          setSnackbarMessage("probléme de supression");
-          alert('Erreur lors de la suppression du congé.');
+          setSnackbarMessage(t('conge.messages.deleteError') || 'Error during deletion');
+          alert(t('conge.messages.deleteErrorAlert') || 'Error deleting leave.');
         },
       });
     }
@@ -94,40 +96,40 @@ const TitreCongeList = () => {
       columns: [
         {
           accessorKey: 'concod',
-          header: 'N° Ordre',
+          header: t('conge.orderNumber') || 'Order No',
           size: 100,
         },
         {
           accessorKey: 'emplib',
-          header: 'Employé',
+          header: t('common.employee') || 'Employee',
           size: 160,
         },
         {
           accessorKey: 'abslib',
-          header: 'Imputation',
+          header: t('common.imputation') || 'Imputation',
           size: 100,
         },
         {
           accessorKey: 'condat',
-          header: 'Date',
+          header: t('common.date') || 'Date',
           size: 100,
           Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
         },
         {
           accessorKey: 'condep',
-          header: 'Date départ',
+          header: t('common.dateStart') || 'Start Date',
           size: 100,
           Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
         },
         {
           accessorKey: 'conret',
-          header: 'Date retour',
+          header: t('common.dateEnd') || 'End Date',
           size: 60,
           Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
         },
         {
           accessorKey: 'connbjour',
-          header: 'Nb.jours',
+          header: t('common.nbDays') || 'Nb.Days',
           size: 60,
         },
       ],
@@ -188,7 +190,7 @@ const TitreCongeList = () => {
         <ListItemIcon>
           <Edit />
         </ListItemIcon>
-        Editer
+        {t('common.edit') || 'Edit'}
       </MenuItem>,
       <MenuItem
         key={1}
@@ -202,7 +204,7 @@ const TitreCongeList = () => {
         <ListItemIcon>
           <Send />
         </ListItemIcon>
-        Supprimer
+        {t('common.delete') || 'Delete'}
       </MenuItem>,
       <MenuItem
         key={2}
@@ -215,7 +217,7 @@ const TitreCongeList = () => {
         <ListItemIcon>
           <PictureAsPdf />
         </ListItemIcon>
-        Imprimer
+        {t('conge.actions.print') || 'Print'}
       </MenuItem>,
     ],
     renderTopToolbar: ({ table }) => {
@@ -228,7 +230,14 @@ const TitreCongeList = () => {
           row.connbjour,
           row.consolde,
         ]);
-        const tableHeaders = ['N° Ordre', 'Imputation', 'Date','Date départ','Date retour', 'Nb.jours', ];
+        const tableHeaders = [
+          t('conge.orderNumber') || 'Order No',
+          t('common.imputation') || 'Imputation',
+          t('common.date') || 'Date',
+          t('common.dateStart') || 'Start Date',
+          t('common.dateEnd') || 'End Date',
+          t('common.nbDays') || 'Nb.Days',
+        ];
   
         autoTable(doc, {
           head: [tableHeaders],
@@ -270,14 +279,14 @@ const TitreCongeList = () => {
               }}     
               variant="contained"
             >
-              Export Selected
-            </Button>
+              {t('list.exportSelection') || 'Export selection'}
+            </Button> 
           </Box>
         </Box>
       );
     },
     localization: {
-      actions: "Decision", // This changes the Action column's header name
+      actions: t('common.actions') || 'Actions', // This changes the Action column's header name
     },
   });
 
@@ -323,7 +332,7 @@ const TitreCongeList = () => {
         open={openAlert}
         onClose={() => setOpenAlert(false)}
         onConfirm={handleDelete}
-        message={`Vous ete sure de supprimer ce conge (N° Ordre: ${rowToDelete?.concod})?`}
+        message={t('conge.confirmDelete', { order: rowToDelete?.concod }) || `Are you sure you want to delete this leave (Order No: ${rowToDelete?.concod})?`}
       />
         <Snackbar
                open={snackbarOpen}

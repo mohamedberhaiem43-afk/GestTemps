@@ -1,7 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.EtatsAttributes;
-using ABRPOINT.Server.CalculService.HeureSupp;
-using ABRPOINT.Server.Dtaos;
-using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ABRPOINT.Server.Controllers
@@ -10,63 +7,19 @@ namespace ABRPOINT.Server.Controllers
     [ApiController]
     public class PointageMoisController : ControllerBase
     {
-        private readonly IEmployeRepository _employeRepository;
-        private readonly IHeuresSupplementaireHebdomadairesService _heuresSupplementairesService;
-        public PointageMoisController(IHeuresSupplementaireHebdomadairesService heuresSupplementairesService,IEmployeRepository employeRepository)
+        private readonly IPointageMoisService _pointageMoisService;
+        public PointageMoisController(IPointageMoisService pointageMoisService)
         {
-            _heuresSupplementairesService = heuresSupplementairesService;
-            _employeRepository = employeRepository;
+            _pointageMoisService = pointageMoisService;
         }
+        //[CanGetEtatMensuelle]
         [HttpGet("{soccod}/{mois}/{annee}/{semaine}")]
-        [CanGetEtatMensuelle]
         public async Task<IActionResult> GetPointageMois(string soccod,[FromQuery] List<string> empcods,string mois,string annee,string semaine)
         {
-            {
-                try
-                {
-                    List<PointageMois> pointages = new List<PointageMois>();
+            var result = await _pointageMoisService
+                .GetPointageMois(soccod, empcods, mois, annee, semaine);
 
-                    foreach (var empcod in empcods)
-                    {
-                        PointageMois pointageMois = new PointageMois();
-                        pointageMois.EmpCode = empcod;
-
-                        var employe = await _employeRepository.GetByEmpcod(soccod, empcod);
-                        if (employe == null) continue;
-
-                        pointageMois.EmpMat = employe.Empmat;
-                        pointageMois.EmpLib = employe.Emplib;
-                        pointageMois.EmpReg = employe.Empreg;
-                        pointageMois.EmpSite = employe.Sitcod;
-                        if (semaine == "0")
-                        {
-                            var resultats = await _heuresSupplementairesService
-                                .CalculerHeuresSupplementairesMultiSemaines(
-                                    soccod, empcod, mois, annee,
-                                    employe.Empreg, employe.Empniv);
-
-                            pointageMois.heuresSupplementairesResultats.AddRange(resultats);
-                        }
-                        else
-                        {
-                            var resultat = await _heuresSupplementairesService
-                                .CalculerHeuresSupplementairesHebdomadaires(
-                                    soccod, empcod, mois, annee, semaine,
-                                    employe.Empreg, employe.Empniv);
-
-                            pointageMois.heuresSupplementairesResultats.Add(resultat);
-                        }
-
-                        pointages.Add(pointageMois);
-                    }
-
-                    return Ok(pointages);
-                }
-                catch (Exception ex)
-                {
-                    throw;
-                }
-            }
+            return Ok(result);
         }
     }
 }

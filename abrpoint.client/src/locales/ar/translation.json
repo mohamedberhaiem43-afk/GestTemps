@@ -1,0 +1,503 @@
+{
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "dataBase": "البيانات الأساسية",
+    "administrator": "المسؤول",
+    "clockingMachine": "آلة الحضور",
+    "employee": "الموظف",
+    "timeClass": "فئة الوقت",
+    "payrollPreparation": "إعداد الرواتب",
+    "reports": "التقارير",
+    "companySettings": "إعدادات الشركة",
+    "society": "الشركة",
+    "direction": "الإدارة",
+    "service": "الخدمة",
+    "section": "القسم",
+    "branch": "الفرع",
+    "country": "البلد",
+    "city": "المدينة",
+    "function": "الوظيفة",
+    "rubric": "البند",
+    "users": "المستخدمون",
+    "accessRights": "حقوق الوصول",
+    "clockingReading": "قراءة الحضور",
+    "clockingList": "قائمة الحضور",
+    "clockingOptimization": "تحسين الحضور",
+    "periodicReport": "تقرير دوري",
+    "employeeManagement": "إدارة الموظفين",
+    "contract": "العقد",
+    "contractManagement": "إدارة العقود",
+    "renewal": "التجديد",
+    "breastfeeding": "الرضاعة",
+    "leave": "الإجازة",
+    "leaveRequest": "طلب إجازة",
+    "leaveBalance": "رصيد الإجازة",
+    "leaveTitle": "عنوان الإجازة",
+    "generalLeave": "إجازة عامة",
+    "absences": "الغيابات",
+    "compensationDay": "يوم التعويض",
+    "exitAuthorization": "إذن الخروج",
+    "generalExit": "خروج عام",
+    "absenceAndSanction": "الغياب والعقوبة",
+    "workSchedule": "جدول العمل",
+    "workStation": "محطة العمل",
+    "absenceTypes": "أنواع الغياب",
+    "publicHolidays": "العطل الرسمية",
+    "salaryAdvance": "سلفة على الراتب",
+    "monthlyClocking": "حضور الشهر",
+    "leaveRights": "حقوق الإجازة",
+    "attendanceReport": "تقرير الحضور",
+    "lateReport": "تقرير التأخير",
+    "absenceReport": "تقرير الغياب",
+    "contractExpiry": "انتهاء العقد",
+    "leaveBook": "دفتر الإجازات",
+    "profile": "الملف الشخصي",
+    "companyParameter": "معاملات الشركة",
+    "companyCalendar": "تقويم الشركة",
+    "chatBot": "روبوت الدردشة",
+    "about": "حول",
+    "contact": "اتصال"
+  },
+  "breadcrumb": {
+    "param-societe": "إعدادات الشركة",
+    "societe": "الشركة",
+    "gestion-employe": "إدارة الموظفين",
+    "etat-periodique": "تقرير دوري",
+    "allaitement": "الرضاعة",
+    "gestion-utilisateur": "المستخدمون",
+    "pointage-du-mois": "حضور الشهر",
+    "lecture-pointeuse": "قراءة الحضور"
+  },
+  "allaitement": {
+    "title": "الرضاعة",
+    "list": {
+      "order": "رقم الطلب",
+      "code": "رمز",
+      "name": "الاسم",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "period": "الفترة",
+      "exportAll": "تصدير كل الصفوف (PDF)",
+      "exportPage": "تصدير صفوف الصفحة (PDF)",
+      "exportSelected": "تصدير الصفوف المحددة (PDF)"
+    },
+    "form": {
+      "employee": "الموظف",
+      "order": "رقم الطلب",
+      "date": "التاريخ",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "monday": "الإثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت"
+    },
+    "actions": {
+      "edit": "تعديل",
+      "delete": "حذف",
+      "manage": "إدارة الموظف"
+    }
+  },
+  "employe": {
+    "save": "حفظ",
+    "update": "تعديل",
+    "addSuccess": "تمت إضافة الموظف بنجاح",
+    "addError": "فشل في إضافة الموظف",
+    "updateSuccess": "تم تعديل الموظف بنجاح",
+    "updateError": "فشل في تعديل الموظف",
+    "prepareError": "خطأ أثناء إعداد البيانات",
+    "tabs": {
+      "basic": "معلومات أساسية",
+      "work": "معلومات العمل",
+      "employeeInfo": "معلومات الموظف",
+      "contact": "معلومات الاتصال",
+      "complement": "معلومات إضافية"
+    },
+    "form": {
+      "cin": "رقم CIN",
+      "name": "الاسم",
+      "badge": "رقم البادج",
+      "birthDate": "تاريخ الميلاد",
+      "birthPlace": "مكان الميلاد",
+      "matricule": "الرمز",
+      "sex": "الجنس"
+    },
+    "gender": {
+      "male": "ذكر",
+      "female": "أنثى"
+    },
+    "work": {
+      "regime": "النظام",
+      "hourly": "ساعي",
+      "monthly": "شهري",
+      "branch": "الفرع",
+      "charge": "التحميل",
+      "direct": "مباشر",
+      "indirect": "غير مباشر",
+      "service": "الخدمة",
+      "direction": "الإدارة",
+      "timeClass": "فئة الوقت",
+      "maxDaysPerMonth": "أقصى أيام/شهر",
+      "maxHoursPerDay": "أقصى ساعات/يوم",
+      "calendarType": "نوع التقويم",
+      "eliminateDelay": "استبعاد التأخير",
+      "minHoursPerDay": "الحد الأدنى ساعات/يوم"
+    },
+    "contact": {
+      "address": "العنوان",
+      "nationality": "الجنسية",
+      "city": "المدينة",
+      "tel": "الهاتف",
+      "mobile": "الموبايل",
+      "email": "البريد الإلكتروني",
+      "civilStatus": "الحالة الاجتماعية",
+      "single": "أعزب",
+      "married": "متزوج",
+      "divorced": "مطلق"
+    },
+    "messages": {
+      "contractDownloadError": "خطأ أثناء تنزيل العقد",
+      "deleteSuccess": "تم حذف الموظف بنجاح",
+      "deleteError": "فشل في حذف الموظف",
+      "selectWordFile": "يرجى تحديد ملف Word (.doc أو .docx)",
+      "selectContractTemplate": "يرجى تحديد نموذج عقد",
+      "contractGenerated": "تم إنشاء العقد بنجاح",
+      "contractGenerateError": "خطأ أثناء إنشاء العقد",
+      "confirmDelete": "هل أنت متأكد أنك تريد حذف هذا الموظف؟"
+    },
+    "dialog": {
+      "selectTemplateFor": "اختر نموذج عقد لـ {{name}}",
+      "addTemplate": "أضف نموذجًا جديدًا (.doc/.docx)",
+      "selectedYes": "محدد: نعم",
+      "selectedNo": "محدد: لا",
+      "noTemplates": "لا يوجد نموذج عقد. أضف ملف Word (.doc/.docx)."
+    },
+    "actions": {
+      "generateContractPDF": "توليد ملف PDF للعقد"
+    },
+    "documents": {
+      "individualSheetTitle": "البطاقة الفردية",
+      "hireDate": "تاريخ التوظيف",
+      "exitDate": "تاريخ الخروج"
+    },
+    "labels": {
+      "name": "الاسم",
+      "active": "نشط",
+      "status": "الحالة"
+    },
+    "status": {
+      "active": "موظف نشط",
+      "inactive": "موظف غير نشط"
+    },
+    "fields": {
+      "nightHours": "ساعات الليل",
+      "lunch": "سلة طعام",
+      "position": "المسمى الوظيفي",
+      "countRest": "حساب الراحة",
+      "exitReason": "سبب الخروج",
+      "retirementDate": "تاريخ التقاعد",
+      "nbPosts": "عدد المناصب"
+    },
+    "options": {
+      "nightHours": { "0": "0- عادي", "1": "1- خاص" },
+      "panier": { "0": "0- لا يوجد", "1": "1- وجبة 7س", "2": "2- وجبة 6س" },
+      "poste": { "finance": "المالية", "manager": "مدير" },
+      "countRest": { "0": "0- لا يحسب", "1": "1- جميع الأيام", "2": "2- راحة السبت", "3": "3- راحة الأحد" }
+    },
+    "columns": {
+      "active": "نشط"
+    },
+
+  "complement": {
+      "arabicTitle": "بيانات عربية",
+      "base": "المرتب الأساسي",
+      "category": "الفئة",
+      "grossSalary": "المرتب الإجمالي",
+      "netSalary": "صافي المرتب",
+      "echelon": "الرتبة",
+      "scale": "المقياس",
+      "subCategory": "الفئة الفرعية"
+    }
+  },
+  "login": {
+    "title": "تسجيل الدخول",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "company": "الشركة",
+    "site": "الفرع / الموقع",
+    "button": "دخول",
+    "requiredError": "يرجى ملء جميع الحقول المطلوبة",
+    "loginError": "فشل تسجيل الدخول. تحقق من بياناتك."
+  },
+  "weeklyHoursTable": {
+    "dateStart": "تاريخ البدء",
+    "dateEnd": "تاريخ الانتهاء",
+    "hours": "عدد الساعات"
+  },
+  "pointageDuMois": {
+    "errorLoading": "خطأ أثناء تحميل البيانات.",
+    "total": "الإجمالي",
+    "weekDetails": "تفاصيل الأسبوع {{numSem}}"
+  },
+  "dailyHours": {
+    "noData": "لا توجد بيانات يومية متاحة",
+    "day": "اليوم",
+    "date": "التاريخ",
+    "hoursWorked": "ساعات العمل"
+  },
+  "common": {
+    "qualification": "المؤهل",
+    "function": "المسمى الوظيفي",
+    "morning": "الصباح",
+    "confirmation": "تأكيد",
+    "yes": "نعم",
+    "no": "لا",
+    "code": "رمز",
+    "label": "الاسم",
+    "before": "قبل",
+    "after": "بعد",
+    "new": "جديد",
+    "search": "بحث",
+    "previous": "السابق",
+    "current": "الحالي",
+    "seniority": "الأقدمية",
+    "edit": "تعديل",
+    "ref": "المرجع",
+    "orderNumber": "رقم الأمر",
+    "dateStart": "تاريخ البدء",
+    "dateEnd": "تاريخ الانتهاء",
+    "imputation": "التخصيص",
+    "phone": "الهاتف",
+    "nbDays": "عدد الأيام",
+    "wholeDay": "اليوم كامل",
+    "mornings": "الصباح",
+    "afternoons": "بعد الظهر",
+    "afternoon": "بعد الظهر",
+    "requiredFields": "الرجاء ملء جميع الحقول المطلوبة",
+    "employee": "الموظف",
+    "reason": "السبب",
+    "startTime": "وقت البدء",
+    "endTime": "وقت الانتهاء",
+    "exception": "استثناء",
+    "nbHours": "عدد الساعات",
+    "yes": "نعم",
+    "no": "لا",
+    "confirmDelete": "هل أنت متأكد من حذف هذا العنصر؟"
+  },
+  "list": {
+    "edit": "تعديل",
+    "delete": "حذف",
+    "purge": "تفريغ",
+    "contract": "عقد",
+    "workAttestation": "شهادة عمل",
+    "medicalVisit": "زيارة طبية",
+    "individualSheet": "بطاقة فردية",
+    "employeeHours": "ساعات الموظف",
+    "exportSelection": "تصدير التحديد",
+    "messages": {
+      "deleteSuccess": "تم الحذف بنجاح",
+      "deleteError": "خطأ أثناء الحذف",
+      "actionForbidden": "الإجراء محظور: ليس لديك إذن."
+    }
+  },
+  "conge": {
+    "orderNumber": "رقم الأمر",
+    "address": "عنوان الإجازة",
+    "added": "تمت إضافة الإجازة بنجاح",
+    "addError": "فشل في إضافة الإجازة",
+    "createNew": "إنشاء إجازة جديدة",
+    "messages": {
+      "bulkAddSuccess": "تمت إضافة الإجازات بنجاح",
+      "bulkAddError": "خطأ أثناء إضافة الإجازات",
+      "addSuccess": "تمت إضافة الإجازة بنجاح",
+      "addError": "فشل في إضافة الإجازة",
+      "updateSuccess": "تم تعديل الإجازة بنجاح",
+      "updateError": "فشل في تعديل الإجازة"
+    },
+    "errors": {
+      "notHired": "الموظف غير موظف في التاريخ المحدد."
+    },
+    "actions": {
+      "exception": "استثناء"
+    }
+  },
+  "contract": {
+    "number": "رقم العقد",
+    "date": "تاريخ العقد",
+    "type": "نوع العقد"
+  },
+  "employeeLevel": {
+    "cadre": "Cadre",
+    "maitrise": "Maitrise",
+    "executant": "تنفيذي"
+  },
+  "sanction": {
+    "addSuccess": "تمت إضافة الغياب بنجاح",
+    "addError": "فشل في إضافة الغياب",
+    "fillImputation": "الرجاء إدخال التخصيص"
+  },
+  "post": {
+    "toleranceEntry": "تحمل الدخول",
+    "toleranceExit": "تحمل الخروج",
+    "autoRest": "راحة تلقائية بعد/قبل العمل",
+    "option": {
+      "0Before": "0-قبل",
+      "1After": "1-بعد",
+      "0After": "0-بعد",
+      "1Before": "1-قبل"
+    }
+  },
+  "empEtatPeriodique": {
+    "enterReason": "أدخل سببًا",
+    "reason": "السبب",
+    "menu": {
+      "absence": "غياب",
+      "conge": "إجازة",
+      "autorisation": "إذن خروج",
+      "optimisation": "تحسين التوقيت (اليوم)"
+    },
+    "headers": {
+      "date": "التاريخ",
+      "day": "اليوم",
+      "rest": "راحة",
+      "entry1": "دخول1",
+      "exit1": "خروج1",
+      "meal": "وجبة",
+      "entry2": "دخول2",
+      "exit2": "خروج2",
+      "entry3": "دخول3",
+      "exit3": "خروج3",
+      "clockingMachine": "آلة الحضور",
+      "totalHour": "إجمالي الوقت",
+      "nightHour": "ساعة الليل",
+      "overtimeHour": "ساعة إضافية",
+      "total": "المجموع",
+      "dayLabel": "اليوم",
+      "state": "الحالة",
+      "observation": "ملاحظة",
+      "late": "تأخير",
+      "hraut": "H. خروج",
+      "totalAbsence": "إجمالي الغياب",
+      "totcmp": "Tot. cmp",
+      "matricule": "الرمز",
+      "employee": "الموظف",
+      "nbDays": "عدد الأيام",
+      "actions": "إجراءات",
+      "shower": "دش"
+    },
+    "actions": {
+      "more": "المزيد"
+    },
+  "filters": {
+    "branch": "الفرع",
+    "service": "المصلحة",
+    "regime": "النظام",
+    "employees": "الموظفون",
+    "month": "الشهر",
+    "year": "السنة",
+    "presence": "الحضور"
+  },
+  "exportB01T": "تصدير إكسل (تنسيق B01T)",
+  "noDataToExport": "لا توجد بيانات للتصدير",
+  "empPoste": {
+    "entry": "دخول",
+    "exit": "خروج",
+    "morning": "صباح",
+    "afternoon": "بعد الظهر",
+    "toleranceEntry": "تحمّل دخول",
+    "toleranceExit": "تحمّل خروج",
+    "class": "الرتبة",
+    "post": "المركز",
+    "meal": "الوجبة",
+    "round": "التقريب",
+    "roundSup": "تقريب إضافي"
+  },
+    "errorLoading": "خطأ أثناء تحميل البيانات"
+  },
+
+  "integrationPaie": {
+    "employees": "الموظفين:",
+    "rubrics": "البنود المكونة:",
+    "rowsToExport": "الأسطر للتصدير:"
+  },
+  "helper": {
+    "manipulate": "التعامل"
+  },
+  "paramSoc": {
+    "part1": {
+      "jourDebut": "بداية اليوم",
+      "jourFin": "نهاية اليوم",
+      "hourMethod": "طريقة حساب ساعات الحضور",
+      "divideHoursBy": "قسّم الساعات حسب",
+      "presenceHoursCalculated": "ساعات الحضور المحسوبة",
+      "presenceCalcMethod": "طريقة حساب الحضور",
+      "method": {
+        "workedHours": "ساعات العمل",
+        "classeAbsence": "فئة الغياب",
+        "daysWorked": "أيام العمل",
+        "hoursDaysWorked": "ساعات/أيام العمل",
+        "presenceTime": "وقت الحضور",
+        "departure": "المغادرة",
+        "arrival": "الوصول"
+      },
+      "annualLeaveIncrease": "زيادة الإجازة السنوية",
+      "seniorityLabel": "الأقدمية",
+      "fiveYears": "5 سنوات",
+      "saisieConge": "إدخال الإجازة",
+      "daysBeforeOrAfter": "أيام قبل أو بعد"
+    }
+  },
+  "app": {
+    "name": "ABRPOINT"
+  },
+  "loading": {
+    "loading": "جارٍ التحميل..."
+  },
+  "optimisation": {
+    "info": "سيعيد هذا الإجراء حساب الحضور للفترة المحددة.",
+    "dateStart": "تاريخ البدء",
+    "dateEnd": "تاريخ الانتهاء",
+    "optimizing": "جارٍ التحسين...",
+    "optimizeButton": "تحسين الحضور"
+  },
+  "donneeSociete": {
+    "requiredFields": "الرمز والاسم مطلوبان!",
+    "added": "تمت إضافة الشركة بنجاح!",
+    "addError": "فشل في إضافة الشركة. حاول مرة أخرى."
+  },
+  "profile": {
+    "imageSaved": "تم حفظ الصورة بنجاح.",
+    "imageSaveError": "خطأ أثناء حفظ الصورة.",
+    "uploadImage": "تحميل الصورة",
+    "changePassword": {
+      "button": "تغيير كلمة المرور",
+      "title": "تغيير كلمة المرور",
+      "oldLabel": "كلمة المرور القديمة",
+      "newLabel": "كلمة المرور الجديدة",
+      "fillFields": "يرجى إدخال كلمة المرور الحالية والجديدة.",
+      "success": "تم تغيير كلمة المرور بنجاح.",
+      "error": "خطأ أثناء تغيير كلمة المرور."
+    }
+  },
+  "user": {
+    "updateSuccess": "تم تحديث المستخدم بنجاح",
+    "updateError": "خطأ أثناء تحديث المستخدم"
+  },
+  "rubrique": {
+    "save": "حفظ البند",
+    "edit": "تعديل البند"
+  },
+  "filter": {
+    "withoutPointage": "بدون تسجيل دخول (غياب غير مبرر)",
+    "allAbsence": "كل الغيابات",
+    "justifiedAbsence": "غياب مبرر",
+    "invalidPointage": "تسجيل غير صالح",
+    "absenceDayLate": "غياب خلال اليوم + تأخير",
+    "authorizedAbsence": "غياب مصرح به",
+    "withoutInvalidPointage": "بدون تسجيل غير صالح",
+    "presenceNotOptimized": "الحضور غير محسن",
+    "absenceType": "نوع الغياب"
+  }
+}

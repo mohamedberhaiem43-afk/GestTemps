@@ -1,4 +1,5 @@
 import { Box, Grid, Button, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
+import { useTranslation } from 'react-i18next';
 import InputComponent from "../../Inputs/Input";
 import { useState, useEffect } from "react";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
@@ -27,6 +28,7 @@ export default function SaisieProfile({ onDataChange, profil, initialData }: Sai
   const { data: socLibs = [] } = useGetSocLibs();
   const { data: sitLibs = [] } = useGetSiteLibs();
   const updatePassword = useUpdateProfile();
+  const { t } = useTranslation();
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -82,12 +84,12 @@ useEffect(() => {
           headers: { "Content-Type": "multipart/form-data" },
           withCredentials: true,
         });
-        setSnackbarMessage("Image sauvegardée avec succès.");
+        setSnackbarMessage(t('profile.imageSaved'));
         setSnackbarSeverity("success");
         setSnackbarOpen(true);
       } catch (error) {
         console.error("Erreur lors de la sauvegarde de l'image:", error);
-        setSnackbarMessage("Erreur lors de la sauvegarde de l'image.");
+        setSnackbarMessage(t('profile.imageSaveError'));
         setSnackbarSeverity("error");
         setSnackbarOpen(true);
       }
@@ -106,7 +108,7 @@ useEffect(() => {
 
   const handleSavePassword = async () => {
     if (!currentPassword || !newPassword) {
-      setSnackbarMessage("Veuillez renseigner l'ancien et le nouveau mot de passe.");
+      setSnackbarMessage(t('profile.changePassword.fillFields'));
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
       return;
@@ -120,12 +122,12 @@ useEffect(() => {
       setChangePwdOpen(false);
       setCurrentPassword("");
       setNewPassword("");
-      setSnackbarMessage("Mot de passe changé avec succès.");
+      setSnackbarMessage(t('profile.changePassword.success'));
       setSnackbarSeverity("success");
       setSnackbarOpen(true);
     } catch (error) {
       console.error("Erreur lors du changement de mot de passe:", error);
-      setSnackbarMessage("Erreur lors du changement de mot de passe.");
+      setSnackbarMessage(t('profile.changePassword.error'));
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
     }
@@ -135,7 +137,7 @@ useEffect(() => {
     <Box sx={{ flexGrow: 1 }}>
       <Grid container spacing={2}>
         <Grid item xs={1}>
-          <InputComponent type="text" label="Code" value={uticod} setValue={setCode} />
+          <InputComponent type="text" label={t('common.code')} value={uticod} setValue={setCode} />
         </Grid>
         <Grid item xs={2}>
           <InputComponent type="text" label="Email" value={utimail} setValue={setUtimail} />
@@ -161,7 +163,7 @@ useEffect(() => {
         {/* change password button */}
         <Grid item xs={3} mt={1}>
           <Button variant="outlined" onClick={openChangePwd} fullWidth>
-            Changer le mot de passe
+            {t('profile.changePassword.button')}
           </Button>
         </Grid>
 
@@ -169,7 +171,7 @@ useEffect(() => {
         {profil && (
           <Grid item xs={3}>
             <Button variant="outlined" component="label" fullWidth sx={{ textTransform: "none" }}>
-              Upload Image
+              {t('profile.uploadImage')}
               <input type="file" accept="image/*" hidden onChange={handleImageChange} />
             </Button>
             {imagePreview && (
@@ -191,11 +193,11 @@ useEffect(() => {
           maxWidth: { xs: '50%', sm: '500px' },
         },
       }}>
-        <DialogTitle>Changer le mot de passe</DialogTitle>
+        <DialogTitle>{t('profile.changePassword.title')}</DialogTitle>
         <DialogContent>
           <TextField
             margin="dense"
-            label="Ancien mot de passe"
+            label={t('profile.changePassword.oldLabel')}
             type="password"
             fullWidth
             value={currentPassword}
@@ -203,7 +205,7 @@ useEffect(() => {
           />
           <TextField
             margin="dense"
-            label="Nouveau mot de passe"
+            label={t('profile.changePassword.newLabel')}
             type="password"
             fullWidth
             value={newPassword}
@@ -211,8 +213,8 @@ useEffect(() => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeChangePwd}>Annuler</Button>
-          <Button onClick={handleSavePassword} variant="contained">Enregistrer</Button>
+          <Button onClick={closeChangePwd}>{t('common.cancel')}</Button>
+          <Button onClick={handleSavePassword} variant="contained">{t('common.save')}</Button>
         </DialogActions>
       </Dialog>
 

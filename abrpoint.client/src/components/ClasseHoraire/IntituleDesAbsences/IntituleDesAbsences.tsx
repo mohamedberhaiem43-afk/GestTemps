@@ -2,7 +2,6 @@ import { Box, Grid } from "@mui/material";
 import SaisieIntitule from "./SaisieIntitule/SaisieIntitule";
 import AbsenceList from "./IntituleDesAbsenceList";
 import { QueryClient, QueryClientProvider } from "react-query";
-import './IntituleDesAbsence.css'
 import { AbsenceProvider } from "../../helper/AbsenceContext";
 import { Item } from "../../helper/Item/Item";
 import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
@@ -11,7 +10,7 @@ export default function IntituleDesAbsences() {
     const queryClient = new QueryClient();
     return (
         <QueryClientProvider client={queryClient}>
-            <Box height={'85vh'}>
+            <Box height={'90vh'} mt={-10}>
                 <BreadcrumbNavigation />
                 <AbsenceProvider>
                     <Grid container spacing={2}>

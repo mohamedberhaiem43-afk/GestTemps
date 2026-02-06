@@ -11,15 +11,18 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IPosteRepository _posteRepository;
-        public HeureRetardService(ApplicationDbContext dbContext,IPosteRepository posteRepository)
+
+        public HeureRetardService(ApplicationDbContext dbContext, IPosteRepository posteRepository)
         {
             _dbContext = dbContext;
             _posteRepository = posteRepository;
         }
+
         private int ApplySanction(int retard, int min, int bonus)
         {
             return (min > 0 && retard >= min) ? bonus : 0;
         }
+
         private bool IsInAutorisation(TimeSpan time, AutDto autorisation)
         {
             TimeSpan? autorisationStart = autorisation?.Condep?.TimeOfDay;
@@ -35,14 +38,13 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
             return t >= start && t <= end;
         }
 
-        public async Task<int> CalculateHeureRetard(PresenceDto presence, Poste poste, AutDto autoisation)
+        public async Task<(int nbRetard, DateTime? Preretame, DateTime? Preretameup, DateTime? Preretmate, DateTime? Preretmateup, DateTime? Preretmats, DateTime? Preretmatsup, DateTime? Preretams, DateTime? Preretamsup)> CalculateHeureRetard(PresenceDto presence, Poste poste, AutDto autoisation)
         {
             int nbRetard = 0;
 
             if (poste == null)
             {
-                string codpost = await _posteRepository.GetEmpPoste(
-                    presence.Soccod, presence.Empcod, presence.Predat);
+                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
                 poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
             }
 
@@ -50,7 +52,7 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                 GenericMethodes.GetStartsWorkDay(presence.Dmdate, poste);
 
             if (string.IsNullOrEmpty(morningStartTime) || string.IsNullOrEmpty(presence.Preentmatup))
-                return 0;
+                return (0, null, null, null, null, null, null, null, null);
 
             string? empretard = await _dbContext.Employes
                 .Where(e => e.Soccod == presence.Soccod && e.Empcod == presence.Empcod)
@@ -58,7 +60,7 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                 .SingleOrDefaultAsync();
 
             if (string.IsNullOrEmpty(empretard) || empretard == "1")
-                return 0;
+                return (0, null, null, null, null, null, null, null, null);
 
             TimeSpan morningStart = TimeSpan.Parse(morningStartTime);
             TimeSpan morningEnd = TimeSpan.Parse(morningEndTime);
@@ -101,6 +103,10 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
             {
                 nbRetard += retardMatin;
                 nbRetard += ApplySanction(retardMatin, poste.Retmin ?? 0, poste.Retsanc ?? 0);
+
+                presence.Preretmateup = ToRetardDate(TimeSpan.FromMinutes(retardMatin));
+                if (presence.Preretmate == null)
+                    presence.Preretmate = ToRetardDate(TimeSpan.FromMinutes(retardMatin));
             }
 
             // =======================
@@ -116,6 +122,10 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                 {
                     nbRetard += sortieMatin;
                     nbRetard += ApplySanction(sortieMatin, poste.Avamn ?? 0, poste.Avabon ?? 0);
+
+                    presence.Preretameup = ToRetardDate(TimeSpan.FromMinutes(sortieMatin));
+                    if (presence.Preretame == null)
+                        presence.Preretame = ToRetardDate(TimeSpan.FromMinutes(sortieMatin));
                 }
             }
 
@@ -137,6 +147,10 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                             retardAm,
                             poste.Retminam ?? poste.Retmin ?? 0,
                             poste.Retsancam ?? poste.Retsanc ?? 0);
+
+                        presence.Preretameup = ToRetardDate(TimeSpan.FromMinutes(retardAm));
+                        if (presence.Preretame == null)
+                            presence.Preretame = ToRetardDate(TimeSpan.FromMinutes(retardAm));
                     }
                 }
 
@@ -156,12 +170,23 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                             sortieAm,
                             poste.Avamnam ?? poste.Avamn ?? 0,
                             poste.Avabonam ?? poste.Avabon ?? 0);
+
+                        presence.Preretamsup = ToRetardDate(TimeSpan.FromMinutes(sortieAm));
+                        if (presence.Preretams == null)
+                            presence.Preretams = ToRetardDate(TimeSpan.FromMinutes(sortieAm));
                     }
                 }
             }
 
-            return nbRetard;
+            return (nbRetard, presence.Preretame, presence.Preretameup, presence.Preretmate,
+                presence.Preretmateup, presence.Preretmats, presence.Preretmatsup, presence.Preretams, presence.Preretamsup);
+        }
+
+        private static DateTime ToRetardDate(TimeSpan retard)
+        {
+            return new DateTime(1900, 1, 1)
+                .AddHours(retard.Hours)
+                .AddMinutes(retard.Minutes);
         }
     }
-
 }

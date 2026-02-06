@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Grid, IconButton, Button, Snackbar, Alert, CircularProgress } from '@mui/material';
 import SaveIcon from "@mui/icons-material/Save";
 import useGetAbsencesLibs from '../../../hooks/absenceHooks/useGetAbsenceLibs';
@@ -13,6 +14,7 @@ import formatDateForApi from '../../helper/TimeConverter/formatDateForApi';
 import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 
 export default function SaisieConge({ empcod, date }: { empcod: string; date: string }) {
+  const { t } = useTranslation();
   const [concod, setOrdre] = useState(generateNumeroOrdre());
   const [condat, setDate] = useState<string>(() => {
     const tomorrow = new Date(date);
@@ -119,17 +121,17 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
     };
 
     if (congeData.empcod === '' && congeData.concod === '') {
-      handleSnackbarOpening("Veuillez remplir tous les champs obligatoires", 'error');
+      handleSnackbarOpening(t('common.requiredFields'), 'error');
       return;
     }
 
     addConge(congeData, {
       onSuccess: () => {
-        handleSnackbarOpening("Congé ajouté avec succès", 'success');
+        handleSnackbarOpening(t('conge.added'), 'success');
         resetForm();
       },
       onError: () => {
-        handleSnackbarOpening("Échec lors de l'ajout de congé", 'error');
+        handleSnackbarOpening(t('conge.addError'), 'error');
       }
     });
   };
@@ -170,12 +172,12 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
     <Box component="form" sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
       <Grid container spacing={2.8}>
         <Grid item xs={1} sm={1.5}>
-          <InputComponent readOnly={!writable} label="N° Ordre" type="text" value={concod} setValue={setOrdre} />
+          <InputComponent readOnly={!writable} label={t('conge.orderNumber')} type="text" value={concod} setValue={setOrdre} />
         </Grid>
 
         <Grid item xs={1.7} sm={2}>
           <InputComponent
-            label="Date"
+            label={t('common.date')}
             type="date"
             value={condat}
             setValue={setDate}
@@ -184,12 +186,12 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
         </Grid>
 
         <Grid item xs={1}>
-          <InputComponent label="Réf" type="text" value={conref} setValue={setReference} readOnly={isEditMode} />
+          <InputComponent label={t('common.ref')} type="text" value={conref} setValue={setReference} readOnly={isEditMode} />
         </Grid>
 
         <Grid item xs={1.7} sm={2}>
           <InputComponent
-            label="Date Départ"
+            label={t('common.dateStart')}
             type="date"
             value={condep}
             setValue={setDateDepart}
@@ -198,12 +200,12 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
         </Grid>
 
         <Grid item xs={1.5} sm={2} mt={2}>
-          <CheckboxComponent label="Après-Midi" value={conamdep} setValue={setApresMidiDepart} />
+          <CheckboxComponent label={t('common.afternoon')} value={conamdep} setValue={setApresMidiDepart} />
         </Grid>
 
         <Grid item xs={1.7} sm={2.1}>
           <InputComponent
-            label="Date Retour"
+            label={t('common.dateEnd')}
             type="date"
             value={conret}
             setValue={setDateReprise}
@@ -212,12 +214,12 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
         </Grid>
 
         <Grid item xs={1.5} sm={2} mt={2}>
-          <CheckboxComponent label="Après-Midi" value={conamret} setValue={setApresMidiReprise} />
+          <CheckboxComponent label={t('common.afternoon')} value={conamret} setValue={setApresMidiReprise} />
         </Grid>
 
         <Grid item xs={1.5}>
           <SelectInputComponent 
-            label="Imputation" 
+            label={t('common.imputation')} 
             value={abscod} 
             setValue={setAbscod} 
             maplist={absences} 
@@ -225,37 +227,37 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
         </Grid>
 
         <Grid item xs={2}>
-          <InputComponent type='text' label='Adresse de congé' value={conadr} setValue={setImputationAdresse} readOnly={isEditMode} />
+          <InputComponent type='text' label={t('conge.address')} value={conadr} setValue={setImputationAdresse} readOnly={isEditMode} />
         </Grid>
 
         <Grid item xs={1.5}>
-          <InputComponent label="Téléphone" type="tel" value={contel} setValue={setTelephones} readOnly={isEditMode} />
+          <InputComponent label={t('common.phone')} type="tel" value={contel} setValue={setTelephones} readOnly={isEditMode} />
         </Grid>
 
         <Grid item xs={4.5} marginTop={2}>
           <RadioGroupComponent value={conjour} setValue={setConjour} >
-            <FormControlLabelComponent radioValue="J" label="Toute la Journée" />
-            <FormControlLabelComponent radioValue="M" label="Les Matinées" />
-            <FormControlLabelComponent radioValue="A" label="Les Après-Midi" />
+            <FormControlLabelComponent radioValue="J" label={t('common.wholeDay')} />
+            <FormControlLabelComponent radioValue="M" label={t('common.mornings')} />
+            <FormControlLabelComponent radioValue="A" label={t('common.afternoons')} />
           </RadioGroupComponent>
         </Grid>
 
         <Grid item xs={1}>
-          <InputComponent label="Nb.Jours" type="number" value={connbjour} setValue={setNbJour} readOnly />
+          <InputComponent label={t('common.nbDays')} type="number" value={connbjour} setValue={setNbJour} readOnly />
         </Grid>
 
         <Grid item mt={2}>
           {!isEditMode && (
             <>
-              <IconButton color="primary" aria-label="save" onClick={handleSubmit}>
+              <IconButton color="primary" aria-label={t('common.save')} onClick={handleSubmit}>
                 <SaveIcon />
               </IconButton>
-              <Button onClick={resetForm} color='secondary'>Nouveau</Button>
+              <Button onClick={resetForm} color='secondary'>{t('common.new')}</Button>
             </>
           )}
           {isEditMode && (
-            <Button onClick={resetForm} color='primary'>Créer un nouveau congé</Button>
-          )}
+            <Button onClick={resetForm} color='primary'>{t('conge.createNew')}</Button>
+          )} 
         </Grid>
       </Grid>
       <Snackbar open={isSnackbarOpen} autoHideDuration={1000} onClose={handleSnackbarClose}>

@@ -13,7 +13,7 @@
         public float? HreFerier { get; set; }
         public int? NbJourFerier { get; set; }
         public float? NbhAllaitement { get; set; }
-        public int? NbJourPointer { get; set; }
+        public float? NbJourPointer { get; set; }
         public float? NbJourCngPaye { get; set; }
         public float? NbJourConge { get; set; }
         public float? NbHeureConge { get; set; }

@@ -13,5 +13,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<string> GetByIp(string soccod, string ip);
         Task<string[]> GetIpsByPoicod(string[] poicod);
         Task<List<PointeuseType>> GetPointeuseTypesByPoicod(string[] poicods);
+        Task<IEnumerable<PointeuseDto>> GetAllAsyncWithLatestRead(string soccod);
     }
 }

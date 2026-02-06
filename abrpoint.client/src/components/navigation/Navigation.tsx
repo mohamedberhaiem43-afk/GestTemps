@@ -73,6 +73,7 @@ import Optimisation from '../Pointeuse/Optimisation/Optimisation';
 import SocieteImage from '../../assets/Societe.png';
 import { useAuth } from '../helper/AuthProvider';
 import GeminiChat from '../helper/Chatbot/GeminiChat';
+import { useTranslation } from 'react-i18next';
 
 interface DemoProps {
     window?: () => Window;
@@ -81,331 +82,314 @@ interface DemoProps {
 interface DemoPageContentProps {
     pathname: string;
 }
-const NAVIGATION = [
-  {
-    segment: 'dashboard',
-    title: 'Dashboard',
-    icon: <DashboardIcon />,
-   
-  },
-  {
-    segment: 'dashboard',
-    title: 'Donnée De Base',
-    style: { fontSize: '1px' },
 
-    icon: <StorageIcon  />,
-    children: [
-      {
-        segment: 'gestion-societe',
-        title: 'Société',
-        icon: <Domain />,
-      },
-      {
-        segment: 'direction',
-        title: 'Direction',
-        icon: <LocationCityIcon />,
-      },
-      {
-        segment: 'service',
-        title: 'Service',
-        icon: <BusinessIcon />,
-
-      },
-      {
-        segment: 'section',
-        title: 'Section',
-        icon: <CategoryIcon />, // New icon for Section
-      },
-      {
-        segment: 'filiale',
-        title: 'Filiale',
-        icon: <FlagIcon />, // New icon for Filiale
-      },
-      {
-        segment: 'pays',
-        title: 'Pays',
-        icon: <MapIcon />, // New icon for Pays
-      },
-      {
-        segment: 'ville',
-        title: 'Ville',
-        icon: <LocationCityIcon />, // New icon for Ville
-      },
-      {
-        segment: 'fonction',
-        title: 'Fonction',
-        icon: <PeopleIcon />, // New icon for Fonction
-      },
-      {
-        segment: 'rubrique',
-        title: 'Rubrique',
-        icon: <AttachMoney />, // New icon for Fonction
-      },
-    ],
-  },
-  {
-    segment: 'dashboard',
-    title: 'Administrateur',
-    style: { fontSize: '1px' },
-
-    icon: <AdminPanelSettings  />,
-    children: [
-      {
-        segment: 'gestion-utilisateur',
-        title: 'Utilisateurs',
-        icon: <AccountCircle />,
-      },
-      {
-        segment: 'droit-accees',
-        title: "Droit d'accées",
-        icon: <Accessible />,
-      },
-    ],
-  },
-  {
-  segment: 'dashboard',
-      title: 'Pointeuse',
-      icon: <Fingerprint />,
-      children: [
-      {
-        segment: 'lecture-pointeuse',
-        title: 'Lecture Pointeuses',
-        icon: <SyncAlt />, // ou <CloudSync /> pour synchronisation/lecture
-      },
-      {
-        segment: 'liste-pointeuse',
-        title: 'Liste Pointeuses',
-        icon: <DevicesOther />, // ou <Devices /> pour liste d'appareils
-      },
-      {
-        segment: 'optimisation-pointage',
-        title: 'Optimisation Pointage',
-        icon: <DevicesOther />, // ou <Speed /> pour optimisation
-      },
-      {
-        segment: 'etat-periodique',
-        title: 'Etat Périodique',
-        icon: <Assessment />, // ou <BarChart /> pour rapports/états
-      },
-    ]
-  },
-
-  {
-    segment: 'dashboard',
-    title: 'Employé',
-    icon: <PersonIcon  />,
-    children: [
-      
-      {
-        segment: 'gestion-employe',
-        title: 'Gestion Des Employés',
-        icon: <PeopleIcon />,
-      },
-      {
-      segment: 'contrat',
-      title: 'Contrat',
-      icon: <AssignmentIcon  />,
+// Hook personnalisé pour obtenir la navigation traduite
+const useNavigationItems = () => {
+  const { t } = useTranslation();
+  
+  return [
+    {
+      segment: 'dashboard',
+      title: t('navigation.dashboard'),
+      icon: <DashboardIcon />,
+    },
+    {
+      segment: 'dashboard',
+      title: t('navigation.dataBase'),
+      style: { fontSize: '1px' },
+      icon: <StorageIcon />,
       children: [
         {
-          segment: 'contrat',
-          title: 'Gestion Des Contrats',
-          icon: <AssignmentIcon />,
+          segment: 'gestion-societe',
+          title: t('navigation.society'),
+          icon: <Domain />,
         },
         {
-          segment: 'renouvellement-contrat',
-          title: 'Renouvellement',
-          icon: <Autorenew  />,
+          segment: 'direction',
+          title: t('navigation.direction'),
+          icon: <LocationCityIcon />,
+        },
+        {
+          segment: 'service',
+          title: t('navigation.service'),
+          icon: <BusinessIcon />,
+        },
+        {
+          segment: 'section',
+          title: t('navigation.section'),
+          icon: <CategoryIcon />,
+        },
+        {
+          segment: 'filiale',
+          title: t('navigation.branch'),
+          icon: <FlagIcon />,
+        },
+        {
+          segment: 'pays',
+          title: t('navigation.country'),
+          icon: <MapIcon />,
+        },
+        {
+          segment: 'ville',
+          title: t('navigation.city'),
+          icon: <LocationCityIcon />,
+        },
+        {
+          segment: 'fonction',
+          title: t('navigation.function'),
+          icon: <PeopleIcon />,
+        },
+        {
+          segment: 'rubrique',
+          title: t('navigation.rubric'),
+          icon: <AttachMoney />,
+        },
+      ],
+    },
+    {
+      segment: 'dashboard',
+      title: t('navigation.administrator'),
+      style: { fontSize: '1px' },
+      icon: <AdminPanelSettings />,
+      children: [
+        {
+          segment: 'gestion-utilisateur',
+          title: t('navigation.users'),
+          icon: <AccountCircle />,
+        },
+        {
+          segment: 'droit-accees',
+          title: t('navigation.accessRights'),
+          icon: <Accessible />,
+        },
+      ],
+    },
+    {
+      segment: 'dashboard',
+      title: t('navigation.clockingMachine'),
+      icon: <Fingerprint />,
+      children: [
+        {
+          segment: 'lecture-pointeuse',
+          title: t('navigation.clockingReading'),
+          icon: <SyncAlt />,
+        },
+        {
+          segment: 'liste-pointeuse',
+          title: t('navigation.clockingList'),
+          icon: <DevicesOther />,
+        },
+        {
+          segment: 'optimisation-pointage',
+          title: t('navigation.clockingOptimization'),
+          icon: <DevicesOther />,
+        },
+        {
+          segment: 'etat-periodique',
+          title: t('navigation.periodicReport'),
+          icon: <Assessment />,
         },
       ]
     },
-     
-     
-      {
-        segment: 'allaitement',
-        title: 'Allaitement',
-        icon: <FamilyRestroomIcon />,
+    {
+      segment: 'dashboard',
+      title: t('navigation.employee'),
+      icon: <PersonIcon />,
+      children: [
+        {
+          segment: 'gestion-employe',
+          title: t('navigation.employeeManagement'),
+          icon: <PeopleIcon />,
+        },
+        {
+          segment: 'contrat',
+          title: t('navigation.contract'),
+          icon: <AssignmentIcon />,
+          children: [
+            {
+              segment: 'contrat',
+              title: t('navigation.contractManagement'),
+              icon: <AssignmentIcon />,
+            },
+            {
+              segment: 'renouvellement-contrat',
+              title: t('navigation.renewal'),
+              icon: <Autorenew />,
+            },
+          ]
+        },
+        {
+          segment: 'allaitement',
+          title: t('navigation.breastfeeding'),
+          icon: <FamilyRestroomIcon />,
+        },
+        {
+          segment: '',
+          title: t('navigation.leave'),
+          icon: <PersonIcon />,
+          children:[
+            {
+              segment: 'gestion-de-conge',
+              title: t('navigation.leaveRequest'),
+              icon: <FamilyRestroomIcon />,
+            },
+            {
+              segment: 'gestion-de-solde',
+              title: t('navigation.leaveBalance'),
+              icon: <CalendarTodayIcon />,
+            },
+            {
+              segment: 'titre-de-conge',
+              title: t('navigation.leaveTitle'),
+              icon: <CalendarTodayIcon />,
+            },
+            {
+              segment: 'titre-de-conge-general',
+              title: t('navigation.generalLeave'),
+              icon: <CalendarTodayIcon />,
+            },
+          ]
+        },
+        {
+          segment: '',
+          title: t('navigation.absences'),
+          icon: <PersonIcon />,
+          children:[
+            {
+              segment: 'jour-de-compensation',
+              title: t('navigation.compensationDay'),
+              icon: <FamilyRestroomIcon />,
+            },
+            {
+              segment: 'autorisation-de-sortie',
+              title: t('navigation.exitAuthorization'),
+              icon: <WorkOutline />,
+            },
+            {
+              segment: 'autorisation-de-sortie-generale',
+              title: t('navigation.generalExit'),
+              icon: <WorkOutline />,
+            },
+            {
+              segment: 'absence-et-sanction',
+              title: t('navigation.absenceAndSanction'),
+              icon: <Gavel />,
+            },
+          ]
+        }
+      ],
+    },
+    {
+      segment: 'dashboard',
+      title: t('navigation.timeClass'),
+      icon: <Settings />,
+      children: [
+        {
+          segment: 'saisie-classe-horaire',
+          title: t('navigation.workSchedule'),
+          icon: <CorporateFareIcon />,
+        },
+        {
+          segment: 'saisie-poste-de-travail',
+          title: t('navigation.workStation'),
+          icon: <CorporateFareIcon />,
+        },
+        {
+          segment: 'intitule-des-absences',
+          title: t('navigation.absenceTypes'),
+          icon: <EventBusyIcon />,
+        },
+        {
+          segment: 'Repos',
+          title: t('navigation.publicHolidays'),
+          icon: <HolidayVillageRounded />,
+        },
+      ],
+    },
+    {
+      segment: 'dashboard',
+      title: t('navigation.payrollPreparation'),
+      icon: <Money />,
+      children: [
+        {
+          segment: 'accompte-salaire',
+          title: t('navigation.salaryAdvance'),
+          icon: <MoneyOffCsredSharp />,
+        },
+        {
+          segment: 'pointage-du-mois',
+          title: t('navigation.monthlyClocking'),
+          icon: <MoneyOffCsredSharp />,
+        },
+        {
+          segment: 'droit-de-conge',
+          title: t('navigation.leaveRights'),
+          icon: <MoneyOffCsredSharp />,
+        },
+      ],
+    },
+    {
+      segment: 'dashboard',
+      title: t('navigation.reports'),
+      icon: <Insights />,
+      children: [
+        {
+          segment: 'etat-de-presence',
+          title: t('navigation.attendanceReport'),
+          icon: <PeopleIcon />,
+        },
+        {
+          segment: 'etat-de-retard',
+          title: t('navigation.lateReport'),
+          icon: <AccessTime />,
+        },
+        {
+          segment: 'etat-des-absences',
+          title: t('navigation.absenceReport'),
+          icon: <AccessTime />,
+        },
+        {
+          segment: 'echeance-contrat',
+          title: t('navigation.contractExpiry'),
+          icon: <EventNote />,
+        },
+        {
+          segment: 'cahier-conge',
+          title: t('navigation.leaveBook'),
+          icon: <EventNote />,
+        },
+      ]
+    },
+    {
+      segment: 'dashboard',
+      title: t('navigation.companySettings'),
+      icon: <Settings />,
+      children: [
+        {
+          segment: 'profile',
+          title: t('navigation.profile'),
+          icon: <AccountBalance />,
+        },
+        {
+          segment: 'societe',
+          title: t('navigation.companyParameter'),
+          icon: <CorporateFareIcon />,
+        },
+        {
+          segment: 'calendrier-societe',
+          title: t('navigation.companyCalendar'),
+          icon: <CalendarIcon />,
+        },
+        {
+          segment: 'chat-bot',
+          title: t('navigation.chatBot'),
+          icon: <Chat />,
+        },
+      ]
+    },
+  ];
+};
 
-      },
-      {
-        segment: '',
-        title: 'Conge',
-        icon: <PersonIcon  />,
-        children:[
-          {
-            segment: 'gestion-de-conge',
-            title: 'Demande De Conge',
-            icon: <FamilyRestroomIcon />,
-    
-          },
-          {
-            segment: 'gestion-de-solde',
-            title: 'Solde De Conge',
-            icon: <CalendarTodayIcon />,
-    
-          },
-          {
-            segment: 'titre-de-conge',
-            title: 'Titre De Conge',
-            icon: <CalendarTodayIcon />,
-    
-          },
-          {
-            segment: 'titre-de-conge-general',
-            title: 'Conge Géneral',
-            icon: <CalendarTodayIcon />,
-    
-          },
-        ]
-      },
-      {
-        segment: '',
-        title: 'Absences',
-        icon: <PersonIcon  />,
-        children:[
-          {
-            segment: 'jour-de-compensation',
-            title: 'Jour Compensation',
-            icon: <FamilyRestroomIcon />,
-    
-          },
-          {
-            segment: 'autorisation-de-sortie',
-            title: 'Autorisation Sortie',
-            icon: <WorkOutline />,
-          },
-          {
-            segment: 'autorisation-de-sortie-generale',
-            title: 'Sortie Génerale',
-            icon: <WorkOutline />,
-          },
-          {
-            segment: 'absence-et-sanction',
-            title: 'Absence et Sanction',
-            icon: <Gavel />,
-          },
-        ]
-      }
-
-    ],
-  },
-  {
-    segment: 'dashboard',
-    title: 'Classe Horaire',
-    icon: <Settings />,
-    children: [
-      {
-        segment: 'saisie-classe-horaire',
-        title: 'Classe Horaire',
-        icon: <CorporateFareIcon  />,
-      },
-      {
-        segment: 'saisie-poste-de-travail',
-        title: 'Poste de Travail',
-        icon: <CorporateFareIcon  />,
-      },
-      {
-        segment: 'intitule-des-absences',
-        title: "Natures d'absences",
-        icon: <EventBusyIcon  />,
-      },
-      {
-        segment: 'Repos',
-        title: 'Jours Fériés',
-        icon: <HolidayVillageRounded  />,
-      },
-    ],
-  },
-  {
-    segment: 'dashboard',
-    title: 'Préparation paie',
-    icon: <Money  />,
-    children: [
-      {
-        segment: 'accompte-salaire',
-        title: 'Accompte sur salaire',
-        icon: <MoneyOffCsredSharp />,
-      },
-      {
-        segment: 'pointage-du-mois',
-        title: 'Pointage du mois',
-        icon: <MoneyOffCsredSharp />,
-      },
-      {
-        segment: 'droit-de-conge',
-        title: 'Droit de Congé',
-        icon: <MoneyOffCsredSharp />,
-      },
-    ],
-    
-  },
-  {
-    segment: 'dashboard',
-    title: 'Etats',
-    icon: <Insights  />,
-    children: [
-      {
-        segment: 'etat-de-presence',
-        title: 'Etat de Présence',
-        icon: <PeopleIcon  />,
-      },
-      {
-        segment: 'etat-de-retard',
-        title: 'Etat de Retard',
-        icon: <AccessTime  />,
-      },
-      {
-        segment: 'etat-des-absences',
-        title: 'Etat des Absences',
-        icon: <AccessTime  />,
-      },
-      {
-        segment: 'echeance-contrat',
-        title: 'Echéance de Contrat',
-        icon: <EventNote  />,
-      },
-      {
-        segment: 'cahier-conge',
-        title: 'Cahier de Congé',
-        icon: <EventNote  />,
-      },
-    ]
-  },
-  {
-    segment: 'dashboard',
-    title: 'Paramétre Société',
-    icon: <Settings  />,
-    children: [
-      {
-        segment: 'profile',
-        title: 'Profile',
-        icon: <AccountBalance  />,
-      },
-      {
-        segment: 'societe',
-        title: 'Paramétre Société',
-        icon: <CorporateFareIcon  />,
-      },
-      {
-        segment: 'calendrier-societe',
-        title: 'Calendrier Société',
-        icon: <CalendarIcon  />,
-      },
-      {
-        segment: 'chat-bot',
-        title: 'Chat Bot',
-        icon: <Chat  />,
-      },
-    ]
-  },
-  
-]
-  
-
-
-
-
-
-const queryClient = new QueryClient();
 
 function DemoPageContent({ pathname }: DemoPageContentProps) {
     let content;
@@ -495,9 +479,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
         case '/dashboard/societe':
             content = 
             <>
-            <QueryClientProvider client={queryClient}>
+            {/* <QueryClientProvider client={queryClient}> */}
               <BasicTabs />
-            </QueryClientProvider>
+            {/* </QueryClientProvider> */}
             </>
             break;
         case '/dashboard/allaitement':
@@ -525,7 +509,6 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
             content = <AbsanceSanction />;
             break;
         case '/dashboard/gestion-de-conge':
-          
             content =<DemConge />;
             break;
         case '/dashboard/titre-de-conge':
@@ -558,7 +541,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
       <Box
       sx={{
         py: 4,
-        px: { xs: 2, sm: 3, md: 4 }, // Responsive padding
+        px: { xs: 2, sm: 3, md: 4 },
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -575,7 +558,6 @@ const demoTheme = createTheme({
   palette: {
     mode: 'light',
   },
-
   breakpoints: {
     values: {
       xs: 200,
@@ -592,10 +574,14 @@ export default function DashboardLayoutAccount(props: DemoProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const { userName, soclib } = useAuth();
+    const { i18n } = useTranslation();
+    const NAVIGATION = useNavigationItems(); // Utiliser le hook pour obtenir la navigation traduite
+    
     const headerRef = useRef<HTMLElement | null>(null);
     headerRef.current = document.querySelector(
       "#root > div.MuiBox-root.css-k008qs > header > div > div.MuiBox-root.css-wxgfmz > a > div > h6"
     );
+    
     const [session, setSession] = React.useState<Session | null>(
       userName ? {
         user: {
@@ -605,7 +591,12 @@ export default function DashboardLayoutAccount(props: DemoProps) {
       } : null
     );
 
-    // Update session when userName changes
+    // Mettre à jour la direction du document pour l'arabe
+    React.useEffect(() => {
+      document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = i18n.language;
+    }, [i18n.language]);
+
     React.useEffect(() => {
       if (userName) {
         setSession({
@@ -618,10 +609,10 @@ export default function DashboardLayoutAccount(props: DemoProps) {
         setSession(null);
       }
     }, [userName]);
+    
     const authentication = React.useMemo(() => {
       return {
         signIn: () => {
-          // The session will be updated automatically by the useEffect when userName changes
           navigate('/dashboard');
         },
         signOut: () => {
@@ -632,30 +623,29 @@ export default function DashboardLayoutAccount(props: DemoProps) {
         },
       };
     }, [navigate]);
-    const pathname = location.pathname; // Get the current pathname from useLocation
+    
+    const pathname = location.pathname;
 
     const router = React.useMemo<Router>(() => {
       return {
         pathname,
         searchParams: new URLSearchParams(),
         navigate: (to) => {
-          // Only pass 'replace' and 'state' to react-router's navigate
           if (typeof to === 'number') {
-            // For backward/forward navigation
             (navigate as any)(to);
           } else {
-            navigate(to, {
-              // state: options?.state, // Removed because NavigateOptions does not support 'state'
-            });
+            navigate(to, {});
           }
         },
       };
     }, [pathname, navigate]);
 
     const demoWindow = window !== undefined ? window() : undefined;
-    return (
-      
     
+  const queryClient = new QueryClient();
+
+  return (
+    <QueryClientProvider client={queryClient}>
       <AppProvider
         session={session}
         authentication={authentication}
@@ -665,17 +655,14 @@ export default function DashboardLayoutAccount(props: DemoProps) {
         window={demoWindow}
         branding={{
           title: soclib || 'ABR-POINT',
-          logo: <img src={SocieteImage} alt="Societe"  />,
+          logo: <img src={SocieteImage} alt="Societe" />,
         }}
       >
-      
         <DashboardLayout navigation={NAVIGATION}>
           <DemoPageContent pathname={pathname} />
         </DashboardLayout>
       </AppProvider>
-     
-    );
+    </QueryClientProvider>
+  );
 
-
-    
 }

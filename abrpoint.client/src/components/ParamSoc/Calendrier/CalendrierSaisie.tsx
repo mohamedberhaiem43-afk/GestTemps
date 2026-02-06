@@ -3,6 +3,7 @@ import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import { useState } from "react";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
+import { t } from "i18next";
 
 const joursSemaine = {
   lundi: "Lundi",
@@ -45,7 +46,7 @@ function CalendrierSaisie() {
             <InputComponent type="number" label="Nb.Hre/Mois" value={nbHreMois} setValue={setNbHreMois} />
           </Grid>
           <Grid item xs={1.5}>
-            <SelectInputComponent label="Jour de Repos" value={jourRepos} setValue={setJourRepos} maplist={joursSemaine} />
+            <SelectInputComponent label={t('common.restDay')} value={jourRepos} setValue={setJourRepos} maplist={joursSemaine} />
           </Grid>
         </Grid>
       </Box>

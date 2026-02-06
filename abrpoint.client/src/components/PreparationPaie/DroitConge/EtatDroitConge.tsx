@@ -1,4 +1,5 @@
 import { Button, Grid, Box, Container } from "@mui/material";
+import { useTranslation } from 'react-i18next';
 import DataList from "../../lists/list";
 import { MRT_ColumnDef } from "material-react-table";
 import { DroitConge } from "../../../models/DroitConge";
@@ -14,6 +15,7 @@ function EtatDroitConge() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
   const { data: employeesLibs = [] } = useGetEmployeesLibs();
+  const { t } = useTranslation();
   const [datedebut, setDatedebut] = useState("2023-01-01");
   const [datefin, setDatefin] = useState("2023-01-31");
   const empcods = selectedEmpcods;
@@ -135,7 +137,7 @@ return (
         >
           <Grid item xs={4} maxWidth={200} minWidth={100}>
             <SelectInputComponent
-              label="Employés"
+              label={t('integrationPaie.employees')}
               value={selectedEmpcods ?? []}
               setValue={setSelectedEmpcods}
               maplist={employeesLibs}
@@ -143,14 +145,14 @@ return (
             />
           </Grid>
           <Grid item xs={4}>
-            <InputComponent type="date" label="Date Début" value={datedebut} setValue={setDatedebut} />
+            <InputComponent type="date" label={t('weeklyHoursTable.dateStart')} value={datedebut} setValue={setDatedebut} />
           </Grid>
           <Grid item xs={4}>
-            <InputComponent type="date" label="Date Fin" value={datefin} setValue={setDatefin} />
+            <InputComponent type="date" label={t('weeklyHoursTable.dateEnd')} value={datefin} setValue={setDatefin} />
           </Grid>
           <Grid item xs={2}>
             <Button variant="contained" onClick={handleSearch}>
-              Rechercher
+              {t('common.search')}
             </Button>
           </Grid>
         </Box>

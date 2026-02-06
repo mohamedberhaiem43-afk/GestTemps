@@ -1,6 +1,8 @@
-﻿using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.Text;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -11,277 +13,487 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     public class AIAssistantController:ControllerBase
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IConfiguration _configuration;
-        private readonly IPresenceRepository _presenceRepository;
+        private readonly Kernel _kernel;
 
-        public AIAssistantController(
-        IHttpClientFactory httpClientFactory,
-        IConfiguration configuration,
-        IPresenceRepository presenceRepository)
+        public AIAssistantController(Kernel kernel)
         {
-            _httpClientFactory = httpClientFactory;
-            _configuration = configuration;
-            _presenceRepository = presenceRepository;
+            _kernel = kernel;
         }
         [HttpPost("chat")]
         public async Task<IActionResult> Chat([FromBody] ChatRequest request)
         {
             try
             {
-                var apiKey = _configuration["Gemini:ApiKey"];
-                var client = _httpClientFactory.CreateClient();
-
-                // Enrichir le contexte avec des données réelles
-                var contextData = await GetContextData(request.Query);
-
-                var systemPrompt = BuildSystemPrompt(contextData);
-                var contents = request.Messages
-                .TakeLast(5) // MAX 5 messages
-                .Select(m => new
+                if (string.IsNullOrWhiteSpace(request?.NewMessage))
                 {
-                    role = m.Role,
-                    parts = new[] { new { text = m.Content } }
-                }).ToList();
-
-                contents.Add(new
+                    return BadRequest(new { error = "Le message ne peut pas être vide" });
+                }
+                var executionSettings = new OpenAIPromptExecutionSettings
                 {
-                    role = "user",
-                    parts = new[] { new { text = request.NewMessage } }
-                });
+                    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+                    Temperature = 0.7,
+                    MaxTokens = 2000
+                };
+                var prompt = request.NewMessage.ToLower();
 
-                var requestBody = new
+                // ⭐ Détection de requête PRÉSENCE DÉTAILLÉE
+                if (prompt.Contains("présence") || prompt.Contains("presence") ||
+                    prompt.Contains("etat") || prompt.Contains("état") ||
+                    prompt.Contains("détail") || prompt.Contains("detail") ||
+                    prompt.Contains("journée") || prompt.Contains("journee"))
                 {
-                    contents = contents,
-                    systemInstruction = new
+                    try
                     {
-                        parts = new[] { new { text = systemPrompt } }
-                    },
-                    generationConfig = new
-                    {
-                        temperature = 0.7,
-                        maxOutputTokens = 512
+                        var parameters = ExtractPresenceParameters(request.NewMessage);
 
+                        var presenceArgs = new KernelArguments
+                        {
+                            ["soccod"] = parameters.Soccod,
+                            ["empcods"] = string.Join(",", parameters.Empcods),
+                            ["dateDebut"] = parameters.DateDebut,
+                            ["dateFin"] = parameters.DateFin
+                        };
+
+                        var result = await _kernel.InvokeAsync(
+                            pluginName: "Presence",
+                            functionName: "GetEtatPeriodique",
+                            arguments: presenceArgs
+                        );
+
+                        var presenceData = result.GetValue<IEnumerable<PresenceDto>>()?.ToList();
+
+                        if (presenceData == null || presenceData.Count == 0)
+                        {
+                            return Ok(new
+                            {
+                                response = $"❌ Aucune présence trouvée pour l'employé {string.Join(", ", parameters.Empcods)} du {parameters.DateDebut} au {parameters.DateFin}"
+                            });
+                        }
+
+                        // Grouper par employé
+                        var groupedByEmployee = presenceData.GroupBy(p => p.Empcod).ToList();
+
+                        var summary = groupedByEmployee.Select(group => new
+                        {
+                            //Employé = group.First().Emplib,
+                            Matricule = group.First().Empmat,
+                            CodeEmployé = group.Key,
+                            Période = $"{parameters.DateDebut} au {parameters.DateFin}",
+                            NombreJours = group.Count(),
+                            Statistiques = new
+                            {
+                                JoursPointés = group.Count(p => !string.IsNullOrEmpty(p.Preentmatup)),
+                                JoursRepos = group.Count(p => p.Prerepos == "1"),
+                                JoursAbsence = group.Count(p => !string.IsNullOrEmpty(p.Etat) &&
+                                                                p.Etat != "J.Repos" &&
+                                                                p.Prerepos != "1"),
+                                TotalHeures = group.Sum(p => p.TotalHeure ?? 0),
+                                TotalRetards = group.Sum(p =>
+                                {
+                                    if (string.IsNullOrEmpty(p.Totret)) return 0;
+                                    var parts = p.Totret.Split(':');
+                                    if (parts.Length == 2 &&
+                                        int.TryParse(parts[0], out int hours) &&
+                                        int.TryParse(parts[1], out int mins))
+                                        return hours * 60 + mins;
+                                    return 0;
+                                })
+                            },
+                            Détails = group.Select(p => new
+                            {
+                                Date = p.Predat?.ToString("dd/MM/yyyy"),
+                                Jour = p.Jour,
+                                Entrée1 = p.Preentmatup,
+                                Sortie1 = p.Presortmatup,
+                                Entrée2 = p.Preentamidiup,
+                                Sortie2 = p.Presortamidiup,
+                                TotalHeures = p.Tothre,
+                                Retard = p.Totret,
+                                État = p.Etat,
+                                Observation = p.Preobs,
+                                Repos = p.Prerepos == "1" ? "Oui" : "Non"
+                            }).Take(10).ToList() // Limiter à 10 jours pour éviter surcharge
+                        }).ToList();
+
+                        var formattingPrompt = $@"L'utilisateur demande l'état périodique de présence détaillé.
+
+Données trouvées :
+{JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true })}
+
+Présente ces informations de manière claire et professionnelle en français.
+Fournis un résumé avec :
+- Le nombre total de jours dans la période
+- Les jours pointés vs jours de repos
+- Les absences
+- Le total d'heures travaillées
+- Les retards (en heures et minutes)
+- Un aperçu des 10 premiers jours de détail
+
+Utilise des emojis et un formatage markdown pour rendre la réponse attractive.";
+
+                        var formattingArgs = new KernelArguments
+                        {
+                            ["prompt"] = formattingPrompt
+                        };
+
+                        var finalResponse = await _kernel.InvokeAsync(
+                            pluginName: "Gemini",
+                            functionName: "GenerateResponse",
+                            arguments: formattingArgs
+                        );
+
+                        var responseText = finalResponse.GetValue<string>();
+
+                        if (string.IsNullOrWhiteSpace(responseText) || responseText == "Pas de réponse")
+                        {
+                            // Fallback manuel
+                            var firstGroup = groupedByEmployee.First();
+                            var stats = firstGroup.Select(g => g).ToList();
+                            var totalRetardMinutes = stats.Sum(p =>
+                            {
+                                if (string.IsNullOrEmpty(p.Totret)) return 0;
+                                var parts = p.Totret.Split(':');
+                                if (parts.Length == 2 &&
+                                    int.TryParse(parts[0], out int hours) &&
+                                    int.TryParse(parts[1], out int mins))
+                                    return hours * 60 + mins;
+                                return 0;
+                            });
+
+                            responseText = $@"📊 **État périodique de présence**
+
+👤 ** ({firstGroup.First().Empmat})
+📅 Période : {parameters.DateDebut} au {parameters.DateFin}
+
+📈 **Statistiques :**
+✅ Jours pointés : {stats.Count(p => !string.IsNullOrEmpty(p.Preentmatup))}
+🏖️ Jours de repos : {stats.Count(p => p.Prerepos == "1")}
+❌ Jours d'absence : {stats.Count(p => !string.IsNullOrEmpty(p.Etat) && p.Etat != "J.Repos" && p.Prerepos != "1")}
+⏱️ Total heures : {stats.Sum(p => p.TotalHeure ?? 0):F2}h
+⏰ Total retards : {totalRetardMinutes / 60}h {totalRetardMinutes % 60}min
+
+📋 **Aperçu des 10 premiers jours :**
+{string.Join("\n", stats.Take(10).Select(p => $"• {p.Predat?.ToString("dd/MM")} : {p.Preentmatup} - {p.Presortmatup} | {p.Tothre} | {(p.Prerepos == "1" ? "Repos" : p.Etat ?? "Présent")}"))}";
+                        }
+
+                        return Ok(new
+                        {
+                            response = responseText,
+                            metadata = new
+                            {
+                                recordsFound = presenceData.Count,
+                                employees = groupedByEmployee.Count,
+                                period = $"{parameters.DateDebut} - {parameters.DateFin}"
+                            }
+                        });
                     }
-                };
-
-                var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={apiKey}";
-
-                var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
-                {
-                    Content = new StringContent(
-                        JsonSerializer.Serialize(requestBody),
-                        Encoding.UTF8,
-                        "application/json"
-                    )
-                };
-
-                var response = await client.SendAsync(httpRequest);
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(responseContent);
-
-                if (geminiResponse?.Candidates != null && geminiResponse.Candidates.Count > 0)
-                {
-                    var text = geminiResponse.Candidates[0].Content.Parts[0].Text;
-                    return Ok(new { response = text, role = "model" });
-                }
-                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-                {
-                    return StatusCode(429, new
+                    catch (Exception presenceEx)
                     {
-                        error = "Trop de requêtes vers l’IA. Veuillez réessayer dans quelques secondes."
-                    });
+                        return Ok(new { response = $"❌ Erreur présence : {presenceEx.Message}" });
+                    }
                 }
 
+                // ⭐ Détection de requête pointage (code existant)
+                if (prompt.Contains("pointage") || prompt.Contains("employe") || prompt.Contains("employé"))
+                {
+                    try
+                    {
+                        var parameters = ExtractParametersManually(request.NewMessage);
+                        // ⭐ Appel du plugin Pointage
+                        var pointageArgs = new KernelArguments
+                        {
+                            ["soccod"] = parameters.Soccod,
+                            ["empcods"] = parameters.Empcods,
+                            ["mois"] = parameters.Mois,
+                            ["annee"] = parameters.Annee,
+                            ["semaine"] = parameters.Semaine ?? "0"
+                        };
 
-                return BadRequest(new { error = "No response from Gemini" });
+                        var result = await _kernel.InvokeAsync(
+                            pluginName: "Pointage",
+                            functionName: "GetPointageMois",
+                            arguments: pointageArgs
+                        );
+
+                        var pointageData = result.GetValue<List<PointageMois>>();
+
+
+                        if (pointageData == null || pointageData.Count == 0)
+                        {
+                            return Ok(new
+                            {
+                                response = $"❌ Aucun pointage trouvé pour l'employé {string.Join(", ", parameters.Empcods)} en {parameters.Mois}/{parameters.Annee}"
+                            });
+                        }
+
+                        // ⭐ Extraire uniquement les données essentielles pour Gemini
+                        var summary = pointageData.Select(p => new
+                        {
+                            Employé = p.EmpLib,
+                            Matricule = p.EmpMat,
+                            Régime = p.EmpReg,
+                            Résumé = p.heuresSupplementairesResultats?.FirstOrDefault() != null ? new
+                            {
+                                HeuresNormales = p.heuresSupplementairesResultats[0].HeuresNormales,
+                                HeuresSup = p.heuresSupplementairesResultats[0].HreSupSemaine,
+                                Retard = p.heuresSupplementairesResultats[0].Retard,
+                                TotalHeures = p.heuresSupplementairesResultats[0].Tothre,
+                                JoursPointés = p.heuresSupplementairesResultats[0].NbJourPointer,
+                                JoursRepos = p.heuresSupplementairesResultats[0].JourRepos
+                            } : null
+                        }).ToList();
+
+
+                        // ⭐ Créer un prompt concis pour Gemini
+                        var formattingPrompt = $@"L'utilisateur demande le pointage de l'employé pour {parameters.Mois}/{parameters.Annee}.
+
+Données trouvées :
+{JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true })}
+
+Présente ces informations de manière claire et professionnelle en français. 
+Mets en évidence : les heures normales, les heures supplémentaires, les retards, et le total d'heures.";
+
+                        var formattingArgs = new KernelArguments
+                        {
+                            ["prompt"] = formattingPrompt
+                        };
+
+                        var finalResponse = await _kernel.InvokeAsync(
+                            pluginName: "Gemini",
+                            functionName: "GenerateResponse",
+                            arguments: formattingArgs
+                        );
+
+                        var responseText = finalResponse.GetValue<string>();
+
+                        // ⭐ Vérifier si Gemini a retourné quelque chose
+                        if (string.IsNullOrWhiteSpace(responseText) || responseText == "Pas de réponse")
+                        {
+                            // Fallback : créer une réponse manuelle
+                            var firstRecord = pointageData.First();
+                            var stats = firstRecord.heuresSupplementairesResultats?.FirstOrDefault();
+
+                            responseText = $@"📊 **Pointage de {firstRecord.EmpLib} ({firstRecord.EmpMat})**
+Période : {parameters.Mois}/{parameters.Annee}
+
+✅ Heures normales : {stats?.HeuresNormales ?? 0}h
+⏱️ Heures supplémentaires : {stats?.HreSupSemaine ?? 0}h
+⏰ Retards : {stats?.Retard ?? 0} minutes
+📈 Total heures : {stats?.Tothre ?? 0}h
+📅 Jours pointés : {stats?.NbJourPointer ?? 0}
+🏖️ Jours de repos : {stats?.JourRepos ?? 0}";
+                        }
+
+                        return Ok(new
+                        {
+                            response = responseText,
+                            metadata = new
+                            {
+                                recordsFound = pointageData.Count,
+                                employee = string.Join(", ", parameters.Empcods),
+                                period = $"{parameters.Mois}/{parameters.Annee}"
+                            }
+                        });
+                    }
+                    catch (Exception pointageEx)
+                    {
+                        return Ok(new { response = $"❌ Erreur : {pointageEx.Message}" });
+                    }
+                }
+
+                var normalArgs = new KernelArguments
+                {
+                    ["prompt"] = request.NewMessage
+                };
+
+                var normalResponse = await _kernel.InvokeAsync(
+                    pluginName: "Gemini",
+                    functionName: "GenerateResponse",
+                    arguments: normalArgs
+                );
+
+                var normalText = normalResponse.GetValue<string>();
+
+                if (string.IsNullOrWhiteSpace(normalText) || normalText == "Pas de réponse")
+                {
+                    normalText = "Désolé, je n'ai pas pu générer de réponse. Pouvez-vous reformuler votre question ?";
+                }
+
+                return Ok(new { response = normalText });
+
+
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-
-        private async Task<DatabaseContext> GetContextData(string query)
-        {
-            var context = new DatabaseContext();
-
-            // Détecter le type de question
-            var lowerQuery = query.ToLower();
-
-            // Si la question concerne les présences
-            if (lowerQuery.Contains("présence") || lowerQuery.Contains("presence") ||
-                lowerQuery.Contains("retard") || lowerQuery.Contains("absence"))
-            {
-                // Récupérer les statistiques récentes
-                var today = DateTime.Today;
-                var startDate = today.AddDays(-7); // 7 derniers jours
-
-                context.PresenceStats = await _presenceRepository.GetStatistics(startDate, today);
-                context.RecentAbsences = await _presenceRepository.GetRecentAbsences(startDate, today, 10);
-            }
-
-            // Si la question concerne les repos
-            if (lowerQuery.Contains("repos") || lowerQuery.Contains("congé") || lowerQuery.Contains("conge"))
-            {
-                var startDate = DateTime.Today;
-                var endDate = startDate.AddDays(30); // 30 prochains jours
-
-                //context.UpcomingRepos = await _reposRepository.GetUpcomingRepos(startDate, endDate, 10);
-            }
-
-            // Si la question demande des statistiques globales
-            if (lowerQuery.Contains("statistique") || lowerQuery.Contains("combien") ||
-                lowerQuery.Contains("total") || lowerQuery.Contains("nombre"))
-            {
-                context.GlobalStats = await _presenceRepository.GetGlobalStatistics();
-            }
-
-            return context;
-        }
-
-        private string BuildSystemPrompt(DatabaseContext context)
-        {
-            var prompt = @"Tu es un assistant virtuel expert pour une application de gestion de présence et pointage des employés.
-
-# RÔLE
-Tu aides les utilisateurs à utiliser l'application, comprendre les données, et résoudre les problèmes.
-
-# CONTEXTE DE L'APPLICATION
-
-## Composants Principaux
-1. **EmpPresence** : Affiche l'état de présence des employés
-2. **Repos** : Gestion des jours de repos
-3. **Pointeuse** : Enregistrement des entrées/sorties
-4. **Saisie** : Saisie manuelle des pointages
-
-## Navigation
-Tu peux diriger les utilisateurs vers ces pages:
-- EmpPresence [NAVIGATE:emppresence]
-- Repos [NAVIGATE:repos]
-- Pointeuse [NAVIGATE:pointeuse]
-- Saisie [NAVIGATE:saisie]
-- Dashboard [NAVIGATE:dashboard]
-
-";
-
-            // Ajouter les données réelles au contexte
-            if (context.PresenceStats != null)
-            {
-                prompt += $@"
-## DONNÉES DE PRÉSENCE RÉCENTES (7 derniers jours)
-- Total employés: {context.PresenceStats.TotalEmployees}
-- Présents aujourd'hui: {context.PresenceStats.PresentToday}
-- Absents aujourd'hui: {context.PresenceStats.AbsentToday}
-- Total retards: {context.PresenceStats.TotalRetards}
-- Taux de présence: {context.PresenceStats.AttendanceRate:F2}%
-";
-            }
-
-            if (context.RecentAbsences != null && context.RecentAbsences.Any())
-            {
-                prompt += "\n## ABSENCES RÉCENTES\n";
-                foreach (var absence in context.RecentAbsences.Take(5))
+                return Ok(new
                 {
-                    prompt += $"- {absence.EmployeeName} ({absence.Date:dd/MM/yyyy}): {absence.Motif}\n";
-                }
-            }
-
-            if (context.UpcomingRepos != null && context.UpcomingRepos.Any())
-            {
-                prompt += "\n## REPOS À VENIR (30 prochains jours)\n";
-                foreach (var repos in context.UpcomingRepos.Take(5))
-                {
-                    prompt += $"- {repos.EmployeeName} ({repos.Date:dd/MM/yyyy}): {repos.Type}\n";
-                }
-            }
-
-            if (context.GlobalStats != null)
-            {
-                prompt += $@"
-## STATISTIQUES GLOBALES
-- Total employés dans le système: {context.GlobalStats.TotalEmployees}
-- Moyenne présence mensuelle: {context.GlobalStats.AverageMonthlyAttendance:F2}%
-- Total heures travaillées (ce mois): {context.GlobalStats.TotalHoursThisMonth}
-";
-            }
-
-            prompt += @"
-
-# INSTRUCTIONS
-1. Utilise les données réelles ci-dessus pour répondre aux questions
-2. Sois précis avec les chiffres
-3. Si les données ne sont pas disponibles, dis-le clairement
-4. Guide l'utilisateur vers les bonnes pages avec [NAVIGATE:page]
-5. Réponds de manière concise en français
-
-Maintenant, réponds à la question de l'utilisateur avec les données réelles.";
-
-            return prompt;
-        }
-
-        private async Task<IActionResult> HandleCongeReportRequest(ChatRequest request)
-        {
-            // Extrayez le code congé (concod) du message
-            var concod = ExtractConcocFromMessage(request.NewMessage);
-
-            if (string.IsNullOrEmpty(concod))
-            {
-                return BadRequest(new
-                {
-                    response = "Je ne peux pas identifier le code congé dans votre demande. Veuillez spécifier le code congé (ex: télécharger le rapport pour le congé CONG-2024-001).",
-                    requiresClarification = true
+                    response = $"❌ Une erreur s'est produite : {ex.Message}"
                 });
             }
-
-            // Vérifiez si le congé existe (vous devrez injecter le repository des congés)
-            // var congeExists = await _congeRepository.Exists(concod);
-            // if (!congeExists) { ... }
-
-            return Ok(new
-            {
-                response = $"Je vais générer le rapport pour le congé {concod}. Cliquez sur le bouton ci-dessous pour télécharger le PDF.",
-                actions = new[] {
-            new {
-                type = "download",
-                label = "📥 Télécharger le rapport",
-                url = $"/api/conge/download-conge-report/{concod}",
-                method = "GET"
-            }
-        },
-                concod = concod
-            });
         }
 
-        private string ExtractConcocFromMessage(string message)
+        private PresenceParameters ExtractPresenceParameters(string message)
         {
-            // Logique pour extraire le code congé
-            // Exemple: "télécharger rapport congé CONG-2024-001" -> "CONG-2024-001"
-
-            // Regex pour trouver les codes congé
-            var regex = new Regex(@"(CONG|C|RG|REP)[-_]?\d{4}[-_]?\d{3,}");
-            var match = regex.Match(message.ToUpper());
-
-            if (match.Success)
-                return match.Value;
-
-            // Chercher des numéros après certains mots-clés
-            var keywords = new[] { "congé", "conge", "rapport", "numéro", "code" };
-            var words = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            for (int i = 0; i < words.Length; i++)
+            var moisFrancais = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
-                if (keywords.Any(k => words[i].ToLower().Contains(k)) && i + 1 < words.Length)
+                { "janvier", 1 },
+                { "février", 2 }, { "fevrier", 2 },
+                { "mars", 3 },
+                { "avril", 4 },
+                { "mai", 5 },
+                { "juin", 6 },
+                { "juillet", 7 },
+                { "août", 8 }, { "aout", 8 },
+                { "septembre", 9 },
+                { "octobre", 10 },
+                { "novembre", 11 },
+                { "décembre", 12 }, { "decembre", 12 }
+            };
+
+            var parameters = new PresenceParameters
+            {
+                Soccod = "01",
+                Empcods = new List<string>(),
+                DateDebut = DateTime.Now.ToString("yyyy-MM-dd"),
+                DateFin = DateTime.Now.ToString("yyyy-MM-dd")
+            };
+            var dateUniqueMatch = Regex.Match(
+                message,
+                @"(\d{1,2})\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+(\d{4})",
+                RegexOptions.IgnoreCase
+            );
+            if (dateUniqueMatch.Success)
+            {
+                int jour = int.Parse(dateUniqueMatch.Groups[1].Value);
+                string moisTexte = dateUniqueMatch.Groups[2].Value;
+                int annee = int.Parse(dateUniqueMatch.Groups[3].Value);
+
+                if (moisFrancais.TryGetValue(moisTexte, out int mois))
                 {
-                    // Le mot suivant pourrait être le code
-                    var possibleCode = words[i + 1].Trim('.', ',', '!', '?');
-                    if (!string.IsNullOrWhiteSpace(possibleCode))
-                        return possibleCode;
+                    var date = new DateTime(annee, mois, jour);
+                    parameters.DateDebut = date.ToString("yyyy-MM-dd");
+                    parameters.DateFin = date.ToString("yyyy-MM-dd");
                 }
             }
 
-            return null;
+            // Extraction du code employé
+            var employeMatch = Regex.Match(
+                message,
+                @"(?:employe[é]?\s*[:\s]*)?(\d{5,6})",
+                RegexOptions.IgnoreCase
+            );
+
+            if (employeMatch.Success)
+            {
+                parameters.Empcods.Add(employeMatch.Groups[1].Value);
+            }
+
+            // Extraction des dates (format flexible)
+            var dateRangeMatch = Regex.Match(
+                message,
+                @"(?:du|depuis)\s*(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s*(?:au|jusqu'au|à)\s*(\d{1,2})[/-](\d{1,2})[/-](\d{4})",
+                RegexOptions.IgnoreCase
+            );
+
+            if (dateRangeMatch.Success)
+            {
+                try
+                {
+                    var debut = new DateTime(
+                        int.Parse(dateRangeMatch.Groups[3].Value),
+                        int.Parse(dateRangeMatch.Groups[2].Value),
+                        int.Parse(dateRangeMatch.Groups[1].Value)
+                    );
+                    var fin = new DateTime(
+                        int.Parse(dateRangeMatch.Groups[6].Value),
+                        int.Parse(dateRangeMatch.Groups[5].Value),
+                        int.Parse(dateRangeMatch.Groups[4].Value)
+                    );
+                    parameters.DateDebut = debut.ToString("yyyy-MM-dd");
+                    parameters.DateFin = fin.ToString("yyyy-MM-dd");
+                }
+                catch { }
+            }
+            else
+            {
+                // Détection mois/année
+                var moisMatch = Regex.Match(message, @"(?:mois|en)\s*(\d{1,2})\s*/?\s*(\d{4})?", RegexOptions.IgnoreCase);
+                if (moisMatch.Success)
+                {
+                    int mois = int.Parse(moisMatch.Groups[1].Value);
+                    int annee = moisMatch.Groups[2].Success ? int.Parse(moisMatch.Groups[2].Value) : DateTime.Now.Year;
+
+                    parameters.DateDebut = new DateTime(annee, mois, 1).ToString("yyyy-MM-dd");
+                    parameters.DateFin = new DateTime(annee, mois, DateTime.DaysInMonth(annee, mois)).ToString("yyyy-MM-dd");
+                }
+            }
+
+            if (parameters.Empcods.Count == 0)
+            {
+                parameters.Empcods.Add("ALL");
+            }
+            return parameters;
         }
+        private PointageParameters ExtractParametersManually(string message)
+        {
+            var parameters = new PointageParameters
+            {
+                Soccod = "01",
+                Empcods = new List<string>(),
+                Mois = DateTime.Now.ToString("MM"),
+                Annee = DateTime.Now.ToString("yyyy"),
+                Semaine = "0"
+            };
+
+            // Extraction du code employé (plus permissive)
+            var employeMatch = System.Text.RegularExpressions.Regex.Match(
+                message,
+                @"(?:employe[é]?\s*[:\s]*)?(\d{5,6})",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+
+            if (employeMatch.Success)
+            {
+                parameters.Empcods.Add(employeMatch.Groups[1].Value);
+            }
+
+            // Extraction du mois
+            var moisMatch = System.Text.RegularExpressions.Regex.Match(
+                message,
+                @"mois\s*[:\s]*(\d{1,2})|(?:^|\s)(\d{1,2})(?=/|\s+20)"
+            );
+
+            if (moisMatch.Success)
+            {
+                var moisValue = moisMatch.Groups[1].Success ? moisMatch.Groups[1].Value : moisMatch.Groups[2].Value;
+                parameters.Mois = moisValue.PadLeft(2, '0');
+            }
+
+            // Extraction de l'année
+            var anneeMatch = System.Text.RegularExpressions.Regex.Match(message, @"\b(20\d{2})\b");
+            if (anneeMatch.Success)
+            {
+                parameters.Annee = anneeMatch.Groups[1].Value;
+            }
+
+            if (parameters.Empcods.Count == 0)
+            {
+                parameters.Empcods.Add("ALL");
+            }
+
+            Console.WriteLine($"[DEBUG] Extracted: Emp={string.Join(",", parameters.Empcods)}, Month={parameters.Mois}, Year={parameters.Annee}");
+
+            return parameters;
+        }
+
+
+    }
+    public class PresenceParameters
+    {
+        public string Soccod { get; set; } = "01";
+        public List<string> Empcods { get; set; } = new List<string>();
+        public string DateDebut { get; set; } = "";
+        public string DateFin { get; set; } = "";
 
     }
 
@@ -292,21 +504,19 @@ Maintenant, réponds à la question de l'utilisateur avec les données réelles.
         public string NewMessage { get; set; } = string.Empty;
         public string Query { get; set; } = string.Empty;
     }
-
+    public class PointageParameters
+    {
+        public string Soccod { get; set; } = "01";
+        public List<string> Empcods { get; set; } = new List<string>();
+        public string Mois { get; set; } = "";
+        public string Annee { get; set; } = "";
+        public string? Semaine { get; set; } = "0";
+    }
     public class ChatMessage
     {
         public string Role { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
     }
-
-    public class DatabaseContext
-    {
-        public PresenceStatistics? PresenceStats { get; set; }
-        public List<AbsenceInfo>? RecentAbsences { get; set; }
-        public List<ReposInfo>? UpcomingRepos { get; set; }
-        public GlobalStatistics? GlobalStats { get; set; }
-    }
-
     public class PresenceStatistics
     {
         public int TotalEmployees { get; set; }
@@ -323,42 +533,11 @@ Maintenant, réponds à la question de l'utilisateur avec les données réelles.
         public string Motif { get; set; } = string.Empty;
     }
 
-    public class ReposInfo
-    {
-        public string EmployeeName { get; set; } = string.Empty;
-        public DateTime Date { get; set; }
-        public string Type { get; set; } = string.Empty;
-    }
-
     public class GlobalStatistics
     {
         public int TotalEmployees { get; set; }
         public decimal AverageMonthlyAttendance { get; set; }
         public decimal TotalHoursThisMonth { get; set; }
-    }
-
-    public class GeminiResponse
-    {
-        [JsonPropertyName("candidates")]
-        public List<Candidate> Candidates { get; set; } = new();
-    }
-
-    public class Candidate
-    {
-        [JsonPropertyName("content")]
-        public Content Content { get; set; } = new();
-    }
-
-    public class Content
-    {
-        [JsonPropertyName("parts")]
-        public List<Part> Parts { get; set; } = new();
-    }
-
-    public class Part
-    {
-        [JsonPropertyName("text")]
-        public string Text { get; set; } = string.Empty;
     }
 }
 

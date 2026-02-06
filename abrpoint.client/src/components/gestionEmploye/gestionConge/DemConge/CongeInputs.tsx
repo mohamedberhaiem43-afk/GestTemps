@@ -26,6 +26,7 @@ import { Conge } from '../../../../models/Conge';
 import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
 import { useAuth } from '../../../helper/AuthProvider';
 import generateNumeroOrdre from '../../../helper/GenerateNumOrdre';
+import { useTranslation } from 'react-i18next';
 
 export default function CongeForm() {
   const { selectedConge } = useCongeContext();
@@ -139,6 +140,7 @@ export default function CongeForm() {
 
   };
 
+  const { t } = useTranslation();
   const resetForm = () => {
     setEmploye('');
     setAbscod('');
@@ -174,64 +176,64 @@ export default function CongeForm() {
       <Grid container spacing={2}>
         {/* Employe Selection */}
         <Grid item xs={1.5}>
-          <SelectInputComponent label='Employé' value={empcod} setValue={setEmploye} maplist={employeOptions} />
+          <SelectInputComponent label={t('common.employee')} value={empcod} setValue={setEmploye} maplist={employeOptions} />
         </Grid>
 
         {/* N° Ordre */}
         <Grid item xs={1} sm={1}>
-          <InputComponent readOnly={!writable} type='text' label='N° Ordre' value={concod} setValue={setOrdre} />
+          <InputComponent readOnly={!writable} type='text' label={t('common.orderNumber')} value={concod} setValue={setOrdre} />
         </Grid>
 
         {/* Date (as TextField) */}
         <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label='Date' value={condat} setValue={setDate} />
+          <InputComponent type='date' label={t('common.date')} value={condat} setValue={setDate} />
         </Grid>
 
         {/* Réf */}
         <Grid item xs={1}>
-          <InputComponent type='text' label='Réf' value={conref} setValue={setReference} />
+          <InputComponent type='text' label={t('common.ref')} value={conref} setValue={setReference} />
         </Grid>
 
         {/* Date Départ (as TextField) */}
         <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label='Date Départ' value={condep} setValue={setDateDepart} />
+          <InputComponent type='date' label={t('common.dateStart')} value={condep} setValue={setDateDepart} />
         </Grid>
 
         {/* Checkbox Après-Midi (Date Départ) */}
         <Grid item xs={1.3} sm={1.5} mt={2}>
-          <CheckboxComponent label='Après-Midi' value={conamdep} setValue={setApresMidiDepart} />
+          <CheckboxComponent label={t('common.afternoon')} value={conamdep} setValue={setApresMidiDepart} />
         </Grid>
 
         {/* Date Reprise (as TextField) */}
         <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label='Date Retour' value={conret} setValue={setDateReprise} />
+          <InputComponent type='date' label={t('common.dateEnd')} value={conret} setValue={setDateReprise} />
         </Grid>
 
         {/* Checkbox Après-Midi (Date Reprise) */}
         <Grid item xs={1.5} sm={1.3} mt={2}>
-          <CheckboxComponent label='Après-Midi' value={conamret} setValue={setApresMidiReprise} />
+          <CheckboxComponent label={t('common.afternoon')} value={conamret} setValue={setApresMidiReprise} />
         </Grid>
 
         <Grid  item xs={1.5} mt={0.5}>
-          <SelectInputComponent label='Imputation' value={abscod} setValue={setAbscod} maplist={absences} />
+          <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
         </Grid>
 
         {/* Checkbox Imputation Adresse Durant le Congé */}
         <Grid item xs={2}>
-          <InputComponent type='text' label='Adresse de congé' value={conadr} setValue={setImputationAdresse} />
+          <InputComponent type='text' label={t('common.address')} value={conadr} setValue={setImputationAdresse} />
         </Grid>
 
         {/* Téléphones */}
         <Grid item xs={1.5}>
-        <InputComponent type='tel' label='Téléphone' value={contel} setValue={setTelephones} />
+        <InputComponent type='tel' label={t('common.phone')} value={contel} setValue={setTelephones} />
         </Grid>
 
         {/* Radio Buttons for Time Period */}
         <Grid marginTop={'20px'} item xs={4.3}>
         <RadioGroupComponent value={conjour} setValue={setTimePeriod}>
-            <FormControlLabelComponent radioValue="J" label="Toute la Journée" />
-            <FormControlLabelComponent radioValue="M" label="Les Matinées" />
-            <FormControlLabelComponent radioValue="A" label="Les Après-Midi" />
+            <FormControlLabelComponent radioValue="J" label={t('common.wholeDay')} />
+            <FormControlLabelComponent radioValue="M" label={t('common.morning')} />
+            <FormControlLabelComponent radioValue="A" label={t('common.afternoon')} />
         </RadioGroupComponent>
         </Grid>
 

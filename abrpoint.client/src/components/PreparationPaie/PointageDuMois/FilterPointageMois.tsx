@@ -201,7 +201,7 @@ function FilterPointageMois() {
                         setValue={setAnnee}
                     />
                 </Grid>
-                <Grid item xs={1}>
+                <Grid item xs={1.5}>
                     <InputComponent
                         type='date'
                         label='Date Début'
@@ -209,7 +209,7 @@ function FilterPointageMois() {
                         setValue={setStartDate}
                     />
                 </Grid>
-                <Grid item xs={1}>
+                <Grid item xs={1.5}>
                     <InputComponent
                         type='date'
                         label='Date Fin'

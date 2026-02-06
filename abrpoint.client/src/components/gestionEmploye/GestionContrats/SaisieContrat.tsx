@@ -11,6 +11,7 @@ import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import getDatePart from '../../helper/TimeConverter/ExtractDateOnly';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
 import formatDate from '../../helper/formatDate';
+import { useTranslation } from 'react-i18next';
 import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 import getTodayDate from '../../helper/TimeConverter/TodayDate';
 
@@ -28,6 +29,7 @@ const SaisieContrat = ({ editingContract, setEditingContract }: SaisieContratPro
 };
 
   const token = localStorage.getItem("authToken");
+  const { t } = useTranslation();
   const { soccod } = useAuth();
   const sitcod = sessionStorage.getItem("sitcod");
   const headers = { Authorization: `Bearer ${token}` };
@@ -188,32 +190,32 @@ const saveContrat = () => {
               <Grid container spacing={3}>
                 {/* Employee Selection */}
                 <Grid item xs={2} sm={6} md={2}>
-                  <SelectInputComponent label='Employé' value={selectedEmployee} setValue={setSelectedEmployee} maplist={employees} />
+                  <SelectInputComponent label={t('common.employee')} value={selectedEmployee} setValue={setSelectedEmployee} maplist={employees} />
                 </Grid>
 
                 {/* Num Ordre */}
                 <Grid item xs={1.5} sm={1.5}>
-                  <InputComponent type='number' label='N° Contrat' value={numOrdre} setValue={setNumOrdre} />
+                  <InputComponent type='number' label={t('contract.number')} value={numOrdre} setValue={setNumOrdre} />
                 </Grid>
 
                 {/* Date Debut */}
                 <Grid item xs={1.5} sm={1.8}>
-                  <InputComponent type='date' label='Date Début' value={dateDebut} setValue={setDateDebut} />
+                  <InputComponent type='date' label={t('common.dateStart')} value={dateDebut} setValue={setDateDebut} />
                 </Grid>
 
                 {/* Jours */}
                 <Grid item xs={1} sm={1.3}>
-                  <InputComponent type='number' label='Jours' value={jours} setValue={setJours} />
+                  <InputComponent type='number' label={t('common.days')} value={jours} setValue={setJours} />
                 </Grid>
 
                 {/* Date Fin */}
                 <Grid item xs={1.5} sm={1.8}>
-                  <InputComponent type='date' label='Date Fin' value={dateFin} setValue={setDateFin} />
+                  <InputComponent type='date' label={t('common.dateEnd')} value={dateFin} setValue={setDateFin} />
                 </Grid>
 
                 {/* Mois */}
                 <Grid item xs={1} sm={0.7}>
-                  <InputComponent type='number' label='Mois' value={mois} setValue={setMois} />
+                  <InputComponent type='number' label={t('filter.month')} value={mois} setValue={setMois} />
                 </Grid>
               </Grid>
             {/* </Item> */}
@@ -222,19 +224,19 @@ const saveContrat = () => {
           <Grid item xs={12} display={'flex'} sx={{gap:'50px',flexWrap:'wrap'}}>
               {/* Date Contrat */}
               <Grid item xs={1.5} sm={1.5}>
-                <InputComponent type='date' label='Date Contrat' value={dateContrat} setValue={setDateContrat} />
+                <InputComponent type='date' label={t('contract.date')} value={dateContrat} setValue={setDateContrat} />
               </Grid>
 
               {/* Type Contrat */}
               <Grid item xs={1.5} sm={1.8}>
-                <SelectInputComponent label='Type Contrat' value={typeContrat} setValue={setTypeContrat} maplist={contratTypes} />
+                <SelectInputComponent label={t('contract.type')} value={typeContrat} setValue={setTypeContrat} maplist={contratTypes} />
               </Grid>
 
               {/* Observations */}
               <Grid item xs={4}>
                 <TextField
                   size="small"
-                  label="Observations"
+                  label={t('common.observations')}
                   fullWidth
                   multiline
                   rows={4}
@@ -251,7 +253,7 @@ const saveContrat = () => {
               startIcon={<SaveIcon />}
               onClick={saveContrat}
             >
-              {editingContract ? 'Modifier' : 'Enregistrer'}
+              {editingContract ? t('common.edit') : t('common.save')}
             </Button>
             {editingContract && (
               <Button

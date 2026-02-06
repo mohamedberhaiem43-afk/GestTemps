@@ -3,9 +3,7 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -16,17 +14,14 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IPointeuseRepository _pointeuseRepository;
         private readonly IEmployeRepository _employeRepository;
-        private readonly IDmpointService _dmpointService;
         private readonly IPresenceRepository _presenceRepository;
         private readonly IParametreRepository _parametreRepository;
         private readonly IPointeuseHttpService _httpService;
         public PointeuseController(IPointeuseRepository pointeuseRepository, IEmployeRepository employeRepository,
-            IDmpointService dmpointService, IPresenceRepository presenceRepository,IPointeuseHttpService httpService,
-            IParametreRepository parametreRepository)
+            IPresenceRepository presenceRepository,IPointeuseHttpService httpService,IParametreRepository parametreRepository)
         {
             _pointeuseRepository = pointeuseRepository;
             _employeRepository = employeRepository;
-            _dmpointService = dmpointService;
             _parametreRepository = parametreRepository;
             _presenceRepository = presenceRepository;
             _httpService = httpService;
@@ -56,7 +51,6 @@ namespace ABRPOINT.Server.Controllers
             {
                 results.Add($"Error on {ip}: {ex.Message}");
             }
-
             return Ok(results);
         }
 
@@ -121,15 +115,28 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                IEnumerable<Pointeuse> pointeuses =await _pointeuseRepository.GetAllAsync(soccod);
+                IEnumerable<Pointeuse> pointeuses = await _pointeuseRepository.GetAllAsync(soccod);
                 return Ok(pointeuses);
             }
             catch (Exception)
             {
                 return StatusCode(500);
             }
-            
         }
+        [HttpGet("lecture-pointeuse/{soccod}")]
+        public async Task<ActionResult<IEnumerable<PointeuseDto>>> GetAllPointeuse(string soccod)
+        {
+            try
+            {
+                IEnumerable<PointeuseDto> pointeuses = await _pointeuseRepository.GetAllAsyncWithLatestRead(soccod);
+                return Ok(pointeuses);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+        }
+
         [HttpGet("get-ips/{soccod}")]
         public async Task<ActionResult<IEnumerable<string>>> GetAllIps(string soccod)
         {
@@ -168,7 +175,7 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 Pointeuse dbpointeuse = await _pointeuseRepository.GetById(pointeuse.Poicod,pointeuse.Soccod);
-                if (pointeuse != null)
+                if (dbpointeuse != null)
                     await Update(pointeuse.Poicod, pointeuse.Soccod, pointeuse);
                 else
                     await _pointeuseRepository.AddAsync(pointeuse);

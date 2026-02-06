@@ -1,4 +1,3 @@
-import './ListConge.css'
 import { QueryClient, QueryClientProvider } from 'react-query';
 import CongeList from './ListConge';
 import CongeForm from './CongeInputs';
@@ -12,7 +11,7 @@ export default function  DemConge (){
 
   return (
     <QueryClientProvider client={queryClient}>
-        <Box sx={{ flexGrow: 1 }} width={'95vw'} height={'95vh'}>
+        <Box sx={{ flexGrow: 1 }} width={'95vw'} height={'95vh'} mt={-10}>
           <CongeProvider>
             <Grid item xs={12} >
                 <CongeForm />

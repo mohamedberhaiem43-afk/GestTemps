@@ -24,6 +24,7 @@ import { useCalendrierContext } from "../../helper/CalendrierContext";
 import useGetCalendrier from "../../../hooks/calendrierHooks/useGetCalendriers";
 import useCloneCalendrier from "../../../hooks/calendrierHooks/useCloneCalendrier";
 import { ContentCopy } from "@mui/icons-material";
+import { t } from "i18next";
 
 const WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const daysRecord = {
@@ -153,13 +154,13 @@ const handleClone = () => {
 
       <Box sx={{ display: "flex", justifyContent: "center", gap: 5, mt: 2 }}>
         <Grid item xs={1}>
-          <InputComponent type="number" label="Année" value={selectedCalendrier} setValue={setSelectedCalendrier}  />
+          <InputComponent type="number" label={t('common.year')} value={selectedCalendrier} setValue={setSelectedCalendrier}  />
         </Grid>
         <Grid item xs={1}>
-          <InputComponent type="number" label="Tous les jours" value={allDay} setValue={setAllDay}  />
+          <InputComponent type="number" label={t('common.everyDay')} value={allDay} setValue={setAllDay}  />
         </Grid>
         <Grid item xs={1}>
-          <InputComponent type="number" label="Samedi" value={samedi} setValue={setSamedi}  />
+          <InputComponent type="number" label={t('common.saturday')} value={samedi} setValue={setSamedi}  />
         </Grid>
         <Grid item xs={1.5}>
           <SelectInputComponent label="Jour de Repos" value={jourRepos} setValue={setJourRepos} maplist={daysRecord} />
@@ -170,7 +171,7 @@ const handleClone = () => {
         <Grid item xs={1.5}>
             <SelectInputComponent label="Calendrier" value={calendrier} setValue={setCalendrier} maplist={calends} /> 
         </Grid>
-        <IconButton onClick={handleSave} color="primary" aria-label="save" type="submit">
+        <IconButton onClick={handleSave} color="primary" aria-label={t('common.save')} type="submit">
               <SaveIcon />
         </IconButton>
         <IconButton

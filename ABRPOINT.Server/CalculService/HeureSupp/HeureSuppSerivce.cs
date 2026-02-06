@@ -9,20 +9,29 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
     {
         private readonly ILcategorieRepository  _categorieRepository;
         private readonly IParametreRepository  _parametreRepository;
-        public HeureSuppSerivce(ILcategorieRepository categorieRepository, IParametreRepository parametreRepository)
+        private readonly IPosteRepository  _posteRepository;
+        public HeureSuppSerivce(ILcategorieRepository categorieRepository, IParametreRepository parametreRepository, IPosteRepository posteRepository)
         {
             _categorieRepository = categorieRepository;
             _parametreRepository = parametreRepository;
+            _posteRepository = posteRepository;
         }
         public async Task<double> CalculateHeureSuppOptimise(PresenceDto presence, Poste poste)
         {
             if (presence == null) throw new ArgumentNullException(nameof(presence));
-            if (poste == null) throw new ArgumentNullException(nameof(poste));
+            if (poste == null)
+            {
+                string? codpost;
+                if(!string.IsNullOrEmpty(presence.Codposte))
+                    codpost = presence.Codposte;
+                else
+                    codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+            }
             try
             {
                 string? cathsup = await _categorieRepository.GetCathsup(presence.Soccod, presence.Empcod);
 
-                // Si la catégorie de l'employé est "Hors Catégorie", pas d'heures supp
                 if (cathsup == "0")
                     return 0;
 
@@ -31,78 +40,137 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) =
                     GenericMethodes.GetStartsWorkDay(presence.Dmdate, poste);
 
-                if (string.IsNullOrEmpty(morningStartTime) || string.IsNullOrEmpty(presence.Preentmatup))
+                if (string.IsNullOrEmpty(morningStartTime))
                     return 0;
 
-                // Parsing safe
                 TimeSpan morningStart = ParseOrZero(morningStartTime);
-                TimeSpan actualArrival = ParseOrZero(presence.Preentmatup);
+                TimeSpan morningEnd = ParseOrZero(morningEndTime);
                 TimeSpan eveningStart = ParseOrZero(eveningStartTime);
                 TimeSpan eveningEnd = ParseOrZero(eveningEndTime);
-                TimeSpan morningEnd = ParseOrZero(morningEndTime);
+
+                TimeSpan actualMorningArrival = ParseOrZero(presence.Preentmatup);
                 TimeSpan actualMorningEnd = ParseOrZero(presence.Presortmatup);
-
-                // Détermination de l'heure de sortie réelle
-                TimeSpan actualLeave;
-                if (string.IsNullOrEmpty(presence.Presortsupup))
-                {
-                    actualLeave = ParseOrZero(presence.Presortamidiup);
-                    if (actualLeave == TimeSpan.Zero)
-                        actualLeave = ParseOrZero(presence.Presortmatup);
-                }
-                else
-                {
-                    actualLeave = ParseOrZero(presence.Presortsupup);
-                }
-
-                // Cas du midi : sortie plus tard que la fin officielle du matin
-                if (actualMorningEnd > morningEnd)
-                {
-                    nbHeurSupp += (int)(eveningStart.TotalMinutes < actualMorningEnd.TotalMinutes
-                        ? actualMorningEnd.TotalMinutes - morningEnd.TotalMinutes
-                        : eveningStart.TotalMinutes - morningEnd.TotalMinutes);
-                }
-
-                // Convert times en minutes
-                int morningStartMinutes = (int)morningStart.TotalMinutes;
-                int actualArrivalMinutes = (int)actualArrival.TotalMinutes;
-                int eveningLeaveMinutes = (int)eveningEnd.TotalMinutes;
-                int actualLeaveMinutes = (eveningLeaveMinutes != 0) ? (int)actualLeave.TotalMinutes : 0;
+                TimeSpan actualAfternoonArrival = ParseOrZero(presence.Preentamidiup);
+                TimeSpan actualAfternoonEnd = ParseOrZero(presence.Presortamidiup);
 
                 int EntreeTolerance = poste.Avantent ?? 0;
                 int SortieTolerance = poste.Apressort ?? 0;
 
-                int diffFromOfficialStart = actualArrivalMinutes - morningStartMinutes;
-                int diffFromOfficialLeave = actualLeaveMinutes - eveningLeaveMinutes;
+                bool hasEveningSession = eveningStart != TimeSpan.Zero && eveningEnd != TimeSpan.Zero;
 
-                // Arrivée avant l'heure officielle (avec tolérance) => heures supp
-                if (actualArrivalMinutes < (morningStartMinutes - EntreeTolerance))
+                // 1️⃣ HEURES SUPP DU MATIN
+                if (!string.IsNullOrEmpty(presence.Preentmatup))
                 {
-                    int SupMorning = morningStartMinutes - actualArrivalMinutes;
-                    nbHeurSupp += SupMorning;
-                }
-                else
-                {
-                    UpdateTothre(presence, diffFromOfficialStart);
+                    int morningStartMinutes = (int)morningStart.TotalMinutes;
+                    int actualMorningArrivalMinutes = (int)actualMorningArrival.TotalMinutes;
+
+                    if (actualMorningArrivalMinutes < (morningStartMinutes - EntreeTolerance))
+                    {
+                        int SupMorning = morningStartMinutes - actualMorningArrivalMinutes;
+                        nbHeurSupp += SupMorning;
+                    }
+                    else
+                    {
+                        int diffFromOfficialStart = actualMorningArrivalMinutes - morningStartMinutes;
+                        UpdateTothre(presence, diffFromOfficialStart);
+                    }
                 }
 
-                // Départ après l'heure officielle (avec tolérance) => heures supp
-                if (actualLeaveMinutes != 0 && actualLeaveMinutes > (eveningLeaveMinutes - SortieTolerance))
+                // 2️⃣ SORTIE MATIN TARDIVE
+                if (actualMorningEnd > morningEnd)
                 {
-                    int SupEvening = actualLeaveMinutes - eveningLeaveMinutes;
-                    nbHeurSupp += SupEvening;
+                    int morningEndMinutes = (int)morningEnd.TotalMinutes;
+                    int actualMorningEndMinutes = (int)actualMorningEnd.TotalMinutes;
+                    int eveningStartMinutes = (int)eveningStart.TotalMinutes;
+
+                    if (!hasEveningSession)
+                    {
+                        nbHeurSupp += actualMorningEndMinutes - morningEndMinutes;
+                    }
+                    else
+                    {
+                        nbHeurSupp += (int)(eveningStartMinutes < actualMorningEndMinutes
+                            ? actualMorningEndMinutes - morningEndMinutes
+                            : eveningStartMinutes - morningEndMinutes);
+                    }
                 }
-                else
+
+                // 3️⃣ SESSION APRÈS-MIDI/SOIR
+                if (!string.IsNullOrEmpty(presence.Preentamidiup) && actualAfternoonArrival != TimeSpan.Zero)
                 {
-                    UpdateTothre(presence, -diffFromOfficialLeave);
+                    int actualAfternoonArrivalMinutes = (int)actualAfternoonArrival.TotalMinutes;
+
+                    if (hasEveningSession)
+                    {
+                        int eveningStartMinutes = (int)eveningStart.TotalMinutes;
+
+                        if (actualAfternoonArrivalMinutes < (eveningStartMinutes - EntreeTolerance))
+                        {
+                            int SupAfternoonEntry = eveningStartMinutes - actualAfternoonArrivalMinutes;
+                            nbHeurSupp += SupAfternoonEntry;
+                        }
+                    }
+                    else
+                    {
+                        // ✅ PAS de session du soir : tout le travail = heures supp
+                        if (!string.IsNullOrEmpty(presence.Presortamidiup) && actualAfternoonEnd != TimeSpan.Zero)
+                        {
+                            int actualAfternoonEndMinutes = (int)actualAfternoonEnd.TotalMinutes;
+
+                            int afternoonWorkMinutes;
+
+                            // ✅ Gestion du passage de minuit
+                            if (actualAfternoonEndMinutes < actualAfternoonArrivalMinutes)
+                            {
+                                afternoonWorkMinutes = (1440 - actualAfternoonArrivalMinutes) + actualAfternoonEndMinutes;
+                            }
+                            else
+                            {
+                                afternoonWorkMinutes = actualAfternoonEndMinutes - actualAfternoonArrivalMinutes;
+                            }
+
+                            nbHeurSupp += afternoonWorkMinutes;
+                        }
+                    }
+                }
+
+                // 4️⃣ HEURES SUPP EN FIN DE JOURNÉE
+                TimeSpan actualLeave = TimeSpan.Zero;
+
+                if (!string.IsNullOrEmpty(presence.Presortmatup))
+                {
+                    actualLeave = ParseOrZero(presence.Presortmatup);
+                }
+                else if (!string.IsNullOrEmpty(presence.Presortamidiup))
+                {
+                    actualLeave = actualAfternoonEnd;
+                }
+                else if (!string.IsNullOrEmpty(presence.Presortmatup))
+                {
+                    actualLeave = actualMorningEnd;
+                }
+
+                if (actualLeave != TimeSpan.Zero && hasEveningSession)
+                {
+                    int eveningEndMinutes = (int)eveningEnd.TotalMinutes;
+                    int actualLeaveMinutes = (int)actualLeave.TotalMinutes;
+
+                    if (actualLeaveMinutes > (eveningEndMinutes + SortieTolerance))
+                    {
+                        int SupEvening = actualLeaveMinutes - eveningEndMinutes;
+                        nbHeurSupp += SupEvening;
+                    }
+                    else if (actualLeaveMinutes < eveningEndMinutes)
+                    {
+                        int diffFromOfficialLeave = actualLeaveMinutes - eveningEndMinutes;
+                        UpdateTothre(presence, -diffFromOfficialLeave);
+                    }
                 }
 
                 return (double)nbHeurSupp / 60;
             }
             catch (Exception ex)
             {
-                // Ici on logge avant de relancer
-                // _logger.LogError(ex, "Erreur dans CalculateHeureSupp");
                 throw;
             }
         }
@@ -111,6 +179,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         {
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (poste == null) throw new ArgumentNullException(nameof(poste));
+
             if (!string.IsNullOrEmpty(presence.Tothsup) && presence.Tothsup != "-")
             {
                 var convertedValue = GenericMethodes.ConvertHHmmToDouble(presence.Tothsup);
@@ -119,11 +188,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     return (int)convertedValue.Value;
                 }
             }
+
             try
             {
                 string? cathsup = await _categorieRepository.GetCathsup(presence.Soccod, presence.Empcod);
 
-                // Si la catégorie de l'employé est "Hors Catégorie", pas d'heures supp
                 if (cathsup == "0")
                     return 0;
 
@@ -132,85 +201,142 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) =
                     GenericMethodes.GetStartsWorkDay(presence.Dmdate, poste);
 
-                if (string.IsNullOrEmpty(morningStartTime) || string.IsNullOrEmpty(presence.Preentmatup))
+                if (string.IsNullOrEmpty(morningStartTime))
                     return 0;
 
-                // Parsing safe
                 TimeSpan morningStart = ParseOrZero(morningStartTime);
-                TimeSpan actualArrival = ParseOrZero(presence.Preentmatup);
+                TimeSpan morningEnd = ParseOrZero(morningEndTime);
                 TimeSpan eveningStart = ParseOrZero(eveningStartTime);
                 TimeSpan eveningEnd = ParseOrZero(eveningEndTime);
-                TimeSpan morningEnd = ParseOrZero(morningEndTime);
+
+                TimeSpan actualMorningArrival = ParseOrZero(presence.Preentmatup);
                 TimeSpan actualMorningEnd = ParseOrZero(presence.Presortmatup);
-
-                // Détermination de l'heure de sortie réelle
-                TimeSpan actualLeave;
-                if (string.IsNullOrEmpty(presence.Presortsupup))
-                {
-                    actualLeave = ParseOrZero(presence.Presortamidiup);
-                    if (actualLeave == TimeSpan.Zero)
-                        actualLeave = ParseOrZero(presence.Presortmatup);
-                }
-                else
-                {
-                    actualLeave = ParseOrZero(presence.Presortsupup);
-                }
-
-                // Cas du midi : sortie plus tard que la fin officielle du matin
-                if (actualMorningEnd > morningEnd)
-                {
-                    nbHeurSupp += (int)(eveningStart.TotalMinutes < actualMorningEnd.TotalMinutes
-                        ? actualMorningEnd.TotalMinutes - morningEnd.TotalMinutes
-                        : eveningStart.TotalMinutes - morningEnd.TotalMinutes);
-                }
-
-                // Convert times en minutes
-                int morningStartMinutes = (int)morningStart.TotalMinutes;
-                int actualArrivalMinutes = (int)actualArrival.TotalMinutes;
-                int eveningLeaveMinutes = (int)eveningEnd.TotalMinutes;
-                int actualLeaveMinutes = (eveningLeaveMinutes != 0) ? (int)actualLeave.TotalMinutes : 0;
+                TimeSpan actualAfternoonArrival = ParseOrZero(presence.Preentamidiup);
+                TimeSpan actualAfternoonEnd = ParseOrZero(presence.Presortamidiup);
 
                 int EntreeTolerance = poste.Avantent ?? 0;
                 int SortieTolerance = poste.Apressort ?? 0;
 
-                int diffFromOfficialStart = actualArrivalMinutes - morningStartMinutes;
-                int diffFromOfficialLeave = actualLeaveMinutes - eveningLeaveMinutes;
+                bool hasEveningSession = eveningStart != TimeSpan.Zero && eveningEnd != TimeSpan.Zero;
 
-                // Arrivée avant l'heure officielle (avec tolérance) => heures supp
-                if (actualArrivalMinutes < (morningStartMinutes - EntreeTolerance))
+                // 1️⃣ HEURES SUPP DU MATIN
+                if (!string.IsNullOrEmpty(presence.Preentmatup))
                 {
-                    int SupMorning = morningStartMinutes - actualArrivalMinutes;
-                    nbHeurSupp += SupMorning;
-                }
-                else
-                {
-                    UpdateTothre(presence, diffFromOfficialStart);
+                    int morningStartMinutes = (int)morningStart.TotalMinutes;
+                    int actualMorningArrivalMinutes = (int)actualMorningArrival.TotalMinutes;
+
+                    if (actualMorningArrivalMinutes < (morningStartMinutes - EntreeTolerance))
+                    {
+                        int SupMorning = morningStartMinutes - actualMorningArrivalMinutes;
+                        nbHeurSupp += SupMorning;
+                    }
+                    else
+                    {
+                        int diffFromOfficialStart = actualMorningArrivalMinutes - morningStartMinutes;
+                        UpdateTothre(presence, diffFromOfficialStart);
+                    }
                 }
 
-                // Départ après l'heure officielle (avec tolérance) => heures supp
-                if (actualLeaveMinutes != 0 && actualLeaveMinutes > (eveningLeaveMinutes - SortieTolerance))
+                // 2️⃣ SORTIE MATIN TARDIVE
+                if (actualMorningEnd > morningEnd)
                 {
-                    int SupEvening = actualLeaveMinutes - eveningLeaveMinutes;
-                    nbHeurSupp += SupEvening;
+                    int morningEndMinutes = (int)morningEnd.TotalMinutes;
+                    int actualMorningEndMinutes = (int)actualMorningEnd.TotalMinutes;
+                    int eveningStartMinutes = (int)eveningStart.TotalMinutes;
+
+                    if (!hasEveningSession)
+                    {
+                        nbHeurSupp += actualMorningEndMinutes - morningEndMinutes;
+                    }
+                    else
+                    {
+                        nbHeurSupp += (int)(eveningStartMinutes < actualMorningEndMinutes
+                            ? actualMorningEndMinutes - morningEndMinutes
+                            : eveningStartMinutes - morningEndMinutes);
+                    }
                 }
-                else
+
+                // 3️⃣ SESSION APRÈS-MIDI/SOIR
+                if (!string.IsNullOrEmpty(presence.Preentamidiup) && actualAfternoonArrival != TimeSpan.Zero)
                 {
-                    UpdateTothre(presence, -diffFromOfficialLeave);
+                    int actualAfternoonArrivalMinutes = (int)actualAfternoonArrival.TotalMinutes;
+
+                    if (hasEveningSession)
+                    {
+                        int eveningStartMinutes = (int)eveningStart.TotalMinutes;
+
+                        if (actualAfternoonArrivalMinutes < (eveningStartMinutes - EntreeTolerance))
+                        {
+                            int SupAfternoonEntry = eveningStartMinutes - actualAfternoonArrivalMinutes;
+                            nbHeurSupp += SupAfternoonEntry;
+                        }
+                    }
+                    else
+                    {
+                        // ✅ PAS de session du soir : tout le travail = heures supp
+                        if (!string.IsNullOrEmpty(presence.Presortamidiup) && actualAfternoonEnd != TimeSpan.Zero)
+                        {
+                            int actualAfternoonEndMinutes = (int)actualAfternoonEnd.TotalMinutes;
+
+                            int afternoonWorkMinutes;
+
+                            // ✅ Gestion du passage de minuit
+                            if (actualAfternoonEndMinutes < actualAfternoonArrivalMinutes)
+                            {
+                                afternoonWorkMinutes = (1440 - actualAfternoonArrivalMinutes) + actualAfternoonEndMinutes;
+                            }
+                            else
+                            {
+                                afternoonWorkMinutes = actualAfternoonEndMinutes - actualAfternoonArrivalMinutes;
+                            }
+
+                            nbHeurSupp += afternoonWorkMinutes;
+                        }
+                    }
+                }
+
+                // 4️⃣ HEURES SUPP EN FIN DE JOURNÉE
+                TimeSpan actualLeave = TimeSpan.Zero;
+
+                if (!string.IsNullOrEmpty(presence.Presortmatup))
+                {
+                    actualLeave = ParseOrZero(presence.Presortmatup);
+                }
+                else if (!string.IsNullOrEmpty(presence.Presortamidiup))
+                {
+                    actualLeave = actualAfternoonEnd;
+                }
+                else if (!string.IsNullOrEmpty(presence.Presortmatup))
+                {
+                    actualLeave = actualMorningEnd;
+                }
+
+                if (actualLeave != TimeSpan.Zero && hasEveningSession)
+                {
+                    int eveningEndMinutes = (int)eveningEnd.TotalMinutes;
+                    int actualLeaveMinutes = (int)actualLeave.TotalMinutes;
+
+                    if (actualLeaveMinutes > (eveningEndMinutes + SortieTolerance))
+                    {
+                        int SupEvening = actualLeaveMinutes - eveningEndMinutes;
+                        nbHeurSupp += SupEvening;
+                    }
+                    else if (actualLeaveMinutes < eveningEndMinutes)
+                    {
+                        int diffFromOfficialLeave = actualLeaveMinutes - eveningEndMinutes;
+                        UpdateTothre(presence, -diffFromOfficialLeave);
+                    }
                 }
 
                 return nbHeurSupp / 60;
             }
             catch (Exception ex)
             {
-                // Ici on logge avant de relancer
-                // _logger.LogError(ex, "Erreur dans CalculateHeureSupp");
                 throw;
             }
-        }
-
-        /// <summary>
-        /// Parse un TimeSpan à partir d'une chaîne, sinon retourne TimeSpan.Zero
-        /// </summary>
+        } /// <summary>
+          /// Parse un TimeSpan à partir d'une chaîne, sinon retourne TimeSpan.Zero
+          /// </summary>
         private TimeSpan ParseOrZero(string? value)
         {
             return TimeSpan.TryParse(value, out var ts) ? ts : TimeSpan.Zero;

@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Tooltip,
 } from '@mui/material';
 import FilterPointageMois from './FilterPointageMois';
 import WeeklyHoursTable from './WeeklyHoursTable';
@@ -28,7 +29,67 @@ import CloseIcon from '@mui/icons-material/Close';
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
 import IntegrationPaieButton from '../../helper/IntegrationPaieButton';
 import useGetRubriquesPaire from '../../../hooks/rubriqueHooks/useGetRubriquePaire';
+import axios from 'axios';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import { toast } from 'react-toastify';
+import { formatDate } from '../../helper/TimeConverter/formatDateForApi';
+import { useTranslation } from 'react-i18next';
+interface EtatGlobalData {
+  empmat: string;
+  emplib: string;
+  empreg: string;
+  jourtrv: number;
+  tothre: string;
+  jferier: number;
+  jftrv: number;
+  hftrv: string;
+  hnuit: string;
+  jconge: number;
+  hs50: string;
+  hs25: string;
+  csf: string;
+}
 
+interface EtatGlobalRequest {
+  soccod: string;
+  soclib?: string;
+  datedebut: string;
+  datefin: string;
+  data: EtatGlobalData[];
+}
+const generateEtatGlobalReport = async (
+  request: EtatGlobalRequest
+): Promise<Blob> => {
+
+  const token = localStorage.getItem('authToken');
+  console.log('Generating report with request:', request);
+  const response = await axios.post(
+    `${import.meta.env.VITE_REACT_APP_API_URL}/Presences/etat-global`,
+    request,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      responseType: 'blob',
+    }
+  );
+
+  return response.data;
+};
+
+
+// Fonction utilitaire pour télécharger le PDF
+const downloadPDF = (blob: Blob, filename: string) => {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
 const PointageDuMoisContent = () => {
   const context = useDateMoisPointageRange();
   const dateRange = context?.dateRange;
@@ -87,11 +148,13 @@ const PointageDuMoisContent = () => {
     []
   );
 
+  const { t } = useTranslation();
+
   // ⚠️ Affichage de l'erreur
   if (error) {
     return (
       <Box textAlign="center" mt={4}>
-        <Typography color="error">Erreur lors du chargement des données.</Typography>
+        <Typography color="error">{t('pointageDuMois.errorLoading')}</Typography>
       </Box>
     );
   }
@@ -185,6 +248,145 @@ const totals = useMemo(() => {
   );
 }, [selectedEmp]);
 
+
+const handleGenerateReport = async () => {
+  if (!selectedEmp || !totals) {
+    toast.error('Veuillez sélectionner un employé');
+    return;
+  }
+
+  try {
+
+    // Préparer les données pour le rapport
+    const reportData: EtatGlobalData = {
+      empmat: selectedEmp.empMat || '',
+      emplib: selectedEmp.empLib || '',
+      empreg: selectedEmp.empReg || '',
+      jourtrv: totals.nbJours,
+      tothre: totals.tothre.toFixed(2),
+      jferier: totals.jourFerier,
+      jftrv: totals.nbJourFerier,
+      hftrv: totals.nbhFerierTrv.toFixed(2),
+      hnuit: totals.hreNuits.toFixed(2),
+      jconge: totals.nbJourCngPaye,
+      hs50: totals.hs50.toFixed(2),
+      hs25: totals.hs25.toFixed(2),
+      csf: totals.csf.toFixed(2),
+    };
+
+    // Calculer les dates de début et fin du mois
+    const year = parseInt(annee);
+    const month = parseInt(mois);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+
+    const request = {
+      soccod: selectedEmp.empCod?.substring(0, 3) || '01', // Adapter selon votre logique
+      soclib: sessionStorage.getItem('soclib') || '', // À adapter selon vos données
+      datedebut: formatDate(firstDay.toISOString()),
+      datefin: formatDate(lastDay.toISOString()),
+      data: [reportData],
+    };
+
+    toast.info('Génération du rapport en cours...');
+    const blob = await generateEtatGlobalReport(request);
+    downloadPDF(blob, `EtatGlobal_${selectedEmp.empMat}_${mois}_${annee}.pdf`);
+    toast.success('Rapport généré avec succès !');
+  } catch (error) {
+    console.error('Erreur lors de la génération du rapport:', error);
+    toast.error('Erreur lors de la génération du rapport');
+  }
+};
+
+// Alternative: Générer le rapport pour TOUS les employés
+const handleGenerateReportAll = async () => {
+  if (pointageMois.length === 0) {
+    toast.error('Aucune donnée à exporter');
+    return;
+  }
+
+  try {
+    const reportDataList: EtatGlobalData[] = pointageMois.map((emp) => {
+      // Calculer les totaux pour chaque employé
+      const empTotals = emp.heuresSupplementairesResultats?.reduce(
+        (acc:any, r:any) => {
+          acc.nbJours += r.nbJours ?? 0;
+          acc.tothre += r.tothre ?? 0;
+          acc.jourFerier += r.jourFerier ?? 0;
+          acc.nbJourFerier += r.nbJourFerier ?? 0;
+          acc.nbhFerierTrv += r.nbhFerierTrv ?? 0;
+          acc.hreNuits += r.hreNuits ?? 0;
+          acc.nbJourCngPaye += r.nbJourCngPaye ?? 0;
+          acc.hs50 += r.heuresSupTranche2 ?? 0;
+          acc.hs25 += r.heuresSupTranche1 ?? 0;
+          acc.csf += r.csf ?? 0;
+          return acc;
+        },
+        {
+          nbJours: 0,
+          tothre: 0,
+          jourFerier: 0,
+          nbJourFerier: 0,
+          nbhFerierTrv: 0,
+          hreNuits: 0,
+          nbJourCngPaye: 0,
+          hs50: 0,
+          hs25: 0,
+          csf: 0,
+        }
+      ) || {
+        nbJours: 0,
+        tothre: 0,
+        jourFerier: 0,
+        nbJourFerier: 0,
+        nbhFerierTrv: 0,
+        hreNuits: 0,
+        nbJourCngPaye: 0,
+        hs50: 0,
+        hs25: 0,
+        csf: 0,
+      };
+
+      return {
+        empmat: emp.empMat || '',
+        emplib: emp.empLib || '',
+        empreg: emp.empReg || '',
+        jourtrv: empTotals.nbJours,
+        tothre: empTotals.tothre.toFixed(2),
+        jferier: empTotals.jourFerier,
+        jftrv: empTotals.nbJourFerier,
+        hftrv: empTotals.nbhFerierTrv.toFixed(2),
+        hnuit: empTotals.hreNuits.toFixed(2),
+        jconge: empTotals.nbJourCngPaye,
+        hs50: empTotals.hs50.toFixed(2),
+        hs25: empTotals.hs25.toFixed(2),
+        csf: empTotals.csf.toFixed(2),
+      };
+    });
+
+    const year = parseInt(annee);
+    const month = parseInt(mois);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+
+    const request = {
+      soccod: sessionStorage.getItem('soccod') || '', // À adapter
+      soclib: sessionStorage.getItem('soclib') || '', // À adapter selon vos données
+      datedebut: firstDay.toISOString().split('T')[0],
+      datefin: lastDay.toISOString().split('T')[0],
+      data: reportDataList,
+    };
+
+    toast.info('Génération du rapport en cours...');
+    const blob = await generateEtatGlobalReport(request);
+    downloadPDF(blob, `EtatGlobal_Tous_${mois}_${annee}.pdf`);
+    toast.success('Rapport généré avec succès !');
+  } catch (error) {
+    console.error('Erreur lors de la génération du rapport:', error);
+    toast.error('Erreur lors de la génération du rapport');
+  }
+};
+
   // ✅ Affichage normal après chargement
   return (
     <Box p={4} sx={{ minHeight: '100vh' }}>
@@ -192,13 +394,36 @@ const totals = useMemo(() => {
         {/* 🔹 Filtre */}
       
           <Grid item xs={12} display={loading ? 'none' : 'block'}>
-            <FilterPointageMois />
-            <IntegrationPaieButton
-                pointageMoisData={pointageMois}
-                rubriques={rubriques}
-                mois={mois}
-                annee={annee}
-              />
+            <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} mb={2}
+>
+              {/* LEFT: FILTER */}
+              <FilterPointageMois />
+
+              {/* RIGHT: ACTIONS */}
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <Tooltip title="Rapport employé">
+                  <IconButton color="error" size="small" onClick={handleGenerateReport}>
+                    <PictureAsPdfIcon />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Rapport tous">
+                  <IconButton color="secondary" size="small" onClick={handleGenerateReportAll}>
+                    <PictureAsPdfIcon />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Intégration Paie">
+                  <IntegrationPaieButton
+                    pointageMoisData={pointageMois}
+                    rubriques={rubriques}
+                    mois={mois}
+                    annee={annee}
+                  />
+                </Tooltip>
+              </Box>
+            </Box>
+
           </Grid>
 
         {/* 🔹 Loader */}
@@ -217,7 +442,7 @@ const totals = useMemo(() => {
             <Grid item xs={5}>
               <Box display="flex" flexDirection="column" gap={1}>
                 <CheckboxComponent
-                  label="Majorer H.Férié et Congé aux Hre Normales"
+                  label={t('pointageDuMois.majorHolidayAndLeave')} 
                   value={majorerHeures}
                   setValue={setMajorerHeures}
                 />
@@ -336,7 +561,7 @@ const totals = useMemo(() => {
                       ))}
                       {totals && (
   <TableRow sx={{ backgroundColor: '#f0f4ff' }}>
-    <TableCell sx={{ fontWeight: 'bold' }}>TOTAL</TableCell>
+    <TableCell sx={{ fontWeight: 'bold' }}>{t('pointageDuMois.total')}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.tothre.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>{totals.nbJours.toFixed(2)}</TableCell>
     <TableCell sx={{ fontWeight: 'bold' }}>
@@ -423,7 +648,7 @@ const totals = useMemo(() => {
       }}
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography color={'secondary'} variant="h6">Détails de la semaine {numSem}</Typography>
+          <Typography color={'secondary'} variant="h6">{t('pointageDuMois.weekDetails', { numSem })}</Typography>
           <IconButton onClick={() => setOpenDialog(false)}>
             <CloseIcon />
           </IconButton>

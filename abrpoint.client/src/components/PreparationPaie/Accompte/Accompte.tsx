@@ -4,6 +4,7 @@ import { useState } from "react";
 import InputComponent from "../../Inputs/Input";
 import RadioGroupComponent from "../../RadioGroupComponent/RadioGroupComponent";
 import { QueryClient, QueryClientProvider } from "react-query";
+import { t } from "i18next";
 
 export default function Accompte() {
     const [month, setMonth] = useState("");
@@ -24,10 +25,10 @@ export default function Accompte() {
 
             <Box display="flex" gap={2} mb={3}>
                 <Grid container sx={{ width: '100%' }}>
-                    <InputComponent type="text" label="Mois" value={month} setValue={setMonth} />
+                    <InputComponent type="text" label={t('common.month')} value={month} setValue={setMonth} />
                 </Grid>
                 <Grid container sx={{ width: '100%' }}>
-                    <InputComponent type="text" label="Année" value={year} setValue={setYear} />
+                    <InputComponent type="text" label={t('common.year')} value={year} setValue={setYear} />
                 </Grid>  
                 <Grid container sx={{ width: '100%',mt: 1 }}>
                     <RadioGroupComponent value={niveau} setValue={setNiveau} >

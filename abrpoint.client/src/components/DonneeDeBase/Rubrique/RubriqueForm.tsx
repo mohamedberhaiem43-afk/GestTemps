@@ -1,4 +1,5 @@
 import { Box, Grid, Button, CircularProgress } from "@mui/material";
+import { useTranslation } from 'react-i18next';
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import { useState, useEffect } from "react";
@@ -28,6 +29,7 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
   const addRubriqueMutation = useAddRubrique();
   const updateRubriqueMutation = useUpdateRubrique();
   const {refetch} = useGetRubriques();
+  const { t } = useTranslation();
   
   // Fetch rubrique data when editing
   const { data: fetchedRubrique, isLoading } = useGetRubrique(
@@ -150,13 +152,13 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
         <Grid item xs={6}>
           <InputComponent 
             type="text" 
-            label="Code" 
+            label={t('common.code')} 
             value={rubcod} 
             setValue={setRubCod}
           />
         </Grid>
         <Grid item xs={6}>
-          <InputComponent type="text" label="Libellé" value={rublib} setValue={setRubLib} />
+          <InputComponent type="text" label={t('common.label')} value={rublib} setValue={setRubLib} />
         </Grid>
       </Grid>
 
@@ -205,7 +207,7 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
           onClick={handleSubmit}
           disabled={isLoading}
         >
-          {editingRubrique ? 'Modifier la Rubrique' : 'Enregistrer la Rubrique'}
+          {editingRubrique ? t('rubrique.edit') : t('rubrique.save')}
         </Button>
       </Box>
     </Box>

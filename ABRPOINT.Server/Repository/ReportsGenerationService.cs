@@ -1,7 +1,12 @@
-﻿using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Interfaces;
+using FastReport;
 using FastReport.Data;
 using FastReport.Export.PdfSimple;
-using FastReport;
+using FastReport.Utils;
+using System.Data;
+using System.Reflection;
+using System.Text;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -143,15 +148,17 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public byte[] GenerateEtatPresenceReport(string soccod, DateTime? datedebut, DateTime? datefin, string empreg)
+        public byte[] GenerateEtatPresenceReport(string soccod, DateTime? datedebut, DateTime? datefin, string empreg,List<string> empcods)
         {
             try
             {
                 var report = CreateReport("Reports/EtatPresence.frx");
+                string empcodCsv = string.Join(",", empcods.Select(e => e.Trim()));
                 report.SetParameterValue("soccod", soccod);
                 report.SetParameterValue("datedebut", datedebut);
                 report.SetParameterValue("datefin", datefin);
                 report.SetParameterValue("empreg", empreg);
+                report.SetParameterValue("empcods", empcodCsv);
                 report.Prepare();
 
                 using (var ms = new MemoryStream())
@@ -270,6 +277,70 @@ namespace ABRPOINT.Server.Repository
             catch (Exception)
             {
                 throw;
+            }
+        }
+        public byte[] GenerateEtatGlobalReport(EtatGlobalRequest data)
+        {
+            var report = CreateReport("Reports/EtatGlobalPresence.frx");
+            report.SetParameterValue("soclib", data.soclib);
+            report.SetParameterValue("datedebut", data.datedebut);
+            report.SetParameterValue("datefin", data.datefin);
+            report.RegisterData(data.data, "EtatGlobalData");
+
+            var ds = report.GetDataSource("EtatGlobalData");
+            if (ds == null)
+                throw new Exception("EtatGlobalData introuvable");
+
+            ds.Enabled = true;
+
+            report.Prepare();
+
+            using var ms = new MemoryStream();
+            report.Export(new PDFSimpleExport(), ms);
+
+            return ms.ToArray();
+        }
+
+        public byte[] GenerateEtatDetailleReport(EtatDetailleRequest request)
+        {
+            try
+            {
+                var report = CreateReport("Reports/EtatDetaille.frx");
+
+                // Définir les paramètres
+                report.SetParameterValue("ParamEmpcod", request.Empcod ?? "");
+                report.SetParameterValue("ParamEmplib", request.Emplib ?? "");
+                report.SetParameterValue("ParamDebut", request.DateDebut ?? "");
+                report.SetParameterValue("ParamFin", request.DateFin ?? "");
+
+                // Enregistrer les données (comme pour EtatGlobal)
+                if (request.Rows != null && request.Rows.Any())
+                {
+                    report.RegisterData(request.Rows, "EtatDetaille");
+                }
+                else
+                {
+                    // Enregistrer une liste vide
+                    report.RegisterData(new List<object>(), "EtatDetaille");
+                }
+
+                // Activer la DataSource
+                var ds = report.GetDataSource("EtatDetaille");
+                if (ds == null)
+                    throw new Exception("EtatDetaille DataSource introuvable dans le rapport");
+
+                ds.Enabled = true;
+
+                // Préparer et exporter
+                report.Prepare();
+
+                using var ms = new MemoryStream();
+                report.Export(new PDFSimpleExport(), ms);
+                return ms.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Erreur génération EtatDetailleReport: {ex.Message}", ex);
             }
         }
     }

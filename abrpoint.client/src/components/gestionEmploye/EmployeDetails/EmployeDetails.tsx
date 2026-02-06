@@ -5,6 +5,7 @@ import Box from '@mui/material/Box';
 import Cordonees from './Cordonnee/Cordonee';
 import Complement from './Complement/Complement';
 import EmployeInfo from './EmployeInfo/EmpoyeInfo';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import InfoBasic from '../ajoutEmploye/InfoBasic/InfoBasic';
 import TravailInfo from '../ajoutEmploye/TravailInfo/TravailInfo';
@@ -45,6 +46,7 @@ interface EmployeDetailsProps {
 }
 
 export default function EmployeDetails({ onCombinedDataChange,empData }: EmployeDetailsProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState(0);
   const [combinedData, setCombinedData] = useState<Employe>(empData);
   const [formData, setFormData] = useState(empData || {});
@@ -52,9 +54,6 @@ export default function EmployeDetails({ onCombinedDataChange,empData }: Employe
     setFormData(empData); // Update form when empData changes (e.g., from context)
     setCombinedData(empData);
   }, [empData]);
-
-
-  
 
   const handleFieldChange = (e: any) => {
   const { name, value } = e.target;
@@ -102,11 +101,11 @@ export default function EmployeDetails({ onCombinedDataChange,empData }: Employe
           aria-label="employee tabs"
           sx={{ minHeight: '36px' }}
         >
-          <Tab label="Information de base" {...a11yProps(0)} sx={{ fontSize: '0.8rem' }} />
-          <Tab label="Information de travail" {...a11yProps(1)} sx={{ fontSize: '0.8rem' }} />
-          <Tab label="Information Employé" {...a11yProps(2)} sx={{ fontSize: '0.8rem' }} />
-          <Tab label="Coordonnées" {...a11yProps(3)} sx={{ fontSize: '0.8rem' }} />
-          <Tab label="Complément" {...a11yProps(4)} sx={{ fontSize: '0.8rem' }} />
+          <Tab label={t('employe.tabs.basic') || 'Information de base'} {...a11yProps(0)} sx={{ fontSize: '0.8rem' }} />
+          <Tab label={t('employe.tabs.work') || 'Information de travail'} {...a11yProps(1)} sx={{ fontSize: '0.8rem' }} />
+          <Tab label={t('employe.tabs.employeeInfo') || 'Information Employé'} {...a11yProps(2)} sx={{ fontSize: '0.8rem' }} />
+          <Tab label={t('employe.tabs.contact') || 'Coordonnées'} {...a11yProps(3)} sx={{ fontSize: '0.8rem' }} />
+          <Tab label={t('employe.tabs.complement') || 'Complément'} {...a11yProps(4)} sx={{ fontSize: '0.8rem' }} />
         </Tabs>
       </Box>
     

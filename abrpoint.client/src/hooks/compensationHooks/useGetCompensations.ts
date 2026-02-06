@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import CompensationService from "../../services/ComensationService/CompensationService";
 import { Compenser } from "../../Compense";
+import { useAuth } from "../../components/helper/AuthProvider";
 
-const useGetCompensations = (soccod: string | null) => {
+const useGetCompensations = () => {
+  const { soccod } = useAuth();
   return useQuery<Compenser[], Error>({
     queryKey: ["compensations", soccod],
     queryFn: () => CompensationService.getAllWithParams(`${soccod}`),

@@ -3,6 +3,7 @@ import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { useDateRange } from "./FilterContext";
 import { Print, Search } from "@mui/icons-material";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
@@ -16,6 +17,7 @@ type FilterPeriodeProps = {
 };
 
 function FilterPeriode({ type }: FilterPeriodeProps) {
+    const { t } = useTranslation();
     const token = localStorage.getItem('authToken');
     const soccod = sessionStorage.getItem('soccod');
     const headers = { Authorization: `Bearer ${token}` };
@@ -189,7 +191,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={1.5}>
                     {filiale && (
                         <SelectInputComponent
-                            label='Filiale'
+                            label={t('filter.branch')}
                             value={selectedFiliale}
                             setValue={setSelectedFiliale}
                             maplist={filiale}
@@ -199,7 +201,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={1.5}>
                     {services && (
                         <SelectInputComponent
-                            label='Service'
+                            label={t('filter.service')}
                             value={selectedService}
                             setValue={setSelectedService}
                             maplist={services}
@@ -208,7 +210,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 </Grid>
                 <Grid item xs={1}>
                     <SelectInputComponent
-                        label='Régime'
+                        label={t('filter.regime')}
                         value={selectedRegime}
                         setValue={setSelectedRegime}
                         maplist={regime}
@@ -216,7 +218,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 </Grid>
                 <Grid item xs={1.5}>
                     <SelectInputComponent
-                    label='Employés'
+                    label={t('filter.employees')}
                     value={selectedEmpcods}
                     setValue={setSelectedEmpcods}
                     maplist={emplibs}
@@ -226,7 +228,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
-                        label='Année'
+                        label={t('filter.year')}
                         value={annee}
                         setValue={setAnnee}
                     />
@@ -234,7 +236,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={1}>
                     <InputComponent
                         type='date'
-                        label='Date Début'
+                        label={t('common.dateStart')}
                         value={dateDebut}
                         setValue={setStartDate}
                     />
@@ -242,7 +244,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={1}>
                     <InputComponent
                         type='date'
-                        label='Date Fin'
+                        label={t('common.dateEnd')}
                         value={dateFin}
                         setValue={setEndDate}
                     />
@@ -268,23 +270,23 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 </Grid>
                 <Grid item xs={5}>
                     <RadioGroupComponent value={radioValue} setValue={setRadioValue}>
-                        <FormControlLabelComponent radioValue={"0"} label={"Sans pointage (abs non justifiée)"} />
-                        <FormControlLabelComponent radioValue={"1"} label={"Toute absence"} />
-                        <FormControlLabelComponent radioValue={"2"} label={"Absence justifiée"} />
-                        <FormControlLabelComponent radioValue={"3"} label={"Pointage invalide"} />
+                        <FormControlLabelComponent radioValue={"0"} label={t('filter.withoutPointage')} />
+                        <FormControlLabelComponent radioValue={"1"} label={t('filter.allAbsence')} />
+                        <FormControlLabelComponent radioValue={"2"} label={t('filter.justifiedAbsence')} />
+                        <FormControlLabelComponent radioValue={"3"} label={t('filter.invalidPointage')} />
                     </RadioGroupComponent>
                 </Grid>
                 <Grid item xs={2}>
-                    <CheckboxComponent label={"Absence au cours du jour+Retard"} value={absret} setValue={setAbsret} />
+                    <CheckboxComponent label={t('filter.absenceDayLate')} value={absret} setValue={setAbsret} />
                 </Grid>
                 <Grid item xs={1.3}>
-                    <CheckboxComponent label={"Absence autorisée"} value={absaut} setValue={setAbsaut} />
+                    <CheckboxComponent label={t('filter.authorizedAbsence')} value={absaut} setValue={setAbsaut} />
                 </Grid>
                 <Grid item xs={1.5}>
-                    <CheckboxComponent label={"Sans Pointage Invalide"} value={sansPointageInvalide} setValue={setSansPointageInvalide} />
+                    <CheckboxComponent label={t('filter.withoutInvalidPointage')} value={sansPointageInvalide} setValue={setSansPointageInvalide} />
                 </Grid>
                 <Grid item xs={2}>
-                    <CheckboxComponent label={"Présence non optimisée"} value={presNonOpt} setValue={setPresNonOpt} />
+                    <CheckboxComponent label={t('filter.presenceNotOptimized')} value={presNonOpt} setValue={setPresNonOpt} />
                 </Grid>
                 <Grid item xs={1} display={dispTypeabs}>
                     <SelectInputComponent label={"Type Absence"}
@@ -295,7 +297,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={1}>
                 {presence && (
                         <SelectInputComponent
-                            label='Présence'
+                            label={t('common.presence')}
                             value={pres}
                             setValue={setPres}
                             maplist={presence}

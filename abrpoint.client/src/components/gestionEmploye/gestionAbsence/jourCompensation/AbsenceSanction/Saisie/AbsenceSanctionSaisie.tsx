@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Box,
@@ -39,6 +40,7 @@ export default function AbsenceSanctionSaisie() {
   const [abscod, setAbscod] = useState('');
   const [connbjour, setConnbjour] = useState(0); // State for the number of days
   const [mode,setMode] = useState('save');
+  const { t } = useTranslation();
   const {data:absences = []} = useGetAbsencesLibs();
   const {data:employeOptions = []} = useGetEmployee();
   const {refetch} = useGetSanctions(soccod);
@@ -149,47 +151,47 @@ export default function AbsenceSanctionSaisie() {
       <Grid container spacing={1.5}>
         {/* Employe Selection */}
         <Grid item xs={1.5}>
-          <SelectInputComponent label='Employé' value={empcod} setValue={setEmploye} maplist={employeOptions} />
+          <SelectInputComponent label={t('common.employee')} value={empcod} setValue={setEmploye} maplist={employeOptions} />
         </Grid>
 
         {/* N° Ordre */}
         <Grid item xs={1} sm={1}>
-          <InputComponent type='text' label='N° Ordre' value={concod} setValue={setOrdre} />
+          <InputComponent type='text' label={t('common.orderNumber')} value={concod} setValue={setOrdre} />
         </Grid>
 
         {/* Date (as TextField) */}
         <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label='Date' value={condat} setValue={setDate} />
+          <InputComponent type='date' label={t('common.date')} value={condat} setValue={setDate} />
         </Grid>
 
         {/* Réf */}
         <Grid item xs={1}>
-          <InputComponent type='text' label='Réf' value={conref} setValue={setReference} />
+          <InputComponent type='text' label={t('common.ref')} value={conref} setValue={setReference} />
         </Grid>
 
         {/* Date Départ (as TextField) */}
         <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label='Date Départ' value={condep} setValue={setDateDepart} />
+          <InputComponent type='date' label={t('common.dateStart')} value={condep} setValue={setDateDepart} />
         </Grid>
 
         {/* Checkbox Après-Midi (Date Départ) */}
         <Grid item xs={1.5} sm={1.5} mt={2}>
-          <CheckboxComponent label='Après-Midi' value={conamdep} setValue={setApresMidiDepart} />
+          <CheckboxComponent label={t('common.afternoon')} value={conamdep} setValue={setApresMidiDepart} />
         </Grid>
 
         {/* Date Reprise (as TextField) */}
         <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label='Date Retour' value={conret} setValue={setDateReprise} />
+          <InputComponent type='date' label={t('common.dateEnd')} value={conret} setValue={setDateReprise} />
         </Grid>
 
         {/* Checkbox Après-Midi (Date Reprise) */}
         <Grid item xs={1.5} sm={1.4} mt={2}>
-          <CheckboxComponent label='Après-Midi' value={conamret} setValue={setApresMidiReprise} />
+          <CheckboxComponent label={t('common.afternoon')} value={conamret} setValue={setApresMidiReprise} />
         </Grid>
 
         {/* Imputation */}
         <Grid  item xs={1.5}>
-          <SelectInputComponent label='Imputation' value={abscod} setValue={setAbscod} maplist={absences} />
+          <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
         </Grid>
 
         
@@ -197,15 +199,15 @@ export default function AbsenceSanctionSaisie() {
         {/* Radio Buttons for Time Period */}
         <Grid marginTop={'20px'} item xs={4.5}>
           <RadioGroupComponent value={conjour} setValue={setTimePeriod}>
-            <FormControlLabelComponent radioValue='J' label='Toute la Journée' />
-            <FormControlLabelComponent radioValue='M' label='Les Matinées' />
-            <FormControlLabelComponent radioValue='A' label='Les Aprés-Midi' />
+            <FormControlLabelComponent radioValue='J' label={t('common.wholeDay')} />
+            <FormControlLabelComponent radioValue='M' label={t('common.morning')} />
+            <FormControlLabelComponent radioValue='A' label={t('common.afternoon')} />
           </RadioGroupComponent>
         </Grid>
 
         {/* Calculated Days (Read-Only) */}
         <Grid item xs={1}>
-          <InputComponent type='number' label='Nb.Jours' value={connbjour} setValue={setConnbjour} />
+          <InputComponent type='number' label={t('common.nbDays')} value={connbjour} setValue={setConnbjour} />
         </Grid>
 
         {/* Submit Button */}
@@ -213,7 +215,7 @@ export default function AbsenceSanctionSaisie() {
           <IconButton color="primary" aria-label="save" onClick={handleSubmit}>
             <SaveIcon />
           </IconButton>
-          <Button onClick={resetForm} color='secondary'>Nouveau</Button>
+          <Button onClick={resetForm} color='secondary'>{t('common.new')}</Button>
         </Grid>
       </Grid>
       <Snackbar open={isSnackbarOpen} autoHideDuration={1500} onClose={handleSnackbarClose}>

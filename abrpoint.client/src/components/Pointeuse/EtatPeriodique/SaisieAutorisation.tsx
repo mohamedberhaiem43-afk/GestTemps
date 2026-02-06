@@ -12,6 +12,7 @@ import {
   import dayjs, { Dayjs } from "dayjs";
   import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
   import { useState } from "react";
+import { useTranslation } from 'react-i18next';
   import SaveIcon from "@mui/icons-material/Save";
 import useGetAbsencesLibs from "../../../hooks/absenceHooks/useGetAbsenceLibs";
 import useAddSortie from "../../../hooks/sortieHooks/useAddSortie";
@@ -33,6 +34,7 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
     const [message, setMessage] = useState<string | null>(null);
     const [severity, setSeverity] = useState<'success' | 'error'>('success');
     const [writable,setWritable] = useState(true);
+    const { t } = useTranslation();
 
       const {data:absences = []} = useGetAbsencesLibs();
       const { mutate:addSortie } = useAddSortie();
@@ -124,18 +126,18 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
             <Grid item xs={7}>
               <Grid container spacing={2} alignItems="center" direction="row">
                 <Grid item xs={2}>
-                  <InputComponent readOnly={!writable} type='text' label='N° Ordre' value={concod} setValue={setConcod} />
+                  <InputComponent readOnly={!writable} type='text' label={t('common.orderNumber')} value={concod} setValue={setConcod} />
                 </Grid>
   
                 <Grid item xs={1.5}>
-                <InputComponent type='text' label='Réf' value={ref} setValue={setRef} />
+                <InputComponent type='text' label={t('common.ref')} value={ref} setValue={setRef} />
                 </Grid>
   
                 <Grid item xs={2}>
-                  <SelectInputComponent label='Imputation' value={abscod} setValue={setAbscod} maplist={absences} />
+                  <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
                 </Grid>
                 <Grid item xs={3}>
-                <InputComponent type='text' label='Motif' value={conmotif} setValue={setConmotif} />
+                <InputComponent type='text' label={t('common.reason')} value={conmotif} setValue={setConmotif} />
                 </Grid>
               </Grid>
             </Grid>
@@ -145,7 +147,7 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
                 <legend>Date</legend>
                 <Grid container item xs={5}>
                 <DatePicker
-                    label="Date"
+                    label={t('common.date')}
                     value={condat[0]}  // This ensures the selected date is displayed
                     onChange={(newDate) => setCondat([newDate, condat[1]])}  // This updates the selected date in state
                     format="DD/MM/YYYY"  // Enforce the desired format
@@ -155,7 +157,7 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
                 <Grid container item xs={4.5}>
                 <TimePicker
                   views={['hours', 'minutes', 'seconds']}
-                  label="Start Time"
+                  label={t('common.startTime')}
                   value={condat[0]} // This refers to the start date with time
                   onChange={(newValue) => setCondat([newValue, condat[1]])} // Update only the start time
                   
@@ -164,19 +166,19 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
                 <Grid container item xs={4.5}>
                 <TimePicker
                     views={['hours', 'minutes', 'seconds']}
-                    label="End Time"
+                    label={t('common.endTime')}
                     value={condat[1]} // This refers to the end date with time
                     onChange={(newValue) => setCondat([condat[0], newValue])} // Update only the end time
                   />
                 </Grid>
                 {/* Display the difference in hours */}
                 <Typography variant="h6" sx={{ mt: 2 }}>
-                {hoursDifference.toFixed(2)} <span className="heures-span"> Heures </span>
+                {hoursDifference.toFixed(2)} <span className="heures-span">{t('common.hours')}</span>
                 </Typography>
               </Box>
             </Grid>
             <Grid item xs={2} mt={-4} display={'flex'} justifyContent={'space-around'}>
-              <IconButton color="primary" aria-label="save" onClick={handleSave}>
+              <IconButton color="primary" aria-label={t('common.save')} onClick={handleSave}>
                 <SaveIcon />
               </IconButton>
               <Button onClick={resetForm} color="secondary">Nouveau</Button>

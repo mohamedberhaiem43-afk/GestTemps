@@ -1,4 +1,5 @@
 import { Box, Paper, Grid, Typography, TextField } from "@mui/material";
+import { useTranslation } from 'react-i18next';
 
 interface WeeklyHoursTableProps {
   weekRanges: { start: string; end: string }[];
@@ -38,6 +39,8 @@ const WeeklyHoursTable: React.FC<WeeklyHoursTableProps> = ({
     return hours.toFixed(2);
   };
 
+  const { t } = useTranslation();
+
   return (
     <Box mt={4}>
       <Paper elevation={1} sx={{ p: 2 }}>
@@ -52,7 +55,7 @@ const WeeklyHoursTable: React.FC<WeeklyHoursTableProps> = ({
           ))}
 
           <Grid item xs={2}>
-            <Typography fontWeight="bold" color="#1976d2">Date début</Typography>
+            <Typography fontWeight="bold" color="#1976d2">{t('weeklyHoursTable.dateStart')}</Typography>
           </Grid>
           {paddedWeekRanges.map((week, i) => (
             <Grid item xs={1.6} key={i}>
@@ -67,7 +70,7 @@ const WeeklyHoursTable: React.FC<WeeklyHoursTableProps> = ({
           ))}
 
           <Grid item xs={2}>
-            <Typography fontWeight="bold" color="#1976d2">Date fin</Typography>
+            <Typography fontWeight="bold" color="#1976d2">{t('weeklyHoursTable.dateEnd')}</Typography>
           </Grid>
           {paddedWeekRanges.map((week, i) => (
             <Grid item xs={1.6} key={i}>
@@ -82,7 +85,7 @@ const WeeklyHoursTable: React.FC<WeeklyHoursTableProps> = ({
           ))}
 
           <Grid item xs={2}>
-            <Typography fontWeight="bold" color="#1976d2">Nb. Heures</Typography>
+            <Typography fontWeight="bold" color="#1976d2">{t('weeklyHoursTable.hours')}</Typography>
           </Grid>
           {paddedWeeklyHours.map((hours, i) => (
             <Grid item xs={1.6} key={i}>

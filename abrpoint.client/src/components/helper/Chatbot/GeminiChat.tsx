@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { Send, SmartToy, Close, Refresh, Navigation } from '@mui/icons-material';
 import { Download } from '@mui/icons-material';
+import { useAuth } from '../AuthProvider';
 
 interface Message {
   role: 'user' | 'model';
@@ -88,7 +89,7 @@ Posez-moi une question!`
     navigate(path);
     setIsOpen(false);
   };
-
+  const { soccod } = useAuth();
   const extractNavigationFromResponse = (text: string): { path: string; label: string } | null => {
     // Détecter les chemins de navigation dans la réponse
     const navigationPatterns = [
@@ -161,7 +162,8 @@ Posez-moi une question!`
         messages: conversationHistory,
         newMessage: currentInput,
         query: currentInput,
-        currentPage: location.pathname
+        currentPage: location.pathname,
+        soccod: soccod
       })
       });
 
@@ -175,7 +177,6 @@ Posez-moi une question!`
       }
 
       const data = await response.json();
-      console.log('Backend response:', data);
       
       if (data.response) {
         const responseText = data.response;

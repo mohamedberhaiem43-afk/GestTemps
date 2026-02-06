@@ -10,7 +10,7 @@ export default function  TitreConge (){
 
   return (
     <QueryClientProvider client={queryClient}>
-        <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'} mt={-2} >
+        <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'} mt={-10} >
           <CongeProvider>
             <Grid item xs={12}>
               <TitreCongeForm titre="Titre de Congés" />

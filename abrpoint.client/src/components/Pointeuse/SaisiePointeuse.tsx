@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { Box, Grid, InputLabel, Input, IconButton, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import { Pointeuse } from "../../models/PointeuseModel";
@@ -73,13 +74,15 @@ const handleSelectChange = (e: SelectChangeEvent) => {
     }));
   };
 
+  const { t } = useTranslation();
+
   return (
     <>
       <Box component="form" onSubmit={handleSubmit}>
         <Grid container spacing={2}>
 
           <Grid item xs={1} sm={1.5}>
-            <InputLabel shrink>Code</InputLabel>
+            <InputLabel shrink>{t('common.code')}</InputLabel>
             <Input
               name="poicod"
               size="small"
@@ -93,7 +96,7 @@ const handleSelectChange = (e: SelectChangeEvent) => {
 
           {/* Libellé (poilib) */}
           <Grid item xs={2} sm={1}>
-            <InputLabel shrink>Libellé</InputLabel>
+            <InputLabel shrink>{t('common.label')}</InputLabel>
             <Input
               name="poilib"
               size="small"

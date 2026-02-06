@@ -29,9 +29,11 @@ import { useAuth } from '../../helper/AuthProvider';
 import { getDatePart1 } from '../../helper/TimeConverter/ExtractDateOnly';
 import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 import getTodayDate from '../../helper/TimeConverter/TodayDate';
+import { useTranslation } from 'react-i18next';
 
 export default function AllaitementSaisie() {
   const { selectedAllaitement,setSelectedAllaitement } = useAllaitementContext();  // Using context to get selected Allaitement and hoursData
+  const { t } = useTranslation();
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [empcod,setEmpcod] = useState<string>('');
@@ -160,7 +162,7 @@ const onSubmit = async (data: AllaitementModel) => {
                 control={control}
                 render={({ field }) => (
                   <SelectInputComponent
-                    label={'Employé'}
+                    label={t('allaitement.form.employee') || 'Employé'}
                     value={field.value}
                     setValue={field.onChange}
                     maplist={employes}
@@ -172,7 +174,7 @@ const onSubmit = async (data: AllaitementModel) => {
 
               {/* N° Ordre */}
               <Grid item xs={1.5} mt={0.5}>
-                <InputLabel shrink>N° Ordre</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.order') || 'N° Ordre'}</InputLabel>
                 <Controller
                   name="concod"
                   control={control}
@@ -191,7 +193,7 @@ const onSubmit = async (data: AllaitementModel) => {
 
               {/* Date */}
               <Grid item xs={2.5}>
-                <InputLabel shrink>Date</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.date') || 'Date'}</InputLabel>
                 <Controller
                   name="condat"
                   control={control}
@@ -208,7 +210,7 @@ const onSubmit = async (data: AllaitementModel) => {
 
               {/* Date Départ */}
               <Grid item xs={2.5}>
-                <InputLabel shrink>Date Départ</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.startDate') || 'Date Départ'}</InputLabel>
                 <Controller
                   name="condep"
                   control={control}
@@ -225,7 +227,7 @@ const onSubmit = async (data: AllaitementModel) => {
 
               {/* Date Retour */}
               <Grid item xs={2.5}>
-                <InputLabel shrink>Date Retour</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.endDate') || 'Date Retour'}</InputLabel>
                 <Controller
                   name="conret"
                   control={control}
@@ -241,7 +243,7 @@ const onSubmit = async (data: AllaitementModel) => {
               </Grid>
               {/* N° Ordre */}
               <Grid item xs={1.5} mt={0.5}>
-                <InputLabel shrink>Lundi</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.monday') || 'Lundi'}</InputLabel>
                 <Controller
                   name="lundi"
                   control={control}
@@ -259,7 +261,7 @@ const onSubmit = async (data: AllaitementModel) => {
                 />
               </Grid>
               <Grid item xs={1.5} mt={0.5}>
-                <InputLabel shrink>Mardi</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.tuesday') || 'Mardi'}</InputLabel>
                 <Controller
                   name="mardi"
                   control={control}
@@ -277,7 +279,7 @@ const onSubmit = async (data: AllaitementModel) => {
                 />
               </Grid>
               <Grid item xs={1.5} mt={0.5}>
-                <InputLabel shrink>Mercredi</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.wednesday') || 'Mercredi'}</InputLabel>
                 <Controller
                   name="mercredi"
                   control={control}
@@ -295,7 +297,7 @@ const onSubmit = async (data: AllaitementModel) => {
                 />
               </Grid>
               <Grid item xs={1.5} mt={0.5}>
-                <InputLabel shrink>Jeudi</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.thursday') || 'Jeudi'}</InputLabel>
                 <Controller
                   name="jeudi"
                   control={control}
@@ -312,7 +314,7 @@ const onSubmit = async (data: AllaitementModel) => {
                 />
               </Grid>
               <Grid item xs={1.5} mt={0.5}>
-                <InputLabel shrink>Vendredi</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.friday') || 'Vendredi'}</InputLabel>
                 <Controller
                   name="vendredi"
                   control={control}
@@ -329,7 +331,7 @@ const onSubmit = async (data: AllaitementModel) => {
                 />
               </Grid>
               <Grid item xs={1.5} mt={0.5}>
-                <InputLabel shrink>Samedi</InputLabel>
+                <InputLabel shrink>{t('allaitement.form.saturday') || 'Samedi'}</InputLabel>
                 <Controller
                   name="samedi"
                   control={control}

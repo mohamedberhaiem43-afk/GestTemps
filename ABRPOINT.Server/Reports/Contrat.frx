@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="01/12/2026 17:03:25" ReportInfo.Modified="01/12/2026 20:25:41" ReportInfo.CreatorVersion="2024.1.7.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="01/12/2026 17:03:25" ReportInfo.Modified="01/29/2026 12:12:17" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqAFHGp6KQj27H4qUwAIR20hSnyrpNtgmeY+I5zyTmYE0HuZfX1hs9fAqnt4DRtzHm6rgmUW5jqSG1QnBcPDOxCmGAUt6xdCOa+Pz3gs9EUDo42l2k0kGVESqqjpXvJYc2Q4Q6jXj0ELzxBVLjkVF4dAGrVSVPPvanKoBM7W5S2JGEKfuaCeydvS0vtQ1o2wHRPPHFVTq/xz2LV8LJZ6MMTGRkvDD1+/g/PJfeRjVAlwCEQLDbmGE4a+NJBbptiSnG">
-      <TableDataSource Name="Table" DataType="System.Int32" Enabled="true" SelectCommand="select e.empcod,e.emplib,e.empcin,e.empadr, e.empsbase&#13;&#10;,s.soccod,s.soclib,s.socadr&#13;&#10;from employe e,societe s&#13;&#10;where e.empcod=@empcod and s.soccod=@soccod and e.soccod=s.soccod">
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqAFHGp6KQj27H4qUwAIR20hSnyrpNtgmeY+I5zyTmYE0HuZfX1hs9fAqnt4DRtzHm6rgmUW5jqSG1QnBcPDOxCmGAUt6xdCOa+Pz3gs9EUDo42l2k0kGVESqqjpXvJYc2Q4Q6jXj0ELzxBVLjkVF4dAGrVSVPPvanKoBM7W5S2JGEKfuaCeydvS0vtQ1o2wHRPPHFVTq/xz2LV8LJZ6MMTGRkvDD1+/g/PJfeRjVAlwChTjLqcZ7oXLpGt0y3p13F">
+      <TableDataSource Name="Table" DataType="System.Int32" Enabled="true" SelectCommand="select e.empcod, e.emplib, e.empcin, e.empadr, e.empsbase, e.empemb, e.empsort,e.empdcin,&#13;&#10;       sit.sitlib, dir.dirlib,&#13;&#10;       s.soccod, s.soclib, s.socadr&#13;&#10;from employe e&#13;&#10;inner join societe s on e.soccod = s.soccod&#13;&#10;left join site sit on e.sitcod = sit.sitcod and sit.soccod = e.soccod&#13;&#10;left join direction dir on e.dircod = dir.dircod and dir.soccod = e.soccod&#13;&#10;where e.empcod = @empcod &#13;&#10;  and s.soccod = @soccod">
         <Column Name="empcod" DataType="System.String"/>
         <Column Name="emplib" DataType="System.String"/>
         <Column Name="empcin" DataType="System.String"/>
@@ -11,33 +11,40 @@
         <Column Name="soclib" DataType="System.String"/>
         <Column Name="socadr" DataType="System.String"/>
         <Column Name="empsbase" DataType="System.Double"/>
+        <Column Name="sitlib" DataType="System.String"/>
+        <Column Name="dirlib" DataType="System.String"/>
+        <Column Name="empemb" DataType="System.DateTime"/>
+        <Column Name="empsort" DataType="System.DateTime"/>
+        <Column Name="empdcin" DataType="System.DateTime"/>
         <CommandParameter Name="empcod" DataType="22" Expression="[empcod]"/>
         <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
       </TableDataSource>
     </MsSqlDataConnection>
   </Dictionary>
   <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
-    <ReportTitleBand Name="ReportTitle1" Width="718.2"/>
-    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="718.2" Height="94.5">
+    <ReportTitleBand Name="ReportTitle1" Width="718.2" Height="94.5">
       <ShapeObject Name="Shape1" Width="718.2" Height="94.5"/>
-      <TextObject Name="Text1" Left="236.25" Top="9.45" Width="274.05" Height="56.7" Text="CONTRAT DE TRAVAIL A DUREE DETERMINEE" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text2" Left="567" Top="9.45" Width="132.3" Height="18.9" Text="Le: [DateTime.Now.Day]/[DateTime.Now.Month]/[DateTime.Now.Year]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text3" Left="311.85" Top="66.15" Width="94.5" Height="18.9" Text="[Table.empcod]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text30" Left="9.45" Top="9.45" Width="151.2" Height="18.9" Text="[UpperCase([Table.soclib])]" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text31" Left="9.45" Top="47.25" Width="151.2" Height="18.9" Text="[UpperCase([Table.socadr])]" Font="Arial, 10pt"/>
-    </PageHeaderBand>
+      <TextObject Name="Text2" Left="529.2" Top="9.45" Width="132.3" Height="18.9" Text="Le: [DateTime.Now.Day]/[DateTime.Now.Month]/[DateTime.Now.Year]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text1" Left="217.35" Top="9.45" Width="302.4" Height="56.7" Text="CONTRAT DE TRAVAIL A DUREE DETERMINEE" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text30" Left="-9.45" Top="9.45" Width="226.8" Height="28.35" Text="[UpperCase([Table.soclib])]" HorzAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text31" Left="-9.45" Top="47.25" Width="226.8" Height="47.25" Text="[UpperCase([Table.socadr])]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text3" Left="302.4" Top="66.15" Width="141.75" Height="18.9" Text="[Table.empcod]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <LineObject Name="Line1" Left="226.8" Height="94.5"/>
+      <LineObject Name="Line2" Left="529.2" Height="94.5"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="97.7" Width="718.2"/>
     <DataBand Name="Data1" Top="100.9" Width="718.2" Height="1294.65" DataSource="Table">
-      <TextObject Name="Text4" Left="9.45" Top="9.45" Width="302.4" Height="18.9" Text="Le présent contrat de travail est conclu entre :" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text4" Left="9.45" Top="9.45" Width="302.4" Height="18.9" Text="Le présent contrat de travail est conclu entre :" VertAlign="Center" Font="Arial, 10pt"/>
       <TextObject Name="Text5" Left="9.45" Top="47.25" Width="94.5" Height="18.9" Text="1- La Société" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text6" Left="103.95" Top="47.25" Width="85.05" Height="18.9" Text="[Table.soclib]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text7" Left="198.45" Top="47.25" Width="66.15" Height="18.9" Text="sise" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text8" Left="274.05" Top="47.25" Width="103.95" Height="18.9" Text="[Table.emplib]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text9" Left="406.35" Top="47.25" Width="179.55" Height="18.9" Text="d'une part&#13;&#10;" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text6" Left="103.95" Top="47.25" Width="170.1" Height="18.9" Text="[Table.soclib]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text7" Left="302.4" Top="47.25" Width="66.15" Height="18.9" Text="sise" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text8" Left="378" Top="47.25" Width="103.95" Height="18.9" Text="[Table.emplib]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text9" Left="510.3" Top="47.25" Width="179.55" Height="18.9" Text="d'une part&#13;&#10;" VertAlign="Center" Font="Arial, 10pt"/>
       <TextObject Name="Text10" Left="9.45" Top="85.05" Width="151.2" Height="18.9" Text="2- Monsieur/Mme/Mlle" VertAlign="Center" Font="Arial, 10pt"/>
       <TextObject Name="Text11" Left="160.65" Top="85.05" Width="113.4" Height="18.9" Text="[Table.emplib]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text12" Left="283.5" Top="85.05" Width="434.7" Height="18.9" Text="; CIN n° : [Table.empcin] délivré le : 01/01/2010 ayant élu domicile à : " VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text13" Left="226.8" Top="122.85" Width="94.5" Height="18.9" Text="d'autre part" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text14" Left="9.45" Top="122.85" Width="207.9" Height="18.9" Text="[Table.socadr]" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text12" Left="283.5" Top="85.05" Width="434.7" Height="18.9" Text="; CIN n° : [Table.empcin] délivré le : [FormatDateTime([Table.empdcin],&quot;dd/MM/yyyy&quot;)] ayant élu domicile à : &#13;&#10;" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text13" Left="311.85" Top="122.85" Width="94.5" Height="18.9" Text="d'autre part" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text14" Left="9.45" Top="122.85" Width="292.95" Height="18.9" Text="[Table.socadr]" VertAlign="Center" Font="Arial, 10pt"/>
       <TextObject Name="Text15" Left="9.45" Top="179.55" Width="699.3" Height="37.8" Text="Pour l'exécution du présent contrat et de ses suites, les parties font élection de domicile à leurs adresses respectives sus-indiquées.&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;" Font="Arial, 10pt"/>
       <TextObject Name="Text16" Left="9.45" Top="1030.05" Width="661.5" Height="264.6" Text="Le présent contrat prendra fin sans préavis ni indemnité dans l’un des cas suivants :&#13;&#10;- Expiration du délai du contrat&#13;&#10;- Faute grave commise par l’employé et stipulée par le code de travail&#13;&#10;- Non respect par l’employé de ses engagements et devoirs.&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;Directeur Ressources Humaines	                                               L’employé(e)&#13;&#10;&#13;&#10;" Font="Arial, 10pt"/>
       <TextObject Name="Text17" Left="18.9" Top="982.8" Width="226.8" Height="18.9" Text="Artcile 7 : Fin du contrat" Font="Arial, 10pt, style=Bold, Underline">
@@ -51,13 +58,13 @@
       <TextObject Name="Text21" Left="9.45" Top="756" Width="217.35" Height="18.9" Text="Article 5 : Rémunération :&#13;&#10;" Font="Arial, 10pt, style=Bold, Underline"/>
       <TextObject Name="Text22" Left="9.45" Top="661.5" Width="699.3" Height="94.5" Text="Le contrat de  Monsieur/Mme [Table.emplib] est régi par les dispositions légales et conventionnelles applicables à l'entreprise, il est soumis au régime 48 h, Monsieur/Mme [Table.emplib] bénéficiera d’un jour de congé hebdomadaire désigné selon les nécessités de travail." Font="Arial, 10pt"/>
       <TextObject Name="Text23" Left="9.45" Top="633.15" Width="217.35" Height="18.9" Text="Article 4 : Dispositions divers :&#13;&#10;" Font="Arial, 10pt, style=Bold, Underline"/>
-      <TextObject Name="Text24" Left="9.45" Top="548.1" Width="699.3" Height="75.6" Text="&#13;&#10;Monsieur/Mme AOUAY NIHEL  s’engage à exercer ses fonctions à ADM SIEGE  ou dans tout autre lieu qui lui sera désigné par la Direction Général sans que ce changement ne lui ouvre droit à aucune réparation ou indemnisation de quelque nature qu’elle soit.&#13;&#10;" Font="Arial, 10pt"/>
+      <TextObject Name="Text24" Left="9.45" Top="548.1" Width="699.3" Height="75.6" Text="&#13;&#10;Monsieur/Mme [Table.emplib]  s’engage à exercer ses fonctions à [Table.socadr]  ou dans tout autre lieu qui lui sera désigné par la Direction Général sans que ce changement ne lui ouvre droit à aucune réparation ou indemnisation de quelque nature qu’elle soit.&#13;&#10;" Font="Arial, 10pt"/>
       <TextObject Name="Text25" Left="9.45" Top="529.2" Width="217.35" Height="18.9" Text="Article 3 : Lieu de travail :&#13;&#10;" Font="Arial, 10pt, style=Bold, Underline"/>
       <TextObject Name="Text26" Left="18.9" Top="340.2" Width="689.85" Height="160.65" Text="Monsieur/Mme : [Table.emplib] s’engage à respecter :&#13;&#10;-	Les horaires du travail&#13;&#10;-	Le secret professionnel dont il/elle pourrait prendre connaissance à l’occasion de l’exercice de ses fonctions.&#13;&#10;-	Ses collègues et ses supérieurs hiérarchiques.&#13;&#10;&#13;&#10;     En outre, il/elle doit veiller au :&#13;&#10;-	Bon fonctionnement du service ou du département auquel il/elle est affecté(e).&#13;&#10;-	Au respect du règlement intérieur de la société qui constitue une partie intégrante du contrat et dont il reconnaît avoir pris connaissance lors de son embauche." Font="Arial, 10pt"/>
       <TextObject Name="Text27" Left="9.45" Top="311.85" Width="292.95" Height="18.9" Text="Article 2 : Obligations Professionnelles :" Font="Arial, 10pt, style=Bold, Underline"/>
-      <TextObject Name="Text28" Left="9.45" Top="264.6" Width="699.3" Height="47.25" Text="La société sus indiquée accepte d’engager Monsieur : AOUAY NIHEL en qualité : DIRECTEUR D'USINE&#13;&#10;pour une durée allant du 01/01/2009 au 31/12/2099." Font="Arial, 10pt"/>
+      <TextObject Name="Text28" Left="9.45" Top="264.6" Width="699.3" Height="47.25" Text="La société sus indiquée accepte d’engager Monsieur : [Table.emplib] en qualité : DIRECTEUR D'[Table.dirlib]&#13;&#10;pour une durée allant du [FormatDateTime([Table.empemb],&quot;dd/MM/yyyy&quot;)] au [FormatDateTime([Table.empsort],&quot;dd/MM/yyyy&quot;)]&#13;&#10;&#13;&#10;" Font="Arial, 10pt"/>
       <TextObject Name="Text29" Left="9.45" Top="236.25" Width="292.95" Height="18.9" Text="Article 1 : Duréé du contrat" Font="Arial, 10pt, style=Bold, Underline"/>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="1398.75" Width="718.2"/>
+    <PageFooterBand Name="PageFooter1" Top="1398.75" Width="718.2" Height="18.9"/>
   </ReportPage>
 </Report>

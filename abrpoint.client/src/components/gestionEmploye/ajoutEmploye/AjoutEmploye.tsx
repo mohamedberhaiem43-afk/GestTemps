@@ -13,9 +13,11 @@ import SaveIcon from '@mui/icons-material/Save';
 import useAddEmploye from '../../../hooks/employeHooks/useAddEmploye';
 import useUpdateEmploye from '../../../hooks/employeHooks/useUpdateEmploye';
 import { useAuth } from '../../helper/AuthProvider';
+import { useTranslation } from 'react-i18next';
 
 export default function BasicGrid() {
   const { soccod } = useAuth();
+  const { t } = useTranslation();
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [severity, setSeverity] = useState<'success' | 'error'>();
@@ -145,13 +147,13 @@ export default function BasicGrid() {
       
       addEmploye(employeToSave, {
         onSuccess: (res: any) => {
-          setMessage(res.message || 'Employé ajouté avec succès');
+          setMessage(res.message || t('employe.addSuccess'));
           setSeverity('success');
           setIsSnackbarOpen(true);
         },
         onError: (error: any) => {
           console.error('Error saving employee:', error);
-          const errorMessage = error?.response?.data?.message || 'Erreur lors de l\'ajout';
+          const errorMessage = error?.response?.data?.message || t('employe.addError');
           setMessage(errorMessage);
           setSeverity('error');
           setIsSnackbarOpen(true);
@@ -159,7 +161,7 @@ export default function BasicGrid() {
       });
     } catch (error) {
       console.error('Error preparing employee data:', error);
-      setMessage('Erreur lors de la préparation des données');
+      setMessage(t('employe.prepareError'));
       setSeverity('error');
       setIsSnackbarOpen(true);
     }
@@ -181,13 +183,13 @@ export default function BasicGrid() {
       
       updateEmploye(employeToUpdate, {
         onSuccess: (res: any) => {
-          setMessage(res.message || 'Employé modifié avec succès');
+          setMessage(res.message || t('employe.updateSuccess'));
           setSeverity('success');
           setIsSnackbarOpen(true);
         },
         onError: (error: any) => {
           console.error('Error updating employee:', error);
-          const errorMessage = error?.response?.data?.message || 'Erreur lors de la modification';
+          const errorMessage = error?.response?.data?.message || t('employe.updateError');
           setMessage(errorMessage);
           setSeverity('error');
           setIsSnackbarOpen(true);
@@ -208,7 +210,7 @@ export default function BasicGrid() {
       <EmployeeProvider>
         <Box sx={{ flexGrow: 1 }} maxWidth={'97vw'} mt={-2} height={'55vh'}>
           <Grid item sx={{ float: 'right' }} position={'fixed'} top={60} right={0}>
-            <Tooltip title={mode === 'save' ? 'Enregistrer' : 'Modifier'}>
+            <Tooltip title={mode === 'save' ? t('employe.save') : t('employe.update')}>
               <IconButton color="primary" onClick={mode === 'save' ? saveEmp : updateEmp}>
                 <Button
                   variant="contained"
@@ -224,7 +226,7 @@ export default function BasicGrid() {
             <Grid item xs={12} maxHeight={50}>
               <Item>
                 <EmployeDetails 
-                  onCombinedDataChange={handleCombinedDataChange} 
+                  onCombinedDataChange={handleCombinedDataChange}
                   empData={employeData} 
                 />
               </Item>

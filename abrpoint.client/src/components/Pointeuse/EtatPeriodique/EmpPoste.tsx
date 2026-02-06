@@ -1,4 +1,5 @@
 import { Box, CircularProgress, Grid } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import InputComponent from '../../Inputs/Input';
 import useGetEmployePoste from '../../../hooks/posteHooks/useGetEmployePoste';
 import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
@@ -9,6 +10,7 @@ import useGetEmpPosteByDate from '../../../hooks/employeHooks/useGetEmpPoste';
 
 const EmpPoste = () => {
   const { selectedEmpPoste, date: contextDate,selectedEmp,arrondi,arrondisup } = useContext(EmployeeContext);
+  const { t } = useTranslation();
   
   // Determine if we have a codposte or need to fetch it
   const hasCodePoste = selectedEmpPoste?.codposte && selectedEmpPoste.codposte.trim() !== '';
@@ -18,7 +20,6 @@ const EmpPoste = () => {
     selectedEmpPoste?.codposte || '', 
     selectedEmpPoste?.day || '',
   );
-  
   const { data: dataFromDate, isLoading: isLoadingDate } = useGetEmpPosteByDate(
     selectedEmp || '',
     contextDate || '',
@@ -46,12 +47,12 @@ const EmpPoste = () => {
           <Box sx={{ display: 'table', width: '100%', maxWidth: 250, border: '1px solid #ccc', borderRadius: 1 }}>
             <Box sx={{ display: 'table-row', bgcolor: '#f0f0f0' }}>
               <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}></Box>
-              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}>Entrée</Box>
-              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}>Sortie</Box>
+              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}>{t('empEtatPeriodique.empPoste.entry')}</Box>
+              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}>{t('empEtatPeriodique.empPoste.exit')}</Box>
             </Box>
 
             <Box sx={{ display: 'table-row' }}>
-              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold', color: 'primary.main' }}>Matin</Box>
+              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold', color: 'primary.main' }}>{t('empEtatPeriodique.empPoste.morning')}</Box>
               <Box sx={{ display: 'table-cell', p: 1 }}>
                 <InputComponent type="text" label="" value={poste.jourhdmat ?? ''} readOnly />
               </Box>
@@ -61,7 +62,7 @@ const EmpPoste = () => {
             </Box>
 
             <Box sx={{ display: 'table-row' }}>
-              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold', color: 'primary.main' }}>A.Midi</Box>
+              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold', color: 'primary.main' }}>{t('empEtatPeriodique.empPoste.afternoon')}</Box>
               <Box sx={{ display: 'table-cell', p: 1 }}>
                 <InputComponent type="text" label="" value={poste.jourhdam ?? ''} readOnly />
               </Box>
@@ -75,12 +76,12 @@ const EmpPoste = () => {
           <Box sx={{ display: 'table', width: '100%', maxWidth: 310, border: '1px solid #ccc', borderRadius: 1 }}>
             <Box sx={{ display: 'table-row', bgcolor: '#f0f0f0' }}>
               <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}></Box>
-              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}>Tolérance Entrée</Box>
-              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}>Tolérance Sortie</Box>
+              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}>{t('empEtatPeriodique.empPoste.toleranceEntry')}</Box>
+              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold' }}>{t('empEtatPeriodique.empPoste.toleranceExit')}</Box>
             </Box>
 
             <Box sx={{ display: 'table-row' }}>
-              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold', color: 'primary.main' }}>Avant</Box>
+              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold', color: 'primary.main' }}>{t('common.before')}</Box>
               <Box sx={{ display: 'table-cell', p: 1 }}>
                 <InputComponent type='text' label='' value={poste.avantent?.toString() ?? ''} readOnly />
               </Box>
@@ -90,7 +91,7 @@ const EmpPoste = () => {
             </Box>
 
             <Box sx={{ display: 'table-row' }}>
-              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold', color: 'primary.main' }}>Après</Box>
+              <Box sx={{ display: 'table-cell', p: 1, fontWeight: 'bold', color: 'primary.main' }}>{t('common.after')}</Box>
               <Box sx={{ display: 'table-cell', p: 1 }}>
                 <InputComponent type='text' label='' value={poste.apresent?.toString() ?? ''} readOnly />
               </Box>
@@ -103,22 +104,22 @@ const EmpPoste = () => {
           {/* Informations supplémentaires */}
           <Grid container spacing={2}>
             <Grid item xs={3}>
-              <InputComponent type='text' label='Classe' value={poste.soccod ?? ''} readOnly />
+              <InputComponent type='text' label={t('empEtatPeriodique.empPoste.class')} value={poste.soccod ?? ''} readOnly />
             </Grid>
             <Grid item xs={3}>
-              <InputComponent type='text' label='Poste' value={poste.codposte ?? ''} readOnly />
+              <InputComponent type='text' label={t('empEtatPeriodique.empPoste.post')} value={poste.codposte ?? ''} readOnly />
             </Grid>
             <Grid item xs={3}>
-              <InputComponent type='text' label='Repas' value={poste.jourrepas?.toString() ?? ''} readOnly />
+              <InputComponent type='text' label={t('empEtatPeriodique.empPoste.meal')} value={poste.jourrepas?.toString() ?? ''} readOnly />
             </Grid>
             <Grid item xs={2} mt={2}>
-              <CheckboxComponent label="Repos" value={poste?.jourrepos === '1'} setValue={() => poste?.jourrepos} />
+              <CheckboxComponent label={t('common.rest')} value={poste?.jourrepos === '1'} setValue={() => poste?.jourrepos} />
             </Grid>
             <Grid item xs={2}>
-              <InputComponent type='text' label='Arrondi' value={arrondi} readOnly />
+              <InputComponent type='text' label={t('empEtatPeriodique.empPoste.round')} value={arrondi} readOnly />
             </Grid>
             <Grid item xs={2}>
-              <InputComponent type='text' label='Arrondi Sup' value={arrondisup} readOnly />
+              <InputComponent type='text' label={t('empEtatPeriodique.empPoste.roundSup')} value={arrondisup} readOnly />
             </Grid>
           </Grid>
         </Box>

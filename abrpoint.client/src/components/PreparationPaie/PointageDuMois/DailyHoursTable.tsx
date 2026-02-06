@@ -1,5 +1,7 @@
 // DailyHoursTable.tsx
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { t } from 'i18next';
+import { useTranslation } from 'react-i18next';
 // Add to your models
 export interface DailyHours {
   jour: string;
@@ -13,7 +15,8 @@ interface DailyHoursTableProps {
 
 const DailyHoursTable = ({ dailyHours }: DailyHoursTableProps) => {
   if (!dailyHours || dailyHours.length === 0) {
-    return <div>No daily hours data available</div>;
+    const { t } = useTranslation();
+    return <div>{t('dailyHours.noData')}</div>;
   }
 
   return (
@@ -21,9 +24,9 @@ const DailyHoursTable = ({ dailyHours }: DailyHoursTableProps) => {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Jour</TableCell>
-            <TableCell>Date</TableCell>
-            <TableCell>Heures Travaillées</TableCell>
+            <TableCell>{t('dailyHours.day')}</TableCell>
+            <TableCell>{t('dailyHours.date')}</TableCell>
+            <TableCell>{t('dailyHours.hoursWorked')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

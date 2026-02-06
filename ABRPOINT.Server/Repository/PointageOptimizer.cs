@@ -91,14 +91,14 @@ namespace ABRPOINT.Server.Repository
                 // 🔹 Décaler si première entrée vide
                 foreach (var item in presences)
                 {
-                    var lpoint = await _context.Lpointjours
-                        .FirstOrDefaultAsync(lp =>
-                            lp.Soccod == soccod &&
-                            lp.Empcod == item.Empcod &&
-                            lp.Saljour == item.Predat);
+                    //var lpoint = await _context.Lpointjours
+                    //    .FirstOrDefaultAsync(lp =>
+                    //        lp.Soccod == soccod &&
+                    //        lp.Empcod == item.Empcod &&
+                    //        lp.Saljour == item.Predat);
 
-                    if (lpoint != null)
-                        continue;
+                    //if (lpoint != null)
+                    //    continue;
 
                     if (string.IsNullOrEmpty(item.Preentmatup))
                     {
@@ -164,7 +164,7 @@ namespace ABRPOINT.Server.Repository
                         var presenceDto = _mapper.Map<Presence, PresenceDto>(item);
                         item.Tothsup = GenericMethodes.ConvertDoubleToHHmm((float?)await _heuresSuppService
                             .CalculateHeureSuppOptimise(presenceDto, allPostes.Where(p => p.Soccod == soccod && p.Codposte == closestPoste.Codposte).First()));
-                        var hretrav = await _heuresService.CalcHreTrav(presenceDto);
+                        var hretrav = await _heuresService.CalcHreTravOptimise(presenceDto);
                         item.Tothre = hretrav;
                         AutDto autorisation = await _autorisationRepository.GetAutLib(soccod, item.Empcod, (DateTime)item.Predat);
                         item.Tothabs = GenericMethodes.ConvertDoubleToHHmm(await _heuresAbsenceService.CalculateHeureAbsences(item, soccod, item.Codposte, item.Predat, autorisation,GenericMethodes.ConvertHHmmToDouble(hretrav)));
@@ -271,13 +271,14 @@ namespace ABRPOINT.Server.Repository
         // 🔹 HELPER : Récupérer la dernière heure de sortie de la présence
         private TimeSpan? GetLastExitTime(Presence presence)
         {
+            if (!string.IsNullOrEmpty(presence.Presortmatup) &&
+                TimeSpan.TryParse(presence.Presortmatup, out TimeSpan sortmat))
+                return sortmat;
+
             if (!string.IsNullOrEmpty(presence.Presortamidiup) &&
                 TimeSpan.TryParse(presence.Presortamidiup, out TimeSpan sortam))
                 return sortam;
 
-            if (!string.IsNullOrEmpty(presence.Presortmatup) &&
-                TimeSpan.TryParse(presence.Presortmatup, out TimeSpan sortmat))
-                return sortmat;
 
             return null;
         }

@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Models;
+﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Models;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
@@ -52,7 +53,107 @@ namespace ABRPOINT.Helper
                 ? numericPart.PadLeft((int)requiredLength, '0')
                 : numericPart; // If longer than required, keep as is or truncate based on business rules
         }
+        public static EmpparamPointageMois EnrichEmpparamWithPoste(EmpparamPointageMois baseParam, DateTime date, string codPoste, Dictionary<string, Poste> postesCache)
+        {
+            // Cloner les paramètres de base
+            var enriched = new EmpparamPointageMois
+            {
+                Emppanier = baseParam.Emppanier,
+                Empmaxhre = baseParam.Empmaxhre,
+                Empmaxjour = baseParam.Empmaxjour,
+                Empminhjour = baseParam.Empminhjour
+            };
 
+            // Enrichir avec les paramètres du poste si disponible
+            if (!string.IsNullOrEmpty(codPoste) &&
+                postesCache.TryGetValue(codPoste, out var poste))
+            {
+                var dayOfWeek = date.DayOfWeek;
+
+                switch (dayOfWeek)
+                {
+                    case DayOfWeek.Monday:
+                        enriched.PosteMaxhre = poste.Maxhrelun;
+                        enriched.PosteMinhJour = poste.Minhjourlun;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourlun;
+                        break;
+                    case DayOfWeek.Tuesday:
+                        enriched.PosteMaxhre = poste.Maxhremar;
+                        enriched.PosteMinhJour = poste.Minhjourmar;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourmar;
+                        break;
+                    case DayOfWeek.Wednesday:
+                        enriched.PosteMaxhre = poste.Maxhremer;
+                        enriched.PosteMinhJour = poste.Minhjourmer;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourmer;
+                        break;
+                    case DayOfWeek.Thursday:
+                        enriched.PosteMaxhre = poste.Maxhrejeu;
+                        enriched.PosteMinhJour = poste.Minhjourjeu;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourjeu;
+                        break;
+                    case DayOfWeek.Friday:
+                        enriched.PosteMaxhre = poste.Maxhreven;
+                        enriched.PosteMinhJour = poste.Minhjourven;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourven;
+                        break;
+                    case DayOfWeek.Saturday:
+                        enriched.PosteMaxhre = poste.Maxhresam;
+                        enriched.PosteMinhJour = poste.Minhjoursam;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijoursam;
+                        break;
+                    case DayOfWeek.Sunday:
+                        enriched.PosteMaxhre = poste.Maxhredim;
+                        enriched.PosteMinhJour = poste.Minhjourdim;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourdim;
+                        break;
+                }
+            }
+
+            return enriched;
+        }
+        public static double journeeTime(float dayworkhours, EmpparamPointageMois empparam)
+        {
+            // PRIORITÉ 1: Utiliser les paramètres de l'employé (comportement actuel)
+            if (empparam.Empminhjour != 0)
+            {
+                if (dayworkhours <= empparam.Empminhjour && dayworkhours > 1)
+                    return 0.5;
+                else
+                    return 1;
+            }
+            // PRIORITÉ 2: Utiliser les paramètres du poste si disponibles
+            if (empparam.PosteMinhJour.HasValue && empparam.PosteMinhDemiJour.HasValue)
+            {
+                if (dayworkhours >= empparam.PosteMinhJour.Value)
+                    return 1; // Journée complète
+                else if (dayworkhours >= empparam.PosteMinhDemiJour.Value)
+                    return 0.5; // Demi-journée
+                else
+                    return 0; // Pas de journée comptée
+            }
+
+            return 1;
+        }
+        public static float CalculateHoursWithLimits(Presence presence, EmpparamPointageMois empparam)
+        {
+            float actualHours = 0;
+            if(!string.IsNullOrEmpty(presence.Tothre))
+                actualHours = (float)GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+
+            // Limite 1: Maximum de l'employé (si configuré)
+            if (empparam.Empmaxhre != 0)
+                actualHours = MathF.Min(actualHours, (float)empparam.Empmaxhre);
+
+            // Limite 2: Maximum du poste pour ce jour (si configuré)
+            if (!string.IsNullOrEmpty(empparam.PosteMaxhre) &&
+                float.TryParse(empparam.PosteMaxhre, out var maxPosteHours))
+            {
+                actualHours = MathF.Min(actualHours, maxPosteHours);
+            }
+
+            return actualHours;
+        }
         public static string GetElementText(byte? element)
         {
             if (!element.HasValue) return string.Empty; // Handle null case
@@ -159,6 +260,24 @@ namespace ABRPOINT.Helper
                 DayOfWeek.Friday => poste?.Venrepas,
                 DayOfWeek.Saturday => poste?.Samrepas,
                 DayOfWeek.Sunday => poste?.Dimrepas,
+                _ => null
+            };
+
+            return repas;
+        }
+        public static float? GetDoucheWorkDay(DateTime? date, Poste poste)
+        {
+            var dayOfWeek = date?.DayOfWeek ?? DateTime.Now.DayOfWeek;
+
+            float? repas = dayOfWeek switch
+            {
+                DayOfWeek.Monday => poste?.Lundouche,
+                DayOfWeek.Tuesday => poste?.Mardouche,
+                DayOfWeek.Wednesday => poste?.Merdouche,
+                DayOfWeek.Thursday => poste?.Jeudouche,
+                DayOfWeek.Friday => poste?.Vendouche,
+                DayOfWeek.Saturday => poste?.Samdouche,
+                DayOfWeek.Sunday => poste?.Dimdouche,
                 _ => null
             };
 

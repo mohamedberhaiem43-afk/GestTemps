@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="02/03/2025 17:56:52" ReportInfo.Modified="11/03/2025 17:23:57" ReportInfo.CreatorVersion="2024.1.7.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="02/03/2025 17:56:52" ReportInfo.Modified="01/29/2026 11:31:25" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM1VxLFM8vgBR60R2LJl8L7f">
       <TableDataSource Name="Table" Alias="empsoc" DataType="System.Int32" Enabled="true" SelectCommand="SELECT e.emplib,e.empfonc,s.soclib,s.socadr&#13;&#10;FROM EMPLOYE e,SOCIETE s&#13;&#10;WHERE e.empcod = @Empcod AND e.soccod = s.soccod and s.soccod=@Soccod">
         <Column Name="emplib" DataType="System.String"/>
         <Column Name="empfonc" DataType="System.String"/>

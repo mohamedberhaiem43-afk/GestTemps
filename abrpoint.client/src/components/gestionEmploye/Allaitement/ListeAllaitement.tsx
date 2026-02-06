@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useContext } from 'react';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, MRT_RowSelectionState, MRT_GlobalFilterTextField, MRT_ToggleFiltersButton, MRT_ColumnDef } from 'material-react-table';
 import { Box, Button, lighten, ListItemIcon, MenuItem } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -7,12 +7,15 @@ import autoTable from 'jspdf-autotable';
 import useGetAllaitement from '../../../hooks/allaitementHooks/useGetAllaitement';
 import AllaitementModel, { AllaitementDto } from '../../../models/Allaitement';
 import { Delete, Edit } from '@mui/icons-material';
+import PersonIcon from '@mui/icons-material/Person';
 import useDeleteAllaitement from '../../../hooks/allaitementHooks/useDeleteAllaitement';
 import AlertModal from '../../AlertModal/AlertModal';
 import CustomizedSnackbars from '../../Snackbar/Snackbar';
 import { useAllaitementContext } from '../../helper/AllaitementContext';
+import { EmployeeContext } from '../../Pointeuse/EtatPeriodique/EmployeeContext';
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
-import { getDatePart1 } from '../../helper/TimeConverter/ExtractDateOnly';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 const formatDate = (date?: Date | string) => {
     if (!date) return '';
@@ -21,6 +24,9 @@ const formatDate = (date?: Date | string) => {
   };
 export const ListAllaitement: React.FC = () => {
   const { setSelectedAllaitement } = useAllaitementContext();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { setSelectedEmpMat } = useContext(EmployeeContext);
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
   const [AllaitementToDelete, setAllaitementToDelete] = useState<{soccod:string,concod:string}| null>(null);
   const [openModal, setOpenModal] = useState(false);
@@ -30,6 +36,12 @@ export const ListAllaitement: React.FC = () => {
 
   const { data = [], error, refetch } = useGetAllaitement();
   const{ mutate:deleteAllaitement } = useDeleteAllaitement();
+
+  // Helper to navigate to employee management
+  const manageEmployee = (empcod: string) => {
+    setSelectedEmpMat(empcod);
+    navigate('/gestion-employe');
+  };
   
   const getAllaitementToEdit = (original: AllaitementDto) =>{
     const selectedAllaitement = data.find((allaitement:any)=>allaitement.concod == original.concod);
@@ -53,68 +65,68 @@ export const ListAllaitement: React.FC = () => {
     () => [
       {
         accessorKey: 'concod',
-        header: 'N°Ordre',
+        header: t('allaitement.list.order') || 'N°Ordre',
         size: 60,
       },
       {
         accessorKey: 'empcod',
-        header: 'Code',
+        header: t('allaitement.list.code') || 'Code',
         size: 100,
       },
       {
         accessorKey: 'emplib',
-        header: 'Nom et Prénom',
+        header: t('allaitement.list.name') || 'Nom et Prénom',
         size: 150,
       },
       {
         accessorKey: 'condep',
-        header: 'Date Début',
+        header: t('allaitement.list.startDate') || 'Date Début',
         size: 100,
         Cell: ({ cell }) => formatDate(cell.getValue<string>()),
       },
       {
         accessorKey: 'conret',
-        header: 'Date Fin',
+        header: t('allaitement.list.endDate') || 'Date Fin',
         size: 100,
         Cell: ({ cell }) => formatDate(cell.getValue<string>()),
       },
       {
         accessorKey: 'lundi',
-        header: 'Lundi',
+        header: t('allaitement.form.monday') || 'Lundi',
         size: 60,
       },
       {
         accessorKey: 'mardi',
-        header: 'Mardi',
+        header: t('allaitement.form.tuesday') || 'Mardi',
         size: 60,
       },
       {
         accessorKey: 'mercredi',
-        header: 'Mercredi',
+        header: t('allaitement.form.wednesday') || 'Mercredi',
         size: 60,
       },
       {
         accessorKey: 'jeudi',
-        header: 'Jeudi',
+        header: t('allaitement.form.thursday') || 'Jeudi',
         size: 60,
       },
       {
         accessorKey: 'vendredi',
-        header: 'Vendredi',
+        header: t('allaitement.form.friday') || 'Vendredi',
         size: 60,
       },
       {
         accessorKey: 'samedi',
-        header: 'Samedi',
+        header: t('allaitement.form.saturday') || 'Samedi',
         size: 60,
       },
       {
         accessorKey: 'conjour',
-        header: 'Période',
+        header: t('allaitement.list.period') || 'Période',
         size: 60,
       },
     ],
-    []
+    [t]
   );
 
   
@@ -207,8 +219,21 @@ export const ListAllaitement: React.FC = () => {
       <ListItemIcon>
         <Edit />
       </ListItemIcon>
-      Editer
+      {t('allaitement.actions.edit') || 'Edit'}
     </MenuItem>,
+      <MenuItem
+        key="manage"
+        onClick={() => {
+          manageEmployee(row.original.empcod);
+          closeMenu();
+        }}
+        sx={{ m: 0 }}
+      >
+        <ListItemIcon>
+          <PersonIcon />
+        </ListItemIcon>
+        {t('allaitement.actions.manage') || 'Gérer Employé'}
+      </MenuItem>,
       <MenuItem
         key="delete"
         onClick={() => {
@@ -222,9 +247,8 @@ export const ListAllaitement: React.FC = () => {
         <ListItemIcon>
           <Delete />
         </ListItemIcon>
-        Supprimer
+        {t('allaitement.actions.delete') || 'Supprimer'}
       </MenuItem>,
-     
     ],
     renderTopToolbar: ({ table }) => {
       const handleExportRows = (rows: AllaitementModel[]) => {
@@ -289,14 +313,14 @@ export const ListAllaitement: React.FC = () => {
           }
           startIcon={<FileDownloadIcon />}
         >
-          Export Tous les ligne en PDF
+          {t('allaitement.list.exportAll') || 'Export Tous les ligne en PDF'}
         </Button>
         <Button
           disabled={table.getRowModel().rows.length === 0}
           onClick={() => handleExportRows(table.getRowModel().rows)}
           startIcon={<FileDownloadIcon />}
         >
-          Export Lignes de Page
+          {t('allaitement.list.exportPage') || 'Export Lignes de Page'}
         </Button>
         <Button
           disabled={
@@ -305,7 +329,7 @@ export const ListAllaitement: React.FC = () => {
           onClick={() => handleExportRows(table.getSelectedRowModel().rows)}
           startIcon={<FileDownloadIcon />}
         >
-          Export Ligne(s) Selectionée
+          {t('allaitement.list.exportSelected') || 'Export Ligne(s) Selectionée'}
         </Button>
       </Box>
     ),

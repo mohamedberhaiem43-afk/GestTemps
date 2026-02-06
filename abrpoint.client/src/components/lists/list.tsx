@@ -1,4 +1,5 @@
 import { SetStateAction, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Alert,
     Box,
@@ -9,7 +10,7 @@ import {
     Snackbar,
 } from '@mui/material';
 import AlertModal from "../AlertModal/AlertModal";
-import { Delete, Edit, Work } from "@mui/icons-material";
+import { Delete, DeleteSweep, Description, Edit, MedicalServices, Schedule, Work, WorkOutline } from "@mui/icons-material";
 import {
     MaterialReactTable,
     useMaterialReactTable,
@@ -45,6 +46,7 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
     const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
     const [resMessage, setResMessage] = useState('');
     const [severity, setSeverity] = useState<'success'|'error'>('success');
+    const { t } = useTranslation();
 
     const handleOpenModal = (row: SetStateAction<string | number | null>) => {
         setSelectedRow(row);
@@ -55,6 +57,8 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
         setSelectedRow(null);
     };
     function handleEdit(original: any) {
+        if(original.concod)
+            setData(original.concod);
         if(original.empcod)
             setData(original.empcod);
         else
@@ -66,13 +70,13 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
     try {
         await deleteMethod({ [idKey]: selectedRow[idKey] });
         await refetchMethod();
-        //handleSnackbarOpening("Suppression réussie", "success");
         handleCloseModal();
+        handleSnackbarOpening(t('list.messages.deleteSuccess') || 'Deletion successful', 'success');
     } catch (error: any) {
         if (error?.response?.status === 403) {
-        handleSnackbarOpening("Action interdite : vous n'avez pas la permission.", "error");
+        handleSnackbarOpening(t('list.messages.actionForbidden') || "Action forbidden: you don't have permission.", 'error');
         } else {
-        handleSnackbarOpening("Erreur lors de la suppression", "error");
+        handleSnackbarOpening(t('list.messages.deleteError') || 'Error during deletion', 'error');
         }
     }
     };
@@ -144,11 +148,11 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
             const menuItems = [
                 <MenuItem key="edit" onClick={() => {handleEdit(row.original);closeMenu()}} sx={{ m: 0 }}>
                     <ListItemIcon><Edit /></ListItemIcon>
-                    Éditer
+                    {t('list.edit') || 'Edit'}
                 </MenuItem>,
                 <MenuItem key="delete" onClick={() => { handleOpenModal(row.original); closeMenu(); }} sx={{ m: 0 }}>
                     <ListItemIcon><Delete /></ListItemIcon>
-                    Supprimer
+                    {t('list.delete') || 'Delete'}
                 </MenuItem>,
                 purge && (
                     <MenuItem
@@ -159,8 +163,8 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
                         }}
                         sx={{ m: 0 }}
                     >
-                        <ListItemIcon><Work /></ListItemIcon>
-                        Purger
+                        <ListItemIcon><DeleteSweep /></ListItemIcon>
+                        {t('list.purge') || 'Purge'}
                     </MenuItem>
                 ),
                 reportGeneration2 && (
@@ -172,8 +176,8 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
                         }}
                         sx={{ m: 0 }}
                     >
-                        <ListItemIcon><Work /></ListItemIcon>
-                        Contrat
+                        <ListItemIcon><Description /></ListItemIcon>
+                        {t('list.contract') || 'Contract'}
                     </MenuItem>
                 ),
                 reportGeneration1 && (
@@ -185,8 +189,8 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
                         }}
                         sx={{ m: 0 }}
                     >
-                        <ListItemIcon><Work /></ListItemIcon>
-                        Attestation de travail
+                        <ListItemIcon><WorkOutline /></ListItemIcon>
+                        {t('list.workAttestation') || 'Work Attestation'}
                     </MenuItem>
                 ),
                 reportGeneration4 && (
@@ -198,8 +202,8 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
                         }}
                         sx={{ m: 0 }}
                     >
-                        <ListItemIcon><Work /></ListItemIcon>
-                        Visite Médicale
+                        <ListItemIcon><MedicalServices /></ListItemIcon>
+                        {t('list.medicalVisit') || 'Medical Visit'}
                     </MenuItem>
                 ),
                 reportGeneration3 && (
@@ -212,7 +216,7 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
                         sx={{ m: 0 }}
                     >
                         <ListItemIcon><Work /></ListItemIcon>
-                        Fiche Individuelle
+                        {t('list.individualSheet') || 'Individual Sheet'}
                     </MenuItem>
                 ),
                 empHoraires && (
@@ -224,8 +228,8 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
                         }}
                         sx={{ m: 0 }}
                     >
-                        <ListItemIcon><Work /></ListItemIcon>
-                        Horaires Employé
+                        <ListItemIcon><Schedule /></ListItemIcon>
+                        {t('list.employeeHours') || 'Employee Hours'}
                     </MenuItem>
                 ),
             ];
@@ -264,7 +268,7 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
                             onClick={() => handleExportRows(table.getSelectedRowModel().flatRows.map(row => row.original))}
                             variant="contained"
                         >
-                            Exporter la sélection
+                            {t('list.exportSelection') || 'Export selection'}
                         </Button>
                     </Box>
                 </Box>

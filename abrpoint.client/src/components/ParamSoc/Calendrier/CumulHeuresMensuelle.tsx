@@ -11,6 +11,7 @@ import InputComponent from "../../Inputs/Input";
 import { Box, Grid } from "@mui/material";
 import { useState } from "react";
 import { useCalendrierContext } from "../../helper/CalendrierContext";
+import { t } from "i18next";
 
 const MONTHS = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -74,13 +75,13 @@ function CumulHeuresMensuelle() {
       </Grid>
       <Grid container spacing={2} mt={2}>
       <Grid item xs={2} sm={2} md={2}>
-            <InputComponent type="number" label="Nb.Hre/Jour" value={nbHreJour} setValue={setNbHreJour} />
+            <InputComponent type="number" label={t('common.hoursPerDay')} value={nbHreJour} setValue={setNbHreJour} />
         </Grid>
         <Grid item xs={2} sm={2} md={2}>
-            <InputComponent type="number" label="Nb.Jour/Mois" value={nbJourMois} setValue={setNbJourMois} />
+            <InputComponent type="number" label={t('common.daysPerMonth')} value={nbJourMois} setValue={setNbJourMois} />
         </Grid>
         <Grid item xs={2} sm={2} md={2}>
-            <InputComponent type="number" label="Nb.Hre/Mois" value={nbHreMois} setValue={setNbHreMois} />
+            <InputComponent type="number" label={t('common.hoursPerMonth')} value={nbHreMois} setValue={setNbHreMois} />
         </Grid>
       </Grid>
     </Box>

@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Annotations.EtatPriodiqueAttributes;
+﻿using ABRPOINT.Server.Annotations.EmployeAttributes;
+using ABRPOINT.Server.Annotations.EtatPriodiqueAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -21,7 +22,6 @@ namespace ABRPOINT.Server.Controllers
             _presenceRepository = presenceRepository;
             _reportGenerationService = reportGenerationService;
             _pointageOptimizerService = pointageOptimizerService;
-
         }
         [HttpPut("optimiserPointage/{soccod}/{empmat}/{dateDeb}/{dateFin}")]
         public async Task OptimizePointage(string soccod,string empMat,DateTime dateDeb,DateTime dateFin)
@@ -63,11 +63,11 @@ namespace ABRPOINT.Server.Controllers
             }
         }
         [HttpGet("get-etat-presence-report/{soccod}/{dateDebut}/{dateFin}/{regime}")]
-        public async Task<IActionResult> GetEtatPresenceReport(string soccod, DateTime? dateDebut, DateTime? dateFin, string regime)
+        public async Task<IActionResult> GetEtatPresenceReport(string soccod, DateTime? dateDebut, DateTime? dateFin, string regime,[FromQuery] List<string> empcods)
         {
             try
             {
-                byte[] pdfBytes = _reportGenerationService.GenerateEtatPresenceReport(soccod, dateDebut, dateFin, regime);
+                byte[] pdfBytes = _reportGenerationService.GenerateEtatPresenceReport(soccod, dateDebut, dateFin, regime,empcods);
                 return File(pdfBytes, "application/pdf", "EtatPresence.pdf");
             }
             catch (Exception)
@@ -75,6 +75,21 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
+        [HttpPost("etat-global")]
+        public IActionResult GenerateEtatGlobal([FromBody] EtatGlobalRequest request)
+        {
+            var pdf = _reportGenerationService.GenerateEtatGlobalReport(request);
+
+            return File(pdf, "application/pdf", "EtatGlobal.pdf");
+        }
+        [HttpPost("etat-detaille")]
+        public IActionResult GenerateEtatDetaille([FromBody] EtatDetailleRequest request)
+        {
+            var pdf = _reportGenerationService.GenerateEtatDetailleReport(request);
+
+            return File(pdf, "application/pdf", "EtatGlobal.pdf");
+        }
+
 
         [HttpGet("emp-point/{soccod}/{empcod}")]
         public async Task<IActionResult> GetEmpEtatPeriodique(string soccod,string empcod)
@@ -137,7 +152,6 @@ namespace ABRPOINT.Server.Controllers
 
                 return StatusCode(500,ex);
             }
-            
         }
 
         // DELETE api/<DirectionsController>/5

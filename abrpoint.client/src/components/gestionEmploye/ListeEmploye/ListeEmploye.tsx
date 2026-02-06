@@ -37,6 +37,7 @@ import useDeleteEmploye from '../../../hooks/employeHooks/useDeleteEmploye';
 import { useAuth } from '../../helper/AuthProvider';
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import DescriptionIcon from '@mui/icons-material/Description';
+import { useTranslation } from 'react-i18next';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import * as mammoth from 'mammoth';
@@ -45,6 +46,7 @@ import ContratReportService from '../../../services/ContratService/ContratReport
 const ListEmploye = () => {
   const uticod = localStorage.getItem("Uticod");
   const { selectedEmpMat, setSelectedEmpMat, setSelectedEmp } = useContext(EmployeeContext);
+  const { t } = useTranslation();
   const { data = [], isLoading, refetch } = useGetAllEmployees(uticod);
   const [empHoraires, setEmpHoraires] = useState<EmpHoraire[] | undefined>([]);
   const { soccod } = useAuth();
@@ -60,7 +62,7 @@ const ListEmploye = () => {
 
   // State for contrat dialog
   const [contratDialogOpen, setContratDialogOpen] = useState(false);
-  const [selectedEmployeForContrat, setSelectedEmployeForContrat] = useState<Employe | null>(null);
+  const [selectedEmployeForContrat, _setSelectedEmployeForContrat] = useState<Employe | null>(null);
   const [contratTemplates, setContratTemplates] = useState<Array<{name: string, file: File}>>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<File | null>(null);
 
@@ -69,7 +71,8 @@ const ListEmploye = () => {
   const getContratPdf = async (employe: Employe) => {
     try {
       const response = await ContratReportService.getReport(
-        `get-contrat-report/${employe.soccod}/${employe.empcod}`
+        `get-contrat-report/${employe.soccod}/${employe.empcod}`,
+        'blob'
       );
 
       const blob = new Blob([response], { type: 'application/pdf' });
@@ -83,7 +86,7 @@ const ListEmploye = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Erreur téléchargement contrat :', error);
-      setSnackbarMessage("Erreur lors du téléchargement du contrat");
+      setSnackbarMessage(t('employe.messages.contractDownloadError') || 'Erreur lors du téléchargement du contrat');
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
     }
@@ -130,7 +133,7 @@ const ListEmploye = () => {
       { empcod: data.empcod },
       {
         onSuccess: (response: any) => {
-          const message = response?.message || 'Employé supprimé avec succès';
+          const message = response?.message || t('employe.messages.deleteSuccess');
           setSnackbarMessage(message);
           setSnackbarSeverity('success');
           setSnackbarOpen(true);
@@ -140,7 +143,7 @@ const ListEmploye = () => {
           console.error('Error deleting employee:', error);
           
           const status = error?.response?.status;
-          const errorMessage = error?.response?.data?.message || 'Erreur lors de la suppression';
+          const errorMessage = error?.response?.data?.message || t('employe.messages.deleteError');
           
           // Check if it's a 403 Forbidden error
           if (status === 403) {
@@ -179,10 +182,7 @@ const ListEmploye = () => {
   }, [selectedEmpMat]);
 
   // Open contrat dialog
-  const openContratDialog = (employe: Employe) => {
-    setSelectedEmployeForContrat(employe);
-    setContratDialogOpen(true);
-  };
+
 
   // Handle template file selection
   const handleTemplateFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,7 +196,7 @@ const ListEmploye = () => {
       setContratTemplates(updatedTemplates);
       saveTemplatesToLocalStorage(updatedTemplates);
     } else {
-      setSnackbarMessage('Veuillez sélectionner un fichier Word (.doc ou .docx)');
+      setSnackbarMessage(t('employe.messages.selectWordFile') || 'Please select a Word file (.doc or .docx)');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
@@ -217,7 +217,7 @@ const ListEmploye = () => {
   if (!selectedEmployeForContrat) return;
   
   if (!selectedTemplate) {
-    setSnackbarMessage('Veuillez sélectionner un modèle de contrat');
+    setSnackbarMessage(t('employe.messages.selectContractTemplate') || 'Veuillez sélectionner un modèle de contrat');
     setSnackbarSeverity('error');
     setSnackbarOpen(true);
     return;
@@ -308,13 +308,13 @@ const ListEmploye = () => {
     setContratDialogOpen(false);
     setSelectedTemplate(null);
     
-    setSnackbarMessage('Contrat généré avec succès');
+    setSnackbarMessage(t('employe.messages.contractGenerated') || 'Contrat généré avec succès');
     setSnackbarSeverity('success');
     setSnackbarOpen(true);
     
   } catch (error) {
     console.error('Error generating contract:', error);
-    setSnackbarMessage('Erreur lors de la génération du contrat');
+    setSnackbarMessage(t('employe.messages.contractGenerateError') || 'Erreur lors de la génération du contrat');
     setSnackbarSeverity('error');
     setSnackbarOpen(true);
   }
@@ -398,25 +398,25 @@ const ListEmploye = () => {
     // Add header
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("FICHE INDIVIDUELLE", 105, 20, { align: "center" });
+    doc.text(t('employe.documents.individualSheetTitle') || 'Individual Sheet', 105, 20, { align: "center" });
   
     // Personal details
     let y = 40;
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
   
-    doc.text(`Nom et Prénom: ${employe.emplib}`, 20, y);
-    doc.text(`Code: ${employe.empcod}`, 20, (y += 10));
-    doc.text(`CIN: ${employe.empcin}`, 20, (y += 10));
-    doc.text(`Délivrée à: ${employe.empacin}`, 20, (y += 10));
-    doc.text(`Date de CIN: ${employe.empdcin}`, 20, (y += 10));
-    doc.text(`Fonction: ${employe.empfonc}`, 20, (y += 10));
-    doc.text(`Site: ${employe.sitcod}`, 20, (y += 10));
-    doc.text(`Actif: ${employe.actif ? 'Oui' : 'Non'}`, 20, (y += 10));
-  
+doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
+    doc.text(`${t('common.code') || 'Code'}: ${employe.empcod}`, 20, (y += 10));
+    doc.text(`${t('employe.form.cin') || 'CIN'}: ${employe.empcin}`, 20, (y += 10));
+    doc.text(`${t('employe.form.birthPlace') || 'Issued at'}: ${employe.empacin}`, 20, (y += 10));
+    doc.text(`${t('employe.form.birthDate') || 'Date of CIN'}: ${employe.empdcin}`, 20, (y += 10));
+    doc.text(`${t('employe.work.service') || 'Function'}: ${employe.empfonc}`, 20, (y += 10));
+    doc.text(`${t('site') || 'Site'}: ${employe.sitcod}`, 20, (y += 10));
+    doc.text(`${t('employe.labels.active') || 'Active'}: ${employe.actif ? (t('common.yes') || 'Yes') : (t('common.no') || 'No')}`, 20, (y += 10));
+
     // Employment details
-    doc.text(`Date d'embauche: ${employe.empemb}`, 20, (y += 10));
-    doc.text(`Statut: ${employe.actif ? 'Employé Actif' : 'Employé Non Actif'}`, 20, (y += 10));
+    doc.text(`${t('employe.documents.hireDate') || 'Hire Date'}: ${employe.empemb}`, 20, (y += 10));
+    doc.text(`${t('employe.labels.status') || 'Status'}: ${employe.actif ? (t('employe.status.active') || 'Active Employee') : (t('employe.status.inactive') || 'Inactive Employee')}`, 20, (y += 10));
   
     // Footer
     doc.setFont("helvetica", "italic");
@@ -482,33 +482,33 @@ const ListEmploye = () => {
         columns: [
           {
             accessorKey: 'empcod',
-            header: 'Code',
+            header: t('common.code') || 'Code',
             size: 60,
           },
           {
             accessorFn: (row) => row.emplib,
             id: 'emplib',
-            header: 'Nom et Prénom',
+            header: t('employe.form.name') || 'Name',
             size: 160,
           },
           {
             accessorKey: 'empreg',
-            header: 'Régime',
+            header: t('employe.work.regime') || 'Regime',
             size: 50,
           },
           {
             accessorKey: 'sitcod',
-            header: 'Site',
+            header: t('site') || 'Site',
             size: 50,
           },
           {
             accessorKey: 'empfonc',
-            header: 'Fonction',
+            header: t('employe.work.service') || 'Function',
             size: 180
           },
           {
             accessorKey: 'empemb',
-            header: 'Embauche',
+            header: t('employe.documents.hireDate') || 'Hire Date',
             size: 90,
             Cell({ cell }) {
               const dateValue = cell.getValue();
@@ -518,7 +518,7 @@ const ListEmploye = () => {
           },
           {
             accessorKey: 'empsort',
-            header: 'Sortie',
+            header: t('employe.documents.exitDate') || 'Exit Date',
             size: 90,
             Cell({ cell }) {
               const dateValue = cell.getValue();
@@ -528,7 +528,7 @@ const ListEmploye = () => {
           },
           {
             accessorKey: 'actif',
-            header: 'Active',
+            header: t('employe.columns.active') || 'Active',
             size: 10,
             Cell: ({ cell }) => (
               <Box
@@ -541,10 +541,11 @@ const ListEmploye = () => {
                   fontSize: '0.75rem',
                 })}
               >
-                {cell.getValue<boolean>() ? 'Actif' : 'Non actif'}
+                {cell.getValue<boolean>() ? (t('common.yes') || 'Yes') : (t('common.no') || 'No')}
               </Box>
             ),
           },
+
         ],
       },
     ],
@@ -573,6 +574,7 @@ const ListEmploye = () => {
         empsexe: emp.empsexe ?? null,
         sercod: emp.sercod ?? null,
         empfonc: emp.empfonc ?? null,
+        empferepos: emp.empferepos ?? '',
         empreg: emp.empreg ?? null,
         catcod: emp.catcod ?? null,
         empnbp: emp.empnbp != null ? Number(emp.empnbp) : null,
@@ -678,7 +680,7 @@ const ListEmploye = () => {
                 <DataList
                   data={data}
                   columns={columns}
-                  message="Êtes-vous sûr de vouloir supprimer cet employé ?"
+                  message={t('employe.messages.confirmDelete') || 'Are you sure you want to delete this employee?'}
                   deleteMethod={deleteEmploye}
                   idKey="empcod"
                   refetchMethod={refetch}
@@ -711,7 +713,7 @@ const ListEmploye = () => {
             <DialogTitle>
               <Box display="flex" alignItems="center" gap={1}>
                 <DescriptionIcon />
-                Sélectionner un modèle de contrat pour {selectedEmployeForContrat?.emplib}
+                {t('employe.dialog.selectTemplateFor', { name: selectedEmployeForContrat?.emplib }) || `Select a contract template for ${selectedEmployeForContrat?.emplib}`}
               </Box>
             </DialogTitle>
             <DialogContent>
@@ -730,7 +732,7 @@ const ListEmploye = () => {
                     startIcon={<InsertDriveFileIcon />}
                     fullWidth
                   >
-                    Ajouter un nouveau modèle (.doc/.docx)
+                    {t('employe.dialog.addTemplate') || 'Add a new template (.doc/.docx)'}
                   </Button>
                 </label>
               </Box>
@@ -758,7 +760,7 @@ const ListEmploye = () => {
                     >
                       <ListItemText 
                         primary={template.name}
-                        secondary={`Sélectionné: ${selectedTemplate === template.file ? 'Oui' : 'Non'}`}
+                        secondary={selectedTemplate === template.file ? t('employe.dialog.selectedYes') : t('employe.dialog.selectedNo')}
                       />
                     </ListItem>
                   ))}
@@ -766,19 +768,19 @@ const ListEmploye = () => {
               ) : (
                 <Box textAlign="center" py={4}>
                   <InsertDriveFileIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                  <p>Aucun modèle de contrat disponible. Ajoutez un fichier Word (.doc/.docx).</p>
+                  <p>{t('employe.dialog.noTemplates') || 'No contract template available. Add a Word file (.doc/.docx).'}</p>
                 </Box>
               )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setContratDialogOpen(false)}>Annuler</Button>
+              <Button onClick={() => setContratDialogOpen(false)}>{t('common.cancel')}</Button>
               <Button 
                 onClick={generateContratFromTemplate}
                 variant="contained" 
                 disabled={!selectedTemplate}
                 startIcon={<DescriptionIcon />}
               >
-                Générer le contrat PDF
+                {t('employe.actions.generateContractPDF') || 'Generate contract PDF'}
               </Button>
             </DialogActions>
           </Dialog>

@@ -29,9 +29,7 @@ function Lecture() {
       setWithName(logs.filter(log => log.user_name));
       setWithoutName(logs.filter(log => !log.user_name));
 
-      console.log("API Response:", response);
     } catch (err) {
-      console.error("Erreur API:", err);
       setSnackbarMsg("Erreur lors de l'appel à l'API !");
       setSnackbarOpen(true);
     }

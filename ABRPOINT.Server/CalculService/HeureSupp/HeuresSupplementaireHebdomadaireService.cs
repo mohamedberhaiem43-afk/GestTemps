@@ -94,9 +94,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             {
                 var result = new HeuresSupplementairesResultat();
 
-                // Get employee panier type
-                EmpparamPointageMois? empparam = await _employeRepository.GetEmpparam(soccod, empcod);
-
                 // Get calendar hours for the week
                 var (calend, hours, startDate, endDate, jourferier, heuresferier) =
                     await _optimizedPresenceService.GetNbHeuresParSemaineWithDates(soccod, mois, annee, semaine, empcod);
@@ -110,7 +107,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
                 // Get detailed presence/absence/conge data
                 PresenceSemaineData res = await _optimizedPresenceService
-                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, empparam);
+                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine);
                 var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
                 result.Panier = res.Panier;
                 result.JourSamediTrv = res.JourSamediTrv;
@@ -217,14 +214,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         }
 
 
-        public async Task<List<HeuresSupplementairesResultat>> CalculerHeuresSupplementairesMultiSemaines(string soccod, string empcod, string mois, string annee, string empreg, string empniveau)
+        public async Task<List<HeuresSupplementairesResultat>> CalculerHeuresSupplementairesMultiSemaines(
+    string soccod, string empcod, string mois, string annee, string empreg, string empniveau)
         {
             try
             {
                 var results = new List<HeuresSupplementairesResultat>();
-
-                // Get employee panier type ONCE
-                EmpparamPointageMois empparam = await _employeRepository.GetEmpparam(soccod, empcod);
 
                 // Get parameters ONCE
                 var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
@@ -245,14 +240,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     tranche1 = p?.Partranche1;
                     tranche2 = p?.Partranche2;
                 }
-
                 // Check if employee has supp rights
                 bool hasSupp = empreg == "H" || paramSupp.HasSupp;
 
-                // ✅ Load ALL presence data for the ENTIRE MONTH at once
-                var presenceDataMonth = await _optimizedPresenceService
-                    .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, "0", empparam);
                 float totalNbJoursMois = 0;
+
                 // Process each week (1 to 6)
                 for (int i = 1; i <= 6; i++)
                 {
@@ -275,9 +267,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     result.HeureFerier = heuresferier;
                     result.Caltype = calend;
 
-                    // Get presence data for THIS SPECIFIC WEEK
+                    // ✅ Get presence data for THIS SPECIFIC WEEK
+                    // La méthode GetPresenceSemaineDataOptimized charge automatiquement empparam en interne
                     var res = await _optimizedPresenceService
-                        .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine, empparam);
+                        .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine);
+
                     // Map presence data to result
                     result.NbHeuresDebutCalcul = res.NbHeuresDebutCalcul;
                     result.Panier = res.Panier;
@@ -312,6 +306,15 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     result.TotalAbsence = res.TotalAbsence;
                     result.NbJours = res.NbJours;
                     result.Tothre = res.TotalHours + res.HreFerier + res.NbHeureConge;
+
+                    // ✅ Récupérer empparam pour calculer Empmaxjour
+                    var empparam = await _employeRepository.GetEmpparam(
+                        soccod,
+                        empcod,
+                        startDate.Value,
+                        null
+                    );
+
                     float nbJoursSemaine = res.NbJours ?? 0;
                     if (empparam.Empmaxjour.HasValue && empparam.Empmaxjour.Value > 0)
                     {
@@ -319,12 +322,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
                         if (joursDisponibles <= 0)
                         {
-                            // Maximum atteint, cette semaine et les suivantes = 0
                             nbJoursSemaine = 0;
                         }
                         else if (nbJoursSemaine > joursDisponibles)
                         {
-                            // Prendre seulement ce qui reste disponible
                             nbJoursSemaine = joursDisponibles;
                         }
 
@@ -332,11 +333,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     }
                     else
                     {
-                        // Pas de limite
                         totalNbJoursMois += nbJoursSemaine;
                     }
                     result.NbJours = nbJoursSemaine;
-
 
                     if (empreg == "M")
                     {
@@ -347,6 +346,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         else if (paramSupp.Parreptrv == "0")
                             result.Tothre -= result.HeureRepos;
                     }
+
                     // Calculate overtime for this week
                     if (!hasSupp)
                     {
@@ -367,7 +367,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         }
 
                         if (result.NbHeuresDebutCalcul > result.NbhCalendSem)
-                            //heuresSupp = result.HeuresNormales - result.NbhCalendSem;
                             heuresSupp = result.NbHeuresDebutCalcul - result.NbhCalendSem;
 
                         if (paramSupp.EliminerFerier != "0" && empreg == "H")
@@ -380,8 +379,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);
                         heuresSupp -= result.HeuresSupTranche1;
                         result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
-                        //ajouter les sups au total heures
-                        //result.Tothre += heuresSupp;
                     }
 
                     results.Add(result);
@@ -394,6 +391,5 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 throw;
             }
         }
-    
     }
 }

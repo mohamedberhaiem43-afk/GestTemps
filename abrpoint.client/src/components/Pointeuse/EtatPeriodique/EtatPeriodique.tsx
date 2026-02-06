@@ -17,14 +17,14 @@ export default function EtatPeriodique() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Box width={"95vw"} height={'90vh'} sx={{ flexGrow: 1 }} >
+            <Box width={"95vw"} height={'95vh'} sx={{ flexGrow: 1 }} mt={-10} >
                     <BreadcrumbNavigation />
                 <Grid container spacing={1}>
                     <DateRangeProvider>
+                        <EmployeeProvider>
                         <Grid item xs={12}>
                             <Item><FilterEtatPeriodique /></Item>
                         </Grid>
-                        <EmployeeProvider>
                         <Grid item xs={4.5} >
                             <EmpPeriodique />
                         </Grid>

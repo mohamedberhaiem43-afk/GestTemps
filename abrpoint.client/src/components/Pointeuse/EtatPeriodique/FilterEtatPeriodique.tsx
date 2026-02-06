@@ -2,13 +2,17 @@ import { Box, Grid, IconButton } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { useDateRange } from "./FilterContext";
 import { Print, Search } from "@mui/icons-material";
 import useGetEmployee from "../../../hooks/employeHooks/useGetEmployee";
 import { useAuth } from "../../helper/AuthProvider";
+import { EmployeeContext } from "./EmployeeContext";
+import useGenerateEtatDetaille from "../../../hooks/presenceHooks/useGenerateEtatDetaille";
 
 function FilterEtatPeriodique() {
+    const { t } = useTranslation();
     const token = localStorage.getItem('authToken');
     const { soccod } = useAuth();
     const headers = { Authorization: `Bearer ${token}` };
@@ -34,6 +38,42 @@ function FilterEtatPeriodique() {
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
     const {data:emplibs=[]} = useGetEmployee();
+    const {empEtatData,selectedEmpLib,} = useContext(EmployeeContext);
+    const { mutateAsync: generatePdf } = useGenerateEtatDetaille();
+    const { selectedEmpMat } = useContext(EmployeeContext);
+    const currentEmpcod = selectedEmpMat;
+
+    const handlePrintReport = async () => {
+        if (empEtatData.length === 0) {
+        alert('Aucune donnée à imprimer. Sélectionnez un employé d\'abord.');
+        return;
+        }
+
+        try {
+        const blob = await generatePdf({
+            soccod: soccod || '',
+            empcod:   currentEmpcod,
+            emplib:   selectedEmpLib,
+            dateDebut: dateDebut,
+            dateFin:   dateFin,
+            rows:      empEtatData,
+        });
+
+      // Télécharger le PDF
+      const url  = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href     = url;
+      link.download = `EtatDetaille_${currentEmpcod}_${dateDebut}_${dateFin}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erreur impression :', err);
+      alert('Erreur lors de la génération du rapport.');
+    }
+  };
+
     useEffect(() => {
         axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`)
             .then((res) => setFiliale(res.data))
@@ -71,8 +111,6 @@ function FilterEtatPeriodique() {
                 console.error("Error:", err.response ? err.response.data : err.message);
             });
     }, []);
-
-    const handlePrintReport = async () => {};
 
 
 
@@ -125,7 +163,7 @@ function FilterEtatPeriodique() {
                 <Grid item xs={1.5}>
                     {filiale && (
                         <SelectInputComponent
-                            label='Filiale'
+                            label={t('empEtatPeriodique.filters.branch')}
                             value={selectedFiliale}
                             setValue={setSelectedFiliale}
                             maplist={filiale}
@@ -135,7 +173,7 @@ function FilterEtatPeriodique() {
                 <Grid item xs={1.5}>
                     {services && (
                         <SelectInputComponent
-                            label='Service'
+                            label={t('empEtatPeriodique.filters.service')}
                             value={selectedService}
                             setValue={setSelectedService}
                             maplist={services}
@@ -144,7 +182,7 @@ function FilterEtatPeriodique() {
                 </Grid>
                 <Grid item xs={1}>
                     <SelectInputComponent
-                        label='Régime'
+                        label={t('empEtatPeriodique.filters.regime')}
                         value={selectedRegime}
                         setValue={setSelectedRegime}
                         maplist={regime}
@@ -152,7 +190,7 @@ function FilterEtatPeriodique() {
                 </Grid>
                 <Grid item xs={1.5}>
                     <SelectInputComponent
-                    label='Employés'
+                    label={t('empEtatPeriodique.filters.employees')}
                     value={selectedEmpcods}
                     setValue={setSelectedEmpcods}
                     maplist={emplibs}
@@ -162,7 +200,7 @@ function FilterEtatPeriodique() {
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
-                        label='Mois'
+                        label={t('empEtatPeriodique.filters.month')}
                         value={mois}
                         setValue={setMois}
                     />
@@ -170,7 +208,7 @@ function FilterEtatPeriodique() {
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
-                        label='Année'
+                        label={t('empEtatPeriodique.filters.year')}
                         value={annee}
                         setValue={setAnnee}
                     />
@@ -178,7 +216,7 @@ function FilterEtatPeriodique() {
                 <Grid item xs={1}>
                     <InputComponent
                         type='date'
-                        label='Date Début'
+                        label={t('common.dateStart')}
                         value={dateDebut}
                         setValue={setStartDate}
                     />
@@ -186,7 +224,7 @@ function FilterEtatPeriodique() {
                 <Grid item xs={1}>
                     <InputComponent
                         type='date'
-                        label='Date Fin'
+                        label={t('common.dateEnd')}
                         value={dateFin}
                         setValue={setEndDate}
                     />
@@ -213,7 +251,7 @@ function FilterEtatPeriodique() {
                 <Grid item xs={1}>
                 {presence && (
                         <SelectInputComponent
-                            label='Présence'
+                            label={t('common.presence')}
                             value={pres}
                             setValue={setPres}
                             maplist={presence}

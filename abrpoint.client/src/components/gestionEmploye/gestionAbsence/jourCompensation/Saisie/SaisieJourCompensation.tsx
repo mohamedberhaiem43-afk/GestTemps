@@ -11,6 +11,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import dayjs, { Dayjs } from "dayjs";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import SaveIcon from "@mui/icons-material/Save";
 import "./SaisieJourCompensation.css";
 import useAddCompensation from "../../../../../hooks/compensationHooks/useAddCompensation";
@@ -23,6 +24,7 @@ import InputComponent from "../../../../Inputs/Input";
 import SelectInputComponent from "../../../../SelectInputComponent/SelectInputComponent";
 import { Compenser } from "../../../../../Compense";
 import DateTimeRangeInput from "./DateTimeRangeInput";
+import { useAuth } from "../../../../helper/AuthProvider";
 
 
 const calculateHourDifference = (start: Dayjs | null, end: Dayjs | null) => {
@@ -32,7 +34,8 @@ const calculateHourDifference = (start: Dayjs | null, end: Dayjs | null) => {
   return 0; // Default to 0 if invalid
 };
 export default function SaisieJourCompensation() {
-  const { selectedCompensation } = useCompensationContext();
+  const { t } = useTranslation();
+  const { selectedCompensation, setSelectedCompensation } = useCompensationContext();
   const [empcod, setEmpcod] = useState("");
   const [concod, setConcod] = useState("");
   const [conmotif, setConmotif] = useState("");
@@ -41,8 +44,8 @@ export default function SaisieJourCompensation() {
   const [ref, setRef] = useState("");
   const [condat, setCondat] = useState<[Dayjs, Dayjs]>([dayjs(), dayjs()]);
   const addCompensation = useAddCompensation();
-  const soccod = sessionStorage.getItem("soccod");
-  const {refetch} = useGetCompensations(soccod);
+  const { soccod } = useAuth();
+  const {refetch} = useGetCompensations();
   const{data:absences = []} = useGetAbsencesLibs();
   const{data:employes = []} = useGetEmployee();
   const { mutate:updateCompensation } = useUpdateCompensation();
@@ -61,7 +64,7 @@ export default function SaisieJourCompensation() {
       setConmotif(selectedCompensation.conmotif || "");
       setEmpcod(selectedCompensation.empcod || "");
       setConnbheures(selectedCompensation.connbjour || 0);
-  
+      console.log(selectedCompensation);
       // Map condep and conret to condat
       if (selectedCompensation.condep && selectedCompensation.conret) {
         const startDate = dayjs(selectedCompensation.condep);
@@ -138,6 +141,7 @@ export default function SaisieJourCompensation() {
     setCondat([dayjs(), dayjs()]);
     setWritable(true);
     setMode('save');
+    setSelectedCompensation(null);
   }
 
 
@@ -157,21 +161,21 @@ export default function SaisieJourCompensation() {
           <Grid item xs={7}>
             <Grid container spacing={3} alignItems="center" direction="row">
               <Grid item xs={2.5}>
-                <SelectInputComponent label='Employé' value={empcod} setValue={setEmpcod} maplist={employes} />
+                <SelectInputComponent label={t('common.employee')} value={empcod} setValue={setEmpcod} maplist={employes} />
               </Grid>
               <Grid item xs={2}>
-              <InputComponent readOnly={!writable} type='text' label='N° Ordre' value={concod} setValue={setConcod} />
+              <InputComponent readOnly={!writable} type='text' label={t('common.orderNumber')} value={concod} setValue={setConcod} />
               </Grid>
 
               <Grid item xs={1.5}>
-              <InputComponent type='text' label='Réf' value={ref} setValue={setRef} />
+              <InputComponent type='text' label={t('common.ref')} value={ref} setValue={setRef} />
               </Grid>
 
               <Grid item xs={2}>
-                <SelectInputComponent label='Imputation' value={abscod} setValue={setAbscod} maplist={absences} />
+                <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
               </Grid>
               <Grid item xs={3}>
-                <InputComponent type='text' label='Motif' value={conmotif} setValue={setConmotif} />
+                <InputComponent type='text' label={t('common.reason')} value={conmotif} setValue={setConmotif} />
               </Grid>
             </Grid>
           </Grid>

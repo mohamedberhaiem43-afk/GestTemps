@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="07/15/2025 11:04:09" ReportInfo.Modified="11/03/2025 13:47:43" ReportInfo.CreatorVersion="2024.1.7.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/15/2025 11:04:09" ReportInfo.Modified="01/29/2026 18:21:46" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-	  <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
-		  <TableDataSource Name="Table" Alias="EtatRetard" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;    e.empmat,&#13;&#10;    e.emplib,&#13;&#10;    s.soclib,&#13;&#10;    p.*&#13;&#10;FROM presence p&#13;&#10;JOIN employe e ON p.empcod = e.empcod AND e.soccod = p.soccod&#13;&#10;JOIN societe s ON e.soccod = s.soccod&#13;&#10;WHERE p.predat BETWEEN @datedebut AND @datefin&#13;&#10;  AND e.soccod = @soccod&#13;&#10;  AND (&#13;&#10;        @empcod = '' &#13;&#10;        OR e.empcod IN (&#13;&#10;            SELECT value &#13;&#10;            FROM STRING_SPLIT(@empcod, ',')&#13;&#10;        )&#13;&#10;      );&#13;&#10;">
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM2Qn9Wg+6Jb9GzEaaquRTaO">
+      <TableDataSource Name="Table" Alias="EtatRetard" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;    e.empmat,&#13;&#10;    e.emplib,&#13;&#10;    s.soclib,&#13;&#10;    p.*&#13;&#10;FROM presence p&#13;&#10;JOIN employe e ON p.empcod = e.empcod AND e.soccod = p.soccod&#13;&#10;JOIN societe s ON e.soccod = s.soccod&#13;&#10;WHERE p.predat BETWEEN @datedebut AND @datefin&#13;&#10;  AND e.soccod = @soccod&#13;&#10;  AND (&#13;&#10;        @empcod = '' &#13;&#10;        OR e.empcod IN (&#13;&#10;            SELECT value &#13;&#10;            FROM STRING_SPLIT(@empcod, ',')&#13;&#10;        )&#13;&#10;      );&#13;&#10;">
         <Column Name="empcod" DataType="System.String"/>
         <Column Name="predat" DataType="System.DateTime"/>
         <Column Name="ordre" DataType="System.Int32"/>
@@ -74,9 +74,9 @@
       <LineObject Name="Line2" Left="529.2" Height="94.5"/>
       <TextObject Name="Text1" Left="189" Top="9.45" Width="330.75" Height="37.8" Text="ETAT DETAILLE DES RETARDS" HorzAlign="Center" VertAlign="Center" Font="Arial, 14pt, style=Bold"/>
       <TextObject Name="Text2" Left="189" Top="47.25" Width="330.75" Height="37.8" Text="DU [FormatDateTime([datedebut], &quot;dd/MM/yyyy&quot;)] AU [FormatDateTime([datefin], &quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold"/>
-      <TextObject Name="Text3" Left="538.65" Top="18.9" Width="141.75" Height="18.9" Text="[IIf([Date] == null, &quot;&quot;, FormatDateTime([Date], &quot;dd/MM/yyyy&quot;))]&#13;&#10;" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text3" Left="538.65" Top="9.45" Width="141.75" Height="37.8" Text="Le [IIf([Date] == null, &quot;&quot;, FormatDateTime([Date], &quot;dd/MM/yyyy&quot;))]&#13;&#10;" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
       <TextObject Name="Text4" Left="529.2" Top="56.7" Width="160.65" Height="18.9" Text="[Page#]/[TotalPages#]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
-      <TextObject Name="Text5" Left="18.9" Top="18.9" Width="160.65" Height="56.7" Text="[EtatRetard.soclib]" HorzAlign="Center" VertAlign="Center" Font="Arial, 14pt, style=Bold"/>
+      <TextObject Name="Text5" Left="9.45" Width="179.55" Height="94.5" Text="[EtatRetard.soclib]" HorzAlign="Center" VertAlign="Center" Font="Arial, 14pt, style=Bold"/>
       <ShapeObject Name="Shape2" Left="9.45" Top="122.85" Width="699.3" Height="56.7"/>
       <TextObject Name="Text6" Left="9.45" Top="122.85" Width="66.15" Height="56.7" Text="Badge" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
       <TextObject Name="Text7" Left="66.15" Top="122.85" Width="75.6" Height="56.7" Text="Matricule" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
@@ -104,9 +104,9 @@
       <LineObject Name="Line13" Left="491.4" Top="151.2" Height="28.35"/>
       <LineObject Name="Line14" Left="529.2" Top="151.2" Height="28.35"/>
       <LineObject Name="Line15" Left="576.45" Top="122.85" Height="56.7"/>
-      <TextObject Name="Text19" Left="576.45" Top="122.85" Width="56.7" Height="56.7" Text="Total Retard" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
-      <TextObject Name="Text20" Left="623.7" Top="122.85" Width="85.05" Height="56.7" Text="Date" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
-      <LineObject Name="Line16" Left="623.7" Top="122.85" Height="56.7"/>
+      <TextObject Name="Text19" Left="576.45" Top="122.85" Width="66.15" Height="56.7" Text="Total Retard" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text20" Left="652.05" Top="122.85" Width="56.7" Height="56.7" Text="Date" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line16" Left="652.05" Top="122.85" Height="56.7"/>
     </PageHeaderBand>
     <DataBand Name="Data1" Top="185.95" Width="718.2" Height="28.35" DataSource="Table">
       <ShapeObject Name="Shape3" Left="9.45" Width="699.3" Height="28.35"/>
@@ -119,8 +119,8 @@
       <TextObject Name="Text27" Left="378" Width="37.8" Height="28.35" Text="[FormatDateTime([EtatRetard.preretmatsup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text28" Left="415.8" Width="37.8" Height="28.35" Text="[EtatRetard.preentamidiup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text29" Left="491.4" Width="37.8" Height="28.35" Text="[EtatRetard.presortamidiup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="Text30" Left="576.45" Width="37.8" Height="28.35" Text="[EtatRetard.preretmate]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="Text31" Left="623.7" Width="85.05" Height="28.35" Text="[IIf([EtatRetard.predat] == null, &quot;&quot;, FormatDateTime([EtatRetard.predat], &quot;dd/MM/yyyy&quot;))]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text30" Left="576.45" Top="9.45" Width="75.6" Height="9.45" Text="[FormatDateTime([EtatRetard.preretmate],&quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text31" Left="652.05" Width="56.7" Height="28.35" Text="[IIf([EtatRetard.predat] == null, &quot;&quot;, FormatDateTime([EtatRetard.predat], &quot;dd/MM/yyyy&quot;))]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text32" Left="529.2" Width="47.25" Height="28.35" Text="[FormatDateTime([EtatRetard.preretamsup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text33" Left="453.6" Width="37.8" Height="28.35" Text="[FormatDateTime([EtatRetard.preretameup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <LineObject Name="Line17" Left="75.6" Top="28.35" Height="-28.35"/>
@@ -134,7 +134,7 @@
       <LineObject Name="Line25" Left="491.4" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line26" Left="529.2" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line27" Left="576.45" Top="28.35" Height="-28.35"/>
-      <LineObject Name="Line28" Left="623.7" Top="28.35" Height="-28.35"/>
+      <LineObject Name="Line28" Left="652.05" Height="28.35"/>
     </DataBand>
     <PageFooterBand Name="PageFooter1" Top="217.5" Width="718.2" Height="18.9"/>
   </ReportPage>

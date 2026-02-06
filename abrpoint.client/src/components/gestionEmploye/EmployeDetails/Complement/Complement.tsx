@@ -1,13 +1,14 @@
 import { Grid, Box, Typography, Input, InputLabel, Select, FormControl, MenuItem } from "@mui/material";
 import './Complement.css'
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import Employe from "../../../../models/Employe";
 interface EmployeDetailsProps {
   onChange: (data: any) => void;
   empData:Employe
 }
 export default function Complement({onChange,empData}:EmployeDetailsProps) {
-
+    const { t } = useTranslation();
 
     const [formData, setFormData] = useState(empData);
     useEffect(() => {
@@ -29,13 +30,13 @@ export default function Complement({onChange,empData}:EmployeDetailsProps) {
         <>
             <Box sx={{ flexGrow: 1 }}>
             <Typography className="cordonne-arabe-title" variant="h6" component="div" gutterBottom>
-                Cordonées Arabe
+                {t('employe.complement.arabicTitle') || 'Cordonées Arabe'}
             </Typography>
                 <Grid container spacing={2}>
                     <Grid item xs={7}>
                             <Grid container spacing={2}>
                                 <Grid item xs={6}>
-                                    <InputLabel sx={{ textAlign: 'right' }} shrink>الاسم و اللقب</InputLabel>
+                                    <InputLabel shrink>{t('employe.complement.base') || 'S.Base/TH'}</InputLabel>
                                     <Input
                                         fullWidth
                                         size="small"
@@ -90,7 +91,7 @@ export default function Complement({onChange,empData}:EmployeDetailsProps) {
                                     />
                                 </Grid>
                                 <Grid item xs={5}>
-                                <InputLabel shrink>Catégorie</InputLabel>
+                                <InputLabel shrink>{t('employe.complement.category') || 'Catégorie'}</InputLabel>
                                     <Input
                                         fullWidth
                                         size="small"
@@ -101,7 +102,7 @@ export default function Complement({onChange,empData}:EmployeDetailsProps) {
                                     />
                                 </Grid>
                                 <Grid item xs={4}>
-                                <InputLabel shrink>S.Brut</InputLabel>
+                                <InputLabel shrink>{t('employe.complement.grossSalary') || 'S.Brut'}</InputLabel>
                                     <Input
                                         fullWidth
                                         size="small"
@@ -112,7 +113,7 @@ export default function Complement({onChange,empData}:EmployeDetailsProps) {
                                     />
                                 </Grid>
                                 <Grid item xs={4}>
-                                <InputLabel shrink>S.Net</InputLabel>
+                                <InputLabel shrink>{t('employe.complement.netSalary') || 'S.Net'}</InputLabel>
                                     <Input
                                         fullWidth
                                         size="small"
@@ -122,7 +123,7 @@ export default function Complement({onChange,empData}:EmployeDetailsProps) {
                                     />
                                 </Grid>
                                 <Grid item xs={4}>
-                                <InputLabel shrink>Echelon</InputLabel>
+                                <InputLabel shrink>{t('employe.complement.echelon') || 'Echelon'}</InputLabel>
                                     <Input
                                         fullWidth
                                         size="small"
@@ -132,7 +133,7 @@ export default function Complement({onChange,empData}:EmployeDetailsProps) {
                                     />
                                 </Grid>
                                 <Grid item xs={4}>
-                                <InputLabel shrink>Echelle</InputLabel>
+                                <InputLabel shrink>{t('employe.complement.scale') || 'Echelle'}</InputLabel>
                                     <Input
                                         fullWidth
                                         size="small"
@@ -142,7 +143,7 @@ export default function Complement({onChange,empData}:EmployeDetailsProps) {
                                     />
                                 </Grid>
                                 <Grid item xs={5}>
-                                <InputLabel shrink>S.Catégorie</InputLabel>
+                                <InputLabel shrink>{t('employe.complement.subCategory') || 'S.Catégorie'}</InputLabel>
                                     <Input
                                         fullWidth
                                         size="small"

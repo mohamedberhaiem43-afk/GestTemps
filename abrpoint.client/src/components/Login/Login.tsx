@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import SelectInputComponent from '../SelectInputComponent/SelectInputComponent';
 import InputComponent from '../Inputs/Input';
 import { useAuth } from '../helper/AuthProvider';
+import { useTranslation } from 'react-i18next';
 
 interface UserLoginModel {
   Utimail: string;
@@ -87,6 +88,7 @@ export default function CredentialsSignInPage() {
         setLoading(false);
       });
   };
+  const { t } = useTranslation();
 
   return (
     <AppProvider theme={theme}>
@@ -96,25 +98,25 @@ export default function CredentialsSignInPage() {
         {error && <Alert severity="error">{error}</Alert>}
 
           <Item>
-              <Typography variant='h6' gutterBottom color={'primary'} fontWeight={'bold'} mb={5}>
-                    Se Connecter
+              <Typography variant='h6' gutterBottom color="primary" fontWeight="bold" mb={5}>
+                {t('login.title')}
               </Typography>
               <Grid  container spacing={2}>
                 <Grid item xs={6} sm={6}>
-                  <InputComponent type='text' label='Email' value={utimail} setValue={setUtimail} />
+                  <InputComponent type='text' label={t('login.email')} value={utimail} setValue={setUtimail} />
                 </Grid>
                 <Grid item xs={6}>
-                  <InputComponent type='password' label='Mot de passe' value={password} setValue={setPassword} />
+                  <InputComponent type='password' label={t('login.password')} value={password} setValue={setPassword} />
                 </Grid>
                 <Grid item xs={6} mt={1}>
-                  <SelectInputComponent label='Société' value={company} setValue={setCompany} maplist={societes} />
+                  <SelectInputComponent label={t('login.company')} value={company} setValue={setCompany} maplist={societes} />
                 </Grid>
                 <Grid item xs={6} mt={1}>
-                  <SelectInputComponent label='Filiale/Site' value={usersit} setValue={setUsersit} maplist={sites} />
+                  <SelectInputComponent label={t('login.site')} value={usersit} setValue={setUsersit} maplist={sites} />
                 </Grid>
                 <Grid item xs={12}>
                   <Button variant="outlined" color="primary" onClick={handleSignIn} disabled={loading}>
-                    {loading ? <CircularProgress size={24} /> : 'Connecter'}
+                    {loading ? <CircularProgress size={24} /> : t('login.button')}
                   </Button>
                 </Grid>
               </Grid>

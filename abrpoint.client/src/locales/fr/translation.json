@@ -1,0 +1,564 @@
+{
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "dataBase": "Donnée De Base",
+    "administrator": "Administrateur",
+    "clockingMachine": "Pointeuse",
+    "employee": "Employé",
+    "timeClass": "Classe Horaire",
+    "payrollPreparation": "Préparation paie",
+    "reports": "Etats",
+    "companySettings": "Paramétre Société",
+    "society": "Société",
+    "direction": "Direction",
+    "service": "Service",
+    "section": "Section",
+    "branch": "Filiale",
+    "country": "Pays",
+    "city": "Ville",
+    "function": "Fonction",
+    "rubric": "Rubrique",
+    "users": "Utilisateurs",
+    "accessRights": "Droit d'accées",
+    "clockingReading": "Lecture Pointeuses",
+    "clockingList": "Liste Pointeuses",
+    "clockingOptimization": "Optimisation Pointage",
+    "periodicReport": "Etat Périodique",
+    "employeeManagement": "Gestion Des Employés",
+    "contract": "Contrat",
+    "contractManagement": "Gestion Des Contrats",
+    "renewal": "Renouvellement",
+    "breastfeeding": "Allaitement",
+    "leave": "Conge",
+    "leaveRequest": "Demande De Conge",
+    "leaveBalance": "Solde De Conge",
+    "leaveTitle": "Titre De Conge",
+    "generalLeave": "Conge Géneral",
+    "absences": "Absences",
+    "compensationDay": "Jour Compensation",
+    "exitAuthorization": "Autorisation Sortie",
+    "generalExit": "Sortie Génerale",
+    "absenceAndSanction": "Absence et Sanction",
+    "workSchedule": "Classe Horaire",
+    "workStation": "Poste de Travail",
+    "absenceTypes": "Natures d'absences",
+    "publicHolidays": "Jours Fériés",
+    "salaryAdvance": "Accompte sur salaire",
+    "monthlyClocking": "Pointage du mois",
+    "leaveRights": "Droit de Congé",
+    "attendanceReport": "Etat de Présence",
+    "lateReport": "Etat de Retard",
+    "absenceReport": "Etat des Absences",
+    "contractExpiry": "Echéance de Contrat",
+    "leaveBook": "Cahier de Congé",
+    "profile": "Profile",
+    "companyParameter": "Paramétre Société",
+    "companyCalendar": "Calendrier Société",
+    "chatBot": "Chat Bot",
+    "about": "À propos",
+    "contact": "Contact"
+  },
+  "breadcrumb": {
+    "param-societe": "Paramètres Société",
+    "societe": "Société",
+    "gestion-employe": "Gestion Des Employés",
+    "etat-periodique": "État Périodique",
+    "allaitement": "Allaitement",
+    "gestion-utilisateur": "Utilisateurs",
+    "pointage-du-mois": "Pointage du Mois",
+    "lecture-pointeuse": "Lecture Pointeuse"
+  },
+  "allaitement": {
+    "title": "Allaitement",
+    "list": {
+      "order": "N°Ordre",
+      "code": "Code",
+      "name": "Nom et Prénom",
+      "startDate": "Date Début",
+      "endDate": "Date Fin",
+      "period": "Période",
+      "exportAll": "Exporter toutes les lignes (PDF)",
+      "exportPage": "Exporter les lignes de la page (PDF)",
+      "exportSelected": "Exporter les lignes sélectionnées (PDF)"
+    },
+    "form": {
+      "employee": "Employé",
+      "order": "N°Ordre",
+      "date": "Date",
+      "startDate": "Date Début",
+      "endDate": "Date Fin",
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "manage": "Gérer Employé"
+    }
+  },
+  "employe": {
+    "save": "Enregistrer",
+    "update": "Modifier",
+    "addSuccess": "Employé ajouté avec succès",
+    "addError": "Échec lors de l'ajout de l'employé",
+    "updateSuccess": "Employé modifié avec succès",
+    "updateError": "Échec lors de la modification de l'employé",
+    "prepareError": "Erreur lors de la préparation des données",
+    "tabs": {
+      "basic": "Information de base",
+      "work": "Information de travail",
+      "employeeInfo": "Information Employé",
+      "contact": "Coordonnées",
+      "complement": "Complément"
+    },
+    "form": {
+      "cin": "N° CIN",
+      "name": "Nom et Prénom",
+      "badge": "N° Badge",
+      "birthDate": "Date Naissance",
+      "birthPlace": "Lieu",
+      "matricule": "Matricule",
+      "sex": "Sexe"
+    },
+    "gender": {
+      "male": "Masculin",
+      "female": "Feminin"
+    },
+    "work": {
+      "regime": "Régime",
+      "hourly": "Horaire",
+      "monthly": "Mensuelle",
+      "branch": "Filiale",
+      "charge": "Charge",
+      "direct": "Directe",
+      "indirect": "Indirecte",
+      "service": "Service",
+      "direction": "Direction",
+      "timeClass": "Classe Horaire",
+      "maxDaysPerMonth": "Jour Max/Mois",
+      "maxHoursPerDay": "Max Heure/Jour",
+      "calendarType": "Type Calendrier",
+      "eliminateDelay": "Eliminer Retard",
+      "minHoursPerDay": "Min Heure/Jour"
+    },
+    "contact": {
+      "address": "Adresse",
+      "nationality": "Nationalité",
+      "city": "Ville",
+      "tel": "Tél",
+      "mobile": "Mobile",
+      "email": "Email",
+      "civilStatus": "Etat Civil",
+      "single": "Célibataire(e)",
+      "married": "Marié(e)",
+      "divorced": "Divorcé(e)"
+    },
+    "messages": {
+      "contractDownloadError": "Erreur lors du téléchargement du contrat",
+      "deleteSuccess": "Employé supprimé avec succès",
+      "deleteError": "Erreur lors de la suppression de l'employé",
+      "selectWordFile": "Veuillez sélectionner un fichier Word (.doc ou .docx)",
+      "selectContractTemplate": "Veuillez sélectionner un modèle de contrat",
+      "contractGenerated": "Contrat généré avec succès",
+      "contractGenerateError": "Erreur lors de la génération du contrat",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet employé ?"
+    },
+    "dialog": {
+      "selectTemplateFor": "Sélectionner un modèle de contrat pour {{name}}",
+      "addTemplate": "Ajouter un nouveau modèle (.doc/.docx)",
+      "selectedYes": "Sélectionné : Oui",
+      "selectedNo": "Sélectionné : Non",
+      "noTemplates": "Aucun modèle de contrat disponible. Ajoutez un fichier Word (.doc/.docx)."
+    },
+    "actions": {
+      "generateContractPDF": "Générer le contrat PDF"
+    },
+    "documents": {
+      "individualSheetTitle": "Fiche individuelle",
+      "hireDate": "Date d'embauche",
+      "exitDate": "Date de sortie"
+    },
+    "labels": {
+      "name": "Nom",
+      "active": "Actif",
+      "status": "Statut"
+    },
+    "status": {
+      "active": "Employé Actif",
+      "inactive": "Employé Non Actif"
+    },
+    "fields": {
+      "nightHours": "Heures Nuit",
+      "lunch": "Panier",
+      "position": "Poste",
+      "countRest": "Compter Repos",
+      "exitReason": "Motif Sortie",
+      "retirementDate": "Date Retraite",
+      "nbPosts": "Nb.Postes"
+    },
+    "options": {
+      "nightHours": { "0": "0-Normal", "1": "1-Spécial" },
+      "panier": { "0": "0- Pas de panier", "1": "1- Panier 7H", "2": "2- Panier 6H" },
+      "poste": { "finance": "Finance", "manager": "Gestionnaire" },
+      "countRest": { "0": "0- Sans Compter", "1": "1- Tout Repos", "2": "2- Repos Samedi", "3": "3- Repos Dimanche" }
+    },
+    "columns": {
+      "active": "Actif"
+    },
+  "complement": {
+      "arabicTitle": "Cordonées Arabe",
+      "base": "S.Base/TH",
+      "category": "Catégorie",
+      "grossSalary": "S.Brut",
+      "netSalary": "S.Net",
+      "echelon": "Echelon",
+      "scale": "Echelle",
+      "subCategory": "S.Catégorie"
+    }
+  },
+  "login": {
+    "title": "Se connecter",
+    "email": "Email",
+    "password": "Mot de passe",
+    "company": "Société",
+    "site": "Filiale / Site",
+    "button": "Connecter",
+    "requiredError": "Veuillez remplir tous les champs obligatoires",
+    "loginError": "Échec de la connexion. Vérifiez vos identifiants."
+  },
+  "posteHoraire": {
+    "day": "Journée",
+    "startEntry": "Début Entrée",
+    "entry": "Entrée",
+    "endEntry": "Fin Entrée",
+    "exit": "Sortie",
+    "mealBonus": "Repas Bonus",
+    "rest": "Repos",
+    "maxHours": "Max Hre",
+    "minHoursDay": "Min Hre/Jour",
+    "minHalfDay": "Min Hre 1/2J",
+    "shower": "Douche",
+    "yes": "Oui",
+    "no": "Non",
+    "days": {
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi",
+      "sunday": "Dimanche"
+    }
+  },
+
+  "lcategorie": {
+    "from": "Du",
+    "to": "Au",
+    "fixed": "Fixe ?",
+    "postCode": "Code Poste",
+    "designation": "Désignation"
+  },
+
+  "classeHoraire": {
+    "code": "Code",
+    "label": "Libellé",
+    "frequency": "Fréquence",
+    "overtime": "Heures Supp",
+    "post": "Poste",
+    "new": "Nouveau",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "saved": "Classe horaire enregistrée avec succès",
+    "deleted": "Classe horaire supprimée avec succès",
+    "saveError": "Erreur lors de l'enregistrement",
+    "deleteError": "Erreur lors de la suppression",
+    "required": "Veuillez remplir le code et le libellé",
+    "confirmDelete": "Voulez-vous vraiment supprimer cette classe horaire ?",
+    "updateTitle": "Mise à Jour Classe Horaire",
+    "recalculate": "Recalculer",
+    "flags": {
+      "late": "Retard",
+      "tolerance": "Tolérance",
+      "presence": "Présence",
+      "meal": "Repas"
+    }
+  },
+  "weeklyHoursTable": {
+    "dateStart": "Date début",
+    "dateEnd": "Date fin",
+    "hours": "Nb. Heures"
+  },
+  "pointageDuMois": {
+    "errorLoading": "Erreur lors du chargement des données.",
+    "total": "TOTAL",
+    "weekDetails": "Détails de la semaine {{numSem}}"
+  },
+  "dailyHours": {
+    "noData": "Aucune donnée journalière disponible",
+    "day": "Jour",
+    "date": "Date",
+    "hoursWorked": "Heures Travaillées"
+  },
+  "common": {
+    "rest": "Repos",
+    "date": "Date",
+    "day": "Jour",
+    "cancel": "Annuler",
+    "actions": "Actions",
+    "qualification": "Qualification",
+    "delete": "Supprimer",
+    "function": "Fonction",
+    "morning": "Matin",
+    "confirmation": "Confirmation",
+    "code": "Code",
+    "label": "Libellé",
+    "before": "Avant",
+    "after": "Après",
+    "new": "Nouveau",
+    "search": "Recherche",
+    "previous": "Précédent",
+    "current": "Courant",
+    "seniority": "Ancienneté",
+    "edit": "Modifier",    "ref": "Réf",    "orderNumber": "N° Ordre",
+    "dateStart": "Date Départ",
+    "dateEnd": "Date Retour",
+    "imputation": "Imputation",
+    "phone": "Téléphone",
+    "nbDays": "Nb.Jours",
+    "nbHours": "Nb.Heures",
+    "wholeDay": "Toute la Journée",
+    "mornings": "Les Matinées",
+    "afternoons": "Les Après-Midi",
+    "afternoon": "Après-Midi",
+    "requiredFields": "Veuillez remplir tous les champs obligatoires",
+    "employee": "Employé",
+    "reason": "Motif",
+    "startTime": "Heure de début",
+    "endTime": "Heure de fin",
+    "exception": "Exception",
+    "yes": "Oui",
+    "no": "Non",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?"
+  },
+  "list": {
+    "edit": "Editer",
+    "delete": "Supprimer",
+    "purge": "Purger",
+    "contract": "Contrat",
+    "workAttestation": "Attestation de travail",
+    "medicalVisit": "Visite médicale",
+    "individualSheet": "Fiche individuelle",
+    "employeeHours": "Heures employé",
+    "exportSelection": "Exporter la sélection",
+    "messages": {
+      "deleteSuccess": "Suppression réussie",
+      "deleteError": "Erreur lors de la suppression",
+      "actionForbidden": "Action interdite : vous n'avez pas la permission."
+    }
+  },
+  "conge": {
+    "orderNumber": "N° Ordre",
+    "address": "Adresse de congé",
+    "added": "Congé ajouté avec succès",
+    "addError": "Échec lors de l'ajout de congé",
+    "createNew": "Créer un nouveau congé",
+    "messages": {
+      "bulkAddSuccess": "Congés ajoutés avec succès",
+      "bulkAddError": "Échec lors de l'ajout des congés",
+      "addSuccess": "Congé ajouté avec succès",
+      "addError": "Échec lors de l'ajout de congé",
+      "updateSuccess": "Congé modifié avec succès",
+      "updateError": "Échec lors de la modification du congé",
+      "deleteSuccess": "Congé supprimé avec succès",
+      "deleteError": "Échec lors de la suppression du congé",
+      "deleteErrorAlert": "Erreur lors de la suppression du congé."
+    },
+    "errors": {
+      "notHired": "L'employé n'est pas embauché à la date spécifiée."
+    },
+    "actions": {
+      "exception": "Exception",
+      "print": "Imprimer"
+    },
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce congé (N° Ordre : {{order}})?"
+  },
+  "contract": {
+    "number": "N° Contrat",
+    "date": "Date Contrat",
+    "type": "Type Contrat"
+  },
+  "employeeLevel": {
+    "cadre": "Cadre",
+    "maitrise": "Maitrise",
+    "executant": "Exécutant"
+  },
+  "sanction": {
+    "addSuccess": "Absence ajoutée avec succès",
+    "addError": "Échec lors de l'ajout de l'absence",
+    "fillImputation": "Veuillez renseigner l'imputation"
+  },
+  "post": {
+    "toleranceEntry": "Tolérance Entrée",
+    "toleranceExit": "Tolérance Sortie",
+    "autoRest": "Repos Automatique après/avant travail",
+    "option": {
+      "0Before": "0-Avant",
+      "1After": "1-Après",
+      "0After": "0-Après",
+      "1Before": "1-Avant"
+    }
+  },
+  "empEtatPeriodique": {
+    "enterReason": "Saisir un motif",
+    "reason": "Motif",
+    "menu": {
+      "absence": "Absence",
+      "conge": "Congé",
+      "autorisation": "Autorisation de sortie",
+      "optimisation": "Optimisation pointage (journée)"
+    },
+  "filters": {
+    "branch": "Filiale",
+    "service": "Service",
+    "regime": "Régime",
+    "employees": "Employés",
+    "month": "Mois",
+    "year": "Année",
+    "presence": "Présence"
+  },    "exportB01T": "Exporter Excel (Format B01T)",
+    "noDataToExport": "Aucune donnée à exporter",  "empPoste": {
+    "entry": "Entrée",
+    "exit": "Sortie",
+    "morning": "Matin",
+    "afternoon": "A.Midi",
+    "toleranceEntry": "Tolérance Entrée",
+    "toleranceExit": "Tolérance Sortie",
+    "class": "Classe",
+    "post": "Poste",
+    "meal": "Repas",
+    "round": "Arrondi",
+    "roundSup": "Arrondi Sup"
+  },
+    "headers": {
+      "date": "Date",
+      "day": "Jour",
+      "rest": "Rep",
+      "entry1": "Entrée1",
+      "exit1": "Sortie1",
+      "meal": "Repas",
+      "entry2": "Entrée2",
+      "exit2": "Sortie2",
+      "entry3": "Entrée3",
+      "exit3": "Sortie3",
+      "clockingMachine": "Pointeuse",
+      "totalHour": "Total Heure",
+      "nightHour": "Heure Nuit",
+      "overtimeHour": "Heure supp",
+      "total": "Total",
+      "dayLabel": "Jour",
+      "state": "Etat",
+      "observation": "Observation",
+      "late": "Retard",
+      "hraut": "H. Aut. Sortie",
+      "totalAbsence": "Total Absence",
+      "totcmp": "Tot. cmp",
+      "matricule": "Matricule",
+      "employee": "Employé",
+      "nbDays": "Nb. Jours",
+      "actions": "Actions",
+      "shower": "douche"
+    },
+    "actions": {
+      "more": "Plus"
+    },
+    "errorLoading": "Erreur lors du chargement des données"
+  },
+
+  "integrationPaie": {
+    "employees": "Employés :",
+    "rubrics": "Rubriques configurées :",
+    "rowsToExport": "Lignes à exporter :"
+  },
+  "helper": {
+    "manipulate": "Manipuler"
+  },
+  "paramSoc": {
+    "part1": {
+      "jourDebut": "Jour début",
+      "jourFin": "Jour fin",
+      "hourMethod": "Méthode calcul heures de présence",
+      "divideHoursBy": "Diviser Hre par",
+      "presenceHoursCalculated": "Heures de présence calculées",
+      "presenceCalcMethod": "Méthode de calcul heures présence",
+      "method": {
+        "workedHours": "Heures travaillées",
+        "classeAbsence": "Classe d'absence",
+        "daysWorked": "Jours travaillés",
+        "hoursDaysWorked": "Heures/Jours travaillés",
+        "presenceTime": "Temps de présence",
+        "departure": "Départ",
+        "arrival": "Arrivée"
+      },
+      "annualLeaveIncrease": "Majoration congé annuel",
+      "seniorityLabel": "Ancienneté",
+      "fiveYears": "5 Ans",
+      "saisieConge": "Saisie Congé",
+      "daysBeforeOrAfter": "Jours avant ou après"
+    }
+  },
+  "app": {
+    "name": "ABRPOINT"
+  },
+  "loading": {
+    "loading": "Chargement..."
+  },
+  "optimisation": {
+    "info": "Cette action va recalculer le pointage pour la période sélectionnée.",
+    "dateStart": "Date début",
+    "dateEnd": "Date fin",
+    "optimizing": "Optimisation en cours...",
+    "optimizeButton": "Optimiser le pointage"
+  },
+  "donneeSociete": {
+    "requiredFields": "Le code et le libellé sont obligatoires !",
+    "added": "Société ajoutée avec succès !",
+    "addError": "Échec de l'ajout de la société. Veuillez réessayer."
+  },
+  "profile": {
+    "imageSaved": "Image sauvegardée avec succès.",
+    "imageSaveError": "Erreur lors de la sauvegarde de l'image.",
+    "uploadImage": "Uploader l'image",
+    "changePassword": {
+      "button": "Changer le mot de passe",
+      "title": "Changer le mot de passe",
+      "oldLabel": "Ancien mot de passe",
+      "newLabel": "Nouveau mot de passe",
+      "fillFields": "Veuillez renseigner l'ancien et le nouveau mot de passe.",
+      "success": "Mot de passe changé avec succès.",
+      "error": "Erreur lors du changement de mot de passe."
+    }
+  },
+  "user": {
+    "updateSuccess": "Utilisateur mis à jour avec succès",
+    "updateError": "Erreur lors de la mise à jour"
+  },
+  "rubrique": {
+    "save": "Enregistrer la Rubrique",
+    "edit": "Modifier la Rubrique"
+  },
+  "filter": {
+    "withoutPointage": "Sans pointage (abs non justifiée)",
+    "allAbsence": "Toute absence",
+    "justifiedAbsence": "Absence justifiée",
+    "invalidPointage": "Pointage invalide",
+    "absenceDayLate": "Absence au cours du jour+Retard",
+    "authorizedAbsence": "Absence autorisée",
+    "withoutInvalidPointage": "Sans Pointage Invalide",
+    "presenceNotOptimized": "Présence non optimisée",
+    "absenceType": "Type Absence"
+  }
+}

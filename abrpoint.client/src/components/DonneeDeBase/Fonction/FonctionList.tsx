@@ -187,7 +187,7 @@ const FonctionTable = () => {
 
     renderRowActions: ({ row }) => (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        <Tooltip title="Supprimer">
+        <Tooltip title={t('common.delete')}>
           <IconButton color="error" onClick={() => openDeleteConfirmModal(row)}>
             <DeleteIcon />
           </IconButton>

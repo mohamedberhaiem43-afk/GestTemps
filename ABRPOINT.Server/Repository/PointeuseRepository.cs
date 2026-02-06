@@ -122,7 +122,8 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                return await _dbContext.Pointeuses.FirstOrDefaultAsync(p => p.Poicod == poicod && p.Soccod == soccod);
+                var pointeuse = await _dbContext.Pointeuses.FirstOrDefaultAsync(p => p.Poicod == poicod && p.Soccod == soccod);
+                return pointeuse;
             }
             catch (Exception)
             {
@@ -156,6 +157,39 @@ namespace ABRPOINT.Server.Repository
             try
             {
                 IEnumerable<Pointeuse> pointeuses = await _dbContext.Pointeuses.Where(p => p.Soccod == soccod).ToListAsync();
+                return pointeuses;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        public async Task<IEnumerable<PointeuseDto>> GetAllAsyncWithLatestRead(string soccod)
+        {
+            try
+            {
+                var pointeuses = await _dbContext.Pointeuses
+                    .Where(p => p.Soccod == soccod)
+                    .Select(p => new PointeuseDto
+                    {
+                        // Mapper les propriétés de Pointeuse
+                        Poicod = p.Poicod,
+                        Soccod = p.Soccod,
+                        Poilib = p.Poilib,
+                        Poiport = p.Poiport,
+                        Poiadrip1 = p.Poiadrip1,
+                        Poiadrip2 = p.Poiadrip2,
+                        Poiadrip3 = p.Poiadrip3,
+                        Poiadrip4 = p.Poiadrip4,
+                        // Récupérer la dernière lecture (dmhre) pour cette pointeuse
+                        LatestDmhre = _dbContext.Dmpoints
+                            .Where(dm => dm.Soccod == soccod && dm.Dmpnt == p.Poicod)
+                            .OrderByDescending(dm => dm.Dmhre) // ou un champ date si disponible
+                            .Select(dm => dm.Dmhre)
+                            .FirstOrDefault()
+                    })
+                    .ToListAsync();
+
                 return pointeuses;
             }
             catch (Exception)

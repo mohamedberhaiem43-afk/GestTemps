@@ -1,5 +1,6 @@
 import { Checkbox, FormControlLabel, FormLabel,Input,MenuItem, Select } from "@mui/material";
 import './Repos.css'
+import { t } from "i18next";
 
 
 interface ReposProps {
@@ -26,9 +27,9 @@ const Repos:React.FC<ReposProps> = ({ jourRepos,setJourRepos,parsom,setParsom,mo
                 <MenuItem  value={"Vendredi"}>Vendredi</MenuItem>
                 <MenuItem  value={"Samedi"}>Samedi</MenuItem>
             </Select>
-            <FormControlLabel control={<Checkbox defaultChecked />} label="Repos périodique" />
-            <FormControlLabel control={<Input value={parsom} onChange={(e)=>setParsom && setParsom(Number(e.target.value))} />} label="Repas / Jour: " />
-            <FormControlLabel control={<Input value={moinsRepas} onChange={(e)=>setMoinsRepas && setMoinsRepas(Number(e.target.value))} />} label="Diminuer Repas à partir: " />
+            <FormControlLabel control={<Checkbox defaultChecked />} label={t('common.periodicRest')} />
+            <FormControlLabel control={<Input value={parsom} onChange={(e)=>setParsom && setParsom(Number(e.target.value))} />} label={t('common.mealsPerDay')} />
+            <FormControlLabel control={<Input value={moinsRepas} onChange={(e)=>setMoinsRepas && setMoinsRepas(Number(e.target.value))} />} label={t('common.decreaseMealsFrom')} />
 
         </>
     );

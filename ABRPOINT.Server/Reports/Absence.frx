@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="07/27/2025 08:36:08" ReportInfo.Modified="07/27/2025 12:35:22" ReportInfo.CreatorVersion="2024.2.20.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/27/2025 08:36:08" ReportInfo.Modified="01/29/2026 15:10:26" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-	  <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
-		  <TableDataSource Name="Table" Alias="Absence" DataType="System.Int32" Enabled="true" SelectCommand="select s.soclib,s.socadr,abs.abslib,sanc.concod,sanc.conmotif,sanc.condep,sanc.conret,sanc.connbjour,e.empmat,e.emplib,e.empfonc,e.empadr&#13;&#10;from societe s,absence abs,sanction sanc,employe e&#13;&#10;where s.soccod = e.soccod and e.empcod = sanc.empcod and abs.abscod = sanc.abscod&#13;&#10;and s.soccod = @soccod and e.empcod = @empcod and concod = @concod">
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM0KGXcjIkOflkviV83OP96A">
+      <TableDataSource Name="Table" Alias="Absence" DataType="System.Int32" Enabled="true" SelectCommand="select s.soclib,s.socadr,abs.abslib,sanc.concod,sanc.conmotif,sanc.condep,sanc.conret,sanc.connbjour,e.empmat,e.emplib,e.empfonc,e.empadr&#13;&#10;from societe s,absence abs,sanction sanc,employe e&#13;&#10;where s.soccod = e.soccod and e.empcod = sanc.empcod and abs.abscod = sanc.abscod&#13;&#10;and s.soccod = @soccod and e.empcod = @empcod and concod = @concod">
         <Column Name="soclib" DataType="System.String"/>
         <Column Name="socadr" DataType="System.String"/>
         <Column Name="abslib" DataType="System.String"/>

@@ -1,4 +1,7 @@
 export default interface EmpEtat {
+  jour: string;
+  poicod: string;
+  tothsup: string;
   arrhsup: number;
   arrondi: number;
   predat: string;

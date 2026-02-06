@@ -21,11 +21,11 @@ export default function ClasseHoraire() {
 
 function Content() {
   return (
-    <Box height={'85vh'}>
+    <Box height={'90vh'} mt={-10}>
       <BreadcrumbNavigation />
 
       <Grid container spacing={0.5}>
-        <Grid item xs={12} ml={7}>
+        <Grid item xs={12} >
           <Item>
             <SaisieClasseHoraire />
           </Item>

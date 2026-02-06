@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Grid } from "@mui/material";
 import InputComponent from "../../../Inputs/Input";
 import SelectInputComponent from "../../../SelectInputComponent/SelectInputComponent";
+import { useTranslation } from 'react-i18next';
 import useGetVillesLibs from "../../../../hooks/villeHooks/useGetVillesLibs";
 import useGetPaysLibs from "../../../../hooks/paysHooks/useGetPaysLibs";
 import Employe from "../../../../models/Employe";
@@ -12,10 +13,11 @@ interface EmployeDetailsProps {
 }
 
 export default function Cordonees({ onChange, empData }: EmployeDetailsProps) {
+  const { t } = useTranslation();
   const etatCivile = {
-    "C": "Célibataire(e)",
-    "M": "Marié(e)",
-    "D": "Divorcé(e)"
+    "C": t('employe.contact.single') || 'Célibataire(e)',
+    "M": t('employe.contact.married') || 'Marié(e)',
+    "D": t('employe.contact.divorced') || 'Divorcé(e)'
   };
 
   const { data: villes = [] } = useGetVillesLibs();
@@ -46,14 +48,14 @@ export default function Cordonees({ onChange, empData }: EmployeDetailsProps) {
       <Grid item xs={4}>
         <InputComponent
           type='text'
-          label='Adresse'
+          label={t('employe.contact.address') || 'Adresse'}
           value={formData.empadr}
           setValue={(value: any) => handleChange({ target: { name: 'empadr', value } })}
         />
       </Grid>
       <Grid item xs={3} mt={1}>
         <SelectInputComponent
-          label='Nationalité'
+          label={t('employe.contact.nationality') || 'Nationalité'}
           value={formData.natcod}
           setValue={(value) => handleChange({ target: { name: 'natcod', value } })}
           maplist={nations}
@@ -61,7 +63,7 @@ export default function Cordonees({ onChange, empData }: EmployeDetailsProps) {
       </Grid>
       <Grid item xs={3} mt={1}>
         <SelectInputComponent
-          label='Ville'
+          label={t('employe.contact.city') || 'Ville'}
           value={formData.vilcod}
           setValue={(value) => handleChange({ target: { name: 'vilcod', value } })}
           maplist={villes}
@@ -70,7 +72,7 @@ export default function Cordonees({ onChange, empData }: EmployeDetailsProps) {
       <Grid item xs={3}>
         <InputComponent
           type='tel'
-          label='Tél'
+          label={t('employe.contact.tel') || 'Tél'}
           value={formData.emptel}
           setValue={(value: any) => handleChange({ target: { name: 'emptel', value } })}
         />
@@ -78,7 +80,7 @@ export default function Cordonees({ onChange, empData }: EmployeDetailsProps) {
       <Grid item xs={3}>
         <InputComponent
           type='number'
-          label='Mobile'
+          label={t('employe.contact.mobile') || 'Mobile'}
           value={formData.empmob}
           setValue={(value: any) => handleChange({ target: { name: 'empmob', value } })}
         />
@@ -86,14 +88,14 @@ export default function Cordonees({ onChange, empData }: EmployeDetailsProps) {
       <Grid item xs={3}>
         <InputComponent
           type='email'
-          label='Email'
+          label={t('employe.contact.email') || 'Email'}
           value={formData.empemail}
           setValue={(value: any) => handleChange({ target: { name: 'empemail', value } })}
         />
       </Grid>
       <Grid item xs={3}>
         <SelectInputComponent
-          label='Etat Civil'
+          label={t('employe.contact.civilStatus') || 'Etat Civil'}
           value={formData.empsitfam}
           setValue={(value) => handleChange({ target: { name: 'empsitfam', value } })}
           maplist={etatCivile}

@@ -1,5 +1,6 @@
 import { FormControlLabel, Checkbox, FormLabel, TextField } from "@mui/material";
 import './HeuresNuit.css'
+import { t } from "i18next";
 
 
 interface HeuresNuitProps {
@@ -35,7 +36,7 @@ interface HeuresNuitProps {
       <>
         <h3>Heures de Nuit</h3>
         <FormControlLabel control={<Checkbox checked={parNuit === '1'} onChange={(e) => setParNuit && setParNuit(e.target.checked ? '1' : '0')} />} 
-        label="Compter Heure de nuit" />
+        label={t('common.countNightHours')} />
         <div className="heuredeb">
             <FormLabel>Heure Début</FormLabel>
             <TextField 
@@ -66,12 +67,12 @@ interface HeuresNuitProps {
                 onChange={(e) => setNuitFinSpecial(e.target.value)}
             />
         </div>
-        <TextField label="Min Heure Nuit par jour h,mn" variant="standard" 
+        <TextField label={t('common.minNightHoursPerDay')} variant="standard" 
         value={nbhtr4M} onChange={(e)=>setNbhtr4M && setNbhtr4M(Number(e.target.value))} />
 
         <div className="checkboxes">
             <FormControlLabel control={<Checkbox checked={repasNuit === '1'} onChange={(e) => setRepasNuit && setRepasNuit(e.target.checked ? '1' : '0')} />}
-             label="Diminuer Repas de nuit" />
+             label={t('common.decreaseNightMeals')} />
 
             <FormControlLabel control={<Checkbox checked={dtepres === '1'} onChange={(e) => setDtepres && setDtepres(e.target.checked ? '1' : '0')} />} 
             label="Compter la journé de sortie date présence" />

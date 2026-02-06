@@ -10,6 +10,7 @@ import useGetSolde from '../../../../hooks/soldeCongeHooks/useGetSolde';
 import { useSoldeContext } from '../../../helper/SoldeContext';
 import useUpdateSolde from '../../../../hooks/soldeCongeHooks/useUpdateSolde';
 import BreadcrumbNavigation from '../../../helper/BreadcrumbNavigation';
+import { t } from 'i18next';
 
 
 
@@ -110,7 +111,7 @@ const SoldeForm = () => {
       <Grid container spacing={4}>
         <Grid item xs={3} sm={6} md={2}>
           <SelectInputComponent
-            label="Employé"
+            label={t('common.employee')}
             value={solde.empcod}
             setValue={(val: any) => handleInputChange('empcod', val)}
             maplist={employeOptions}
@@ -121,7 +122,7 @@ const SoldeForm = () => {
           <InputComponent
           
             type="number"
-            label="Année"
+            label={t('filter.year')}
             value={solde.annee || ''}
             setValue={(val: any) => handleInputChange('annee', val)}
           />

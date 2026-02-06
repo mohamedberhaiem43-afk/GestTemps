@@ -6,7 +6,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -231,7 +231,7 @@ namespace ABRPOINT.Server.Repository
                     );
 
                     var retard = await _retardService.CalculateHeureRetard(presence, poste, autorisation);
-                    totalMinutes += retard;
+                    totalMinutes += retard.Item1;
                 }
                 return totalMinutes;
             }
@@ -251,6 +251,12 @@ namespace ABRPOINT.Server.Repository
             if (!dateDeb.HasValue || !dateFin.HasValue)
                 throw new ArgumentException("dateDeb et dateFin sont obligatoires");
 
+            // 🆕 Récupérer les dates d'emploi pour tous les employés
+            var employeeDates = await _dbContext.Employes
+                .Where(e => empcods.Contains(e.Empcod) && e.Soccod == soccod)
+                .Select(e => new { e.Empcod, e.Empemb, e.Empsort })
+                .ToDictionaryAsync(e => e.Empcod);
+
             // =====================================
             // 1️⃣ Chargement des présences
             // =====================================
@@ -267,14 +273,21 @@ namespace ABRPOINT.Server.Repository
                 return new Dictionary<string, int>();
 
             // =====================================
-            // 2️⃣ Charger les congés (batch)
+            // 2️⃣ Charger les congés (batch) - 🆕 avec filtrage
             // =====================================
             var demandesConge = presences
                 .Select(p => (p.Soccod, p.Empcod, p.Dmdate!.Value.Date))
                 .Distinct()
+                .Where(req =>
+                {
+                    var empDates = employeeDates.GetValueOrDefault(req.Empcod);
+                    if (empDates == null) return true;
+                    if (empDates.Empemb.HasValue && req.Date < empDates.Empemb.Value) return false;
+                    if (empDates.Empsort.HasValue && req.Date >= empDates.Empsort.Value) return false;
+                    return true;
+                })
                 .ToList();
 
-            // ✅ Utiliser la nouvelle signature qui retourne (Abslib, Connbjour)
             Dictionary<(string Soccod, string Empcod, DateTime Date), (string? Abslib, float? Connbjour)> conges =
                 await _congeRepository.GetCongeLibBatch(demandesConge);
 
@@ -282,25 +295,29 @@ namespace ABRPOINT.Server.Repository
             // 3️⃣ Charger les postes (batch)
             // =====================================
             var empdates = presences
-                .Select(p => (p.Empcod, p.Dmdate!.Value.Date))
+                .Select(p => (p.Soccod, p.Empcod, p.Dmdate!.Value.Date, p.Codposte))
                 .Distinct()
                 .ToList();
 
-            // Charger tous les postes nécessaires en batch
-            var postesEmp = new Dictionary<(string Empcod, DateTime Date), string?>();
-            foreach (var (empcod, date) in empdates)
+            var postesEmp = new Dictionary<(string soc, string Empcod, DateTime Date), string?>();
+            foreach (var (soc, empcod, date, codposte) in empdates)
             {
-                var posteEmp = await _posteRepository.GetEmpPoste(soccod, empcod, date);
-                postesEmp[(empcod, date)] = posteEmp;
+                string? posteCode = codposte;
+
+                if (string.IsNullOrEmpty(posteCode))
+                {
+                    posteCode = await _posteRepository.GetEmpPoste(soc, empcod, date);
+                }
+
+                postesEmp[(soc, empcod, date)] = posteCode;
             }
 
-            // Charger tous les détails des postes en batch
             var posteCodes = postesEmp.Values
                 .Where(p => !string.IsNullOrEmpty(p))
                 .Distinct()
                 .ToList();
 
-            var postes = new Dictionary<string, Poste>(); // Remplacer 'object' par le type réel de Poste
+            var postes = new Dictionary<string, Poste>();
             foreach (var posteCod in posteCodes)
             {
                 var poste = await _posteRepository.GetPoste(soccod, posteCod);
@@ -309,11 +326,19 @@ namespace ABRPOINT.Server.Repository
             }
 
             // =====================================
-            // 4️⃣ Autorisations (batch)
+            // 4️⃣ Autorisations (batch) - 🆕 avec filtrage
             // =====================================
             var demandesAut = presences
                 .Select(p => (p.Empcod, p.Dmdate!.Value.Date))
                 .Distinct()
+                .Where(req =>
+                {
+                    var empDates = employeeDates.GetValueOrDefault(req.Empcod);
+                    if (empDates == null) return true;
+                    if (empDates.Empemb.HasValue && req.Date < empDates.Empemb.Value) return false;
+                    if (empDates.Empsort.HasValue && req.Date >= empDates.Empsort.Value) return false;
+                    return true;
+                })
                 .ToList();
 
             Dictionary<(string Empcod, DateTime Date), AutDto> autorisations =
@@ -335,7 +360,7 @@ namespace ABRPOINT.Server.Repository
                     continue;
 
                 // ✅ Récupérer le poste depuis le dictionnaire
-                if (!postesEmp.TryGetValue((p.Empcod, date), out var postEmp))
+                if (!postesEmp.TryGetValue((p.Soccod, p.Empcod, date), out var postEmp))
                     continue;
 
                 // ✅ Récupérer les détails du poste depuis le dictionnaire
@@ -348,8 +373,8 @@ namespace ABRPOINT.Server.Repository
                     (p.Empcod, date),
                     out var autorisation);
 
-                int retard = await _retardService
-                    .CalculateHeureRetard(presenceDto, poste, autorisation);
+                int retard = (await _retardService
+                    .CalculateHeureRetard(presenceDto, poste, autorisation)).Item1;
 
                 if (retard <= 0)
                     continue;
@@ -362,7 +387,6 @@ namespace ABRPOINT.Server.Repository
 
             return result;
         }
-
         public async Task<IEnumerable<EmployeDto>> GetAllAsync(string soccod, string uticod)
         {
             try
@@ -489,9 +513,49 @@ namespace ABRPOINT.Server.Repository
             }
             return total.ToString(@"hh\:mm\:ss");
         }
+        private double CalculateHoursWithLimits(Presence presence, EmpparamPointageMois empparam)
+        {
+            float actualHours = (float)GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+
+            // Limite 1: Maximum de l'employé (si configuré)
+            if (empparam.Empmaxhre != 0)
+                actualHours = MathF.Min(actualHours, (float)empparam.Empmaxhre);
+
+            // Limite 2: Maximum du poste pour ce jour (si configuré)
+            if (!string.IsNullOrEmpty(empparam.PosteMaxhre) &&
+                TimeSpan.TryParse(empparam.PosteMaxhre, out var maxPosteHours))
+            {
+                actualHours = MathF.Min(actualHours, (float)maxPosteHours.TotalHours);
+            }
+
+            return actualHours;
+        }
+        private double journeeTime(float dayworkhours, EmpparamPointageMois empparam)
+        {
+            // PRIORITÉ 1: Utiliser les paramètres de l'employé (comportement actuel)
+            if (empparam.Empminhjour != 0)
+            {
+                if (dayworkhours <= empparam.Empminhjour && dayworkhours > 1)
+                    return 0.5;
+                else
+                    return 1;
+            }
+            // PRIORITÉ 2: Utiliser les paramètres du poste si disponibles
+            if (empparam.PosteMinhJour.HasValue && empparam.PosteMinhDemiJour.HasValue)
+            {
+                if (dayworkhours >= empparam.PosteMinhJour.Value)
+                    return 1; // Journée complète
+                else if (dayworkhours >= empparam.PosteMinhDemiJour.Value)
+                    return 0.5; // Demi-journée
+                else
+                    return 0; // Pas de journée comptée
+            }
+
+            return 1;
+        }
 
         public async Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, List<string>? empcods = null, string? empreg = null, string? service = null,
-    DateTime? debut = null, DateTime? fin = null)
+DateTime? debut = null, DateTime? fin = null)
         {
             try
             {
@@ -592,6 +656,12 @@ namespace ABRPOINT.Server.Repository
 
                 var empList = presenceDataRaw.Select(x => x.Empcod).Distinct().ToList();
 
+                // 🆕 Récupérer les dates empemb et empsort pour tous les employés
+                var employeeDates = await _dbContext.Employes
+                    .Where(e => empList.Contains(e.Empcod) && e.Soccod == soccod)
+                    .Select(e => new { e.Empcod, e.Empemb, e.Empsort })
+                    .ToDictionaryAsync(e => e.Empcod);
+
                 // ================================
                 // 3️⃣ Récupérer les jours fériés
                 // ================================
@@ -606,20 +676,29 @@ namespace ABRPOINT.Server.Repository
 
                 foreach (var emp in empList)
                 {
+                    // 🆕 Récupérer les dates d'emploi
+                    var empDates = employeeDates.GetValueOrDefault(emp);
+
                     for (DateTime date = debut.Value.Date; date <= fin.Value.Date; date = date.AddDays(1))
                     {
+                        // 🆕 Filtrer les dates hors période d'emploi
+                        if (empDates != null)
+                        {
+                            if (empDates.Empemb.HasValue && date < empDates.Empemb.Value) continue;
+                            if (empDates.Empsort.HasValue && date >= empDates.Empsort.Value) continue;
+                        }
+
                         allDatesInPeriod.Add((soccod, emp, date));
                     }
                 }
 
-                // ✅ Récupérer tous les congés pour toutes les dates
+                // ✅ Récupérer tous les congés pour toutes les dates (déjà filtrées)
                 var conges = await _congeRepository.GetCongeLibBatch(allDatesInPeriod);
                 var nbhconge = await _parametreRepository.GetNbhConge(soccod) ?? 0;
 
                 // ================================
                 // 5️⃣ Calcul des heures de congés par employé
                 // ================================
-                // ✅ Calculer pour TOUTES les dates de congé, pas seulement celles dans presenceDataRaw
                 var congeMinutesParEmp = allDatesInPeriod
                     .GroupBy(x => x.Empcod)
                     .ToDictionary(
@@ -708,6 +787,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+
         public async Task<float?> GetNbJours(string empcod, DateTime? dateDeb, DateTime? dateFin)
         {
             try
@@ -733,16 +813,28 @@ namespace ABRPOINT.Server.Repository
         }
 
 
+
         public async Task<Dictionary<string, float>> GetNbJoursBatch(List<string> empcods, DateTime? dateDeb, DateTime? dateFin, string soccod)
         {
             if (empcods == null || !empcods.Any())
                 return new Dictionary<string, float>();
-
             if (!dateDeb.HasValue || !dateFin.HasValue)
                 throw new ArgumentException("dateDeb et dateFin sont obligatoires");
 
+            // 🆕 Récupérer les dates d'emploi pour tous les employés
+            var employeeDates = await _dbContext.Employes
+                .Where(e => empcods.Contains(e.Empcod) && e.Soccod == soccod)
+                .Select(e => new { e.Empcod, e.Empemb, e.Empsort })
+                .ToDictionaryAsync(e => e.Empcod);
+
             // =====================================
-            // 1️⃣ Charger les présences (1 requête)
+            // 1️⃣ Charger les jours fériés
+            // =====================================
+            var feriers = await _ferierRepository.GetByFerdateBatch(soccod, dateDeb.Value, dateFin.Value);
+            var ferierDates = feriers.Keys.ToHashSet();
+
+            // =====================================
+            // 2️⃣ Charger les présences (1 requête)
             // =====================================
             var presences = await _dbContext.Presences
                 .Where(p =>
@@ -759,31 +851,83 @@ namespace ABRPOINT.Server.Repository
                 .Select(g => new
                 {
                     g.Key.Empcod,
+                    g.First().Tothre,
                     g.Key.Date,
                     Presence = g.First()
                 })
                 .ToListAsync();
 
-            if (!presences.Any())
+            if (!presences.Any() && !ferierDates.Any())
                 return new Dictionary<string, float>();
 
             // =====================================
-            // 2️⃣ Charger les congés (batch)
+            // 3️⃣ Charger les congés (batch) - 🆕 avec filtrage
             // =====================================
             var demandesConge = presences
                 .Select(p => (p.Presence.Soccod, p.Empcod, p.Date))
                 .Distinct()
+                .Where(req =>
+                {
+                    var empDates = employeeDates.GetValueOrDefault(req.Empcod);
+                    if (empDates == null) return true;
+                    if (empDates.Empemb.HasValue && req.Date < empDates.Empemb.Value) return false;
+                    if (empDates.Empsort.HasValue && req.Date >= empDates.Empsort.Value) return false;
+                    return true;
+                })
                 .ToList();
 
             var conges = await _congeRepository.GetCongeLibBatch(demandesConge);
 
             // =====================================
-            // 3️⃣ Calcul NbJours
+            // 4️⃣ Pré-charger les emparam pour tous les employés
+            // =====================================
+            var empparams = new Dictionary<(string, DateTime), EmpparamPointageMois>();
+
+            var dates = presences
+                .Select(p => p.Date)
+                .Concat(ferierDates)
+                .Distinct()
+                .ToList();
+
+            foreach (var empcod in empcods)
+            {
+                foreach (var date in dates)
+                {
+                    empparams[(empcod, date)] =
+                        await GetEmpparam(soccod, empcod, date, null);
+                }
+            }
+
+            // =====================================
+            // 5️⃣ Calcul NbJours (exclusion repos)
             // =====================================
             var result = new Dictionary<string, float>();
 
+            // Traiter les présences
             foreach (var p in presences)
             {
+                EmpparamPointageMois emparam = empparams[(p.Empcod, p.Date)];
+                var res = 0d;
+
+                if (!string.IsNullOrEmpty(p?.Tothre))
+                    res = journeeTime((float)GenericMethodes.ConvertTimeToDecimal(p.Tothre), emparam);
+
+                // ✅ Si c'est un jour férié AVEC présence
+                if (feriers.TryGetValue(p.Date, out var ferier))
+                {
+                    res = journeeTime((float)ferier.Ferheure, emparam);
+
+                    if (!result.ContainsKey(p.Empcod))
+                        result[p.Empcod] = 0;
+
+                    result[p.Empcod] += (float)res;
+                    continue;
+                }
+
+                // ✅ Exclure les jours de repos
+                if (p.Presence.Prerepos == "1")
+                    continue;
+
                 var key = (p.Presence.Soccod, p.Empcod, p.Date);
                 var (abslib, connbjour) = conges.GetValueOrDefault(key);
 
@@ -803,9 +947,49 @@ namespace ABRPOINT.Server.Repository
                 result[p.Empcod] += journeeValue;
             }
 
+            // =====================================
+            // 6️⃣ Ajouter les jours fériés NON présents dans les présences
+            // =====================================
+            var presenceDates = presences
+                .GroupBy(p => p.Empcod)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(p => p.Date).ToHashSet()
+                );
+
+            // Pour chaque employé, ajouter les jours fériés non couverts
+            foreach (var empcod in empcods)
+            {
+                var employeePresenceDates = presenceDates.ContainsKey(empcod)
+                    ? presenceDates[empcod]
+                    : new HashSet<DateTime>();
+
+                // Trouver les jours fériés que l'employé n'a pas dans ses présences
+                var feriersSansPresence = ferierDates.Except(employeePresenceDates);
+
+                foreach (var ferierDate in feriersSansPresence)
+                {
+                    // 🆕 Vérifier la période d'emploi pour les jours fériés
+                    var empDates = employeeDates.GetValueOrDefault(empcod);
+                    if (empDates != null)
+                    {
+                        if (empDates.Empemb.HasValue && ferierDate < empDates.Empemb.Value) continue;
+                        if (empDates.Empsort.HasValue && ferierDate >= empDates.Empsort.Value) continue;
+                    }
+
+                    var ferierHeure = (float)feriers[ferierDate].Ferheure;
+                    EmpparamPointageMois emparam = empparams[(empcod, ferierDate)];
+                    var res = journeeTime(ferierHeure, emparam);
+
+                    if (!result.ContainsKey(empcod))
+                        result[empcod] = 0;
+
+                    result[empcod] += (float)res;
+                }
+            }
+
             return result;
         }
-
         double CustomRound(double value)
         {
             double fraction = value - Math.Floor(value);
@@ -1326,24 +1510,146 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<EmpparamPointageMois> GetEmpparam(string soccod, string empcod)
+        public async Task<EmpparamPointageMois> GetEmpparam(string soccod, string empcod, DateTime date,string codpost)
         {
             try
             {
-                var emparam = await _dbContext.Employes.Where(e => e.Soccod == soccod && e.Empcod == empcod).Select(e => new EmpparamPointageMois
-                {
-                    Emppanier = e.Emppanier,
-                    Empmaxhre = e.Empmaxhre,
-                    Empmaxjour = e.Empmaxjour,
-                    Empminhjour = e.Empminhjour,
-                })
+                // 1. Récupérer les paramètres de l'employé
+                var emparam = await _dbContext.Employes
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .Select(e => new EmpparamPointageMois
+                    {
+                        Emppanier = e.Emppanier,
+                        Empmaxhre = e.Empmaxhre,
+                        Empmaxjour = e.Empmaxjour,
+                        Empminhjour = e.Empminhjour,
+                    })
                     .FirstOrDefaultAsync();
+
+                if (emparam == null || date == null)
+                    return emparam;
+
+                // 2. Récupérer le code poste
+                string? codPoste = !string.IsNullOrEmpty(codpost)
+                    ? codpost
+                    : await _posteRepository.GetEmpPoste(soccod, empcod, date);
+
+                if (string.IsNullOrEmpty(codPoste))
+                    return emparam;
+
+                // 3. Récupérer le poste
+                var poste = await _dbContext.Postes
+                    .Where(p => p.Soccod == soccod && p.Codposte == codPoste)
+                    .FirstOrDefaultAsync();
+
+                if (poste == null)
+                    return emparam;
+
+                // 4. Extraire les paramètres selon le jour
+                switch (date.DayOfWeek)
+                {
+                    case DayOfWeek.Monday:
+                        emparam.PosteMaxhre = poste.Maxhrelun;
+                        emparam.PosteMinhJour = poste.Minhjourlun;
+                        emparam.PosteMinhDemiJour = poste.Minhdemijourlun;
+                        break;
+                    case DayOfWeek.Tuesday:
+                        emparam.PosteMaxhre = poste.Maxhremar;
+                        emparam.PosteMinhJour = poste.Minhjourmar;
+                        emparam.PosteMinhDemiJour = poste.Minhdemijourmar;
+                        break;
+                    case DayOfWeek.Wednesday:
+                        emparam.PosteMaxhre = poste.Maxhremer;
+                        emparam.PosteMinhJour = poste.Minhjourmer;
+                        emparam.PosteMinhDemiJour = poste.Minhdemijourmer;
+                        break;
+                    case DayOfWeek.Thursday:
+                        emparam.PosteMaxhre = poste.Maxhrejeu;
+                        emparam.PosteMinhJour = poste.Minhjourjeu;
+                        emparam.PosteMinhDemiJour = poste.Minhdemijourjeu;
+                        break;
+                    case DayOfWeek.Friday:
+                        emparam.PosteMaxhre = poste.Maxhreven;
+                        emparam.PosteMinhJour = poste.Minhjourven;
+                        emparam.PosteMinhDemiJour = poste.Minhdemijourven;
+                        break;
+                    case DayOfWeek.Saturday:
+                        emparam.PosteMaxhre = poste.Maxhresam;
+                        emparam.PosteMinhJour = poste.Minhjoursam;
+                        emparam.PosteMinhDemiJour = poste.Minhdemijoursam;
+                        break;
+                    case DayOfWeek.Sunday:
+                        emparam.PosteMaxhre = poste.Maxhredim;
+                        emparam.PosteMinhJour = poste.Minhjourdim;
+                        emparam.PosteMinhDemiJour = poste.Minhdemijourdim;
+                        break;
+                }
+
                 return emparam;
             }
             catch (Exception)
             {
                 throw;
             }
+        }
+
+        public async Task<IEnumerable<Employe>> GetByEmpLib(string soccod, string name)
+        {
+            try
+            {
+                var employes = await _dbContext.Employes.Where(e => e.Soccod == soccod && e.Emplib == name).ToListAsync();
+                return employes;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<Employe>> GetEmpMatList(string soccod, string term)
+        {
+            if (string.IsNullOrWhiteSpace(term))
+                return new List<Employe>();
+
+            var searchTerm = term.Trim();
+
+            // Cas 1: Le terme est un matricule exact (uniquement des chiffres)
+            if (Regex.IsMatch(searchTerm, @"^\d+$"))
+            {
+                var empByMat = await _dbContext.Employes
+                    .FirstOrDefaultAsync(e => e.Soccod == soccod && e.Empmat == searchTerm);
+
+                return empByMat != null ? new List<Employe> { empByMat } : new List<Employe>();
+            }
+
+            // Cas 2: Le terme est un nom ou une partie de nom
+            var lowerTerm = searchTerm.ToLower();
+
+            return await _dbContext.Employes
+                .Where(e => e.Soccod == soccod &&
+                       (e.Emplib.ToLower().Contains(lowerTerm)))
+                .OrderBy(e => e.Emplib)
+                .Take(20) // Limiter les résultats pour les performances
+                .ToListAsync();
+        }
+        public async Task<List<Employe>> SearchByTerms(string soccod, List<string> terms)
+        {
+            if (terms == null || !terms.Any())
+                return new List<Employe>();
+
+            var allEmployees = new List<Employe>();
+
+            foreach (var term in terms)
+            {
+                var employees = await GetEmpMatList(soccod, term);
+                allEmployees.AddRange(employees);
+            }
+
+            // Retourner une liste unique (sans doublons)
+            return allEmployees
+                .GroupBy(e => e.Empcod)
+                .Select(g => g.First())
+                .ToList();
         }
     }
 }

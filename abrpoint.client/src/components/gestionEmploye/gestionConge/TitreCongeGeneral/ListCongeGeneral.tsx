@@ -22,6 +22,7 @@ import { Conge } from '../../../../models/Conge';
 import AlertModal from '../../../AlertModal/AlertModal';
 import useGetTitreConge from '../../../../hooks/congeHooks/useGetTitreConge';
 import useDeleteTitreConge from '../../../../hooks/congeHooks/useDeleteTitreConge';
+import { useTranslation } from 'react-i18next';
 
 const ListCongeGeneral = () => {
   const [openModal, setOpenModal] = useState(false);
@@ -29,6 +30,7 @@ const ListCongeGeneral = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('error');
+  const { t } = useTranslation();
 
   const { data = [], refetch } = useGetTitreConge();
   const { mutate: deleteConge } = useDeleteTitreConge();
@@ -64,43 +66,43 @@ const ListCongeGeneral = () => {
         columns: [
           {
             accessorKey: 'concod',
-            header: 'N° Ordre',
+            header: t('conge.orderNumber') || 'Order No',
             size: 100,
           },
           {
             accessorKey: 'emplib',
-            header: 'Employé',
+            header: t('common.employee'),
             size: 160,
           },
           {
             accessorKey: 'abslib',
-            header: 'Imputation',
+            header: t('common.imputation'),
             size: 100,
           },
           {
             accessorKey: 'condat',
-            header: 'Date',
+            header: t('common.date'),
             size: 100,
             Cell: ({ cell }) =>
               cell.getValue<string>() ? new Date(cell.getValue<string>()).toLocaleDateString('fr-FR') : '',
           },
           {
             accessorKey: 'condep',
-            header: 'Date départ',
+            header: t('common.dateStart'),
             size: 100,
             Cell: ({ cell }) =>
               cell.getValue<string>() ? new Date(cell.getValue<string>()).toLocaleDateString('fr-FR') : '',
           },
           {
             accessorKey: 'conret',
-            header: 'Date retour',
+            header: t('common.dateEnd'),
             size: 100,
             Cell: ({ cell }) =>
               cell.getValue<string>() ? new Date(cell.getValue<string>()).toLocaleDateString('fr-FR') : '',
           },
           {
             accessorKey: 'connbjour',
-            header: 'Nb. jours',
+            header: t('common.nbDays'),
             size: 60,
           },
         ],

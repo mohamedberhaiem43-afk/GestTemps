@@ -1,6 +1,7 @@
 import { Box, Grid, Button, Snackbar, Alert } from "@mui/material";
 import SaveIcon from '@mui/icons-material/Save';
 import InputComponent from "../../Inputs/Input";
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from "react";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
@@ -27,6 +28,7 @@ interface ApiError {
 }
 function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProps) {
     const [uticod, setCode] = useState("");
+    const { t } = useTranslation();
     const [utiprn, setPrenom] = useState("");
     const [utinom, setNom] = useState("");
     const [utimail, setUtimail] = useState("");
@@ -86,16 +88,16 @@ function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProp
 
     const handleSave = async () => {
         if (!uticod || !utiprn || !utinom || !societe || !site) {
-            handleSnackbarOpen('Veuillez remplir tous les champs obligatoires.', 'error');
+            handleSnackbarOpen(t('common.requiredFields'), 'error');
             return;
         }
         onSave()
 
         try {
 
-        handleSnackbarOpen("Utilisateur mis à jour avec succès", "success");
+        handleSnackbarOpen(t('user.updateSuccess'), "success");
     } catch (err) {
-        handleSnackbarOpen("Erreur lors de la mise à jour", "error");
+        handleSnackbarOpen(t('user.updateError'), "error");
     }
 
     };
@@ -116,7 +118,7 @@ function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProp
         <Box sx={{ flexGrow: 1 }}>
             <Grid container spacing={2}>
                 <Grid item xs={1}>
-                    <InputComponent type="text" label="Code" readOnly={state} value={uticod} setValue={setCode} />
+                    <InputComponent type="text" label={t('common.code')} readOnly={state} value={uticod} setValue={setCode} />
                 </Grid>
                 <Grid item xs={2}>
                     <InputComponent type="text" label="Email" readOnly={state} value={utimail} setValue={setUtimail} />

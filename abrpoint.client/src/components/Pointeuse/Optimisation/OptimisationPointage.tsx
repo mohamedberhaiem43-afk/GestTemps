@@ -1,4 +1,5 @@
 import { Button, Alert, Stack, CircularProgress, TextField } from "@mui/material";
+import { useTranslation } from 'react-i18next';
 import { useAuth } from "../../helper/AuthProvider";
 import useOptimisePresence from "../../../hooks/presenceHooks/useOptimizePresence";
 import { useEffect, useState } from "react";
@@ -12,6 +13,7 @@ interface Props {
 const OptimisationPointage = ({ empcod, date, onSuccess }: Props) => {
   const { soccod } = useAuth();
   const { mutate, isLoading } = useOptimisePresence();
+  const { t } = useTranslation();
 
   const [dateDeb, setDateDeb] = useState<string>(date);
   const [dateFin, setDateFin] = useState<string>(date);
@@ -46,12 +48,12 @@ const OptimisationPointage = ({ empcod, date, onSuccess }: Props) => {
   return (
     <Stack spacing={2} sx={{ mt: 2 }}>
       <Alert severity="info">
-        Cette action va recalculer le pointage pour la période sélectionnée.
+        {t('optimisation.info')}
       </Alert>
 
       {/* Date début */}
       <TextField
-        label="Date début"
+        label={t('optimisation.dateStart')}
         type="date"
         size="small"
         value={dateDeb?.substring(0, 10)}
@@ -61,7 +63,7 @@ const OptimisationPointage = ({ empcod, date, onSuccess }: Props) => {
 
       {/* Date fin */}
       <TextField
-        label="Date fin"
+        label={t('optimisation.dateEnd')}
         type="date"
         size="small"
         value={dateFin?.substring(0, 10)}
@@ -76,7 +78,7 @@ const OptimisationPointage = ({ empcod, date, onSuccess }: Props) => {
         disabled={isLoading}
         startIcon={isLoading ? <CircularProgress size={18} /> : null}
       >
-        {isLoading ? "Optimisation en cours..." : "Optimiser le pointage"}
+        {isLoading ? t('optimisation.optimizing') : t('optimisation.optimizeButton')}
       </Button>
     </Stack>
   );

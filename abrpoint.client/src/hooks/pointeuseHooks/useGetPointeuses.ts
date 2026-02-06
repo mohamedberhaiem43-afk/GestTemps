@@ -7,7 +7,7 @@ const useGetPointeuses = () => {
 
   return useQuery({
     queryKey: ["pointeuses",soccod],
-    queryFn: GetPointeuses.getAll
+    queryFn: () => GetPointeuses.getAllWithParams(`${soccod}`),
   });
 };
 

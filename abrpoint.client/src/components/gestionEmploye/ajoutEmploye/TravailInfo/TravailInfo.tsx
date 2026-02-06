@@ -5,6 +5,7 @@ import SelectInputComponent from "../../../SelectInputComponent/SelectInputCompo
 import InputComponent from "../../../Inputs/Input";
 import CheckboxComponent from "../../../CheckboxComponent/CheckboxComponent";
 import { useAuth } from "../../../helper/AuthProvider";
+import { useTranslation } from 'react-i18next';
 
 const TravailInfo = ({
   formData,
@@ -19,6 +20,7 @@ const TravailInfo = ({
   const token = localStorage.getItem("authToken");
   const uticod = localStorage.getItem("Uticod");
   const { soccod } = useAuth();
+  const { t } = useTranslation();
   const headers = { Authorization: `Bearer ${token}` };
   const [filiales,setFiliales] = useState([]);
   const [services,setServices] = useState([]);
@@ -59,28 +61,28 @@ const TravailInfo = ({
       <Grid container spacing={2}>
         <Grid item xs={2}>
         <FormControl variant="standard" fullWidth>
-        <InputLabel  shrink id="employe-label">Régime</InputLabel>
+        <InputLabel  shrink id="employe-label">{t('employe.work.regime') || 'Régime'}</InputLabel>
           <Select
             fullWidth
             size="small"
-            label="Régime"
+            label={t('employe.work.regime') || 'Régime'}
             name="empreg"
             value={formData.empreg}
             onChange={handleChange}
             required
           >
-            <MenuItem value="H">Horaire</MenuItem>
-            <MenuItem value="M">Mensuelle</MenuItem>
+            <MenuItem value="H">{t('employe.work.hourly') || 'Horaire'}</MenuItem>
+            <MenuItem value="M">{t('employe.work.monthly') || 'Mensuelle'}</MenuItem>
           </Select>
           </FormControl>
         </Grid>
         <Grid item xs={2}>
         <FormControl variant="standard" fullWidth>
-        <InputLabel  shrink id="employe-label">Filiale</InputLabel>
+        <InputLabel  shrink id="employe-label">{t('employe.work.branch') || 'Filiale'}</InputLabel>
         <Select
               fullWidth
               size="small"
-              label="Filiale"
+              label={t('employe.work.branch') || 'Filiale'}
               name="sitcod"
               value={formData.sitcod}
               onChange={handleChange}
@@ -96,7 +98,7 @@ const TravailInfo = ({
         </Grid>
         <Grid container item xs={2} alignItems="end">
           <Grid item>
-            <InputLabel shrink>Charge:</InputLabel>
+            <InputLabel shrink>{t('employe.work.charge') || 'Charge:'}</InputLabel>
           </Grid>
         <Grid item>
           <RadioGroup
@@ -109,36 +111,36 @@ const TravailInfo = ({
             <FormControlLabel
               value="1"
               control={<Radio size="small" />}
-              label={<Typography fontSize="small">Directe</Typography>}
+              label={<Typography fontSize="small">{t('employe.work.direct') || 'Directe'}</Typography>}
             />
             <FormControlLabel
               value="2"
               control={<Radio size="small" />}
-              label={<Typography fontSize="small">Indirecte</Typography>}
+              label={<Typography fontSize="small">{t('employe.work.indirect') || 'Indirecte'}</Typography>}
             />
           </RadioGroup>
         </Grid>
         </Grid>
 
         <Grid item xs={2}>
-          <SelectInputComponent label='Service' value={formData.sercod} setValue={(value)=>handleChange({target:{ name: 'sercod', value }})} maplist={services} />
+          <SelectInputComponent label={t('employe.work.service') || 'Service'} value={formData.sercod} setValue={(value)=>handleChange({target:{ name: 'sercod', value }})} maplist={services} />
         </Grid>
         <Grid item xs={2}>
-          <SelectInputComponent label='Direction' value={formData.dircod} setValue={(value)=>handleChange({target:{ name: 'dircod', value }})} maplist={directions} />
+          <SelectInputComponent label={t('employe.work.direction') || 'Direction'} value={formData.dircod} setValue={(value)=>handleChange({target:{ name: 'dircod', value }})} maplist={directions} />
         </Grid>
        
         <Grid item xs={2}>
-          <SelectInputComponent label='Classe Horaire' value={formData.catcod} setValue={(value)=> handleChange({target:{name:'catcod',value}})} maplist={horaires} />
+          <SelectInputComponent label={t('employe.work.timeClass') || 'Classe Horaire'} value={formData.catcod} setValue={(value)=> handleChange({target:{name:'catcod',value}})} maplist={horaires} />
         </Grid>
         <Grid item xs={1}>
-          <InputComponent type='number' label='Jour Max/Mois' value={formData.empmaxjour} setValue={(value:string)=>handleChange({target:{ name: 'empmaxjour', value }})} />
+          <InputComponent type='number' label={t('employe.work.maxDaysPerMonth') || 'Jour Max/Mois'} value={formData.empmaxjour} setValue={(value:string)=>handleChange({target:{ name: 'empmaxjour', value }})} />
         </Grid>
         <Grid item xs={2}>
-          <InputComponent type='number' label='Max Heure/Jour' value={formData.empmaxhre} setValue={(value:string)=>handleChange({target:{ name: 'empmaxhre', value }})} />
+          <InputComponent type='number' label={t('employe.work.maxHoursPerDay') || 'Max Heure/Jour'} value={formData.empmaxhre} setValue={(value:string)=>handleChange({target:{ name: 'empmaxhre', value }})} />
         </Grid>
         <Grid item xs={2} mt={1}>
         <FormControl variant="standard" fullWidth>
-                  <InputLabel shrink  id="employe-label">Type Calendrier</InputLabel>
+                  <InputLabel shrink  id="employe-label">{t('employe.work.calendarType') || 'Type Calendrier'}</InputLabel>
                   <Select
                     size="small"
                     value={formData.caltype}
@@ -154,10 +156,10 @@ const TravailInfo = ({
                   </FormControl>
         </Grid>
         <Grid item xs={1.5} mt={3}>
-          <CheckboxComponent label='Eliminer Retard'   value={formData.empretard === '1'}    setValue={(checked) => handleCheckboxChange({ target: { name: 'empretard', checked } })} />
+          <CheckboxComponent label={t('employe.work.eliminateDelay') || 'Eliminer Retard'}   value={formData.empretard === '1'}    setValue={(checked) => handleCheckboxChange({ target: { name: 'empretard', checked } })} />
         </Grid>
         <Grid item xs={1}>
-          <InputComponent type='number' label='Min Heure/Jour' value={formData.minheurejour} setValue={(value)=>handleChange({target:{ name: 'minheurejour', value }})} />
+          <InputComponent type='number' label={t('employe.work.minHoursPerDay') || 'Min Heure/Jour'} value={formData.empminhjour} setValue={(value)=>handleChange({target:{ name: 'empminhjour', value }})} />
         </Grid>
       </Grid>
     </Box>

@@ -1,5 +1,7 @@
-﻿using ABRPOINT.Server.CalculService.CalcTotHeures;
+﻿using ABRPOINT.Server.CalculService;
+using ABRPOINT.Server.CalculService.CalcTotHeures;
 using ABRPOINT.Server.CalculService.Conge;
+using ABRPOINT.Server.CalculService.DashboardService;
 using ABRPOINT.Server.CalculService.HeureAbsences;
 using ABRPOINT.Server.CalculService.HeureNuit;
 using ABRPOINT.Server.CalculService.HeureRetard;
@@ -7,6 +9,7 @@ using ABRPOINT.Server.CalculService.HeureSupp;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Repository;
+using Microsoft.SemanticKernel;
 
 namespace ABRPOINT.Server.Services
 {
@@ -14,6 +17,10 @@ namespace ABRPOINT.Server.Services
     {
         public static void AddServicesRegistration(this WebApplicationBuilder builder)
         {
+            builder.Services.AddScoped<IPointageMoisService, PointageMoisService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<PointagePlugin>();
+            builder.Services.AddScoped<PresencePlugin>();
             builder.Services.AddScoped<IOptimizedPresenceService, OptimizedPresenceService>();
             builder.Services.AddScoped<IPointageOptimizerService, PointageOptimizer>();
             builder.Services.AddScoped<IPointeuseHttpService, PointeuseHttpService>();
@@ -61,6 +68,30 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IDmpointService, DmpointService>();
             builder.Services.AddScoped<IModuleRepository, ModuleRepository>();
             builder.Services.AddScoped<IModuserRepository, ModuserRepository>();
+            builder.Services.AddScoped<Kernel>(sp =>
+            {
+                var kernelBuilder = Kernel.CreateBuilder();
+
+                // Créer d'abord le kernel pour pouvoir le passer au GeminiPlugin
+                var tempKernel = kernelBuilder.Build();
+                // Plugin Gemini avec référence au Kernel
+                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                var config = sp.GetRequiredService<IConfiguration>();
+                var geminiApiKey = config["Gemini:ApiKey"];
+
+                kernelBuilder.Plugins.AddFromObject(
+                    new GeminiPlugin(httpClientFactory, geminiApiKey, tempKernel),
+                    "Gemini"
+                );
+
+                // Plugin Pointage
+                var pointagePlugin = sp.GetRequiredService<PointagePlugin>();
+                kernelBuilder.Plugins.AddFromObject(pointagePlugin, "Pointage");
+                var presencePlugin = sp.GetRequiredService<PresencePlugin>();
+                kernelBuilder.Plugins.AddFromObject(presencePlugin, "Presence");
+                return kernelBuilder.Build();
+            });
+
             builder.Services.AddLogging();
 
         }

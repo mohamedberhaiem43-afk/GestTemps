@@ -11,8 +11,7 @@ import {
   import duration from "dayjs/plugin/duration";
   import dayjs, { Dayjs } from "dayjs";
   import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-  import { useEffect, useState } from "react";
-  import SaveIcon from "@mui/icons-material/Save";
+  import { useEffect, useState } from "react";import { useTranslation } from 'react-i18next';  import SaveIcon from "@mui/icons-material/Save";
   import './SaisieAutSortie.css'
 import CheckboxListSecondary from "../../../../../CheckboxList/CheckboxListSecondary";
 import SelectInputComponent from "../../../../../SelectInputComponent/SelectInputComponent";
@@ -31,6 +30,7 @@ interface SaisieAutSortieProps{
   type:string;
 }
 export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
+    const { t } = useTranslation();
     const { selectedSortieGeneral } = useSortieGeneralContext();
     const uticod = localStorage.getItem('Uticod');
     const soccod = sessionStorage.getItem('soccod')||'';
@@ -235,22 +235,22 @@ export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
               <Grid container spacing={2} alignItems="center" direction="row">
                 {type=='speciale'&&(
                 <Grid item xs={3}>
-                  <SelectInputComponent label='Employé' value={empcod} setValue={setEmpcod} maplist={employes} />
+                  <SelectInputComponent label={t('common.employee')} value={empcod} setValue={setEmpcod} maplist={employes} />
                 </Grid>
                 )}
                 <Grid item xs={2}>
-                  <InputComponent readOnly={!writable} type='text' label='N° Ordre' value={concod} setValue={setConcod} />
+                  <InputComponent readOnly={!writable} type='text' label={t('common.orderNumber')} value={concod} setValue={setConcod} />
                 </Grid>
   
                 <Grid item xs={1.5}>
-                <InputComponent type='text' label='Réf' value={conref} setValue={setConref} />
+                <InputComponent type='text' label={t('common.ref')} value={conref} setValue={setConref} />
                 </Grid>
   
                 <Grid item xs={2}>
-                  <SelectInputComponent label='Imputation' value={abscod} setValue={setAbscod} maplist={absences} />
+                  <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
                 </Grid>
                 <Grid item xs={3}>
-                <InputComponent type='text' label='Motif' value={conmotif} setValue={setConmotif} />
+                <InputComponent type='text' label={t('common.reason')} value={conmotif} setValue={setConmotif} />
                 </Grid>
                 {type === "generale" && (
               <Grid item>
@@ -277,7 +277,7 @@ export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
                 <legend>Date</legend>
                 <Grid container item xs={5}>
                 <DatePicker
-                    label="Date"
+                    label={t('common.date')}
                     value={condat[0]}  // This ensures the selected date is displayed
                     onChange={(newDate) => setCondat([newDate, condat[1]])}  // This updates the selected date in state
                     format="DD/MM/YYYY"  // Enforce the desired format
@@ -287,7 +287,7 @@ export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
                 <Grid container item xs={4.5}>
                 <TimePicker
                   views={['hours', 'minutes', 'seconds']}
-                  label="Start Time"
+                  label={t('common.startTime')}
                   value={condat[0]} // This refers to the start date with time
                   onChange={(newValue) => setCondat([newValue, condat[1]])} // Update only the start time
                   
@@ -296,7 +296,7 @@ export default function SaisieAutSortie({ type }:SaisieAutSortieProps) {
                 <Grid container item xs={4.5}>
                 <TimePicker
                     views={['hours', 'minutes', 'seconds']}
-                    label="End Time"
+                    label={t('common.endTime')}
                     value={condat[1]} // This refers to the end date with time
                     onChange={(newValue) => setCondat([condat[0], newValue])} // Update only the end time
                   />

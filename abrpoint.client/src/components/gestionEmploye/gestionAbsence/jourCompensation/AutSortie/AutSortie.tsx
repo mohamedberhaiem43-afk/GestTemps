@@ -14,7 +14,7 @@ export default function AutSortie()
         <>
         <QueryClientProvider client={queryClient}>
 
-         <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'}>
+         <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'} mt={-10}>
             
             <BreadcrumbNavigation />
             <Grid container >

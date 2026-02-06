@@ -29,6 +29,9 @@ namespace ABRPOINT.Server.Interfaces
         Task<(bool Success, string Message)> DeleteAsync(Employe employe);
         Task<string?> GetEmpPanier(string soccod,string empcod);
         Task<Dictionary<DateTime, string>> GetEmpPostesByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate);
-        Task<EmpparamPointageMois> GetEmpparam(string soccod, string empcod);
+        Task<EmpparamPointageMois> GetEmpparam(string soccod, string empcod, DateTime date,string codpost);
+        Task<IEnumerable<Employe>> GetByEmpLib(string soccod, string name);
+        Task<List<Employe>> SearchByTerms(string soccod, List<string> terms);
+        Task<List<Employe>> GetEmpMatList(string soccod, string term);
     }
 }

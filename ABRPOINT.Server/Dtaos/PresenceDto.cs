@@ -22,6 +22,10 @@
         public DateTime? Preretmatsup { get; set; }
         public DateTime? Preretameup { get; set; }
         public DateTime? Preretamsup { get; set; }
+        public DateTime? Preretmate { get; set; }
+        public DateTime? Preretmats { get; set; }
+        public DateTime? Preretame { get; set; }
+        public DateTime? Preretams { get; set; }
         public float? Preavantent { get; set; }
         public float? Preapresent { get; set; }
         public float? Preavantsort { get; set; }
@@ -36,13 +40,14 @@
         public string? Tothsup { get; set; }
         public string? Tothnuit { get; set; }
         public string? Totret { get; set; }
-        public float? Totcmp { get; set; } // Changé de int? à float?
+        public float? Totcmp { get; set; }
         public string? Etat { get; set; }
         public float? Hreaut { get; set; }
         public string? Poicod { get; set; }
         public float? Arrondi { get; set; }
         public int? Arrhsup { get; set; }
         public float? Predouche { get; set; }
+        public double? Jour { get; set; }
 
     }
 }

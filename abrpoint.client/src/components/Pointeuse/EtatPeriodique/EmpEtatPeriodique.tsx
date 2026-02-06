@@ -1,11 +1,10 @@
-import { useMemo, useState, useContext } from 'react';
+import { useMemo, useState, useContext, useEffect } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
 } from 'material-react-table';
 import { Box, Checkbox, CircularProgress, Dialog, DialogContent, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EmployeeContext } from './EmployeeContext';
 import { useDateRange } from './FilterContext';
 import useUpdatePresence from '../../../hooks/presenceHooks/useUpdatePresence';
@@ -15,6 +14,7 @@ import SaisieConge from './SaisieConge';
 import SaisieAutorisation from './SaisieAutorisation';
 import EmpEtat from '../../../models/EmpEtat';
 import { useAuth } from '../../helper/AuthProvider';
+import { useTranslation } from 'react-i18next';
 import OptimisationPointage from '../Optimisation/OptimisationPointage';
 import type {
   MRT_Cell,
@@ -22,6 +22,8 @@ import type {
   MRT_Row,
   MRT_TableInstance,
 } from 'material-react-table';
+import { t } from 'i18next';
+
 
 
 
@@ -29,6 +31,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const {mutate:updatePresence} = useUpdatePresence(); 
   const { soccod } = useAuth();
+  const { t } = useTranslation();
   
   const formatDateToLocalISO = (date: Date): string => {
     const tzOffset = date.getTimezoneOffset() * 60000;
@@ -98,11 +101,10 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
       setMotif(selectedMotif);
     }
   };
-
   const columns = useMemo<any[]>(() => [
     {
       accessorKey: 'predat',
-      header: 'Date',
+      header: t('empEtatPeriodique.headers.date'),
       size: 80,
       Cell: ({ cell }: { cell: import('material-react-table').MRT_Cell<EmpEtat> }) => {
         const dateValue = cell.getValue();
@@ -112,7 +114,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
       },
     },
     {
-      header: 'Journée',
+      header: t('empEtatPeriodique.headers.day'),
       accessorFn: (row: EmpEtat) => {
         const date = new Date(row.predat);
         return isNaN(date.getTime()) ? '' : date.toLocaleDateString('fr-FR', { weekday: 'long' });
@@ -122,7 +124,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'prerepos',
-      header: 'Rep',
+      header: t('empEtatPeriodique.headers.rest'),
       size: 10,
       Cell: ({ row }: { row: MRT_Row<EmpEtat> }) => (
         <Checkbox
@@ -153,7 +155,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'preentmatup',
-      header: 'Entrée1',
+      header: t('empEtatPeriodique.headers.entry1'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'time',
@@ -162,7 +164,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'presortmatup',
-      header: 'Sortie1',
+      header: t('empEtatPeriodique.headers.exit1'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'time',
@@ -171,7 +173,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'prerepas',
-      header: 'Repas',
+      header: t('empEtatPeriodique.headers.meal'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
@@ -179,7 +181,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'preentamidiup',
-      header: 'Entrée2',
+      header: t('empEtatPeriodique.headers.entry2'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'time',
@@ -187,7 +189,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'presortamidiup',
-      header: 'Sortie2',
+      header: t('empEtatPeriodique.headers.exit2'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'time',
@@ -195,7 +197,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'preentsupup',
-      header: 'Entrée3',
+      header: t('empEtatPeriodique.headers.entry3'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'time',
@@ -203,7 +205,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'presortsupup',
-      header: 'Sortie3',
+      header: t('empEtatPeriodique.headers.exit3'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'time',
@@ -211,7 +213,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'poicod',
-      header: 'Pointeuse',
+      header: t('empEtatPeriodique.headers.clockingMachine'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
@@ -220,7 +222,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'totalHeure',
-      header: 'Total Heure',
+      header: t('empEtatPeriodique.headers.totalHour'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
@@ -229,7 +231,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'tothnuit',
-      header: 'Heure Nuit',
+      header: t('empEtatPeriodique.headers.nightHour'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
@@ -237,7 +239,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'tothsup',
-      header: 'Heure supp',
+      header: t('empEtatPeriodique.headers.overtimeHour'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
@@ -245,7 +247,16 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'tothre',
-      header: 'Total',
+      header: t('empEtatPeriodique.headers.total'),
+      size: 30,
+      muiEditTextFieldProps: {
+        type: 'text',
+        required: true,
+      },
+    },
+    {
+      accessorKey: 'jour',
+      header: t('empEtatPeriodique.headers.dayLabel'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
@@ -254,7 +265,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'etat',
-      header: 'Etat',
+      header: t('empEtatPeriodique.headers.state'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
@@ -274,9 +285,9 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
             onDoubleClick={() => {
               if (hasValue) {
                 // Open dialog with Congé option when double-clicking etat cell
-                handleOpenDialog(row.original, 'Congé');
+                handleOpenDialog(row.original, 'conge');
               }
-            }}
+            }} 
           >
             {value}
           </Box>
@@ -285,7 +296,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'preobs',
-      header: 'Observation',
+      header: t('empEtatPeriodique.headers.observation'),
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
@@ -293,7 +304,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'totret',
-      header: 'Retard',
+      header: t('empEtatPeriodique.headers.late'),
       size: 10,
       muiEditTextFieldProps: {
         type: 'text',
@@ -302,17 +313,17 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'hreaut',
-      header: 'H. Aut. Sortie',
+      header: t('empEtatPeriodique.headers.hraut'),
       size: 10,
     },
     {
       accessorKey: 'tothabs',
-      header: 'Total Absence',
+      header: t('empEtatPeriodique.headers.totalAbsence'),
       size: 10,
     },
     {
       accessorKey: 'totcmp',
-      header: 'Tot. cmp',
+      header: t('empEtatPeriodique.headers.totcmp'),
       size: 10,
       muiEditTextFieldProps: {
         type: 'text',
@@ -321,7 +332,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     },
     {
       accessorKey: 'predouche',
-      header: 'douche',
+      header: t('empEtatPeriodique.headers.shower'),
       size: 10,
       muiEditTextFieldProps: {
         type: 'text',
@@ -333,6 +344,12 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const table = useMaterialReactTable({
     columns,
     enablePagination: true,
+    initialState: {
+    pagination: {
+      pageSize: 5,
+      pageIndex: 0,
+    },
+  },
     pageCount: 5,
     data: empetat,
     enableEditing: true,
@@ -344,12 +361,12 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     onEditingRowSave: handleSaveRow,
     renderRowActions: ({ row, table }) => (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        <Tooltip title="Edit">
+        <Tooltip title={t('common.edit')}>
           <IconButton onClick={() => table.setEditingRow(row)}>
             <EditIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Plus">
+        <Tooltip title={t('empEtatPeriodique.actions.more')}>
           <IconButton
             color="primary"
             onClick={() => handleOpenDialog(row.original)}
@@ -419,10 +436,10 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
           },
         }}
       >
-        <DialogTitle>Saisir un motif</DialogTitle>
-        <DialogContent>
+      <DialogTitle>{t('empEtatPeriodique.enterReason')}</DialogTitle>
+      <DialogContent>
           <FormControl size='small' fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Motif</InputLabel>
+            <InputLabel>{t('empEtatPeriodique.reason')}</InputLabel>
             <Select
               size='small'
               variant='standard'
@@ -430,16 +447,16 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
               onChange={(e) => setMotif(e.target.value)}
               label="Motif"
             >
-              <MenuItem value="Absence">Absence</MenuItem>
-              <MenuItem value="Congé">Congé</MenuItem>  
-              <MenuItem value="Autorisation">Autorisation de sortie</MenuItem>
-              <MenuItem value="Optimisation">Optimisation pointage (journée)</MenuItem>
+              <MenuItem value={'absence'}>{t('empEtatPeriodique.menu.absence')}</MenuItem>
+              <MenuItem value={'conge'}>{t('empEtatPeriodique.menu.conge')}</MenuItem>
+              <MenuItem value={'autorisation'}>{t('empEtatPeriodique.menu.autorisation')}</MenuItem>
+              <MenuItem value={'optimisation'}>{t('empEtatPeriodique.menu.optimisation')}</MenuItem>
             </Select>
           </FormControl>
-          {motif === 'Absence' && <SaisieAbsence empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
-          {motif === 'Congé' && <SaisieConge empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
-          {motif === 'Autorisation' && <SaisieAutorisation date={selectedRow?.predat} empcod={selectedRow?.empcod || ''} />}
-          {motif === 'Optimisation' && (
+          {motif === 'absence' && <SaisieAbsence empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
+          {motif === 'conge' && <SaisieConge empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
+          {motif === 'autorisation' && <SaisieAutorisation date={selectedRow?.predat} empcod={selectedRow?.empcod || ''} />}
+          {motif === 'optimisation' && (
             <OptimisationPointage 
               empcod={selectedRow?.empcod || ''} 
               date={selectedRow?.predat || ''} 
@@ -452,16 +469,26 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   );
 };
 
-const queryClient = new QueryClient();
 
 function EmpEtatPeriodique() {
   const { selectedEmpMat } = useContext(EmployeeContext);
+  const { setEmpEtatData } = useContext(EmployeeContext);
   const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date; pres?: string; mois: string } };
   const { soccod } = useAuth();
   const { data: empetat = [], isLoading: loading, error } = useGetEmpEtat({ soccod, selectedEmpMat, dateRange });
 
+useEffect(() => {
+  if (!selectedEmpMat) {
+    setEmpEtatData([]);
+    return;
+  }
+
+    setEmpEtatData(empetat);
+
+}, [selectedEmpMat, empetat]);
+  
   return (
-    <QueryClientProvider client={queryClient}>
+      <>
       {loading ? (
         <Box
           sx={{
@@ -474,7 +501,7 @@ function EmpEtatPeriodique() {
         >
           <CircularProgress />
           <Typography variant="body2" sx={{ mt: 2 }}>
-            Chargement des données...
+            {t('loading.loading')}
           </Typography>
         </Box>
       ) : error ? (
@@ -488,13 +515,13 @@ function EmpEtatPeriodique() {
           }}
         >
           <Typography variant="body2" color="error">
-            Erreur lors du chargement des données
+            {t('empEtatPeriodique.errorLoading')}
           </Typography>
         </Box>
       ) : (
         <Example empetat={empetat} />
       )}
-    </QueryClientProvider>
+      </>
   );
 }
 

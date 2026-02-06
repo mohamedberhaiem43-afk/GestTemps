@@ -13,6 +13,7 @@ import RadioGroupComponent, { FormControlLabelComponent } from '../../RadioGroup
 import SelectInputComponent from '../../SelectInputComponent/SelectInputComponent'
 import useGetAbsencesLibs from '../../../hooks/absenceHooks/useGetAbsenceLibs'
 import {useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next';
 import useAddSanction from '../../../hooks/sanctionHooks/useAddSanction';
 import { Sanction } from '../../../models/Sanction';
 import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
@@ -20,8 +21,9 @@ import { useAuth } from '../../helper/AuthProvider';
 
 function SaisieAbsence({empcod,date}: { empcod: string, date: string }) {
       
-      const [concod, setOrdre] = useState(generateNumeroOrdre());
-      const [condat, setDate] = useState(() => {
+  const { t } = useTranslation();
+  const [concod, setOrdre] = useState(generateNumeroOrdre());
+  const [condat, setDate] = useState(() => {
   const tomorrow = new Date(date);
   tomorrow.setDate(tomorrow.getDate() + 1);
   return tomorrow.toISOString();
@@ -70,15 +72,15 @@ const [condep, setDateDepart] = useState(() => {
       // Send a POST request to insert the sanction data
       mutate(sanctionData,{
         onSuccess() {
-          handleSnackbarOpening("Ajout de sanction avec sucées",'success');
+          handleSnackbarOpening(t('sanction.addSuccess'),'success');
           //resetForm();
         },
         onError() {
-          handleSnackbarOpening("Echec d'ajout de sanction",'error');
+          handleSnackbarOpening(t('sanction.addError'),'error');
         },
       })
     }else{
-      handleSnackbarOpening("Veuillez remplir l'imputation d'absence",'error');
+      handleSnackbarOpening(t('sanction.fillImputation'),'error');
     }
     
   }
@@ -119,13 +121,13 @@ const [condep, setDateDepart] = useState(() => {
 
         {/* N° Ordre */}
         <Grid item xs={1} sm={1}>
-          <InputComponent type='text' label='N° Ordre' value={concod} setValue={setOrdre} />
+          <InputComponent type='text' label={t('common.orderNumber')} value={concod} setValue={setOrdre} />
         </Grid>
 
         {/* Date (as TextField) */}
         <Grid item xs={1.5} sm={2}>
           <InputComponent
-            label="Date"
+            label={t('common.date')}
             type="date"
             value={condat.split('T')[0]}
             setValue={setDate}
@@ -134,13 +136,13 @@ const [condep, setDateDepart] = useState(() => {
 
         {/* Réf */}
         <Grid item xs={1}>
-          <InputComponent type='text' label='Réf' value={conref} setValue={setReference} />
+          <InputComponent type='text' label={t('common.ref')} value={conref} setValue={setReference} />
         </Grid>
 
         {/* Date Départ (as TextField) */}
         <Grid item xs={1.5} sm={2}>
           <InputComponent
-                      label="Date Départ"
+                      label={t('common.dateStart')}
                       type="date"
                       value={condep.split('T')[0]}
                       setValue={setDateDepart}
@@ -149,13 +151,13 @@ const [condep, setDateDepart] = useState(() => {
 
         {/* Checkbox Après-Midi (Date Départ) */}
         <Grid item xs={1.5} sm={1.5} mt={2}>
-          <CheckboxComponent label='Après-Midi' value={conamdep} setValue={setApresMidiDepart} />
+          <CheckboxComponent label={t('common.afternoon')} value={conamdep} setValue={setApresMidiDepart} />
         </Grid>
 
         {/* Date Reprise (as TextField) */}
         <Grid item xs={1.5} sm={2}>
           <InputComponent
-                      label="Date Retour"
+                      label={t('common.dateEnd')}
                       type="date"
                       value={conret.split('T')[0]}
                       setValue={setDateReprise}
@@ -164,12 +166,12 @@ const [condep, setDateDepart] = useState(() => {
 
         {/* Checkbox Après-Midi (Date Reprise) */}
         <Grid item xs={1.5} sm={1.4} mt={2}>
-          <CheckboxComponent label='Après-Midi' value={conamret} setValue={setApresMidiReprise} />
+          <CheckboxComponent label={t('common.afternoon')} value={conamret} setValue={setApresMidiReprise} />
         </Grid>
 
         {/* Imputation */}
         <Grid  item xs={1.5}>
-          <SelectInputComponent label='Imputation' value={abscod} setValue={setAbscod} maplist={absences} />
+          <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
         </Grid>
 
         
@@ -177,23 +179,23 @@ const [condep, setDateDepart] = useState(() => {
         {/* Radio Buttons for Time Period */}
         <Grid marginTop={'20px'} item xs={4.5}>
           <RadioGroupComponent value={conjour} setValue={setTimePeriod}>
-            <FormControlLabelComponent radioValue='J' label='Toute la Journée' />
-            <FormControlLabelComponent radioValue='M' label='Les Matinées' />
-            <FormControlLabelComponent radioValue='A' label='Les Aprés-Midi' />
+            <FormControlLabelComponent radioValue='J' label={t('common.wholeDay')} />
+            <FormControlLabelComponent radioValue='M' label={t('common.mornings')} />
+            <FormControlLabelComponent radioValue='A' label={t('common.afternoons')} />
           </RadioGroupComponent>
         </Grid>
 
         {/* Calculated Days (Read-Only) */}
         <Grid item xs={1}>
-          <InputComponent type='number' label='Nb.Jours' value={connbjour} setValue={setConnbjour} />
+          <InputComponent type='number' label={t('common.nbDays')} value={connbjour} setValue={setConnbjour} />
         </Grid>
 
         {/* Submit Button */}
         <Grid item xs={3} display={'flex'} justifyContent={'space-around'} mt={2.5}>
-          <IconButton color="primary" aria-label="save" onClick={handleSubmit}>
+          <IconButton color="primary" aria-label={t('common.save')} onClick={handleSubmit}>
             <SaveIcon />
           </IconButton>
-          <Button onClick={resetForm} color='secondary'>Nouveau</Button>
+          <Button onClick={resetForm} color='secondary'>{t('common.new')}</Button>
         </Grid>
       </Grid>
       <Snackbar open={isSnackbarOpen} autoHideDuration={1500} onClose={handleSnackbarClose}>

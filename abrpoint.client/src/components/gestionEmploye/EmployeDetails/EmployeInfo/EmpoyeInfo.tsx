@@ -8,6 +8,7 @@ import useGetQualificationsLibs from "../../../../hooks/QualificationHooks/useGe
 import useGetFonctionsLibs from "../../../../hooks/fonctionHooks/useGetFonctionsLibs";
 import useGetSectionsLibs from "../../../../hooks/sectionHooks/useGetSectionsLibs";
 import Employe from "../../../../models/Employe";
+import { useTranslation } from 'react-i18next';
 interface EmployeDetailsProps {
   onChange: (data: any) => void;
   empData:Employe
@@ -38,6 +39,7 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
         }
     };
     
+    const { t } = useTranslation();
     const {data:sections = []} = useGetSectionsLibs()
     const {data:qualifications = []} = useGetQualificationsLibs()
     const {data:fonctions = []} = useGetFonctionsLibs()
@@ -49,15 +51,15 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
         <Grid container spacing={2}>
             <Grid item xs={2} mt={1}>
                 <RadioGroupComponent value={formData.empniv} setValue={(value)=> handleChange({target:{name:'empniv',value}})}>
-                    <FormControlLabelComponent radioValue='2' label='Cadre' />
-                    <FormControlLabelComponent radioValue='1' label='Maitrise' />
-                    <FormControlLabelComponent radioValue='0' label='Exécutant' />
+                    <FormControlLabelComponent radioValue='2' label={t('employeeLevel.cadre')} />
+                    <FormControlLabelComponent radioValue='1' label={t('employeeLevel.maitrise')} />
+                    <FormControlLabelComponent radioValue='0' label={t('employeeLevel.executant')} />
                 </RadioGroupComponent>
             </Grid>
             <Grid item xs={2}>
             <FormControl variant="standard" fullWidth>
                 {/* <SelectInputComponent label='Hre Nuit' value={undefined} setValue={undefined} maplist={undefined} /> */}
-            <InputLabel shrink id="employe-label">Hre Nuit</InputLabel>
+            <InputLabel shrink id="employe-label">{t('employe.fields.nightHours') || 'Night hours'}</InputLabel>
                 <Select
                     fullWidth
                     size="small"
@@ -66,14 +68,14 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                     onChange={handleChange}
                     
                 >
-                    <MenuItem value="0">0-Normal</MenuItem>
-                    <MenuItem value="1">1-Spécial</MenuItem>
+                    <MenuItem value="0">{t('employe.options.nightHours.0') || '0-Normal'}</MenuItem>
+                    <MenuItem value="1">{t('employe.options.nightHours.1') || '1-Special'}</MenuItem>
                 </Select>
                 </FormControl>
             </Grid>
             <Grid item xs={1.5}>
             <FormControl variant="standard" fullWidth>
-            <InputLabel shrink id="employe-label">Panier</InputLabel>
+            <InputLabel shrink id="employe-label">{t('employe.fields.lunch') || 'Lunch'}</InputLabel>
                 <Select
                     fullWidth
                     size="small"
@@ -82,21 +84,21 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                     onChange={handleChange}
                     
                 >
-                    <MenuItem value="0">0- Pas de panier</MenuItem>
-                    <MenuItem value="1">1- Panier 7H</MenuItem>
-                    <MenuItem value="2">2- Panier 6H</MenuItem>
+                    <MenuItem value="0">{t('employe.options.panier.0') || '0- No lunch'}</MenuItem>
+                    <MenuItem value="1">{t('employe.options.panier.1') || '1- Lunch 7H'}</MenuItem>
+                    <MenuItem value="2">{t('employe.options.panier.2') || '2- Lunch 6H'}</MenuItem>
                 </Select>
                 </FormControl>
             </Grid>
             <Grid item xs={1.5} mt={2}>
                 <CheckboxComponent 
-                label='Actif' 
+                label={t('employe.labels.active')}
                 value={formData.actif=='A'} 
                 setValue={(value)=> handleChange({target:{name:'actif',value: value ? 'A' : 'N'}})} 
                 />
-            </Grid>
+            </Grid> 
             <Grid item xs={2.5}>
-                <SelectInputComponent label='Fonction' value={formData.foncod} setValue={(value)=>handleChange({target:{ name: 'foncod', value }})} maplist={fonctions} />
+                <SelectInputComponent label={t('common.function')} value={formData.foncod} setValue={(value)=>handleChange({target:{ name: 'foncod', value }})} maplist={fonctions} />
             </Grid>
             <Grid style={{display:'none'}} item xs={2}>
                 <FormControl hiddenLabel variant="standard" fullWidth>
@@ -113,17 +115,17 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
             </Grid>
 
             <Grid item xs={2}>
-                <SelectInputComponent label='Qualification' value={formData.quacod} 
+                <SelectInputComponent label={t('common.qualification')} value={formData.quacod} 
                 setValue={(value)=>handleChange({target:{ name: 'quacod', value }})} maplist={qualifications} />
             </Grid>
             <Grid item xs={2}>
-                <SelectInputComponent label='Section' value={formData.seccod}
+                <SelectInputComponent label={t('common.section')} value={formData.seccod}
                 setValue={(value)=>handleChange({target:{ name: 'seccod', value }})}
                 maplist={sections} />
             </Grid>
             <Grid item xs={2.5}>
                 <FormControl variant="standard" fullWidth>
-            <InputLabel shrink id="employe-label">Poste</InputLabel>
+            <InputLabel shrink id="employe-label">{t('employe.fields.position') || 'Position'}</InputLabel>
                 <Select
                     fullWidth
                     size="small"
@@ -132,15 +134,15 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                     onChange={handleChange}
                     
                 >
-                    <MenuItem value="Finance">Finance</MenuItem>
-                    <MenuItem value="Gestionnaire">Gestionnaire</MenuItem>
+                    <MenuItem value="Finance">{t('employe.options.poste.finance') || 'Finance'}</MenuItem>
+                    <MenuItem value="Gestionnaire">{t('employe.options.poste.manager') || 'Manager'}</MenuItem>
                 </Select>
                 </FormControl>
             </Grid>
             <Grid item xs={2} mt={1}>
                 <FormControl variant="standard" fullWidth>
                 {/* <SelectInputComponent label='Hre Nuit' value={undefined} setValue={undefined} maplist={undefined} /> */}
-            <InputLabel shrink id="employe-label">Compter Repos</InputLabel>
+            <InputLabel shrink id="employe-label">{t('employe.fields.countRest') || 'Count Rest'}</InputLabel>
                 <Select
                     fullWidth
                     size="small"
@@ -149,41 +151,41 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                     onChange={handleChange}
                     
                 >
-                    <MenuItem value="0">0- Sans Compter</MenuItem>
-                    <MenuItem value="1">1- Tout Repos</MenuItem>
-                    <MenuItem value="2">2- Repos Samedi</MenuItem>
-                    <MenuItem value="3">3- Repos Dimanche</MenuItem>
+                    <MenuItem value="0">{t('employe.options.countRest.0') || '0- No Count'}</MenuItem>
+                    <MenuItem value="1">{t('employe.options.countRest.1') || '1- All Rest'}</MenuItem>
+                    <MenuItem value="2">{t('employe.options.countRest.2') || '2- Saturday Rest'}</MenuItem>
+                    <MenuItem value="3">{t('employe.options.countRest.3') || '3- Sunday Rest'}</MenuItem>
                 </Select>
                 </FormControl>
             </Grid>
             <Grid item xs={2}>
                   <InputComponent
                     type="date"
-                    label="Date Embauche"
+                    label={t('employe.documents.hireDate') || 'Hire Date'}
                     value={formData.empemb?.toString().slice(0, 10) || ''}
                     setValue={(value:any)=> handleChange ({target:{ name: 'empemb', value }})} />
             </Grid>
             <Grid item xs={2}>
                   <InputComponent
                     type="date"
-                    label="Date Sortie"
+                    label={t('employe.documents.exitDate') || 'Exit Date'}
                     value={formData.empsort?.toString().slice(0, 10) || ''}
                     setValue={(value:any)=> handleChange ({target:{ name: 'empsort', value }})} />
             </Grid>
 
 
             <Grid item xs={2}>
-                <InputComponent type='text' label='Motif Sortie' value={formData.empmotif} setValue={(value:any)=> handleChange ({target:{ name: 'empmotif', value }})} />
+                <InputComponent type='text' label={t('employe.fields.exitReason') || 'Exit reason'} value={formData.empmotif} setValue={(value:any)=> handleChange ({target:{ name: 'empmotif', value }})} />
             </Grid>
             <Grid item xs={2}>
                   <InputComponent
                     type="date"
-                    label="Date Retraite"
+                    label={t('employe.fields.retirementDate') || 'Retirement date'}
                     value={formData.empretraite?.toString().slice(0, 10) || ''}
                     setValue={(value:any)=> handleChange ({target:{ name: 'empretraite', value }})} />
             </Grid>
             <Grid item xs={1}>
-                <InputComponent type='number' label='Nb.Postes' value={formData.empnbp} setValue={(value:any)=> handleChange ({target:{ name: 'empnbp', value }})} />
+                <InputComponent type='number' label={t('employe.fields.nbPosts') || 'Nb. Positions'} value={formData.empnbp} setValue={(value:any)=> handleChange ({target:{ name: 'empnbp', value }})} />
             </Grid>
         </Grid>
     );

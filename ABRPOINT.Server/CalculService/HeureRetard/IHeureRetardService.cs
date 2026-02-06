@@ -5,6 +5,6 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
 {
     public interface IHeureRetardService
     {
-        Task<int> CalculateHeureRetard(PresenceDto presence, Poste poste,AutDto autoisation);
+        Task<(int nbRetard, DateTime? Preretame, DateTime? Preretameup, DateTime? Preretmate, DateTime? Preretmateup, DateTime? Preretmats, DateTime? Preretmatsup, DateTime? Preretams, DateTime? Preretamsup)>CalculateHeureRetard(PresenceDto presence, Poste poste, AutDto autoisation);
     }
 }

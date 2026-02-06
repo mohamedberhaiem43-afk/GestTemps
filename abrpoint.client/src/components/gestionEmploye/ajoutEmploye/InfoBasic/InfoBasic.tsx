@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import InputComponent from '../../../Inputs/Input';
 import SelectInputComponent from '../../../SelectInputComponent/SelectInputComponent';
+import { useTranslation } from 'react-i18next';
 
 const InfoBasic = ({
   formData,
@@ -13,9 +14,10 @@ const InfoBasic = ({
        { target: { name: string; value: any } }
   ) => void;
 }) => {
+  const { t } = useTranslation();
   const genderOptions = {
-    "M": "Masculin",
-    "F": "Feminin",
+    "M": t('employe.gender.male') || 'Masculin',
+    "F": t('employe.gender.female') || 'Feminin',
   };
 
   // Function to convert date from dd/MM/yyyy to yyyy-MM-dd
@@ -42,7 +44,7 @@ const InfoBasic = ({
         <Grid item xs={2}>
           <InputComponent
             type="text"
-            label="N° CIN"
+            label={t('employe.form.cin') || 'N° CIN'}
             name="empcin"
             value={formData?.empcin || ''}
             onChange={handleChange}
@@ -51,7 +53,7 @@ const InfoBasic = ({
         <Grid item xs={3}>
           <InputComponent
             type="text"
-            label="Nom et Prénom"
+            label={t('employe.form.name') || 'Nom et Prénom'}
             name="emplib"
             value={formData?.emplib || ''}
             onChange={handleChange}
@@ -61,7 +63,7 @@ const InfoBasic = ({
         <Grid item xs={2}>
           <InputComponent
             type="text"
-            label="N °Badge"
+            label={t('employe.form.badge') || 'N °Badge'}
             name="empcod"
             value={formData?.empcod || ''}
             onChange={handleChange}
@@ -70,7 +72,7 @@ const InfoBasic = ({
         <Grid item xs={2}>
           <InputComponent
             type="date"
-            label="Date Naissance"
+            label={t('employe.form.birthDate') || 'Date Naissance'}
             name="empdnais"
             value={formatDateForInput(formData?.empdnais)}
             onChange={handleChange}
@@ -80,7 +82,7 @@ const InfoBasic = ({
         <Grid item xs={2.3}>
           <InputComponent
             type="text"
-            label="Lieu"
+            label={t('employe.form.birthPlace') || 'Lieu'}
             name="emplnais"
             value={formData?.emplnais || ''}
             onChange={handleChange}
@@ -89,7 +91,7 @@ const InfoBasic = ({
         <Grid item xs={2}>
           <InputComponent
             type="text"
-            label="Matricule"
+            label={t('employe.form.matricule') || 'Matricule'}
             name="empmat"
             value={formData?.empmat || ''}
             onChange={handleChange}
@@ -97,7 +99,7 @@ const InfoBasic = ({
         </Grid>
         <Grid item xs={2} mt={2}>
           <SelectInputComponent
-            label="Sexe"
+            label={t('employe.form.sex') || 'Sexe'}
             value={formData?.empsexe || ''}
             setValue={(value: string) => handleChange({ target: { name: 'empsexe', value } })}
             maplist={genderOptions}

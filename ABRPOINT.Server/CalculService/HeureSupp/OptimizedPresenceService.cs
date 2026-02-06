@@ -48,8 +48,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         }
 
         // Method 1: Get presence data (OPTIMIZED)
-        public async Task<PresenceSemaineData> GetPresenceSemaineDataOptimized(
-            string soccod, string empcod, string mois, string annee, string semaine, EmpparamPointageMois empparam)
+        public async Task<PresenceSemaineData> GetPresenceSemaineDataOptimized(string soccod, string empcod, string mois, string annee, string semaine)
         {
             try
             {
@@ -57,19 +56,34 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(empcod) ||
                     string.IsNullOrEmpty(mois) || string.IsNullOrEmpty(annee))
                     return null;
+
                 var parametreMoisPointage = await _parametreRepository.GetParametreMoisPointage(soccod);
                 if (parametreMoisPointage == null) return null;
 
                 if (!int.TryParse(mois, out int month) || !int.TryParse(annee, out int year))
                     return null;
 
-                // Get parameters once
+                // 🆕 Fetch employee's embauche and sortie dates
+                var employe = await _dbContext.Employes
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .Select(e => new { e.Empemb, e.Empsort })
+                    .FirstOrDefaultAsync();
+
+                DateTime? empemb = employe?.Empemb;
+                DateTime? empsort = employe?.Empsort;
+
+                // 🆕 NOUVEAU : Charger les paramètres de BASE de l'employé
+                var empparamBase = await _employeRepository.GetEmpparam(
+                    soccod,
+                    empcod,
+                    DateTime.Now,
+                    null
+                );
 
                 DateTime debutReelDate = CalculateDebutReelDate(parametreMoisPointage, month, year);
-
                 var parametreNuit = await _parametreRepository.GetParametresNuitAsync(soccod);
 
-                // Calculate date range - USE THE SAME LOGIC AS GetNbHeuresParSemaineWithDates
+                // Calculate date range
                 var (startDate, endDate) = CalculateDateRange(parametreMoisPointage, month, year, semaine);
                 var allDates = GenerateDateList(startDate, endDate);
 
@@ -94,17 +108,18 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         dataCache,
                         parametreMoisPointage,
                         parametreNuit,
-                        empparam,
+                        empparamBase,
                         accumulators,
                         countedSanctions,
                         countedConges,
                         result.WeekDetails,
                         soccod,
                         empcod,
-                        debutReelDate
+                        debutReelDate,
+                        empemb, // ✅ Pass empemb
+                        empsort  // ✅ Pass empsort
                     );
                 }
-
 
                 // Map accumulators to result
                 MapAccumulatorsToResult(accumulators, result);
@@ -136,8 +151,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             // Ajuster si le jour dépasse le nombre de jours du mois
             return AdjustDayToMonth(debutReelDate);
         }
-        private async Task<DataCache> LoadAllDataAsync(
-           string soccod, string empcod, DateTime startDate, DateTime endDate, List<DateTime> allDates)
+        private async Task<DataCache> LoadAllDataAsync(string soccod, string empcod, DateTime startDate, DateTime endDate, List<DateTime> allDates)
         {
             var cache = new DataCache();
 
@@ -175,7 +189,17 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             // Load all postes for employee in period
             Dictionary<DateTime, string> postes = await _employeRepository.GetEmpPostesByPeriod(soccod, empcod, startDate, endDate);
             cache.PostesByDate = postes;
-
+            var postesCodes = postes.Values.Distinct().Where(p => !string.IsNullOrEmpty(p)).ToList();
+            if (postesCodes.Any())
+            {
+                cache.PostesObjects = await _dbContext.Postes
+                    .Where(p => p.Soccod == soccod && postesCodes.Contains(p.Codposte))
+                    .ToDictionaryAsync(p => p.Codposte);
+            }
+            else
+            {
+                cache.PostesObjects = new Dictionary<string, Poste>();
+            }
             // Load all autorisations for period
             List<AutDto> autorisations = await _autorisationRepository.GetAutorisationsByPeriod(soccod, empcod, startDate, endDate);
             //cache.AutorisationsByDate = autorisations.ToDictionary();
@@ -205,7 +229,66 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
             return cache;
         }
-        private async Task ApplyCongeImpact(DateTime date,CongeDto conge,string poste,Accumulators acc,HashSet<string> countedConges,string soccod,string empcod,bool isAfterDebutReel)
+        private EmpparamPointageMois EnrichEmpparamWithPoste(EmpparamPointageMois baseParam,DateTime date,string codPoste,Dictionary<string, Poste> postesCache)
+        {
+            // Cloner les paramètres de base
+            var enriched = new EmpparamPointageMois
+            {
+                Emppanier = baseParam.Emppanier,
+                Empmaxhre = baseParam.Empmaxhre,
+                Empmaxjour = baseParam.Empmaxjour,
+                Empminhjour = baseParam.Empminhjour
+            };
+
+            // Enrichir avec les paramètres du poste si disponible
+            if (!string.IsNullOrEmpty(codPoste) &&
+                postesCache.TryGetValue(codPoste, out var poste))
+            {
+                var dayOfWeek = date.DayOfWeek;
+
+                switch (dayOfWeek)
+                {
+                    case DayOfWeek.Monday:
+                        enriched.PosteMaxhre = poste.Maxhrelun;
+                        enriched.PosteMinhJour = poste.Minhjourlun;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourlun;
+                        break;
+                    case DayOfWeek.Tuesday:
+                        enriched.PosteMaxhre = poste.Maxhremar;
+                        enriched.PosteMinhJour = poste.Minhjourmar;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourmar;
+                        break;
+                    case DayOfWeek.Wednesday:
+                        enriched.PosteMaxhre = poste.Maxhremer;
+                        enriched.PosteMinhJour = poste.Minhjourmer;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourmer;
+                        break;
+                    case DayOfWeek.Thursday:
+                        enriched.PosteMaxhre = poste.Maxhrejeu;
+                        enriched.PosteMinhJour = poste.Minhjourjeu;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourjeu;
+                        break;
+                    case DayOfWeek.Friday:
+                        enriched.PosteMaxhre = poste.Maxhreven;
+                        enriched.PosteMinhJour = poste.Minhjourven;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourven;
+                        break;
+                    case DayOfWeek.Saturday:
+                        enriched.PosteMaxhre = poste.Maxhresam;
+                        enriched.PosteMinhJour = poste.Minhjoursam;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijoursam;
+                        break;
+                    case DayOfWeek.Sunday:
+                        enriched.PosteMaxhre = poste.Maxhredim;
+                        enriched.PosteMinhJour = poste.Minhjourdim;
+                        enriched.PosteMinhDemiJour = poste.Minhdemijourdim;
+                        break;
+                }
+            }
+
+            return enriched;
+        }
+        private async Task ApplyCongeImpact(DateTime date,CongeDto conge,string poste,Accumulators acc,HashSet<string> countedConges,string soccod,string empcod,bool isAfterDebutReel,EmpparamPointageMois empparam)
         {
             var nombreConge = await _congeCalculationService
                 .CalculerNbJourAndHreCongePaye(soccod, empcod, date, poste);
@@ -214,7 +297,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 countedConges.Contains(nombreConge.Concod) ||
                 nombreConge.nbJourConge == 0)
                 return;
-
             var nbhConge = await _parametreRepository.GetNbhConge(soccod);
             float congeHours = conge.Connbjour == 0.5 ? nbhConge.Value / 2 : nbhConge.Value;
             acc.NbHeuresDebutCalcul += congeHours;
@@ -223,8 +305,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             acc.NbHeureConge += congeHours;
 
             // 🔹 MODIFIER : Incrémenter NbJours seulement si >= DebutReel
-            if (conge.Connbjour == 0.5 && isAfterDebutReel)
-                acc.NbJours += conge.Connbjour;
+            if (isAfterDebutReel)
+            {
+                acc.NbJourPointer += (float)GenericMethodes.journeeTime((float)conge.Connbjour, empparam);
+                if(conge.Connbjour == 0.5)
+                    acc.NbJours += conge.Connbjour;
+            }
 
             countedConges.Add(nombreConge.Concod);
 
@@ -256,19 +342,41 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     break;
             }
         }
-        private async Task ProcessDay(DateTime date,DataCache cache,ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,EmpparamPointageMois empparam, Accumulators acc,
-    HashSet<string> countedSanctions,HashSet<string> countedConges,IDictionary<string, string> weekDetails,string soccod,string empcod, DateTime debutReelDate)
+        private async Task ProcessDay(DateTime date,DataCache cache,ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,EmpparamPointageMois empparamBase,
+    Accumulators acc,HashSet<string> countedSanctions,HashSet<string> countedConges,IDictionary<string, string> weekDetails,string soccod,string empcod,
+    DateTime debutReelDate,DateTime? empemb, DateTime? empsort)
         {
+            // 🆕 Helper function to check if date is within employment period
+            bool IsWithinEmploymentPeriod(DateTime checkDate)
+            {
+                if (empemb.HasValue && checkDate < empemb.Value) return false;
+                if (empsort.HasValue && checkDate >= empsort.Value) return false;
+                return true;
+            }
+
             cache.PresencesByDate.TryGetValue(date.Date, out var presence);
-            cache.SanctionsByDate.TryGetValue(date.Date, out var sanction);
-            cache.CongesByDate.TryGetValue(date.Date, out var conge);
-            cache.AutorisationsByDate.TryGetValue(date.Date, out var autorisation);
+
+            // 🆕 Apply employment period filter to absences
+            SanctionDto? sanction = null;
+            if (IsWithinEmploymentPeriod(date) && cache.SanctionsByDate.TryGetValue(date.Date, out var sanctionValue))
+                sanction = sanctionValue;
+
+            CongeDto? conge = null;
+            if (IsWithinEmploymentPeriod(date) && cache.CongesByDate.TryGetValue(date.Date, out var congeValue))
+                conge = congeValue;
+
+            AutDto? autorisation = null;
+            if (IsWithinEmploymentPeriod(date) && cache.AutorisationsByDate.TryGetValue(date.Date, out var autorisationValue))
+                autorisation = autorisationValue;
 
             bool isFerier = cache.FerierDates.Contains(date.Date);
             bool isRepos = cache.ReposByDate.TryGetValue(date.Date, out var r) && r;
             string poste = cache.PostesByDate.TryGetValue(date.Date, out var p) ? p : null;
             bool isAfterDebutReel = date.Date >= debutReelDate.Date;
             bool repos = await _parametreRepository.IsRepos(soccod, date, poste);
+
+            // 🆕 ENRICHIR empparamBase avec les paramètres du poste de ce jour
+            var empparam = EnrichEmpparamWithPoste(empparamBase, date, poste, cache.PostesObjects);
 
             weekDetails.Add(
                 date.ToString("yyyy-MM-dd"),
@@ -286,7 +394,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             {
                 await ApplyCongeImpact(
                     date, conge, poste, acc,
-                    countedConges, soccod, empcod, isAfterDebutReel
+                    countedConges, soccod, empcod, isAfterDebutReel, empparam
                 );
                 return;
             }
@@ -294,17 +402,23 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             // 3️⃣ FÉRIÉ
             if (isFerier)
             {
-                await ProcessFerierDay(date, presence, cache, acc, soccod, empcod);
+                await ProcessFerierDay(date, presence, cache, acc, soccod, empcod, isAfterDebutReel, empparam);
                 return;
             }
-            
+
             // 4️⃣ ABSENCE (jour ouvrable sans présence)
             if ((presence == null || GenericMethodes.NotPresent(presence)) && !isRepos)
             {
                 float? hreAbs = await _heureabsenceService
-                    .CalculateHeureAbsences(presence, soccod, poste, date, autorisation,GenericMethodes.ConvertHHmmToDouble(presence.Tothre));
-                if (presence.Totcmp == null) presence.Totcmp = 0;
-                acc.NbHeuresDebutCalcul += GenericMethodes.ConvertHHmmToDouble(presence.Tothre) + presence.Totcmp;
+                    .CalculateHeureAbsences(presence, soccod, poste, date, autorisation,
+                        GenericMethodes.ConvertHHmmToDouble(presence?.Tothre));
+
+                if (presence != null)
+                {
+                    if (presence.Totcmp == null) presence.Totcmp = 0;
+                    acc.NbHeuresDebutCalcul += GenericMethodes.ConvertHHmmToDouble(presence.Tothre) + presence.Totcmp;
+                }
+
                 if (hreAbs > 0 && !repos)
                 {
                     acc.TotalAbsence += hreAbs;
@@ -318,21 +432,25 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             if (presence != null && GenericMethodes.IsValid(presence))
             {
                 if (presence.Totcmp == null) presence.Totcmp = 0;
-                acc.NbHeuresDebutCalcul += GenericMethodes.ConvertHHmmToDouble(presence.Tothre) + presence.Totcmp;
+
+                float heuresLimitees = (float)GenericMethodes.CalculateHoursWithLimits(presence, empparam);
+                acc.NbHeuresDebutCalcul += heuresLimitees + presence.Totcmp.Value;
+
                 await ProcessPresenceDetails(
-                    presence, date, isFerier, null, isRepos,repos,
-                    poste, empparam, paramMois, paramNuit,
-                    cache, acc, countedConges, autorisation,
+                    presence, date, isFerier, null, isRepos, repos,
+                    poste, empparam,
+                    paramMois, paramNuit,
+                    cache, acc, countedConges, autorisation, // ✅ Pass filtered autorisation
                     soccod, empcod, true, isAfterDebutReel
                 );
             }
         }
-
-        // NEW: Process ferier days
-        private async Task ProcessFerierDay(DateTime date,Presence presence,DataCache cache,Accumulators acc,string soccod,string empcod)
+        private async Task ProcessFerierDay(DateTime date,Presence presence,DataCache cache,Accumulators acc,string soccod,string empcod,bool isAfterDebutReel,EmpparamPointageMois empparam)
         {
             if (cache.FerierHoursByDate.TryGetValue(date, out var ferierHours))
             {
+                if (isAfterDebutReel)
+                    acc.NbJourPointer += (float)GenericMethodes.journeeTime(ferierHours, empparam);
                 acc.NbHeuresDebutCalcul += ferierHours;
                 acc.NbhFerier += ferierHours;
                 // If working on ferier day
@@ -345,7 +463,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             }
         }
 
-
         // UPDATED: Process presence details (now only for calculations that require presence)
         private async Task ProcessPresenceDetails(Presence presence,DateTime date,bool isFerier,CongeDto conge,bool isRepos,bool repos,string poste,EmpparamPointageMois empparam,
     ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,DataCache cache,Accumulators acc,HashSet<string> countedConges,AutDto autorisation,string soccod,string empcod,
@@ -356,39 +473,49 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             {
                 CalculatePanier(presence, date, empparam.Emppanier, paramMois, acc);
             }
+            float dayworkhours = 0;
+            if(!string.IsNullOrEmpty(presence.Tothre))
+                dayworkhours = (float)GenericMethodes.ConvertTimeToDecimal(presence.Tothre);
 
             // Check if worked on Saturday
             if (presence.Predat.Value.DayOfWeek == DayOfWeek.Saturday &&
                 GenericMethodes.ConvertHHmmToDouble(presence.Tothre) > 0)
             {
-                acc.JourSamediTrv++;
-                acc.ResHreSamediTrv += GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                acc.JourSamediTrv += (float)GenericMethodes.journeeTime(dayworkhours, empparam);
+
+               float heuresSamedi = (float)GenericMethodes.CalculateHoursWithLimits(presence, empparam);
+
+                acc.ResHreSamediTrv += heuresSamedi;
                 if (isRepos)
-                    acc.HreSamediTrv += GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                    acc.HreSamediTrv += heuresSamedi;
             }
 
-            if (presence.Predat.Value.DayOfWeek == DayOfWeek.Sunday &&
-                GenericMethodes.ConvertHHmmToDouble(presence.Tothre) > 0)
+            // Check if worked on Sunday
+            if (presence.Predat.Value.DayOfWeek == DayOfWeek.Sunday && GenericMethodes.ConvertHHmmToDouble(presence.Tothre) > 0)
             {
-                acc.HreDimTrv += GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                // Appliquer la limite empmaxhre aux heures dimanche
+                float heuresDimanche = (float) GenericMethodes.CalculateHoursWithLimits(presence, empparam);
+                acc.HreDimTrv += heuresDimanche;
             }
 
             // Calculate night hours
             CalculateNightHours(presence, date, paramNuit, acc);
-
+            if (string.IsNullOrEmpty(presence.Codposte))
+                presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, date);
             // Calculate delays
-            if (isWorkingDay && presence.Prerepos == "0" && !string.IsNullOrWhiteSpace(presence.Codposte))
+            if (isWorkingDay && isAfterDebutReel && !string.IsNullOrWhiteSpace(presence.Codposte))
             {
                 var posteObj = await _posteRepository.GetPoste(soccod, presence.Codposte);
                 var presenceDto = _mapper.Map<Presence, PresenceDto>(presence);
-                acc.Retards += await _retardService.CalculateHeureRetard(presenceDto, posteObj, autorisation);
+                var retard = await _retardService.CalculateHeureRetard(presenceDto, posteObj, autorisation);
+                acc.Retards += retard.Item1;
             }
             //_dbContext.Employes.ge
             // 🔹 MODIFIER : Compter les jours seulement si >= DebutReel
-            if (isWorkingDay && conge == null && !isFerier && isAfterDebutReel)
+            if (isAfterDebutReel)
             {
-                acc.NbJourPointer++;
-                if(!repos && !isRepos)
+                acc.NbJourPointer += (float)GenericMethodes.journeeTime(dayworkhours,empparam);
+                if(!repos && !isRepos && conge == null && !isFerier && isWorkingDay)
                     acc.NbJours++;
             }
 
@@ -402,14 +529,14 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             if (!string.IsNullOrEmpty(presence.Tothre) &&
                 TimeSpan.TryParseExact(presence.Tothre, "hh\\:mm", null, out TimeSpan hours) && isAfterDebutReel)
             {
-                if(presence.Totcmp != null)
-                    acc.TotalHours += (float)hours.TotalHours + presence.Totcmp;
-                else
-                    acc.TotalHours += (float)hours.TotalHours;
+                float heuresLimitees = (float)GenericMethodes.CalculateHoursWithLimits(presence, empparam);
+                acc.TotalHours += heuresLimitees;
+                if (presence.Totcmp != null)
+                   acc.TotalHours += presence.Totcmp.Value;
 
                 if (presence.Prerepos == "1" && isRepos)
                 {
-                    acc.HeureRepos += (float)hours.TotalHours;
+                    acc.HeureRepos += heuresLimitees;
                     acc.JourRepos++;
                 }
             }
@@ -676,7 +803,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         if (conge != null)
                             continue;
                     }
-
                     return (calend, totalHours, start, end, jourFerier, heuresFerier);
                 }
                 #endregion
@@ -724,12 +850,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 throw;
             }
         }
-        private void CalculatePanier(
-            Presence presence,
-            DateTime date,
-            string emppanier,
-            ParametreMoisPointageDto paramMois,
-            Accumulators acc)
+        private void CalculatePanier(Presence presence,DateTime date,string emppanier,ParametreMoisPointageDto paramMois,Accumulators acc)
         {
             if (!string.IsNullOrEmpty(presence.Tothre) &&
                 TimeSpan.TryParseExact(presence.Tothre, "hh\\:mm", null, out TimeSpan h))
@@ -786,6 +907,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         // Helper classes
         private class DataCache
         {
+            public Dictionary<string, Poste> PostesObjects { get; set; }
             public Dictionary<DateTime, Presence> PresencesByDate { get; set; }
             public Dictionary<DateTime, SanctionDto> SanctionsByDate { get; set; }
             public Dictionary<DateTime, CongeDto> CongesByDate { get; set; }
@@ -810,7 +932,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             public float? TotalHours { get; set; } = 0;
             public float? NbJours { get; set; } = 0;
             public float? Maladie { get; set; } = 0;
-            public int NbJourPointer { get; set; } = 0;
+            public float? NbJourPointer { get; set; } = 0;
             public float? NbJourCngPaye { get; set; } = 0;
             public float? NbHeureConge { get; set; } = 0;
             public int JourRepos { get; set; } = 0;

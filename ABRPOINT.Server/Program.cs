@@ -1,9 +1,12 @@
 using ABRPOINT.Mappings;
+using ABRPOINT.Server.CalculService;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Repository;
 using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.SemanticKernel;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -32,6 +35,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.AddInfrastructureRegistration();
 builder.AddServicesRegistration();
+
 builder.Services.AddHttpClient("PythonApi", client =>
 {
     var config = builder.Configuration.GetSection("PythonApi");

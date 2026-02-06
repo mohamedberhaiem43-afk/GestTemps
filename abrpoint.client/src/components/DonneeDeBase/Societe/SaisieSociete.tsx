@@ -1,4 +1,5 @@
 import  { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, Box, Grid, Snackbar, Alert } from '@mui/material';
 import "./Societe.css";
 import InputComponent from '../../Inputs/Input';
@@ -38,6 +39,7 @@ export function SaisieSociete() {
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('error');
     const { mutate: addSociete, isLoading } = useAddSociete();
     const{refetch} = useGetSocietes();
+    const { t } = useTranslation();
     
     
     const handleSnackbarClose = () => {
@@ -47,7 +49,7 @@ export function SaisieSociete() {
         setSnackbarOpen(true);
         // Basic Validation
         if (!societeData.soccod || !societeData.soclib) {
-            setSnackbarMessage('Code and Libellé are required!');
+            setSnackbarMessage(t('donneeSociete.requiredFields'));
             setSnackbarSeverity('error')
             return;
         }
@@ -57,7 +59,7 @@ export function SaisieSociete() {
         addSociete(societeData, {
             onSuccess: () => {
                 refetch();
-                setSnackbarMessage('Societe added successfully!');
+                setSnackbarMessage(t('donneeSociete.added'));
                 setSnackbarSeverity('success');
                 setSocieteData({
                     soccod: '',
@@ -86,7 +88,7 @@ export function SaisieSociete() {
                 });
             },
             onError: () => {
-                setSnackbarMessage( 'Failed to add Societe. Please try again.');
+                setSnackbarMessage(t('donneeSociete.addError'));
                 setSnackbarSeverity('error')
             },
         });
@@ -97,13 +99,13 @@ export function SaisieSociete() {
                     <Box component={'form'}>
                         <Grid container spacing={2}>
                             <Grid item xs={0.7} md={6}>
-                                <InputComponent label="Code" type="text" value={societeData.soccod} setValue={(value:any) => setSocieteData({ ...societeData, soccod: value })} />
+                                <InputComponent label={t('common.code')} type="text" value={societeData.soccod} setValue={(value:any) => setSocieteData({ ...societeData, soccod: value })} />
                             </Grid>
                             <Grid item xs={1.5} md={6}>
                                 <InputComponent label="Société Mére" type="text" value={societeData.socmere} setValue={(value:any) => setSocieteData({ ...societeData, socmere: value })} />
                             </Grid>
                             <Grid item xs={1.5} md={6}>
-                                <InputComponent label="Libellé" type="text" value={societeData.soclib} setValue={(value:any) => setSocieteData({ ...societeData, soclib: value })} />
+                                <InputComponent label={t('common.label')} type="text" value={societeData.soclib} setValue={(value:any) => setSocieteData({ ...societeData, soclib: value })} />
                             </Grid>
                             <Grid item xs={1.5} md={6}>
                                 <InputComponent label="Adresse" type="text" value={societeData.socadr} setValue={(value:any) => setSocieteData({ ...societeData, socadr: value })} />
@@ -155,7 +157,7 @@ export function SaisieSociete() {
                                 onClick={handleAddSociete}
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Saving..." : "Save"}
+                                {isLoading ? t('common.saving') : t('common.save')}
                         </Button>
                         </Box>
                     </Box>
