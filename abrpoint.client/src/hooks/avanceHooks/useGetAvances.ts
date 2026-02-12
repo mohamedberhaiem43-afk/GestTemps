@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import AvanceService from "../../services/AvanceService";
 
 const useGetAvances = (mois:string,annee:string,niveau:string) => {

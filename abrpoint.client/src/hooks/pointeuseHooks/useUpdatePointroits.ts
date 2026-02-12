@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import { UpdatePoidroit } from "../../models/Poidroit";
 import UpdatePointdroitService from "../../services/PointeuseService/UpdatePointdroitService";
 

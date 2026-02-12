@@ -5,7 +5,6 @@ import { dashboardService } from "../../services/DashboardService";
 const useGetDashboardData = (request:any) => {
   const { soccod } = useAuth();
 
-  console.log("Request in useGetDashboardData:", request);
   return useQuery({
     queryKey: ["dashboard", soccod,request],
     queryFn:()=> dashboardService.postWithParams(`data`,request!),

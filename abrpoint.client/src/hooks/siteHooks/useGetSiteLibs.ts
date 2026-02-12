@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "react-query";
 
 const useGetSiteLibs = () => {
   const token = localStorage.getItem("authToken");

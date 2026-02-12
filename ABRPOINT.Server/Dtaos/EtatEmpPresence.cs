@@ -18,10 +18,10 @@
         public string HS25 { get; set; }
         public string HS50 { get; set; }
         public string HS75 { get; set; }
-        public TimeOnly preretmateup { get; set; }
-        public TimeOnly preretameup { get; set; }
-        public TimeOnly preretmatsup { get; set; }
-        public TimeOnly preretamsup { get; set; }
+        public TimeSpan? Preretmateup { get; set; }
+        public TimeSpan? Preretameup { get; set; }
+        public TimeSpan? Preretmatsup { get; set; }
+        public TimeSpan? Preretamsup { get; set; }
         public string HS100 { get; set; }
         public string TotalRetard { get; set; }
         public string TotalHeure { get; set; }

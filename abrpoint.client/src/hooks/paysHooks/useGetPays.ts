@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import GetPays from "../../services/PaysService/GetPays";
 import { PaysModel } from "../../models/Pays";
 

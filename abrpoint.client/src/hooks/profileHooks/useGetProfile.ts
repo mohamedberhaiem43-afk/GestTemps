@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import ProfileService from "../../services/ProfileService/ProfileService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

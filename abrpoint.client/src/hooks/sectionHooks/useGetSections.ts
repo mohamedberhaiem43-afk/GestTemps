@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import GetSections from "../../services/SectionService/GetSections";
+import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetSections = () => {
-  const soccod = sessionStorage.getItem('soccod');
+  const { soccod } = useAuth()
 
   return useQuery({
     queryKey: ["sections",soccod],

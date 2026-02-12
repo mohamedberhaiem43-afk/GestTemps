@@ -74,13 +74,13 @@ function CumulHeuresMensuelle() {
         </TableContainer>
       </Grid>
       <Grid container spacing={2} mt={2}>
-      <Grid item xs={2} sm={2} md={2}>
+      <Grid item xs={4} sm={4} md={4}>
             <InputComponent type="number" label={t('common.hoursPerDay')} value={nbHreJour} setValue={setNbHreJour} />
         </Grid>
-        <Grid item xs={2} sm={2} md={2}>
+        <Grid item xs={4} sm={4} md={4}>
             <InputComponent type="number" label={t('common.daysPerMonth')} value={nbJourMois} setValue={setNbJourMois} />
         </Grid>
-        <Grid item xs={2} sm={2} md={2}>
+        <Grid item xs={4} sm={4} md={4}>
             <InputComponent type="number" label={t('common.hoursPerMonth')} value={nbHreMois} setValue={setNbHreMois} />
         </Grid>
       </Grid>

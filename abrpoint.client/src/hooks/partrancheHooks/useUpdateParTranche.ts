@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import ParTranche from "../../models/ParTranche";
 import ParTrancheService from "../../services/ParTrancheService";
 

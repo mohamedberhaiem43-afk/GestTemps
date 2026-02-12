@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import EmployeService from "../../services/EmployeService/EmployeService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

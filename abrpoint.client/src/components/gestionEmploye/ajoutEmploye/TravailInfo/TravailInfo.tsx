@@ -96,7 +96,46 @@ const TravailInfo = ({
             </Select>
               </FormControl>
         </Grid>
-        <Grid container item xs={2} alignItems="end">
+        <Grid item xs={2}>
+          <SelectInputComponent label={t('employe.work.service') || 'Service'} value={formData.sercod} setValue={(value)=>handleChange({target:{ name: 'sercod', value }})} maplist={services} />
+        </Grid>
+        <Grid item xs={2}>
+          <SelectInputComponent label={t('employe.work.direction') || 'Direction'} value={formData.dircod} setValue={(value)=>handleChange({target:{ name: 'dircod', value }})} maplist={directions} />
+        </Grid>
+       
+        <Grid item xs={2}>
+          <SelectInputComponent label={t('employe.work.timeClass') || 'Classe Horaire'} value={formData.catcod} setValue={(value)=> handleChange({target:{name:'catcod',value}})} maplist={horaires} />
+        </Grid>
+        <Grid item xs={2} >
+            <FormControl variant="standard" fullWidth>
+                      <InputLabel shrink  id="employe-label">{t('employe.work.calendarType') || 'Type Calendrier'}</InputLabel>
+                      <Select
+                        size="small"
+                        value={formData.caltype}
+                        name="caltype"
+                        onChange={handleChange}
+                      >
+                          {calendrier.map(({ caltype, callib }) => (
+                            <MenuItem key={caltype} value={caltype} sx={{ fontSize: '0.85rem' }}>
+                              {callib}
+                            </MenuItem>
+                          ))}
+                      </Select>
+            </FormControl>
+        </Grid>
+        <Grid item xs={1}>
+          <InputComponent type='number' label={t('employe.work.maxDaysPerMonth') || 'Jour Max/Mois'} value={formData.empmaxjour} setValue={(value:string)=>handleChange({target:{ name: 'empmaxjour', value }})} />
+        </Grid>
+        <Grid item xs={2}>
+          <InputComponent type='number' label={t('employe.work.maxHoursPerDay') || 'Max Heure/Jour'} value={formData.empmaxhre} setValue={(value:string)=>handleChange({target:{ name: 'empmaxhre', value }})} />
+        </Grid>
+        <Grid item xs={1}>
+          <InputComponent type='number' label={t('employe.work.minHoursPerDay') || 'Min Heure/Jour'} value={formData.empminhjour} setValue={(value)=>handleChange({target:{ name: 'empminhjour', value }})} />
+        </Grid>
+        <Grid item xs={1} mt={3}>
+          <CheckboxComponent label={t('employe.work.eliminateDelay') || 'Eliminer Retard'}   value={formData.empretard === '1'}    setValue={(checked) => handleCheckboxChange({ target: { name: 'empretard', checked } })} />
+        </Grid>
+                <Grid container item xs={2} alignItems="end">
           <Grid item>
             <InputLabel shrink>{t('employe.work.charge') || 'Charge:'}</InputLabel>
           </Grid>
@@ -120,46 +159,6 @@ const TravailInfo = ({
             />
           </RadioGroup>
         </Grid>
-        </Grid>
-
-        <Grid item xs={2}>
-          <SelectInputComponent label={t('employe.work.service') || 'Service'} value={formData.sercod} setValue={(value)=>handleChange({target:{ name: 'sercod', value }})} maplist={services} />
-        </Grid>
-        <Grid item xs={2}>
-          <SelectInputComponent label={t('employe.work.direction') || 'Direction'} value={formData.dircod} setValue={(value)=>handleChange({target:{ name: 'dircod', value }})} maplist={directions} />
-        </Grid>
-       
-        <Grid item xs={2}>
-          <SelectInputComponent label={t('employe.work.timeClass') || 'Classe Horaire'} value={formData.catcod} setValue={(value)=> handleChange({target:{name:'catcod',value}})} maplist={horaires} />
-        </Grid>
-        <Grid item xs={1}>
-          <InputComponent type='number' label={t('employe.work.maxDaysPerMonth') || 'Jour Max/Mois'} value={formData.empmaxjour} setValue={(value:string)=>handleChange({target:{ name: 'empmaxjour', value }})} />
-        </Grid>
-        <Grid item xs={2}>
-          <InputComponent type='number' label={t('employe.work.maxHoursPerDay') || 'Max Heure/Jour'} value={formData.empmaxhre} setValue={(value:string)=>handleChange({target:{ name: 'empmaxhre', value }})} />
-        </Grid>
-        <Grid item xs={2} mt={1}>
-        <FormControl variant="standard" fullWidth>
-                  <InputLabel shrink  id="employe-label">{t('employe.work.calendarType') || 'Type Calendrier'}</InputLabel>
-                  <Select
-                    size="small"
-                    value={formData.caltype}
-                    name="caltype"
-                    onChange={handleChange}
-                  >
-                      {calendrier.map(({ caltype, callib }) => (
-                        <MenuItem key={caltype} value={caltype} sx={{ fontSize: '0.85rem' }}>
-                          {callib}
-                        </MenuItem>
-                      ))}
-                  </Select>
-                  </FormControl>
-        </Grid>
-        <Grid item xs={1.5} mt={3}>
-          <CheckboxComponent label={t('employe.work.eliminateDelay') || 'Eliminer Retard'}   value={formData.empretard === '1'}    setValue={(checked) => handleCheckboxChange({ target: { name: 'empretard', checked } })} />
-        </Grid>
-        <Grid item xs={1}>
-          <InputComponent type='number' label={t('employe.work.minHoursPerDay') || 'Min Heure/Jour'} value={formData.empminhjour} setValue={(value)=>handleChange({target:{ name: 'empminhjour', value }})} />
         </Grid>
       </Grid>
     </Box>

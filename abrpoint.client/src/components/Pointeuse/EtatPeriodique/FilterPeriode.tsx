@@ -9,6 +9,7 @@ import { Print, Search } from "@mui/icons-material";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
 import useGetAbsencesLibs from "../../../hooks/absenceHooks/useGetAbsenceLibs";
+import useGetEtatAbsence from "../../../hooks/absenceHooks/useGetEtatAbsence";
 import RadioGroupComponent, { FormControlLabelComponent } from "../../RadioGroupComponent/RadioGroupComponent";
 import { useAbsenceContext } from "../../helper/AbsParamsContext";
 
@@ -50,6 +51,18 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
     const [selectedRegime, setSelectedRegime] = useState<string>('');
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
+    
+    // Récupérer les données d'absence avec le hook
+    const { data: absenceData = [] } = useGetEtatAbsence(
+        new Date(dateDebut),
+        new Date(dateFin),
+        selectedEmpcods.length > 0 ? selectedEmpcods : null,
+        absaut,
+        absret,
+        presNonOpt,
+        sansPointageInvalide,
+        selectedAbstype
+    );
     useEffect(()=>{
         if(radioValue == "0"){
             setAbsret(false);
@@ -110,42 +123,65 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
             });
     }, []);
 
-    const handlePrintReport = async () => {
-    let response: any;
-    try {
-        if(type == 'absence'){
+        const handlePrintReport = async () => {
+            try {
+                const payload = {
+                    soclib:sessionStorage.getItem('soclib') ?? '',
+                    date: new Date().toISOString().slice(0, 10),
+                    dateDebut: dateDebut,
+                    dateFin: dateFin,
+                    data: absenceData
+                };
 
-            response = await axios.get(
-                `${import.meta.env.VITE_REACT_APP_API_URL}/Absences/get-etat-${type}-report/${soccod}/${dateDebut}/${dateFin}`,
-                {
-                    headers,
-                    responseType: 'blob',
+                const response = await axios.post(
+                    `${import.meta.env.VITE_REACT_APP_API_URL}/Absences/get-etat-absence-report`,
+                    payload,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        responseType: 'blob',
+                    }
+                );
+
+                // Créer le blob PDF
+                const blob = new Blob([response.data], { type: 'application/pdf' });
+                const url = window.URL.createObjectURL(blob);
+
+                // Télécharger le fichier
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `etat-absence-${dateDebut}-${dateFin}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                
+                // Nettoyage
+                link.remove();
+                window.URL.revokeObjectURL(url);
+
+            } catch (error: any) {
+                console.error("Erreur génération rapport:", error);
+                
+                if (error.response) {
+                    console.error("Status:", error.response.status);
+                    console.error("Status Text:", error.response.statusText);
+                    
+                    // Si c'est une erreur 405, vérifier la configuration
+                    if (error.response.status === 405) {
+                        alert("Erreur 405: Méthode non autorisée. Vérifiez la configuration du serveur.");
+                    } else if (error.response.status === 401) {
+                        alert("Non autorisé. Veuillez vous reconnecter.");
+                    } else if (error.response.status === 403) {
+                        alert("Accès interdit. Vous n'avez pas les permissions nécessaires.");
+                    } else {
+                        alert("Erreur lors de la génération du rapport.");
+                    }
+                } else {
+                    alert("Erreur de connexion au serveur.");
                 }
-            );
-        }else{
-            response = await axios.get(
-                `${import.meta.env.VITE_REACT_APP_API_URL}/Presences/get-etat-${type}-report/${soccod}/${dateDebut}/${dateFin}/${selectedRegime}`,
-                {
-                    headers,
-                    responseType: 'blob',
-                }
-            );
-        }
-
-        const blob = new Blob([response.data], { type: 'application/pdf' }); // ou 'application/vnd.ms-excel' etc.
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `etat-${type}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    } catch (error) {
-        console.error("Erreur génération rapport:", error);
-    }
-    };
-
-
+            }
+        };
 
     useEffect(() => {
         axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`, { headers })
@@ -172,7 +208,8 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
             selectedService,
             pres,
             mois,
-            empcods:selectedEmpcods
+            empcods:selectedEmpcods,
+            compterAvance:false
             });
         }
         setAbsParams({
@@ -191,7 +228,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={1.5}>
                     {filiale && (
                         <SelectInputComponent
-                            label={t('filter.branch')}
+                            label={t('empEtatPeriodique.filters.branch')}
                             value={selectedFiliale}
                             setValue={setSelectedFiliale}
                             maplist={filiale}
@@ -201,7 +238,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={1.5}>
                     {services && (
                         <SelectInputComponent
-                            label={t('filter.service')}
+                            label={t('empEtatPeriodique.filters.service')}
                             value={selectedService}
                             setValue={setSelectedService}
                             maplist={services}
@@ -210,7 +247,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 </Grid>
                 <Grid item xs={1}>
                     <SelectInputComponent
-                        label={t('filter.regime')}
+                        label={t('empEtatPeriodique.filters.regime')}
                         value={selectedRegime}
                         setValue={setSelectedRegime}
                         maplist={regime}
@@ -218,7 +255,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 </Grid>
                 <Grid item xs={1.5}>
                     <SelectInputComponent
-                    label={t('filter.employees')}
+                    label={t('empEtatPeriodique.filters.employees')}
                     value={selectedEmpcods}
                     setValue={setSelectedEmpcods}
                     maplist={emplibs}
@@ -228,7 +265,7 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
-                        label={t('filter.year')}
+                        label={t('empEtatPeriodique.filters.year')}
                         value={annee}
                         setValue={setAnnee}
                     />

@@ -97,7 +97,7 @@ const InfoBasic = ({
             onChange={handleChange}
           />
         </Grid>
-        <Grid item xs={2} mt={2}>
+        <Grid item xs={2} mt={1}>
           <SelectInputComponent
             label={t('employe.form.sex') || 'Sexe'}
             value={formData?.empsexe || ''}

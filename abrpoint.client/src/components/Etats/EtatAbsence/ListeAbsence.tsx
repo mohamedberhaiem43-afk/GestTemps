@@ -77,7 +77,7 @@ const ListeAbsence = () => {
         {
           accessorKey: 'motif',
           header: 'Motif',
-          size: 180,
+          size: 100,
         },
         {
           accessorKey: 'congepaye',
@@ -91,7 +91,7 @@ const ListeAbsence = () => {
         },
         {
           accessorKey: 'csf',
-          header: 'Congé Spec. Familial',
+          header: 'C.S.F',
           size: 60,
         },
         {

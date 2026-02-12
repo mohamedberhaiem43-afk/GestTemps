@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import AllaitementModel from "../../models/Allaitement";
 import AddAllaitementService from "../../services/AddAllaitementService";
 

@@ -28,7 +28,7 @@ namespace ABRPOINT.Server.Controllers
             if (string.IsNullOrWhiteSpace(soccod))
                 return BadRequest(new {Message = "code société est obligatoire"});
             try
-            {
+            {   
                 IEnumerable<Absence> absence = _absenceRepository.GetAll(soccod);
 
                 if(absence == null ||  !absence.Any())
@@ -80,7 +80,7 @@ namespace ABRPOINT.Server.Controllers
         [CanGetAbsence]
         public async Task<IActionResult> GetEtatAbsence(string soccod, DateTime datedebut, DateTime datefin, bool absaut, bool absret,
             bool presNonOpt, bool sansPointageInvalide, string? selectedAbsType, [FromQuery] List<string>? empcods)
-            {
+                    {
             if(string.IsNullOrEmpty(soccod))
                 return BadRequest(new { Message = "Veuillez saisie le soccod des absences." });
             if(empcods.Count() == 0)
@@ -96,7 +96,23 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, "probléme de récupération d'absences");
             }
         }
+        [HttpPost("get-etat-absence-report")]
+        [CanGetAbsence]
+        public IActionResult GetEtatAbsenceReport([FromBody] EtatAbsenceReport etatAbsence)
+        {
+            try
+            {
+                var pdfBytes = _reportsGenerationService.GetEtatAbsenceReport(etatAbsence);
 
+                return File(pdfBytes, "application/pdf", "etat-absence.pdf");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error generating report: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { message = "Problème génération état d'absences", error = ex.Message });
+            }
+        }
         // POST api/<DirectionsController>
         [HttpPost]
         [CanAddAbsence]

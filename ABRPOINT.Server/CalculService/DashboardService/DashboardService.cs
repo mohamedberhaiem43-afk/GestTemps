@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.CalculService.CalcTotHeures;
+﻿using ABRPOINT.Helper;
+using ABRPOINT.Server.CalculService.CalcTotHeures;
 using ABRPOINT.Server.CalculService.HeureAbsences;
 using ABRPOINT.Server.CalculService.HeureRetard;
 using ABRPOINT.Server.CalculService.HeureSupp;
@@ -33,6 +34,143 @@ namespace ABRPOINT.Server.CalculService.DashboardService
             _posteRepository = posteRepository;
             _congeRepository = congeRepository;
             _autorisationRepository = autorisationRepository;
+        }
+        public async Task<DashboardData> GetDashboardData(string soccod,DateTime dateDebut,DateTime dateFin,string? dep,List<string>? empcods)
+        {
+            try
+            {
+                var dashboardData = new DashboardData
+                {
+                    DateDebut = dateDebut,
+                    DateFin = dateFin,
+                    Departement = dep
+                };
+
+                // =========================
+                // 1. Employés (base query)
+                // =========================
+                var employesQuery = _context.Employes
+                    .Where(e => e.Soccod == soccod && e.Actif == "A");
+
+                if (!string.IsNullOrEmpty(dep))
+                    employesQuery = employesQuery.Where(e => e.Dircod == dep);
+
+                if (empcods != null && empcods.Any())
+                    employesQuery = employesQuery.Where(e => empcods.Contains(e.Empcod));
+
+                var empcodesFiltres = await employesQuery
+                    .Select(e => e.Empcod)
+                    .ToListAsync();
+
+                dashboardData.EffectifTotal = empcodesFiltres.Count;
+
+                // =========================
+                // 2. Presences période
+                // =========================
+                var presences = await _context.Presences
+                    .Where(p =>
+                        p.Soccod == soccod &&
+                        p.Predat.HasValue &&
+                        p.Predat.Value.Date >= dateDebut.Date &&
+                        p.Predat.Value.Date <= dateFin.Date &&
+                        empcodesFiltres.Contains(p.Empcod))
+                    .ToListAsync();
+
+                // =========================
+                // 3. Présents
+                // =========================
+                var employesPresents = presences
+                    .Where(p => !string.IsNullOrEmpty(p.Preentmatup))
+                    .Select(p => p.Empcod)
+                    .Distinct()
+                    .Count();
+
+                dashboardData.EffectifPresent = employesPresents;
+                dashboardData.PourcentagePresence = dashboardData.EffectifTotal > 0
+                    ? Math.Round((decimal)employesPresents / dashboardData.EffectifTotal * 100, 2)
+                    : 0;
+
+                // =========================
+                // 4. Heures / Retards
+                // =========================
+                float? heuresTravaillees = 0;
+                float? heuresSupplementaires = 0;
+                int retards = 0;
+                int pointagesIncomplets = 0;
+
+                foreach (var p in presences.Where(p => !string.IsNullOrEmpty(p.Preentmatup)))
+                {
+                    var dto = new PresenceDto
+                    {
+                        Soccod = p.Soccod,
+                        Empcod = p.Empcod,
+                        Codposte = p.Codposte,
+                        Dmdate = p.Predat,
+                        Preentmatup = p.Preentmatup,
+                        Presortmatup = p.Presortmatup,
+                        Preentamidiup = p.Preentamidiup,
+                        Presortamidiup = p.Presortamidiup,
+                        Tothre = p.Tothre
+                    };
+
+                    heuresTravaillees += GenericMethodes.ConvertHHmmToDouble(p.Tothre) + GenericMethodes.ConvertHHmmToDouble(p.Tothsup);
+                    heuresSupplementaires += GenericMethodes.ConvertHHmmToDouble(p.Tothsup);
+                    (var sup,var retard) = await _calcHeuresService.CalculateDayWorkMetrics(dto);
+                    retards += retard;
+                    
+                    if (!GenericMethodes.IsPresent(p))
+                        pointagesIncomplets++;
+                }
+
+                dashboardData.HeuresTravaillees = MathF.Round((float)heuresTravaillees, 2);
+                dashboardData.HeuresSupplementaires = MathF.Round((float)heuresSupplementaires, 2);
+                dashboardData.NombreRetards = retards;
+                dashboardData.PointagesIncomplets = pointagesIncomplets;
+
+                // =========================
+                // 5. Heures prévues
+                // =========================
+                var joursDistincts = presences
+                    .Where(p => p.Predat.HasValue)
+                    .Select(p => p.Predat.Value.Date)
+                    .Distinct()
+                    .Count();
+
+                dashboardData.HeuresPreveues = joursDistincts * employesPresents * 8;
+                dashboardData.PourcentageHeures = dashboardData.HeuresPreveues > 0
+                    ? MathF.Round(dashboardData.HeuresTravaillees / dashboardData.HeuresPreveues * 100, 2)
+                    : 0;
+
+                // =========================
+                // 6. Congés
+                // =========================
+                var conges = await _context.Conges
+                    .Where(c =>
+                        c.Soccod == soccod &&
+                        c.Condep <= dateFin &&
+                        c.Conret >= dateDebut &&
+                        empcodesFiltres.Contains(c.Empcod))
+                    .ToListAsync();
+
+                dashboardData.AbsencesJustifiees = conges.Count;
+                dashboardData.TotalAbsences = dashboardData.EffectifTotal - employesPresents;
+                dashboardData.AbsencesNonJustifiees =
+                    Math.Max(0, dashboardData.TotalAbsences - dashboardData.AbsencesJustifiees);
+
+                // =========================
+                // 7. Demandes en attente
+                // =========================
+                dashboardData.DemandesCongesEnAttente = await _context.Demconges
+                    .CountAsync(d => d.Soccod == soccod && empcodesFiltres.Contains(d.Empcod));
+
+                dashboardData.TotalDemandesEnAttente = dashboardData.DemandesCongesEnAttente;
+
+                return dashboardData;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         public async Task<DashboardData> GetDashboardData(string soccod, DateTime date, string dep, List<string> empcods)
@@ -89,9 +227,9 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                     : 0;
 
                 // 4. Calculer les heures travaillées en utilisant CalcTotHeuresService
-                var heuresTravaillees = 0m;
-                var heuresPreveues = 0m;
-                var heuresSupplementairesTotales = 0m;
+                float heuresTravaillees = 0;
+                float heuresPreveues = 0;
+                float heuresSupplementairesTotales = 0;
                 var retardsTotaux = 0;
                 var pointagesIncomplets = 0;
 
@@ -116,7 +254,7 @@ namespace ABRPOINT.Server.CalculService.DashboardService
 
                     if (!string.IsNullOrEmpty(totHre) && TimeSpan.TryParse(totHre, out var heureTravail))
                     {
-                        heuresTravaillees += (decimal)heureTravail.TotalHours;
+                        heuresTravaillees += (float)heureTravail.TotalHours;
                     }
 
                     // Calculer heures supp et retards avec le service existant
@@ -124,7 +262,7 @@ namespace ABRPOINT.Server.CalculService.DashboardService
 
                     if (nbHeurSupp.HasValue)
                     {
-                        heuresSupplementairesTotales += (decimal)(nbHeurSupp.Value); // Convertir minutes en heures
+                        heuresSupplementairesTotales += (float)(nbHeurSupp.Value); // Convertir minutes en heures
                         heuresTravaillees += heuresSupplementairesTotales;
                     }
 
@@ -140,24 +278,24 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                 }
 
                 // Récupérer les heures prévues selon les postes
-                var heuresStandardParJour = 0m;
+                float heuresStandardParJour = 0;
                 foreach (var pointage in pointagesJour.Where(p => !string.IsNullOrEmpty(p.Preentmatup)))
                 {
                     var heuresPoste = await _posteRepository.GetJourHeures(soccod, date, pointage.Codposte);
                     if (heuresPoste.HasValue)
                     {
-                        heuresStandardParJour += (decimal)heuresPoste.Value;
+                        heuresStandardParJour += (float)heuresPoste.Value;
                     }
                 }
 
                 heuresPreveues = heuresStandardParJour > 0 ? heuresStandardParJour : employesPresents * 8;
 
-                dashboardData.HeuresTravaillees = Math.Round(heuresTravaillees, 2);
-                dashboardData.HeuresPreveues = Math.Round(heuresPreveues, 2);
+                dashboardData.HeuresTravaillees = MathF.Round((float)heuresTravaillees, 2);
+                dashboardData.HeuresPreveues = MathF.Round((float)heuresPreveues, 2);
                 dashboardData.PourcentageHeures = heuresPreveues > 0
-                    ? Math.Round(heuresTravaillees / heuresPreveues * 100, 2)
+                    ? MathF.Round(heuresTravaillees / heuresPreveues * 100, 2)
                     : 0;
-                dashboardData.HeuresSupplementaires = Math.Round(heuresSupplementairesTotales, 2);
+                dashboardData.HeuresSupplementaires = MathF.Round(heuresSupplementairesTotales, 2);
                 dashboardData.NombreRetards = retardsTotaux;
                 dashboardData.PointagesIncomplets = pointagesIncomplets;
 
@@ -278,13 +416,9 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                 throw;
             }
         }
+        
         // Méthode pour récupérer l'évolution sur plusieurs jours
-        public async Task<List<EvolutionJournaliere>> GetEvolutionHebdomadaire(
-            string soccod,
-            DateTime dateDebut,
-            DateTime dateFin,
-            string dep,
-            List<string> empcods)
+        public async Task<List<EvolutionJournaliere>> GetEvolutionHebdomadaire(string soccod,DateTime dateDebut,DateTime dateFin,string dep,List<string> empcods)
         {
             var evolution = new List<EvolutionJournaliere>();
             var dateActuelle = dateDebut;
@@ -385,7 +519,7 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                     // Calculer les heures travaillées avec le service
                     if (!string.IsNullOrEmpty(pointage.Tothre) && TimeSpan.TryParse(pointage.Tothre, out var totHre))
                     {
-                        statut.HeuresTravaillees = Math.Round((decimal)totHre.TotalHours, 2);
+                        statut.HeuresTravaillees = MathF.Round((float)totHre.TotalHours, 2);
                     }
 
                     // Vérifier les retards

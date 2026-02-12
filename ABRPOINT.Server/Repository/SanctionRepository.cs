@@ -33,11 +33,7 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public async Task<List<SanctionDto>> GetSanctionsByPeriod(
-            string soccod,
-            string empcod,
-            DateTime startDate,
-            DateTime endDate)
+        public async Task<List<SanctionDto>> GetSanctionsByPeriod(string soccod,string empcod,DateTime startDate,DateTime endDate)
         {
             try
             {

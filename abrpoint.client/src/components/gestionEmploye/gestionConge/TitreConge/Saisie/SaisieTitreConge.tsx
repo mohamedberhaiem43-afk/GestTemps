@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Box, Grid, IconButton, Button, Snackbar, Alert, Collapse, Typography } from '@mui/material';
+import { Box, Grid, Button, Snackbar, Alert, Collapse, Typography, Card, CardContent, Divider, CircularProgress } from '@mui/material';
 import SaveIcon from "@mui/icons-material/Save";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import PeopleIcon from '@mui/icons-material/People';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import InfoIcon from '@mui/icons-material/Info';
 import InputComponent from '../../../../Inputs/Input';
 import SelectInputComponent from '../../../../SelectInputComponent/SelectInputComponent';
 import CheckboxComponent from '../../../../CheckboxComponent/CheckboxComponent';
@@ -40,36 +45,34 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
   const [abscod, setAbscod] = useState('');
   const [connbjour, setNbJour] = useState(0);
   const [showExceptionList, setShowExceptionList] = useState(false);
-  const [checkedEmployees, setCheckedEmployees] = useState<number[]>([]); // State to manage checked employees
-  const soccod =sessionStorage.getItem('soccod');
+  const [checkedEmployees, setCheckedEmployees] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const soccod = sessionStorage.getItem('soccod');
 
-const moisdeb = condep ? new Date(condep).getMonth() + 1 : null; // Months are 0-based, add 1
-const moisfin = conret ? new Date(conret).getMonth() + 1 : null;
-const annee = condep ? new Date(condep).getFullYear() : null; // Use year from condep
+  const moisdeb = condep ? new Date(condep).getMonth() + 1 : null;
+  const moisfin = conret ? new Date(conret).getMonth() + 1 : null;
+  const annee = condep ? new Date(condep).getFullYear() : null;
   
-const [showEtatConge, setShowEtatConge] = useState(false);
-const [etatCongeError, setEtatCongeError] = useState('');
-const { data: etatConge = {} as EtatConge, refetch: refetchEtatConge } = useGetEtatConge(soccod, empcod, moisdeb, moisfin, annee);
-const { mutate:updateConge } = useUpdateTitreConge();
+  const [showEtatConge, setShowEtatConge] = useState(false);
+  const [etatCongeError, setEtatCongeError] = useState('');
+  const { data: etatConge = {} as EtatConge, refetch: refetchEtatConge } = useGetEtatConge(soccod, empcod, moisdeb, moisfin, annee);
+  const { mutate: updateConge } = useUpdateTitreConge();
   const { t } = useTranslation();
 
+  useEffect(() => {
+    if (empcod && moisdeb && moisfin && annee) {
+      refetchEtatConge();
+      setShowEtatConge(true);
+    }
+  }, [empcod, moisdeb, moisfin, annee, refetchEtatConge]);
 
-useEffect(() => {
-  if (empcod && moisdeb && moisfin && annee) {
-    refetchEtatConge();
-    setShowEtatConge(true);
-  }
-}, [empcod, moisdeb, moisfin, annee, refetchEtatConge]);
-
-// Checking if anciennete is less than 0
-useEffect(() => {
-  if (etatConge?.anciennete < 0) {
-    setEtatCongeError(t('conge.errors.notHired') || "Employee is not hired on the specified date.");
-  } else {
-    setEtatCongeError('');
-  }
-}, [etatConge]);
-
+  useEffect(() => {
+    if (etatConge?.anciennete < 0) {
+      setEtatCongeError(t('conge.errors.notHired') || "Employee is not hired on the specified date.");
+    } else {
+      setEtatCongeError('');
+    }
+  }, [etatConge]);
 
   const generateUniqueConcod = () => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -80,19 +83,21 @@ useEffect(() => {
     }
     return result;
   };
-  const { data:emp = [] } = useGetEmployee();
-  const { data:absences = [] } = useGetAbsencesLibs();
+
+  const { data: emp = [] } = useGetEmployee();
+  const { data: absences = [] } = useGetAbsencesLibs();
   const { mutate: addConge } = useAddConge();
   const { mutate: addBulkConge } = useAddBulkConges();
   const { selectedConge } = useCongeContext();
   const { data: congeToEdit = [] } = useGetTitreCongeById(selectedConge?.concod || '');
-  const [mode,setMode] = useState('save');
-  const [writable,setWritable] = useState(true)
+  const [mode, setMode] = useState('save');
+  const [writable, setWritable] = useState(true);
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [severity, setSeverity] = useState<'success' | 'error'>('success');
 
-  const {refetch} = useGetTitreConge()
+  const { refetch } = useGetTitreConge();
+
   useEffect(() => {
     if (congeToEdit.concod && titre != "Titre de Congés Génerale") {
       setEmploye(congeToEdit?.empcod || '');
@@ -102,7 +107,7 @@ useEffect(() => {
       setDateReprise(getDatePart(congeToEdit?.conret) || null);
       setReference(congeToEdit?.conref || '');
       setApresMidiDepart(congeToEdit?.conamdep === '1');
-      setApresMidiReprise(congeToEdit?.conamret ==='1');
+      setApresMidiReprise(congeToEdit?.conamret === '1');
       setImputationAdresse(congeToEdit?.conadr || '');
       setTelephones(congeToEdit?.contel || '');
       setTimePeriod(congeToEdit?.condg || 'J');
@@ -114,39 +119,34 @@ useEffect(() => {
     }
   }, [congeToEdit]);
 
-useEffect(() => {
-  if (condep && conret) {
-    const startDate = new Date(condep);
-    const endDate = new Date(conret);
+  useEffect(() => {
+    if (condep && conret) {
+      const startDate = new Date(condep);
+      const endDate = new Date(conret);
 
-    if (endDate < startDate) {
-      setNbJour(0);
-      return;
-    }
-
-    const timeDiff = endDate.getTime() - startDate.getTime();
-    const fullDaysBetween = timeDiff / (1000 * 3600 * 24) - 1; // jours entre début et fin, excluant les extrémités
-    let totalDays = 0;
-
-    // 🔹 Premier jour
-    totalDays += conamdep ? 0.5 : 1;
-
-    // 🔹 Dernier jour
-    totalDays += conamret ? 0.5 : 1;
-
-    // 🔹 Jours intermédiaires
-    if (fullDaysBetween > 0) {
-      if (conjour === 'J') {
-        totalDays += fullDaysBetween;
-      } else {
-        totalDays += fullDaysBetween * 0.5;
+      if (endDate < startDate) {
+        setNbJour(0);
+        return;
       }
+
+      const timeDiff = endDate.getTime() - startDate.getTime();
+      const fullDaysBetween = timeDiff / (1000 * 3600 * 24) - 1;
+      let totalDays = 0;
+
+      totalDays += conamdep ? 0.5 : 1;
+      totalDays += conamret ? 0.5 : 1;
+
+      if (fullDaysBetween > 0) {
+        if (conjour === 'J') {
+          totalDays += fullDaysBetween;
+        } else {
+          totalDays += fullDaysBetween * 0.5;
+        }
+      }
+
+      setNbJour(Number(totalDays.toFixed(2)) - 1);
     }
-
-    setNbJour(Number(totalDays.toFixed(2)) - 1);
-  }
-}, [condep, conret, conamdep, conamret, conjour]);
-
+  }, [condep, conret, conamdep, conamret, conjour]);
 
   const handleToggle = (value: number) => () => {
     const currentIndex = checkedEmployees.indexOf(value);
@@ -160,10 +160,14 @@ useEffect(() => {
 
     setCheckedEmployees(newChecked);
   };
+
   const handleSnackbarClose = () => {
     setIsSnackbarOpen(false);
   };
+
   const handleSubmit = () => {
+    setIsLoading(true);
+
     if (titre === "Titre de Congés Génerale") {
       const employeesArray = Object.entries(emp);
       const employeesToSubmit = employeesArray.filter(([], index) => !checkedEmployees.includes(index));
@@ -174,9 +178,9 @@ useEffect(() => {
         condat,
         conref,
         condep,
-        conamdep:conamdep ? '1' : '0',
+        conamdep: conamdep ? '1' : '0',
         conret,
-        conamret:conamret ? '1' : '0',
+        conamret: conamret ? '1' : '0',
         conadr,
         contel,
         condg,
@@ -185,28 +189,28 @@ useEffect(() => {
         soccod: sessionStorage.getItem('soccod')
       }));
 
-      
       addBulkConge(congeDataArray, {
         onSuccess: () => {
-          handleSnackbarOpening(t('conge.messages.bulkAddSuccess') || 'Leaves added successfully','success');
+          handleSnackbarOpening(t('conge.messages.bulkAddSuccess') || 'Leaves added successfully', 'success');
           resetForm();
+          setIsLoading(false);
         },
         onError: () => {
-          handleSnackbarOpening(t('conge.messages.bulkAddError') || 'Error adding leaves','error');
-          resetForm();
+          handleSnackbarOpening(t('conge.messages.bulkAddError') || 'Error adding leaves', 'error');
+          setIsLoading(false);
         }
       });
     } else {
-      const congeData:Conge = {
+      const congeData: Conge = {
         soccod: soccod || "01",
         empcod,
         concod,
-        condat:new Date(condat || ''),
+        condat: new Date(condat || ''),
         conref,
-        condep:new Date(condep || ''),
+        condep: new Date(condep || ''),
         conamdep: conamdep ? '1' : '0',
-        conret:new Date(conret || ''),
-        conamret: conamdep ? '1' : '0',
+        conret: new Date(conret || ''),
+        conamret: conamret ? '1' : '0',
         conadr,
         contel,
         condg,
@@ -217,45 +221,50 @@ useEffect(() => {
         consolde: 0,
         emplib: null
       };
-      if(congeData.empcod=='' && congeData.concod==''){
-        handleSnackbarOpening(t('common.requiredFields') || 'Please fill all required fields','error');
+
+      if (congeData.empcod == '' && congeData.concod == '') {
+        handleSnackbarOpening(t('common.requiredFields') || 'Please fill all required fields', 'error');
+        setIsLoading(false);
         return;
       }
-      if(mode === 'save'){
+
+      if (mode === 'save') {
         addConge(congeData, {
           onSuccess: () => {
-            handleSnackbarOpening(t('conge.messages.addSuccess') || 'Leave added successfully','success');
+            handleSnackbarOpening(t('conge.messages.addSuccess') || 'Leave added successfully', 'success');
             resetForm();
+            setIsLoading(false);
           },
           onError: () => {
-            handleSnackbarOpening(t('conge.messages.addError') || 'Failed to add leave','error');
+            handleSnackbarOpening(t('conge.messages.addError') || 'Failed to add leave', 'error');
+            setIsLoading(false);
           }
         });
-      }else if (mode === 'edit'){
-        updateConge(congeData,{
+      } else if (mode === 'edit') {
+        updateConge(congeData, {
           onSuccess() {
-            handleSnackbarOpening(t('conge.messages.updateSuccess') || 'Leave updated successfully','success');
+            handleSnackbarOpening(t('conge.messages.updateSuccess') || 'Leave updated successfully', 'success');
             resetForm();
+            setIsLoading(false);
           },
           onError() {
-            handleSnackbarOpening(t('conge.messages.updateError') || 'Failed to update leave','error');
+            handleSnackbarOpening(t('conge.messages.updateError') || 'Failed to update leave', 'error');
+            setIsLoading(false);
           },
-        })
+        });
       }
-      
     }
   };
-  
 
   const toggleExceptionList = () => {
     setShowExceptionList(prev => !prev);
   };
-  const handleSnackbarOpening = (message:string,severity:'error'|'success') => {
+
+  const handleSnackbarOpening = (message: string, severity: 'error' | 'success') => {
     setMessage(message);
     setSeverity(severity);
     setIsSnackbarOpen(true);
   };
-  
 
   const resetForm = () => {
     setEmploye('');
@@ -266,173 +275,281 @@ useEffect(() => {
     setApresMidiDepart(false);
     setTimePeriod('');
     setNbJour(0);
-    setOrdre('');
+    setOrdre(generateNumeroOrdre());
     setImputationAdresse('');
     setDate(null);
     setApresMidiReprise(false);
     setWritable(true);
     setMode('save');
     setShowEtatConge(false);
+    setCheckedEmployees([]);
+    setShowExceptionList(false);
     refetch();
-  }
+  };
 
-  
   return (
-    <Box component="form" sx={{ mx: 'auto', p: 3 }}>
+    <Box component="form" sx={{ mx: 'auto' }} onSubmit={handleSubmit}>
       <BreadcrumbNavigation />
-      <Grid container spacing={2.8}>
-      {titre === "Titre de Congés" && (  
-        <Grid item xs={1.5}>
-          <SelectInputComponent label={t('common.employee')} value={empcod} setValue={setEmploye} maplist={emp} />
-        </Grid>
-        )}
-
-        <Grid item xs={1} sm={1.5}>
-          <InputComponent readOnly={!writable} label={t('common.orderNumber')} type="text" value={concod} setValue={setOrdre} />
-        </Grid>
-
-        <Grid item xs={1.7} sm={2}>
-          <InputComponent
-            label={t('common.date')}
-            type="date"
-            value={condat}
-            setValue={setDate}
-          />
-        </Grid>
-
-        <Grid item xs={1}>
-          <InputComponent label={t('common.ref')} type="text" value={conref} setValue={setReference} />
-        </Grid>
-        <Grid item xs={1.7} sm={2.1}>
-          <InputComponent
-            label={t('common.dateStart')}
-            type="date"
-            value={condep}
-            setValue={setDateDepart}
-            />
-          </Grid>
-
-
-        <Grid item xs={1.5} sm={2} mt={2}>
-          <CheckboxComponent label={t('common.afternoon')} value={conamdep} setValue={setApresMidiDepart} />
-        </Grid>
-
-        <Grid item xs={1.7} sm={2.1}>
-        <InputComponent
-          label={t('common.dateEnd')}
-          type="date"
-          value={conret}
-          setValue={(val: string) => setDateReprise(val)}
-        />
-        </Grid>
-
-        <Grid item xs={1.5} sm={2} mt={2}>
-          <CheckboxComponent label={t('common.afternoon')} value={conamret} setValue={setApresMidiReprise} />
-        </Grid>
-
-        <Grid item xs={1.5}>
-          <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
-        </Grid>
-
-        <Grid item xs={2}>
-          <InputComponent type='text' label={t('conge.address')} value={conadr} setValue={setImputationAdresse} />
-        </Grid>
-
-        <Grid item xs={1.5}>
-          <InputComponent label={t('common.phone')} type="tel" value={contel} setValue={setTelephones} />
-        </Grid>
-
-        <Grid item xs={4.5} marginTop={2}>
-          <RadioGroupComponent value={conjour} setValue={setConjour}>
-            <FormControlLabelComponent radioValue="J" label={t('common.wholeDay')} />
-            <FormControlLabelComponent radioValue="M" label={t('common.mornings')} />
-            <FormControlLabelComponent radioValue="A" label={t('common.afternoons')} />
-          </RadioGroupComponent>
-        </Grid>
-
-        <Grid item xs={1}>
-          <InputComponent label={t('common.nbDays')} type="number" value={connbjour} setValue={setNbJour} readOnly />
-        </Grid>
-
-        {titre === "Titre de Congés Génerale" && (
-          <Grid item>
-            <Button variant='outlined' color='secondary' onClick={toggleExceptionList}>
+      
+      {/* En-tête avec Actions */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button 
+            variant="outlined" 
+            onClick={resetForm} 
+            color='secondary'
+            startIcon={<RefreshIcon />}
+          >
+            {t('common.new') || 'Nouveau'}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={isLoading}
+            startIcon={isLoading ? <CircularProgress size={20} /> : <SaveIcon />}
+          >
+            {t('common.save') || 'Enregistrer'}
+          </Button>
+          {titre === "Titre de Congés Génerale" && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={toggleExceptionList}
+              startIcon={<PeopleIcon />}
+            >
               {t('conge.actions.exception') || 'Exception'}
             </Button>
-          </Grid>
-        )}
+          )}
+        </Box>
+      </Box>
 
-        {/* Show Checkbox List if Exception button is clicked */}
-        {showExceptionList && (
-          <Grid item xs={12}>
+      {/* Liste d'exceptions (si activée) */}
+      {showExceptionList && titre === "Titre de Congés Génerale" && (
+        <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: 2 }}>
+          <CardContent>
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666' }}>
+              Liste des exceptions
+            </Typography>
             <CheckboxListSecondary 
               employees={emp} 
               checked={checkedEmployees} 
               handleToggle={handleToggle} 
             />
-          </Grid>
-        )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Save Button */}
-        <Grid item mt={2}>
-          <IconButton color="primary" aria-label="save" onClick={handleSubmit} >
-            <SaveIcon />
-          </IconButton>
-          <Button onClick={resetForm} color='secondary'>{t('common.new') || 'New'}</Button>
-        </Grid>
-      </Grid>
+      {/* Card principale */}
+      <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: 2, mb: 3 }}>
+        <CardContent sx={{ p: 3 }}>
+          
+          {/* Les 3 sections: Informations Générales + Période de Congé + Type de Congé (all in row) */}
+          <Grid container spacing={2} sx={{ mb: 3 }} wrap="nowrap" alignItems="flex-start">
+            
+            {/* Section 1: Informations Générales */}
+            <Grid item xs={4}>
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    mb: 2,
+                    fontWeight: 600,
+                    color: '#666',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  <AssignmentIcon fontSize="small" />
+                  Informations Générales
+                </Typography>
+
+                <Grid container spacing={2}>
+                  {/* Ordre */}
+                  <Grid item xs={6}>
+                    <InputComponent
+                      readOnly={!writable}
+                      label={t('common.orderNumber')}
+                      type="text"
+                      value={concod}
+                      setValue={setOrdre}
+                    />
+                  </Grid>
+
+                  {/* Date */}
+                  <Grid item xs={6}>
+                    <InputComponent
+                      label={t('common.date')}
+                      type="date"
+                      value={condat}
+                      setValue={setDate}
+                    />
+                  </Grid>
+
+                  {/* Employé */}
+                  {titre === "Titre de Congés" && (
+                    <Grid item xs={6} mt={1}>
+                      <SelectInputComponent
+                        label={t('common.employee')}
+                        value={empcod}
+                        setValue={setEmploye}
+                        maplist={emp}
+                      />
+                    </Grid>
+                  )}
+
+                  {/* Référence */}
+                  <Grid item xs={6}>
+                    <InputComponent
+                      label={t('common.ref')}
+                      type="text"
+                      value={conref}
+                      setValue={setReference}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+
+            {/* Section 2: Période de Congé */}
+            <Grid item xs={4}>
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CalendarTodayIcon fontSize="small" /> Période de Congé
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <InputComponent
+                      label={t('common.dateStart')}
+                      type="date"
+                      value={condep}
+                      setValue={setDateDepart}
+                    />
+                  </Grid>
+                  <Grid item xs={6} mt={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CheckboxComponent 
+                      label={t('common.afternoon')} 
+                      value={conamdep} 
+                      setValue={setApresMidiDepart} 
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <InputComponent
+                      label={t('common.dateEnd')}
+                      type="date"
+                      value={conret}
+                      setValue={(val: string) => setDateReprise(val)}
+                    />
+                  </Grid>
+                  <Grid item xs={3} mt={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CheckboxComponent 
+                      label={t('common.afternoon')} 
+                      value={conamret} 
+                      setValue={setApresMidiReprise} 
+                    />
+                  </Grid>
+                  <Grid item xs={3} mt={2}>
+                    <InputComponent 
+                      label={t('common.nbDays')} 
+                      type="number" 
+                      value={connbjour} 
+                      setValue={setNbJour} 
+                      readOnly 
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+
+            {/* Section 3: Type de Congé et Contact */}
+            <Grid item xs={4}>
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <InfoIcon fontSize="small" /> Type de Congé et Contact
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <SelectInputComponent 
+                      label={t('common.imputation')} 
+                      value={abscod} 
+                      setValue={setAbscod} 
+                      maplist={absences} 
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <InputComponent 
+                      type='text' 
+                      label={t('conge.address')} 
+                      value={conadr} 
+                      setValue={setImputationAdresse} 
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <InputComponent 
+                      label={t('common.phone')} 
+                      type="tel" 
+                      value={contel} 
+                      setValue={setTelephones} 
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+
+          </Grid>
+
+        </CardContent>
+      </Card>
+
       {/* Conditionally display Etat Conge */}
       {showEtatConge && etatCongeError && (
-        <Grid width={550} position={'fixed'} zIndex={20} left={430} bottom={315} textAlign={'start'} >
-            <Alert severity="error">{etatCongeError}</Alert>
-          </Grid>
-        )}
-      
-      {showEtatConge && !etatCongeError && (
-        <Grid width={850} position={'sticky'} zIndex={10} left={430} mb={-11.5} textAlign={'start'} >
-
-        <Collapse in={showEtatConge}>
-          <Alert
-            // icon={<InfoIcon fontSize="large" />}
-            severity="info"
-            variant="outlined"
-            sx={{
-              mt: 2,
-              p: 2,
-              backgroundColor: "#e3f2fd",
-              borderColor: "#90caf9",
-              borderRadius: 2,
-              color: "#0d47a1",
-            }}
-          >
-            <Box display={'flex'} gap={2} >
-            <Typography variant="body1">
-              <strong>Droit Mensuelle:</strong> {etatConge.droitMensuelle}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Ancienneté:</strong> {etatConge.anciennete}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Solde Antérieur:</strong> {etatConge.soldeAnterieur}
-            </Typography>
-            <Typography variant="body1">
-                <strong>Nouveau Solde:</strong> {(etatConge.soldeAnterieur - connbjour).toFixed(4)}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Droit Congé:</strong> {etatConge.droitConge}
-            </Typography>
-            </Box>
-          </Alert>
-        </Collapse>
+        <Grid width={550} position={'fixed'} zIndex={20} left={430} bottom={315} textAlign={'start'}>
+          <Alert severity="error">{etatCongeError}</Alert>
         </Grid>
       )}
-      <Snackbar open={isSnackbarOpen} autoHideDuration={1000} onClose={handleSnackbarClose}>
-            <Alert onClose={handleSnackbarClose} severity={severity}>
-              {message}
-            </Alert>
-        </Snackbar>
       
+      {showEtatConge && !etatCongeError && (
+        <Grid width={850} position={'sticky'} zIndex={10} left={430} mb={-8} textAlign={'start'}>
+          <Collapse in={showEtatConge}>
+            <Alert
+              severity="info"
+              variant="outlined"
+              sx={{
+                mt: 2,
+                p: 2,
+                backgroundColor: "#e3f2fd",
+                borderColor: "#90caf9",
+                borderRadius: 2,
+                color: "#0d47a1",
+              }}
+            >
+              <Box display={'flex'} gap={2}>
+                <Typography variant="body1">
+                  <strong>Droit Mensuelle:</strong> {etatConge.droitMensuelle}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Ancienneté:</strong> {etatConge.anciennete}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Solde Antérieur:</strong> {etatConge.soldeAnterieur}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Nouveau Solde:</strong> {(etatConge.soldeAnterieur - connbjour).toFixed(4)}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Droit Congé:</strong> {etatConge.droitConge}
+                </Typography>
+              </Box>
+            </Alert>
+          </Collapse>
+        </Grid>
+      )}
+
+      <Snackbar open={isSnackbarOpen} autoHideDuration={1500} onClose={handleSnackbarClose}>
+        <Alert onClose={handleSnackbarClose} severity={severity}>
+          {message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
-

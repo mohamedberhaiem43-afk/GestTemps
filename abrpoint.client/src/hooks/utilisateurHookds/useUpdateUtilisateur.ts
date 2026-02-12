@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import { UtilisateurUpdate } from "../../models/Utilisateur";
 import UpdateUtilisateurService from "../../services/UtilisateurService/UpdateUtilisateurService";
 

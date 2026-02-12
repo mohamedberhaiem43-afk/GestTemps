@@ -1,8 +1,9 @@
 import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
+import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetRepos = () => {
-  const soccod = sessionStorage.getItem("soccod");
+  const { soccod } = useAuth();
   const token = localStorage.getItem("authToken");
   const headers = { Authorization: `Bearer ${token}` };
 

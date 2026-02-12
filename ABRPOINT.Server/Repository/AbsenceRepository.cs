@@ -11,13 +11,13 @@ namespace ABRPOINT.Server.Repository
     {
 
         private readonly ApplicationDbContext _dbContext;
-        private readonly ISanctionRepository _sanctionRepository;
         private readonly IEmployeRepository _employeRepository;
-        public AbsenceRepository(ApplicationDbContext dbContext, ISanctionRepository sanctionRepository,IEmployeRepository employeRepository)
+        private readonly ISanctionRepository _sanctionRepository;
+        public AbsenceRepository(ApplicationDbContext dbContext,IEmployeRepository employeRepository,ISanctionRepository sanctionRepository)
         {
             _dbContext = dbContext;
-            _sanctionRepository = sanctionRepository;
             _employeRepository = employeRepository;
+            _sanctionRepository = sanctionRepository;
 
         }
         public void Add(Absence absence)
@@ -38,6 +38,90 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
+        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,
+    bool presNonOpt,bool sansPointageInvalide,string? selectedAbsType,List<string>? empcods)
+        {
+            if (empcods == null || empcods.Count == 0)
+                return new List<EtatAbsence>();
+
+            // 🔹 Récupérer tous les employés en une seule requête
+            var employes = await _dbContext.Employes
+                .Where(e => e.Soccod == soccod && empcods.Contains(e.Empcod))
+                .ToDictionaryAsync(e => e.Empcod);
+
+            // 🔹 Récupérer toutes les sanctions dans la période
+            var sanctions = await (
+                from s in _dbContext.Sanctions
+                join a in _dbContext.Absences
+                    on new { s.Soccod, s.Abscod } equals new { a.Soccod, a.Abscod }
+                where s.Soccod == soccod
+                      && empcods.Contains(s.Empcod)
+                      && s.Condep <= datefin
+                      && s.Conret >= datedebut
+                select new
+                {
+                    s.Empcod,
+                    s.Condep,
+                    s.Conret,
+                    s.Abscod,
+                    a.Abslib,
+                    a.Abscng,
+                    a.Abspayer
+                }
+            ).ToListAsync();
+
+            var result = new List<EtatAbsence>();
+
+            // 🔹 Générer la liste des dates
+            var dates = Enumerable.Range(0, (datefin - datedebut).Days + 1)
+                                  .Select(offset => datedebut.AddDays(offset))
+                                  .ToList();
+
+            foreach (var sanction in sanctions)
+            {
+                if (!employes.TryGetValue(sanction.Empcod, out var employe))
+                    continue;
+
+                foreach (var date in dates.Where(d =>
+                         d >= sanction.Condep && d <= sanction.Conret))
+                {
+                    var etatAbsence = new EtatAbsence
+                    {
+                        Empcod = sanction.Empcod,
+                        Empmat = employe.Empmat,
+                        Emplib = employe.Emplib,
+                        Empreg = employe.Empreg,
+                        Date = date,
+                        Abscod = sanction.Abscod,
+                        Motif = sanction.Abslib
+                    };
+
+                    if (sanction.Abspayer == "O" || sanction.Abspayer == "N")
+                        etatAbsence.Autsp = 1;
+
+                    switch (sanction.Abscng)
+                    {
+                        case "1": etatAbsence.CSF = 1; break;
+                        case "2": etatAbsence.Absjust = 1; break;
+                        case "3": etatAbsence.Absnj = 1; break;
+                        case "4": etatAbsence.MAP = 1; break;
+                        case "5": etatAbsence.CSS = 1; break;
+                        case "6": etatAbsence.FM = 1; break;
+                        case "8": etatAbsence.Acctrav = 1; break;
+                        case "9":
+                            if (!string.IsNullOrEmpty(sanction.Abslib) &&
+                                sanction.Abslib.ToLower() == "maladie")
+                                etatAbsence.Absmal = 1;
+                            break;
+                    }
+
+                    result.Add(etatAbsence);
+                }
+            }
+
+            return result.OrderBy(r => r.Date).ToList();
+        }
+
 
         public void Delete(Absence absence)
         {
@@ -145,75 +229,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod, DateTime datedebut, DateTime datefin,
-            bool absaut,bool absret,bool presNonOpt,bool sansPointageInvalide,string? selectedAbsType,List<string>? empcods)
-        {
-            try
-            {
-                var result = new List<EtatAbsence>();
-
-                // Validate empcods
-                if (empcods == null || empcods.Count == 0)
-                    return result;
-
-                // Generate the full range of dates between start and end
-                var dates = Enumerable.Range(0, (datefin - datedebut).Days + 1)
-                                      .Select(offset => datedebut.AddDays(offset))
-                                      .ToList();
-
-                foreach (var empcod in empcods)
-                {
-                    var employe = await _employeRepository.GetByEmpcod(soccod, empcod);                  
-                    foreach (var date in dates)
-                    {
-                        var sanction = await _sanctionRepository.GetAbsence(soccod, empcod, date);
-                        if (sanction != null)
-                        {
-                            var etatAbsence = new EtatAbsence
-                            {
-                                Empcod = empcod,
-                                Empmat = employe.Empmat,
-                                Emplib = employe.Emplib,
-                                Empreg = employe.Empreg,
-                                Date = date,
-                                Abscod = sanction.Abscod,
-                                Motif = sanction.Abslib
-                            };
-
-                            if (sanction.Abspaye == "O" || sanction.Abspaye == "N")
-                                etatAbsence.Autsp = 1;
-
-                            switch (sanction.Abscng)
-                            {
-                                case "1": etatAbsence.CSF = 1; break;
-                                case "2": etatAbsence.Absjust = 1; break;
-                                case "3": etatAbsence.Absnj = 1; break;
-                                case "4": etatAbsence.MAP = 1; break;
-                                case "5": etatAbsence.CSS = 1; break;
-                                case "6": etatAbsence.FM = 1; break;
-                                case "8": etatAbsence.Acctrav = 1; break;
-                                case "9":
-                                    if (!string.IsNullOrEmpty(sanction.Abslib) && sanction.Abslib.ToLower() == "maladie")
-                                        etatAbsence.Absmal = 1;
-                                    break;
-                            }
-
-                            result.Add(etatAbsence);
-                        }
-                    }
-                }
-
-                return result;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-
-
-        public void Update(Absence absence)
+         public void Update(Absence absence)
         {
             if (absence == null) throw new ArgumentNullException("objet absence est null");
             try

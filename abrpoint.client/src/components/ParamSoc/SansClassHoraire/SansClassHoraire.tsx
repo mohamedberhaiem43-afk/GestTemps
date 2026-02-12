@@ -102,11 +102,11 @@ const SansClassHoraire: React.FC<SansClassHoraireProps> = ({ onChange }) => {
              />
           </Item>
         </Grid>
-        <Grid item xs={7}>
+        {/* <Grid item xs={7}>
           <Item>
             <MethodeCalcul />
           </Item>
-        </Grid>
+        </Grid> */}
       </Grid>
     </Box>
     </>

@@ -16,5 +16,6 @@ namespace ABRPOINT.Server.Interfaces
         byte[] GenerateContratReport(string soccod, string empcod);
         byte[] GenerateEtatGlobalReport(EtatGlobalRequest data);
         byte[] GenerateEtatDetailleReport(EtatDetailleRequest request);
+        byte[] GetEtatAbsenceReport(EtatAbsenceReport etatAbsence);
     }
 }

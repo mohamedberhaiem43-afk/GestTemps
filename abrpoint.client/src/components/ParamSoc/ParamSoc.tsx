@@ -285,7 +285,7 @@ export default function BasicTabs() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Box sx={{ width: '100%' }} mt={-2} height={'90vh'} minWidth={'95vw'}>
+      <Box sx={{ width: '100%' }} mt={-10} height={'90vh'} minWidth={'95vw'}>
         {/* Breadcrumb Navigation */}
         <BreadcrumbNavigation />
         

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import DemCongeService from "../../services/DemCongeService/DemCongeService";
 import { Conge } from "../../models/Conge";
 

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import GetPointeuses from "../../services/PointeuseService/GetPointeuses";
 import { useAuth } from "../../components/helper/AuthProvider";
 

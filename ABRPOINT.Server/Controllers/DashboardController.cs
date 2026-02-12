@@ -17,26 +17,24 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost("data")]
         public async Task<ActionResult<DashboardData>> GetDashboardData([FromBody] DashboardRequest request)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(request.Soccod))
-                {
-                    return BadRequest("Le code société est requis");
-                }
+            if (string.IsNullOrEmpty(request.Soccod))
+                return BadRequest("Le code société est requis");
 
-                var data = await _dashboardService.GetDashboardData(
-                    request.Soccod,
-                    request.Date ?? DateTime.Today,
-                    request.Departement,
-                    request.Empcods
-                );
+            var dateDebut = request.DateDebut ?? request.Date ?? DateTime.Today;
+            var dateFin = request.DateFin ?? request.Date ?? DateTime.Today;
 
-                return Ok(data);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des données", error = ex.Message });
-            }
+            if (dateDebut > dateFin)
+                return BadRequest("Date début > date fin");
+
+            var data = await _dashboardService.GetDashboardData(
+                request.Soccod,
+                dateDebut,
+                dateFin,
+                request.Departement,
+                request.Empcods
+            );
+
+            return Ok(data);
         }
 
         /// <summary>
@@ -196,6 +194,7 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de la récupération des KPIs", error = ex.Message });
             }
         }
+    
     }
 }
 
@@ -207,6 +206,11 @@ public class DashboardRequest
     public DateTime? Date { get; set; }
     public string? Departement { get; set; }
     public List<string>? Empcods { get; set; }
+
+    // Nouveaux champs pour les plages de dates
+    public string? DateRange { get; set; }
+    public DateTime? DateDebut { get; set; }
+    public DateTime? DateFin { get; set; }
 }
 
 public class EvolutionRequest
@@ -225,7 +229,7 @@ public class ResumeDuJour
     public int EffectifPresent { get; set; }
     public int EffectifTotal { get; set; }
     public decimal TauxPresence { get; set; }
-    public decimal HeuresTravaillees { get; set; }
+    public float HeuresTravaillees { get; set; }
     public int Retards { get; set; }
     public int Absences { get; set; }
     public int DemandesEnAttente { get; set; }

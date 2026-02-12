@@ -25,7 +25,7 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
                 {
                     return await _posteRepository.GetJourHeures(soccod, date, poste);
                 }
-                else if(presence != null && presence.Prerepos == "0")
+                else if(presence != null /*&& presence.Prerepos == "0"*/)
                 {
                     var conge = await _congeRepository.GetEmpCongeByDate(soccod, presence.Empcod, (DateTime) date);
                     if (conge?.Connbjour == 1)
@@ -35,7 +35,8 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
                         maxhrejour /= 2;
                         return MathF.Max(maxhrejour, maxhrejour - hreTravValue);
                     }
-                    return MathF.Max(0f, maxhrejour - hreTravValue);
+                    if (maxhrejour - hreTravValue > 2) return maxhrejour - hreTravValue;
+                    return 0;
                 }
                 return maxhrejour;
             }

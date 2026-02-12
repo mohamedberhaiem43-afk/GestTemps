@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import {
   Box,
   Grid,
-  InputLabel,
-  IconButton,
-  Input,
   Button,
   Alert,
   Snackbar,
+  Card,
+  CardContent,
+  CircularProgress,
+  TextField,
+  Typography,
 } from '@mui/material';
 import SaveIcon from "@mui/icons-material/Save";
 import './DemCongeInputs.css'
@@ -15,7 +17,10 @@ import SelectInputComponent from '../../../SelectInputComponent/SelectInputCompo
 import BreadcrumbNavigation from '../../../helper/BreadcrumbNavigation';
 import InputComponent from '../../../Inputs/Input';
 import CheckboxComponent from '../../../CheckboxComponent/CheckboxComponent';
-import RadioGroupComponent, { FormControlLabelComponent } from '../../../RadioGroupComponent/RadioGroupComponent';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import InfoIcon from '@mui/icons-material/Info';
+import RefreshIcon from '@mui/icons-material/Refresh'
 import useGetAbsencesLibs from '../../../../hooks/absenceHooks/useGetAbsenceLibs';
 import useGetEmployee from '../../../../hooks/employeHooks/useGetEmployee';
 import useAddDemConge from '../../../../hooks/congeHooks/useAddDemConge';
@@ -171,98 +176,193 @@ export default function CongeForm() {
   };
 
   return (
-    <Box component="form" sx={{ mx: 'auto' }} onSubmit={handleSubmit}>
-      <BreadcrumbNavigation />
-      <Grid container spacing={2}>
-        {/* Employe Selection */}
-        <Grid item xs={1.5}>
-          <SelectInputComponent label={t('common.employee')} value={empcod} setValue={setEmploye} maplist={employeOptions} />
-        </Grid>
-
-        {/* N° Ordre */}
-        <Grid item xs={1} sm={1}>
-          <InputComponent readOnly={!writable} type='text' label={t('common.orderNumber')} value={concod} setValue={setOrdre} />
-        </Grid>
-
-        {/* Date (as TextField) */}
-        <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label={t('common.date')} value={condat} setValue={setDate} />
-        </Grid>
-
-        {/* Réf */}
-        <Grid item xs={1}>
-          <InputComponent type='text' label={t('common.ref')} value={conref} setValue={setReference} />
-        </Grid>
-
-        {/* Date Départ (as TextField) */}
-        <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label={t('common.dateStart')} value={condep} setValue={setDateDepart} />
-        </Grid>
-
-        {/* Checkbox Après-Midi (Date Départ) */}
-        <Grid item xs={1.3} sm={1.5} mt={2}>
-          <CheckboxComponent label={t('common.afternoon')} value={conamdep} setValue={setApresMidiDepart} />
-        </Grid>
-
-        {/* Date Reprise (as TextField) */}
-        <Grid item xs={1.5} sm={2}>
-          <InputComponent type='date' label={t('common.dateEnd')} value={conret} setValue={setDateReprise} />
-        </Grid>
-
-        {/* Checkbox Après-Midi (Date Reprise) */}
-        <Grid item xs={1.5} sm={1.3} mt={2}>
-          <CheckboxComponent label={t('common.afternoon')} value={conamret} setValue={setApresMidiReprise} />
-        </Grid>
-
-        <Grid  item xs={1.5} mt={0.5}>
-          <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
-        </Grid>
-
-        {/* Checkbox Imputation Adresse Durant le Congé */}
-        <Grid item xs={2}>
-          <InputComponent type='text' label={t('common.address')} value={conadr} setValue={setImputationAdresse} />
-        </Grid>
-
-        {/* Téléphones */}
-        <Grid item xs={1.5}>
-        <InputComponent type='tel' label={t('common.phone')} value={contel} setValue={setTelephones} />
-        </Grid>
-
-        {/* Radio Buttons for Time Period */}
-        <Grid marginTop={'20px'} item xs={4.3}>
-        <RadioGroupComponent value={conjour} setValue={setTimePeriod}>
-            <FormControlLabelComponent radioValue="J" label={t('common.wholeDay')} />
-            <FormControlLabelComponent radioValue="M" label={t('common.morning')} />
-            <FormControlLabelComponent radioValue="A" label={t('common.afternoon')} />
-        </RadioGroupComponent>
-        </Grid>
-
-        {/* Calculated Days (Read-Only) */}
-        <Grid item xs={1}>
-
-        <InputLabel shrink>Nb.Jours</InputLabel>
-
-          <Input
-            size="small"
-            fullWidth
-            value={connbjour}
-            readOnly
-          />
-        </Grid>
-
-        {/* Submit Button */}
-        <Grid item mt={2}>
-          <IconButton color="primary" aria-label="save" onClick={handleSubmit} disabled={updateLoading}>
-            <SaveIcon />
-          </IconButton>
-          <Button onClick={resetForm} color='secondary'>Nouveau</Button>
-        </Grid>
-      </Grid>
-       <Snackbar open={isSnackbarOpen} autoHideDuration={1500} onClose={handleSnackbarClose}>
-            <Alert onClose={handleSnackbarClose} severity={severity}>
-              {message}
-            </Alert>
-        </Snackbar>
+<Box component="form" sx={{ mx: 'auto' }} onSubmit={handleSubmit}>
+  <BreadcrumbNavigation />
+  
+  {/* En-tête avec N° Ordre et Actions */}
+  <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Box sx={{ display: 'flex', gap: 1 }}>
+      <Button 
+        variant="outlined" 
+        onClick={resetForm} 
+        color='secondary'
+        startIcon={<RefreshIcon />}
+      >
+        Nouveau
+      </Button>
+      <Button
+        variant="contained"
+        onClick={handleSubmit}
+        disabled={updateLoading}
+        startIcon={updateLoading ? <CircularProgress size={20} /> : <SaveIcon />}
+      >
+        Enregistrer
+      </Button>
     </Box>
+  </Box>
+
+  {/* Card principale */}
+  <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: 2 }}>
+    <CardContent sx={{ p: 3 }}>
+      
+
+      {/* Les 3 sections: Informations Générales + Période de Congé + Type de Congé (all in row) */}
+      <Grid container spacing={2} sx={{ mb: 3 }} wrap="nowrap" alignItems="flex-start">
+        
+        {/* Section 1: Informations Générales */}
+        <Grid item xs={4}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AssignmentIcon fontSize="small" /> Informations Générales
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <InputComponent 
+                  readOnly={!writable} 
+                  type='text' 
+                  label={t('common.orderNumber')} 
+                  value={concod} 
+                  setValue={setOrdre} 
+                />
+              </Grid>
+              <Grid item xs={6} mt={1}>
+                <SelectInputComponent 
+                  label={t('common.employee')} 
+                  value={empcod} 
+                  setValue={setEmploye} 
+                  maplist={employeOptions} 
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <InputComponent 
+                  type='date' 
+                  label={t('common.date')} 
+                  value={condat} 
+                  setValue={setDate} 
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <InputComponent 
+                  type='text' 
+                  label={t('common.ref')} 
+                  value={conref} 
+                  setValue={setReference} 
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </Grid>
+
+        {/* Section 2: Période de Congé */}
+        <Grid item xs={4}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CalendarTodayIcon fontSize="small" /> Période de Congé
+            </Typography>
+            <Grid container spacing={2}>
+              {/* Date Départ */}
+              <Grid item xs={6}>
+                <InputComponent 
+                  type='date' 
+                  label={t('common.dateStart')} 
+                  value={condep} 
+                  setValue={setDateDepart} 
+                />
+              </Grid>
+              <Grid item xs={6} mt={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                <CheckboxComponent 
+                  label={t('common.afternoon')} 
+                  value={conamdep} 
+                  setValue={setApresMidiDepart} 
+                />
+              </Grid>
+
+              {/* Date Reprise */}
+              <Grid item xs={6}>
+                <InputComponent 
+                  type='date' 
+                  label={t('common.dateEnd')} 
+                  value={conret} 
+                  setValue={setDateReprise} 
+                />
+              </Grid>
+              <Grid item xs={3} mt={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                <CheckboxComponent 
+                  label={t('common.afternoon')} 
+                  value={conamret} 
+                  setValue={setApresMidiReprise} 
+                />
+              </Grid>
+
+              {/* Nombre de jours calculé */}
+              <Grid item xs={2} mt={2}>
+                <TextField
+                  label="Nb. Jours"
+                  size="small"
+                  fullWidth
+                  value={connbjour}
+                  InputProps={{
+                    readOnly: true,
+                    sx: { 
+                      backgroundColor: '#f5f5f5',
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      color: '#1976d2'
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </Grid>
+
+        {/* Section 3: Type de Congé et Contact */}
+        <Grid item xs={4}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <InfoIcon fontSize="small" /> Type de Congé et Contact
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <SelectInputComponent 
+                  label={t('common.imputation')} 
+                  value={abscod} 
+                  setValue={setAbscod} 
+                  maplist={absences} 
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <InputComponent 
+                  type='text' 
+                  label={t('common.address')} 
+                  value={conadr} 
+                  setValue={setImputationAdresse} 
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <InputComponent 
+                  type='tel' 
+                  label={t('common.phone')} 
+                  value={contel} 
+                  setValue={setTelephones} 
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </Grid>
+
+      </Grid>
+
+      
+
+    </CardContent>
+  </Card>
+
+  <Snackbar open={isSnackbarOpen} autoHideDuration={1500} onClose={handleSnackbarClose}>
+    <Alert onClose={handleSnackbarClose} severity={severity}>
+      {message}
+    </Alert>
+  </Snackbar>
+</Box>
   );
 }

@@ -14,11 +14,11 @@ export default function EtatRetard() {
     return (
         <QueryClientProvider client={queryClient}>
 
-        <Box width={"90vw"} height={'83vh'} ml={5} sx={{ flexGrow: 1 }}>
+        <Box width={"90vw"} height={'90vh'} mt={-10} ml={5} sx={{ flexGrow: 1 }}>
                 <BreadcrumbNavigation />
             <Grid container spacing={2}>
-                <DateRangeProvider>
                     <EmployeeProvider>
+                <DateRangeProvider>
                     <Grid item xs={12}>
                         <Item><FilterRetard /></Item>
                     </Grid>
@@ -26,8 +26,8 @@ export default function EtatRetard() {
                     <Grid item xs={12} >
                         <EmpRetard />
                     </Grid>
-                    </EmployeeProvider>
                 </DateRangeProvider>
+                    </EmployeeProvider>
             </Grid>
         </Box>
         </QueryClientProvider>

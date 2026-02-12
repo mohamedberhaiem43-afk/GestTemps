@@ -295,6 +295,7 @@
   "pointageDuMois": {
     "errorLoading": "Erreur lors du chargement des données.",
     "total": "TOTAL",
+    "majorHolidayAndLeave": "majoration jours fériés et congés au heures normales",
     "weekDetails": "Détails de la semaine {{numSem}}"
   },
   "dailyHours": {
@@ -304,6 +305,23 @@
     "hoursWorked": "Heures Travaillées"
   },
   "common": {
+    "save": "Enregistrer",
+    "periodicRest": "Repos Périodique",
+    "mealsPerDay": "Repas par jour",
+    "countNightHours": "Compter Heures Nuit",
+    "decreaseMealsFrom": "Diminuer Panier à partir de",
+    "countMealBonus": "Compter Panier",
+    "minNightHoursPerDay": "Min Heures Nuit/Jour",
+    "decreaseNightMeals": "Diminuer Panier Nuit",
+    "everyDay": "Tous les jours",
+    "month": "Mois",
+    "saturday": "Samedi",
+    "hoursPerMonth": "Heures par mois",
+    "daysPerMonth": "Jours par mois",
+    "hoursPerDay": "Heures par jour",
+    "year": "Année",
+    "section": "Section",
+    "address": "Adresse",
     "rest": "Repos",
     "date": "Date",
     "day": "Jour",
@@ -487,6 +505,9 @@
     "manipulate": "Manipuler"
   },
   "paramSoc": {
+    "common":{
+      "month": "Mois"
+    },
     "part1": {
       "jourDebut": "Jour début",
       "jourFin": "Jour fin",

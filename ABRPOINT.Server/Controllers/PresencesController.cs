@@ -1,5 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.EmployeAttributes;
-using ABRPOINT.Server.Annotations.EtatPriodiqueAttributes;
+﻿using ABRPOINT.Server.Annotations.EtatPriodiqueAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;

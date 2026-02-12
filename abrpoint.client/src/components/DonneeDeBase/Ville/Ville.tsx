@@ -6,7 +6,7 @@ import {
   useMaterialReactTable,
 } from 'material-react-table';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import axios from 'axios';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';

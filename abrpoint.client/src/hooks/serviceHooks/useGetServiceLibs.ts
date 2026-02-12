@@ -1,10 +1,11 @@
 import axios from "axios";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "react-query";
+import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetServiceLibs = () => {
   const token = localStorage.getItem("authToken");
   const headers = { Authorization: `Bearer ${token}` };
-  const soccod = sessionStorage.getItem('soccod');
+  const { soccod } = useAuth();
   const queryClient = useQueryClient();
 
 

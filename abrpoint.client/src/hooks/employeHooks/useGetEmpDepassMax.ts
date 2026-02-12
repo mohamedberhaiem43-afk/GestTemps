@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import EmpDepassService from "../../services/EmployeService/EmpDepassService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

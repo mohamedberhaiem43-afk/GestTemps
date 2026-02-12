@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import SocHeuresService from "../../services/SocieteService/SocHeuresService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

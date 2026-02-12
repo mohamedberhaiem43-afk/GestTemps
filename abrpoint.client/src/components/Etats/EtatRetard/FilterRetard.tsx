@@ -8,6 +8,7 @@ import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { EmployeeContext } from "../../Pointeuse/EtatPeriodique/EmployeeContext";
 import { useAuth } from "../../helper/AuthProvider";
+import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
 
 function FilterRetard() {
     const token = localStorage.getItem('authToken');
@@ -21,6 +22,7 @@ function FilterRetard() {
     
     const { selectedEmp, setSelectedEmp } = useContext(EmployeeContext);
     const [selectedEmpCodes, setSelectedEmpCodes] = useState<string[]>([]);
+    const [compterAvance, setCompterAvance] = useState(false);
 
     const [filiale, setFiliale] = useState<Record<string,string>>({});
     const [services, setServices] = useState<Record<string,string>>({});
@@ -120,6 +122,7 @@ function FilterRetard() {
             setStartDate(`${annee}-${startDateParts[1]}-${startDateParts[2]}`);
             setEndDate(`${annee}-${endDateParts[1]}-${endDateParts[2]}`);
         }
+        
     }, [annee]);
 
     const handleApplyFilter = () => {
@@ -132,10 +135,19 @@ function FilterRetard() {
                 selectedService,
                 pres,
                 mois,
-                empcods: selectedEmpCodes
+                empcods: selectedEmpCodes,
+                compterAvance
             });
         }
     };
+        useEffect(() => {
+            if (!setDateRange) return;
+
+            setDateRange(prev => ({
+                ...prev,
+                compterAvance
+            }));
+        }, [compterAvance]);
 
     const handleEmployeeSelection = (selected: string[]) => {
         setSelectedEmpCodes(selected);
@@ -212,6 +224,10 @@ function FilterRetard() {
                         setValue={setEndDate}
                     />
                 </Grid>
+                <Grid item xs={1.5}>
+                    <CheckboxComponent label={"Compter avance"} value={compterAvance} setValue={setCompterAvance} />
+                </Grid>
+
                 <Grid item xs={0.5}>
                     <IconButton
                         color="primary"

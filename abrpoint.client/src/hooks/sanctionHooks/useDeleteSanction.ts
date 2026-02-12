@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import SanctionService from "../../services/SanctionService/SanctionService";
 
 const useDeleteSanction = () => {

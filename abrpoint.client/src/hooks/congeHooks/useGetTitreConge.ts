@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const fetchConges = async (soccod: string | null) => {

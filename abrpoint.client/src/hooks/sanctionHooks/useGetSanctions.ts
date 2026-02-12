@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "react-query";
 import SanctionService from "../../services/SanctionService/SanctionService";
 import { Sanction } from "../../models/Sanction";
 

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import EmployeService from "../../services/EmployeService/EmployeService";
 import Employe from "../../models/Employe";
 

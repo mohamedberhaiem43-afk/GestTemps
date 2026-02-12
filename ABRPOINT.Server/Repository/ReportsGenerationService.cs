@@ -1,12 +1,10 @@
 ﻿using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
+using Azure.Core;
 using FastReport;
 using FastReport.Data;
 using FastReport.Export.PdfSimple;
-using FastReport.Utils;
 using System.Data;
-using System.Reflection;
-using System.Text;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -342,6 +340,35 @@ namespace ABRPOINT.Server.Repository
             {
                 throw new Exception($"Erreur génération EtatDetailleReport: {ex.Message}", ex);
             }
+        }
+
+        public byte[] GetEtatAbsenceReport(EtatAbsenceReport etatAbsence)
+        {
+            var report = CreateReport("Reports/EtatAbsence.frx");
+
+            // Paramètres
+            report.SetParameterValue("Date", etatAbsence.Date ?? "");
+            report.SetParameterValue("Soclib", etatAbsence.Soclib ?? "");
+            report.SetParameterValue("ParamDebut", etatAbsence.DateFin ?? "");
+            report.SetParameterValue("ParamFin", etatAbsence.DateFin ?? "");
+
+            // IMPORTANT : liste typée
+            var data = etatAbsence.Data ?? new List<EtatAbsenceData>();
+
+            // ⚠️ Le nom doit correspondre EXACTEMENT au DataSource du .frx
+            report.RegisterData(data, "EtatAbsence");
+
+            var ds = report.GetDataSource("EtatAbsence");
+            ds.Enabled = true;
+
+            // Facultatif mais recommandé
+            ds.Alias = "EtatAbsence";
+
+            report.Prepare();
+
+            using var ms = new MemoryStream();
+            report.Export(new PDFSimpleExport(), ms);
+            return ms.ToArray();
         }
     }
 }

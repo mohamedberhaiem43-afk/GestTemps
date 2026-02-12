@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import SocHeuresService from "../../services/SocieteService/SocHeuresService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

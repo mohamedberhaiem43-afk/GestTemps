@@ -1,10 +1,8 @@
 ﻿using ABRPOINT.Server.Dtaos;
-using ABRPOINT.Server.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace ABRPOINT.Server.Controllers

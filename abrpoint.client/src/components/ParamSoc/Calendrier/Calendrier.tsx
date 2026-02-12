@@ -9,7 +9,7 @@ function Calendrier() {
   return (
     <QueryClientProvider client={queryClient}>
         <CalendrierProvider>
-            <Box sx={{ flexGrow: 1 }} ml={7}  mt={-5} width={'92vw'} >
+            <Box sx={{ flexGrow: 1 }} ml={7} height={'80vh'} mt={-20} width={'92vw'} >
                 <Grid container item xs={12} mt={1}>
                     <SocieteCalendrier />
                 </Grid>

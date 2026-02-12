@@ -9,6 +9,7 @@ type DateRange = {
     pres: string;
     mois: string;
     empcods: string[] | null;
+    compterAvance: boolean;
 };
 
 
@@ -30,7 +31,8 @@ const [dateRange, setDateRange] = useState<DateRange>({
     selectedService: '',
     pres: '',
     mois: '',
-    empcods: null
+    empcods: null,
+    compterAvance: false,
 });
 
     return (

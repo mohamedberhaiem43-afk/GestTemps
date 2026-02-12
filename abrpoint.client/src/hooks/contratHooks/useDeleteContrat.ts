@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import ContratService from "../../services/ContratService/ContratService";
 
 const useDeleteContrat = () => {

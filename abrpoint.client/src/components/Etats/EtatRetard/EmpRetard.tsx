@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import {  useMemo } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -23,94 +23,70 @@ import { useDateRange } from '../../Pointeuse/EtatPeriodique/FilterContext';
 const EmpRetard = () => {
   const { dateRange } = useDateRange();
   const { data = [], isLoading } = useGetPresence(dateRange.dateDebut, dateRange.dateFin,dateRange.selectedRegime,dateRange.empcods);
-  
-  const columns = useMemo<MRT_ColumnDef<any>[]>(() => [
-    {
-      id: 'etat-retard',
-      header: '',
-      columns: [
-        
-        {
-          accessorKey: 'empcod',
-          header: 'Badge',
-          size: 60,
-          enableEditing: false,
-        },
-        {
-            accessorKey: 'empmat',
-            header: 'Matricule',
-            size: 60,
-          },
-        {
-          accessorKey: 'emplib',
-          header: 'Nom et Prénom',
-          size: 180,
-        },
-        {
-          accessorKey: 'regime',
-          header: 'Régime',
-          size: 60,
-        },
-        {
-          accessorFn: (row) => new Date(row.predat).toISOString().split('T')[0],
-          accessorKey: 'predat',
-          header: 'Date',
-          size: 60,
-        },
-        {
-          accessorKey: 'entree1',
-          header: 'Entrée Matin',
-          size: 60,
-        },
-        {
-          accessorKey: 'preretmateup',
-          header: 'Retard',
-          size: 60,
-        },
-        {
-          accessorKey: 'sortie1',
-          header: 'Sortie Matin',
-          size: 60,
-        },
-        {
-          accessorKey: 'preretmatsup',
-          header: 'Avance',
-          size: 60,
-        },
-        {
-          accessorKey: 'entree2',
-          header: 'Entrée A.Midi',
-          size: 60,
-        },
-        {
-          accessorKey: 'preretameup',
-          header: 'Retard',
-          size: 60,
-        },
-        {
-          accessorKey: 'sortie2',
-          header: 'Sortie A.Midi',
-          size: 60,
-        },
-        {
-          accessorKey: 'preretamsup',
-          header: 'Avance',
-          size: 60,
-        },
-        {
-            accessorKey:'totalRetard',
-            header: 'Total Retard',
-            size: 10,
+   const computeTotal = useMemo(() => {
+    return (row: any) => {
+      const toMin = (t: string) => {
+        if (!t) return 0;
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
 
-        },
-        
-      ],
-    },
-  ], []);
+      let total =
+        toMin(row.preretmateup) +
+        toMin(row.preretameup);
+
+      if (dateRange?.compterAvance) {
+        total += toMin(row.preretmatsup) + toMin(row.preretamsup);
+      }
+
+      const h = Math.floor(total / 60).toString().padStart(2, '0');
+      const m = (total % 60).toString().padStart(2, '0');
+
+      console.log(dateRange.compterAvance)
+      return `${h}:${m}`;
+    };
+  }, [dateRange.compterAvance]);
+
+  const dataWithTotal = useMemo(() => {
+  return data.map(row => ({
+    ...row,
+    totalRetard: computeTotal(row),
+  }));
+}, [data, computeTotal]);
+
+
+const columns = useMemo<MRT_ColumnDef<any>[]>(() => {
+  const baseColumns: MRT_ColumnDef<any>[] = [
+    { accessorKey: 'empcod', header: 'Badge', size: 60 },
+    { accessorKey: 'empmat', header: 'Matricule', size: 60 },
+    { accessorKey: 'emplib', header: 'Nom et Prénom', size: 180 },
+    { accessorKey: 'regime', header: 'Régime', size: 60 },
+    { accessorFn: (row) => new Date(row.predat).toISOString().split('T')[0], accessorKey: 'predat', header: 'Date', size: 60 },
+
+    { accessorKey: 'entree1', header: 'Entrée Matin', size: 60 },
+    { accessorKey: 'preretmateup', header: 'Retard Matin', size: 60 },
+    { accessorKey: 'sortie1', header: 'Sortie Matin', size: 60 },
+
+    // **Insérer Avance Matin ici**
+    ...(dateRange.compterAvance ? [{ accessorKey: 'preretmatsup', header: 'Avance Matin', size: 60 }] : []),
+
+    { accessorKey: 'entree2', header: 'Entrée Après-midi', size: 60 },
+    { accessorKey: 'preretameup', header: 'Retard Après-midi', size: 60 },
+    { accessorKey: 'sortie2', header: 'Sortie Après-midi', size: 60 },
+
+    // **Insérer Avance Après-midi ici**
+    ...(dateRange.compterAvance ? [{ accessorKey: 'preretamsup', header: 'Avance Après-midi', size: 60 }] : []),
+
+    { accessorKey: 'totalRetard', header: 'Total Retard', size: 10 },
+  ];
+
+  return baseColumns;
+}, [dateRange.compterAvance]);
+
 
   const table = useMaterialReactTable({
     columns,
-    data,
+    data: dataWithTotal,
     enableEditing: true,
     enableColumnFilterModes: true,
     enableColumnOrdering: true,

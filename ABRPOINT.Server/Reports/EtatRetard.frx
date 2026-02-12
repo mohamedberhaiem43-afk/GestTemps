@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="07/15/2025 11:04:09" ReportInfo.Modified="01/29/2026 18:21:46" ReportInfo.CreatorVersion="2024.1.7.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/15/2025 11:04:09" ReportInfo.Modified="02/12/2026 19:43:16" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM2Qn9Wg+6Jb9GzEaaquRTaO">
-      <TableDataSource Name="Table" Alias="EtatRetard" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;    e.empmat,&#13;&#10;    e.emplib,&#13;&#10;    s.soclib,&#13;&#10;    p.*&#13;&#10;FROM presence p&#13;&#10;JOIN employe e ON p.empcod = e.empcod AND e.soccod = p.soccod&#13;&#10;JOIN societe s ON e.soccod = s.soccod&#13;&#10;WHERE p.predat BETWEEN @datedebut AND @datefin&#13;&#10;  AND e.soccod = @soccod&#13;&#10;  AND (&#13;&#10;        @empcod = '' &#13;&#10;        OR e.empcod IN (&#13;&#10;            SELECT value &#13;&#10;            FROM STRING_SPLIT(@empcod, ',')&#13;&#10;        )&#13;&#10;      );&#13;&#10;">
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM0tAwaD6ud4BCMYfFiEMdZR">
+      <TableDataSource Name="Table" Alias="EtatRetard" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;    e.empmat,&#13;&#10;    e.emplib,&#13;&#10;    s.soclib,&#13;&#10;    p.*,&#13;&#10;    -- Calcul du total retard en minutes&#13;&#10;    RIGHT('0' + CAST((DATEDIFF(MINUTE, CAST(CAST(preretmateup AS DATE) AS DATETIME), preretmateup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretmatsup AS DATE) AS DATETIME), preretmatsup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretameup AS DATE) AS DATETIME), preretameup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretamsup AS DATE) AS DATETIME), preretamsup)&#13;&#10;    ) / 60 AS VARCHAR), 2)&#13;&#10;    + ':' +&#13;&#10;    RIGHT('0' + CAST((DATEDIFF(MINUTE, CAST(CAST(preretmateup AS DATE) AS DATETIME), preretmateup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretmatsup AS DATE) AS DATETIME), preretmatsup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretameup AS DATE) AS DATETIME), preretameup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretamsup AS DATE) AS DATETIME), preretamsup)&#13;&#10;    ) % 60 AS VARCHAR), 2) AS Totret&#13;&#10;FROM presence p&#13;&#10;JOIN employe e ON p.empcod = e.empcod AND e.soccod = p.soccod&#13;&#10;JOIN societe s ON e.soccod = s.soccod&#13;&#10;WHERE p.predat BETWEEN @datedebut AND @datefin&#13;&#10;  AND e.soccod = @soccod&#13;&#10;  AND (&#13;&#10;        @empcod = '' &#13;&#10;        OR e.empcod IN (&#13;&#10;            SELECT value &#13;&#10;            FROM STRING_SPLIT(@empcod, ',')&#13;&#10;        )&#13;&#10;      );&#13;&#10;">
         <Column Name="empcod" DataType="System.String"/>
         <Column Name="predat" DataType="System.DateTime"/>
         <Column Name="ordre" DataType="System.Int32"/>
@@ -57,6 +57,7 @@
         <Column Name="emplib" DataType="System.String"/>
         <Column Name="soclib" DataType="System.String"/>
         <Column Name="empmat1" DataType="System.String"/>
+        <Column Name="Totret" DataType="System.String"/>
         <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
         <CommandParameter Name="datefin" DataType="31" Expression="[datefin]"/>
         <CommandParameter Name="datedebut" DataType="31" Expression="[datedebut]"/>
@@ -114,27 +115,28 @@
       <TextObject Name="Text22" Left="75.6" Width="66.15" Height="28.35" Text="[EtatRetard.empmat1]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text23" Left="141.75" Width="113.4" Height="28.35" Text="[EtatRetard.emplib]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text24" Left="255.15" Width="37.8" Height="28.35" Text="[EtatRetard.preentmatup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="Text25" Left="292.95" Width="47.25" Height="28.35" Text="[FormatDateTime([EtatRetard.preretameup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text25" Left="292.95" Width="47.25" Height="28.35" Text="[FormatDateTime([EtatRetard.preretmateup], &quot;HH:mm&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text26" Left="340.2" Width="37.8" Height="28.35" Text="[EtatRetard.presortmatup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="Text27" Left="378" Width="37.8" Height="28.35" Text="[FormatDateTime([EtatRetard.preretmatsup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text27" Left="378" Width="37.8" Height="28.35" Text="[FormatDateTime([EtatRetard.preretmatsup], &quot;HH:mm&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text28" Left="415.8" Width="37.8" Height="28.35" Text="[EtatRetard.preentamidiup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text29" Left="491.4" Width="37.8" Height="28.35" Text="[EtatRetard.presortamidiup]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="Text30" Left="576.45" Top="9.45" Width="75.6" Height="9.45" Text="[FormatDateTime([EtatRetard.preretmate],&quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text30" Left="576.45" Top="9.45" Width="75.6" Height="9.45" Text="[EtatRetard.Totret]" HorzAlign="Center" Font="Arial, 7pt"/>
       <TextObject Name="Text31" Left="652.05" Width="56.7" Height="28.35" Text="[IIf([EtatRetard.predat] == null, &quot;&quot;, FormatDateTime([EtatRetard.predat], &quot;dd/MM/yyyy&quot;))]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="Text32" Left="529.2" Width="47.25" Height="28.35" Text="[FormatDateTime([EtatRetard.preretamsup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="Text33" Left="453.6" Width="37.8" Height="28.35" Text="[FormatDateTime([EtatRetard.preretameup], &quot;HH:MM&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text32" Left="529.2" Width="47.25" Height="28.35" Text="[FormatDateTime([EtatRetard.preretamsup], &quot;HH:mm&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text33" Left="453.6" Width="37.8" Height="28.35" Text="[FormatDateTime([EtatRetard.preretameup], &quot;HH:mm&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
       <LineObject Name="Line17" Left="75.6" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line18" Left="141.75" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line19" Left="255.15" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line20" Left="292.95" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line21" Left="340.2" Top="28.35" Height="-28.35"/>
-      <LineObject Name="Line22" Left="378" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line23" Left="415.8" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line24" Left="453.6" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line25" Left="491.4" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line26" Left="529.2" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line27" Left="576.45" Top="28.35" Height="-28.35"/>
       <LineObject Name="Line28" Left="652.05" Height="28.35"/>
+      <LineObject Name="Line29" Left="378" Height="28.35"/>
+      <LineObject Name="Line30" Left="415.8" Top="9.45"/>
     </DataBand>
     <PageFooterBand Name="PageFooter1" Top="217.5" Width="718.2" Height="18.9"/>
   </ReportPage>

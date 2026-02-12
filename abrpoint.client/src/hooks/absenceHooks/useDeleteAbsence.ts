@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "react-query";
 import AbsenceService from "../../services/AbsenceService/AbsenceService";
 
 const soccod = sessionStorage.getItem('soccod');

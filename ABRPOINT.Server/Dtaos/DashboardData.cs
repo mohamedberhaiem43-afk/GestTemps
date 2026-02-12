@@ -3,6 +3,8 @@
     public class DashboardData
     {
         public DateTime Date { get; set; }
+        public DateTime DateDebut { get; set; }
+        public DateTime DateFin { get; set; }
         public string Departement { get; set; }
 
         // Effectif
@@ -12,10 +14,10 @@
         public int TendancePresence { get; set; } // Différence avec jour précédent
 
         // Heures
-        public decimal HeuresTravaillees { get; set; }
-        public decimal HeuresPreveues { get; set; }
-        public decimal PourcentageHeures { get; set; }
-        public decimal HeuresSupplementaires { get; set; }
+        public float HeuresTravaillees { get; set; }
+        public float HeuresPreveues { get; set; }
+        public float PourcentageHeures { get; set; }
+        public float HeuresSupplementaires { get; set; }
 
         // Absences
         public int AbsencesJustifiees { get; set; }
@@ -48,7 +50,7 @@ public class EvolutionJournaliere
     public DateTime Date { get; set; }
     public string JourSemaine { get; set; }
     public int EffectifPresent { get; set; }
-    public decimal HeuresTravaillees { get; set; }
+    public float HeuresTravaillees { get; set; }
     public decimal TauxPresence { get; set; }
 }
 
@@ -60,7 +62,7 @@ public class EmployeStatut
     public string Departement { get; set; }
     public DateTime? HeureArrivee { get; set; }
     public DateTime? HeureDepart { get; set; }
-    public decimal? HeuresTravaillees { get; set; }
+    public float? HeuresTravaillees { get; set; }
     public string Statut { get; set; } // Présent, Absent, Congé
     public string TypeConge { get; set; }
     public bool EstEnRetard { get; set; }

@@ -34,6 +34,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../helper/TimeConverter/formatDateForApi';
 import { useTranslation } from 'react-i18next';
+import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 interface EtatGlobalData {
   empmat: string;
   emplib: string;
@@ -389,12 +390,12 @@ const handleGenerateReportAll = async () => {
 
   // ✅ Affichage normal après chargement
   return (
-    <Box p={4} sx={{ minHeight: '100vh' }}>
+    <Box sx={{ height: '95vh' }} mt={-10}>
       <Grid container spacing={2}>
+          <BreadcrumbNavigation />
         {/* 🔹 Filtre */}
-      
           <Grid item xs={12} display={loading ? 'none' : 'block'}>
-            <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} mb={2}
+            <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} mb={1}
 >
               {/* LEFT: FILTER */}
               <FilterPointageMois />
