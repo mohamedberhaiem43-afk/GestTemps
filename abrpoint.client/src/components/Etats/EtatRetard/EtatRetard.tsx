@@ -14,7 +14,7 @@ export default function EtatRetard() {
     return (
         <QueryClientProvider client={queryClient}>
 
-        <Box width={"90vw"} height={'90vh'} mt={-10} ml={5} sx={{ flexGrow: 1 }}>
+        <Box width={"95vw"} height={'90vh'} mt={-10} ml={2} sx={{ flexGrow: 1 }}>
                 <BreadcrumbNavigation />
             <Grid container spacing={2}>
                     <EmployeeProvider>

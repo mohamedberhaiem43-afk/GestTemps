@@ -16,18 +16,18 @@ const EmpPoste = () => {
   const hasCodePoste = selectedEmpPoste?.codposte && selectedEmpPoste.codposte.trim() !== '';
   
   // Use the appropriate hook based on whether we have a codposte
-  const { data: dataFromPoste, isLoading: isLoadingPoste } = useGetEmployePoste(
-    selectedEmpPoste?.codposte || '', 
-    selectedEmpPoste?.day || '',
-  );
-  const { data: dataFromDate, isLoading: isLoadingDate } = useGetEmpPosteByDate(
-    selectedEmp || '',
-    contextDate || '',
-    selectedEmpPoste?.day || '',
-  );
-  
+// Use the appropriate hook based on whether we have a codposte
+const { data: dataFromPoste, isLoading: isLoadingPoste } = useGetEmployePoste(
+  selectedEmpPoste?.codposte || '', 
+  selectedEmpPoste?.day || '',
+);
+const { data: dataFromDate, isLoading: isLoadingDate } = useGetEmpPosteByDate(
+  selectedEmp || '',
+  contextDate || '',
+  selectedEmpPoste?.day || '',
+);
   // Determine which data and loading state to use
-  const data = hasCodePoste ? dataFromPoste : dataFromDate;
+const data = hasCodePoste ? dataFromPoste : dataFromDate;
   const isLoading = hasCodePoste ? isLoadingPoste : isLoadingDate;
   if (isLoading) {
     return (
@@ -38,7 +38,7 @@ const EmpPoste = () => {
   }
 
   const poste = data as PosteDto | null;
-
+ 
   return (
     <Box sx={{ p: 1, border: '1px solid #ccc', borderRadius: 2 }}>
       {poste ? (
@@ -104,7 +104,7 @@ const EmpPoste = () => {
           {/* Informations supplémentaires */}
           <Grid container spacing={2}>
             <Grid item xs={3}>
-              <InputComponent type='text' label={t('empEtatPeriodique.empPoste.class')} value={poste.soccod ?? ''} readOnly />
+              <InputComponent type='text' label={t('empEtatPeriodique.empPoste.class')} value={dataFromDate?.catcod ?? ''} readOnly />
             </Grid>
             <Grid item xs={3}>
               <InputComponent type='text' label={t('empEtatPeriodique.empPoste.post')} value={poste.codposte ?? ''} readOnly />

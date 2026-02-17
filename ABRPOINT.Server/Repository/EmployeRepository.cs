@@ -213,7 +213,7 @@ namespace ABRPOINT.Server.Repository
 
                 foreach (var p in presences)
                 {
-                    string codpost = await _posteRepository.GetEmpPoste(p.Soccod, p.Empcod, p.Predat);
+                    string codpost = await _posteRepository.GetEmpPoste(p.Soccod, p.Empcod, p.Predat,p.Catcod);
                     var poste = await _posteRepository.GetPoste(p.Soccod, codpost);
 
                     PresenceDto presence = _mapper.Map<Presence, PresenceDto>(p);
@@ -295,18 +295,18 @@ namespace ABRPOINT.Server.Repository
             // 3️⃣ Charger les postes (batch)
             // =====================================
             var empdates = presences
-                .Select(p => (p.Soccod, p.Empcod, p.Dmdate!.Value.Date, p.Codposte))
+                .Select(p => (p.Soccod, p.Empcod, p.Dmdate!.Value.Date, p.Codposte,p.Catcod))
                 .Distinct()
                 .ToList();
 
             var postesEmp = new Dictionary<(string soc, string Empcod, DateTime Date), string?>();
-            foreach (var (soc, empcod, date, codposte) in empdates)
+            foreach (var (soc, empcod, date, codposte,catcod) in empdates)
             {
                 string? posteCode = codposte;
 
                 if (string.IsNullOrEmpty(posteCode))
                 {
-                    posteCode = await _posteRepository.GetEmpPoste(soc, empcod, date);
+                    posteCode = await _posteRepository.GetEmpPoste(soc, empcod, date,catcod);
                 }
 
                 postesEmp[(soc, empcod, date)] = posteCode;
@@ -1532,7 +1532,7 @@ DateTime? debut = null, DateTime? fin = null)
                 // 2. Récupérer le code poste
                 string? codPoste = !string.IsNullOrEmpty(codpost)
                     ? codpost
-                    : await _posteRepository.GetEmpPoste(soccod, empcod, date);
+                    : await _posteRepository.GetEmpPoste(soccod, empcod, date,null);
 
                 if (string.IsNullOrEmpty(codPoste))
                     return emparam;

@@ -1,4 +1,4 @@
-import { Container } from '@mui/material';
+import { Box } from '@mui/material';
 import './Fonction.css';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import FonctionList from './FonctionList';
@@ -12,11 +12,11 @@ export function Fonction() {
 
     return (
         <QueryClientProvider client={queryClient}>
-        <Container>
-            <BreadcrumbNavigation />
+        <Box sx={{width:'95vw', height:'90vh', marginTop:'-50px'}} >
+        <BreadcrumbNavigation />
                 {/* <FonctionForm /> */}
                 <FonctionList />
-        </Container>
+        </Box>
         </QueryClientProvider>
     );
 }

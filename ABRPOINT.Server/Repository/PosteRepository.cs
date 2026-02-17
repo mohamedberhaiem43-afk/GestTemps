@@ -214,18 +214,12 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
-        public async Task<string?> GetEmpPoste(string soccod, string empcod, DateTime? date)
+        public async Task<string?> GetEmpPoste(string soccod, string empcod, DateTime? date,string? catcod)
         {
             try
             {
                 if (date == null)
                     return null;
-
-                // Step 1: Get employee's category
-                string? catcod = await _dbContext.Employes
-                    .Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
-                    .Select(emp => emp.Catcod)
-                    .FirstOrDefaultAsync();
 
                 if (string.IsNullOrEmpty(catcod))
                     return null;

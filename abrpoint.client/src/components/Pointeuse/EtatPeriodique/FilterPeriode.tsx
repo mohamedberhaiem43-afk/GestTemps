@@ -132,7 +132,6 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
                     dateFin: dateFin,
                     data: absenceData
                 };
-
                 const response = await axios.post(
                     `${import.meta.env.VITE_REACT_APP_API_URL}/Absences/get-etat-absence-report`,
                     payload,

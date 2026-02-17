@@ -34,6 +34,11 @@
 
         // Données par département
         public List<DonneesDepartement> DonneesDepartements { get; set; }
+
+        public float EvolutionHeures { get; set; }
+        public float EvolutionAbsences { get; set; }
+        public float EvolutionRetards { get; set; }
+
     }
 }
 

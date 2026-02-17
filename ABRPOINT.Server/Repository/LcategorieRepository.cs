@@ -271,5 +271,28 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public async Task<string?> GetCatcodByEmp(string soccod, string empcod, DateTime? date)
+        {
+            try
+            {
+                var catcod = await _dbContext.Presences.Where(p => p.Soccod == soccod && p.Dmdate == date && p.Empcod == empcod)
+                   .Select(p => p.Catcod)
+                   .FirstOrDefaultAsync();
+                if (string.IsNullOrEmpty(catcod))
+                {
+                    // Step 1: Get employee's category
+                    catcod = await _dbContext.Employes
+                       .Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
+                       .Select(emp => emp.Catcod)
+                       .FirstOrDefaultAsync();
+                }
+                return catcod;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

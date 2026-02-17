@@ -6,6 +6,7 @@ import { User, UtilisateurUpdate } from "../../../models/Utilisateur"
 import SaisieProfile from "../../DonneeDeBase/Utilisteur/SaisieProfile"
 import useGetProfile from "../../../hooks/profileHooks/useGetProfile"
 import useUpdateProfile from "../../../hooks/profileHooks/useUpdateProfile"
+import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation"
 
 export default function Utilisateur() {
     const queryClient = new QueryClient();
@@ -31,7 +32,7 @@ export default function Utilisateur() {
     const updateUserMutation = useUpdateProfile();
 
     // fetch profile
-    const { data: profile, isLoading: profileLoading, error: profileError } = useGetProfile();
+    const { data: profile } = useGetProfile();
 
     useEffect(() => {
         if (profile) {
@@ -64,23 +65,19 @@ export default function Utilisateur() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Box sx={{ flexGrow: 1 }} mt={-2} height={'85vh'} maxHeight={'90vh'} width={'95vw'} overflow={'auto'}>
-                <Typography fontWeight={'bold'} variant="h6" component="div" gutterBottom color={'primary'} mb={1}>
-                    Gestion de Profile
-                </Typography>
+            <Box mt={-10} height={'85vh'} maxHeight={'90vh'} width={'95vw'} >
+                <BreadcrumbNavigation />
                 <UserProvider>
-                    <Grid container spacing={2}>
+                    <Grid mt={-5}>
                         <Grid item xs={12}>
                             <Button
-                                sx={{float: 'right', mb: 2}}
+                                sx={{float: 'right'}}
                                 variant="contained"
                                 color="primary"
                                 onClick={handleUpdate}
-                                //disabled={updateUserMutation.isLoading}
                             >
                                 Enregistrer
                             </Button>
-                            
                             <SaisieProfile
                                 onDataChange={setUserData}
                                 profil={true}

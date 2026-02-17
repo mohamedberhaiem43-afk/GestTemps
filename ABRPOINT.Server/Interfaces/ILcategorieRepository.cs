@@ -13,5 +13,6 @@ namespace ABRPOINT.Server.Interfaces
         Task UpdateAsync(LcategorieDto lcategorie);
         Task AddAsync(LcategorieDto absence);
         Task DeleteAsync(LcategorieDto lcategorie);
+        Task<string?> GetCatcodByEmp(string soccod, string empcod, DateTime? date);
     }
 }

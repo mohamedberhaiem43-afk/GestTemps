@@ -15,6 +15,9 @@ export interface EvolutionRequest {
 
 // Réponses
 export interface DashboardData {
+  evolutionAbsences: any;
+  evolutionRetards: any;
+  evolutionHeures: any | number;
   date: string;
   effectifPresent: number;
   effectifTotal: number;
@@ -26,6 +29,7 @@ export interface DashboardData {
   pointagesIncomplets: number;
   donneesDepartements?: DepartementData[];
   alertes?: AlerteDashboard[];
+
 }
 
 export interface DepartementData {

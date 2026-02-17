@@ -23,37 +23,84 @@ import { useDateRange } from '../../Pointeuse/EtatPeriodique/FilterContext';
 const EmpRetard = () => {
   const { dateRange } = useDateRange();
   const { data = [], isLoading } = useGetPresence(dateRange.dateDebut, dateRange.dateFin,dateRange.selectedRegime,dateRange.empcods);
-   const computeTotal = useMemo(() => {
-    return (row: any) => {
-      const toMin = (t: string) => {
-        if (!t) return 0;
-        const [h, m] = t.split(':').map(Number);
-        return h * 60 + m;
-      };
+  
 
-      let total =
-        toMin(row.preretmateup) +
-        toMin(row.preretameup);
+  const computeTotal = useMemo(() => {
+  return (row: any) => {
+    const toMin = (t: string) => {
+      if (!t) return 0;
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
 
-      if (dateRange?.compterAvance) {
-        total += toMin(row.preretmatsup) + toMin(row.preretamsup);
+    const minRetard = dateRange?.retmin || 0;
+    let total = 0;
+
+    // Retard Matin - seulement si la checkbox est cochée
+    if (dateRange?.retmat) {
+      const retardMatin = toMin(row.preretmateup);
+      if (retardMatin > minRetard) {
+        total += retardMatin;
+      }
+    }
+
+    // Retard Après-midi - seulement si la checkbox est cochée
+    if (dateRange?.retapres) {
+      const retardApresMidi = toMin(row.preretameup);
+      if (retardApresMidi > minRetard) {
+        total += retardApresMidi;
+      }
+    }
+
+    // Avances (si activé)
+    if (dateRange?.compterAvance) {
+      const avanceMatin = toMin(row.preretmatsup);
+      if (avanceMatin > minRetard) {
+        total += avanceMatin;
       }
 
-      const h = Math.floor(total / 60).toString().padStart(2, '0');
-      const m = (total % 60).toString().padStart(2, '0');
+      const avanceApresMidi = toMin(row.preretamsup);
+      if (avanceApresMidi > minRetard) {
+        total += avanceApresMidi;
+      }
+    }
 
-      console.log(dateRange.compterAvance)
-      return `${h}:${m}`;
+    const h = Math.floor(total / 60).toString().padStart(2, '0');
+    const m = (total % 60).toString().padStart(2, '0');
+
+    return `${h}:${m}`;
+  };
+}, [dateRange?.compterAvance, dateRange?.retmin, dateRange?.retmat, dateRange?.retapres]);
+
+
+const dataWithTotal = useMemo(() => {
+  const minRetard = dateRange?.retmin || 0;
+  
+  const toMin = (t: any) => {
+    if (!t) return 0;
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  return data.map(row => {
+    const retardMatin = toMin(row.preretmateup);
+    const retardApresMidi = toMin(row.preretameup);
+    const avanceMatin = toMin(row.preretmatsup);
+    const avanceApresMidi = toMin(row.preretamsup);
+
+    return {
+      ...row,
+      // Afficher 00:00 si :
+      // 1. La checkbox n'est pas cochée OU
+      // 2. Le retard/avance ne dépasse pas le minimum
+      preretmateup: (dateRange?.retmat && retardMatin > minRetard) ? row.preretmateup : '00:00',
+      preretameup: (dateRange?.retapres && retardApresMidi > minRetard) ? row.preretameup : '00:00',
+      preretmatsup: (dateRange?.compterAvance && avanceMatin > minRetard) ? row.preretmatsup : '00:00',
+      preretamsup: (dateRange?.compterAvance && avanceApresMidi > minRetard) ? row.preretamsup : '00:00',
+      totalRetard: computeTotal(row),
     };
-  }, [dateRange.compterAvance]);
-
-  const dataWithTotal = useMemo(() => {
-  return data.map(row => ({
-    ...row,
-    totalRetard: computeTotal(row),
-  }));
-}, [data, computeTotal]);
-
+  });
+}, [data, computeTotal, dateRange?.retmin, dateRange?.retmat, dateRange?.retapres, dateRange?.compterAvance]);
 
 const columns = useMemo<MRT_ColumnDef<any>[]>(() => {
   const baseColumns: MRT_ColumnDef<any>[] = [
@@ -67,22 +114,21 @@ const columns = useMemo<MRT_ColumnDef<any>[]>(() => {
     { accessorKey: 'preretmateup', header: 'Retard Matin', size: 60 },
     { accessorKey: 'sortie1', header: 'Sortie Matin', size: 60 },
 
-    // **Insérer Avance Matin ici**
-    ...(dateRange.compterAvance ? [{ accessorKey: 'preretmatsup', header: 'Avance Matin', size: 60 }] : []),
+    // ✅ Toujours affichée
+    { accessorKey: 'preretmatsup', header: 'Avance Matin', size: 60 },
 
     { accessorKey: 'entree2', header: 'Entrée Après-midi', size: 60 },
     { accessorKey: 'preretameup', header: 'Retard Après-midi', size: 60 },
     { accessorKey: 'sortie2', header: 'Sortie Après-midi', size: 60 },
 
-    // **Insérer Avance Après-midi ici**
-    ...(dateRange.compterAvance ? [{ accessorKey: 'preretamsup', header: 'Avance Après-midi', size: 60 }] : []),
+    // ✅ Toujours affichée
+    { accessorKey: 'preretamsup', header: 'Avance Après-midi', size: 60 },
 
     { accessorKey: 'totalRetard', header: 'Total Retard', size: 10 },
   ];
 
   return baseColumns;
-}, [dateRange.compterAvance]);
-
+}, []);
 
   const table = useMaterialReactTable({
     columns,

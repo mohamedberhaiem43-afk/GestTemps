@@ -17,6 +17,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 import { FonctionModel } from '../../../models/Fonction';
+import { t } from 'i18next';
 
 const FonctionTable = () => {
   const [fonctions, setFonctions] = useState<FonctionModel[]>([]);

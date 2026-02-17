@@ -161,9 +161,38 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                 // 7. Demandes en attente
                 // =========================
                 dashboardData.DemandesCongesEnAttente = await _context.Demconges
-                    .CountAsync(d => d.Soccod == soccod && empcodesFiltres.Contains(d.Empcod));
+                    .Where(d => d.Soccod == soccod
+                        && empcodesFiltres.Contains(d.Empcod)
+                        && !_context.Conges.Any(c =>
+                            c.Soccod == d.Soccod &&
+                            c.Empcod == d.Empcod &&
+                            c.Condep == d.Condep &&
+                            c.Conret == d.Conret))
+                    .CountAsync();
 
                 dashboardData.TotalDemandesEnAttente = dashboardData.DemandesCongesEnAttente;
+                // =========================
+                // 8. Evolution KPI
+                // =========================
+
+                var (compStart, compEnd) = GetComparisonPeriod(dateDebut, dateFin);
+
+                var previousKpi = await CalculateKpi(soccod, compStart, compEnd, empcodesFiltres);
+                var currentKpi = (
+                    dashboardData.HeuresTravaillees,
+                    dashboardData.TotalAbsences,
+                    dashboardData.NombreRetards
+                );
+
+                float CalcEvolution(float current, float previous)
+                {
+                    if (previous == 0) return current > 0 ? 100 : 0;
+                    return MathF.Round(((current - previous) / previous) * 100, 2);
+                }
+
+                dashboardData.EvolutionHeures = CalcEvolution(currentKpi.HeuresTravaillees, previousKpi.heures);
+                dashboardData.EvolutionAbsences = CalcEvolution(currentKpi.TotalAbsences, previousKpi.absences);
+                dashboardData.EvolutionRetards = CalcEvolution(currentKpi.NombreRetards, previousKpi.retards);
 
                 return dashboardData;
             }
@@ -441,6 +470,60 @@ namespace ABRPOINT.Server.CalculService.DashboardService
 
             return evolution;
         }
+        private async Task<(float heures, int absences, int retards)> CalculateKpi(
+    string soccod,
+    DateTime dateDebut,
+    DateTime dateFin,
+    List<string> empcodes)
+        {
+            var presences = await _context.Presences
+                .Where(p => p.Soccod == soccod &&
+                            p.Predat.HasValue &&
+                            p.Predat.Value.Date >= dateDebut &&
+                            p.Predat.Value.Date <= dateFin &&
+                            empcodes.Contains(p.Empcod))
+                .ToListAsync();
+
+            float heures = 0;
+            int retards = 0;
+
+            foreach (var p in presences.Where(p => !string.IsNullOrEmpty(p.Preentmatup)))
+            {
+                var dto = new PresenceDto
+                {
+                    Soccod = p.Soccod,
+                    Empcod = p.Empcod,
+                    Codposte = p.Codposte,
+                    Dmdate = p.Predat,
+                    Preentmatup = p.Preentmatup,
+                    Presortmatup = p.Presortmatup,
+                    Preentamidiup = p.Preentamidiup,
+                    Presortamidiup = p.Presortamidiup,
+                    Tothre = p.Tothre
+                };
+
+                heures += (float)GenericMethodes.ConvertHHmmToDouble(p.Tothre);
+                var (_, retard) = await _calcHeuresService.CalculateDayWorkMetrics(dto);
+                retards += retard;
+            }
+
+            var conges = await _context.Conges
+                .Where(c => c.Soccod == soccod &&
+                            c.Condep <= dateFin &&
+                            c.Conret >= dateDebut &&
+                            empcodes.Contains(c.Empcod))
+                .CountAsync();
+
+            var presents = presences
+                .Where(p => !string.IsNullOrEmpty(p.Preentmatup))
+                .Select(p => p.Empcod)
+                .Distinct()
+                .Count();
+
+            int absences = Math.Max(0, empcodes.Count - presents);
+
+            return ((float)heures, absences, retards);
+        }
 
         public async Task<List<EmployeStatut>> GetEmployesStatutJour(
             string soccod,
@@ -556,5 +639,24 @@ namespace ABRPOINT.Server.CalculService.DashboardService
 
             return employesStatuts;
         }
+
+
+        private (DateTime start, DateTime end) GetComparisonPeriod(DateTime start, DateTime end)
+        {
+            var diffDays = (end.Date - start.Date).TotalDays;
+
+            // JOUR
+            if (diffDays == 0)
+                return (start.AddDays(-1), end.AddDays(-1));
+
+            // SEMAINE
+            if (diffDays <= 7)
+                return (start.AddDays(-7), end.AddDays(-7));
+
+            // MOIS
+            return (start.AddMonths(-1), end.AddMonths(-1));
+        }
+
+
     }
 }

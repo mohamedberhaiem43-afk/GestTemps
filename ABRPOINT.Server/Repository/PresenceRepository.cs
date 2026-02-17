@@ -94,7 +94,7 @@ namespace ABRPOINT.Server.Repository
 
                 if (string.IsNullOrEmpty(emp.Poscod))
                 {
-                    emp.Poscod = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date);
+                    emp.Poscod = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date,emp.Catcod);
                 }
 
                 var poste = await _posteRepository.GetPoste(soccod, emp.Poscod);
@@ -875,7 +875,7 @@ namespace ABRPOINT.Server.Repository
                 }
                 string codpost = presence.Codposte;
                 if(string.IsNullOrEmpty(presence.Codposte))
-                    codpost = await _posteRepository.GetEmpPoste(presence.Soccod,presence.Empcod, presence.Predat);
+                    codpost = await _posteRepository.GetEmpPoste(presence.Soccod,presence.Empcod, presence.Predat,presence.Catcod);
                 var poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
 
                 if (poste == null) return (0, 0);
@@ -911,7 +911,6 @@ namespace ABRPOINT.Server.Repository
         }
 
 
-
         public async Task UpdateAsync(PresenceDto presence)
         {
             try
@@ -922,7 +921,7 @@ namespace ABRPOINT.Server.Repository
                     Poste? poste = null;
                     if(string.IsNullOrEmpty(presence.Codposte))
                     {
-                        string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                        string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat, presence.Catcod);
                         poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
                         presence.Codposte = codpost;
                     }
@@ -950,12 +949,17 @@ namespace ABRPOINT.Server.Repository
                     var existingPresence = await _dbContext.Presences
                         .FirstOrDefaultAsync(p => p.Empcod == presence.Empcod
                                                && p.Predat == presence.Predat);
-
+                    if (!string.IsNullOrEmpty(presence.Tothre) && presence.Totcmp.HasValue)
+                    {
+                        if (TimeSpan.TryParse(presence.Tothre, out TimeSpan tothreActuel))
+                        {
+                            var totalTime = tothreActuel.Add(TimeSpan.FromHours(presence.Totcmp.Value));
+                            presence.Tothre = $"{(int)totalTime.TotalHours:D2}:{totalTime.Minutes:D2}";
+                            presence.TotalHeure = GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                        }
+                    }
                     if (existingPresence != null)
                     {
-                        // ✅ Mapper DTO → entité déjà suivie
-                        _mapper.Map(presence, existingPresence);
-
                         await _dbContext.SaveChangesAsync();
                     }
                 }
@@ -986,7 +990,7 @@ namespace ABRPOINT.Server.Repository
                 AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
                 if(poste == null)
                 {
-                    var codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                    var codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat,presence.Catcod);
                     presence.Codposte = codpost;
                     poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
                 }
@@ -1086,7 +1090,7 @@ namespace ABRPOINT.Server.Repository
                 AutDto autorisation = await _autorisationRepository.GetAutLib(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate);
                 if (poste == null)
                 {
-                    var codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                    var codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat,presence.Catcod);
                     presence.Codposte = codpost;
                     poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
                 }
@@ -1547,7 +1551,7 @@ namespace ABRPOINT.Server.Repository
                                              if (emppanier == "1" && nbHeuresJour >= 7) panier++;
                                              if (emppanier == "2" && nbHeuresJour >= 6) panier++;
                                         }
-                                        var codpost = await _posteRepository.GetEmpPoste(soccod, empcod, date);
+                                        var codpost = await _posteRepository.GetEmpPoste(soccod, empcod, date, presence.Catcod);
                                         var (isrepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, codpost, empcod); 
                                         if(presence.Predat.Value.DayOfWeek == DayOfWeek.Saturday && GenericMethodes.ConvertHHmmToDouble(presence.Tothre)>0 && isrepos)
                                             {
@@ -1635,7 +1639,7 @@ namespace ABRPOINT.Server.Repository
                                 if (presence.Prerepos == "1")
                                 {
                                     if (string.IsNullOrEmpty(presence.Codposte))
-                                        presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, date);
+                                        presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, date,presence.Catcod);
                                     var (isrepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod,date,presence.Codposte,empcod);
                                     if (isrepos)
                                     {
@@ -1746,6 +1750,26 @@ namespace ABRPOINT.Server.Repository
                     : 0,
                 TotalHoursThisMonth = totalHours
             };
+        }
+
+        public async Task<bool> UpdateTotcmp(string soccod, string empcod, DateTime date, float totcmp)
+        {
+            try
+            {
+                var presence = await _dbContext.Presences
+                    .Where(p => p.Soccod == soccod && p.Empcod == empcod && p.Dmdate == date)
+                    .FirstOrDefaultAsync();
+                if (presence != null)
+                {
+                    presence.Totcmp = totcmp;
+                    await _dbContext.SaveChangesAsync();
+                }
+                return true;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

@@ -1,6 +1,10 @@
-﻿namespace ABRPOINT.Server.Dtaos;
+﻿using System.Text.Json.Serialization;
+
+namespace ABRPOINT.Server.Dtaos;
 public class PosteDto
-{ 
+{
+    [JsonPropertyName("catcod")]
+    public string? Catcod { get; set; }
     public string? Codposte { get; set; }
     public string? Soccod { get; set; }
     public string? Libposte { get; set; }

@@ -23,6 +23,9 @@ function FilterRetard() {
     const { selectedEmp, setSelectedEmp } = useContext(EmployeeContext);
     const [selectedEmpCodes, setSelectedEmpCodes] = useState<string[]>([]);
     const [compterAvance, setCompterAvance] = useState(false);
+    const [retmat, setRetmat] = useState(true);
+    const [retapres, setRetapres] = useState(true);
+    const [retmin, setRetmin] = useState(0);
 
     const [filiale, setFiliale] = useState<Record<string,string>>({});
     const [services, setServices] = useState<Record<string,string>>({});
@@ -136,7 +139,10 @@ function FilterRetard() {
                 pres,
                 mois,
                 empcods: selectedEmpCodes,
-                compterAvance
+                compterAvance,
+                retmin,
+                retmat,
+                retapres
             });
         }
     };
@@ -145,9 +151,12 @@ function FilterRetard() {
 
             setDateRange(prev => ({
                 ...prev,
-                compterAvance
+                compterAvance,
+                retmin,
+                retmat,
+                retapres
             }));
-        }, [compterAvance]);
+        }, [compterAvance,retmin,retmat,retapres]);
 
     const handleEmployeeSelection = (selected: string[]) => {
         setSelectedEmpCodes(selected);
@@ -163,7 +172,7 @@ function FilterRetard() {
     return (
         <Box>
             <Grid container direction="row" spacing={2} alignItems="end">
-                <Grid item xs={1.5}>
+                <Grid item xs={1}>
                     {filiale && (
                         <SelectInputComponent
                             label='Filiale'
@@ -191,7 +200,7 @@ function FilterRetard() {
                         maplist={regime}
                     />
                 </Grid>
-                <Grid item xs={1.5}>
+                <Grid item xs={1}>
                     <SelectInputComponent
                         label='Employés'
                         value={selectedEmpCodes}
@@ -224,27 +233,37 @@ function FilterRetard() {
                         setValue={setEndDate}
                     />
                 </Grid>
-                <Grid item xs={1.5}>
+                <Grid item xs={1}>
+                    <InputComponent type="number" label="Retard min (min)" value={retmin} setValue={setRetmin} />
+                </Grid>
+                <Grid item xs={0.7}>
                     <CheckboxComponent label={"Compter avance"} value={compterAvance} setValue={setCompterAvance} />
                 </Grid>
-
-                <Grid item xs={0.5}>
-                    <IconButton
-                        color="primary"
-                        onClick={handleApplyFilter}
-                        sx={{ border: '1px solid', borderColor: 'divider' }}
-                    >
-                        <Search />
-                    </IconButton>
+                <Grid item xs={0.7}>
+                    <CheckboxComponent label={"Ret. Mat"} value={retmat} setValue={setRetmat} />
                 </Grid>
-                <Grid item xs={0.5}>
-                    <IconButton
-                        color="primary"
-                        onClick={handlePrintReport}
-                        sx={{ border: '1px solid', borderColor: 'divider' }}
-                    >
-                        <Print />
-                    </IconButton>
+                <Grid item xs={0.7}>
+                    <CheckboxComponent label={"Ret. AM"} value={retapres} setValue={setRetapres} />
+                </Grid>
+                <Grid item display={'flex'} flexDirection={'row'} xs={1} justifyContent={'space-around'} >
+                    <Grid item xs={0.3}>
+                        <IconButton
+                            color="primary"
+                            onClick={handleApplyFilter}
+                            sx={{ border: '1px solid', borderColor: 'divider' }}
+                        >
+                            <Search />
+                        </IconButton>
+                    </Grid>
+                    <Grid item xs={0.3}>
+                        <IconButton
+                            color="primary"
+                            onClick={handlePrintReport}
+                            sx={{ border: '1px solid', borderColor: 'divider' }}
+                        >
+                            <Print />
+                        </IconButton>
+                    </Grid>
                 </Grid>
                 <Grid item xs={1}>
                     {presence && (

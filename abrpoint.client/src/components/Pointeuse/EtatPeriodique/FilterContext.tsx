@@ -10,6 +10,9 @@ type DateRange = {
     mois: string;
     empcods: string[] | null;
     compterAvance: boolean;
+    retmin: number;
+    retmat: boolean;
+    retapres: boolean;
 };
 
 
@@ -33,6 +36,9 @@ const [dateRange, setDateRange] = useState<DateRange>({
     mois: '',
     empcods: null,
     compterAvance: false,
+    retmin: 0,
+    retmat: false,
+    retapres: false,
 });
 
     return (

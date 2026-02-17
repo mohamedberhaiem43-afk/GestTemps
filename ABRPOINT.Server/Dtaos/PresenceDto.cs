@@ -3,6 +3,7 @@
     public class PresenceDto
     {
         public string? Soccod { get; set; }
+        public string? Catcod { get; set; }
         public string? Empcod { get; set; }
         public DateTime? Predat { get; set; }
         public string? Empmat { get; set; }

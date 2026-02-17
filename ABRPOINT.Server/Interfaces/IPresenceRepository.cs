@@ -20,5 +20,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<PresenceStatistics?> GetStatistics(DateTime startDate, DateTime today);
         Task<List<AbsenceInfo>?> GetRecentAbsences(DateTime startDate, DateTime today, int v);
         Task<GlobalStatistics?> GetGlobalStatistics();
+        Task<bool> UpdateTotcmp(string soccod, string empcod, DateTime date, float totcmp);
     }
 }

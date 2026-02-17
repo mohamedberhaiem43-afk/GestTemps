@@ -142,43 +142,55 @@ namespace ABRPOINT.Server.Repository
             
         }
 
-        public async Task<bool> AcceptDemCongeAsync(string soccod,string concod)
+        public async Task<(bool Success,string Message)> AcceptDemCongeAsync(string soccod,string concod,string empcod)
         {
 
                 try
                 {
                     // Find the DemConge by concod
-                    var demConge = await _dbContext.Demconges.FindAsync(soccod,concod);
+                    var demConge = await _dbContext.Demconges.FindAsync(soccod, concod);
                     if (demConge == null)
-                        return false; // Return false if DemConge is not found
+                        return (false, $"Demande de congé avec le code {concod} introuvable.");
 
+                    // Check if Conge already exists
+                    bool congeExist = await _dbContext.Conges
+                        .Where(c => c.Soccod == soccod && c.Concod == concod && c.Empcod == empcod)
+                        .AnyAsync();
+
+                    if (congeExist)
+                        return (false, $"Le congé {concod} a déjà été accepté.");
                     // Create a new Conge entity based on the DemConge
                     var conge = new Conge
-                    {
-                        Concod = demConge.Concod,
-                        Soccod = demConge.Soccod,
-                        Empcod = demConge.Empcod,
-                        Abscod = demConge.Abscod,
-                        Condat = demConge.Condat,
-                        Condep = demConge.Condep,
-                        Conret = demConge.Conret,
-                        Connbjour = demConge.Connbjour,
-                    };
+                        {
+                            Concod = demConge.Concod,
+                            Soccod = demConge.Soccod,
+                            Empcod = demConge.Empcod,
+                            Abscod = demConge.Abscod,
+                            Condat = demConge.Condat,
+                            Condep = demConge.Condep,
+                            Conret = demConge.Conret,
+                            Conjour = demConge.Conjour,
+                            Connbjour = demConge.Connbjour,
+                            Consolde = demConge.Consolde,
+                            Conref = demConge.Conref,
+                            Conamdep = demConge.Conamdep,
+                            Conamret = demConge.Conamret,
+                            Conadr = demConge.Conadr,
+                            Condg = demConge.Condg,
+                            Contel = demConge.Contel,
+                        };
 
                     // Add the Conge record to the Conges table
                     await _dbContext.Conges.AddAsync(conge);
                     // Save changes in a single transaction
                     await _dbContext.SaveChangesAsync();
 
-                    return true;
+                    return (true, $"Demande de congé {concod} acceptée avec succès.");
                 }
                 catch (Exception ex)
                 {
                     throw new Exception($"Error accepting DemConge: {ex.Message}", ex);
                 }
-
         }
-
-     
     }
 }

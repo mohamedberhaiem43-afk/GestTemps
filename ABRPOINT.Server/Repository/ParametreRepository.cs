@@ -394,6 +394,7 @@ namespace ABRPOINT.Server.Repository
                     MaxFerier = parametre.Parmaxfer,
                     EliminerFerier = parametre.Parelimftrv,
                     Parreptrv = parametre.Parreptrv,
+                    MajNuitNorm = parametre.Nbhtr4,
                 };
             }
             catch (Exception)

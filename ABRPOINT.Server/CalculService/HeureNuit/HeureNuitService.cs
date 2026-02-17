@@ -83,20 +83,39 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
 
         private double CalculateOverlap(TimeSpan presenceStart, TimeSpan presenceEnd, TimeSpan nuitStart, TimeSpan nuitEnd)
         {
-            // Gérer les intervalles de nuit qui traversent minuit (ex. 22:00 → 06:00)
-            if (nuitEnd < nuitStart)
+            double total = 0;
+
+            // normaliser la présence
+            if (presenceEnd < presenceStart)
+                presenceEnd += TimeSpan.FromDays(1);
+
+            // normaliser la nuit
+            if (nuitEnd <= nuitStart)
             {
-                return CalculateOverlap(presenceStart, presenceEnd, nuitStart, TimeSpan.FromHours(24)) +
-                       CalculateOverlap(presenceStart, presenceEnd, TimeSpan.Zero, nuitEnd);
+                // Partie 1 : 22 → 24
+                total += Overlap(presenceStart, presenceEnd, nuitStart, TimeSpan.FromHours(24));
+
+                // Partie 2 : 24 → 30 (0 → 6 devient 24 → 30)
+                total += Overlap(presenceStart, presenceEnd,
+                                 TimeSpan.FromHours(24),
+                                 nuitEnd + TimeSpan.FromDays(1));
+            }
+            else
+            {
+                total += Overlap(presenceStart, presenceEnd, nuitStart, nuitEnd);
             }
 
-            var overlapStart = Max(presenceStart, nuitStart);
-            var overlapEnd = Min(presenceEnd, nuitEnd);
-
-            var duration = overlapEnd - overlapStart;
-
-            return duration.TotalHours > 0 ? duration.TotalHours : 0;
+            return total;
         }
+
+        private double Overlap(TimeSpan aStart, TimeSpan aEnd, TimeSpan bStart, TimeSpan bEnd)
+        {
+            var start = aStart > bStart ? aStart : bStart;
+            var end = aEnd < bEnd ? aEnd : bEnd;
+
+            return end > start ? (end - start).TotalHours : 0;
+        }
+
 
 
         private TimeSpan Max(TimeSpan a, TimeSpan b) => a > b ? a : b;

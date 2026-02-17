@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Conge } from '../../models/Conge';
+import { Conge } from '../../models/Conge'; // Ajustez le chemin selon votre structure
 
 // Props type for the provider
 interface CongeProviderProps {
   children: ReactNode;
 }
+
 interface CongeContextType {
   selectedConge: Conge | null;
   setSelectedConge: (conge: Conge | null) => void;
@@ -21,7 +22,6 @@ export const useCongeContext = () => {
   }
   return context;
 };
-
 
 // Provider
 export const CongeProvider: React.FC<CongeProviderProps> = ({ children }) => {

@@ -20,6 +20,7 @@ import './Pays.css';
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import { PaysModel } from '../../../models/Pays';
 import useGetPays from '../../../hooks/paysHooks/useGetPays';
+import { t } from 'i18next';
 
 const Nation = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});

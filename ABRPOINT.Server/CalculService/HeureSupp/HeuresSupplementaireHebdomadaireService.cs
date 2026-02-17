@@ -184,7 +184,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 float? heuresTravaillees = res.TotalHours;
                 float? heuresSupp = 0;
                 result.Tothre = heuresTravaillees;
-                result.HeuresNormales = result.Tothre - (res.HeureRepos + res.NbhFerierTrv);
+                result.HeuresNormales = result.Tothre - (res.HeureRepos + res.HreFerier);
 
                 if (paramSupp.EliminerFerier == "1" && empreg == "H")
                 {
@@ -199,7 +199,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     heuresSupp -= res.NbhFerierTrv;
                     heuresSupp = (float?)Math.Max(0, (double)heuresSupp);
                 }
-
                 result.HreSupSemaine = heuresSupp;
                 result.Tothre += heuresSupp;
                 result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);
@@ -337,7 +336,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     }
                     result.NbJours = nbJoursSemaine;
 
-                    if (empreg == "M")
+                    if (empreg == "M" && result.Tothre != 0)
                     {
                         if (paramSupp.Parreptrv == "3")
                             result.Tothre -= res.ResHreSamediTrv - res.HreDimTrv;
@@ -359,7 +358,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     {
                         float? heuresSupp = 0;
 
-                        result.HeuresNormales = result.Tothre - (res.HeureRepos + res.NbhFerierTrv);
+                        result.HeuresNormales = result.Tothre - res.HeureRepos;
 
                         if (paramSupp.EliminerFerier == "1" && empreg == "H")
                         {
@@ -374,7 +373,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                             heuresSupp -= res.NbhFerierTrv;
                             heuresSupp = (float?)Math.Max(0, (double)heuresSupp);
                         }
-
+                        if (paramSupp.MajNuitNorm == 0)
+                            result.HeuresNormales -= result.HreNuits;
                         result.HreSupSemaine = heuresSupp;
                         result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);
                         heuresSupp -= result.HeuresSupTranche1;

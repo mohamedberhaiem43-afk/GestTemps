@@ -21,7 +21,7 @@ export default function SaisieProfile({ onDataChange, profil, initialData }: Sai
   const [utiprn, setPrenom] = useState("");
   const [utinom, setNom] = useState("");
   const [utimail, setUtimail] = useState("");
-  const [utimps, setMotPasse] = useState(""); // will be set from change-password dialog
+  const [utimps, setMotPasse] = useState("");
   const [societe, setSociete] = useState("");
   const [site, setSite] = useState("");
   const [utiadm, setUtiadm] = useState(false);
@@ -68,36 +68,51 @@ useEffect(() => {
   });
 }, [uticod, utinom, utiprn, utimail, utiadm, societe, site]);
 
-  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
+ const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (file && file.type.startsWith("image/")) {
 
-      // Call API to save the image
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/upload-profile`, formData, {
+    // 🔹 Renommer le fichier
+    const renamedFile = new File(
+      [file],
+      "ProfileImage.png",
+      { type: file.type }
+    );
+
+    setSelectedImage(renamedFile);
+
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(renamedFile);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", renamedFile); // <-- utiliser le fichier renommé
+
+      await axios.post(
+        `${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/upload-profile`,
+        formData,
+        {
           headers: { "Content-Type": "multipart/form-data" },
           withCredentials: true,
-        });
-        setSnackbarMessage(t('profile.imageSaved'));
-        setSnackbarSeverity("success");
-        setSnackbarOpen(true);
-      } catch (error) {
-        console.error("Erreur lors de la sauvegarde de l'image:", error);
-        setSnackbarMessage(t('profile.imageSaveError'));
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      }
-    } else {
-      setSelectedImage(null);
-      setImagePreview(null);
+        }
+      );
+
+      setSnackbarMessage(t('profile.imageSaved'));
+      setSnackbarSeverity("success");
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de l'image:", error);
+      setSnackbarMessage(t('profile.imageSaveError'));
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
     }
-  };
+  } else {
+    setSelectedImage(null);
+    setImagePreview(null);
+  }
+};
+
 
   const openChangePwd = () => {
     setCurrentPassword("");
@@ -134,7 +149,7 @@ useEffect(() => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1 }} mt={-5}>
       <Grid container spacing={2}>
         <Grid item xs={1}>
           <InputComponent type="text" label={t('common.code')} value={uticod} setValue={setCode} />

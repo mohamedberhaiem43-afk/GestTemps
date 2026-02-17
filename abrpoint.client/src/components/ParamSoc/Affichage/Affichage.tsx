@@ -42,20 +42,32 @@ const handleUpload = async () => {
       console.error("Upload failed:", error);
     }
   };
- const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setSelectedImage(null);
-      setImagePreview(null);
-    }
-  };
+const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+
+  if (file && file.type.startsWith("image/")) {
+
+    // 🔹 Renommer le fichier en Societe.png
+    const renamedFile = new File(
+      [file],
+      "Societe.png",
+      { type: file.type }
+    );
+
+    setSelectedImage(renamedFile);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(renamedFile);
+
+  } else {
+    setSelectedImage(null);
+    setImagePreview(null);
+  }
+};
+
     
   return (
     <Box sx={{ flexGrow: 1 }}>

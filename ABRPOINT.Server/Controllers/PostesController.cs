@@ -15,10 +15,12 @@ namespace ABRPOINT.Server.Controllers
     public class PostesController : ControllerBase
     {
         private readonly IPosteRepository _posteRepository;
+        private readonly ILcategorieRepository _lcategorieRepository;
 
-        public PostesController(IPosteRepository posteRepository)
+        public PostesController(IPosteRepository posteRepository, ILcategorieRepository lcategorieRepository)
         {
             _posteRepository = posteRepository;
+            _lcategorieRepository = lcategorieRepository;
         }
 
         // GET: api/Poste
@@ -159,15 +161,16 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                string? codpost = await _posteRepository.GetEmpPoste(soccod,empcod,date);
+                string? catcod = await _lcategorieRepository.GetCatcodByEmp(soccod, empcod,date);   
+                string? codpost = await _posteRepository.GetEmpPoste(soccod,empcod,date,catcod);
                 Poste? poste = await _posteRepository.GetPoste(soccod, codpost);
                 if (poste == null)
                     return null;
-
                 string prefix = day.ToLowerInvariant(); // e.g. "lun", "mar", etc.
 
                 PosteDto dto = new PosteDto
                 {
+                    Catcod = catcod,
                     Codposte = poste.Codposte,
                     Soccod = poste.Soccod,
                     Libposte = poste.Libposte,
@@ -193,7 +196,6 @@ namespace ABRPOINT.Server.Controllers
                     Minhdemijour = GenericMethodes.GetNullableFloat(poste, "minhdemijour" + prefix),
                     Jourdouche = GenericMethodes.GetNullableFloat(poste, prefix + "douche")
                 };
-
                 return dto;
             }
             catch (Exception)

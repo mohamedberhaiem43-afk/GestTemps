@@ -3,7 +3,7 @@ import {
   MaterialReactTable,
   useMaterialReactTable,
 } from 'material-react-table';
-import { Box, Checkbox, CircularProgress, Dialog, DialogContent, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Checkbox, CircularProgress, Dialog, DialogContent, DialogTitle, FormControl, Grid, IconButton, InputLabel, MenuItem, Select, Tooltip, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import { EmployeeContext } from './EmployeeContext';
 import { useDateRange } from './FilterContext';
@@ -23,6 +23,8 @@ import type {
   MRT_TableInstance,
 } from 'material-react-table';
 import { t } from 'i18next';
+import InputComponent from '../../Inputs/Input';
+import useUpdateCompensation from '../../../hooks/presenceHooks/useUpdateComponsation';
 
 
 
@@ -32,7 +34,8 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const {mutate:updatePresence} = useUpdatePresence(); 
   const { soccod } = useAuth();
   const { t } = useTranslation();
-  
+  const [totcmpValue, setTotcmpValue] = useState<number | ''>('');
+
   const formatDateToLocalISO = (date: Date): string => {
     const tzOffset = date.getTimezoneOffset() * 60000;
     const localISODate = new Date(date.getTime() - tzOffset).toISOString().slice(0, -1);
@@ -43,6 +46,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const [selectedRow, setSelectedRow] = useState<EmpEtat | null>(null);
   const [motif, setMotif] = useState<string>('');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const { mutate: updateCompensation, isLoading: loadingComp } = useUpdateCompensation();
 
   const { setSelectedEmpPoste,setDate,setSelectedEmp,setArrondi,setArrondiSup } = useContext(EmployeeContext);
 
@@ -92,7 +96,9 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     setDialogOpen(false);
     setMotif('');
     setSelectedRow(null);
+    setTotcmpValue('');
   };
+
 
   const handleOpenDialog = (row: EmpEtat, selectedMotif?: string) => {
     setSelectedRow(row);
@@ -301,7 +307,18 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
       muiEditTextFieldProps: {
         type: 'text',
       },
+      Cell: ({ row }:any) => {
+        const totcmp = row.original.totcmp;
+        const preobs = row.original.preobs;
+
+        if (totcmp && Number(totcmp) !== 0) {
+          return `Compensation(${totcmp})`;
+        }
+
+        return preobs ?? '';
+      },
     },
+
     {
       accessorKey: 'totret',
       header: t('empEtatPeriodique.headers.late'),
@@ -451,11 +468,55 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
               <MenuItem value={'conge'}>{t('empEtatPeriodique.menu.conge')}</MenuItem>
               <MenuItem value={'autorisation'}>{t('empEtatPeriodique.menu.autorisation')}</MenuItem>
               <MenuItem value={'optimisation'}>{t('empEtatPeriodique.menu.optimisation')}</MenuItem>
+              <MenuItem value={'compensation'}> {t('empEtatPeriodique.menu.compensation')}</MenuItem>
+
             </Select>
           </FormControl>
           {motif === 'absence' && <SaisieAbsence empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
           {motif === 'conge' && <SaisieConge empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
           {motif === 'autorisation' && <SaisieAutorisation date={selectedRow?.predat} empcod={selectedRow?.empcod || ''} />}
+          {motif === 'compensation' && (
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 3 }}>
+
+              <Grid item xs={5}>
+                <InputComponent
+                  type={'number'}
+                  label={'Nb.Heures'}
+                  value={totcmpValue}
+                  setValue={setTotcmpValue}
+                />
+              </Grid>
+
+              <Button
+                variant="contained"
+                disabled={totcmpValue === '' || !selectedRow || loadingComp}
+                onClick={() => {
+                  if (!selectedRow || !soccod) return;
+
+                  const dateISO = formatDateToLocalISO(new Date(selectedRow.predat));
+
+                  updateCompensation(
+                    {
+                      soccod,
+                      empcod: selectedRow.empcod,
+                      date: dateISO,
+                      totcmp: Number(totcmpValue),
+                    },
+                    {
+                      onSuccess: () => {
+                        handleCloseDialog();
+                      },
+                    }
+                  );
+                }}
+              >
+                Confirmer
+              </Button>
+
+            </Box>
+          )}
+
+
           {motif === 'optimisation' && (
             <OptimisationPointage 
               empcod={selectedRow?.empcod || ''} 

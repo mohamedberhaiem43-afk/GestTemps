@@ -25,7 +25,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 if(!string.IsNullOrEmpty(presence.Codposte))
                     codpost = presence.Codposte;
                 else
-                    codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                    codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat,presence.Catcod);
                 poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
             }
             try

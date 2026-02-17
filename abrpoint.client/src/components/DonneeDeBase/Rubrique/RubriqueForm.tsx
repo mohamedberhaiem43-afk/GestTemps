@@ -149,43 +149,69 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
   return (
     <Box>
       <Grid container spacing={2} alignItems="center">
-        <Grid item xs={6}>
-          <InputComponent 
-            type="text" 
-            label={t('common.code')} 
-            value={rubcod} 
-            setValue={setRubCod}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <InputComponent type="text" label={t('common.label')} value={rublib} setValue={setRubLib} />
-        </Grid>
-      </Grid>
+  <Grid item xs={4}>
+    <InputComponent 
+      type="text" 
+      label={t('common.code')} 
+      value={rubcod} 
+      setValue={setRubCod}
+    />
+  </Grid>
+
+  <Grid item xs={4}>
+    <InputComponent 
+      type="text" 
+      label={t('common.label')} 
+      value={rublib} 
+      setValue={setRubLib} 
+    />
+  </Grid>
+
+  <Grid item xs={4}>
+    <InputComponent 
+      type="number" 
+      label="Taux" 
+      value={rubtaux} 
+      setValue={setRubTaux} 
+    />
+  </Grid>
+</Grid>
+
+    <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
+    <Grid item xs={4}>
+      <SelectInputComponent
+        label="Régime"
+        value={rubreg}
+        setValue={setRubReg}
+        maplist={regimeOptions}
+      />
+    </Grid>
+
+    <Grid item xs={4}>
+      <SelectInputComponent
+        label="Unité"
+        value={rubuntie}
+        setValue={setRubUnite}
+        maplist={uniteOptions}
+      />
+    </Grid>
+
+  <Grid item xs={4}>
+    <SelectInputComponent
+      label="Affectation"
+      value={vartype}
+      setValue={setVartype}
+      maplist={affectationOptions}
+    />
+  </Grid>
+  </Grid>
+
 
       <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
-        <Grid item xs={6}>
-          <SelectInputComponent
-            label="Régime"
-            value={rubreg}
-            setValue={setRubReg}
-            maplist={regimeOptions}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <SelectInputComponent
-            label="Unité"
-            value={rubuntie}
-            setValue={setRubUnite}
-            maplist={uniteOptions}
-          />
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
-        <Grid item xs={6}>
+        <Grid item xs={4}>
           <InputComponent type="number" label="Taux" value={rubtaux} setValue={setRubTaux} />
         </Grid>
-        <Grid item xs={6}>
+        <Grid item xs={4}>
           <SelectInputComponent
             label="Affectation"
             value={vartype}

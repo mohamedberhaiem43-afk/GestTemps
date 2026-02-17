@@ -32,23 +32,36 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        [HttpPost("accept-demconge/{soccod}/{concod}")]
+        [HttpPost("accept-demconge/{soccod}/{concod}/{empcod}")]
         [CanAddDemConge]
-        public async Task<IActionResult> AcceptDemConge(string soccod, string concod)
+        public async Task<IActionResult> AcceptDemConge(string soccod, string concod,string empcod)
         {
             try
             {
-                var success = await _demandecongeRepository.AcceptDemCongeAsync(soccod,concod);
-                if (!success)
+                var result = await _demandecongeRepository.AcceptDemCongeAsync(soccod, concod,empcod);
+
+                if (!result.Success)
                 {
-                    return NotFound($"Demande de congé with ID {concod} not found.");
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = result.Message
+                    });
                 }
 
-                return Ok($"Demande de congé with ID {concod} has been accepted and converted to congé.");
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Erreur interne du serveur: {ex.Message}"
+                });
             }
         }
 

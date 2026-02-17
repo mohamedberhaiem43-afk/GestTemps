@@ -161,8 +161,7 @@ const PointageDuMoisContent = () => {
   }
 const totals = useMemo(() => {
   if (!selectedEmp?.heuresSupplementairesResultats) return null;
-
-  return selectedEmp.heuresSupplementairesResultats.reduce(
+  const base = selectedEmp.heuresSupplementairesResultats.reduce(
     (acc, r) => {
       acc.jourFerier += r.jourFerier ?? 0;
       acc.panier += r.panier ?? 0;
@@ -247,7 +246,11 @@ const totals = useMemo(() => {
       hreSamediTrv: 0,
     }
   );
-}, [selectedEmp]);
+    if (majorerHeures) {
+    base.heuresNormales += base.nbHeureConge + base.heureFerier;
+  }
+  return base;
+}, [selectedEmp,majorerHeures]);
 
 
 const handleGenerateReport = async () => {
@@ -390,7 +393,7 @@ const handleGenerateReportAll = async () => {
 
   // ✅ Affichage normal après chargement
   return (
-    <Box sx={{ height: '95vh' }} mt={-10}>
+    <Box sx={{ height: '95vh' }} mt={-10} maxWidth={'95vw'} maxHeight={'100vh'}>
       <Grid container spacing={2}>
           <BreadcrumbNavigation />
         {/* 🔹 Filtre */}
@@ -463,7 +466,7 @@ const handleGenerateReportAll = async () => {
                   actions={false}
                   onRowClick={(row) => setSelectedEmp(row)}
                   setData={undefined}
-                  pageSize={10}   
+                  pageSize={5}   
                   purge={undefined}
                 />
               </Box>
@@ -542,7 +545,12 @@ const handleGenerateReportAll = async () => {
                           <TableCell>{(res.nbJourCngPaye ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.nbHeureConge ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hcsf ?? 0).toFixed(2)}</TableCell>
-                          <TableCell>{(res.heuresNormales ?? 0).toFixed(2)}</TableCell>
+                          <TableCell>
+                            {majorerHeures
+                              ? ((res.heuresNormales ?? 0) + (res.nbHeureConge ?? 0) + (res.heureFerier ?? 0)).toFixed(2)
+                              : (res.heuresNormales ?? 0).toFixed(2)
+                            }
+                          </TableCell>
                           <TableCell>{(res.jourRepos ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.hreNuits ?? 0).toFixed(2)}</TableCell>
                           <TableCell>{(res.heureRepos ?? 0).toFixed(2)}</TableCell>

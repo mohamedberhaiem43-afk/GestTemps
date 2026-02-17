@@ -6,6 +6,7 @@ export interface PosteDto{
     apresent: number,
     avantsort: number,
     apressort: number,
+    catcod: string,
     jourhdmat: string,
     jourhfmat: string,
     jourhdam: string,

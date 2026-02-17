@@ -305,6 +305,7 @@
     "hoursWorked": "Heures Travaillées"
   },
   "common": {
+    "hours": "Heures",
     "save": "Enregistrer",
     "periodicRest": "Repos Périodique",
     "mealsPerDay": "Repas par jour",
@@ -434,6 +435,7 @@
     "enterReason": "Saisir un motif",
     "reason": "Motif",
     "menu": {
+      "compensation": "Compensation",
       "absence": "Absence",
       "conge": "Congé",
       "autorisation": "Autorisation de sortie",

@@ -38,21 +38,29 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
-        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,
-    bool presNonOpt,bool sansPointageInvalide,string? selectedAbsType,List<string>? empcods)
+        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,bool presNonOpt,bool sansPointageInvalide,string? selectedAbsType,List<string>? empcods)
         {
             if (empcods == null || empcods.Count == 0)
                 return new List<EtatAbsence>();
 
-            // 🔹 Récupérer tous les employés en une seule requête
+            // ================= Helpers =================
+            static int GetMinutes(DateTime? t)
+                => t.HasValue ? (int)t.Value.TimeOfDay.TotalMinutes : 0;
+
+            static string FormatMinutes(int minutes)
+                => TimeSpan.FromMinutes(minutes).ToString(@"hh\:mm");
+
+
+            // ================= Employés =================
             var employes = await _dbContext.Employes
+                .AsNoTracking()
                 .Where(e => e.Soccod == soccod && empcods.Contains(e.Empcod))
                 .ToDictionaryAsync(e => e.Empcod);
 
-            // 🔹 Récupérer toutes les sanctions dans la période
+            // ================= Sanctions =================
             var sanctions = await (
-                from s in _dbContext.Sanctions
-                join a in _dbContext.Absences
+                from s in _dbContext.Sanctions.AsNoTracking()
+                join a in _dbContext.Absences.AsNoTracking()
                     on new { s.Soccod, s.Abscod } equals new { a.Soccod, a.Abscod }
                 where s.Soccod == soccod
                       && empcods.Contains(s.Empcod)
@@ -70,31 +78,55 @@ namespace ABRPOINT.Server.Repository
                 }
             ).ToListAsync();
 
-            var result = new List<EtatAbsence>();
+            // ================= Présences =================
+            var presences = await _dbContext.Presences
+                .AsNoTracking()
+                .Where(p => p.Soccod == soccod
+                         && empcods.Contains(p.Empcod)
+                         && p.Predat >= datedebut
+                         && p.Predat <= datefin)
+                .Select(p => new
+                {
+                    p.Empcod,
+                    p.Predat,
+                    p.Preretmateup,
+                    p.Preretmatsup,
+                    p.Preretameup,
+                    p.Preretamsup,
+                    p.Tothabs
+                })
+                .ToListAsync();
 
-            // 🔹 Générer la liste des dates
-            var dates = Enumerable.Range(0, (datefin - datedebut).Days + 1)
-                                  .Select(offset => datedebut.AddDays(offset))
-                                  .ToList();
 
+            // clé logique : (employé + date)
+            var result = new Dictionary<(string Empcod, DateTime Date), EtatAbsence>();
+
+
+            // ================= TRAITEMENT ABSENCES =================
             foreach (var sanction in sanctions)
             {
                 if (!employes.TryGetValue(sanction.Empcod, out var employe))
                     continue;
 
-                foreach (var date in dates.Where(d =>
-                         d >= sanction.Condep && d <= sanction.Conret))
+                for (var date = sanction.Condep!.Value.Date; date <= sanction.Conret!.Value.Date; date = date.AddDays(1))
                 {
-                    var etatAbsence = new EtatAbsence
+                    var key = (sanction.Empcod, date);
+
+                    if (!result.TryGetValue(key, out var etatAbsence))
                     {
-                        Empcod = sanction.Empcod,
-                        Empmat = employe.Empmat,
-                        Emplib = employe.Emplib,
-                        Empreg = employe.Empreg,
-                        Date = date,
-                        Abscod = sanction.Abscod,
-                        Motif = sanction.Abslib
-                    };
+                        etatAbsence = new EtatAbsence
+                        {
+                            Empcod = sanction.Empcod,
+                            Empmat = employe.Empmat,
+                            Emplib = employe.Emplib,
+                            Empreg = employe.Empreg,
+                            Date = date,
+                            Abscod = sanction.Abscod,
+                            Motif = sanction.Abslib
+                        };
+
+                        result[key] = etatAbsence;
+                    }
 
                     if (sanction.Abspayer == "O" || sanction.Abspayer == "N")
                         etatAbsence.Autsp = 1;
@@ -109,19 +141,58 @@ namespace ABRPOINT.Server.Repository
                         case "6": etatAbsence.FM = 1; break;
                         case "8": etatAbsence.Acctrav = 1; break;
                         case "9":
-                            if (!string.IsNullOrEmpty(sanction.Abslib) &&
-                                sanction.Abslib.ToLower() == "maladie")
+                            if (sanction.Abslib?.ToLower() == "maladie")
                                 etatAbsence.Absmal = 1;
                             break;
                     }
 
-                    result.Add(etatAbsence);
+                    etatAbsence.Absence = 1;
                 }
             }
 
-            return result.OrderBy(r => r.Date).ToList();
-        }
 
+            // ================= TRAITEMENT RETARDS =================
+            foreach (var presence in presences)
+            {
+                if (!employes.TryGetValue(presence.Empcod, out var employe))
+                    continue;
+
+                int totalRetard =
+                    GetMinutes(presence.Preretmateup) +
+                    GetMinutes(presence.Preretmatsup) +
+                    GetMinutes(presence.Preretameup) +
+                    GetMinutes(presence.Preretamsup);
+
+                if (totalRetard == 0 && (string.IsNullOrEmpty(presence.Tothabs) && presence.Tothabs == "00:00"))
+                    continue;
+
+                var key = (presence.Empcod, presence.Predat.Value.Date);
+
+                if (!result.TryGetValue(key, out var etatAbsence))
+                {
+                    etatAbsence = new EtatAbsence
+                    {
+                        Empcod = presence.Empcod,
+                        Empmat = employe.Empmat,
+                        Emplib = employe.Emplib,
+                        Empreg = employe.Empreg,
+                        Date = presence.Predat.Value.Date,
+                        Motif = "Retard"
+                    };
+
+                    result[key] = etatAbsence;
+                }
+
+                etatAbsence.Absjourretard = FormatMinutes(totalRetard);
+            }
+
+
+            // ================= RESULTAT FINAL =================
+            return result.Values
+                .OrderBy(r => r.Date)
+                .ThenBy(r => r.Empcod)
+                .ToList();
+        }
 
         public void Delete(Absence absence)
         {

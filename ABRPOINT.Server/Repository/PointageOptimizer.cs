@@ -8,7 +8,6 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -186,15 +185,51 @@ namespace ABRPOINT.Server.Repository
             if (postes == null || !postes.Any() || presence?.Predat == null)
                 return null;
 
-            // Extraire les heures d'entrée et de sortie de la présence
-            TimeSpan? presenceEntree = GetFirstEntryTime(presence);
+            TimeSpan? presenceEntreeMatin = null;
+            TimeSpan? presenceEntreeAmidi = null;
+
+            if (!string.IsNullOrEmpty(presence.Preentmatup) &&
+                TimeSpan.TryParse(presence.Preentmatup, out TimeSpan entMat))
+                presenceEntreeMatin = entMat;
+
+            if (!string.IsNullOrEmpty(presence.Preentamidiup) &&
+                TimeSpan.TryParse(presence.Preentamidiup, out TimeSpan entAm))
+                presenceEntreeAmidi = entAm;
+
+            // ─── PRIORITÉ 1 : Affectation par plage de tolérance (dematin/fematin, deamidi/feamidi) ───
+            foreach (var poste in postes)
+            {
+                var (deMatinDeb, deMatinFin, deAmidiDeb, deAmidiFin) =
+                    GetTolerancePlages(presence.Predat, poste);
+
+                // Entrée matin dans la plage tolérance matin du poste
+                if (presenceEntreeMatin.HasValue &&
+                    deMatinDeb.HasValue && deMatinFin.HasValue &&
+                    presenceEntreeMatin.Value >= deMatinDeb.Value &&
+                    presenceEntreeMatin.Value <= deMatinFin.Value)
+                {
+                    return poste;
+                }
+
+                // Entrée amidi dans la plage tolérance amidi du poste
+                if (presenceEntreeAmidi.HasValue &&
+                    deAmidiDeb.HasValue && deAmidiFin.HasValue &&
+                    presenceEntreeAmidi.Value >= deAmidiDeb.Value &&
+                    presenceEntreeAmidi.Value <= deAmidiFin.Value)
+                {
+                    return poste;
+                }
+            }
+
+            // ─── PRIORITÉ 2 : Fallback → poste le plus proche (logique existante) ────
+            TimeSpan? presenceEntree = presenceEntreeMatin ?? presenceEntreeAmidi;
             TimeSpan? presenceSortie = GetLastExitTime(presence);
 
             if (!presenceEntree.HasValue || !presenceSortie.HasValue)
             {
-                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
-                Poste? poste = await _posteRepository.GetPoste(presence.Soccod,codpost);
-                return poste;
+                string? codpost = await _posteRepository.GetEmpPoste(
+                    presence.Soccod, presence.Empcod, presence.Predat, presence.Catcod);
+                return await _posteRepository.GetPoste(presence.Soccod, codpost);
             }
 
             Poste closestPoste = null;
@@ -202,48 +237,33 @@ namespace ABRPOINT.Server.Repository
 
             foreach (var poste in postes)
             {
-                // 🔹 Utiliser GetStartsWorkDay pour obtenir les horaires du poste selon le jour
                 var (morningStart, morningEnd, eveningStart, eveningEnd) =
                     GenericMethodes.GetStartsWorkDay(presence.Predat, poste);
 
-                // Parser les heures du poste
                 TimeSpan? posteEntree = null;
                 TimeSpan? posteSortie = null;
 
-                // Déterminer l'entrée du poste (matin prioritaire)
                 if (!string.IsNullOrEmpty(morningStart) &&
-                    TimeSpan.TryParse(morningStart, out TimeSpan entMat))
-                {
-                    posteEntree = entMat;
-                }
+                    TimeSpan.TryParse(morningStart, out TimeSpan entMatF))
+                    posteEntree = entMatF;
                 else if (!string.IsNullOrEmpty(eveningStart) &&
-                         TimeSpan.TryParse(eveningStart, out TimeSpan entAm))
-                {
-                    posteEntree = entAm;
-                }
+                         TimeSpan.TryParse(eveningStart, out TimeSpan entAmF))
+                    posteEntree = entAmF;
 
-                // Déterminer la sortie du poste (après-midi prioritaire)
                 if (!string.IsNullOrEmpty(eveningEnd) &&
-                    TimeSpan.TryParse(eveningEnd, out TimeSpan sortAm))
-                {
-                    posteSortie = sortAm;
-                }
+                    TimeSpan.TryParse(eveningEnd, out TimeSpan sortAmF))
+                    posteSortie = sortAmF;
                 else if (!string.IsNullOrEmpty(morningEnd) &&
-                         TimeSpan.TryParse(morningEnd, out TimeSpan sortMat))
-                {
-                    posteSortie = sortMat;
-                }
+                         TimeSpan.TryParse(morningEnd, out TimeSpan sortMatF))
+                    posteSortie = sortMatF;
 
-                // Si on n'a pas trouvé d'horaires valides, passer au poste suivant
                 if (!posteEntree.HasValue || !posteSortie.HasValue)
                     continue;
 
-                // Calculer la différence totale (entrée + sortie)
                 double diffEntree = Math.Abs((presenceEntree.Value - posteEntree.Value).TotalMinutes);
                 double diffSortie = Math.Abs((presenceSortie.Value - posteSortie.Value).TotalMinutes);
                 double totalDifference = diffEntree + diffSortie;
 
-                // Garder le poste avec la plus petite différence
                 if (totalDifference < minDifference)
                 {
                     minDifference = totalDifference;
@@ -254,6 +274,53 @@ namespace ABRPOINT.Server.Repository
             return closestPoste;
         }
 
+        // ─── HELPER : Extraire les plages de tolérance selon le jour de la semaine ───
+        private (TimeSpan? deMatinDeb, TimeSpan? deMatinFin, TimeSpan? deAmidiDeb, TimeSpan? deAmidiFin)
+            GetTolerancePlages(DateTime? predat, Poste poste)
+        {
+            if (predat == null) return (null, null, null, null);
+
+            string? rawDeMatinDeb = null, rawDeMatinFin = null;
+            string? rawDeAmidiDeb = null, rawDeAmidiFin = null;
+
+            switch (predat.Value.DayOfWeek)
+            {
+                case DayOfWeek.Monday:
+                    rawDeMatinDeb = poste.Lunhdematin; rawDeMatinFin = poste.Lunhfematin;
+                    rawDeAmidiDeb = poste.Lunhdeamidi; rawDeAmidiFin = poste.Lunhfeamidi;
+                    break;
+                case DayOfWeek.Tuesday:
+                    rawDeMatinDeb = poste.Marhdematin; rawDeMatinFin = poste.Marhfematin;
+                    rawDeAmidiDeb = poste.Marhdeamidi; rawDeAmidiFin = poste.Marhfeamidi;
+                    break;
+                case DayOfWeek.Wednesday:
+                    rawDeMatinDeb = poste.Merhdematin; rawDeMatinFin = poste.Merhfematin;
+                    rawDeAmidiDeb = poste.Merhdeamidi; rawDeAmidiFin = poste.Merhfeamidi;
+                    break;
+                case DayOfWeek.Thursday:
+                    rawDeMatinDeb = poste.Jeuhdematin; rawDeMatinFin = poste.Jeuhfematin;
+                    rawDeAmidiDeb = poste.Jeuhdeamidi; rawDeAmidiFin = poste.Jeuhfeamidi;
+                    break;
+                case DayOfWeek.Friday:
+                    rawDeMatinDeb = poste.Venhdematin; rawDeMatinFin = poste.Venhfematin;
+                    rawDeAmidiDeb = poste.Venhdeamidi; rawDeAmidiFin = poste.Venhfeamidi;
+                    break;
+                case DayOfWeek.Saturday:
+                    rawDeMatinDeb = poste.Samhdematin; rawDeMatinFin = poste.Samhfematin;
+                    rawDeAmidiDeb = poste.Samhdeamidi; rawDeAmidiFin = poste.Samhfeamidi;
+                    break;
+                case DayOfWeek.Sunday:
+                    rawDeMatinDeb = poste.Dimhdematin; rawDeMatinFin = poste.Dimhfematin;
+                    rawDeAmidiDeb = poste.Dimhdeamidi; rawDeAmidiFin = poste.Dimhfeamidi;
+                    break;
+            }
+
+            TimeSpan? Parse(string? raw) =>
+                !string.IsNullOrEmpty(raw) && TimeSpan.TryParse(raw, out var ts) ? ts : null;
+
+            return (Parse(rawDeMatinDeb), Parse(rawDeMatinFin),
+                    Parse(rawDeAmidiDeb), Parse(rawDeAmidiFin));
+        }
         // 🔹 HELPER : Récupérer la première heure d'entrée de la présence
         private TimeSpan? GetFirstEntryTime(Presence presence)
         {

@@ -44,7 +44,7 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
 
             if (poste == null)
             {
-                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat);
+                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat,presence.Catcod);
                 poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
             }
 

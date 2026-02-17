@@ -1,4 +1,3 @@
-import { Poste } from "../models/Poste";
 import ApiClient from "./apiClient";
 
-export default new ApiClient<Partial<Poste>>(`/Postes`);
+export default new ApiClient<any>(`/Postes`);

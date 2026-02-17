@@ -13,7 +13,7 @@ namespace ABRPOINT.Server.Interfaces
         Task UpdateAsync(Poste poste);
         Task<bool> isExisting(string? soccod, string? codposte);
         Task DeleteAsync(Poste poste);
-        Task<string?> GetEmpPoste(string soccod, string empcod, DateTime? date);
+        Task<string?> GetEmpPoste(string soccod, string empcod, DateTime? date,string? catcod);
         Task<PosteHoraireDto?> GetAllPostes(string soccod, string codposte);
         Task<Dictionary<string, string?>> GetEmpPosteBatch(string soccod, List<(string Empcod, DateTime Date)> demandes);
         //Task<Dictionary<(string Empcod, DateTime Date), string?>> GetEmpPosteBatch(string soccod, List<(string Empcod, DateTime Date)> demandes);

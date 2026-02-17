@@ -5,6 +5,7 @@ using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -148,8 +149,22 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-
                 return StatusCode(500,ex);
+            }
+        }
+        [HttpPut("update-compensation/{soccod}/{empcod}/{date}/{totcmp}")]
+        public async Task<IActionResult> UpdateComponsation(string soccod,string empcod,DateTime date,float totcmp)
+        {
+            try
+            {
+                bool result = await _presenceRepository.UpdateTotcmp(soccod, empcod, date, totcmp);
+                if (result)
+                    return Ok("componsation ajoutée avec succées");
+                return StatusCode(500,"probléme d'ajout de componsation");
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 

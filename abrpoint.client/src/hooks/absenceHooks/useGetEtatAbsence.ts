@@ -24,7 +24,6 @@ const useGetEtatAbsence = (
     empcods.forEach(cod => params.append("empcods", cod));
   }
   
-  console.log("empcods:", empcods);
 
   return useQuery({
     queryKey: [

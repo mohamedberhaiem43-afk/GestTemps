@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -7,11 +7,13 @@ import {
   MRT_ToggleFiltersButton,
 } from 'material-react-table';
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
   ListItemIcon,
   MenuItem,
+  Snackbar,
   lighten,
 } from '@mui/material';
 import './ListConge.css'
@@ -22,93 +24,122 @@ import { Conge } from '../../../../models/Conge';
 import useAcceptDemConge from '../../../../hooks/congeHooks/useAcceptDemConge';
 import useGetDemConges from '../../../../hooks/congeHooks/useGetDemConges';
 import { useCongeContext } from '../../../helper/CongeContext';
+import AlertModal from '../../../AlertModal/AlertModal';
 
-
-export default function  CongeList (){
-  const { setSelectedConge } = useCongeContext();
-  //const { mutate: updateConge } = useUpdateConge();
-  const { mutate: acceptConge } = useAcceptDemConge();
+export default function CongeList() {
+  const { setSelectedConge: setSelectedCongeForEdit } = useCongeContext();
+  const { mutate: acceptConge, isLoading: isAccepting } = useAcceptDemConge();
   const { data = [], isLoading } = useGetDemConges();
   
-  // const updateCongeData = (updatedConge: Conge) => {
+  // États pour le modal de confirmation d'acceptation
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [selectedCongeToAccept, setSelectedCongeToAccept] = useState<{ concod: string; empcod: string } | null>(null);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
 
-  //     updateConge(updatedConge, {
-
-  //         onSuccess: () => {
-  //             console.log('Update successful');
-
-  //           },
-  //         onError: (error:any) => {
-  //             console.error('Error updating:', error);
-  //         },
-  //     });
-  // };
-  const getDemCongeToEdit = (original: Conge) =>{
-    const selectedConge = data.find((conge:Conge)=>conge.concod==original.concod);
-    if(selectedConge)
-      setSelectedConge(selectedConge);
+  const getDemCongeToEdit = (original: Conge) => {
+    const selectedConge = data.find((conge: Conge) => conge.concod === original.concod);
+    if (selectedConge)
+      setSelectedCongeForEdit(selectedConge);
   }
- 
-  
-    const acceptDemande = (concod:string) => {
-        acceptConge(concod,{
-          onSuccess:()=>{
-            console.log('demande accepted successful');
-          },
-          onError: (error:any) => {
-            console.error('Error updating:', error);
-        },
-        })
-    };
 
-    
-    const columns = useMemo<MRT_ColumnDef<Conge>[]>(() => [
-      {
-        id: 'congeDetails',
-        header: '',
-        columns: [
-          {
-            accessorKey: 'concod',
-            header: 'N° Ordre',
-            size: 100,
+  const handleAcceptClick = (concod: string, empcod: string) => {
+    setSelectedCongeToAccept({ concod, empcod });
+    setAlertOpen(true);
+  };
+
+  const handleConfirmAccept = () => {
+    if (selectedCongeToAccept) {
+      acceptConge(
+        { concod: selectedCongeToAccept.concod, empcod: selectedCongeToAccept.empcod },
+        {
+          onSuccess: (data: any) => {
+            console.log('Succès:', data);
+            setSnackbar({
+              open: true,
+              message: data.message || 'Demande de congé acceptée avec succès',
+              severity: 'success',
+            });
+            setAlertOpen(false);
+            setSelectedCongeToAccept(null);
           },
-          {
-            accessorKey: 'empcod',
-            header: 'Employé',
-            size: 160,
+          onError: (error: any) => {
+            console.error('Erreur:', error);
+            const errorMessage = error.response?.data?.message || 
+                                error.message || 
+                                'Erreur lors de l\'acceptation de la demande';
+            setSnackbar({
+              open: true,
+              message: errorMessage,
+              severity: 'error',
+            });
+            setAlertOpen(false);
+            setSelectedCongeToAccept(null);
           },
-          {
-            accessorKey: 'abscod',
-            header: 'Imputation',
-            size: 100,
-          },
-          {
-            accessorKey: 'condat',
-            header: 'Date',
-            size: 100,
-            Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
-          },
-          {
-            accessorKey: 'condep',
-            header: 'Date départ',
-            size: 100,
-            Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
-          },
-          {
-            accessorKey: 'conret',
-            header: 'Date retour',
-            size: 100,
-            Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
-          },
-          {
-            accessorKey: 'connbjour',
-            header: 'Nb.jours',
-            size: 60,
-          },
-        ],
-      },
-    ], []);
-    
+        }
+      );
+    }
+  };
+
+  const handleCancelAccept = () => {
+    setAlertOpen(false);
+    setSelectedCongeToAccept(null);
+  };
+
+  const columns = useMemo<MRT_ColumnDef<Conge>[]>(() => [
+    {
+      id: 'congeDetails',
+      header: '',
+      columns: [
+        {
+          accessorKey: 'concod',
+          header: 'N° Ordre',
+          size: 100,
+        },
+        {
+          accessorKey: 'empcod',
+          header: 'Employé',
+          size: 160,
+        },
+        {
+          accessorKey: 'abscod',
+          header: 'Imputation',
+          size: 100,
+        },
+        {
+          accessorKey: 'condat',
+          header: 'Date',
+          size: 100,
+          Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
+        },
+        {
+          accessorKey: 'condep',
+          header: 'Date départ',
+          size: 100,
+          Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
+        },
+        {
+          accessorKey: 'conret',
+          header: 'Date retour',
+          size: 100,
+          Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString(),
+        },
+        {
+          accessorKey: 'connbjour',
+          header: 'Nb.jours',
+          size: 60,
+        },
+      ],
+    },
+  ], []);
+
   const table = useMaterialReactTable({
     columns,
     data,
@@ -152,11 +183,11 @@ export default function  CongeList (){
         padding: '0px 0px',
       },
     },
-    renderRowActionMenuItems: ({ closeMenu,row }) => [
+    renderRowActionMenuItems: ({ closeMenu, row }) => [
       <MenuItem
         key={0}
         onClick={() => {
-          acceptDemande(row.original.concod)
+          handleAcceptClick(row.original.concod, row.original.empcod);
           closeMenu();
         }}
         sx={{ m: 0 }}
@@ -202,16 +233,16 @@ export default function  CongeList (){
           row.connbjour,
           row.consolde,
         ]);
-        const tableHeaders = ['N° Ordre','Employé', 'Imputation', 'Date','Date départ','Date retour', 'Nb.jours', ];
-  
+        const tableHeaders = ['N° Ordre', 'Employé', 'Imputation', 'Date', 'Date départ', 'Date retour', 'Nb.jours',];
+
         autoTable(doc, {
           head: [tableHeaders],
           body: tableData,
         });
-  
+
         doc.save('conges-pdf-export.pdf');
       };
-  
+
       return (
         <Box
           sx={(theme) => ({
@@ -240,30 +271,51 @@ export default function  CongeList (){
       );
     },
     localization: {
-      actions: "Decision", // This changes the Action column's header name
+      actions: "Decision",
     },
   });
+
   return (
-      <Box>
-        {
-        (isLoading)&&
+    <Box>
+      {
+        (isLoading || isAccepting) &&
+        (
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100vh',
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )
+      }
+      <div className="scrollable-table-container">
+        <MaterialReactTable table={table} />
+      </div>
 
-                (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      height: '100vh',
-                    }}
-                  >
-              <CircularProgress />
-            </Box>
-                )}
-          <div className="scrollable-table-container">
-            <MaterialReactTable table={table} />
-          </div>
-      </Box>
+      <AlertModal
+        open={alertOpen}
+        onClose={handleCancelAccept}
+        onConfirm={handleConfirmAccept}
+        message="Êtes-vous sûr de vouloir accepter cette demande de congé ?"
+      />
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
-};
-
+}

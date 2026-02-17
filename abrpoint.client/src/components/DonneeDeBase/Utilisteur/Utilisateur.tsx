@@ -76,7 +76,6 @@ export default function Utilisateur() {
                                 </Button>   
                                 <SaisieUtilisateur 
                                 onDataChange={setUserData}
-                                onSave={handleUpdate} 
                                 profil={false}
                                 />
                             </Grid>

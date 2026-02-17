@@ -20,7 +20,7 @@
         public byte? MAP { get; set; }
         public byte? Autsp { get; set; }
         public byte? CSS { get; set; }
-        public byte? Absjourretard { get; set; }
+        public string? Absjourretard { get; set; }
         public byte? Absence { get; set; }
     }
 }

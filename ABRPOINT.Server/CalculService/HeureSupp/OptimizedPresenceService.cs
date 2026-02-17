@@ -501,7 +501,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             // Calculate night hours
             CalculateNightHours(presence, date, paramNuit, acc);
             if (string.IsNullOrEmpty(presence.Codposte))
-                presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, date);
+                presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, date,presence.Catcod);
             // Calculate delays
             if (isWorkingDay && isAfterDebutReel && !string.IsNullOrWhiteSpace(presence.Codposte))
             {
