@@ -51,7 +51,7 @@ export default function AllaitementSaisie() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { control, reset, handleSubmit, watch } = useForm<AllaitementModel>({
+  const { control, reset, handleSubmit } = useForm<AllaitementModel>({
     defaultValues: {
       empcod: '',
       concod: generateNumeroOrdre(),

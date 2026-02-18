@@ -13,7 +13,6 @@ import DataList from '../../lists/list';
 import { useAbsenceContext } from '../../helper/AbsParamsContext';
 
 const ListeAbsence = () => {
-  const { selectedEmpMat } = useContext(EmployeeContext);
   const {  } = useContext(EmployeeContext);
   const context = useDateRange();
   if (!context) {

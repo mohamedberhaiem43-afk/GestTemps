@@ -307,7 +307,7 @@ const TitreCongeList = () => {
             <CircularProgress />
             </Box>
             )}
-            {error && (
+            {error as any && (
                 <Box
                   sx={{
                     display: 'flex',

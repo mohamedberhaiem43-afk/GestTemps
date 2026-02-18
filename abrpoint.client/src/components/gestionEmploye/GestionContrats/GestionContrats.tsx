@@ -27,7 +27,7 @@ const GestionContrats = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Box height={'90vh'} width={'95vw'}>
+      <Box height={'90vh'} width={'95vw'} mt={-10}>
         <BreadcrumbNavigation />
 
         <Grid>

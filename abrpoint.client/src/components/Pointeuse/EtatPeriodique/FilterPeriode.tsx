@@ -12,15 +12,14 @@ import useGetAbsencesLibs from "../../../hooks/absenceHooks/useGetAbsenceLibs";
 import useGetEtatAbsence from "../../../hooks/absenceHooks/useGetEtatAbsence";
 import RadioGroupComponent, { FormControlLabelComponent } from "../../RadioGroupComponent/RadioGroupComponent";
 import { useAbsenceContext } from "../../helper/AbsParamsContext";
+import { useAuth } from "../../helper/AuthProvider";
 
-type FilterPeriodeProps = {
-  type: string;
-};
 
-function FilterPeriode({ type }: FilterPeriodeProps) {
+
+function FilterPeriode() {
     const { t } = useTranslation();
     const token = localStorage.getItem('authToken');
-    const soccod = sessionStorage.getItem('soccod');
+    const { soccod } =useAuth();
     const headers = { Authorization: `Bearer ${token}` };
     const regime = {
         'M': "Mensuelle",
@@ -208,7 +207,10 @@ function FilterPeriode({ type }: FilterPeriodeProps) {
             pres,
             mois,
             empcods:selectedEmpcods,
-            compterAvance:false
+            compterAvance:false,
+            retapres: false,
+            retmat: false,
+            retmin: 0
             });
         }
         setAbsParams({

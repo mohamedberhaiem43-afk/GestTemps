@@ -305,6 +305,7 @@
     "hoursWorked": "Heures Travaillées"
   },
   "common": {
+    "days": "Jours",
     "hours": "Heures",
     "save": "Enregistrer",
     "periodicRest": "Repos Périodique",

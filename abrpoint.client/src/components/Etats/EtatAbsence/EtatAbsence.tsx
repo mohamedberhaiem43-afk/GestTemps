@@ -21,7 +21,7 @@ export default function EtatAbsence() {
                     <DateRangeProvider>
                     <AbsParamsProvider>
                         <Grid item xs={12}>
-                            <Item><FilterPeriode type={'absence'} /></Item>
+                            <Item><FilterPeriode /></Item>
                         </Grid>
                         <Grid item xs={12} >
                             <ListeAbsence />

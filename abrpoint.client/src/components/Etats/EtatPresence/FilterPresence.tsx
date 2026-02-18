@@ -133,7 +133,11 @@ function FilterPresence() {
                 selectedService,
                 pres,
                 mois,
-                empcods: selectedEmpCodes
+                empcods: selectedEmpCodes,
+                retapres: false,
+                retmat: false,
+                retmin: 0,
+                compterAvance: false
             });
         }
     };

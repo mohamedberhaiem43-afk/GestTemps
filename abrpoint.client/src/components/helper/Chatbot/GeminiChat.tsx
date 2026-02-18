@@ -1,4 +1,3 @@
-// src/components/AIAssistant/GeminiChat.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -16,7 +15,6 @@ import {
   Button
 } from '@mui/material';
 import { Send, SmartToy, Close, Refresh, Navigation } from '@mui/icons-material';
-import { Download } from '@mui/icons-material';
 import { useAuth } from '../AuthProvider';
 
 interface Message {
@@ -208,43 +206,6 @@ Posez-moi une question!`
       handleSend();
     }
   };
-const handleDownload = async (url: string, filename?: string) => {
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`, // Ajoutez le token si nécessaire
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Échec du téléchargement');
-    }
-
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename || 'document.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
-    
-    // Ajouter un message de confirmation
-    setMessages(prev => [...prev, {
-      role: 'model',
-      parts: [{ text: '✅ Téléchargement terminé ! Le fichier PDF a été enregistré sur votre appareil.' }]
-    }]);
-    
-  } catch (error) {
-    console.error('Erreur lors du téléchargement:', error);
-    setMessages(prev => [...prev, {
-      role: 'model',
-      parts: [{ text: '❌ Échec du téléchargement. Veuillez réessayer ou contacter l\'administrateur.' }]
-    }]);
-  }
-};
 
   const quickQuestions = [
     "Combien d'employés sont présents aujourd'hui ?",

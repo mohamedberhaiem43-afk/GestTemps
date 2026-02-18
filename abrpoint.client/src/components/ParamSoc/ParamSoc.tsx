@@ -199,7 +199,7 @@ export default function BasicTabs() {
 
     // Update Parametres
     updateParametreMutation.mutate(dataToSend, {
-      onSuccess: (response: boolean) => {
+      onSuccess: (_response: boolean) => {
         successCount++;
         refetch();
         

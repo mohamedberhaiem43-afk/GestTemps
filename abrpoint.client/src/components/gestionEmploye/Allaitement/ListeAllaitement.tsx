@@ -5,7 +5,7 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useGetAllaitement from '../../../hooks/allaitementHooks/useGetAllaitement';
-import AllaitementModel, { AllaitementDto } from '../../../models/Allaitement';
+import { AllaitementDto } from '../../../models/Allaitement';
 import { Delete, Edit } from '@mui/icons-material';
 import PersonIcon from '@mui/icons-material/Person';
 import useDeleteAllaitement from '../../../hooks/allaitementHooks/useDeleteAllaitement';
@@ -52,16 +52,16 @@ export const ListAllaitement: React.FC = () => {
   }
     // 🔒 Détection des erreurs 403 lors du fetch
     useEffect(() => {
-      if (error?.message?.includes("403")) {
+      if (error instanceof Error && error.message.includes("403")) {
         setForbiddenError(true);
         setTimeout(() => setForbiddenError(false), 5000);
       }
     }, [error]);
- 
+
   const handleSnackbarClose = () => {
     setShowSuccessAlert(false);  // Reset Snackbar state after it closes
   };
-  const columns = useMemo<MRT_ColumnDef<AllaitementDto>[]>(
+  const columns = useMemo<MRT_ColumnDef<any>[]>(
     () => [
       {
         accessorKey: 'concod',
@@ -251,14 +251,14 @@ export const ListAllaitement: React.FC = () => {
       </MenuItem>,
     ],
     renderTopToolbar: ({ table }) => {
-      const handleExportRows = (rows: AllaitementModel[]) => {
+      const handleExportRows = (rows: any) => {
         const doc = new jsPDF();
-        const tableData = rows.map((row) => [
-          row.concod,
-          row.condat,
-          row.empcod,
-          row.condep,
-          row.conret,
+        const tableData = rows.map((row:any) => [
+          row.original.concod,  // N°Ordre
+          row.original.empcod,  // Femme (Employee Code)
+          new Date(row.original.condat).toLocaleDateString(),  // Date
+          new Date(row.original.condep).toLocaleString(),  // Date Départ
+          new Date(row.original.conret).toLocaleString(),  // Date Retour
         ]);
         const tableHeaders = ['N° Ordre', 'Date', 'Employé', 'Imputation', 'Date Départ', 'Date Retour', 'Nb.Heures'];
 

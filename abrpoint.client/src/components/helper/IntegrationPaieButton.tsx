@@ -1,4 +1,3 @@
-// IntegrationPaieButton.tsx
 import React, { useState } from 'react';
 import {
   Box,
@@ -111,45 +110,6 @@ const VARTYPE_TO_PROPERTY_MAP: Record<string, keyof HeureSupResultat> = {
   '6': 'map',                // Mise à Pieds
   '8': 'nbJourPointer',      // Prime N.Abs
   '9': 'heuresNormales',     // Prime Qualité
-};
-
-/**
- * Libellés des types de variables pour affichage
- */
-const VARTYPE_LABELS: Record<string, string> = {
-  'T': 'Jour Trv',
-  'H': 'Heure Trv',
-  'J': 'Jour Complet',
-  'C': 'Congé A',
-  'S': 'C.S.F',
-  'F': 'Férié',
-  'R': 'Jour Férié Travaillé',
-  'Y': 'Heure Férié Travaillé',
-  'Z': 'Heure Férié Trav. Sup',
-  'P': 'Jour Repos Travaillé',
-  'D': 'Accident de travaille',
-  'A': 'Allaitement',
-  'O': 'Déplacement',
-  'G': 'Hébergement',
-  'U': 'Nuit',
-  '2': 'H.SUPP I',
-  '5': 'H.SUPP II',
-  '7': 'H.SUPP III',
-  '1': 'H.SUPP IV',
-  'X': 'Implication',
-  'M': 'Semaine Trv',
-  'I': 'Férié non payé',
-  'K': 'Maladie',
-  'V': 'Autorisation de sortie',
-  '3': 'Heures Abs.',
-  '4': 'Prime Panier',
-  'L': 'Rendement Mensuel',
-  'E': 'Blâme',
-  '6': 'Mise à Pieds',
-  '8': 'Prime N.Abs',
-  '9': 'Prime Qualité',
-  'AV': 'Avance',
-  'PR': 'Prêts',
 };
 
 // ============================================================================

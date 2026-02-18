@@ -4,7 +4,6 @@ import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid';
 import Repos from './Repos/Repos';
 import HeuresNuit from './HeuresNuit/HeuresNuit';
-import MethodeCalcul from './MethodeCalcul/MethodeCalcul';
 import useGetParametres from '../../../hooks/parametreHooks/useGetParametres';
 import { useEffect, useState } from 'react';
 

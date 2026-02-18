@@ -133,7 +133,7 @@ const saveContrat = () => {
   // If editing, call PUT (update), otherwise POST (create)
   if (editingContract) {
     updateContrat.mutate(contrat, {
-      onSuccess: (res: any) => {
+      onSuccess: (_res: any) => {
         setMessage("Contrat modifié avec succès !");
         setSeverity('success');
         setIsSnackbarOpen(true);
@@ -215,7 +215,7 @@ const saveContrat = () => {
 
                 {/* Mois */}
                 <Grid item xs={1} sm={0.7}>
-                  <InputComponent type='number' label={t('filter.month')} value={mois} setValue={setMois} />
+                  <InputComponent type='number' label={t('empEtatPeriodique.filters.month')} value={mois} setValue={setMois} />
                 </Grid>
               </Grid>
             {/* </Item> */}
@@ -236,7 +236,7 @@ const saveContrat = () => {
               <Grid item xs={4}>
                 <TextField
                   size="small"
-                  label={t('common.observations')}
+                  label={t('empEtatPeriodique.headers.observation')}
                   fullWidth
                   multiline
                   rows={4}

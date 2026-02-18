@@ -122,7 +122,11 @@ function FilterCahierConge() {
             selectedService,
             pres,
             mois,
-            empcods:selectedEmpcods
+            empcods:selectedEmpcods,
+            retapres: false,
+            retmat: false,
+            retmin: 0,
+            compterAvance: false
             });
         }
     };

@@ -21,7 +21,7 @@ export default function SaisieProfile({ onDataChange, profil, initialData }: Sai
   const [utiprn, setPrenom] = useState("");
   const [utinom, setNom] = useState("");
   const [utimail, setUtimail] = useState("");
-  const [utimps, setMotPasse] = useState("");
+  const [_utimps, setMotPasse] = useState("");
   const [societe, setSociete] = useState("");
   const [site, setSite] = useState("");
   const [utiadm, setUtiadm] = useState(false);
@@ -30,7 +30,7 @@ export default function SaisieProfile({ onDataChange, profil, initialData }: Sai
   const updatePassword = useUpdateProfile();
   const { t } = useTranslation();
 
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -56,17 +56,19 @@ export default function SaisieProfile({ onDataChange, profil, initialData }: Sai
     }, [initialData]);
 
   // notify parent of changes
-useEffect(() => {
-  onDataChange({
-    uticod,
-    utinom,
-    utiprn,
-    utimail,
-    utiadm: utiadm ? "1" : "0", // ✅ cohérent backend
-    soccod: societe,
-    sitcod: site,
-  });
-}, [uticod, utinom, utiprn, utimail, utiadm, societe, site]);
+  useEffect(() => {
+    onDataChange({
+      uticod,
+      utinom,
+      utiprn,
+      utimail,
+      utiadm: utiadm ? "1" : "0",
+      soccod: societe,
+      sitcod: site,
+      image: selectedImage,
+    });
+  }, [uticod, utinom, utiprn, utimail, utiadm, societe, site, selectedImage]);
+
 
  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
   const file = event.target.files?.[0];

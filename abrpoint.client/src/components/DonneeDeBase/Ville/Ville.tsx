@@ -15,6 +15,7 @@ import './Ville.css';
 import { VilleModel } from '../../../models/Ville';
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import useGetVilles from '../../../hooks/villeHooks/useGetVilles';
+import { t } from 'i18next';
 
 const VilleTable = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});

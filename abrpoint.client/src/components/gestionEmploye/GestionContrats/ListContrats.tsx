@@ -74,7 +74,7 @@ const ListContrats = ({ req, filters, onEdit }:ListContratsProps) => {
   };
   const { mutate } = useDeleteContrat();
 useEffect(() => {
-  if (error?.message?.includes("403") || filteredError?.message?.includes("403")) {
+  if (error instanceof Error && error.message.includes("403") || filteredError instanceof Error && filteredError.message.includes("403")) {
     setForbiddenError(true);
   }
 }, [error, filteredError]);
