@@ -17,9 +17,6 @@ WORKDIR /src
 RUN apt-get update && apt-get install -y curl \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && apt-get install -y libgdiplus \
-    && apt-get install -y ttf-mscorefonts-installer fonts-dejavu fonts-liberation \
-    && ln -s /usr/lib/libgdiplus.so /usr/lib/libgdiplus.so.0 \
     && node -v && npm -v
 
 COPY ["abrpoint.client/nuget.config", "abrpoint.client/"]
