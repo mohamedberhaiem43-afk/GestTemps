@@ -194,7 +194,7 @@ const AutoriserList = () => {
       <MenuItem
       key="edit"
       onClick={() => {
-        getSortieToEdit(row.original.soccod,row.original)
+        getSortieToEdit(row.original.soccod || '', row.original)
         closeMenu();
       }}
       sx={{ m: 0 }}
@@ -222,7 +222,7 @@ const AutoriserList = () => {
         key="report"
         onClick={() => {
           setSelectedAutoriser({ concod: row.original.concod });
-          getAutorisationReport(row.original.soccod, row.original.concod);
+          getAutorisationReport(row.original.soccod || '', row.original.concod);
           closeMenu();
         }}
         sx={{ m: 0 }}

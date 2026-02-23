@@ -29,7 +29,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
   const selectedPoste = posteContext?.selectedPoste;
   const { t } = useTranslation();
   
-  const [postes, setPostes] = useState<{ poste?: Poste }>({});
+  const [_postes, setPostes] = useState<{ poste?: Poste }>({});
   const { data: lposte = {} as Poste, error, isError } = useGetLPoste(selectedPoste?.codposte);
   
   // Initialize form state
