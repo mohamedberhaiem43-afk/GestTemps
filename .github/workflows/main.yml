@@ -19,11 +19,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Push All Images
+      - name: Build and Push Server Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest ./ABRPOINT.Server
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest ./abrpoint.client      
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest -f Dockerfile.server .
           docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest
+
+      - name: Build and Push Client Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest -f Dockerfile.client .
           docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest
 
   deploy:
@@ -38,7 +41,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-                  docker pull mohamedbenrhaiem2003/abrpoint-server:latest
-                  docker pull mohamedbenrhaiem2003/abrpoint-client:latest
-                  docker compose -f /home/ubuntu/GestTemps/docker-compose.yml down
-                  docker compose -f /home/ubuntu/GestTemps/docker-compose.yml up -d
+            docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest
+            docker compose -f /home/ubuntu/GestTemps/docker-compose.yml down
+            docker compose -f /home/ubuntu/GestTemps/docker-compose.yml up -d
