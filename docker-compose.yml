@@ -1,15 +1,8 @@
-version: '3.8'
-
 volumes:
   sqlserver-data:
-
 networks:
   app-network:
-
 services:
-  app:
-    image: mohamedbenrhaiem2003/abrpoint-app:latest
-    container_name: abrpoint_app
   nginx-proxy:
     image: nginx:alpine
     ports:
@@ -21,8 +14,6 @@ services:
     - abrpoint.client
     networks:
     - app-network
-
-
   abrpoint.database:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: abrpoint.database
@@ -34,9 +25,6 @@ services:
       - ./sql-backup:/var/opt/sql-backup
     networks:
       - app-network
-
-
-
   abrpoint.server:
     container_name: abrpoint.server
     image: mohamedbenrhaiem2003/abrpoint-server:latest
@@ -48,18 +36,13 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
     depends_on:
       - abrpoint.database
-        # condition: service_healthy
     networks:
       - app-network
     expose:
       - "8080"
-
   abrpoint.client:
     container_name: abrpoint.client
     image: mohamedbenrhaiem2003/abrpoint-client:latest
-      # args:
-        # Client makes requests to /api which nginx will proxy
-        # VITE_REACT_APP_API_URL: /api
     depends_on:
       - abrpoint.server
     networks:
