@@ -37,5 +37,5 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-app:latest
-            docker compose -f /home/deploy/YOUR_FOLDER/docker-compose.yml down
-            docker compose -f /home/deploy/YOUR_FOLDER/docker-compose.yml up -d
+            docker compose -f /home/ubuntu/GestTemps/docker-compose.yml down
+            docker compose -f /home/ubuntu/GestTemps/docker-compose.yml up -d
