@@ -3,7 +3,7 @@ name: Build and Deploy
 on:
   push:
     branches:
-      - mohamed
+      - master
 
 jobs:
   build-and-push:
@@ -21,11 +21,8 @@ jobs:
 
       - name: Build and Push All Images
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-app:latest ./abrpoint.app
           docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest ./ABRPOINT.Server
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest ./abrpoint.client
-      
-          docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-app:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest ./abrpoint.client      
           docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest
 
