@@ -1,6 +1,7 @@
 ﻿using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -59,5 +60,36 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        public async Task<IEnumerable<Qualif>> GetAllAsync(string soccod)
+        {
+            try
+            {
+                var qualifs = await _dbContext.Qualifs.Where(q => q.Soccod == soccod).ToListAsync();
+                return qualifs;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateAsync(Qualif qualif)
+        {
+            try
+            {
+                var rowsAffected = await _dbContext.Qualifs
+               .Where(s => s.Soccod == qualif.Soccod && s.Quacod == qualif.Quacod)
+               .ExecuteUpdateAsync(setters => setters
+                   .SetProperty(s => s.Qualib, qualif.Qualib)
+                   .SetProperty(s => s.Catcod, qualif.Catcod)
+               );
+
+                return rowsAffected > 0;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

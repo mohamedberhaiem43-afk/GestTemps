@@ -21,7 +21,7 @@ export default function ClasseHoraire() {
 
 function Content() {
   return (
-    <Box height={'90vh'} mt={-10}>
+    <Box height={'90vh'}>
       <BreadcrumbNavigation />
 
       <Grid container spacing={0.5}>

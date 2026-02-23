@@ -1,12 +1,14 @@
 import { useQuery } from "react-query";
-import GetFiliales from "../../services/FilialeService/GetFiliales";
+import { useAuth } from "../../components/helper/AuthProvider";
+import FilialeService from "../../services/FilialeService/FilialeService";
 
 const useGetSites = () => {
-  
+  const { soccod } = useAuth();
 
   return useQuery({
-    queryKey: ["sites"],
-    queryFn: GetFiliales.getAll
+    queryKey: ["sites",soccod],
+    queryFn:()=> FilialeService.getWithParams(`${soccod}`),
+    enabled: !!soccod ,
   });
 };
 

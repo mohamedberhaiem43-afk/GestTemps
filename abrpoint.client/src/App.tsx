@@ -4,6 +4,7 @@ import DashboardLayoutBasic from "./components/navigation/Navigation";
 import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./components/helper/AuthProvider";
 import LanguageSwitcher from "./components/LanguageSwitcher/LanguageSwitcher";
+import { Box } from "@mui/material";
 
 const demoTheme = createTheme({
   palette: {
@@ -75,7 +76,17 @@ function App() {
     <ThemeProvider theme={demoTheme}>
       <Router>
         <AuthProvider>
-          <LanguageSwitcher />
+          <Box
+            sx={{
+              position: "fixed",
+              top: -25,
+              right: 70,      // change to left: 0 if you want it left
+              zIndex: 2000,  // very important so it's above everything
+              p: 2
+            }}
+          >
+            <LanguageSwitcher />
+          </Box>
           <DashboardLayoutBasic />
         </AuthProvider>
       </Router>

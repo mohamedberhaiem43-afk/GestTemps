@@ -328,6 +328,7 @@ export default function AbsenceSanctionSaisie() {
                         Période
                       </FormLabel>
                       <RadioGroup
+                        row
                         value={conjour}
                         onChange={(e) => setTimePeriod(e.target.value)}
                       >

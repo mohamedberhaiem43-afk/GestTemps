@@ -61,7 +61,6 @@ export default function CongeList() {
         { concod: selectedCongeToAccept.concod, empcod: selectedCongeToAccept.empcod },
         {
           onSuccess: (data: any) => {
-            console.log('Succès:', data);
             setSnackbar({
               open: true,
               message: data.message || 'Demande de congé acceptée avec succès',

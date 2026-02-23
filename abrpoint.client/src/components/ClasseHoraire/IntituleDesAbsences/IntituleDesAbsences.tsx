@@ -10,7 +10,7 @@ export default function IntituleDesAbsences() {
     const queryClient = new QueryClient();
     return (
         <QueryClientProvider client={queryClient}>
-            <Box height={'90vh'} mt={-10}>
+            <Box height={'90vh'} >
                 <BreadcrumbNavigation />
                 <AbsenceProvider>
                     <Grid container spacing={2}>

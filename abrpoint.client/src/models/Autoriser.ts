@@ -1,6 +1,6 @@
 export type Autoriser = {
   concod: string;
-  soccod: string ;
+  soccod: string | null;
   empcod: string | null;
   condat?: string;
   conjour?: string;

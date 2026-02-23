@@ -12,7 +12,7 @@ export default function AbsanceSanction()
     return(
         <>
         <QueryClientProvider client={queryClient}>
-         <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'} mt={-10}>
+         <Box sx={{ flexGrow: 1 }} height={'90vh'} width={'95vw'}>
             
              <BreadcrumbNavigation />
                 <Grid container >

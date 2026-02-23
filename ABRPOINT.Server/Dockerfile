@@ -7,6 +7,13 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
+RUN apt-get update && apt-get install -y \
+    libgdiplus \
+    libx11-dev \
+    libc6-dev \
+    fontconfig \
+    fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
 
 # Cette phase est utilisée pour générer le projet de service
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
@@ -18,6 +25,7 @@ RUN apt-get update && apt-get install -y curl \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && node -v && npm -v
+
 
 COPY ["abrpoint.client/nuget.config", "abrpoint.client/"]
 COPY ["ABRPOINT.Server/ABRPOINT.Server.csproj", "ABRPOINT.Server/"]

@@ -3,7 +3,7 @@ import { createTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { AppProvider, Router, Session } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core';
-import { Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings, Assessment, AttachMoney, Autorenew, Chat, DevicesOther, Domain, EventNote, HolidayVillageRounded, Insights, Money, MoneyOffCsredSharp, Settings, SyncAlt, WorkOutline} from '@mui/icons-material';
+import { Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings, Assessment, AttachMoney, Autorenew, Chat, DevicesOther, Domain, EventNote, HolidayVillageRounded, Insights, Money, MoneyOffCsredSharp, Power, Settings, SyncAlt, WorkOutline} from '@mui/icons-material';
 import { Box } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Filiale } from '../DonneeDeBase/Filiale/Filiale';
@@ -74,6 +74,7 @@ import SocieteImage from '../../assets/Societe.png';
 import { useAuth } from '../helper/AuthProvider';
 import GeminiChat from '../helper/Chatbot/GeminiChat';
 import { useTranslation } from 'react-i18next';
+import { Qualifications } from '../DonneeDeBase/Qualification/Qualifications';
 
 interface DemoProps {
     window?: () => Window;
@@ -138,6 +139,11 @@ const useNavigationItems = () => {
           segment: 'fonction',
           title: t('navigation.function'),
           icon: <PeopleIcon />,
+        },
+        {
+          segment: 'qualification',
+          title: t('navigation.qualification'),
+          icon: <Power />,
         },
         {
           segment: 'rubrique',
@@ -457,6 +463,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
             break;
         case '/dashboard/pays':
             content = <Pays />;
+            break;
+        case '/dashboard/qualification':
+            content = <Qualifications />;
             break;
         case '/dashboard/fonction':
             content = <Fonction />;

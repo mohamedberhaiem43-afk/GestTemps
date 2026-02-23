@@ -16,7 +16,6 @@ const useGetEtatPresence = (
 
   const params = new URLSearchParams();
   empcods?.forEach(cod => params.append("empcods", cod));
-  console.log(empcods);
   return useQuery({
     queryKey: [
       "etat-absence",

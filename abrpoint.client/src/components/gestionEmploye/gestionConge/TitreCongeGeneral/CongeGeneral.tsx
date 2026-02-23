@@ -10,7 +10,7 @@ export default function  CongeGneral (){
 
   return (
     <QueryClientProvider client={queryClient}>
-        <Box sx={{ flexGrow: 1 }} height={'90vh'} mt={-10}>
+        <Box sx={{ flexGrow: 1 }} height={'90vh'}>
             <CongeProvider>
               <Grid item xs={12}>
                   <TitreCongeForm titre="Titre de Congés Génerale" />

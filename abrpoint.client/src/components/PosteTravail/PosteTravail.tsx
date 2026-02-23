@@ -191,7 +191,7 @@ export default function PosteDeTravail() {
 
   return (
     <Box>
-      <Grid container height={"90vh"} width={'97vw'} mt={-15} >
+      <Grid container height={"90vh"} width={'97vw'} mt={-5} >
         <Grid item xs={12} display="flex" alignItems="center" justifyContent="space-between" >
           {/* Breadcrumb à gauche */}
           <BreadcrumbNavigation />

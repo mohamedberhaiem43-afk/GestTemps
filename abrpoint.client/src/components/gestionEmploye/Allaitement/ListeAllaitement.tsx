@@ -237,7 +237,6 @@ export const ListAllaitement: React.FC = () => {
       <MenuItem
         key="delete"
         onClick={() => {
-          console.log('Row to delete:', row.original);
           setAllaitementToDelete({ soccod: row.original.soccod, concod: row.original.concod });
           setOpenModal(true);
           closeMenu();

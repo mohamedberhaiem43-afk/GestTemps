@@ -218,7 +218,7 @@ const kpiData: KPIData[] = useMemo(() => {
   }
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f5f7fa', minHeight: '100vh', width:'97vw' }} mt={-15}>
+    <Box sx={{ p: 3, backgroundColor: '#f5f7fa', minHeight: '100vh', width:'97vw' }} mt={-5}>
       {/* Page Title */}
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 600, color: '#333' }}>
         Tableau de Bord - Gestion du Temps

@@ -141,9 +141,6 @@ const { data, isLoading, error } = useGetDashboardData({
   date: new Date()
 });
 
-console.log('Data:', data);
-console.log('Loading:', isLoading);
-console.log('Error:', error);
 ```
 
 ### ✅ Test 3: Dashboard charge

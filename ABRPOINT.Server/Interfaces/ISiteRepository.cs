@@ -8,5 +8,6 @@ namespace ABRPOINT.Server.Interfaces
         IEnumerable<Site> GetAll(string soccod);
         Task<Dictionary<string, string>> GetSitLibs();
         Task<Dictionary<string, string>> GetSitLibs(string soccod, string uticod);
+        Task<bool> UpdateAsync(Site site);
     }
 }

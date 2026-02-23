@@ -248,10 +248,8 @@ const TitreCongeList = () => {
       };
       const logSelectedRows = () => {
         const selectedRows = table.getSelectedRowModel().flatRows.map((row) => row.original);
-        console.log('Selected Rows:', selectedRows);
     
-        selectedRows.forEach((row) => {
-          console.log(`Employee: ${row.empcod}, N° Ordre: ${row.concod}, Nb. jours: ${row.connbjour}`);
+        selectedRows.forEach((_row) => {
         });
       };
       return (

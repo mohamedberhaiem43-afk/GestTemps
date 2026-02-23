@@ -17,6 +17,7 @@
     "country": "Pays",
     "city": "Ville",
     "function": "Fonction",
+    "qualification": "Qualification",
     "rubric": "Rubrique",
     "users": "Utilisateurs",
     "accessRights": "Droit d'accées",
@@ -305,6 +306,8 @@
     "hoursWorked": "Heures Travaillées"
   },
   "common": {
+    "saving": "Enregistrement en cours...",
+    "update": "Modifier",
     "days": "Jours",
     "hours": "Heures",
     "save": "Enregistrer",
@@ -548,6 +551,7 @@
     "optimizeButton": "Optimiser le pointage"
   },
   "donneeSociete": {
+    "updated": "Société modifiée avec succès !",
     "requiredFields": "Le code et le libellé sont obligatoires !",
     "added": "Société ajoutée avec succès !",
     "addError": "Échec de l'ajout de la société. Veuillez réessayer."

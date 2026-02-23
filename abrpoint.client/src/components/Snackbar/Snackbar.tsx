@@ -17,10 +17,9 @@ export default function CustomizedSnackbars({
 }: SnackbarProps) {
 
   const handleClose = (
-    event?: React.SyntheticEvent | Event,
+    _event?: React.SyntheticEvent | Event,
     reason?: SnackbarCloseReason
   ) => {
-    console.log(event)
     if (reason === 'clickaway') return;
     if (onClose) onClose();
   };

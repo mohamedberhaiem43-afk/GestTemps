@@ -1,61 +1,62 @@
-import React, { useMemo } from 'react';
-import { MaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
-import axios from 'axios';
-import { Button } from '@mui/material';
-import { Qualification } from '../../../models/Qualification';
-
-
+import React, { useMemo } from "react";
+import { MaterialReactTable, MRT_ColumnDef } from "material-react-table";
+import { Button } from "@mui/material";
+import { Qualification } from "../../../models/Qualification";
+import useGetQualifications from "../../../hooks/QualificationHooks/useGetQualifications";
+import { Edit } from "@mui/icons-material";
 
 interface QualificationPropsList {
   onSelectQualification: (qualification: Qualification) => void;
 }
 
-export const QualificationList: React.FC<QualificationPropsList> = ({ onSelectQualification }) => {
-  const [data, setData] = React.useState<Qualification[]>([]);
-
-  // Fetch data from API
-  React.useEffect(() => {
-    // Retrieve the token from local storage
-    const token = localStorage.getItem('authToken');
-
-    // Set up the Axios request with the Authorization header
-    axios.get('https://localhost:7189/api/Qualifs', {
-      headers: {
-        Authorization: `Bearer ${token}` // Add the JWT token here
-      }
-    })
-    .then((res) => setData(res.data))
-    .catch((err) => console.error(err));
-  }, []);
+export const QualificationList: React.FC<QualificationPropsList> = ({
+  onSelectQualification,
+}) => {
+  const { data = [], isLoading } = useGetQualifications();
 
   const columns = useMemo<MRT_ColumnDef<Qualification>[]>(
     () => [
+      { accessorKey: "quacod", header: "Code", size: 80 },
+      { accessorKey: "qualib", header: "Libellé", size: 200 },
       {
-        accessorKey: 'quacod',
-        header: 'Code',
-        size: 60,
+        accessorKey: "catcod",
+        header: "S/S Irpp",
+        size: 80,
+        Cell: ({ cell }) => (cell.getValue() == 1 ? "Oui" : "Non"),
       },
       {
-        accessorKey: 'qualib',
-        header: 'Libellé',
-        size: 160,
-      },
-      {
-        accessorKey: 'quairpp',
-        header: 'S/S Irpp',
-        size: 50,
-      },
-      {
-        accessorKey: 'actions',
-        header: 'Actions',
+        id: "actions",
+        header: "Actions",
         Cell: ({ row }) => (
-          <Button onClick={() => onSelectQualification(row.original)}>Manipuler</Button>
+          <Button
+            size="small"
+            onClick={() => onSelectQualification(row.original)}
+          >
+            <Edit fontSize="small" />
+          </Button>
         ),
-        size: 100,
-      }
+      },
     ],
-    []
-  );
+    [onSelectQualification]
+  );  
 
-  return <MaterialReactTable columns={columns} data={data} />;
+  return (
+  <MaterialReactTable
+    columns={columns}
+    data={data}
+    state={{ isLoading }}
+    
+    enableColumnActions={false}
+    enableColumnFilters={false}
+    enableSorting={false}
+
+    enablePagination
+    initialState={{
+      pagination: {
+        pageIndex: 0,
+        pageSize: 5,
+      },
+    }}
+  />
+);
 };

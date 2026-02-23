@@ -143,7 +143,6 @@ export default function BasicGrid() {
         actif: combinedData.actif,
       };
 
-      console.log('Saving employee data:', employeToSave);
       
       addEmploye(employeToSave, {
         onSuccess: (res: any) => {
@@ -178,8 +177,6 @@ export default function BasicGrid() {
         empdcin: formatDate(combinedData.empdcin),
         empoptim: formatDate(combinedData.empoptim),
       };
-
-      console.log('Updating employee data:', employeToUpdate);
       
       updateEmploye(employeToUpdate, {
         onSuccess: (res: any) => {

@@ -13,7 +13,7 @@ export default function JourDeCompensation()
     return(
         <>
         <QueryClientProvider client={queryClient}>
-         <Box sx={{ flexGrow: 1 }} width={'95vw'} height={'90vh'} mt={-10}>
+         <Box sx={{ flexGrow: 1 }} width={'95vw'} height={'90vh'}>
         <BreadcrumbNavigation />
                 <Grid container >
                  <CompensationProvider>

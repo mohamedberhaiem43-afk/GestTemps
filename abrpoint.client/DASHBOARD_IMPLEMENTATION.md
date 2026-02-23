@@ -226,6 +226,5 @@ import { ReactQueryDevtools } from 'react-query/devtools';
 Afficher les erreurs console:
 ```typescript
 const { data, isLoading, error, status } = useGetDashboardData(request);
-console.log('Status:', status);
-console.log('Error:', error);
+
 ```

@@ -101,7 +101,6 @@ const Section = () => {
             value={cell.getValue() ?? ''}
             onChange={(event) => {
               const selectedType = event.target.value;
-              console.log("Selected Type:", selectedType); // Debugging line
               const rowId = cell.row.id;
               setEditedSections((prev:any) => ({
                 ...prev,

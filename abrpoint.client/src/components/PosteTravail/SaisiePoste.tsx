@@ -53,7 +53,6 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
   useEffect(() => {
     if (selectedPoste) {
       setPostes({ poste: selectedPoste });
-      console.log(postes);
       setFormData(prev => ({
         ...prev,
         codposte: selectedPoste.codposte || '',

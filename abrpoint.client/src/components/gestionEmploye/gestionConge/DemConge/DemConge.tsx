@@ -11,7 +11,7 @@ export default function  DemConge (){
 
   return (
     <QueryClientProvider client={queryClient}>
-        <Box sx={{ flexGrow: 1 }} width={'95vw'} height={'95vh'} mt={-10}>
+        <Box sx={{ flexGrow: 1 }} width={'95vw'} height={'95vh'}>
           <CongeProvider>
             <Grid item xs={12} >
                 <CongeForm />

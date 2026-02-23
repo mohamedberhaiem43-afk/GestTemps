@@ -2,6 +2,7 @@
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -84,15 +85,14 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Services/5
         [Authorize]
-        [HttpPut("{soccod}/{sitcod}")]
-        public IActionResult Put(string sitcod, [FromBody] Site site)
+        [HttpPut]
+        public async Task<IActionResult> Put([FromBody] Site site)
         {
-            if (site == null ||  sitcod != site.Sitcod)
+            if (site == null)
             {
                 return BadRequest();
             }
-
-            _siteRepository.Update(site);
+            bool result = await _siteRepository.UpdateAsync(site);
             return NoContent();
         }
 

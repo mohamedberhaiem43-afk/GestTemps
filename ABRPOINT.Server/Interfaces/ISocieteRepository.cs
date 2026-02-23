@@ -8,6 +8,7 @@ namespace ABRPOINT.Server.Interfaces
         Societe GetBySoccod(string soccod);
         Task<SocHeures> GetSocHeures(string soccod);
         Task<Dictionary<string, string>> GetSoclibs();
+        Task<bool> UpdateAsync(Societe societe);
         Task<bool> UpdateSocHeures(string soccod,string socpresence,string sochsup);
     }
 }

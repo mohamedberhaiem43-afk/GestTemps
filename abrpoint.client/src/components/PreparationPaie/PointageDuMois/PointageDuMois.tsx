@@ -63,7 +63,6 @@ const generateEtatGlobalReport = async (
 ): Promise<Blob> => {
 
   const token = localStorage.getItem('authToken');
-  console.log('Generating report with request:', request);
   const response = await axios.post(
     `${import.meta.env.VITE_REACT_APP_API_URL}/Presences/etat-global`,
     request,
@@ -393,7 +392,7 @@ const handleGenerateReportAll = async () => {
 
   // ✅ Affichage normal après chargement
   return (
-    <Box sx={{ height: '95vh' }} mt={-10} maxWidth={'95vw'} maxHeight={'100vh'}>
+    <Box sx={{ height: '95vh' }} maxWidth={'95vw'} maxHeight={'100vh'}>
       <Grid container spacing={2}>
           <BreadcrumbNavigation />
         {/* 🔹 Filtre */}

@@ -99,6 +99,34 @@ namespace ABRPOINT.Server.Repository
                 throw new Exception("",ex);
             }
         }
+
+        public async Task<bool> UpdateAsync(Site site)
+        {
+            try
+            {
+                var rowsAffected = await _dbContext.Sites
+                    .Where(s => s.Soccod == site.Soccod && s.Sitsoc == site.Sitcod)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(s => s.Sitlib, site.Sitlib)
+                        .SetProperty(s => s.Sitadr, site.Sitadr)
+                        .SetProperty(s => s.Sitpaie, site.Sitpaie)
+                        .SetProperty(s => s.Sittel, site.Sittel)
+                        .SetProperty(s => s.Sitmois, site.Sitmois)
+                        .SetProperty(s => s.Sitconge, site.Sitconge)
+                        .SetProperty(s => s.Sitcongem, site.Sitcongem)
+                        .SetProperty(s => s.Sitsanch, site.Sitsanch)
+                        .SetProperty(s => s.Sitsancm, site.Sitsancm)
+                        .SetProperty(s => s.Sitfax, site.Sitfax)
+                        .SetProperty(s => s.Sitemail, site.Sitemail)
+                    );
+
+                return rowsAffected > 0;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }
 

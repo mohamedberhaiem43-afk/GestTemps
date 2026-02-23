@@ -20,7 +20,6 @@ interface EvolutionChartProps {
 }
 
 const EvolutionChart = ({ data, isLoading }: EvolutionChartProps) => {
-  console.log('EvolutionChart data:', data);
   
   // Formater les données pour le graphique
   const formattedData = (data && Array.isArray(data))
@@ -46,7 +45,6 @@ const EvolutionChart = ({ data, isLoading }: EvolutionChartProps) => {
       .filter((item) => item !== null)
     : [];
 
-  console.log('Formatted data:', formattedData);
 
   // Tooltip personnalisé
   const CustomTooltip = ({ active, payload, label }: any) => {

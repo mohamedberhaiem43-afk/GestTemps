@@ -128,6 +128,7 @@ class ApiClient<T>{
         .put(`${this.endPoint}/${params}`)
         .then((res) => res.data);
     };
+    
     putWithManyParams = (param1: string, param2: string, param3: string, param4: string) =>{
     if (param1 && param2 && param3 && param4)
         return axiosInstance

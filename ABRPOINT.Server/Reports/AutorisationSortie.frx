@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report ScriptLanguage="CSharp" ReportInfo.Created="07/26/2025 17:45:42" ReportInfo.Modified="02/05/2026 11:40:54" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqAFHGp6KQj27H4qUwAIR20hSnyrpNtgmeY+I5zyTmYE0HuZfX1hs9fAqnt4DRtzHm6rgmUW5jqSG1QnBcPDOxCmGAUt6xdCOa+Pz3gs9EUDo42l2k0kGVESqqjpXvJYc2Q4Q6jXj0ELzxBVLjkVF4dAGrVSVPPvanKoBM7W5S2JGEKfuaCeydvS0vtQ1o2wHRPPHFVTq/xz2LV8LJZ6MMTGRkvDD1+/g/PJfeRjVAlwBSgQLABYBDLPGPH16GPkHB">
+	  <MsSqlDataConnection Name="Connection" ConnectionString="Server=DESKTOP-0NRALJP;Database=ABRPOINT;User Id=sa;Password=admin123.0;">
+    <!--<MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqAFHGp6KQj27H4qUwAIR20hSnyrpNtgmeY+I5zyTmYE0HuZfX1hs9fAqnt4DRtzHm6rgmUW5jqSG1QnBcPDOxCmGAUt6xdCOa+Pz3gs9EUDo42l2k0kGVESqqjpXvJYc2Q4Q6jXj0ELzxBVLjkVF4dAGrVSVPPvanKoBM7W5S2JGEKfuaCeydvS0vtQ1o2wHRPPHFVTq/xz2LV8LJZ6MMTGRkvDD1+/g/PJfeRjVAlwBSgQLABYBDLPGPH16GPkHB">-->
       <TableDataSource Name="Table" Alias="AutorisationSortie" DataType="System.Int32" Enabled="true" SelectCommand="select s.soclib,s.socadr,e.empmat,e.emplib,e.empfonc,a.concod,a.conmotif,a.connbjour,a.condat,a.condep,a.conret,a.conref,sit.sitlib from societe s,employe e,autoriser a,site sit&#13;&#10;where a.empcod = e.empcod and sit.sitcod = e.sitcod and s.soccod = a.soccod and a.soccod = e.soccod and s.soccod =@soccod and a.concod = @concod">
         <Column Name="soclib" DataType="System.String"/>
         <Column Name="empmat" DataType="System.String"/>

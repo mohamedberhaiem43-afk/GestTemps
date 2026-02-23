@@ -13,7 +13,7 @@ export const Allaitement: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
     <AllaitementProvider>
-      <Box sx={{ display: 'flex', flexDirection: 'column'}} height={'90vh'}width={'95vw'} mt={-10}>
+      <Box sx={{ display: 'flex', flexDirection: 'column'}} height={'90vh'}width={'95vw'}>
         <BreadcrumbNavigation />
         
         <Grid container spacing={1} >

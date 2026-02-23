@@ -13,7 +13,6 @@ const PosteDeTravailProvider = ({ children }: { children: React.ReactNode }) => 
   const [selectedPoste, setSelectedPoste] = useState<Poste | undefined>(undefined);
 
   const resetPoste = () => {
-    console.log(selectedPoste);
     setSelectedPoste(undefined);
   };
 

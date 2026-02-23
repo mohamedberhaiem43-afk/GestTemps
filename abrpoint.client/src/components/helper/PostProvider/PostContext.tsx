@@ -13,7 +13,6 @@ export const PosteProvider = ({ children }: { children: ReactNode }) => {
   const [selectedPoste, setSelectedPoste] = useState<Poste | undefined>(undefined);
 
   const resetPoste = () => {
-    console.log(selectedPoste)
     setSelectedPoste(undefined);
   };
 

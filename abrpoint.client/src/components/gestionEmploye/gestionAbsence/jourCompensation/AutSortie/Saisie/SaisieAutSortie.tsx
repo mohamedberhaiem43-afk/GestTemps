@@ -35,6 +35,7 @@ import useAddBulkSortie from "../../../../../../hooks/sortieHooks/useAddBulkSort
 import useUpdateSortie from "../../../../../../hooks/sortieHooks/useUpdateSortie";
 import useGetSortie from "../../../../../../hooks/sortieHooks/useGetSortie";
 import generateNumeroOrdre from "../../../../../helper/GenerateNumOrdre";
+import { useAuth } from "../../../../../helper/AuthProvider";
 
 interface SaisieAutSortieProps {
   type: string;
@@ -44,7 +45,7 @@ export default function SaisieAutSortie({ type }: SaisieAutSortieProps) {
   const { t } = useTranslation();
   const { selectedSortieGeneral } = useSortieGeneralContext();
   const uticod = localStorage.getItem('Uticod');
-  const soccod = sessionStorage.getItem('soccod') || '';
+  const { soccod } = useAuth();
   
   const [empcod, setEmpcod] = useState<string | null>("");
   const [concod, setConcod] = useState<string>(generateNumeroOrdre());

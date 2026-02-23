@@ -35,8 +35,7 @@ const handleUpload = async () => {
     formData.append("file", selectedImage);
 
     try {
-      const response = await uploadLogo(formData);
-      console.log("Upload successful:", response);
+      await uploadLogo(formData);
       // Optionally notify user or update UI
     } catch (error) {
       console.error("Upload failed:", error);

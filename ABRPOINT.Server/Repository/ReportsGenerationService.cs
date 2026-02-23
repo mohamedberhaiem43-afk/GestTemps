@@ -1,6 +1,5 @@
 ﻿using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
-using Azure.Core;
 using FastReport;
 using FastReport.Data;
 using FastReport.Export.PdfSimple;
@@ -25,18 +24,22 @@ namespace ABRPOINT.Server.Repository
             var connectionString = $"Server={dbHost};Database={dbName};User Id={dbUser};Password={dbPassword};TrustServerCertificate=True;";
             _sqlConnection = new MsSqlDataConnection { ConnectionString = connectionString };
         }
-
         private Report CreateReport(string reportFilePath)
         {
             try
             {
                 var report = new Report();
-
-                // Ajouter la connexion construite à partir des variables d'env
-                report.Dictionary.Connections.Add(_sqlConnection);
-
-                // Charger le rapport
                 report.Load(reportFilePath);
+
+                // Remplacer la connexion sur toutes les connexions déclarées dans le .frx
+                foreach (DataConnectionBase conn in report.Dictionary.Connections)
+                {
+                    if (conn is MsSqlDataConnection sqlConn)
+                    {
+                        sqlConn.ConnectionString = _sqlConnection.ConnectionString;
+                        sqlConn.Enabled = true;
+                    }
+                }
 
                 return report;
             }
@@ -44,9 +47,7 @@ namespace ABRPOINT.Server.Repository
             {
                 throw;
             }
-
         }
-
         public byte[] GenerateCahierCongeReport(string soccod, DateTime? datedebut,DateTime? datefin,List<string>empcods)
         {
             try
@@ -370,5 +371,6 @@ namespace ABRPOINT.Server.Repository
             report.Export(new PDFSimpleExport(), ms);
             return ms.ToArray();
         }
+    
     }
 }

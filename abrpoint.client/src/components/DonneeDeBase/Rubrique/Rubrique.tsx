@@ -12,7 +12,7 @@ function Rubrique() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Container style={{minWidth:'90vw',height:'90vh',marginTop:'-50px'}} >
+            <Container style={{minWidth:'90vw',height:'90vh',marginTop:'-20px'}} >
                 <BreadcrumbNavigation />
                 <Box>
                     <RubriqueForm 

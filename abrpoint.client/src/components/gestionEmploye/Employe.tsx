@@ -7,7 +7,7 @@ import BreadcrumbNavigation from '../helper/BreadcrumbNavigation'
 function Employe() {
 
   return (
-    <Box  overflow={'hidden'} mt={-10}>
+    <Box  overflow={'hidden'} mt={-5}>
       <BreadcrumbNavigation />
       <EmployeeProvider>
           <BasicGrid />

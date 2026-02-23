@@ -1,9 +1,9 @@
 ﻿using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
-using FastReport;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -99,15 +99,17 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Services/5
         [Authorize]
-        [HttpPut("{soccod}")]
-        public IActionResult Put(string soccod, [FromBody] Societe societe)
+        [HttpPut]
+        public async Task<IActionResult> Put([FromBody] Societe societe)
         {
-            if (societe == null || soccod != societe.Soccod)
-            {
-                return BadRequest();
-            }
+            if (societe == null)
+                return BadRequest("Données invalides.");
 
-            _societeRepository.Update(societe);
+            bool result = await _societeRepository.UpdateAsync(societe);
+
+            if (!result)
+                return NotFound($"Société avec le code '{societe.Soccod}' introuvable.");
+
             return NoContent();
         }
 

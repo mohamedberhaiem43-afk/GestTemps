@@ -137,15 +137,7 @@ npm run dev
 Ouvrir les DevTools (F12) et dans la console:
 
 ```javascript
-// Test 1: Vérifier la configuration
-console.log('API URL:', import.meta.env.VITE_REACT_APP_API_URL);
 
-// Test 2: Vérifier le token
-console.log('Token:', localStorage.getItem('authToken'));
-
-// Test 3: Vérifier le soccod
-console.log('Soccod:', localStorage.getItem('soccod'));
-```
 
 ### Étape 4.3: Naviguer au dashboard
 

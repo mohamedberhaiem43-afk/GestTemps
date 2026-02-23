@@ -71,7 +71,6 @@ export default function PointeusesList({
             const selectedRows = table.getSelectedRowModel().flatRows;
             const ipList = selectedRows.map((r) => buildIp(r.original));
 
-            console.log("👉 Selected IPs on Refresh:", ipList);
 
             if (onSelectionChange) {
               onSelectionChange(ipList);

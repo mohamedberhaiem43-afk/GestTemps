@@ -78,13 +78,11 @@ localStorage.setItem('soccod', 'CODE_SOCIETE');
 ```
 Solution: Vérifiez le token d'authentification
 const token = localStorage.getItem('authToken');
-console.log('Token:', token);
 ```
 
 ### Données non chargées
 ```
 Solution: Vérifiez l'URL de l'API
-console.log('API URL:', import.meta.env.VITE_REACT_APP_API_URL);
 ```
 
 ### Erreur CORS

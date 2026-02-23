@@ -2,6 +2,7 @@
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -20,10 +21,10 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // GET: api/Services
-        [HttpGet]
-        public IEnumerable<Qualif> Get()
+        [HttpGet("{soccod}")]
+        public async Task<IEnumerable<Qualif>> GetAll(string soccod)
         {
-            return _qualifRepository.GetAll();
+            return await _qualifRepository.GetAllAsync(soccod);
         }
 
         [HttpGet("get-qualibs/{soccod}")]
@@ -59,20 +60,19 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Services/5
         [HttpPut("{soccod}/{quacod}")]
-        public IActionResult Put(string quacod, [FromBody] Qualif qualif)
+        public async Task<IActionResult> Put(string soccod, string quacod, [FromBody] Qualif qualif)
         {
             if (qualif == null || quacod != qualif.Quacod)
             {
                 return BadRequest();
             }
 
-            _qualifRepository.Update(qualif);
+            var result = await _qualifRepository.UpdateAsync(qualif);
             return NoContent();
         }
 
         // DELETE api/Services/{seccod}
         [HttpDelete("{soccod}/{quacod}")]
-
         public IActionResult Delete(string quacod)
         {
             Qualif qualif = _qualifRepository.GetByQuafcod(quacod);

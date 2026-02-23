@@ -14,7 +14,7 @@ export default function EtatAbsence() {
     const queryClient = new QueryClient();
     return (
         <QueryClientProvider client={queryClient}>
-            <Box width={"97vw"} height={'90vh'} sx={{ flexGrow: 1 }} mt={-10}>
+            <Box width={"97vw"} height={'90vh'} sx={{ flexGrow: 1 }}>
                     <BreadcrumbNavigation />
                 <Grid container spacing={2}>
                     <EmployeeProvider>

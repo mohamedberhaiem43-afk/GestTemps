@@ -17,7 +17,7 @@ export default function EtatPeriodique() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Box width={"95vw"} height={'95vh'} sx={{ flexGrow: 1 }} mt={-10} >
+            <Box width={"95vw"} height={'95vh'} sx={{ flexGrow: 1 }} >
                     <BreadcrumbNavigation />
                 <Grid container spacing={1}>
                     <DateRangeProvider>

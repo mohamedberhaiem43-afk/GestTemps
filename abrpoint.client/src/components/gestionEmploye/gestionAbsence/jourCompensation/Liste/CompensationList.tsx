@@ -41,9 +41,7 @@ const getCompensationToUpdate = (concod: string) => {
       return matches;
     }
   );
-  
-  console.log('Selected compensation:', selectedCompensation);
-  
+    
   if (selectedCompensation) {
     setSelectedCompensation(selectedCompensation);
   } else {
