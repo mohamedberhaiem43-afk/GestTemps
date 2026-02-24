@@ -86,8 +86,6 @@ namespace ABRPOINT.Server.Repository
             {
                 PresenceDto? presenceDto = null;
                 string formattedEmpcod = await FormatEmpcodCached(soccod, empcod);
-                date = date.Date.Add(TimeSpan.Parse("13:00:00"));
-
                 var emp = await _employeRepository.GetByEmpcod(soccod, formattedEmpcod);
                 if (emp == null)
                     return null;
@@ -607,7 +605,7 @@ namespace ABRPOINT.Server.Repository
                 var poicods = await _dmpointRepository.GetPoicodBatch(soccod, empcod, dateDeb, dateFin);
 
                 // 4️⃣ Construire un dictionnaire pour lookup rapide
-                var presenceDict = presenceList.ToDictionary(p => p.Dmdate.Value.Date);
+                var presenceDict = presenceList.ToDictionary(p => p.Predat.Value.Date);
 
                 var allDates = new List<PresenceDto>();
 
@@ -767,7 +765,7 @@ namespace ABRPOINT.Server.Repository
                                 TimeSpan.TryParse(presence.Tothre, out TimeSpan tothre))
                             {
                                 totalTime = tothre.Add(tothsup);
-                                presence.Tothre = $"{(int)totalTime.TotalHours:D2}:{totalTime.Minutes:D2}";
+                                //presence.Tothre = $"{(int)totalTime.TotalHours:D2}:{totalTime.Minutes:D2}";
                             }
                         }
 
@@ -776,7 +774,7 @@ namespace ABRPOINT.Server.Repository
                             if (TimeSpan.TryParse(presence.Tothre, out TimeSpan tothreActuel))
                             {
                                 totalTime = tothreActuel.Add(TimeSpan.FromHours(presence.Totcmp.Value));
-                                presence.Tothre = $"{(int)totalTime.TotalHours:D2}:{totalTime.Minutes:D2}";
+                                //presence.Tothre = $"{(int)totalTime.TotalHours:D2}:{totalTime.Minutes:D2}";
                             }
                         }
                         presence.Jour += (float)GenericMethodes.journeeTime((float)totalTime.TotalHours, empparam);

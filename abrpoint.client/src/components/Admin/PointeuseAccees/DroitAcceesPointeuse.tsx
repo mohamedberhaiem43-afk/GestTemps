@@ -8,6 +8,7 @@ import { User } from "../../../models/Utilisateur";
 import PointeuseAccees from "./PointeuseAccees";
 import Poidroit, { UpdatePoidroit } from "../../../models/Poidroit";
 import useUpdatePointdroit from "../../../hooks/pointeuseHooks/useUpdatePointroits";
+import { useAuth } from "../../helper/AuthProvider";
 
 export default function DroitAccessPointeuse() {
   const queryClient = new QueryClient();
@@ -28,11 +29,11 @@ export default function DroitAccessPointeuse() {
 
 const handleUpdate = () => {
   if (userData && userPermissions.length > 0) {
-    const soccod = sessionStorage.getItem("soccod") ?? "";
+    const { soccod } = useAuth()
 
     // Prepare the list of Pointdroits to send
     const payload: UpdatePoidroit[] = userPermissions.map((perm) => ({
-      soccod,
+      soccod:soccod|| "",
       uticod: userData.uticod ?? "",
       poicod: perm.poicod ?? "",
       lire: perm.lire,

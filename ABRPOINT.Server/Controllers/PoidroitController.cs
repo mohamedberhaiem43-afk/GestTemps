@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +8,7 @@ namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Admin]
     public class PoidroitController : ControllerBase
     {
         private readonly IPointdroitRepository _pointdroitRepository;

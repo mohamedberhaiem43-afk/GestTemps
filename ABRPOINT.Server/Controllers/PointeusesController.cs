@@ -1,4 +1,6 @@
 ﻿using ABRPOINT.Helper;
+using ABRPOINT.Server.Annotations.FerierAttributes;
+using ABRPOINT.Server.Annotations.PointeuseAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -53,8 +55,31 @@ namespace ABRPOINT.Server.Controllers
             }
             return Ok(results);
         }
+        [HttpPost("receive-log")]
+        public async Task<IActionResult> ReceiveLog([FromBody] LogEntry log)
+        {
+            try
+            {
+                // Map device IP to your internal code
+                string poicod = await _pointeuseRepository.GetByIp(log.Soccod, log.Ip);
 
+                // Save presence
+                await _presenceRepository.AddPresence(
+                    log.Soccod,
+                    log.Employe_code,
+                    log.Time,
+                    poicod
+                );
+
+                return Ok($"Saved {log.Employe_code} from {log.Ip} at {log.Time}");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex.Message}");
+            }
+        }
         [HttpPost("purger")]
+        [CanPurgePointeuse]
         public async Task<IActionResult> PurgerPointeuse([FromQuery] string soccod, [FromQuery] string poicod, [FromQuery] string ip, [FromQuery] int port = 4370, [FromQuery] int pswd = 123456)
         {
             try
@@ -111,6 +136,7 @@ namespace ABRPOINT.Server.Controllers
 
         // GET: api/Pointeuse
         [HttpGet("{soccod}")]
+        [CanGetPointeuse]
         public async Task<ActionResult<IEnumerable<Pointeuse>>> GetAll(string soccod)
         {
             try
@@ -155,6 +181,7 @@ namespace ABRPOINT.Server.Controllers
 
         // GET: api/Pointeuse/{poicod}/{soccod}
         [HttpGet("{poicod}/{soccod}")]
+        [CanGetPointeuse]
         public ActionResult<Pointeuse> Get(string poicod, string soccod)
         {
             var pointeuse = _pointeuseRepository.GetById(poicod, soccod);
@@ -168,6 +195,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST: api/Pointeuse
         [HttpPost]
+        [CanAddPointeuse]
         public async Task<ActionResult<Pointeuse>> Create(Pointeuse pointeuse)
         {
             if (pointeuse == null)
@@ -189,6 +217,7 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT: api/Pointeuse/{poicod}/{soccod}
         [HttpPut("{poicod}/{soccod}")]
+        [CanUpdatePointeuse]
         public async Task<IActionResult> Update(string poicod, string soccod, Pointeuse pointeuse)
         {
             if (poicod != pointeuse.Poicod || soccod != pointeuse.Soccod)
@@ -202,6 +231,7 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE: api/Pointeuse/{poicod}/{soccod}
         [HttpDelete("{soccod}/{poicod}")]
+        [CanDeletePointeuse]
         public async Task<IActionResult> Delete(string poicod, string soccod)
         {
             try
@@ -222,47 +252,4 @@ namespace ABRPOINT.Server.Controllers
         }
     }
 }
-/*
- 
 
-using System;
-using zkemkeeper;
-
-class Program
-{
-    static void Main(string[] args)
-    {
-        CZKEM axCZKEM1 = new CZKEM();
-        
-        // Connexion à la pointeuse
-        bool bIsConnected = axCZKEM1.Connect_Net("192.168.1.201", 4370);
-        
-        if (bIsConnected)
-        {
-            Console.WriteLine("Connexion réussie !");
-            
-            // Lire les logs d'entrée/sortie
-            int dwEnrollNumber = 0;
-            int dwVerifyMode = 0;
-            int dwInOutMode = 0;
-            int dwWorkCode = 0;
-            
-            axCZKEM1.ReadGeneralLogData();
-            while (axCZKEM1.SSR_GetGeneralLogData(ref dwEnrollNumber, ref dwVerifyMode, ref dwInOutMode, ref dwWorkCode))
-            {
-                Console.WriteLine($"Employé {dwEnrollNumber}, Mode de vérification {dwVerifyMode}, Mode d'entrée/sortie {dwInOutMode}, Code de travail {dwWorkCode}");
-            }
-        }
-        else
-        {
-            Console.WriteLine("Échec de la connexion à la pointeuse.");
-        }
-
-        // Déconnexion
-        axCZKEM1.Disconnect();
-    }
-}
- 
-
- 
- */

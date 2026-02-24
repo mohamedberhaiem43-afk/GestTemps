@@ -1,15 +1,16 @@
-﻿using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [Admin]
     public class ParametresController : ControllerBase
     {
         private readonly IParametreRepository _parametreRepository;
