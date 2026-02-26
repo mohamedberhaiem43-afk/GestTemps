@@ -8,6 +8,7 @@ interface InputComponentProps {
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   name?: string;
   readOnly?: boolean;
+  required?: boolean;
 }
 
 export default function InputComponent({
@@ -17,13 +18,14 @@ export default function InputComponent({
   setValue,
   onChange,
   name,
-  readOnly = false
+  readOnly = false,
+  required = false
 }: InputComponentProps): JSX.Element {
   return (
     <>
       <InputLabel shrink>{label}</InputLabel>
       <Input
-        required
+        required={required}
         size="small"
         type={type}
         name={name}

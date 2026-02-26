@@ -25,6 +25,9 @@ import type {
 import { t } from 'i18next';
 import InputComponent from '../../Inputs/Input';
 import useUpdateCompensation from '../../../hooks/presenceHooks/useUpdateComponsation';
+import useGetSanctionDate from '../../../hooks/sanctionHooks/useGetSanctionDate';
+import { Sanction } from '../../../models/Sanction';
+import useUpdateSanction from '../../../hooks/sanctionHooks/useUpdateSanction';
 
 
 
@@ -35,13 +38,60 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const { soccod } = useAuth();
   const { t } = useTranslation();
   const [totcmpValue, setTotcmpValue] = useState<number | ''>('');
+// In Example component
+const [sanctionData, setSanctionData] = useState<Sanction | null>(null);
 
+const { mutate: updateSanction } = useUpdateSanction();
+
+const handleOpenSanctionDialog = (row: EmpEtat, value: string) => {
+  const empcod = row.empcod;
+  const date = row.predat;
+
+  if (empcod && date) {
+    setSelectedRow(row);
+    setSanctionData(null);
+    setDialogOpen(false); // ensure closed while fetching
+
+    const motif = value.toLowerCase().includes('cong') ? 'conge' : 'absence';
+    setMotif(motif); // set motif early so it's ready
+
+    setFetchSanctionParams({ date, empcod });
+    // ❌ Remove: handleOpenDialog(row, motif)
+  }
+};
   const formatDateToLocalISO = (date: Date): string => {
     const tzOffset = date.getTimezoneOffset() * 60000;
     const localISODate = new Date(date.getTime() - tzOffset).toISOString().slice(0, -1);
     return localISODate;
   };
+  const [fetchSanctionParams, setFetchSanctionParams] = useState<{
+  date: string; empcod: string;
+} | null>(null);
 
+
+const { data: fetchedSanction } = useGetSanctionDate(
+  fetchSanctionParams?.date ?? '',
+  fetchSanctionParams?.empcod ?? '',
+);
+  // Quand la donnée arrive, ouvrir le bon dialog
+  useEffect(() => {
+  // Guard: only run when we actually triggered a fetch
+  if (!fetchSanctionParams) return;
+  
+  // Wait until query has resolved (not undefined)
+  if (fetchedSanction === undefined) return;
+
+  setSanctionData(fetchedSanction ?? null);
+
+  if (fetchedSanction?.abscod) {
+    setMotif('absence');
+  } else {
+    setMotif('conge');
+  }
+
+  setDialogOpen(true);
+  setFetchSanctionParams(null); // Reset AFTER opening dialog
+}, [fetchedSanction, fetchSanctionParams]);  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<EmpEtat | null>(null);
   const [motif, setMotif] = useState<string>('');
@@ -97,6 +147,7 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
     setMotif('');
     setSelectedRow(null);
     setTotcmpValue('');
+    setSanctionData(null);
   };
 
 
@@ -289,11 +340,10 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
               cursor: hasValue ? 'pointer' : 'default',
             }}
             onDoubleClick={() => {
-              if (hasValue) {
-                // Open dialog with Congé option when double-clicking etat cell
-                handleOpenDialog(row.original, 'conge');
-              }
-            }} 
+            if (hasValue) {
+              handleOpenSanctionDialog(row.original, value);
+            }
+          }}
           >
             {value}
           </Box>
@@ -472,8 +522,21 @@ const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
 
             </Select>
           </FormControl>
-          {motif === 'absence' && <SaisieAbsence empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
-          {motif === 'conge' && <SaisieConge empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} />}
+          {motif === 'absence' && (
+          <SaisieAbsence empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} initialData={sanctionData}
+            onSubmit={(data:any) => {
+              updateSanction(data, {
+                onSuccess: () => {
+                  handleCloseDialog();
+                },
+              });
+            }}
+          />
+        )}
+        {motif === 'conge' && (
+          <SaisieConge empcod={selectedRow?.empcod || ''} date={selectedRow?.predat || ''} 
+          />
+        )}
           {motif === 'autorisation' && <SaisieAutorisation date={selectedRow?.predat} empcod={selectedRow?.empcod || ''} />}
           {motif === 'compensation' && (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 3 }}>

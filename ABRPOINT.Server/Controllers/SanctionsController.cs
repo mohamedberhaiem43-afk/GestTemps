@@ -1,8 +1,10 @@
 ﻿using ABRPOINT.Server.Annotations.AbsenceAttributes;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -45,6 +47,20 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500);
             }
         }
+        [HttpGet("get-date-sanction/{soccod}/{date}/{empcod}")]
+        [CanGetSanction]
+        public async Task<Sanction?> GetSanctionDate(string soccod,DateTime? date,string empcod)
+        {
+            try
+            {
+                Sanction? sanction = await _sanctionRepository.GetSanctionDate(soccod,date,empcod);
+                return sanction;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
 
 
         // POST api/<DirectionsController>
@@ -70,13 +86,13 @@ namespace ABRPOINT.Server.Controllers
         // PUT api/<DirectionsController>/5
         [HttpPut]
         [CanUpdateSanction]
-        public IActionResult Put([FromBody] Sanction sanction)
+        public async Task<IActionResult> Put([FromBody] Sanction sanction)
         {
             if (sanction == null)
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                _sanctionRepository.Update(sanction);
+                await _sanctionRepository.UpdateAsync(sanction);
                 return Ok("sanction modifiée avec sucées");
             }
             catch (Exception)

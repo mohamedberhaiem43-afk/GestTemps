@@ -1,5 +1,6 @@
 export default interface EmpEtat {
   jour: string;
+  concod: string;
   poicod: string;
   tothsup: string;
   arrhsup: number;

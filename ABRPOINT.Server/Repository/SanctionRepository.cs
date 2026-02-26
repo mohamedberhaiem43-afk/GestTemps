@@ -17,7 +17,7 @@ namespace ABRPOINT.Server.Repository
             _dbContext = dbContext;
             _employeRepository = employeRepository;
             _parametreRepository = parametreRepository;
-        }
+        }   
         public void Add(Sanction sanction)
         {
             try
@@ -144,18 +144,37 @@ namespace ABRPOINT.Server.Repository
             
         }
 
-        public void Update(Sanction sanction)
+
+        public async Task UpdateAsync(Sanction sanction)
         {
             if (sanction != null)
             {
-                _dbContext.Sanctions.Update(sanction);
-                _dbContext.SaveChanges();
+                // Normalize dates to midnight to strip timezone noise
+                if (sanction.Condat.HasValue)
+                    sanction.Condat = sanction.Condat.Value.Date;
+                if (sanction.Condep.HasValue)
+                    sanction.Condep = sanction.Condep.Value.Date;
+                if (sanction.Conret.HasValue)
+                    sanction.Conret = sanction.Conret.Value.Date;
+
+                var exist = await _dbContext.Sanctions
+                    .Where(s => s.Concod == sanction.Concod
+                             && s.Empcod == sanction.Empcod
+                             && s.Soccod == sanction.Soccod)
+                    .AnyAsync();
+
+                if (!exist)
+                    await _dbContext.Sanctions.AddAsync(sanction);
+                else
+                    _dbContext.Sanctions.Update(sanction);
+
+                await _dbContext.SaveChangesAsync();
             }
         }
-        
-        public async Task<Dictionary<(string Empcod, DateTime Date), string>> GetAbsenceLibBatch(string soccod,string empcod,DateTime dateDeb,DateTime dateFin)
+
+        public async Task<List<SanctionRangeDto>> GetAbsenceLibBatch(string soccod, string empcod, DateTime dateDeb, DateTime dateFin)
         {
-            var result = await (
+            return await (
                 from s in _dbContext.Sanctions
                 join a in _dbContext.Absences
                     on new { s.Soccod, s.Abscod } equals new { a.Soccod, a.Abscod }
@@ -163,20 +182,18 @@ namespace ABRPOINT.Server.Repository
                     && s.Empcod == empcod
                     && s.Condep <= dateFin
                     && s.Conret >= dateDeb
-                select new
+                select new SanctionRangeDto
                 {
-                    s.Empcod,
-                    s.Condep,
-                    s.Conret,
-                    a.Abslib
+                    Empcod = s.Empcod,
+                    Condep = s.Condep.Value,
+                    Conret = s.Conret.Value,
+                    Conamdep = s.Conamdep,
+                    Conamret = s.Conamret,
+                    Abslib = a.Abslib
                 })
                 .ToListAsync();
-
-            return result.ToDictionary(
-                x => (x.Empcod, x.Condep.Value.Date),
-                x => x.Abslib
-            );
         }
+
 
         public async Task<string?> GetAbsenceLib(string? soccod, string? empcod, DateTime dmdate)
         {
@@ -327,6 +344,34 @@ namespace ABRPOINT.Server.Repository
             return false;
         }
         public Task<bool> IsSanction(string soccod, string? empcod, DateTime? predat)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<Sanction?> GetSanctionDate(string soccod, DateTime? date, string empcod)
+        {
+            try
+            {
+                var sanction = await _dbContext.Sanctions
+                    .Where(s => s.Soccod == soccod
+                             && s.Empcod == empcod
+                             && s.Condep <= date
+                             && (
+                                 s.Conamret == "1"
+                                     ? s.Conret >= date   // afternoon return → include the return date
+                                     : s.Conret > date    // morning return → exclude the return date
+                                ))
+                    .FirstOrDefaultAsync();
+
+                return sanction;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public void Update(Sanction entity)
         {
             throw new NotImplementedException();
         }

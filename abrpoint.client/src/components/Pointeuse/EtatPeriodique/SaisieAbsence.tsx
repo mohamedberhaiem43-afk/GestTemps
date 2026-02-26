@@ -7,204 +7,341 @@ import {
   Snackbar,
 } from '@mui/material';
 import SaveIcon from "@mui/icons-material/Save";
-import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent'
-import InputComponent from '../../Inputs/Input'
-import RadioGroupComponent, { FormControlLabelComponent } from '../../RadioGroupComponent/RadioGroupComponent'
-import SelectInputComponent from '../../SelectInputComponent/SelectInputComponent'
-import useGetAbsencesLibs from '../../../hooks/absenceHooks/useGetAbsenceLibs'
-import {useEffect, useState } from 'react'
+import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
+import InputComponent from '../../Inputs/Input';
+import RadioGroupComponent, {
+  FormControlLabelComponent,
+} from '../../RadioGroupComponent/RadioGroupComponent';
+import SelectInputComponent from '../../SelectInputComponent/SelectInputComponent';
+import useGetAbsencesLibs from '../../../hooks/absenceHooks/useGetAbsenceLibs';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useAddSanction from '../../../hooks/sanctionHooks/useAddSanction';
 import { Sanction } from '../../../models/Sanction';
 import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 import { useAuth } from '../../helper/AuthProvider';
 
-function SaisieAbsence({empcod,date}: { empcod: string, date: string }) {
-      
-  const { t } = useTranslation();
-  const [concod, setOrdre] = useState(generateNumeroOrdre());
-  const [condat, setDate] = useState(() => {
-  const tomorrow = new Date(date);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString();
-});
-  const [conref, setReference] = useState('');
-const [condep, setDateDepart] = useState(() => {
-  const tomorrow = new Date(date);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString();
-});  
-  const [conamdep, setApresMidiDepart] = useState(false);
-  const [conret, setDateReprise] = useState(() => {
-    const tomorrow = new Date(date);
-    tomorrow.setDate(tomorrow.getDate() + 2);
-    return tomorrow.toISOString();
-  });
-      const { soccod } = useAuth();
-      const [conamret, setApresMidiReprise] = useState(false);
-      const [conjour, setTimePeriod] = useState('J');
-      const [abscod, setAbscod] = useState('');
-      const [connbjour, setConnbjour] = useState(0); // State for the number of days
-      const {data:absences = []} = useGetAbsencesLibs();
-      const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
-      const [message, setMessage] = useState<string | null>(null);
-      const [severity, setSeverity] = useState<'success' | 'error'>('success');
-      const { mutate } = useAddSanction();
+interface Props {
+  empcod: string;
+  date: string;
+  initialData?: Sanction | null;
+  onSubmit?: (data: Sanction) => void;
+}
 
-  // Initialize the form with the employee code and date
-        const handleSubmit = (event: any) => {
-    event.preventDefault();
-    const sanctionData : Sanction = {
-      soccod: soccod,
-      empcod,
-      concod,
-      condat: condat ? new Date(condat) : undefined,
-      conref,
-      condep: condep ? new Date(condep) : undefined,
-      conamdep: conamdep ? '1' : '0',
-      conret: conret ? new Date(conret) : undefined,
-      conamret: conamret ? '1' : '0',
-      connbjour,
-      conjour,
-      abscod,
-    };
-    if(sanctionData.consanc){
-      // Send a POST request to insert the sanction data
-      mutate(sanctionData,{
-        onSuccess() {
-          handleSnackbarOpening(t('sanction.addSuccess'),'success');
-          //resetForm();
-        },
-        onError() {
-          handleSnackbarOpening(t('sanction.addError'),'error');
-        },
-      })
-    }else{
-      handleSnackbarOpening(t('sanction.fillImputation'),'error');
+function SaisieAbsence({ empcod, date, initialData, onSubmit }: Props) {
+  const { t } = useTranslation();
+  const { soccod } = useAuth();
+  const { data: absences = [] } = useGetAbsencesLibs();
+  const { mutate } = useAddSanction();
+
+  /* ========================
+     INITIAL HELPERS
+  ======================== */
+
+  const initDateWithOffset = (offset: number) => {
+    const d = new Date(date);
+    d.setDate(d.getDate() + offset);
+    return d.toISOString();
+  };
+
+  /* ========================
+     STATES
+  ======================== */
+
+  const [concod, setOrdre] = useState(
+    initialData?.concod ?? generateNumeroOrdre()
+  );
+
+  const [condat, setDate] = useState(
+    initialData?.condat
+      ? new Date(initialData.condat).toISOString()
+      : initDateWithOffset(1)
+  );
+
+  const [conref, setReference] = useState(initialData?.conref ?? '');
+
+  const [condep, setDateDepart] = useState(
+    initialData?.condep
+      ? new Date(initialData.condep).toISOString()
+      : initDateWithOffset(1)
+  );
+
+  const [conret, setDateReprise] = useState(
+    initialData?.conret
+      ? new Date(initialData.conret).toISOString()
+      : initDateWithOffset(2)
+  );
+
+  const [conamdep, setApresMidiDepart] = useState(
+    initialData?.conamdep === '1'
+  );
+  const [conamret, setApresMidiReprise] = useState(
+    initialData?.conamret === '1'
+  );
+  const [conjour, setTimePeriod] = useState(initialData?.conjour ?? 'J');
+  const [abscod, setAbscod] = useState(initialData?.abscod ?? '');
+  const [connbjour, setConnbjour] = useState(0);
+
+  const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [severity, setSeverity] = useState<'success' | 'error'>('success');
+
+  /* ========================
+     EFFECTS
+  ======================== */
+
+  useEffect(() => {
+    if (initialData) {
+      setOrdre(initialData.concod || '');
+      setReference(initialData.conref ?? '');
+      setAbscod(initialData.abscod ?? '');
+      setTimePeriod(initialData.conjour ?? 'J');
+      setApresMidiDepart(initialData.conamdep === '1');
+      setApresMidiReprise(initialData.conamret === '1');
     }
-    
+  }, [initialData]);
+
+  // Calcul inclusif des jours
+useEffect(() => {
+  if (!condep || !conret) return;
+
+  const start = new Date(condep);
+  const end = new Date(conret);
+
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  if (end < start) {
+    setConnbjour(0);
+    return;
   }
-  const handleSnackbarOpening = (message: string, severity: 'success' | 'error') => {
-    setMessage(message);
-    setSeverity(severity);
+
+  const diff = end.getTime() - start.getTime();
+  let days = Math.floor(diff / (1000 * 3600 * 24));
+
+  // If departure is in the afternoon, subtract half a day
+  if (conamdep) days -= 0.5;
+
+  // If return is in the morning (not afternoon), add half a day
+  if (conamret) days += 0.5;
+
+  setConnbjour(Math.max(0, days));
+}, [condep, conret, conamdep, conamret]);
+
+  /* ========================
+     HANDLERS
+  ======================== */
+
+  const handleSnackbarOpening = (
+    msg: string,
+    sev: 'success' | 'error'
+  ) => {
+    setMessage(msg);
+    setSeverity(sev);
     setIsSnackbarOpen(true);
   };
-    function handleSnackbarClose(): void {
-        setIsSnackbarOpen(false);
-    }
-  useEffect(() => {
-  if (condep && conret) {
-    const startDate = new Date(condep);
-    const endDate = new Date(conret);
-    const timeDiff = endDate.getTime() - startDate.getTime();
-    const dayDiff = timeDiff / (1000 * 3600 * 24); // Convert milliseconds to days
-    setConnbjour(dayDiff >= 0 ? dayDiff : 0); // Ensure it's not negative and include both start and end days
+
+  const handleSubmit = (event: React.FormEvent) => {
+  event.preventDefault();
+
+  if (!abscod) {
+    handleSnackbarOpening(t('sanction.fillImputation'), 'error');
+    return;
   }
-}, [condep, conret]);
-    function resetForm(event: React.MouseEvent<HTMLButtonElement>): void {
-        event?.preventDefault();
-        setOrdre(generateNumeroOrdre());
-        // setDate('');
-        setReference('');
-        // setDateDepart('');
-        setApresMidiDepart(false);
-        // setDateReprise('');
-        setApresMidiReprise(false);
-        setTimePeriod('J');
-        setAbscod('');
-    }
-    
+
+  if (new Date(conret) < new Date(condep)) {
+    handleSnackbarOpening(t('sanction.invalidDates'), 'error');
+    return;
+  }
+
+  const sanctionData: Sanction = {
+    soccod,
+    empcod,
+    concod,
+    condat: condat ? new Date(condat) : undefined,
+    conref,
+    condep: condep ? new Date(condep) : undefined,
+    conamdep: conamdep ? '1' : '0',
+    conret: conret ? new Date(conret) : undefined,
+    conamret: conamret ? '1' : '0',
+    connbjour,
+    conjour,
+    abscod,
+    consanc: 'N',
+  };
+
+  if (onSubmit) {
+    onSubmit(sanctionData);
+    return;
+  }
+
+  mutate(sanctionData, {
+    onSuccess() {
+      handleSnackbarOpening(t('sanction.addSuccess'), 'success');
+      resetForm();
+    },
+    onError() {
+      handleSnackbarOpening(t('sanction.addError'), 'error');
+    },
+  });
+};
+
+  const resetForm = () => {
+    setOrdre(generateNumeroOrdre());
+    setReference('');
+    setApresMidiDepart(false);
+    setApresMidiReprise(false);
+    setTimePeriod('J');
+    setAbscod('');
+  };
+
+  /* ========================
+     RENDER
+  ======================== */
 
   return (
-      <Box component="form" sx={{ maxWidth: 1200, mx: 'auto', p: 1 }} onSubmit={handleSubmit}>
+    <Box
+      component="form"
+      sx={{ maxWidth: 1200, mx: 'auto', p: 1 }}
+      onSubmit={handleSubmit}
+    >
       <Grid container spacing={1.5}>
 
-        {/* N° Ordre */}
-        <Grid item xs={1} sm={1}>
-          <InputComponent type='text' label={t('common.orderNumber')} value={concod} setValue={setOrdre} />
+        <Grid item xs={1}>
+          <InputComponent
+            type="text"
+            label={t('common.orderNumber')}
+            value={concod}
+            setValue={setOrdre}
+          />
         </Grid>
 
-        {/* Date (as TextField) */}
-        <Grid item xs={1.5} sm={2}>
+        <Grid item xs={2}>
           <InputComponent
             label={t('common.date')}
             type="date"
-            value={condat.split('T')[0]}
+            value={condat ? condat.split('T')[0] : ''}
             setValue={setDate}
-            />
+          />
         </Grid>
 
-        {/* Réf */}
         <Grid item xs={1}>
-          <InputComponent type='text' label={t('common.ref')} value={conref} setValue={setReference} />
-        </Grid>
-
-        {/* Date Départ (as TextField) */}
-        <Grid item xs={1.5} sm={2}>
           <InputComponent
-                      label={t('common.dateStart')}
-                      type="date"
-                      value={condep.split('T')[0]}
-                      setValue={setDateDepart}
+            type="text"
+            label={t('common.ref')}
+            value={conref}
+            setValue={setReference}
+            required={false}
           />
         </Grid>
 
-        {/* Checkbox Après-Midi (Date Départ) */}
-        <Grid item xs={1.5} sm={1.5} mt={2}>
-          <CheckboxComponent label={t('common.afternoon')} value={conamdep} setValue={setApresMidiDepart} />
-        </Grid>
-
-        {/* Date Reprise (as TextField) */}
-        <Grid item xs={1.5} sm={2}>
+        <Grid item xs={2}>
           <InputComponent
-                      label={t('common.dateEnd')}
-                      type="date"
-                      value={conret.split('T')[0]}
-                      setValue={setDateReprise}
+            label={t('common.dateStart')}
+            type="date"
+            value={condep ? condep.split('T')[0] : ''}
+            setValue={setDateDepart}
           />
         </Grid>
 
-        {/* Checkbox Après-Midi (Date Reprise) */}
-        <Grid item xs={1.5} sm={1.4} mt={2}>
-          <CheckboxComponent label={t('common.afternoon')} value={conamret} setValue={setApresMidiReprise} />
+        <Grid item xs={1.5} mt={2}>
+          <CheckboxComponent
+            label={t('common.afternoon')}
+            value={conamdep}
+            setValue={setApresMidiDepart}
+          />
         </Grid>
 
-        {/* Imputation */}
-        <Grid  item xs={1.5}>
-          <SelectInputComponent label={t('common.imputation')} value={abscod} setValue={setAbscod} maplist={absences} />
+        <Grid item xs={2}>
+          <InputComponent
+            label={t('common.dateEnd')}
+            type="date"
+            value={conret ? conret.split('T')[0] : ''}
+            setValue={setDateReprise}
+          />
         </Grid>
 
-        
+        <Grid item xs={1.5} mt={2}>
+          <CheckboxComponent
+            label={t('common.afternoon')}
+            value={conamret}
+            setValue={setApresMidiReprise}
+          />
+        </Grid>
 
-        {/* Radio Buttons for Time Period */}
-        <Grid marginTop={'20px'} item xs={4.5}>
-          <RadioGroupComponent value={conjour} setValue={setTimePeriod}>
-            <FormControlLabelComponent radioValue='J' label={t('common.wholeDay')} />
-            <FormControlLabelComponent radioValue='M' label={t('common.mornings')} />
-            <FormControlLabelComponent radioValue='A' label={t('common.afternoons')} />
+        <Grid item xs={2}>
+          <SelectInputComponent
+            label={t('common.imputation')}
+            value={abscod}
+            setValue={setAbscod}
+            maplist={absences}
+          />
+        </Grid>
+
+        <Grid item xs={4.5} mt={2}>
+          <RadioGroupComponent
+            value={conjour}
+            setValue={setTimePeriod}
+          >
+            <FormControlLabelComponent
+              radioValue="J"
+              label={t('common.wholeDay')}
+            />
+            <FormControlLabelComponent
+              radioValue="M"
+              label={t('common.mornings')}
+            />
+            <FormControlLabelComponent
+              radioValue="A"
+              label={t('common.afternoons')}
+            />
           </RadioGroupComponent>
         </Grid>
 
-        {/* Calculated Days (Read-Only) */}
         <Grid item xs={1}>
-          <InputComponent type='number' label={t('common.nbDays')} value={connbjour} setValue={setConnbjour} />
+          <InputComponent
+            type="number"
+            label={t('common.nbDays')}
+            value={connbjour}
+            setValue={setConnbjour}
+          />
         </Grid>
 
-        {/* Submit Button */}
-        <Grid item xs={3} display={'flex'} justifyContent={'space-around'} mt={2.5}>
-          <IconButton color="primary" aria-label={t('common.save')} onClick={handleSubmit}>
+        <Grid
+          item
+          xs={3}
+          display="flex"
+          justifyContent="space-around"
+          mt={2.5}
+        >
+          <IconButton
+            color="primary"
+            aria-label={t('common.save')}
+            type="submit"
+          >
             <SaveIcon />
           </IconButton>
-          <Button onClick={resetForm} color='secondary'>{t('common.new')}</Button>
+
+          <Button onClick={resetForm} color="secondary">
+            {t('common.new')}
+          </Button>
         </Grid>
       </Grid>
-      <Snackbar open={isSnackbarOpen} autoHideDuration={1500} onClose={handleSnackbarClose}>
-            <Alert onClose={handleSnackbarClose} severity={severity}>
-                {message}
-            </Alert>
+
+      <Snackbar
+        open={isSnackbarOpen}
+        autoHideDuration={2000}
+        onClose={() => setIsSnackbarOpen(false)}
+      >
+        <Alert
+          onClose={() => setIsSnackbarOpen(false)}
+          severity={severity}
+        >
+          {message}
+        </Alert>
       </Snackbar>
     </Box>
-  )
+  );
 }
 
-export default SaisieAbsence
+export default SaisieAbsence;

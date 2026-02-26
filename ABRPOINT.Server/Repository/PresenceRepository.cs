@@ -519,11 +519,12 @@ namespace ABRPOINT.Server.Repository
                     c.Conret >= date);
 
                 bool hasAllaitement = allaitementSet.Contains(new { Empcod = p.Empcod, Date = date });
-
-                string motif = sanctions.TryGetValue((p.Empcod, date), out var lib)
-                    ? lib
-                    : "";
-
+                string motif = sanctions
+                    .FirstOrDefault(s =>
+                        p.Empcod == s.Empcod &&
+                        date.Date >= s.Condep.Date &&
+                        date.Date <= s.Conret.Date)
+                    ?.Abslib ?? "";
                 result.Add(new EtatEmpPresence
                 {
                     Predat = date,
@@ -639,8 +640,39 @@ namespace ABRPOINT.Server.Repository
 
                     // 6️⃣ Lookup batch - 🆕 with employment period validation
                     string? sanction = null;
-                    if (IsWithinEmploymentPeriod(date) && sanctions.TryGetValue((empcod, date), out var sanctionValue))
-                        sanction = sanctionValue;
+                    if (IsWithinEmploymentPeriod(date))
+                    {
+                        var match = sanctions.FirstOrDefault(s =>
+                            date.Date >= s.Condep.Date &&
+                            date.Date <= s.Conret.Date);
+
+                        if (match != null)
+                        {
+                            bool isReturnDay = date.Date == match.Conret.Date;
+                            bool isDepartDay = date.Date == match.Condep.Date;
+
+                            // If today is the return day and conamret is "0" → exclude this day entirely
+                            if (isReturnDay && match.Conamret == "0")
+                            {
+                                sanction = null;
+                            }
+                            // If today is the return day and conamret is "1" → half day
+                            else if (isReturnDay && match.Conamret == "1")
+                            {
+                                sanction = $"{match.Abslib} (0.5)";
+                            }
+                            // If today is the depart day and conamdep is "1" → half day (afternoon only)
+                            else if (isDepartDay && match.Conamdep == "1")
+                            {
+                                sanction = $"{match.Abslib} (0.5)";
+                            }
+                            // Full day
+                            else
+                            {
+                                sanction = match.Abslib;
+                            }
+                        }
+                    }
 
                     AutDto? autorisation = null;
                     if (IsWithinEmploymentPeriod(date) && autorisations.TryGetValue((empcod, date), out var autorisationValue))
