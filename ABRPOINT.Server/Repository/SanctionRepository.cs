@@ -149,13 +149,13 @@ namespace ABRPOINT.Server.Repository
         {
             if (sanction != null)
             {
-                // Normalize dates to midnight to strip timezone noise
+                // Parse date-only strings (e.g. "2026-02-26") directly — no timezone shift
                 if (sanction.Condat.HasValue)
-                    sanction.Condat = sanction.Condat.Value.Date;
+                    sanction.Condat = DateTime.SpecifyKind(sanction.Condat.Value.Date, DateTimeKind.Unspecified);
                 if (sanction.Condep.HasValue)
-                    sanction.Condep = sanction.Condep.Value.Date;
+                    sanction.Condep = DateTime.SpecifyKind(sanction.Condep.Value.Date, DateTimeKind.Unspecified);
                 if (sanction.Conret.HasValue)
-                    sanction.Conret = sanction.Conret.Value.Date;
+                    sanction.Conret = DateTime.SpecifyKind(sanction.Conret.Value.Date, DateTimeKind.Unspecified);
 
                 var exist = await _dbContext.Sanctions
                     .Where(s => s.Concod == sanction.Concod

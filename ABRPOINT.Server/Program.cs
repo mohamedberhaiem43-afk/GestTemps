@@ -1,12 +1,11 @@
 using ABRPOINT.Mappings;
-using ABRPOINT.Server.CalculService;
 using ABRPOINT.Server.Data;
-using ABRPOINT.Server.Repository;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.SemanticKernel;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -78,6 +77,18 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+var uploadsPath = FileHelper.GetUploadsPath();
+Directory.CreateDirectory(uploadsPath);
+
+app.UseStaticFiles(); // default wwwroot
+
+// Serve /app/uploads or local uploads folder as /uploads
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/api/uploads"  // match the URL you're calling
+});
 // Apply EF Core migrations automatically
 using (var scope = app.Services.CreateScope())
 {
@@ -86,7 +97,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

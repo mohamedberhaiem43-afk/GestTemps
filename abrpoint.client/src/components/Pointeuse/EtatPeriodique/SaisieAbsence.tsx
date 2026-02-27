@@ -28,6 +28,26 @@ interface Props {
   onSubmit?: (data: Sanction) => void;
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Always returns "YYYY-MM-DD" from any date-like value, with no UTC shift */
+const toDateString = (value: string | Date | null | undefined): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.split('T')[0];
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+};
+
+/** Adds `offset` days to a "YYYY-MM-DD" or ISO string, returns "YYYY-MM-DD" */
+const addDays = (dateStr: string, offset: number): string => {
+  const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+  const d = new Date(year, month - 1, day + offset);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+
 function SaisieAbsence({ empcod, date, initialData, onSubmit }: Props) {
   const { t } = useTranslation();
   const { soccod } = useAuth();
@@ -35,41 +55,25 @@ function SaisieAbsence({ empcod, date, initialData, onSubmit }: Props) {
   const { mutate } = useAddSanction();
 
   /* ========================
-     INITIAL HELPERS
-  ======================== */
-
-  const initDateWithOffset = (offset: number) => {
-    const d = new Date(date);
-    d.setDate(d.getDate() + offset);
-    return d.toISOString();
-  };
-
-  /* ========================
-     STATES
+     STATES — all dates stored as "YYYY-MM-DD" strings
   ======================== */
 
   const [concod, setOrdre] = useState(
     initialData?.concod ?? generateNumeroOrdre()
   );
 
-  const [condat, setDate] = useState(
-    initialData?.condat
-      ? new Date(initialData.condat).toISOString()
-      : initDateWithOffset(1)
+  const [condat, setDate] = useState<string>(
+    initialData?.condat ? toDateString(initialData.condat) : addDays(date, 0)
   );
 
   const [conref, setReference] = useState(initialData?.conref ?? '');
 
-  const [condep, setDateDepart] = useState(
-    initialData?.condep
-      ? new Date(initialData.condep).toISOString()
-      : initDateWithOffset(1)
+  const [condep, setDateDepart] = useState<string>(
+    initialData?.condep ? toDateString(initialData.condep) : addDays(date, 0)
   );
 
-  const [conret, setDateReprise] = useState(
-    initialData?.conret
-      ? new Date(initialData.conret).toISOString()
-      : initDateWithOffset(2)
+  const [conret, setDateReprise] = useState<string>(
+    initialData?.conret ? toDateString(initialData.conret) : addDays(date, 1)
   );
 
   const [conamdep, setApresMidiDepart] = useState(
@@ -80,7 +84,7 @@ function SaisieAbsence({ empcod, date, initialData, onSubmit }: Props) {
   );
   const [conjour, setTimePeriod] = useState(initialData?.conjour ?? 'J');
   const [abscod, setAbscod] = useState(initialData?.abscod ?? '');
-  const [connbjour, setConnbjour] = useState(0);
+  const [connbjour, setConnbjour] = useState<number>(initialData?.connbjour ?? 1);
 
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -98,6 +102,10 @@ function SaisieAbsence({ empcod, date, initialData, onSubmit }: Props) {
       setTimePeriod(initialData.conjour ?? 'J');
       setApresMidiDepart(initialData.conamdep === '1');
       setApresMidiReprise(initialData.conamret === '1');
+      if (initialData.condat) setDate(toDateString(initialData.condat));
+      if (initialData.condep) setDateDepart(toDateString(initialData.condep));
+      if (initialData.conret) setDateReprise(toDateString(initialData.conret));
+      if (initialData.connbjour !== undefined) setConnbjour(initialData.connbjour);
     }
   }, [initialData]);
 
@@ -105,11 +113,10 @@ function SaisieAbsence({ empcod, date, initialData, onSubmit }: Props) {
 useEffect(() => {
   if (!condep || !conret) return;
 
-  const start = new Date(condep);
-  const end = new Date(conret);
-
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
+  const [sy, sm, sd] = condep.split('-').map(Number);
+  const [ey, em, ed] = conret.split('-').map(Number);
+  const start = new Date(sy, sm - 1, sd);
+  const end = new Date(ey, em - 1, ed);
 
   if (end < start) {
     setConnbjour(0);
@@ -117,12 +124,12 @@ useEffect(() => {
   }
 
   const diff = end.getTime() - start.getTime();
+  // +1 because both start and end days are inclusive
   let days = Math.floor(diff / (1000 * 3600 * 24));
 
-  // If departure is in the afternoon, subtract half a day
+  // Departure in afternoon → employee misses half the first day
   if (conamdep) days -= 0.5;
-
-  // If return is in the morning (not afternoon), add half a day
+  // Return in afternoon → employee misses half the last day  
   if (conamret) days += 0.5;
 
   setConnbjour(Math.max(0, days));
@@ -132,67 +139,70 @@ useEffect(() => {
      HANDLERS
   ======================== */
 
-  const handleSnackbarOpening = (
-    msg: string,
-    sev: 'success' | 'error'
-  ) => {
+  const handleSnackbarOpening = (msg: string, sev: 'success' | 'error') => {
     setMessage(msg);
     setSeverity(sev);
     setIsSnackbarOpen(true);
   };
 
   const handleSubmit = (event: React.FormEvent) => {
-  event.preventDefault();
+    event.preventDefault();
 
-  if (!abscod) {
-    handleSnackbarOpening(t('sanction.fillImputation'), 'error');
-    return;
-  }
+    if (!abscod) {
+      handleSnackbarOpening(t('sanction.fillImputation'), 'error');
+      return;
+    }
 
-  if (new Date(conret) < new Date(condep)) {
-    handleSnackbarOpening(t('sanction.invalidDates'), 'error');
-    return;
-  }
+    if (conret < condep) {
+      handleSnackbarOpening(t('sanction.invalidDates'), 'error');
+      return;
+    }
 
-  const sanctionData: Sanction = {
-    soccod,
-    empcod,
-    concod,
-    condat: condat ? new Date(condat) : undefined,
-    conref,
-    condep: condep ? new Date(condep) : undefined,
-    conamdep: conamdep ? '1' : '0',
-    conret: conret ? new Date(conret) : undefined,
-    conamret: conamret ? '1' : '0',
-    connbjour,
-    conjour,
-    abscod,
-    consanc: 'N',
+    // Dates sent as plain "YYYY-MM-DD" strings — no Date objects,
+    // no JSON serialization UTC shift, arrives at backend exactly as typed.
+    const sanctionData: Sanction = {
+      soccod,
+      empcod,
+      concod,
+      condat: condat || null,
+      conref,
+      condep: condep || null,
+      conamdep: conamdep ? '1' : '0',
+      conret: conret || null,
+      conamret: conamret ? '1' : '0',
+      connbjour,
+      conjour,
+      abscod,
+      consanc: 'N',
+    };
+
+    if (onSubmit) {
+      onSubmit(sanctionData);
+      return;
+    }
+
+    mutate(sanctionData, {
+      onSuccess() {
+        handleSnackbarOpening(t('sanction.addSuccess'), 'success');
+        resetForm();
+      },
+      onError() {
+        handleSnackbarOpening(t('sanction.addError'), 'error');
+      },
+    });
   };
-
-  if (onSubmit) {
-    onSubmit(sanctionData);
-    return;
-  }
-
-  mutate(sanctionData, {
-    onSuccess() {
-      handleSnackbarOpening(t('sanction.addSuccess'), 'success');
-      resetForm();
-    },
-    onError() {
-      handleSnackbarOpening(t('sanction.addError'), 'error');
-    },
-  });
-};
 
   const resetForm = () => {
     setOrdre(generateNumeroOrdre());
+    setDate(addDays(date, 0));
+    setDateDepart(addDays(date, 0));
+    setDateReprise(addDays(date, 1));
     setReference('');
     setApresMidiDepart(false);
     setApresMidiReprise(false);
     setTimePeriod('J');
     setAbscod('');
+    setConnbjour(1);
   };
 
   /* ========================
@@ -220,7 +230,7 @@ useEffect(() => {
           <InputComponent
             label={t('common.date')}
             type="date"
-            value={condat ? condat.split('T')[0] : ''}
+            value={condat}
             setValue={setDate}
           />
         </Grid>
@@ -239,7 +249,7 @@ useEffect(() => {
           <InputComponent
             label={t('common.dateStart')}
             type="date"
-            value={condep ? condep.split('T')[0] : ''}
+            value={condep}
             setValue={setDateDepart}
           />
         </Grid>
@@ -256,7 +266,7 @@ useEffect(() => {
           <InputComponent
             label={t('common.dateEnd')}
             type="date"
-            value={conret ? conret.split('T')[0] : ''}
+            value={conret}
             setValue={setDateReprise}
           />
         </Grid>

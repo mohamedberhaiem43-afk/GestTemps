@@ -45,7 +45,7 @@ export default function Utilisateur() {
             utilisateurUpdate.Utilisateur = userData;
 
             updateUserMutation.mutate(utilisateurUpdate, {
-                onSuccess: (response:boolean) => {
+                onSuccess: (response: any) => {
                     setSnackbar({
                         open: true,
                         message: response ? "Utilisateur mis à jour avec succès !" : "Aucune modification apportée.",

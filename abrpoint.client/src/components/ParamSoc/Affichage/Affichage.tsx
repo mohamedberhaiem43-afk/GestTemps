@@ -28,18 +28,24 @@ const Affichage: React.FC<AffichageProps> = ({ parametre,onChange }) => {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { mutateAsync: uploadLogo } = useAddLogoSoc();
     
-const handleUpload = async () => {
-    if (!selectedImage) return;
+  const handleUpload = async () => {
+      if (!selectedImage) return;
 
-    const formData = new FormData();
-    formData.append("file", selectedImage);
+      const formData = new FormData();
+      formData.append("file", selectedImage);
 
-    try {
-      await uploadLogo(formData);
-      // Optionally notify user or update UI
-    } catch (error) {
-      console.error("Upload failed:", error);
-    }
+      try {
+          const response = await uploadLogo(formData);
+
+          // Save societe logo path and notify layout
+          const filePath = response?.filePath;
+          if (filePath) {
+              localStorage.setItem('societeImage', filePath);
+              globalThis.window.dispatchEvent(new Event('imageUpdated'));
+          }
+      } catch (error) {
+          console.error("Upload failed:", error);
+      }
   };
 const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
   const file = event.target.files?.[0];

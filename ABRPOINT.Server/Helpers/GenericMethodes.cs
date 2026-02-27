@@ -1,5 +1,7 @@
 ﻿using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
@@ -138,7 +140,7 @@ namespace ABRPOINT.Helper
         public static float CalculateHoursWithLimits(Presence presence, EmpparamPointageMois empparam)
         {
             float actualHours = 0;
-            if(!string.IsNullOrEmpty(presence.Tothre))
+            if (!string.IsNullOrEmpty(presence.Tothre))
                 actualHours = (float)GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
 
             // Limite 1: Maximum de l'employé (si configuré)
@@ -178,7 +180,7 @@ namespace ABRPOINT.Helper
             return (string.IsNullOrEmpty(presence?.Preentmatup) && string.IsNullOrEmpty(presence?.Presortmatup) &&
                 string.IsNullOrEmpty(presence?.Preentamidiup) && string.IsNullOrEmpty(presence?.Presortamidiup)) || presence == null;
         }
-        public static (string?,string?,string?,string?) GetStartsWorkDay(DateTime? date, Poste poste)
+        public static (string?, string?, string?, string?) GetStartsWorkDay(DateTime? date, Poste poste)
         {
             var dayOfWeek = date?.DayOfWeek ?? DateTime.Now.DayOfWeek;
 
@@ -227,7 +229,7 @@ namespace ABRPOINT.Helper
                 _ => null
             };
 
-            return (morningStartTime,morningEndTime, eveningStartTime,eveningEndTime);
+            return (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime);
         }
         public static string? GetReposWorkDay(DateTime? date, Poste poste)
         {
@@ -365,7 +367,7 @@ namespace ABRPOINT.Helper
             }
             return val;
         }
-          
+
         public static string GetCorrecteName(string fichier)
         {
             if (fichier is null) return fichier;
@@ -525,7 +527,7 @@ namespace ABRPOINT.Helper
             }
             return obj;
         }
-         
+
         public static byte[] GetImageFromPath(string path)
         {
             if (!File.Exists(path))
@@ -696,5 +698,7 @@ namespace ABRPOINT.Helper
             string sign = isNegative ? "-" : "";
             return $"{sign}{hours:D2}:{minutes:D2}";
         }
+
     }
 }
+ 

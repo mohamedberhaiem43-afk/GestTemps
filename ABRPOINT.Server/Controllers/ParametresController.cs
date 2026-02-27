@@ -1,5 +1,7 @@
-﻿using ABRPOINT.Server.Annotations.AdminAttributes;
+﻿using ABRPOINT.Helper;
+using ABRPOINT.Server.Annotations.AdminAttributes;
 using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -84,24 +86,12 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost("upload-logo")]
         public async Task<IActionResult> UploadSocieteLogo(IFormFile file)
         {
-            try
-            {
-                if (file == null || file.Length == 0)
-                    return BadRequest("No file uploaded.");
+            var (success, filePath, error) = await FileHelper.SaveFile(file);
 
-                var uploads = Path.Combine(Directory.GetCurrentDirectory(), "../abrpoint.client/src/assets");
-                var filePath = Path.Combine(uploads, file.FileName);
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
+            if (!success)
+                return BadRequest(error);
 
-                return Ok(new { filePath = "/Images/Profile/" + file.FileName });
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return Ok(new { filePath });
         }
 
     }

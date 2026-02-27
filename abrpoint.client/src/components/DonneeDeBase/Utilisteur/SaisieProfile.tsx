@@ -70,16 +70,10 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
   }, [uticod, utinom, utiprn, utimail, utiadm, societe, site, selectedImage]);
 
 
- const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
   const file = event.target.files?.[0];
   if (file && file.type.startsWith("image/")) {
-
-    // 🔹 Renommer le fichier
-    const renamedFile = new File(
-      [file],
-      "ProfileImage.png",
-      { type: file.type }
-    );
+    const renamedFile = new File([file], "ProfileImage.png", { type: file.type });
 
     setSelectedImage(renamedFile);
 
@@ -89,9 +83,9 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
     try {
       const formData = new FormData();
-      formData.append("file", renamedFile); // <-- utiliser le fichier renommé
+      formData.append("file", renamedFile);
 
-      await axios.post(
+      const response = await axios.post(
         `${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/upload-profile`,
         formData,
         {
@@ -99,6 +93,13 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
           withCredentials: true,
         }
       );
+
+      // Save filePath and notify layout to update avatar
+      const filePath = response.data.filePath;
+      if (filePath) {
+        localStorage.setItem('profileImage', filePath);
+        globalThis.window.dispatchEvent(new Event('imageUpdated'));
+      }
 
       setSnackbarMessage(t('profile.imageSaved'));
       setSnackbarSeverity("success");

@@ -30,8 +30,6 @@ import { Sanction } from '../../../models/Sanction';
 import useUpdateSanction from '../../../hooks/sanctionHooks/useUpdateSanction';
 
 
-
-
 const Example = ({ empetat }: { empetat: EmpEtat[] }) => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const {mutate:updatePresence} = useUpdatePresence(); 
@@ -56,7 +54,6 @@ const handleOpenSanctionDialog = (row: EmpEtat, value: string) => {
     setMotif(motif); // set motif early so it's ready
 
     setFetchSanctionParams({ date, empcod });
-    // ❌ Remove: handleOpenDialog(row, motif)
   }
 };
   const formatDateToLocalISO = (date: Date): string => {
@@ -80,7 +77,7 @@ const { data: fetchedSanction } = useGetSanctionDate(
   
   // Wait until query has resolved (not undefined)
   if (fetchedSanction === undefined) return;
-
+    console.log(fetchedSanction);
   setSanctionData(fetchedSanction ?? null);
 
   if (fetchedSanction?.abscod) {

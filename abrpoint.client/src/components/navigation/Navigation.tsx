@@ -48,7 +48,6 @@ import DemConge from '../gestionEmploye/gestionConge/DemConge/DemConge';
 import SoldeConge from '../gestionEmploye/gestionConge/SoldeConge/SoldeConge';
 import TitreConge from '../gestionEmploye/gestionConge/TitreConge/TitreConge';
 import CongeGneral from '../gestionEmploye/gestionConge/TitreCongeGeneral/CongeGeneral';
-import { useRef } from 'react';
 import { Societe } from '../DonneeDeBase/Societe/Societe';
 import { CalendarIcon } from '@mui/x-date-pickers';
 import Calendrier from '../ParamSoc/Calendrier/Calendrier';
@@ -57,7 +56,6 @@ import Section from '../DonneeDeBase/Section/Section';
 import Accompte from '../PreparationPaie/Accompte/Accompte';
 import PointageDuMois from '../PreparationPaie/PointageDuMois/PointageDuMois';
 import EtatDroitConge from '../PreparationPaie/DroitConge/EtatDroitConge';
-import profileImage from '../../assets/ProfileImage.png';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import EcheanceContrat from '../Etats/EchanceContrat/EcheanceContrat';
 import EtatPresence from '../Etats/EtatPresence/EtatPresence';
@@ -70,7 +68,6 @@ import Lecture from '../Pointeuse/Lecture/Lecture';
 import DroitAccessPointeuse from '../Admin/PointeuseAccees/DroitAcceesPointeuse';
 import Profile from '../ParamSoc/Profile/Profile';
 import Optimisation from '../Pointeuse/Optimisation/Optimisation';
-import SocieteImage from '../../assets/Societe.png';
 import { useAuth } from '../helper/AuthProvider';
 import GeminiChat from '../helper/Chatbot/GeminiChat';
 import { useTranslation } from 'react-i18next';
@@ -577,101 +574,114 @@ const demoTheme = createTheme({
     },
   },
 });
+const BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
 
 export default function DashboardLayoutAccount(props: DemoProps) {
-    const { window } = props;
+    const { window: windowProp } = props;  // rename to avoid conflict
     const navigate = useNavigate();
     const location = useLocation();
     const { userName, soclib } = useAuth();
     const { i18n } = useTranslation();
-    const NAVIGATION = useNavigationItems(); // Utiliser le hook pour obtenir la navigation traduite
-    
-    const headerRef = useRef<HTMLElement | null>(null);
-    headerRef.current = document.querySelector(
-      "#root > div.MuiBox-root.css-k008qs > header > div > div.MuiBox-root.css-wxgfmz > a > div > h6"
-    );
-    
-    const [session, setSession] = React.useState<Session | null>(
-      userName ? {
-        user: {
-          name: userName,
-          image: profileImage,
-        },
-      } : null
+    const NAVIGATION = useNavigationItems();
+
+    const [profileImage, setProfileImage] = React.useState<string>(
+        localStorage.getItem('profileImage')
+            ? `${BASE_URL}${localStorage.getItem('profileImage')}`
+            : '/default-profile.png'
     );
 
-    // Mettre à jour la direction du document pour l'arabe
+    const [societeImage, setSocieteImage] = React.useState<string>(
+        localStorage.getItem('societeImage')
+            ? `${BASE_URL}${localStorage.getItem('societeImage')}`
+            : '/default-logo.png'
+    );
+
+    const [session, setSession] = React.useState<Session | null>(null);
+
+    // Listen for image updates
     React.useEffect(() => {
-      document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
-      document.documentElement.lang = i18n.language;
+        const handleStorageChange = () => {
+            const profile = localStorage.getItem('profileImage');
+            const societe = localStorage.getItem('societeImage');
+            if (profile) setProfileImage(`${BASE_URL}${profile}`);
+            if (societe) setSocieteImage(`${BASE_URL}${societe}`);
+        };
+
+        // Use global window, not the prop
+        globalThis.window.addEventListener('storage', handleStorageChange);
+        globalThis.window.addEventListener('imageUpdated', handleStorageChange);
+
+        return () => {
+            globalThis.window.removeEventListener('storage', handleStorageChange);
+            globalThis.window.removeEventListener('imageUpdated', handleStorageChange);
+        };
+    }, []);
+
+    // Update session when userName or profileImage changes
+    React.useEffect(() => {
+        if (userName) {
+            setSession({
+                user: {
+                    name: userName,
+                    image: profileImage,
+                },
+            });
+        } else {
+            setSession(null);
+        }
+    }, [userName, profileImage]);
+
+    // RTL/LTR direction
+    React.useEffect(() => {
+        document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = i18n.language;
     }, [i18n.language]);
 
-    React.useEffect(() => {
-      if (userName) {
-        setSession({
-          user: {
-            name: userName,
-            image: profileImage,
-          },
-        });
-      } else {
-        setSession(null);
-      }
-    }, [userName]);
-    
-    const authentication = React.useMemo(() => {
-      return {
-        signIn: () => {
-          navigate('/dashboard');
-        },
+    const authentication = React.useMemo(() => ({
+        signIn: () => navigate('/dashboard'),
         signOut: () => {
-          localStorage.clear();
-          sessionStorage.clear();
-          setSession(null);
-          navigate('/');
+            localStorage.clear();
+            sessionStorage.clear();
+            setSession(null);
+            navigate('/');
         },
-      };
-    }, [navigate]);
-    
+    }), [navigate]);
+
     const pathname = location.pathname;
 
-    const router = React.useMemo<Router>(() => {
-      return {
+    const router = React.useMemo<Router>(() => ({
         pathname,
         searchParams: new URLSearchParams(),
         navigate: (to) => {
-          if (typeof to === 'number') {
-            (navigate as any)(to);
-          } else {
-            navigate(to, {});
-          }
+            if (typeof to === 'number') {
+                (navigate as any)(to);
+            } else {
+                navigate(to, {});
+            }
         },
-      };
-    }, [pathname, navigate]);
+    }), [pathname, navigate]);
 
-    const demoWindow = window !== undefined ? window() : undefined;
-    
-  const queryClient = new QueryClient();
+    const demoWindow = windowProp !== undefined ? windowProp() : undefined;
+    const queryClient = new QueryClient();
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AppProvider
-        session={session}
-        authentication={authentication}
-        navigation={NAVIGATION}
-        router={router}
-        theme={demoTheme}
-        window={demoWindow}
-        branding={{
-          title: soclib || 'ABR-POINT',
-          logo: <img src={SocieteImage} alt="Societe" />,
-        }}
-      >
-        <DashboardLayout navigation={NAVIGATION}>
-          <DemoPageContent pathname={pathname} />
-        </DashboardLayout>
-      </AppProvider>
-    </QueryClientProvider>
-  );
-
+    return (
+        <QueryClientProvider client={queryClient}>
+            <AppProvider
+                session={session}
+                authentication={authentication}
+                navigation={NAVIGATION}
+                router={router}
+                theme={demoTheme}
+                window={demoWindow}
+                branding={{
+                    title: soclib || 'ABR-POINT',
+                    logo: <img src={societeImage} alt="Societe" />,
+                }}
+            >
+                <DashboardLayout navigation={NAVIGATION}>
+                    <DemoPageContent pathname={pathname} />
+                </DashboardLayout>
+            </AppProvider>
+        </QueryClientProvider>
+    );
 }

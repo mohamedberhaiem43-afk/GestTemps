@@ -28,6 +28,8 @@ services:
   abrpoint.server:
     container_name: abrpoint.server
     image: mohamedbenrhaiem2003/abrpoint-server:latest
+    volumes:
+       - uploads_data:/app/uploads
     environment:
       DB_HOST: "abrpoint.database"
       DB_NAME: "ABRPOINT"
