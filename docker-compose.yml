@@ -1,5 +1,6 @@
 volumes:
   sqlserver-data:
+  uploads_data:
 networks:
   app-network:
 services:
