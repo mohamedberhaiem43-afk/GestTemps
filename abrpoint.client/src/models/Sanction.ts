@@ -1,12 +1,13 @@
+ 
 export type Sanction = {
     concod?: string;        // N° Ordre
     soccod?: string|null;        // Company Code
     empcod?: string;        // Employee Code
-    condat?: string|null;          // Date of the sanction (congé)
+    condat?: Date|null;          // Date of the sanction (congé)
     conjour?: string;       // Full/half day (e.g. 'J' for full day)
-    condep?: string|null;          // Departure Date
+    condep?: Date|null;          // Departure Date
     conamdep?: string;      // Departure Morning/Afternoon Indicator (optional)
-    conret?: string|null;          // Return Date
+    conret?: Date|null;          // Return Date
     conamret?: string;      // Return Morning/Afternoon Indicator (optional)
     abscod?: string;        // Absence code (e.g. leave type)
     conmotif?: string;      // Motif (reason for the sanction)
