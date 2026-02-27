@@ -27,11 +27,12 @@ public partial class Utilisateur
     [Column("utiactif")]
     [StringLength(1)]
     public string? Utiactif { get; set; }
-
     [Column("utiadm")]
     [StringLength(150)]
     public string? Utiadm { get; set; }
     [StringLength(100)]
     public string? Utimail { get; set; }
- 
+    [Column("utiimg")]
+    [StringLength(500)]
+    public string? Utiimg { get; set; }
 }

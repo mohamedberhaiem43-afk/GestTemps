@@ -79,6 +79,8 @@ export default function CredentialsSignInPage() {
     });
     localStorage.setItem('Uticod',response.data.uticod)
     localStorage.setItem('authToken',token)
+    localStorage.setItem('societeImage',response.data.socimg)
+    localStorage.setItem('profileImage',response.data.utiimg)
     navigate('/dashboard');
   }).catch(error => {
         console.error('Login failed', error);

@@ -6,6 +6,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -94,7 +95,7 @@ namespace GestionDesTickets.Server.Controllers
         }
         // POST api/<UtilisateursController>
         [HttpPost("connect")]
-        public IActionResult Connect([FromBody] UserLoginModel user)
+        public async Task<IActionResult> Connect([FromBody] UserLoginModel user)
         {
             if (!ModelState.IsValid)
             {
@@ -116,23 +117,23 @@ namespace GestionDesTickets.Server.Controllers
                     return Unauthorized("Invalid credentials.");
                 }
 
-                Socuser societe = null;
+                Socuser? societe = null;
                 if (!string.IsNullOrEmpty(user.Usersit))
                 {
-                    societe = _dbContext.Socusers.SingleOrDefault(s=>s.Soccod == user.Company &&
+                    societe = await _dbContext.Socusers.SingleOrDefaultAsync(s=>s.Soccod == user.Company &&
                     s.Uticod == dbUser.Uticod &&
                     s.Sitcod == user.Usersit);
 
-                     soclib = _dbContext.Societes
+                     soclib = await _dbContext.Societes
                     .Where(s => s.Soccod == societe.Soccod)
                     .Select(s => s.Soclib)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
                 }
-                List<string> sitcods = _dbContext.Socusers
+                List<string> sitcods = await _dbContext.Socusers
                     .Where(s => s.Soccod == user.Company && s.Uticod == dbUser.Uticod)
                     .Select(s => s.Sitcod)
-                    .ToList();
+                    .ToListAsync();
                 
                 if (societe != null)
                 {
@@ -145,10 +146,13 @@ namespace GestionDesTickets.Server.Controllers
                         SameSite = SameSiteMode.None, // Allows cross-origin requests
                         Expires = DateTimeOffset.UtcNow.AddHours(1)
                     });
-
+                    var socimg = await _dbContext.Societes
+                        .Where(s => s.Soccod == user.Company)
+                        .Select(s => s.Socimg)
+                        .FirstOrDefaultAsync();
 
                     string utilib = dbUser.Utiprn + " "+ dbUser.Utinom;
-                    return Ok(new { token, dbUser.Uticod, utilib, societe,sitcods,soclib,dbUser.Utiadm });
+                    return Ok(new { token, dbUser.Uticod,dbUser.Utiimg,socimg, utilib, societe,sitcods,soclib,dbUser.Utiadm });
                 }
 
                 return NotFound();
@@ -199,14 +203,13 @@ namespace GestionDesTickets.Server.Controllers
             }
         }
 
-
         [HttpPost("upload-profile")]
-        public async Task<IActionResult> UploadProfileImage(IFormFile file)
+        public async Task<IActionResult> UploadProfileImage(IFormFile file, [FromQuery] string uticod)
         {
             var (success, filePath, error) = await FileHelper.SaveFile(file);
-
-            if (!success)
-                return BadRequest(error);
+            if (!success) return BadRequest(error);
+            // Save filePath to the user's record in DB
+            await _utilisateurRepository.UpdateProfileImage(uticod, filePath);
 
             return Ok(new { filePath });
         }

@@ -96,7 +96,7 @@ public partial class Societe
     [StringLength(30)]
     public string? Socrespar { get; set; }
 
-    //[Column("socimg")]
-    //[StringLength(150)]
-    //public string? Socimg { get; set; }
+    [Column("socimg")]
+    [StringLength(500)]
+    public string? Socimg { get; set; }
 }

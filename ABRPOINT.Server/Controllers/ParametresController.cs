@@ -1,5 +1,4 @@
-﻿using ABRPOINT.Helper;
-using ABRPOINT.Server.Annotations.AdminAttributes;
+﻿using ABRPOINT.Server.Annotations.AdminAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
@@ -16,9 +15,11 @@ namespace ABRPOINT.Server.Controllers
     public class ParametresController : ControllerBase
     {
         private readonly IParametreRepository _parametreRepository;
-        public ParametresController(IParametreRepository parametreRepository)
+        private readonly ISocieteRepository _societeRepository;
+        public ParametresController(IParametreRepository parametreRepository, ISocieteRepository societeRepository)
         {
-            _parametreRepository= parametreRepository;
+            _parametreRepository = parametreRepository;
+            _societeRepository = societeRepository;
         }
         [HttpGet("deb-mois/{soccod}")]
         public async Task<ActionResult<ParametreMoisPointageDto>> Get(string soccod)
@@ -83,16 +84,16 @@ namespace ABRPOINT.Server.Controllers
                 return false;
             }
         }
-        [HttpPost("upload-logo")]
-        public async Task<IActionResult> UploadSocieteLogo(IFormFile file)
+        [HttpPost("upload-logo/{soccod}")]
+        public async Task<IActionResult> UploadSocieteLogo(IFormFile file, string soccod)
         {
             var (success, filePath, error) = await FileHelper.SaveFile(file);
 
             if (!success)
                 return BadRequest(error);
-
+            // Save filePath to the user's record in DB
+            await _societeRepository.UpdateSocieteImage(soccod, filePath);
             return Ok(new { filePath });
         }
-
     }
 }

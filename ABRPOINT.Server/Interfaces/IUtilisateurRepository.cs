@@ -12,5 +12,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<List<Utilisateur>> GetAllUsers(string soccod,string uticod);
         Task<UtiProfile> GetProfile(string soccod,string uticod);
         Task<bool> ChangePassword(UpdatePassword pwd);
+        Task UpdateProfileImage(string? userId, string filePath);
     }
 }

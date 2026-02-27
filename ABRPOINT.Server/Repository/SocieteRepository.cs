@@ -136,5 +136,19 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+        public async Task UpdateSocieteImage(string? soccod, string filePath)
+        {
+            try
+            {
+                await _dbContext.Societes
+                    .Where(u => u.Soccod == soccod)
+                    .ExecuteUpdateAsync(setters =>
+                        setters.SetProperty(u => u.Socimg, filePath));
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

@@ -91,6 +91,7 @@ const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => 
         {
           headers: { "Content-Type": "multipart/form-data" },
           withCredentials: true,
+          params: { uticod }
         }
       );
 

@@ -241,5 +241,20 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public async Task UpdateProfileImage(string? userId, string filePath)
+        {
+            try
+            {
+                await _dbContext.Utilisateurs
+                    .Where(u => u.Uticod == userId)
+                    .ExecuteUpdateAsync(setters =>
+                        setters.SetProperty(u => u.Utiimg, filePath));
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }
