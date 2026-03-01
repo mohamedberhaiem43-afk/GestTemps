@@ -1,6 +1,6 @@
 import { Box, Grid, Snackbar, Alert } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import useGetSocLibs from "../../../hooks/societeHooks/useGetSocLibs";
@@ -15,6 +15,7 @@ interface SaisieUtilisateurProps {
     onDataChange: (data: any) => void;
     profil: boolean;
 }
+
 interface ApiError {
   response?: {
     data?: {
@@ -23,7 +24,13 @@ interface ApiError {
   };
   message?: string;
 }
-function SaisieUtilisateur({ onDataChange, profil }: SaisieUtilisateurProps) {
+
+export interface SaisieUtilisateurHandle {
+    handleSave: () => Promise<void>;
+}
+
+const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurProps>(
+    ({ onDataChange, profil }, ref) => {
     const [uticod, setCode] = useState("");
     const [utiprn, setPrenom] = useState("");
     const [utinom, setNom] = useState("");
@@ -36,9 +43,8 @@ function SaisieUtilisateur({ onDataChange, profil }: SaisieUtilisateurProps) {
     const { data: sitLibs = [] } = useGetSiteLibs();
     const { selectedUser } = useUserContext();
 
-    const { error } = useAddUser(); 
+    const { mutateAsync: addUser, error } = useAddUser();
 
-    // Call onDataChange whenever form data changes
     useEffect(() => {
         onDataChange({
             uticod,
@@ -52,22 +58,21 @@ function SaisieUtilisateur({ onDataChange, profil }: SaisieUtilisateurProps) {
         });
     }, [uticod, utinom, utiprn, utimail, utimps, utiadm, societe, site]);
 
-
     useQuery<Utilisateur[]>({
-    queryKey: ['utilisateur', selectedUser],
-    queryFn: async () => {
-        if (!selectedUser) return [];
-        const result = await UtilisateurService.getWithParams(`get-user/${selectedUser}`);
-        setUtimail(result.utimail || "");
-        setCode(result.uticod || "");
-        setNom(result.utinom || "");
-        setPrenom(result.utiprn || "");
-        setIsAdmin(result.utiadm === "1");
-        setSociete(result.soccod || "");
-        setSite(result.sitcod || "");
-        return Array.isArray(result) ? result : [result];
-    },
-    enabled: !!selectedUser,
+        queryKey: ['utilisateur', selectedUser],
+        queryFn: async () => {
+            if (!selectedUser) return [];
+            const result = await UtilisateurService.getWithParams(`get-user/${selectedUser}`);
+            setUtimail(result.utimail || "");
+            setCode(result.uticod || "");
+            setNom(result.utinom || "");
+            setPrenom(result.utiprn || "");
+            setIsAdmin(result.utiadm === "1");
+            setSociete(result.soccod || "");
+            setSite(result.sitcod || "");
+            return Array.isArray(result) ? result : [result];
+        },
+        enabled: !!selectedUser,
     });
 
     const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -84,15 +89,43 @@ function SaisieUtilisateur({ onDataChange, profil }: SaisieUtilisateurProps) {
         setSnackbarOpen(false);
     };
 
-    
+    const handleSave = async () => {
+    if (!uticod || !utiprn || !utinom || !societe || !site) {
+        handleSnackbarOpen("Veuillez remplir tous les champs obligatoires.", 'error');
+        return;
+    }
+    try {
+        console.log(utimps);
+        await addUser({
+            user: {
+                uticod,
+                utinom,
+                utiprn,
+                utimail,
+                utimps,
+                utiadm: utiadm ? "1" : "0",
+            },
+            soccod: societe,
+            sitcod: site
+        });
+        handleSnackbarOpen("Utilisateur enregistré avec succès.", 'success');
+    } catch (err) {
+        handleSnackbarOpen("Erreur lors de l'enregistrement de l'utilisateur.", 'error');
+    }
+};
+
+    // Expose handleSave to parent via ref
+    useImperativeHandle(ref, () => ({
+        handleSave
+    }));
 
     useEffect(() => {
         if (error) {
             const apiError = error as ApiError;
             const errorMessage =
-                apiError.response?.data?.message || 
-                apiError.message || // Fallback to error.message
-                "Erreur lors de l'ajout de l'utilisateur."; 
+                apiError.response?.data?.message ||
+                apiError.message ||
+                "Erreur lors de l'ajout de l'utilisateur.";
             handleSnackbarOpen(errorMessage, 'error');
         }
     }, [error]);
@@ -137,20 +170,15 @@ function SaisieUtilisateur({ onDataChange, profil }: SaisieUtilisateurProps) {
                     />
                 </Grid>
                 {profil === false && (
-                <>
-                    <Grid item xs={1} mt={3}>
-                    <CheckboxComponent label="Administrateur" value={utiadm} setValue={setIsAdmin} />
-                    </Grid>
-                    <Grid item xs={3}>
-                    </Grid>
-
-                </>
+                    <>
+                        <Grid item xs={1} mt={3}>
+                            <CheckboxComponent label="Administrateur" value={utiadm} setValue={setIsAdmin} />
+                        </Grid>
+                        <Grid item xs={3}></Grid>
+                    </>
                 )}
-    
-
             </Grid>
 
-            {/* Snackbar for notifications */}
             <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose}>
                 <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
                     {snackbarMessage}
@@ -158,6 +186,6 @@ function SaisieUtilisateur({ onDataChange, profil }: SaisieUtilisateurProps) {
             </Snackbar>
         </Box>
     );
-}
+});
 
 export default SaisieUtilisateur;

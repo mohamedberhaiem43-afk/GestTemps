@@ -7,8 +7,9 @@ import { useQuery } from "react-query";
 
 interface DroitAcceesProps {
     onPermissionsChange: (permissions: Moduser[]) => void;
+    isAdmin: boolean; // ← new
 }
-export default function DroitAccees({ onPermissionsChange }: DroitAcceesProps) {
+export default function DroitAccees({ onPermissionsChange, isAdmin }: DroitAcceesProps) {
 
 
 
@@ -39,6 +40,19 @@ export default function DroitAccees({ onPermissionsChange }: DroitAcceesProps) {
       setModules([]);
     }
   }, [modusers, selectedUser]); // Add selectedUser to dependencies
+// Select/deselect all when isAdmin changes
+    useEffect(() => {
+        if (modules.length === 0) return;
+        setModules(prev =>
+            prev.map(mod => ({
+                ...mod,
+                modsais:    isAdmin ? '1' : '0',
+                modupd:     isAdmin ? '1' : '0',
+                modsupp:    isAdmin ? '1' : '0',
+                modconsult: isAdmin ? '1' : '0',
+            }))
+        );
+    }, [isAdmin]);
 
   const handleCheckboxChange = (index: number, field: keyof Moduser) => {
     setModules((prev) =>

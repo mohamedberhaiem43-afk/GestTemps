@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -74,7 +75,7 @@ namespace GestionDesTickets.Server.Controllers
 
         [Authorize]
         [HttpPost("add-user/{soccod}/{sitcod}")]
-        public IActionResult AddUtilisateur([FromBody] Utilisateur utilisateur,string sitcod,string soccod)
+        public async Task<IActionResult> AddUtilisateur([FromBody] Utilisateur utilisateur,string sitcod,string soccod)
         {
             try
             {
@@ -83,15 +84,13 @@ namespace GestionDesTickets.Server.Controllers
                 socuser.Uticod = utilisateur.Uticod;
                 socuser.Soccod = soccod;
                 socuser.Sitcod = sitcod;
-                _utilisateurRepository.Add(utilisateur,socuser);
+                await _utilisateurRepository.AddAsync(utilisateur,socuser);
                 return  Ok(utilisateur);
             }
             catch (Exception ex)
             {
-
                 return StatusCode(500,"probleme d'ajout utilisateur "+ex);
             }
-            
         }
         // POST api/<UtilisateursController>
         [HttpPost("connect")]

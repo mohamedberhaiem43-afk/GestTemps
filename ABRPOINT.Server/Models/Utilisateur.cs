@@ -21,7 +21,6 @@ public partial class Utilisateur
 
     [Column("utimps")]
     [StringLength(100)]
-    [JsonIgnore]
     public string? Utimps { get; set; }
 
     [Column("utiactif")]

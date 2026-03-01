@@ -90,6 +90,16 @@ namespace ABRPOINT.Server.Repository
                 _dbContext.SaveChanges();
             }
         }
+        public async Task AddAsync(Utilisateur utilisateur,Socuser socuser)
+        {
+            if (utilisateur != null)
+            {
+                utilisateur.Utimps = BCrypt.Net.BCrypt.HashPassword(utilisateur.Utimps);
+                await _dbContext.Utilisateurs.AddAsync(utilisateur);
+                await _dbContext.Socusers.AddAsync(socuser);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
 
         public void Update(Utilisateur utilisateur)
         {
