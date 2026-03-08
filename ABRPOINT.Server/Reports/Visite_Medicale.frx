@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="02/03/2025 17:56:52" ReportInfo.Modified="01/29/2026 11:31:25" ReportInfo.CreatorVersion="2024.1.7.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="02/03/2025 17:56:52" ReportInfo.Modified="03/08/2026 19:40:28" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM1VxLFM8vgBR60R2LJl8L7f">
+    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM2w6En1mBvtDS6tbHCgTDHR">
       <TableDataSource Name="Table" Alias="empsoc" DataType="System.Int32" Enabled="true" SelectCommand="SELECT e.emplib,e.empfonc,s.soclib,s.socadr&#13;&#10;FROM EMPLOYE e,SOCIETE s&#13;&#10;WHERE e.empcod = @Empcod AND e.soccod = s.soccod and s.soccod=@Soccod">
         <Column Name="emplib" DataType="System.String"/>
         <Column Name="empfonc" DataType="System.String"/>
@@ -27,20 +27,20 @@
     </PageHeaderBand>
     <DataBand Name="Data1" Top="82" Width="718.2" Height="784.35" DataSource="Table">
       <TextObject Name="Text6" Left="18.9" Top="18.9" Width="66.15" Height="18.9" Text="Objet: " Font="Arial, 12pt, style=Bold"/>
-      <TextObject Name="Text7" Left="75.6" Top="18.9" Width="132.3" Height="18.9" Text="Visite Médicale" Font="Arial, 12pt"/>
+      <TextObject Name="Text7" Left="75.6" Top="18.9" Width="415.8" Height="18.9" Text="Visite Médicale" Font="Arial, 12pt"/>
       <TextObject Name="Text9" Left="18.9" Top="170.1" Width="56.7" Height="18.9" Text="Pour:" Font="Arial, 12pt"/>
       <CellularTextObject Name="CellularText1" Left="18.9" Top="226.8" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
       <CellularTextObject Name="CellularText2" Left="18.9" Top="264.6" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
       <CellularTextObject Name="CellularText3" Left="18.9" Top="302.4" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
       <CellularTextObject Name="CellularText4" Left="18.9" Top="340.2" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
       <CellularTextObject Name="CellularText5" Left="18.9" Top="378" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
-      <TextObject Name="Text10" Left="56.7" Top="236.25" Width="151.2" Height="18.9" Text="Visite d'embauche" Font="Arial, 12pt"/>
-      <TextObject Name="Text11" Left="56.7" Top="274.05" Width="151.2" Height="18.9" Text="Visite périodique" Font="Arial, 12pt"/>
+      <TextObject Name="Text10" Left="56.7" Top="236.25" Width="340.2" Height="18.9" Text="Visite d'embauche" Font="Arial, 12pt"/>
+      <TextObject Name="Text11" Left="56.7" Top="274.05" Width="340.2" Height="18.9" Text="Visite périodique" Font="Arial, 12pt"/>
       <TextObject Name="Text12" Left="56.7" Top="311.85" Width="151.2" Height="18.9" Text="Visite Médicale" Font="Arial, 12pt"/>
-      <TextObject Name="Text13" Left="56.7" Top="349.65" Width="151.2" Height="18.9" Text="Visite spontannée" Font="Arial, 12pt"/>
-      <TextObject Name="Text14" Left="56.7" Top="387.45" Width="151.2" Height="18.9" Text="Visite de reprise" Font="Arial, 12pt"/>
+      <TextObject Name="Text13" Left="56.7" Top="349.65" Width="283.5" Height="18.9" Text="Visite spontannée" Font="Arial, 12pt"/>
+      <TextObject Name="Text14" Left="56.7" Top="387.45" Width="283.5" Height="18.9" Text="Visite de reprise" Font="Arial, 12pt"/>
       <CellularTextObject Name="CellularText6" Left="18.9" Top="415.8" Width="28.35" Height="28.35" Font="Arial, 12pt"/>
-      <TextObject Name="Text15" Left="56.7" Top="425.25" Width="217.35" Height="18.9" Text="Visite de controle d'aptitude" Font="Arial, 12pt"/>
+      <TextObject Name="Text15" Left="56.7" Top="425.25" Width="349.65" Height="18.9" Text="Visite de controle d'aptitude" Font="Arial, 12pt"/>
       <ShapeObject Name="Shape2" Left="434.7" Top="491.4" Width="226.8" Height="151.2"/>
       <LineObject Name="Line4" Left="434.7" Top="529.2" Width="226.8"/>
       <TextObject Name="Text16" Left="463.05" Top="500.85" Width="179.55" Height="18.9" Text="Signature et Cachet" Font="Arial, 12pt, style=Bold"/>
