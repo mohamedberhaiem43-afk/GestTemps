@@ -66,11 +66,11 @@ export default function DashboardPage() {
     const now = dayjs();
 
     switch (filterDateRange) {
-      case 'today':
-        return {
-          dateDebut: now.endOf('day').toISOString(),
-          dateFin: now.endOf('day').toISOString(),
-        };
+    case 'today':
+      return {
+        dateDebut: now.startOf('day').toISOString(),
+        dateFin: now.endOf('day').toISOString(),
+      };
 
       case 'week':
         return {

@@ -94,35 +94,92 @@ export default function CredentialsSignInPage() {
 
   return (
     <AppProvider theme={theme}>
-      <Box sx={{ width: '50%'}} ml={33} component="form" >
-        
-        
-        {error && <Alert severity="error">{error}</Alert>}
+      <Box
+        component="div"
+        width={'95vw'}
+        ml={5}
+        mb={5}
+        sx={{
+          minHeight: '80vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: theme.palette.background.default,
+          p: 2,
+        }}
+      >
+        <Box
+          component="form"
+          sx={{
+            width: { xs: '100%', sm: 400 },
+            maxWidth: 450,
+          }}
+        >
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
-          <Item>
-              <Typography variant='h6' gutterBottom color="primary" fontWeight="bold" mb={5}>
-                {t('login.title')}
-              </Typography>
-              <Grid  container spacing={2}>
-                <Grid item xs={6} sm={6}>
-                  <InputComponent type='text' label={t('login.email')} value={utimail} setValue={setUtimail} />
-                </Grid>
-                <Grid item xs={6}>
-                  <InputComponent type='password' label={t('login.password')} value={password} setValue={setPassword} />
-                </Grid>
-                <Grid item xs={6} mt={1}>
-                  <SelectInputComponent label={t('login.company')} value={company} setValue={setCompany} maplist={societes} />
-                </Grid>
-                <Grid item xs={6} mt={1}>
-                  <SelectInputComponent label={t('login.site')} value={usersit} setValue={setUsersit} maplist={sites} />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button variant="outlined" color="primary" onClick={handleSignIn} disabled={loading}>
-                    {loading ? <CircularProgress size={24} /> : t('login.button')}
-                  </Button>
-                </Grid>
+          <Item elevation={3} sx={{ padding: 4 }}>
+            <Typography
+              variant="h5"
+              gutterBottom
+              color="primary"
+              fontWeight="bold"
+              align="center"
+              mb={3}
+            >
+              {t('login.title')}
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <InputComponent
+                  type="text"
+                  label={t('login.email')}
+                  value={utimail}
+                  setValue={setUtimail}
+                />
               </Grid>
-        </Item>
+              <Grid item xs={12}>
+                <InputComponent
+                  type="password"
+                  label={t('login.password')}
+                  value={password}
+                  setValue={setPassword}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <SelectInputComponent
+                  label={t('login.company')}
+                  value={company}
+                  setValue={setCompany}
+                  maplist={societes}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <SelectInputComponent
+                  label={t('login.site')}
+                  value={usersit}
+                  setValue={setUsersit}
+                  maplist={sites}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSignIn}
+                  disabled={loading}
+                  sx={{ py: 1.5 }}
+                >
+                  {loading ? <CircularProgress size={24} /> : t('login.button')}
+                </Button>
+              </Grid>
+            </Grid>
+          </Item>
+        </Box>
       </Box>
     </AppProvider>
   );

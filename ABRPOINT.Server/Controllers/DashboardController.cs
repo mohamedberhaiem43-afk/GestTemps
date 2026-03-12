@@ -218,7 +218,7 @@ public class EvolutionRequest
     public string Soccod { get; set; }
     public DateTime DateDebut { get; set; }
     public DateTime DateFin { get; set; }
-    public string Departement { get; set; }
+    public string? Departement { get; set; }
     public List<string> Empcods { get; set; }
 }
 

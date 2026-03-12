@@ -447,7 +447,7 @@ namespace ABRPOINT.Server.CalculService.DashboardService
         }
         
         // Méthode pour récupérer l'évolution sur plusieurs jours
-        public async Task<List<EvolutionJournaliere>> GetEvolutionHebdomadaire(string soccod,DateTime dateDebut,DateTime dateFin,string dep,List<string> empcods)
+        public async Task<List<EvolutionJournaliere>> GetEvolutionHebdomadaire(string soccod,DateTime dateDebut,DateTime dateFin,string? dep,List<string> empcods)
         {
             var evolution = new List<EvolutionJournaliere>();
             var dateActuelle = dateDebut;
