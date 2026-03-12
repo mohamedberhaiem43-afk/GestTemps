@@ -24,8 +24,6 @@ import useGetDashboardData from '../../hooks/dashboardHooks/useGetDashboardData'
 import dayjs from 'dayjs';
 import { useAuth } from '../helper/AuthProvider';
 import useGetDirectionLibs from '../../hooks/directionHooks/useGetDirectionLibs';
-import useGetEvolution from '../../hooks/dashboardHooks/useGetEvolution';
-import EvolutionChart from './Bars/EvolutionChart';
 
 // interface formattedData {
 //   label: string;
@@ -116,7 +114,7 @@ export default function DashboardPage() {
   // Hooks pour récupérer les données
   // const { data: empStat = [], isLoading: loadingStats } = useGetStatistics();
   const { data: dashboardData, isLoading: loadingDashboard, error: errorDashboard } = useGetDashboardData(dashboardRequest);
-  const { data: evolutionData, isLoading: loadingEvolution } = useGetEvolution(dashboardRequest);
+  // const { data: evolutionData, isLoading: loadingEvolution } = useGetEvolution(dashboardRequest);
   // Compute sex statistics
   // useEffect(() => {
   //   if (empStat && empStat.length > 0) {
@@ -388,10 +386,7 @@ const kpiData: KPIData[] = useMemo(() => {
           </CardContent>
         </Card>
       )}
-      <EvolutionChart 
-        data={Array.isArray(evolutionData) ? evolutionData : []} 
-        isLoading={loadingEvolution}
-      />
+      
       {/* Charts Row */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {/* <Grid item xs={12} md={8}>
