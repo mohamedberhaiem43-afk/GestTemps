@@ -153,6 +153,41 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
   };
 
   /**
+   * Détermine la propriété à utiliser selon le vartype et l'unité
+   */
+  const getPropertyForRubrique = (vartype: string, rubunite?: string): keyof HeureSupResultat | null => {
+    // Cas spéciaux selon l'unité
+    if (rubunite === 'J') {
+      // Si unité est Jour, utiliser les propriétés de nombre de jours
+      switch (vartype) {
+        case 'P': return 'jourRepos';        // Repos travaillés
+        case 'U': return 'nbNuits';          // Nuits
+        case 'C': return 'nbJourCngPaye';    // Congé
+        case 'F': return 'nbJourFerier';     // Férié
+        case 'R': return 'nbJourFerier';     // Férié travaillé
+        case 'T': return 'nbJourPointer';    // Nombre de jours
+        case 'H': return 'nbJours';          // Heures de jour
+        default: break;
+      }
+    } else {
+      // Si unité est Heure, utiliser les propriétés d'heures
+      switch (vartype) {
+        case 'P': return 'heureRepos';       // Repos travaillés
+        case 'U': return 'hreNuits';         // Nuits
+        case 'C': return 'nbHeureConge';     // Congé
+        case 'F': return 'hreFerier';        // Férié
+        case 'R': return 'hreFerieTrv';      // Férié travaillé
+        case 'T': return 'tothre';           // Nombre de jours
+        case 'H': return 'tothre';           // Heures de jour
+        default: break;
+      }
+    }
+
+    // Pour les autres vartypes, utiliser le mapping standard
+    return VARTYPE_TO_PROPERTY_MAP[vartype] || null;
+  };
+
+  /**
    * Génère les données à exporter dans Excel
    * Pour chaque employé et chaque rubrique configurée, calcule le total du mois
    */
@@ -164,8 +199,8 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
       rubriques.forEach((rubrique) => {
         if (!rubrique.vartype || !rubrique.rubcod) return;
 
-        // Trouver la propriété correspondante dans les résultats de pointage
-        const property = VARTYPE_TO_PROPERTY_MAP[rubrique.vartype];
+        // Trouver la propriété correspondante selon vartype et unité
+        const property = getPropertyForRubrique(rubrique.vartype, rubrique.rubunite);
         if (!property) {
           console.warn(`Vartype non mappé: ${rubrique.vartype} pour rubrique ${rubrique.rubcod}`);
           return;

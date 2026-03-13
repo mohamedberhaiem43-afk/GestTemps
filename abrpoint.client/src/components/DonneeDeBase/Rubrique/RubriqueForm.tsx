@@ -18,7 +18,6 @@ interface RubriqueFormProps {
 function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps) {
   const [rubcod, setRubCod] = useState('');
   const [rublib, setRubLib] = useState('');
-  const [rubtaux, setRubTaux] = useState(0);
   const [rubuntie, setRubUnite] = useState('');
   const [vartype, setVartype] = useState('');
   const [rubreg, setRubReg] = useState('T');
@@ -42,7 +41,6 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
       const rubrique = fetchedRubrique;
       setRubCod(rubrique.rubcod || '');
       setRubLib(rubrique.rublib || '');
-      setRubTaux(rubrique.rubtaux || 0);
       setRubUnite(rubrique.rubunite || '');
       setVartype(rubrique.vartype || '');
       setRubReg(rubrique.rubregime || '');
@@ -102,7 +100,7 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
       soccod: soccod || '',
       rubcod,
       rublib,
-      rubtaux,
+      rubtaux: 0,
       rubunite: rubuntie,
       rubregime: rubreg,
       vartype,
@@ -130,7 +128,6 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
     // Clear form
     setRubCod('');
     setRubLib('');
-    setRubTaux(0);
     setRubUnite('H');
     setVartype('');
     setRubReg('T');
@@ -166,18 +163,6 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
       setValue={setRubLib} 
     />
   </Grid>
-
-  <Grid item xs={4}>
-    <InputComponent 
-      type="number" 
-      label="Taux" 
-      value={rubtaux} 
-      setValue={setRubTaux} 
-    />
-  </Grid>
-</Grid>
-
-    <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
     <Grid item xs={4}>
       <SelectInputComponent
         label="Régime"
@@ -186,6 +171,10 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
         maplist={regimeOptions}
       />
     </Grid>
+
+</Grid>
+
+    <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
 
     <Grid item xs={4}>
       <SelectInputComponent
@@ -207,19 +196,7 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
   </Grid>
 
 
-      <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
-        <Grid item xs={4}>
-          <InputComponent type="number" label="Taux" value={rubtaux} setValue={setRubTaux} />
-        </Grid>
-        <Grid item xs={4}>
-          <SelectInputComponent
-            label="Affectation"
-            value={vartype}
-            setValue={setVartype}
-            maplist={affectationOptions}
-          />
-        </Grid>
-      </Grid>
+
 
       <Box sx={{ mt: 3, textAlign: "right", display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
         {editingRubrique && (
