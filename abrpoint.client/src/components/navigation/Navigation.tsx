@@ -3,7 +3,7 @@ import { createTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { AppProvider, Router, Session } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core';
-import { Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings, Assessment, AttachMoney, Autorenew, Chat, DevicesOther, Domain, EventNote, HolidayVillageRounded, Insights, Money, MoneyOffCsredSharp, Power, Settings, SyncAlt, WorkOutline, LocalAtm, Schedule} from '@mui/icons-material';
+import { Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings, Assessment, AttachMoney, Autorenew, Chat, DevicesOther, Domain, EventNote, HolidayVillageRounded, Insights, Money, Power, Settings, SyncAlt, WorkOutline, LocalAtm, Schedule} from '@mui/icons-material';
 import { Box } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Filiale } from '../DonneeDeBase/Filiale/Filiale';
