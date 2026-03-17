@@ -81,6 +81,10 @@ export default function CredentialsSignInPage() {
     localStorage.setItem('authToken',token)
     localStorage.setItem('societeImage',response.data.socimg)
     localStorage.setItem('profileImage',response.data.utiimg)
+    localStorage.setItem('utiadm',response.data.utiadm)
+    window.dispatchEvent(new Event('utiadmUpdated'));
+    window.dispatchEvent(new Event('imageUpdated'));
+    console.log('Login successful', response.data);
     navigate('/dashboard');
   }).catch(error => {
         console.error('Login failed', error);

@@ -84,8 +84,24 @@ interface DemoPageContentProps {
 // Hook personnalisé pour obtenir la navigation traduite
 const useNavigationItems = () => {
   const { t } = useTranslation();
+
+  const [isAdmin, setIsAdmin] = React.useState(() => localStorage.getItem('utiadm') === '1');
+
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      setIsAdmin(localStorage.getItem('utiadm') === '1');
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('utiadmUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('utiadmUpdated', handleStorageChange);
+    };
+  }, []);
   
-  return [
+  const baseNavigation = [
     {
       segment: 'dashboard',
       title: t('navigation.dashboard'),
@@ -102,6 +118,7 @@ const useNavigationItems = () => {
           title: t('navigation.society'),
           icon: <Domain />,
         },
+
         {
           segment: 'direction',
           title: t('navigation.direction'),
@@ -146,24 +163,6 @@ const useNavigationItems = () => {
           segment: 'rubrique',
           title: t('navigation.rubric'),
           icon: <AttachMoney />,
-        },
-      ],
-    },
-    {
-      segment: 'dashboard',
-      title: t('navigation.administrator'),
-      style: { fontSize: '1px' },
-      icon: <AdminPanelSettings />,
-      children: [
-        {
-          segment: 'gestion-utilisateur',
-          title: t('navigation.users'),
-          icon: <AccountCircle />,
-        },
-        {
-          segment: 'droit-accees',
-          title: t('navigation.accessRights'),
-          icon: <Accessible />,
         },
       ],
     },
@@ -363,16 +362,38 @@ const useNavigationItems = () => {
         },
       ]
     },
-    {
-      segment: 'dashboard',
-      title: t('navigation.companySettings'),
-      icon: <Settings />,
-      children: [
-        {
-          segment: 'profile',
-          title: t('navigation.profile'),
-          icon: <AccountBalance />,
-        },
+  ];
+
+  const adminNavigation = {
+    segment: 'dashboard',
+    title: t('navigation.administrator'),
+    style: { fontSize: '1px' },
+    icon: <AdminPanelSettings />,
+    children: [
+      {
+        segment: 'gestion-utilisateur',
+        title: t('navigation.users'),
+        icon: <AccountCircle />,
+      },
+      {
+        segment: 'droit-accees',
+        title: t('navigation.accessRights'),
+        icon: <Accessible />,
+      },
+    ],
+  };
+
+  const companySettingsNavigation = {
+    segment: 'dashboard',
+    title: t('navigation.companySettings'),
+    icon: <Settings />,
+    children: [
+      {
+        segment: 'profile',
+        title: t('navigation.profile'),
+        icon: <AccountBalance />,
+      },
+      ...(isAdmin ? [
         {
           segment: 'societe',
           title: t('navigation.companyParameter'),
@@ -388,8 +409,14 @@ const useNavigationItems = () => {
           title: t('navigation.chatBot'),
           icon: <Chat />,
         },
-      ]
-    },
+      ] : []),
+    ]
+  };
+
+  return [
+    ...baseNavigation,
+    ...(isAdmin ? [adminNavigation] : []),
+    companySettingsNavigation,
   ];
 };
 

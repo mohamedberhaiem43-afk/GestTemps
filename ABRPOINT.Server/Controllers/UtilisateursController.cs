@@ -102,7 +102,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             try
             {
-                string soclib = null;
+                string? soclib = null;
                 if (string.IsNullOrEmpty(user.Utimail))
                 {
                     return BadRequest("Email or password is missing.");
