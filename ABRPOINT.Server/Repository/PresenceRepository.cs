@@ -13,6 +13,7 @@ using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -84,7 +85,6 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                PresenceDto? presenceDto = null;
                 string formattedEmpcod = await FormatEmpcodCached(soccod, empcod);
                 var emp = await _employeRepository.GetByEmpcod(soccod, formattedEmpcod);
                 if (emp == null)
@@ -116,7 +116,7 @@ namespace ABRPOINT.Server.Repository
                 ValidatePresenceDates(dbpresence);
                 await _dmpointRepository.AddAsync(dbpresence, date, poicod);
                 await _dbContext.SaveChangesAsync();
-                return presenceDto;
+                return _mapper.Map<PresenceDto>(dbpresence);
             }
             catch (Exception)
             {
@@ -418,6 +418,24 @@ namespace ABRPOINT.Server.Repository
             {
 
                 throw new Exception("",ex);
+            }
+        }
+        public async Task<PresenceDto> GetAsync(string soccod, string empcod, DateTime predat)
+        {
+            try
+            {
+                PresenceDto? presence = await _dbContext.Presences
+                    .ProjectTo<PresenceDto>(_mapper.ConfigurationProvider)
+                    .Where(p => p.Soccod == soccod
+                            && p.Empcod == empcod && p.Predat == predat)
+                        .FirstOrDefaultAsync();
+
+                return presence;
+            }
+            catch (Exception ex)
+            {
+
+                throw new Exception("", ex);
             }
         }
         public async Task<float?> GetNbJours(string empcod, DateTime? dateDeb, DateTime? dateFin)
@@ -990,8 +1008,10 @@ namespace ABRPOINT.Server.Repository
                     }
                     if (existingPresence != null)
                     {
-                        await _dbContext.SaveChangesAsync();
+                        _mapper.Map(presence, existingPresence); // overwrites existingPresence in-place
                     }
+
+                    await _dbContext.SaveChangesAsync();
                 }
             }
             catch (Exception ex)

@@ -130,7 +130,7 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest("Veuillez remplir tous les champs obligatoires");
             try
             {
-                PresenceDto dbpresence = _presenceRepository.Get(soccod,empcod,predat);
+                PresenceDto dbpresence = await _presenceRepository.GetAsync(soccod,empcod,predat);
                 if(dbpresence == null)
                     dbpresence = await _presenceRepository.AddPresence(soccod, empcod, predat,"");
                 dbpresence.Preentamidiup = presence.preentamidiup;
