@@ -1,4 +1,5 @@
 import * as React from 'react';
+import apiInstance from '../API/apiInstance';
 import { createTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { AppProvider, Router, Session } from '@toolpad/core/AppProvider';
@@ -84,22 +85,28 @@ interface DemoPageContentProps {
 // Hook personnalisé pour obtenir la navigation traduite
 const useNavigationItems = () => {
   const { t } = useTranslation();
+  const { utiadm, isEmp } = useAuth();
+  const isAdmin = utiadm === '1';
 
-  const [isAdmin, setIsAdmin] = React.useState(() => localStorage.getItem('utiadm') === '1');
+  const filterNavigationTree = (items: any[], allowedSegments: Set<string>) => {
+    return items.reduce<any[]>((acc, item) => {
+      const filteredChildren = item.children
+        ? filterNavigationTree(item.children, allowedSegments)
+        : undefined;
 
-  React.useEffect(() => {
-    const handleStorageChange = () => {
-      setIsAdmin(localStorage.getItem('utiadm') === '1');
-    };
+      const isAllowedItem = allowedSegments.has(item.segment);
+      const hasAllowedChildren = Boolean(filteredChildren?.length);
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('utiadmUpdated', handleStorageChange);
+      if (isAllowedItem || hasAllowedChildren) {
+        acc.push({
+          ...item,
+          ...(filteredChildren ? { children: filteredChildren } : {}),
+        });
+      }
 
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('utiadmUpdated', handleStorageChange);
-    };
-  }, []);
+      return acc;
+    }, []);
+  };
   
   const baseNavigation = [
     {
@@ -413,6 +420,18 @@ const useNavigationItems = () => {
     ]
   };
 
+  if (isEmp) {
+    const allowedSegments = new Set([
+      'dashboard',
+      'gestion-de-conge',
+      'profile',
+    ]);
+
+    const employeeNavigation = filterNavigationTree(baseNavigation, allowedSegments) as typeof baseNavigation;
+
+    return [...employeeNavigation, companySettingsNavigation];
+  }
+
   return [
     ...baseNavigation,
     ...(isAdmin ? [adminNavigation] : []),
@@ -607,7 +626,7 @@ export default function DashboardLayoutAccount(props: DemoProps) {
     const { window: windowProp } = props;  // rename to avoid conflict
     const navigate = useNavigate();
     const location = useLocation();
-    const { userName, soclib } = useAuth();
+    const { userName, soclib, clearAuth } = useAuth();
     const { i18n } = useTranslation();
     const NAVIGATION = useNavigationItems();
 
@@ -644,19 +663,19 @@ export default function DashboardLayoutAccount(props: DemoProps) {
         };
     }, []);
 
-    // Update session when userName or profileImage changes
+    // Update session when auth data changes
     React.useEffect(() => {
-        if (userName) {
+        if (userName || soclib) {
             setSession({
                 user: {
-                    name: userName,
+                    name: userName || 'Employé',
                     image: profileImage,
                 },
             });
         } else {
             setSession(null);
         }
-    }, [userName, profileImage]);
+    }, [userName, profileImage, soclib]);
 
     // RTL/LTR direction
     React.useEffect(() => {
@@ -667,10 +686,21 @@ export default function DashboardLayoutAccount(props: DemoProps) {
     const authentication = React.useMemo(() => ({
         signIn: () => navigate('/dashboard'),
         signOut: () => {
-            localStorage.clear();
-            sessionStorage.clear();
-            setSession(null);
-            navigate('/');
+            apiInstance.post(
+                `/Utilisateurs/logout`,
+                {}
+            ).then(() => {
+                localStorage.clear();
+                clearAuth();
+                setSession(null);
+                navigate('/');
+            }).catch(() => {
+                // Even if logout fails on server, clear client-side data
+                localStorage.clear();
+                clearAuth();
+                setSession(null);
+                navigate('/');
+            });
         },
     }), [navigate]);
 

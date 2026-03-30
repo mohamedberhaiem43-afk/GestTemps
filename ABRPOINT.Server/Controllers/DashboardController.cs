@@ -36,7 +36,19 @@ namespace ABRPOINT.Server.Controllers
 
             return Ok(data);
         }
-
+        [HttpPost("get-pointage-invalides")]
+        public async Task<List<PointageInvalideDto>> GetPointageInvalide([FromBody] DashboardRequest request)
+        {
+            try
+            {
+                var result = await _dashboardService.GetPointagesInvalides(request);
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         /// <summary>
         /// Récupère l'évolution des données sur une période
         /// </summary>

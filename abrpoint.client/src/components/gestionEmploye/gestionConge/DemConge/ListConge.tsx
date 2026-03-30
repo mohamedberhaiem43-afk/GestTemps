@@ -10,6 +10,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   ListItemIcon,
   MenuItem,
@@ -25,11 +26,17 @@ import useAcceptDemConge from '../../../../hooks/congeHooks/useAcceptDemConge';
 import useGetDemConges from '../../../../hooks/congeHooks/useGetDemConges';
 import { useCongeContext } from '../../../helper/CongeContext';
 import AlertModal from '../../../AlertModal/AlertModal';
+import { useAuth } from '../../../helper/AuthProvider';
+import { useTranslation } from 'react-i18next';
 
 export default function CongeList() {
   const { setSelectedConge: setSelectedCongeForEdit } = useCongeContext();
   const { mutate: acceptConge, isLoading: isAccepting } = useAcceptDemConge();
   const { data = [], isLoading } = useGetDemConges();
+  const { isEmp, uticod: currentEmpCode } = useAuth();
+  const { t } = useTranslation();
+  // Filter data for regular employees - show only their own leave requests
+  const displayData = isEmp && currentEmpCode ? data.filter((conge: Conge) => conge.empcod === currentEmpCode) : data;
   
   // États pour le modal de confirmation d'acceptation
   const [alertOpen, setAlertOpen] = useState(false);
@@ -91,6 +98,34 @@ export default function CongeList() {
     setAlertOpen(false);
     setSelectedCongeToAccept(null);
   };
+  const getLeaveStatus = (conge: Conge) => {
+    const normalized = conge.etat?.trim().toLowerCase();
+
+    if (normalized) {
+      if (normalized.includes('refus')) return 'Refuse';
+      if (normalized.includes('accept')) return 'Accepte';
+      if (normalized.includes('attente')) return 'En attente';
+    }
+
+    if (conge.conrefus === '1') {
+      return 'Refuse';
+    }
+
+    return 'En attente';
+  };
+
+  const getStatusColor = (status: string): 'success' | 'error' | 'warning' | 'default' => {
+    switch (status) {
+      case 'Accepte':
+        return 'success';
+      case 'Refuse':
+        return 'error';
+      case 'En attente':
+        return 'warning';
+      default:
+        return 'default';
+    }
+  };
 
   const columns = useMemo<MRT_ColumnDef<Conge>[]>(() => [
     {
@@ -135,13 +170,29 @@ export default function CongeList() {
           header: 'Nb.jours',
           size: 60,
         },
+        {
+          id: 'etat',
+          header: t('dashboard.status') || 'Statut',
+          size: 120,
+          Cell: ({ row }) => {
+            const status = getLeaveStatus(row.original);
+            return (
+              <Chip
+                label={status}
+                color={getStatusColor(status)}
+                size="small"
+                variant="outlined"
+              />
+            );
+          },
+        },
       ],
     },
-  ], []);
+  ], [t]);
 
   const table = useMaterialReactTable({
     columns,
-    data,
+    data: displayData,
     enableColumnFilterModes: true,
     enableColumnOrdering: true,
     enableGrouping: true,
@@ -183,31 +234,35 @@ export default function CongeList() {
       },
     },
     renderRowActionMenuItems: ({ closeMenu, row }) => [
-      <MenuItem
-        key={0}
-        onClick={() => {
-          handleAcceptClick(row.original.concod, row.original.empcod);
-          closeMenu();
-        }}
-        sx={{ m: 0 }}
-      >
-        <ListItemIcon>
-          <AccountCircle />
-        </ListItemIcon>
-        Accepter
-      </MenuItem>,
-      <MenuItem
-        key={1}
-        onClick={() => {
-          closeMenu();
-        }}
-        sx={{ m: 0 }}
-      >
-        <ListItemIcon>
-          <Send />
-        </ListItemIcon>
-        Refuser
-      </MenuItem>,
+      ...(!isEmp ? [
+        <MenuItem
+          key={0}
+          onClick={() => {
+            handleAcceptClick(row.original.concod, row.original.empcod);
+            closeMenu();
+          }}
+          sx={{ m: 0 }}
+        >
+          <ListItemIcon>
+            <AccountCircle />
+          </ListItemIcon>
+          Accepter
+        </MenuItem>,
+      ] : []),
+      ...(!isEmp ? [
+        <MenuItem
+          key={1}
+          onClick={() => {
+            closeMenu();
+          }}
+          sx={{ m: 0 }}
+        >
+          <ListItemIcon>
+            <Send />
+          </ListItemIcon>
+          Refuser
+        </MenuItem>,
+      ] : []),
       <MenuItem
         key="edit"
         onClick={() => {
@@ -318,3 +373,4 @@ export default function CongeList() {
     </Box>
   );
 }
+

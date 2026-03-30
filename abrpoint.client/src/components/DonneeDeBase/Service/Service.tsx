@@ -6,7 +6,7 @@ import {
   useMaterialReactTable,
 } from 'material-react-table';
 import { Box,Snackbar,Alert, CircularProgress, IconButton, Tooltip, Checkbox } from '@mui/material';
-import axios from 'axios';
+import apiInstance from '../../API/apiInstance';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -23,15 +23,9 @@ const Service = () => {
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const token = localStorage.getItem('authToken');
-  
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
-
   const openDeleteConfirmModal = (row: MRT_Row<ServiceModel>) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
-      axios.delete(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/${row.original.soccod}/${row.original.sercod}`, { headers })
+      apiInstance.delete(`/Services/${row.original.soccod}/${row.original.sercod}`)
         .then(() => {
           setServices((prev) => prev.filter((service) => service.sercod !== row.original.sercod));
         })
@@ -42,7 +36,7 @@ const Service = () => {
   };
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-services/${sessionStorage.getItem('soccod')}`, { headers })
+    apiInstance.get(`/Services/get-services/${sessionStorage.getItem('soccod')}`)
       .then((res) => {
         setServices(res.data);
         setIsLoading(false);
@@ -169,7 +163,7 @@ const Service = () => {
           effectif: service.effectif,
         };
 
-        const response = await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Services`, sanitizedService, { headers });
+        const response = await apiInstance.post(`/Services`, sanitizedService);
         setServices((prev) => [...prev, response.data]);
       })
     );
@@ -196,7 +190,7 @@ const Service = () => {
             effectif: service.effectif,
           };
 
-          await axios.put(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/${service.soccod}/${service.sercod}`, sanitizedService, { headers });
+          await apiInstance.put(`/Services/${service.soccod}/${service.sercod}`, sanitizedService);
         })
       );
 

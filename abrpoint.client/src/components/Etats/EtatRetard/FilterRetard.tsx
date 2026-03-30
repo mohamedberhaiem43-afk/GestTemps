@@ -1,7 +1,7 @@
 import { Box, Grid, IconButton } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
-import axios from "axios";
+import apiInstance from "../../API/apiInstance";
 import { useContext, useEffect, useState } from "react";
 import { Print, Search } from "@mui/icons-material";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
@@ -11,9 +11,7 @@ import { useAuth } from "../../helper/AuthProvider";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
 
 function FilterRetard() {
-    const token = localStorage.getItem('authToken');
     const { soccod } = useAuth();
-    const headers = { Authorization: `Bearer ${token}` };
     const regime = {
         'M': "Mensuelle",
         'H': "Horaire"
@@ -43,11 +41,11 @@ function FilterRetard() {
     const { data: emplibs = [] } = useGetEmployeesLibs();
 
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`)
+        apiInstance.get(`/Sites/get-sitlibs`)
             .then((res) => setFiliale(res.data))
             .catch((err) => console.error(err));
 
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Parametres/deb-mois/${soccod}`, { headers })
+        apiInstance.get(`/Parametres/deb-mois/${soccod}`)
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
                 
@@ -90,11 +88,10 @@ function FilterRetard() {
             const params = new URLSearchParams();
             empCodesToSend.forEach(code => params.append('empcods', code));
 
-            const response = await axios.get(
-                `${import.meta.env.VITE_REACT_APP_API_URL}/Presences/get-etat-retard-report/${soccod}/${dateDebut}/${dateFin}/${selectedRegime}`,
+            const response = await apiInstance.get(
+                `/Presences/get-etat-retard-report/${soccod}/${dateDebut}/${dateFin}/${selectedRegime}`,
                 {
-                    headers,
-                    params,
+                                        params,
                     responseType: 'blob'
                 }
             );
@@ -113,7 +110,7 @@ function FilterRetard() {
     };
 
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`, { headers })
+        apiInstance.get(`/Services/get-servlibs/${soccod}`)
             .then((res) => setServices(res.data))
             .catch((err) => console.error(err));
     }, [soccod]);

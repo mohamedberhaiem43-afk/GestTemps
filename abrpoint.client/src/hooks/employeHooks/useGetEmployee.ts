@@ -1,26 +1,20 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useQuery } from "react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetEmployee = () => {
-    const { soccod } = useAuth();
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
-    const uticod = localStorage.getItem('Uticod');
-    
-    return useQuery({
-        queryKey: ["employes",soccod,uticod],
-        queryFn: async () => {
-            const response =  await axios.get
-            (
-                `${import.meta.env.VITE_REACT_APP_API_URL}/Employes/get-libs/${soccod}/${uticod}`, 
-                { headers }
-            )
-            return response.data;   
-        }
-    })
-    
+    const { soccod, uticod, isEmp } = useAuth();
 
+    return useQuery({
+        queryKey: ["employes", soccod, uticod],
+        queryFn: async () => {
+            const response = await apiInstance.get(
+                `/Employes/get-libs/${soccod}/${uticod}`
+            );
+            return response.data;
+        },
+        enabled: !!soccod && !!uticod && !isEmp,
+    })
 }
 
 export default useGetEmployee;

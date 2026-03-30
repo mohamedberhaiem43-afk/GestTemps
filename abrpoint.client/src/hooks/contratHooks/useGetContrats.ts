@@ -1,38 +1,40 @@
 import { useQuery } from "react-query";
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
+import { useAuth } from "../../components/helper/AuthProvider";
 
 const isValidDate = (dateString: string): boolean => {
-  if (!dateString) return true; // Allow empty date strings
+  if (!dateString) return false;
   const date = new Date(dateString);
   return !isNaN(date.getTime()) && date.getTime() >= new Date("1753-01-01T00:00:00Z").getTime();
 };
 
-const useGetContrats = (req: string, filters: { srvcod?: string; sitcod?: string; echdeb?: string; echfin?: string }) => {
-  const token = localStorage.getItem("authToken");
-  const headers = { Authorization: `Bearer ${token}` };
-  const soccod = sessionStorage.getItem("soccod");
-
-  const isQueryEnabled =
-  !!soccod &&
-  !!filters?.srvcod &&
-  !!filters?.echdeb &&
-  !!filters?.echfin &&
-  isValidDate(filters?.echdeb || "") &&
-  isValidDate(filters?.echfin || "");
+const useGetContrats = (req: string, filters?: { srvcod?: string; sitcod?: string; echdeb?: string; echfin?: string }) => {
+  const { soccod, uticod } = useAuth();
+  const normalizedFilters = {
+    srvcod: filters?.srvcod || undefined,
+    sitcod: filters?.sitcod || undefined,
+    echdeb: isValidDate(filters?.echdeb || "") ? filters?.echdeb : undefined,
+    echfin: isValidDate(filters?.echfin || "") ? filters?.echfin : undefined,
+  };
 
   return useQuery({
-    queryKey: ["contrats", req, soccod, filters],
+    queryKey: ["contrats", req, soccod, uticod, normalizedFilters],
     queryFn: async () => {
       try {
-        const url = `${import.meta.env.VITE_REACT_APP_API_URL}/Contrats/${soccod}/${filters?.srvcod || ''}/${filters?.sitcod || ''}/${filters?.echdeb || ''}/${filters?.echfin || ''}`;
-        const response = await axios.get(url, { headers });
+        const response = await apiInstance.get("/Contrats/search", {
+          params: {
+            soccod,
+            uticod,
+            ...normalizedFilters,
+          },
+        });
         return response.data;
       } catch (error) {
         console.error("Error fetching contracts:", error);
         throw error;
       }
     },
-    enabled:isQueryEnabled
+    enabled: !!filters && !!soccod && !!uticod,
   });
 };
 

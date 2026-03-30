@@ -540,6 +540,35 @@
   "app": {
     "name": "ABRPOINT"
   },
+  "dashboard": {
+    "employeeDashboard": "Mon Espace Employé",
+    "welcome": "Bienvenue",
+    "myPresence": "Ma Présence",
+    "myLeaves": "Mes Congés",
+    "workedHours": "Heures Travaillées",
+    "pendingRequests": "Demandes en Attente",
+    "today": "Aujourd'hui",
+    "thisWeek": "Cette Semaine",
+    "thisMonth": "Ce Mois",
+    "recentLeaveRequests": "Mes Dernières Demandes de Congé",
+    "recentPresence": "Ma Présence Récente",
+    "noLeaveRequests": "Aucune demande de congé",
+    "noPresenceData": "Aucune donnée de présence",
+    "date": "Date",
+    "type": "Type",
+    "status": "Statut",
+    "days": "Jours",
+    "arrival": "Arrivée",
+    "departure": "Départ",
+    "hours": "Heures",
+    "approved": "Approuvée",
+    "rejected": "Refusée",
+    "pending": "En Attente",
+    "present": "Présent",
+    "absent": "Absent",
+    "onLeave": "En Congé",
+    "unknown": "Inconnu"
+  },
   "loading": {
     "loading": "Chargement..."
   },

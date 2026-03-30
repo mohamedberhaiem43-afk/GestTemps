@@ -476,6 +476,35 @@
   "app": {
     "name": "ABRPOINT"
   },
+  "dashboard": {
+    "employeeDashboard": "My Employee Space",
+    "welcome": "Welcome",
+    "myPresence": "My Presence",
+    "myLeaves": "My Leaves",
+    "workedHours": "Worked Hours",
+    "pendingRequests": "Pending Requests",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "recentLeaveRequests": "My Recent Leave Requests",
+    "recentPresence": "My Recent Presence",
+    "noLeaveRequests": "No leave requests",
+    "noPresenceData": "No presence data",
+    "date": "Date",
+    "type": "Type",
+    "status": "Status",
+    "days": "Days",
+    "arrival": "Arrival",
+    "departure": "Departure",
+    "hours": "Hours",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "pending": "Pending",
+    "present": "Present",
+    "absent": "Absent",
+    "onLeave": "On Leave",
+    "unknown": "Unknown"
+  },
   "loading": {
     "loading": "Loading..."
   },

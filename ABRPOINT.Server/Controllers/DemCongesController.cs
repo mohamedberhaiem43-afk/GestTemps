@@ -31,6 +31,36 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
+        [HttpGet("get-emp-demconge/{soccod}/{empcod}")]
+        public async Task<List<DemcongeDto>> GetEmpDemconge(string soccod, string empcod)
+        {
+            try
+            {
+                var result =  await _demandecongeRepository.GetEmpDemconge(soccod, empcod);
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        [HttpGet("get-demconge-by-periode/{soccod}/{uticod}/{datedebut}/{datefin}")]
+        [CanGetDemConge]
+        public async Task<List<Demconge>> GetCongeWithAbsenceAsync(string soccod, string uticod,DateTime datedebut,DateTime datefin)
+        {
+            try
+            {
+                datedebut = datedebut.Date;
+                datefin = datefin.Date;
+                var result =  await _demandecongeRepository.GetAllByPeriod(soccod, uticod,datedebut,datefin);
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
 
         [HttpPost("accept-demconge/{soccod}/{concod}/{empcod}")]
         [CanAddDemConge]

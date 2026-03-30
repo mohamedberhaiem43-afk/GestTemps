@@ -15,7 +15,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
-import axios from 'axios';
+import apiInstance from '../../API/apiInstance';
 import { FonctionModel } from '../../../models/Fonction';
 import { t } from 'i18next';
 
@@ -26,14 +26,9 @@ const FonctionTable = () => {
   const [isError, setIsError] = useState(false);
   const soccod = sessionStorage.getItem('soccod') || '';
 
-  const token = localStorage.getItem('authToken');
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
-
   const fetchFonctions = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Fonctions/${soccod}`, { headers });
+      const response = await apiInstance.get(`/Fonctions/${soccod}`);
       setFonctions(response.data);
     } catch (err) {
       console.error(err);
@@ -117,7 +112,7 @@ const FonctionTable = () => {
 
   const openDeleteConfirmModal = (row: MRT_Row<FonctionModel>) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette fonction ?')) {
-      axios.delete(`${import.meta.env.VITE_REACT_APP_API_URL}/Fonctions/${row.original.foncod}`, { headers })
+      apiInstance.delete(`/Fonctions/${row.original.foncod}`)
         .then(() => {
           setFonctions((prev) => prev.filter((f) => f.foncod !== row.original.foncod));
         })
@@ -143,10 +138,9 @@ const FonctionTable = () => {
         };
 
 
-        const response = await axios.post(
-          `${import.meta.env.VITE_REACT_APP_API_URL}/Fonctions`,
-          sanitized,
-          { headers }
+        const response = await apiInstance.post(
+          `/Fonctions`,
+          sanitized
         );
 
         setFonctions((prev) => [...prev, response.data]);
@@ -163,7 +157,7 @@ const FonctionTable = () => {
     try {
       await Promise.all(
         Object.values(editedFonctions).map(async (f) => {
-          await axios.put(`${import.meta.env.VITE_REACT_APP_API_URL}/Fonctions/${f.foncod}`, f, { headers });
+          await apiInstance.put(`/Fonctions/${f.foncod}`, f);
         })
       );
       setEditedFonctions({});

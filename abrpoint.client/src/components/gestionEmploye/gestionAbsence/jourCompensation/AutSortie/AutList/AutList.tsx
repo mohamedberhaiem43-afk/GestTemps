@@ -25,10 +25,11 @@ import useDeleteSortie from '../../../../../../hooks/sortieHooks/useDeleteSortie
 import { useSortieGeneralContext } from '../../../../../helper/SortieGeneralContext';
 import SortieService from '../../../../../../services/SortieService/SortieService';
 import SortieReportService from '../../../../../../services/SortieService/SortieReportService';
+import { useAuth } from '../../../../../helper/AuthProvider';
 
 const AutoriserList = () => {
   const { setSelectedSortieGeneral } = useSortieGeneralContext();
-  const uticod = localStorage.getItem('Uticod');
+  const { uticod } = useAuth();
 
   const [selectedAutoriser, setSelectedAutoriser] = useState<{ concod: string } | null>(null); // Track the selected Autoriser for deletion
   const [openModal, setOpenModal] = useState(false); // Track modal open state

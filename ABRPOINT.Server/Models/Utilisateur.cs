@@ -8,7 +8,7 @@ public partial class Utilisateur
 {
     [Key]
     [Column("uticod")]
-    [StringLength(2)]
+    [StringLength(20)]
     public string? Uticod { get; set; }
 
     [Column("utinom")]

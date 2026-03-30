@@ -2,6 +2,9 @@
 export type DashboardRequest = {
   soccod: string;
   date?: string | Date;
+  dateDebut?: string | Date;
+  dateFin?: string | Date;
+  dateRange?: string;
   departement?: string | null;
   empcods?: string[] | null;
 };
@@ -31,6 +34,25 @@ export interface DashboardData {
   alertes?: AlerteDashboard[];
 
 }
+
+export interface PointageInvalideDto {
+  empcod: string;
+  emplib?: string;
+  departement?: string;
+  codposte?: string;
+  predat?: string;
+  preentmatup?: string;
+  presortmatup?: string;
+  preentamidiup?: string;
+  presortamidiup?: string;
+  tothre?: string;
+  motif: string;
+  entreeManquante: boolean;
+  sortieManquante: boolean;
+  incoherenceHoraire: boolean;
+  midiIncoherent: boolean;
+}
+
 
 export interface DepartementData {
   departement: string;

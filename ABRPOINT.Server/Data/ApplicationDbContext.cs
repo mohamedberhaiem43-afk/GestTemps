@@ -239,6 +239,8 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Utilisateur> Utilisateurs { get; set; }
 
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+
     public virtual DbSet<Ville> Villes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

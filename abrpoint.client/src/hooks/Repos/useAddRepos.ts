@@ -1,20 +1,16 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useMutation } from "react-query";
 import { Ferier } from "../../models/Ferier";
 
 const useAddRepos = () => {
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
-    
     return useMutation((ferier: Ferier) =>
-            axios
+            apiInstance
                 .post(
-                    `${import.meta.env.VITE_REACT_APP_API_URL}/Feriers`,
-                    ferier,
-                    { headers }
+                    `/Feriers`,
+                    ferier
                 )
                 .then(res => res.data),
-        
+
     );
 };
 

@@ -44,29 +44,24 @@ import * as mammoth from 'mammoth';
 import ContratReportService from '../../../services/ContratService/ContratReportService';
 
 const ListEmploye = () => {
-  const uticod = localStorage.getItem("Uticod");
   const { selectedEmpMat, setSelectedEmpMat, setSelectedEmp } = useContext(EmployeeContext);
   const { t } = useTranslation();
+  const { soccod, uticod } = useAuth();
   const { data = [], isLoading, refetch } = useGetAllEmployees(uticod);
   const [empHoraires, setEmpHoraires] = useState<EmpHoraire[] | undefined>([]);
-  const { soccod } = useAuth();
   
-  // State for snackbar messages
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   
-  // State for forbidden message
   const [showForbidden, setShowForbidden] = useState(false);
   const [forbiddenMessage, setForbiddenMessage] = useState<string>('');
 
-  // State for contrat dialog
   const [contratDialogOpen, setContratDialogOpen] = useState(false);
   const [selectedEmployeForContrat, _setSelectedEmployeForContrat] = useState<Employe | null>(null);
   const [contratTemplates, setContratTemplates] = useState<Array<{name: string, file: File}>>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<File | null>(null);
 
-  // Use the delete hook
   const { mutate: deleteEmployeMutation } = useDeleteEmploye();
   const getContratPdf = async (employe: Employe) => {
     try {
@@ -92,13 +87,11 @@ const ListEmploye = () => {
     }
   };
 
-  // Load saved templates from localStorage on component mount
   useEffect(() => {
     const savedTemplates = localStorage.getItem('contratTemplates');
     if (savedTemplates) {
       try {
         const templates = JSON.parse(savedTemplates);
-        // Convert base64 strings back to File objects
         const templateFiles = templates.map((template: any) => {
           const byteCharacters = atob(template.base64);
           const byteNumbers = new Array(byteCharacters.length);
@@ -118,7 +111,6 @@ const ListEmploye = () => {
     }
   }, []);
 
-  // Save templates to localStorage
   const saveTemplatesToLocalStorage = (templates: Array<{name: string, file: File}>) => {
     const templatesForStorage = templates.map(async template => ({
       name: template.name,
@@ -145,7 +137,6 @@ const ListEmploye = () => {
           const status = error?.response?.status;
           const errorMessage = error?.response?.data?.message || t('employe.messages.deleteError');
           
-          // Check if it's a 403 Forbidden error
           if (status === 403) {
             setForbiddenMessage(errorMessage);
             setShowForbidden(true);
@@ -181,10 +172,6 @@ const ListEmploye = () => {
     }
   }, [selectedEmpMat]);
 
-  // Open contrat dialog
-
-
-  // Handle template file selection
   const handleTemplateFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && (file.name.endsWith('.doc') || file.name.endsWith('.docx'))) {
@@ -202,7 +189,6 @@ const ListEmploye = () => {
     }
   };
 
-  // Delete a template
   const deleteTemplate = (index: number) => {
     const updatedTemplates = contratTemplates.filter((_, i) => i !== index);
     setContratTemplates(updatedTemplates);
@@ -212,26 +198,21 @@ const ListEmploye = () => {
     }
   };
 
-  // Generate contract from template
   const generateContratFromTemplate = async () => {
   if (!selectedEmployeForContrat) return;
   
   if (!selectedTemplate) {
-    setSnackbarMessage(t('employe.messages.selectContractTemplate') || 'Veuillez sélectionner un modèle de contrat');
+    setSnackbarMessage(t('employe.messages.selectContractTemplate') || 'Veuillez sélectionner un modéle de contrat');
     setSnackbarSeverity('error');
     setSnackbarOpen(true);
     return;
   }
 
   try {
-    // Read the Word file and extract text with formatting
     const arrayBuffer = await selectedTemplate.arrayBuffer();
-    
-    // Use mammoth to extract text from Word document
     const result = await mammoth.extractRawText({ arrayBuffer });
     let templateContent = result.value;
     
-    // Replace placeholders with employee data
     const replacements: { [key: string]: string } = {
       '{{NOM}}': selectedEmployeForContrat.emplib || '',
       '{{PRENOM}}': selectedEmployeForContrat.emplib || '',
@@ -256,23 +237,18 @@ const ListEmploye = () => {
       '{{REGIME}}': selectedEmployeForContrat.empreg || '',
     };
 
-    // Replace all placeholders in the template
     let contratContent = templateContent;
     Object.keys(replacements).forEach(placeholder => {
       const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
       contratContent = contratContent.replace(regex, replacements[placeholder]);
     });
 
-    // Create PDF
     const doc = new jsPDF();
-    
-    // Set margins
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const maxLineWidth = pageWidth - (margin * 2);
     
-    // Split content into lines that fit the page width
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     
@@ -281,14 +257,12 @@ const ListEmploye = () => {
     let y = margin;
     const lineHeight = 7;
     
-    // Add content to PDF, handling page breaks
     lines.forEach((line: string) => {
       if (y + lineHeight > pageHeight - margin) {
         doc.addPage();
         y = margin;
       }
       
-      // Check if line is a title/header (you can customize this logic)
       if (line.match(/^(ARTICLE|CHAPITRE|CONTRAT|TITRE)/i)) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
@@ -301,14 +275,12 @@ const ListEmploye = () => {
       y += lineHeight;
     });
     
-    // Save the PDF
     doc.save(`contrat-${selectedEmployeForContrat.empcod}.pdf`);
     
-    // Close dialog and show success message
     setContratDialogOpen(false);
     setSelectedTemplate(null);
     
-    setSnackbarMessage(t('employe.messages.contractGenerated') || 'Contrat généré avec succès');
+    setSnackbarMessage(t('employe.messages.contractGenerated') || 'Contrat généré avec succés');
     setSnackbarSeverity('success');
     setSnackbarOpen(true);
     
@@ -324,7 +296,6 @@ const ListEmploye = () => {
   const handleGenerateAttestation = (employe: Employe) => {
     const doc = new jsPDF();
   
-    // Add header
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("SOCIETE MEUNIERE TUNISIE", 105, 20, { align: "center" });
@@ -333,7 +304,6 @@ const ListEmploye = () => {
     doc.text("RUE AHMED CHAOUKI Z.I BIR KASSAA BEN AROUS", 105, 26, { align: "center" });
     doc.text("71 382 333", 105, 32, { align: "center" });
   
-    // Title
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("ATTESTATION DE TRAVAIL", 170, 45, { align: "right" });
@@ -341,11 +311,6 @@ const ListEmploye = () => {
     doc.setFont("helvetica", "normal");
     doc.text(`Le : ${new Date().toLocaleDateString()}`, 170, 52, { align: "right" });
   
-    // Main content
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-  
-    // Content text with bold values
     const yStart = 70;
     let y = yStart;
   
@@ -371,15 +336,14 @@ const ListEmploye = () => {
     doc.setFont("helvetica", "bold");
     doc.text(dayjs(employe.empdcin).format('DD/MM/YYYY'), 90, y);
     doc.setFont("helvetica", "normal");
-    doc.text("a travaillé au sein de notre société en qualité de :", 20, (y += 10));
+    doc.text("a travaillé au sein de notre société en qualit de :", 20, (y += 10));
     doc.setFont("helvetica", "bold");
     doc.text(employe.empfonc.toUpperCase(), 120, y);
     doc.setFont("helvetica", "normal");
-    doc.text("et ce à partir du :", 20, (y += 10));
+    doc.text("et ce partir du :", 20, (y += 10));
     doc.setFont("helvetica", "bold");
     doc.text(dayjs(employe.empemb).format('DD/MM/YYYY'), 90, y);
   
-    // Footer
     doc.setFont("helvetica", "italic");
     doc.text(
       "Cette attestation est délivrée à l'intéressé(e) pour servir et faire valoir ce que de droit.",
@@ -388,19 +352,16 @@ const ListEmploye = () => {
       { maxWidth: 170 }
     );
   
-    // Save the PDF
     doc.save(`attestation-${employe.empcod}.pdf`);
   };
   
   const handleGenerateIndividualSheet = (employe: Employe) => {
     const doc = new jsPDF();
   
-    // Add header
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text(t('employe.documents.individualSheetTitle') || 'Individual Sheet', 105, 20, { align: "center" });
   
-    // Personal details
     let y = 40;
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -414,11 +375,9 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
     doc.text(`${t('site') || 'Site'}: ${employe.sitcod}`, 20, (y += 10));
     doc.text(`${t('employe.labels.active') || 'Active'}: ${employe.actif ? (t('common.yes') || 'Yes') : (t('common.no') || 'No')}`, 20, (y += 10));
 
-    // Employment details
     doc.text(`${t('employe.documents.hireDate') || 'Hire Date'}: ${employe.empemb}`, 20, (y += 10));
     doc.text(`${t('employe.labels.status') || 'Status'}: ${employe.actif ? (t('employe.status.active') || 'Active Employee') : (t('employe.status.inactive') || 'Inactive Employee')}`, 20, (y += 10));
   
-    // Footer
     doc.setFont("helvetica", "italic");
     doc.text(
       "Cette fiche est générée automatiquement à partir des données de l'employé.",
@@ -427,31 +386,25 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
       { maxWidth: 170 }
     );
   
-    // Save the PDF
     doc.save(`fiche-individuelle-${employe.empcod}.pdf`);
   };
 
   const getVisiteMedicaleReport = async (original: Employe) => {
     try {
-      // Fetch the report as a Blob
       const response = await EmployeReportService.getReport(
         `get-report/${original.soccod}/${original.empcod}`,
         'blob'
       );
   
-      // Create a Blob from the response
       const blob = new Blob([response], { type: 'application/pdf' });
   
-      // Create a temporary download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = 'Visite Médicale.pdf';
   
-      // Trigger the download
       link.click();
   
-      // Clean up the temporary URL
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading the report:', error);
@@ -472,6 +425,10 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
   const fetchHoraires = async (employe: Employe) => {
     const horaires = await getEmpHoraires(employe);
     setEmpHoraires(horaires);
+  };
+
+  const handleEmployeePreview = (employe: Employe) => {
+    fetchHoraires(employe);
   };
 
   const columns = useMemo<MRT_ColumnDef<Employe>[]>(
@@ -549,7 +506,7 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
         ],
       },
     ],
-    [],
+    [t],
   );
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -564,7 +521,6 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
       const sheet = workbook.Sheets[sheetName];
       let jsonData: Employe[] = XLSX.utils.sheet_to_json(sheet);
 
-      // Normalize data
       const normalizedData: Employe[] = jsonData.map((emp) => ({
         empcod: String(emp.empcod ?? '').trim(),
         soccod: String(emp.soccod ?? '').trim(),
@@ -643,7 +599,6 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
         <CircularProgress />
       ) : (
         <>
-          {/* Upload Button */}
           <Box
             sx={{
               position: 'fixed',
@@ -669,7 +624,6 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
             </label>
           </Box>
           
-          {/* Side-by-side DataList and TableEtat */}
           <Box display="flex" gap={2}>
             <Grid container spacing={2}>
               <Grid item xs={5}>
@@ -685,11 +639,12 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
                   idKey="empcod"
                   refetchMethod={refetch}
                   reportGeneration1={handleGenerateAttestation}
-                  reportGeneration2={getContratPdf} // Changé ici pour ouvrir la popup
+                  reportGeneration2={getContratPdf}
                   reportGeneration3={handleGenerateIndividualSheet}
                   reportGeneration4={getVisiteMedicaleReport}
                   empHoraires={fetchHoraires}
                   setData={setSelectedEmpMat}
+                  onRowClick={handleEmployeePreview}
                   actions={true}
                   pageSize={5}
                   purge={undefined}
@@ -698,7 +653,6 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
             </Grid>
           </Box>
 
-          {/* Dialog pour sélectionner le modèle de contrat */}
           <Dialog open={contratDialogOpen} onClose={() => setContratDialogOpen(false)} maxWidth="md" fullWidth
             sx={{
         '& .MuiDialog-container': {
@@ -785,7 +739,6 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
             </DialogActions>
           </Dialog>
 
-          {/* Regular Snackbar for success/error messages */}
           <Snackbar 
             open={snackbarOpen} 
             autoHideDuration={6000} 
@@ -801,7 +754,6 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
             </Alert>
           </Snackbar>
 
-          {/* Forbidden Message Component for 403 errors */}
           {showForbidden && (
             <ForbiddenMessage 
               message={forbiddenMessage}

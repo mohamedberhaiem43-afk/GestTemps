@@ -1,5 +1,5 @@
 import { useMutation } from 'react-query';
-import axios from 'axios';
+import apiInstance from '../../components/API/apiInstance';
 import EmpEtat from '../../models/EmpEtat';
 
 interface EtatDetailleParams {
@@ -14,8 +14,6 @@ interface EtatDetailleParams {
 const useGenerateEtatDetaille = () => {
   return useMutation({
     mutationFn: async (params: EtatDetailleParams) => {
-  const token = localStorage.getItem('authToken');
-
   const payload = {
   Soccod: "01",
   Empcod: "100434",
@@ -46,14 +44,10 @@ const useGenerateEtatDetaille = () => {
   }))
 };
 
-  const response = await axios.post(
-    `${import.meta.env.VITE_REACT_APP_API_URL}/Presences/etat-detaille`,
+  const response = await apiInstance.post(
+    `/Presences/etat-detaille`,
     payload,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
       responseType: 'blob',
     }
   );

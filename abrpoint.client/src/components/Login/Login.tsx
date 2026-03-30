@@ -1,9 +1,9 @@
-import { AppProvider } from '@toolpad/core';
+﻿import { AppProvider } from '@toolpad/core';
 import { useTheme } from '@mui/material/styles';
 import { Box, Button, Typography, Grid, Paper, CircularProgress, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import apiInstance from '../API/apiInstance';
 import { useNavigate } from 'react-router-dom';
 import SelectInputComponent from '../SelectInputComponent/SelectInputComponent';
 import InputComponent from '../Inputs/Input';
@@ -24,7 +24,7 @@ const Item = styled(Paper)(({ theme }) => ({
 }));
 
 export default function CredentialsSignInPage() {
-  const { setAuthData } = useAuth();
+  const { setAuthData, refreshAuth } = useAuth();
   const theme = useTheme();
   const [utimail, setUtimail] = useState('');
   const [usersit, setUsersit] = useState('');
@@ -38,18 +38,18 @@ export default function CredentialsSignInPage() {
 
   useEffect(() => {
     // Fetching Societes and Sites in parallel
-    axios.all([
-      axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Societes/get-soclibs`),
-      axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`)
+    Promise.all([
+      apiInstance.get(`/Societes/get-soclibs`),
+      apiInstance.get(`/Sites/get-sitlibs`)
     ])
-    .then(axios.spread((societesRes, sitesRes) => {
-      setSocietes(societesRes.data);
-      setSites(sitesRes.data);
-    }))
-    .catch(err => {
-      console.error('Error fetching data', err);
-      setError('Failed to load data.');
-    });
+      .then(([societesRes, sitesRes]) => {
+        setSocietes(societesRes.data);
+        setSites(sitesRes.data);
+      })
+      .catch(err => {
+        console.error('Error fetching data', err);
+        setError('Failed to load data.');
+      });
   }, []);
 
   const handleSignIn = () => {
@@ -67,26 +67,36 @@ export default function CredentialsSignInPage() {
     };
 
     setLoading(true);
-    axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/connect`, user)
-  .then(response => {
-    const { societe, token } = response.data;
-    setAuthData({
-      soccod: societe.soccod,
-      sitcod: societe.sitcod,
-      authToken:token,
-      userName: response.data.utilib,
-      soclib: response.data.soclib,
-    });
-    localStorage.setItem('Uticod',response.data.uticod)
-    localStorage.setItem('authToken',token)
-    localStorage.setItem('societeImage',response.data.socimg)
-    localStorage.setItem('profileImage',response.data.utiimg)
-    localStorage.setItem('utiadm',response.data.utiadm)
-    window.dispatchEvent(new Event('utiadmUpdated'));
-    window.dispatchEvent(new Event('imageUpdated'));
-    console.log('Login successful', response.data);
-    navigate('/dashboard');
-  }).catch(error => {
+    apiInstance.post(`/Utilisateurs/connect`, user)
+      .then(async response => {
+        const { societe, Utiimg, socimg } = response.data;
+
+        if (Utiimg) {
+          localStorage.setItem('profileImage', Utiimg);
+        } else {
+          localStorage.removeItem('profileImage');
+        }
+
+        if (socimg) {
+          localStorage.setItem('societeImage', socimg);
+        } else {
+          localStorage.removeItem('societeImage');
+        }
+
+        setAuthData({
+          soccod: societe.soccod,
+          sitcod: societe.sitcod,
+          userName: response.data.utilib,
+          soclib: response.data.soclib,
+          uticod: response.data.Uticod ?? null,
+          utiadm: response.data.Utiadm ?? null,
+          isEmp: Boolean(response.data.isEmp),
+        });
+        await refreshAuth();
+        window.dispatchEvent(new Event('utiadmUpdated'));
+        window.dispatchEvent(new Event('imageUpdated'));
+        navigate('/dashboard');
+      }).catch(error => {
         console.error('Login failed', error);
         setError('Login failed. Please check your credentials.');
       })
@@ -188,3 +198,4 @@ export default function CredentialsSignInPage() {
     </AppProvider>
   );
 }
+

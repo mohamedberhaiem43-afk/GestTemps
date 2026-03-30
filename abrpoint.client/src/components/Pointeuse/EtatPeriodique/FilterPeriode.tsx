@@ -1,7 +1,6 @@
 import { Box, Grid, IconButton } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
-import axios from "axios";
 import { useEffect, useState } from "react";
 import { useTranslation } from 'react-i18next';
 import { useDateRange } from "./FilterContext";
@@ -13,14 +12,12 @@ import useGetEtatAbsence from "../../../hooks/absenceHooks/useGetEtatAbsence";
 import RadioGroupComponent, { FormControlLabelComponent } from "../../RadioGroupComponent/RadioGroupComponent";
 import { useAbsenceContext } from "../../helper/AbsParamsContext";
 import { useAuth } from "../../helper/AuthProvider";
-
+import apiInstance from "../../API/apiInstance";
 
 
 function FilterPeriode() {
     const { t } = useTranslation();
-    const token = localStorage.getItem('authToken');
     const { soccod } =useAuth();
-    const headers = { Authorization: `Bearer ${token}` };
     const regime = {
         'M': "Mensuelle",
         'H': "Horaire"
@@ -86,11 +83,11 @@ function FilterPeriode() {
     },[radioValue])
     const {data:emplibs=[]} = useGetEmployeesLibs();
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`)
+        apiInstance.get(`/Sites/get-sitlibs`)
             .then((res) => setFiliale(res.data))
             .catch((err) => console.error(err));
 
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Parametres/deb-mois/${soccod}`, { headers })
+        apiInstance.get(`/Parametres/deb-mois/${soccod}`)
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
                 // Removed setDebMois as it is unused
@@ -131,14 +128,10 @@ function FilterPeriode() {
                     dateFin: dateFin,
                     data: absenceData
                 };
-                const response = await axios.post(
-                    `${import.meta.env.VITE_REACT_APP_API_URL}/Absences/get-etat-absence-report`,
+                const response = await apiInstance.post(
+                    `/Absences/get-etat-absence-report`,
                     payload,
                     {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
                         responseType: 'blob',
                     }
                 );
@@ -182,7 +175,7 @@ function FilterPeriode() {
         };
 
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`, { headers })
+        apiInstance.get(`/Services/get-servlibs/${soccod}`)
             .then((res) => setServices(res.data))
             .catch((err) => console.error(err));
     }, [soccod]);
@@ -348,3 +341,5 @@ function FilterPeriode() {
 
 }
 export default FilterPeriode;
+
+

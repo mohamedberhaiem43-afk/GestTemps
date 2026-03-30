@@ -1,21 +1,32 @@
-import axios from "axios";
-import { useMutation } from "react-query";
-import { NewContractData } from "../../components/gestionEmploye/GestionContrats/Renouvellement/FiltrageRenouvellement";
+import { useMutation, useQueryClient } from "react-query";
+import apiInstance from "../../components/API/apiInstance";
+
+export interface RenewContractPayload {
+  soccod: string;
+  sourceConcod: string;
+  newConcod: string;
+  condat: string;
+  startDate: string;
+  endDate: string;
+  monthNumber: number;
+  contype?: string;
+  empcontrat?: string;
+  empmotif?: string;
+}
 
 const useRenouvellementContrat = () => {
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
-    
-    return useMutation((contrat:NewContractData) =>
-            axios
-                .post(
-                    `${import.meta.env.VITE_REACT_APP_API_URL}/Contrats`,
-                    contrat,
-                    { headers }
-                )
-                .then(res => res.data),
-        
-    );
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["renew-contrat"],
+    mutationFn: async (contrat: RenewContractPayload) => {
+      const response = await apiInstance.post("/Contrats/renew", contrat);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["contrats"]);
+    },
+  });
 };
 
 export default useRenouvellementContrat;

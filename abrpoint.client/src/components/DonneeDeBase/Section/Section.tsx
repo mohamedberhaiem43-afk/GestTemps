@@ -4,7 +4,7 @@ import {
   MRT_Row,
 } from 'material-react-table';
 import { Box, Select, MenuItem, FormControl } from '@mui/material';
-import axios from 'axios';
+import apiInstance from '../../API/apiInstance';
 import './Section.css';
 import useGetSections from '../../../hooks/sectionHooks/useGetSections';
 import DataList from '../../lists/list';
@@ -13,15 +13,9 @@ import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 const Section = () => {
   const [setEditedSections] = useState<any>();
 
-  const token = localStorage.getItem('authToken');
-  
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
-
   const openDeleteConfirmModal = (row: MRT_Row<any>) => {
     if (window.confirm('Ete vous sure de supprimer cette section?')) {
-      axios.delete(`https://localhost:7189/api/Sections/${row.original.soccod}/${row.original.seccod}`, { headers })
+      apiInstance.delete(`/Sections/${row.original.soccod}/${row.original.seccod}`)
         .then(() => {
           // setSections((prev) => prev.filter((section) => section.seccod !== row.original.seccod));
         })

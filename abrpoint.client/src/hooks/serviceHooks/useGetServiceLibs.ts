@@ -1,10 +1,8 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useQuery, useQueryClient } from "react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetServiceLibs = () => {
-  const token = localStorage.getItem("authToken");
-  const headers = { Authorization: `Bearer ${token}` };
   const { soccod } = useAuth();
   const queryClient = useQueryClient();
 
@@ -12,9 +10,8 @@ const useGetServiceLibs = () => {
   return useQuery({
     queryKey: ["servlibs",soccod],
     queryFn: async () => {
-      const response = await axios.get(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`,
-        { headers }
+      const response = await apiInstance.get(
+        `/Services/get-servlibs/${soccod}`
       );
       return response.data;
     },

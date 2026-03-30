@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Models;
 
@@ -16,7 +15,7 @@ public partial class Moduser
     public string? Modcod { get; set; }
 
     [Column("uticod")]
-    [StringLength(2)]
+    [StringLength(20)]
     public string? Uticod { get; set; }
 
     [Column("appcod")]

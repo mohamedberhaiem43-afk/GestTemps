@@ -1,18 +1,17 @@
 import { Box, Grid, IconButton } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
-import axios from "axios";
 import { useEffect, useState } from "react";
 import { Print, Search } from "@mui/icons-material";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
+import { useAuth } from "../../helper/AuthProvider";
+import apiInstance from "../../API/apiInstance";
 
 
 
 function FilterCahierConge() {
-    const token = localStorage.getItem('authToken');
-    const soccod = sessionStorage.getItem('soccod');
-    const headers = { Authorization: `Bearer ${token}` };
+    const { soccod } = useAuth();
     const regime = {
         'M': "Mensuelle",
         'H': "Horaire"
@@ -34,11 +33,11 @@ function FilterCahierConge() {
     const setDateRange = dateRangeContext?.setDateRange;
     const {data:emplibs=[]} = useGetEmployeesLibs();
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`)
+        apiInstance.get(`/Sites/get-sitlibs`)
             .then((res) => setFiliale(res.data))
             .catch((err) => console.error(err));
 
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Parametres/deb-mois/${soccod}`, { headers })
+        apiInstance.get(`/Parametres/deb-mois/${soccod}`)
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
                 // Removed setDebMois as it is unused
@@ -73,10 +72,9 @@ function FilterCahierConge() {
     const handlePrintReport = async () => {
     try {
             const empcodParam = selectedEmpcods?.length > 0 ? selectedEmpcods.join(',') : '';
-            const response = await axios.get(
-            `${import.meta.env.VITE_REACT_APP_API_URL}/Conges/get-cahier-de-conge-report/${soccod}/${dateDebut}/${dateFin}`, 
+            const response = await apiInstance.get(
+            `/Conges/get-cahier-de-conge-report/${soccod}/${dateDebut}/${dateFin}`, 
             {
-                headers,
                 responseType: 'blob',
                 params: {empcods: empcodParam}
             }
@@ -98,7 +96,7 @@ function FilterCahierConge() {
 
 
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`, { headers })
+        apiInstance.get(`/Services/get-servlibs/${soccod}`)
             .then((res) => setServices(res.data))
             .catch((err) => console.error(err));
     }, [soccod]);
@@ -231,3 +229,5 @@ function FilterCahierConge() {
 
 }
 export default FilterCahierConge;
+
+

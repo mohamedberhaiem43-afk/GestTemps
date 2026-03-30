@@ -1,25 +1,48 @@
-import axios, { AxiosHeaders, AxiosRequestConfig } from "axios";
+import axios, { AxiosRequestConfig } from "axios";
 import { PurgeParams } from "../hooks/pointeuseHooks/usePurgePointeuse";
 
 const axiosInstance = axios.create({
-    baseURL:import.meta.env.VITE_REACT_APP_API_URL,
-    withCredentials: true,  // <--- this enables sending cookies
+    baseURL: import.meta.env.VITE_REACT_APP_API_URL,
+    withCredentials: true,  // <--- tokens are sent automatically via httpOnly cookies
 });
+
+// Add response interceptor to handle token refresh on 401
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                // Attempt to refresh the token - send empty body, cookies are sent automatically
+                await axios.post(
+                    `${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/refresh`,
+                    {},
+                    { withCredentials: true }
+                );
+
+                // Retry the original request with new token (automatically included in cookies)
+                return axiosInstance(originalRequest);
+            } catch (refreshError) {
+                // Refresh failed - redirect to login
+                console.error('Token refresh failed:', refreshError);
+                window.location.href = '/';
+                return Promise.reject(refreshError);
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
+
 class ApiClient<T>{
-    
+
     endPoint:string
 
     constructor(endPoint:string){
         this.endPoint = endPoint;
-
-        axiosInstance.interceptors.request.use((config)=>{
-            const token = localStorage.getItem('authToken');
-            if(token){
-                config.headers = config.headers || new AxiosHeaders();
-                (config.headers as AxiosHeaders).set('Authorization', `Bearer ${token}`);
-            }
-            return config
-        })
     }
 
     getAllWithParamsObject = (url: string, query: any) => {

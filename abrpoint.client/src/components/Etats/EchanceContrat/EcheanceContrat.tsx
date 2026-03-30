@@ -5,11 +5,12 @@ import { MRT_ColumnDef } from "material-react-table";
 import EchContrat from "../../../models/EcheanceContrat";
 import InputComponent from "../../Inputs/Input";
 import { Print, Search } from "@mui/icons-material";
-import axios from "axios";
+import apiInstance from "../../API/apiInstance";
 import formatDateForApi from "../../helper/TimeConverter/formatDateForApi";
 import ContratReportService from "../../../services/ContratService/ContratReportService";
 import CustomizedSnackbars from "../../Snackbar/Snackbar";
 import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
+import { useAuth } from "../../helper/AuthProvider";
 
 function EcheanceContrat() {
   const [echdeb, setEchdeb] = useState<string>(formatDateForApi(new Date()));
@@ -31,9 +32,7 @@ function EcheanceContrat() {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const soccod = sessionStorage.getItem('soccod');
-  const token = localStorage.getItem('authToken');
-  const headers = { Authorization: `Bearer ${token}` };
+  const { soccod, uticod } = useAuth();
 
   const columns = useMemo<MRT_ColumnDef<EchContrat>[]>(() => [
     {
@@ -75,17 +74,13 @@ function EcheanceContrat() {
   ], []);
 
   async function handleApplyFilter(): Promise<void> {
-    const uticod = localStorage.getItem('Uticod');
     if (!soccod || !uticod) return;
 
     try {
       const formattedEchdeb = formatDateForApi(new Date(echdeb));
       const formattedEchfin = formatDateForApi(new Date(echfin));
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Contrats/get-echeance/${soccod}/${formattedEchdeb}/${formattedEchfin}/${uticod}`,
-        { headers }
-      );
+      const response = await apiInstance.get(`/Contrats/get-echeance/${soccod}/${formattedEchdeb}/${formattedEchfin}/${uticod}`);
       setContrats(response.data);
     } catch (error: any) {
       if (error?.response?.status === 403) {

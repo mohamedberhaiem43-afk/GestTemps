@@ -6,40 +6,28 @@ const useGetPresence = (
   datedebut: Date,
   datefin: Date,
   regime: string,
-  empcods?: string[]|null
+  empcods?: string[] | null
 ) => {
   const { soccod } = useAuth();
-  
-  // Format dates to ISO strings without time (yyyy-MM-dd)
+
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
   const formattedDebut = formatDate(datedebut) + "T00:00:00";
   const formattedFin = formatDate(datefin) + "T00:00:00";
 
-  // Create query parameters object
-  const params = new URLSearchParams();
-  
-  // Add each empcod as a separate parameter
+  const params: Record<string, string | string[]> = {};
   if (empcods && empcods.length > 0) {
-    empcods.forEach(cod => params.append("empcods", cod));
+    params.empcods = empcods;
   }
 
-
   return useQuery({
-    queryKey: [
-      "etat-presence",
-      soccod,
-      formattedDebut,
-      formattedFin,
-      regime,
-      empcods
-    ],
+    queryKey: ["etat-presence", soccod, formattedDebut, formattedFin, regime, empcods],
     queryFn: () =>
-      PresenceService.getAllWithBody(
-        `${soccod}/${formattedDebut}/${formattedFin}/${regime}?${params.toString()}`,
-        { params }  // Pass the URLSearchParams object
+      PresenceService.getAllWithParamsObject(
+        `${soccod}/${formattedDebut}/${formattedFin}/${regime}`,
+        params
       ),
     enabled: !!soccod && !!datedebut && !!datefin && !!regime,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     retry: 2,
     onError: (error) => {
       console.error("Error fetching presence data:", error);

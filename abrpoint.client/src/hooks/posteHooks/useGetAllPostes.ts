@@ -1,13 +1,10 @@
 import { useQuery } from "react-query";
-import axios from 'axios';
+import apiInstance from "../../components/API/apiInstance";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const fetchPostes = async (soccod: string | null, codposte: string | undefined) => {
-  const token = localStorage.getItem('authToken');
-  const headers = { Authorization: `Bearer ${token}` };
-  const response = await axios.get(
-    `${import.meta.env.VITE_REACT_APP_API_URL}/Postes/get-postes/${soccod}/${codposte}`,
-    { headers }
+  const response = await apiInstance.get(
+    `/Postes/get-postes/${soccod}/${codposte}`
   );
   return response.data;
 };

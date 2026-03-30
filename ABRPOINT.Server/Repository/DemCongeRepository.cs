@@ -1,4 +1,4 @@
-ï»¿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -49,7 +49,10 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                // Utiliser une jointure avec Socusers au lieu de Contains
+                var conges = await _dbContext.Conges
+                    .Where(c => c.Soccod == soccod)
+                    .ToListAsync();
+
                 var rawResults = await (
                     from c in _dbContext.Demconges
                     join a in _dbContext.Absences on c.Abscod equals a.Abscod
@@ -81,15 +84,24 @@ namespace ABRPOINT.Server.Repository
                         Abslib = a.Abslib,
                     }).ToListAsync();
 
-                // DÃ©doublonnage + tri en mÃ©moire
                 var result = rawResults
                     .DistinctBy(c => new { c.Concod, c.Soccod })
+                    .Select(c =>
+                    {
+                        var conge = conges.FirstOrDefault(x => x.Concod == c.Concod && x.Empcod == c.Empcod);
+                        c.Etat = conge == null
+                            ? "En attente"
+                            : conge.Conrefus == "1"
+                                ? "Refusé"
+                                : "Accepté";
+                        return c;
+                    })
                     .OrderByDescending(c => c.Condat)
                     .ToList();
 
                 return result;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
@@ -107,6 +119,35 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
+        public async Task<List<Demconge>> GetAllByPeriod(string soccod, string uticod, DateTime datedebut, DateTime datefin)
+        {
+            try
+            {
+                var rawResults = await (
+                    from c in _dbContext.Demconges
+                    join e in _dbContext.Employes on c.Empcod equals e.Empcod
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    where c.Soccod == soccod
+                        && su.Uticod == uticod
+                        && c.Condep >= datedebut
+                        && c.Conret <= datefin
+                    select c
+                ).ToListAsync();
+
+                var result = rawResults
+                    .DistinctBy(c => new { c.Concod, c.Soccod })
+                    .OrderByDescending(c => c.Condat)
+                    .ToList();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
 
 
         public void Update(Demconge demconge)
@@ -150,7 +191,7 @@ namespace ABRPOINT.Server.Repository
                     // Find the DemConge by concod
                     var demConge = await _dbContext.Demconges.FindAsync(soccod, concod);
                     if (demConge == null)
-                        return (false, $"Demande de congÃ© avec le code {concod} introuvable.");
+                        return (false, $"Demande de congé avec le code {concod} introuvable.");
 
                     // Check if Conge already exists
                     bool congeExist = await _dbContext.Conges
@@ -158,7 +199,7 @@ namespace ABRPOINT.Server.Repository
                         .AnyAsync();
 
                     if (congeExist)
-                        return (false, $"Le congÃ© {concod} a dÃ©jÃ  Ã©tÃ© acceptÃ©.");
+                        return (false, $"Le congé {concod} a déjà été accepté.");
                     // Create a new Conge entity based on the DemConge
                     var conge = new Conge
                         {
@@ -185,12 +226,69 @@ namespace ABRPOINT.Server.Repository
                     // Save changes in a single transaction
                     await _dbContext.SaveChangesAsync();
 
-                    return (true, $"Demande de congÃ© {concod} acceptÃ©e avec succÃ¨s.");
+                    return (true, $"Demande de congé {concod} acceptée avec succès.");
                 }
                 catch (Exception ex)
                 {
                     throw new Exception($"Error accepting DemConge: {ex.Message}", ex);
                 }
         }
+
+        public async Task<List<DemcongeDto>> GetEmpDemconge(string soccod, string empcod)
+        {
+            try
+            {
+                var empconges = await _dbContext.Demconges
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .ToListAsync();
+
+                var conges = await _dbContext.Conges
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .ToListAsync();
+
+                var result = empconges.Select(demconge =>
+                {
+                    var conge = conges.FirstOrDefault(c => c.Concod == demconge.Concod);
+
+                    string etat;
+                    if (conge == null)
+                        etat = "En attente";
+                    else if (conge.Conrefus == "1")
+                        etat = "Refusé";
+                    else
+                        etat = "Accepté";
+
+                    return new DemcongeDto
+                    {
+                        Concod = demconge.Concod,
+                        Soccod = demconge.Soccod,
+                        Empcod = demconge.Empcod,
+                        Abscod = demconge.Abscod,
+                        Conadr = demconge.Conadr,
+                        Conamdep = demconge.Conamdep,
+                        Conamret = demconge.Conamret,
+                        Condat = demconge.Condat,
+                        Condep = demconge.Condep,
+                        Condg = demconge.Condg,
+                        Conjour = demconge.Conjour,
+                        Connbjour = demconge.Connbjour,
+                        Conref = demconge.Conref,
+                        Conret = demconge.Conret,
+                        Contel = demconge.Contel,
+                        Etat = etat
+                    };
+                }).ToList();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }
+
+
+
+

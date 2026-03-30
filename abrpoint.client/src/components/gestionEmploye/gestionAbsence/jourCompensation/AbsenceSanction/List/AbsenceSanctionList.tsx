@@ -24,17 +24,16 @@ import CustomizedSnackbars from '../../../../../Snackbar/Snackbar';
 import useGetSanctions from '../../../../../../hooks/sanctionHooks/useGetSanctions';
 import useDeleteSanction from '../../../../../../hooks/sanctionHooks/useDeleteSanction';
 import { useSanctionContext } from '../../../../../helper/SanctionContext';
-import axios from 'axios';
+import apiInstance from '../../../../../API/apiInstance';
 import AbsenceReportService from '../../../../../../services/SanctionService/AbsenceReportService';
 import ForbiddenMessage from '../../../../../AlertModal/ForbiddenMessage';
+import axios from 'axios';
 type SanctionsResponse = {
   data: Sanction[];
   message: string;
 };
 const AbsenceSanctionList = () => {
   const { setSelectedSanction } = useSanctionContext();
-  const token = localStorage.getItem('authToken');
-  const headers = {'Authorization':'Bearer '+token}
   const soccod = sessionStorage.getItem('soccod')||'';
   const [openModal, setOpenModal] = useState(false);  // Modal state
   const [sanctionToDelete, setSanctionToDelete] = useState<Sanction | null>(null);  // Selected contract to delete
@@ -69,7 +68,7 @@ const AbsenceSanctionList = () => {
 
   const getSanctionToEdit = (original: Sanction) =>{
     if(original.concod !=""){
-      axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sanctions/get-sanction/${soccod}/${original.concod}`,{headers})
+      apiInstance.get(`/Sanctions/get-sanction/${soccod}/${original.concod}`)
       .then(res=>setSelectedSanction(res.data));
     }
   }

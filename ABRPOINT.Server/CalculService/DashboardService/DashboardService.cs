@@ -160,15 +160,12 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                 // =========================
                 // 7. Demandes en attente
                 // =========================
-                dashboardData.DemandesCongesEnAttente = await _context.Demconges
-                    .Where(d => d.Soccod == soccod
-                        && empcodesFiltres.Contains(d.Empcod)
-                        && !_context.Conges.Any(c =>
-                            c.Soccod == d.Soccod &&
-                            c.Empcod == d.Empcod &&
-                            c.Condep == d.Condep &&
-                            c.Conret == d.Conret))
-                    .CountAsync();
+                dashboardData.DemandesCongesEnAttente = await CountPendingLeaveRequestsAsync(
+                    soccod,
+                    empcodesFiltres,
+                    dateDebut,
+                    dateFin
+                );
 
                 dashboardData.TotalDemandesEnAttente = dashboardData.DemandesCongesEnAttente;
                 // =========================
@@ -202,6 +199,101 @@ namespace ABRPOINT.Server.CalculService.DashboardService
             }
         }
 
+
+        public async Task<List<PointageInvalideDto>> GetPointagesInvalides(DashboardRequest request)
+        {
+            var employesQuery = _context.Employes
+                .Where(e => e.Soccod == request.Soccod && e.Actif == "A");
+
+            if (!string.IsNullOrEmpty(request.Departement))
+                employesQuery = employesQuery.Where(e => e.Dircod == request.Departement);
+
+            if (request.Empcods != null && request.Empcods.Any())
+                employesQuery = employesQuery.Where(e => request.Empcods.Contains(e.Empcod));
+
+            var employesDict = await employesQuery
+                .Select(e => new { e.Empcod, e.Emplib, e.Dircod })
+                .ToDictionaryAsync(e => e.Empcod);
+
+            var empcodesFiltres = employesDict.Keys.ToList();
+
+            var presences = await _context.Presences
+                .Where(p =>
+                    p.Soccod == request.Soccod &&
+                    p.Predat.HasValue &&
+                    p.Predat.Value.Date >= request.DateDebut &&
+                    p.Predat.Value.Date <= request.DateFin &&
+                    empcodesFiltres.Contains(p.Empcod))
+                .ToListAsync();
+
+            var result = new List<PointageInvalideDto>();
+
+            foreach (var p in presences)
+            {
+                var motifs = new List<string>();
+                bool entreeManquante = false;
+                bool sortieManquante = false;
+                bool incoherenceHoraire = false;
+                bool midiIncoherent = false;
+
+                if (string.IsNullOrEmpty(p.Preentmatup))
+                {
+                    entreeManquante = true;
+                    motifs.Add("Entrée matin manquante");
+                }
+
+                bool jourPasse = p.Predat.HasValue && p.Predat.Value.Date <= DateTime.Now.Date;
+                if (jourPasse && !GenericMethodes.IsPresent(p))
+                {
+                    sortieManquante = true;
+                    motifs.Add("Pointage incomplet (jour passé)");
+                }
+
+                if (TimeSpan.TryParse(p.Preentmatup, out var entMat) &&
+                    TimeSpan.TryParse(p.Presortmatup, out var sortMat) &&
+                    sortMat <= entMat)
+                {
+                    incoherenceHoraire = true;
+                    motifs.Add("Sortie matin ≤ entrée matin");
+                }
+
+                if (TimeSpan.TryParse(p.Preentamidiup, out var entMidi) &&
+                    TimeSpan.TryParse(p.Presortamidiup, out var sortMidi) &&
+                    sortMidi <= entMidi)
+                {
+                    midiIncoherent = true;
+                    motifs.Add("Sortie après-midi ≤ entrée après-midi");
+                }
+
+                if (!motifs.Any()) continue;
+
+                employesDict.TryGetValue(p.Empcod, out var emp);
+
+                result.Add(new PointageInvalideDto
+                {
+                    Empcod = p.Empcod,
+                    Emplib = emp?.Emplib,
+                    Departement = emp?.Dircod,
+                    Codposte = p.Codposte,
+                    Predat = p.Predat,
+                    Preentmatup = p.Preentmatup,
+                    Presortmatup = p.Presortmatup,
+                    Preentamidiup = p.Preentamidiup,
+                    Presortamidiup = p.Presortamidiup,
+                    Tothre = p.Tothre,
+                    Motif = string.Join(" | ", motifs),
+                    EntreeManquante = entreeManquante,
+                    SortieManquante = sortieManquante,
+                    IncoherenceHoraire = incoherenceHoraire,
+                    MidiIncoherent = midiIncoherent
+                });
+            }
+
+            return result
+                .OrderByDescending(r => r.Predat)
+                .ThenBy(r => r.Empcod)
+                .ToList();
+        }
         public async Task<DashboardData> GetDashboardData(string soccod, DateTime date, string dep, List<string> empcods)
         {
             try
@@ -345,15 +437,12 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                 dashboardData.TotalAbsences = employesAbsents;
 
                 // 6. Demandes de congés en attente
-                var demandesCongesEnAttente = await _context.Demconges
-                    .Where(c => c.Soccod == soccod)
-                    .ToListAsync();
-                empcodsFiltered = await employesQuery.Select(e => e.Empcod).ToListAsync();
-                    demandesCongesEnAttente = demandesCongesEnAttente
-                        .Where(d => empcodsFiltered.Contains(d.Empcod))
-                        .ToList();
-
-                dashboardData.DemandesCongesEnAttente = demandesCongesEnAttente.Count;
+                dashboardData.DemandesCongesEnAttente = await CountPendingLeaveRequestsAsync(
+                    soccod,
+                    empcodsFiltered,
+                    date,
+                    date
+                );
 
                 // 7. Demandes d'autorisation en attente
                 await _context.Autorisers
@@ -515,6 +604,30 @@ namespace ABRPOINT.Server.CalculService.DashboardService
             return ((float)heures, absences, retards);
         }
 
+        private async Task<int> CountPendingLeaveRequestsAsync(
+            string soccod,
+            List<string> empcodes,
+            DateTime dateDebut,
+            DateTime dateFin)
+        {
+            var startDate = dateDebut.Date;
+            var endDate = dateFin.Date;
+
+            return await _context.Demconges
+                .Where(d =>
+                    d.Soccod == soccod &&
+                    d.Condep.HasValue &&
+                    d.Conret.HasValue &&
+                    d.Condep.Value.Date >= startDate &&
+                    d.Conret.Value.Date <= endDate &&
+                    empcodes.Contains(d.Empcod) &&
+                    !_context.Conges.Any(c =>
+                        c.Soccod == d.Soccod &&
+                        c.Empcod == d.Empcod &&
+                        c.Condep == d.Condep &&
+                        c.Conret == d.Conret))
+                .CountAsync();
+        }
         public async Task<List<EmployeStatut>> GetEmployesStatutJour(
             string soccod,
             DateTime date,

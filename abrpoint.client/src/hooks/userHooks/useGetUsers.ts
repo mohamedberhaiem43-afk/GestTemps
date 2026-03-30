@@ -3,13 +3,11 @@ import UtilisateurService from "../../services/UtilisateurService/UtilisateurSer
 import UtilisateurDto from "../../models/Utilisateur";
 import { useAuth } from "../../components/helper/AuthProvider";
 
-
-
 export default function useGetUsers() {
-    const uticod = localStorage.getItem('Uticod');
-    const { soccod } = useAuth();
+    const { soccod, uticod } = useAuth();
     return useQuery<UtilisateurDto[],Error>({
-      queryKey:["users",uticod], 
-      queryFn: () => UtilisateurService.getAllWithParams(`users-list/${soccod}/${uticod}`)
+      queryKey:["users", soccod, uticod],
+      queryFn: () => UtilisateurService.getAllWithParams(`users-list/${soccod}/${uticod}`),
+      enabled: !!soccod && !!uticod,
     });
 };

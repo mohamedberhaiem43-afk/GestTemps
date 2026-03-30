@@ -1,5 +1,5 @@
 import {Box, FormControl, FormControlLabel,Grid,InputLabel, MenuItem, Radio, RadioGroup, Select, Typography } from "@mui/material";
-import axios from "axios";
+import apiInstance from "../../../API/apiInstance";
 import { useEffect, useState } from "react";
 import SelectInputComponent from "../../../SelectInputComponent/SelectInputComponent";
 import InputComponent from "../../../Inputs/Input";
@@ -17,11 +17,9 @@ const TravailInfo = ({
        { target: { name: string; value: any } }
   ) => void;
 }) => {
-  const token = localStorage.getItem("authToken");
   const uticod = localStorage.getItem("Uticod");
   const { soccod } = useAuth();
   const { t } = useTranslation();
-  const headers = { Authorization: `Bearer ${token}` };
   const [filiales,setFiliales] = useState([]);
   const [services,setServices] = useState([]);
   const [directions,setDirections] = useState([]);
@@ -33,24 +31,24 @@ const TravailInfo = ({
     handleChange({ target: { name, value: checked ? '1' : '0' } });
   };
   useEffect(()=>{
-    axios
-    .get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs/${soccod}/${uticod}`, { headers })
+    apiInstance
+    .get(`/Sites/get-sitlibs/${soccod}/${uticod}`)
     .then((res) =>setFiliales(res.data))
     .catch((err) => console.error("Error adding sanction", err));
-    axios
-    .get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`, { headers })
+    apiInstance
+    .get(`/Services/get-servlibs/${soccod}`)
     .then((res) =>setServices(res.data))
     .catch((err) => console.error("Error adding sanction", err));
-    axios
-    .get(`${import.meta.env.VITE_REACT_APP_API_URL}/Directions/get-dirlibs/${soccod}`, { headers })
+    apiInstance
+    .get(`/Directions/get-dirlibs/${soccod}`)
     .then((res) =>setDirections(res.data))
     .catch((err) => console.error("Error adding sanction", err));
-    axios
-    .get(`${import.meta.env.VITE_REACT_APP_API_URL}/Lcategories/get-horlibs/${soccod}`, { headers })
+    apiInstance
+    .get(`/Lcategories/get-horlibs/${soccod}`)
     .then((res) =>setHoraires(res.data))
     .catch((err) => console.error("Error adding sanction", err));
-    axios
-    .get(`${import.meta.env.VITE_REACT_APP_API_URL}/Calendriers`, { headers })
+    apiInstance
+    .get(`/Calendriers`)
     .then((res) =>setCalendrier(res.data))
     .catch((err) => console.error("Error adding sanction", err));
 

@@ -1,4 +1,4 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useMutation, useQueryClient } from "react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
@@ -15,15 +15,12 @@ interface AcceptCongeResponse {
 const useAcceptDemConge = () => {
     const { soccod } = useAuth();
     const queryClient = useQueryClient();
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
-    
+
     return useMutation<AcceptCongeResponse, Error, AcceptCongeParams>(
         async ({ concod, empcod }: AcceptCongeParams) => {
-            const response = await axios.post(
-                `${import.meta.env.VITE_REACT_APP_API_URL}/DemConges/accept-demconge/${soccod}/${concod}/${empcod}`,
-                null,
-                { headers }
+            const response = await apiInstance.post(
+                `/DemConges/accept-demconge/${soccod}/${concod}/${empcod}`,
+                null
             );
             return response.data;
         },

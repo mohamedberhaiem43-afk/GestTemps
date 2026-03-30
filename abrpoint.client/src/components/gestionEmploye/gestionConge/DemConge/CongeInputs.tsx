@@ -37,8 +37,8 @@ export default function CongeForm() {
   const { selectedConge } = useCongeContext();
   const getTodayDate = () => new Date().toISOString().split('T')[0];
 
-  const { soccod } = useAuth();
-  const [empcod, setEmploye] = useState('');
+  const { soccod, isEmp, uticod: currentEmpCode } = useAuth();
+  const [empcod, setEmploye] = useState(() => isEmp && currentEmpCode ? currentEmpCode : '');
   const [concod, setOrdre] = useState(generateNumeroOrdre());
 
   // Valeur par défaut: date d'aujourd'hui
@@ -89,15 +89,19 @@ export default function CongeForm() {
 
   // Effect to calculate number of days between condep and conret
   useEffect(() => {
-    if (condep && conret) {
-      const dateDepart = new Date(condep);
-      const dateReprise = new Date(conret);
-      const differenceInTime = dateReprise.getTime() - dateDepart.getTime();
-      const daysDifference = differenceInTime / (1000 * 3600 * 24); // Convert from ms to days
-      setConnbjour(daysDifference);
+    if (!condep || !conret) {
+      setConnbjour(0);
+      return;
     }
 
-  }, [condep, conret]);
+    const dateDepart = new Date(condep);
+    const dateReprise = new Date(conret);
+    const differenceInTime = dateReprise.getTime() - dateDepart.getTime();
+    const daysDifference = differenceInTime / (1000 * 3600 * 24);
+    const adjustedDays = daysDifference + (conamret ? 0.5 : 0) - (conamdep ? 0.5 : 0);
+
+    setConnbjour(Math.max(0, adjustedDays));
+  }, [condep, conret, conamdep, conamret]);
 
   const handleSubmit = (event:any) => {
     event.preventDefault();
@@ -225,14 +229,27 @@ export default function CongeForm() {
                   setValue={setOrdre} 
                 />
               </Grid>
-              <Grid item xs={6} mt={1}>
-                <SelectInputComponent 
-                  label={t('common.employee')} 
-                  value={empcod} 
-                  setValue={setEmploye} 
-                  maplist={employeOptions} 
-                />
-              </Grid>
+              {!isEmp && (
+                <Grid item xs={6} mt={1}>
+                  <SelectInputComponent 
+                    label={t('common.employee')} 
+                    value={empcod} 
+                    setValue={setEmploye} 
+                    maplist={employeOptions} 
+                  />
+                </Grid>
+              )}
+              {isEmp && (
+                <Grid item xs={6} mt={1}>
+                  <InputComponent 
+                    readOnly={true} 
+                    type='text' 
+                    label={t('common.employee')} 
+                    value={empcod} 
+                    setValue={setEmploye} 
+                  />
+                </Grid>
+              )}
               <Grid item xs={6}>
                 <InputComponent 
                   type='date' 

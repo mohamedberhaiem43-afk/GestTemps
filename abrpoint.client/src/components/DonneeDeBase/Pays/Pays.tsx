@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import axios from 'axios';
+import apiInstance from '../../../components/API/apiInstance';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
@@ -26,17 +26,12 @@ const Nation = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const [editedNations, setEditedNations] = useState<Record<string, PaysModel>>({});
 
-  const token = localStorage.getItem('authToken');
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
-
   const { data: nations = [], refetch, isLoading, isError } = useGetPays();
 
   const openDeleteConfirmModal = async (row: MRT_Row<PaysModel>) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce pays ?')) {
       try {
-        await axios.delete(`https://localhost:7189/api/Pays/${row.original.natcod}`, { headers });
+        await apiInstance.delete(`/Pays/${row.original.natcod}`);
         refetch();
       } catch (error) {
         console.error("Erreur suppression pays: ", error);
@@ -95,7 +90,7 @@ const Nation = () => {
             natcod: nation.natcod,
             natlib: nation.natlib,
           };
-          await axios.post('https://localhost:7189/api/Pays', sanitizedNation, { headers });
+          await apiInstance.post('/Pays', sanitizedNation);
         })
       );
       setEditedNations({});
@@ -113,7 +108,7 @@ const Nation = () => {
             natcod: nation.natcod,
             natlib: nation.natlib,
           };
-          await axios.put('https://localhost:7189/api/Pays', sanitizedNation, { headers });
+          await apiInstance.put('/Pays', sanitizedNation);
         })
       );
       setEditedNations({});

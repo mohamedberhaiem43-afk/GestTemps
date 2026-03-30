@@ -17,4 +17,5 @@ export type Conge = {
     connbjour: number;
     conref: string;
     consolde: number;
+    etat?: string;
   }

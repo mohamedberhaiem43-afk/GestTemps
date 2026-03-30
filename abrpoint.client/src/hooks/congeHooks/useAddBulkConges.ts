@@ -1,15 +1,11 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useMutation } from "react-query";
 
 const useAddBulkConges = () => {
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
-    
     return useMutation((conge:any) =>
-        axios.post(
-            `${import.meta.env.VITE_REACT_APP_API_URL}/Conges/bulk`,
-            conge,
-            { headers }
+        apiInstance.post(
+            `/Conges/bulk`,
+            conge
         ).then(res=>res.data)
     );
 };

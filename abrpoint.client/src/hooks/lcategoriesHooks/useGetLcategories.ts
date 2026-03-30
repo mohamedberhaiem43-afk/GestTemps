@@ -1,14 +1,10 @@
 import { useQuery } from "react-query";
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const fetchLcategories = async (soccod: string | null, catperiode: string) => {
-  const token = localStorage.getItem("authToken");
-  const headers = { Authorization: `Bearer ${token}` };
-
-  const response = await axios.get(
-    `${import.meta.env.VITE_REACT_APP_API_URL}/Lcategories/${soccod}/${catperiode}`,
-    { headers }
+  const response = await apiInstance.get(
+    `/Lcategories/${soccod}/${catperiode}`
   );
 
   return response.data;

@@ -7,7 +7,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { useTheme } from '@mui/material/styles';
-import axios from 'axios';
+import apiInstance from '../../API/apiInstance';
 import { EmployeeContext } from './EmployeeContext';
 import './EmpPeriodique.css';
 import { useDateRange } from './FilterContext';
@@ -61,7 +61,7 @@ export default function EmpPeriodique() {
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState('');
   const { dateRange } = useDateRange() as { dateRange: { dateDebut: Date; dateFin: Date; selectedFiliale: string; selectedRegime: string; selectedService: string,empcods:string[] } };
-  const { soccod } = useAuth();
+  const { soccod, uticod } = useAuth();
 
   const handleManageClick = (empcod: string) => {
     setSelectedRow(empcod);
@@ -209,8 +209,6 @@ export default function EmpPeriodique() {
 
 
     useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const uticod = localStorage.getItem('Uticod');
     setLoading(true);
     
     const formatDate = (date: Date) => date.toISOString().split('T')[0];
@@ -239,14 +237,16 @@ export default function EmpPeriodique() {
       params.append("service", dateRange.selectedService);
     }
     
-    // Construire l'URL correctement (sans dupliquer empreg et service)
-    const url = `${import.meta.env.VITE_REACT_APP_API_URL}/Employes/get-emps/${soccod}/${dateRange.selectedFiliale}/${uticod}?${params.toString()}`;
-    
-    
-    axios
-      .get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    if (!soccod || !uticod || !dateRange.selectedFiliale) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+
+    const url = `/Employes/get-emps/${soccod}/${dateRange.selectedFiliale}/${uticod}?${params.toString()}`;
+
+    apiInstance
+      .get(url)
       .then((res) => {
         setRows(res.data);
         setLoading(false);

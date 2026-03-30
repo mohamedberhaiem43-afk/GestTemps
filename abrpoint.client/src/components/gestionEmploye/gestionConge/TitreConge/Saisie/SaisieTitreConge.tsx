@@ -119,32 +119,24 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
   }, [congeToEdit]);
 
   useEffect(() => {
-    if (condep && conret) {
-      const startDate = new Date(condep);
-      const endDate = new Date(conret);
-
-      if (endDate < startDate) {
-        setNbJour(0);
-        return;
-      }
-
-      const timeDiff = endDate.getTime() - startDate.getTime();
-      const fullDaysBetween = timeDiff / (1000 * 3600 * 24) - 1;
-      let totalDays = 0;
-
-      totalDays += conamdep ? 0.5 : 1;
-      totalDays += conamret ? 0.5 : 1;
-
-      if (fullDaysBetween > 0) {
-        if (conjour === 'J') {
-          totalDays += fullDaysBetween;
-        } else {
-          totalDays += fullDaysBetween * 0.5;
-        }
-      }
-
-      setNbJour(Number(totalDays.toFixed(2)) - 1);
+    if (!condep || !conret) {
+      setNbJour(0);
+      return;
     }
+
+    const startDate = new Date(condep);
+    const endDate = new Date(conret);
+
+    if (endDate < startDate) {
+      setNbJour(0);
+      return;
+    }
+
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    const daysDifference = timeDiff / (1000 * 3600 * 24);
+    const adjustedDays = daysDifference + (conamret ? 0.5 : 0) - (conamdep ? 0.5 : 0);
+
+    setNbJour(Math.max(0, Number(adjustedDays.toFixed(2))));
   }, [condep, conret, conamdep, conamret, conjour]);
 
   const handleToggle = (value: number) => () => {
@@ -272,7 +264,7 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
     setTelephones('');
     setDateReprise(null);
     setApresMidiDepart(false);
-    setTimePeriod('');
+    setTimePeriod('J');
     setNbJour(0);
     setOrdre(generateNumeroOrdre());
     setImputationAdresse('');

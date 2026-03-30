@@ -1,19 +1,15 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useQuery, useQueryClient } from "react-query";
 
 const useGetSocLibs = () => {
-  const token = localStorage.getItem("authToken");
-  const headers = { Authorization: `Bearer ${token}` };
-
   const queryClient = useQueryClient();
 
 
   return useQuery({
     queryKey: ["soclibs"],
     queryFn: async () => {
-      const response = await axios.get(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Societes/get-soclibs`,
-        { headers }
+      const response = await apiInstance.get(
+        `/Societes/get-soclibs`
       );
       return response.data;
     },

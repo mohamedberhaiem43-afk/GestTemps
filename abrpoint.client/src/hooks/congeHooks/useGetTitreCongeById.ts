@@ -1,22 +1,19 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useQuery } from "react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetTitreCongeById = (concod: string) => {
     const { soccod } = useAuth();
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
 
     return useQuery({
         queryKey: ["conges", soccod, concod],
         queryFn: async () => {
-            if (!soccod || !token) {
+            if (!soccod) {
                 throw new Error("Missing session or authentication data");
             }
 
-            const response = await axios.get(
-                `${import.meta.env.VITE_REACT_APP_API_URL}/Conges/${soccod}/${concod}`,
-                { headers }
+            const response = await apiInstance.get(
+                `/Conges/${soccod}/${concod}`
             );
             return response.data;
         },

@@ -1,25 +1,21 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useQuery } from "react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
-const fetchConges = async (soccod: string | null) => {
-  const uticod = localStorage.getItem("Uticod");
-  const token = localStorage.getItem("authToken");
-  const headers = { Authorization: `Bearer ${token}` };
-  const response = await axios.get(
-    `${import.meta.env.VITE_REACT_APP_API_URL}/Conges/get-conges/${soccod}/${uticod}`,
-    { headers }
+const fetchConges = async (soccod: string | null, uticod: string | null) => {
+  const response = await apiInstance.get(
+    `/Conges/get-conges/${soccod}/${uticod}`
   );
   return response.data;
 };
 
 const useGetTitreConge = () => {
-  const { soccod } = useAuth();
+  const { soccod, uticod } = useAuth();
 
   return useQuery({
-    queryKey: ["conges", soccod],
-    queryFn: () => fetchConges(soccod), // ✅ Call the function properly
-    enabled: !!soccod, // ✅ Wait until soccod is loaded
+    queryKey: ["conges", soccod, uticod],
+    queryFn: () => fetchConges(soccod, uticod),
+    enabled: !!soccod && !!uticod,
   });
 };
 

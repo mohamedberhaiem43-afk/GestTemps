@@ -1,25 +1,22 @@
-import axios from "axios";
 import { useQuery } from "react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
+import apiInstance from "../../components/API/apiInstance";
 
 const useGetDemConges = () => {
-    const uticod = localStorage.getItem('Uticod');
-    const { soccod } = useAuth();
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
+    const { soccod, uticod, isEmp } = useAuth();
 
     return useQuery({
-        queryKey: ["demconges",soccod,uticod],
+        queryKey: ["demconges", soccod, uticod, isEmp],
         queryFn: async () => {
-            const response = await axios.get(
-                `${import.meta.env.VITE_REACT_APP_API_URL}/DemConges/get-demconge/${soccod}/${uticod}`,
-                { headers }
-            );
-            return response.data;
-        }
-    })
-    
+            const endpoint = isEmp
+                ? `/DemConges/get-emp-demconge/${soccod}/${uticod}`
+                : `/DemConges/get-demconge/${soccod}/${uticod}`;
 
-}
+            const response = await apiInstance.get(endpoint);
+            return response.data;
+        },
+        enabled: !!soccod && !!uticod
+    })
+};
 
 export default useGetDemConges;

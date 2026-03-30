@@ -7,7 +7,7 @@ import {
 } from 'material-react-table';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import axios from 'axios';
+import apiInstance from '../../API/apiInstance';
 import { DirectionModel } from '../../../models/DirectionModel';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -21,15 +21,10 @@ const DirectionTable = () => {
   const [directions, setDirections] = useState<DirectionModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
-  const token = localStorage.getItem('authToken');
-  
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
 
   const openDeleteConfirmModal = (row: MRT_Row<DirectionModel>) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      axios.delete(`${import.meta.env.VITE_REACT_APP_API_URL}/Directions/${row.original.soccod}/${row.original.dircod}`, { headers })
+      apiInstance.delete(`/Directions/${row.original.soccod}/${row.original.dircod}`)
         .then(() => {
           setDirections((prev) => prev.filter((dir) => dir.dircod !== row.original.dircod));
         })
@@ -40,7 +35,7 @@ const DirectionTable = () => {
   };
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Directions/get-directions/${sessionStorage.getItem('soccod')}`, { headers })
+    apiInstance.get(`/Directions/get-directions/${sessionStorage.getItem('soccod')}`)
       .then((res) => {
         setDirections(res.data);
         setIsLoading(false);
@@ -153,7 +148,7 @@ const DirectionTable = () => {
             diremail: direction.diremail,
           };
 
-            const response = await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Directions`, sanitizedDirection, { headers });
+            const response = await apiInstance.post(`/Directions`, sanitizedDirection);
             setDirections((prev) => [...prev, response.data]);
         })
       );
@@ -174,10 +169,10 @@ const handleEditDirections = async()=>{
               dirloc: direction.dirloc,
               diremail: direction.diremail,
             };
-              await axios.put(`${import.meta.env.VITE_REACT_APP_API_URL}/Directions`, sanitizedDirection, { headers });
+              await apiInstance.put(`/Directions`, sanitizedDirection);
           })
         );
-  
+
         setEditedDirections({});
       } catch (error) {
         console.error('Error saving directions:', error);

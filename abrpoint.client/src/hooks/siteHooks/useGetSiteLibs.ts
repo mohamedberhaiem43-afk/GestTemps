@@ -1,19 +1,15 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useQuery, useQueryClient } from "react-query";
 
 const useGetSiteLibs = () => {
-  const token = localStorage.getItem("authToken");
-  const headers = { Authorization: `Bearer ${token}` };
-
   const queryClient = useQueryClient();
 
 
   return useQuery({
     queryKey: ["sitlibs"],
     queryFn: async () => {
-      const response = await axios.get(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`,
-        { headers }
+      const response = await apiInstance.get(
+        `/Sites/get-sitlibs`
       );
       return response.data;
     },

@@ -12,6 +12,17 @@ import {
   CircularProgress,
   FormControl,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Paper,
+  Button,
 } from '@mui/material';
 import { DashboardRequest } from '../../models/DashboardModels';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -21,16 +32,17 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import WarningIcon from '@mui/icons-material/Warning';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import useGetDashboardData from '../../hooks/dashboardHooks/useGetDashboardData';
+import useGetPointagesInvalides from '../../hooks/dashboardHooks/useGetPointagesInvalides';
 import dayjs from 'dayjs';
 import { useAuth } from '../helper/AuthProvider';
 import useGetDirectionLibs from '../../hooks/directionHooks/useGetDirectionLibs';
 import useGetEvolution from '../../hooks/dashboardHooks/useGetEvolution';
 import EvolutionChart from './Bars/EvolutionChart';
+import useGetDemCongesByPeriode from '../../hooks/congeHooks/useGetDemCongesByPeriode';
+import DashboardCongeList from './DashboardCongeList';
+import { CongeProvider } from '../helper/CongeContext';
+import EmployeeDashboard from './EmployeeDashboard';
 
-// interface formattedData {
-//   label: string;
-//   value: number;
-// }
 
 interface KPIData {
   title: string;
@@ -50,6 +62,17 @@ export default function DashboardPage() {
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
 
+  // Check if user is admin
+  const { utiadm } = useAuth();
+  const isAdmin = utiadm === '1';
+
+  // If not admin, show employee dashboard
+  if (!isAdmin) {
+    return <EmployeeDashboard />;
+  }
+
+  // Admin dashboard logic continues below...
+
   const { data: directionsResponse } = useGetDirectionLibs();
   const directionLibs = directionsResponse || [];
 
@@ -66,11 +89,11 @@ export default function DashboardPage() {
     const now = dayjs();
 
     switch (filterDateRange) {
-    case 'today':
-      return {
-        dateDebut: now.startOf('day').toISOString(),
-        dateFin: now.endOf('day').toISOString(),
-      };
+      case 'today':
+        return {
+          dateDebut: now.startOf('day').toISOString(),
+          dateFin: now.endOf('day').toISOString(),
+        };
 
       case 'week':
         return {
@@ -97,89 +120,93 @@ export default function DashboardPage() {
 
   // Construire la requête dashboard
   const dashboardRequest: DashboardRequest | null = useMemo(() => {
-  if (!soccod) return null;
+    if (!soccod) return null;
 
-  const range = getDateRangeForRequest;
-  if (!range) return null;
+    const range = getDateRangeForRequest;
+    if (!range) return null;
 
-  return {
-    soccod,
-    dateDebut: range.dateDebut,
-    dateFin: range.dateFin,
-    dateRange: filterDateRange,
-    departement: filterDepartment === 'all' ? null : filterDepartment,
-    empcods: [],
-  };
-}, [soccod, filterDepartment, getDateRangeForRequest, filterDateRange]);
+    return {
+      soccod,
+      dateDebut: range.dateDebut,
+      dateFin: range.dateFin,
+      dateRange: filterDateRange,
+      departement: filterDepartment === 'all' ? null : filterDepartment,
+      empcods: [],
+    };
+  }, [soccod, filterDepartment, getDateRangeForRequest, filterDateRange]);
 
 
   // Hooks pour récupérer les données
   // const { data: empStat = [], isLoading: loadingStats } = useGetStatistics();
   const { data: dashboardData, isLoading: loadingDashboard, error: errorDashboard } = useGetDashboardData(dashboardRequest);
   const { data: evolutionData, isLoading: loadingEvolution } = useGetEvolution(dashboardRequest);
-  // Compute sex statistics
-  // useEffect(() => {
-  //   if (empStat && empStat.length > 0) {
-  //     const sexeCounts: Record<string, number> = { M: 0, F: 0 };
-  //     empStat.forEach((item: any) => {
-  //       if (item.sexe) {
-  //         sexeCounts[item.sexe] = item.count || 0;
-  //       }
-  //     });
+  const [openCongeDialog, setOpenCongeDialog] = useState(false);
+  const [openPointageInvalidDialog, setOpenPointageInvalidDialog] = useState(false);
 
-  //     const formatted = Object.entries(sexeCounts).map(([label, value]) => ({
-  //       label: label === 'F' ? 'Féminin' : label === 'M' ? 'Masculin' : 'Inconnu',
-  //       value,
-  //     }));
+  const formattedDemandeDateDebut = useMemo(() => {
+    if (!getDateRangeForRequest?.dateDebut) return '';
+    return dayjs(getDateRangeForRequest.dateDebut).format('YYYY-MM-DD');
+  }, [getDateRangeForRequest]);
 
-  //     setSexStat(formatted);
-  //   }
-  // }, [empStat]);
+  const formattedDemandeDateFin = useMemo(() => {
+    if (!getDateRangeForRequest?.dateFin) return '';
+    return dayjs(getDateRangeForRequest.dateFin).format('YYYY-MM-DD');
+  }, [getDateRangeForRequest]);
 
-  // Construire les KPI données dynamiquement
-const kpiData: KPIData[] = useMemo(() => {
-  if (!dashboardData) {
+  const { data: demandesData, isLoading: loadingDemandes } = useGetDemCongesByPeriode(
+    formattedDemandeDateDebut,
+    formattedDemandeDateFin,
+    openCongeDialog
+  );
+
+  const { data: pointagesInvalidesData, isLoading: loadingPointagesInvalides, error: errorPointagesInvalides } = useGetPointagesInvalides(
+    dashboardRequest,
+    openPointageInvalidDialog
+  );
+
+  const kpiData: KPIData[] = useMemo(() => {
+    if (!dashboardData) {
+      return [
+        { title: 'Effectif Présent', value: '--', icon: <GroupIcon sx={{ fontSize: 32 }} />, color: '#1976d2' },
+        { title: 'Heures Travaillées', value: '--', icon: <AccessTimeIcon sx={{ fontSize: 32 }} />, color: '#f57c00' },
+        { title: 'Retards/Absences', value: '--', icon: <WarningIcon sx={{ fontSize: 32 }} />, color: '#d32f2f' },
+        { title: 'Demandes en Attente', value: '--', icon: <AssignmentIcon sx={{ fontSize: 32 }} />, color: '#388e3c' },
+      ];
+    }
+
     return [
-      { title: 'Effectif Présent', value: '--', icon: <GroupIcon sx={{ fontSize: 32 }} />, color: '#1976d2' },
-      { title: 'Heures Travaillées', value: '--', icon: <AccessTimeIcon sx={{ fontSize: 32 }} />, color: '#f57c00' },
-      { title: 'Retards/Absences', value: '--', icon: <WarningIcon sx={{ fontSize: 32 }} />, color: '#d32f2f' },
-      { title: 'Demandes en Attente', value: '--', icon: <AssignmentIcon sx={{ fontSize: 32 }} />, color: '#388e3c' },
+      {
+        title: 'Effectif Présent',
+        value: dashboardData.effectifPresent,
+        icon: <GroupIcon sx={{ fontSize: 32 }} />,
+        evolution: dashboardData.pourcentagePresence,
+        positiveIsGood: true,
+        color: '#1976d2',
+      },
+      {
+        title: 'Heures Travaillées',
+        value: `${dashboardData.heuresTravaillees.toFixed(1)}h`,
+        icon: <AccessTimeIcon sx={{ fontSize: 32 }} />,
+        evolution: dashboardData.evolutionHeures,
+        positiveIsGood: true,
+        color: '#f57c00',
+      },
+      {
+        title: 'Retards/Absences',
+        value: dashboardData.nombreRetards + dashboardData.totalAbsences,
+        icon: <WarningIcon sx={{ fontSize: 32 }} />,
+        evolution: dashboardData.evolutionRetards + dashboardData.evolutionAbsences,
+        positiveIsGood: false, // baisse = bon
+        color: '#d32f2f',
+      },
+      {
+        title: 'Demandes en Attente',
+        value: dashboardData.totalDemandesEnAttente,
+        icon: <AssignmentIcon sx={{ fontSize: 32 }} />,
+        color: '#388e3c',
+      },
     ];
-  }
-
-  return [
-    {
-      title: 'Effectif Présent',
-      value: dashboardData.effectifPresent,
-      icon: <GroupIcon sx={{ fontSize: 32 }} />,
-      evolution: dashboardData.pourcentagePresence,
-      positiveIsGood: true,
-      color: '#1976d2',
-    },
-    {
-      title: 'Heures Travaillées',
-      value: `${dashboardData.heuresTravaillees.toFixed(1)}h`,
-      icon: <AccessTimeIcon sx={{ fontSize: 32 }} />,
-      evolution: dashboardData.evolutionHeures,
-      positiveIsGood: true,
-      color: '#f57c00',
-    },
-    {
-      title: 'Retards/Absences',
-      value: dashboardData.nombreRetards + dashboardData.totalAbsences,
-      icon: <WarningIcon sx={{ fontSize: 32 }} />,
-      evolution: dashboardData.evolutionRetards + dashboardData.evolutionAbsences,
-      positiveIsGood: false, // baisse = bon
-      color: '#d32f2f',
-    },
-    {
-      title: 'Demandes en Attente',
-      value: dashboardData.totalDemandesEnAttente,
-      icon: <AssignmentIcon sx={{ fontSize: 32 }} />,
-      color: '#388e3c',
-    },
-  ];
-}, [dashboardData]);
+  }, [dashboardData]);
 
 
   // const handleExportCsv = async () => {};
@@ -218,7 +245,7 @@ const kpiData: KPIData[] = useMemo(() => {
   }
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f5f7fa', minHeight: '100vh', width:'97vw' }} mt={-5}>
+    <Box sx={{ p: 3, backgroundColor: '#f5f7fa', minHeight: '100vh', width: '97vw' }} mt={-5}>
       {/* Page Title */}
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 600, color: '#333' }}>
         Tableau de Bord - Gestion du Temps
@@ -277,7 +304,7 @@ const kpiData: KPIData[] = useMemo(() => {
             sx={{ backgroundColor: 'white' }}
           >
             <MenuItem value="all">Tous les départements</MenuItem>
-            {directionLibsArray.map((direction:any) => (
+            {directionLibsArray.map((direction: any) => (
               <MenuItem key={direction.dircod} value={direction.dircod}>
                 {direction.dirlib}
               </MenuItem>
@@ -370,8 +397,12 @@ const kpiData: KPIData[] = useMemo(() => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {dashboardData.pointagesIncomplets > 0 && (
-                <Alert severity="error">
-                  <strong>Pointage manquant:</strong> {dashboardData.pointagesIncomplets} employés n'ont pas complété leur pointage
+                <Alert
+                  severity="error"
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => setOpenPointageInvalidDialog(true)}
+                >
+                  <strong>Pointage manquant:</strong> {dashboardData.pointagesIncomplets} pointage(s) non compléte(s). Cliquez pour voir la liste.
                 </Alert>
               )}
               {dashboardData.nombreRetards > 0 && (
@@ -380,111 +411,121 @@ const kpiData: KPIData[] = useMemo(() => {
                 </Alert>
               )}
               {dashboardData.totalDemandesEnAttente > 0 && (
-                <Alert severity="info">
-                  <strong>Validation requise:</strong> {dashboardData.totalDemandesEnAttente} demandes en attente de validation
+                <Alert severity="info" sx={{ cursor: 'pointer' }} onClick={() => setOpenCongeDialog(true)}>
+                  <strong>Validation requise:</strong> {dashboardData.totalDemandesEnAttente} demande(s) en attente de validation
                 </Alert>
               )}
             </Box>
           </CardContent>
         </Card>
       )}
-      <EvolutionChart 
-        data={Array.isArray(evolutionData) ? evolutionData : []} 
+      <EvolutionChart
+        data={Array.isArray(evolutionData) ? evolutionData : []}
         isLoading={loadingEvolution}
       />
-      {/* Charts Row */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {/* <Grid item xs={12} md={8}>
-          <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                📊 Évolution des Heures par Catégorie
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                <Item>
-                  <BasicBars
-                    cadrhor={empStat['2']?.horaire ?? 0}
-                    cadrmen={empStat['2']?.mensuelle ?? 0}
-                    maihor={empStat['1']?.horaire ?? 0}
-                    maimen={empStat['1']?.mensuelle ?? 0}
-                    exhor={empStat['0']?.horaire ?? 0}
-                    exmen={empStat['0']?.mensuelle ?? 0}
-                  />
-                </Item>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid> */}
+      <Dialog open={openCongeDialog} onClose={() => setOpenCongeDialog(false)} maxWidth="lg"
+        sx={{
+          '& .MuiDialog-container': {
+            alignItems: 'center',
+          },
+          '& .MuiDialog-paper': {
+            margin: { xs: 0, sm: '32px' },
+            width: { xs: '80%', sm: 'auto' },
+            maxWidth: { xs: '90%', sm: '500px' },
+          },
+        }}>
+        <DialogTitle>Liste des Demandes de Congé</DialogTitle>
+        <DialogContent>
+          <CongeProvider>
+            <DashboardCongeList data={demandesData || []} isLoading={loadingDemandes} />
+          </CongeProvider>
+        </DialogContent>
+      </Dialog>
 
-        {/* <Grid item xs={12} md={4}>
-          <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                👥 Répartition par Sexe
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                <Item>
-                  <BasicPie data={sexStat} />
-                </Item>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid> */}
-      </Grid>
-      {/* Attendance Table */}
-      {/* <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: 2 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              📋 Pointages en Temps Réel
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField
-                placeholder="🔍 Rechercher un employé..."
-                size="small"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                sx={{ width: 250, backgroundColor: 'white' }}
-                InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: '#666' }} /> }}
-              />
-              <Button
-                variant="contained"
-                sx={{
-                  backgroundColor: '#d32f2f',
-                  '&:hover': { backgroundColor: '#b71c1c' },
-                  textTransform: 'none',
-                  whiteSpace: 'nowrap',
-                }}
-                startIcon={<FileDownloadIcon />}
-                onClick={handleExportCsv}
-              >
-                Exporter
-              </Button>
+      <Dialog open={openPointageInvalidDialog}
+        onClose={() => setOpenPointageInvalidDialog(false)} maxWidth="lg"
+        sx={{
+          '& .MuiDialog-container': {
+            alignItems: 'center',
+          },
+          '& .MuiDialog-paper': {
+            margin: { xs: 0, sm: '32px' },
+            width: { xs: '80%', sm: 'auto' },
+            maxWidth: { xs: '90%', sm: '500px' },
+          },
+        }}>
+        <DialogTitle>Pointages non complètes</DialogTitle>
+        <DialogContent sx={{ minHeight: 250 }}>
+          {loadingPointagesInvalides ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
             </Box>
+          ) : errorPointagesInvalides ? (
+            <Alert severity="error">Erreur lors de la récupération des pointages incomplets.</Alert>
+          ) : !pointagesInvalidesData || pointagesInvalidesData.length === 0 ? (
+            <Alert severity="info">Aucun pointage non complet trouvé pour cette période.</Alert>
+          ) : (
+            <TableContainer component={Paper} sx={{ mt: 1 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Matricule</TableCell>
+                    <TableCell>Nom</TableCell>
+                    <TableCell>Département</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Arrivée</TableCell>
+                    <TableCell>Départ</TableCell>
+                    <TableCell>Commentaire</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {pointagesInvalidesData.map((row, index) => (
+                    <TableRow
+                      key={index}
+                      sx={{
+                        backgroundColor:
+                          row.entreeManquante
+                            ? '#fff3e0'
+                            : row.incoherenceHoraire || row.midiIncoherent
+                              ? '#fff8e1'
+                              : '#ffebee',
+                      }}
+                    >
+                      <TableCell>{row.empcod || '-'}</TableCell>
+                      <TableCell>{row.emplib || '-'}</TableCell>
+                      <TableCell>{row.departement || '-'}</TableCell>
+                      <TableCell>
+                        {row.predat ? dayjs(row.predat).format('DD/MM/YYYY') : '-'}
+                      </TableCell>
+                      <TableCell>{row.preentmatup || '-'}</TableCell>
+                      <TableCell>
+                        {row.presortamidiup || row.presortmatup || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: '#d32f2f',
+                            fontWeight: 500,
+                            whiteSpace: 'pre-line',
+                          }}
+                        >
+                          {row.motif || '-'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+            <Button variant="outlined" onClick={() => setOpenPointageInvalidDialog(false)}>
+              Fermer
+            </Button>
           </Box>
-
-          <TableContainer component={Paper} sx={{ maxHeight: 500 }}>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: '#f5f7fa' }}>
-                  <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: '0.9rem' }}>Matricule</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: '0.9rem' }}>Nom et Prénom</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#666', fontSize: '0.9rem' }}>Département</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: '#666', fontSize: '0.9rem' }}>Heure Arrivée</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: '#666', fontSize: '0.9rem' }}>Heure Départ</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: '#666', fontSize: '0.9rem' }}>Heures Travaillées</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: '#666', fontSize: '0.9rem' }}>Statut</TableCell>
-                </TableRow>
-              </TableHead>
-            </Table>
-          </TableContainer>
-        </CardContent>
-      </Card> */}
-
-
-      {/* Additional Data Sections */}
-      {/* <Grid container spacing={2}>
-      </Grid> */}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

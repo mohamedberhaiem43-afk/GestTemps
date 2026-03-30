@@ -1,15 +1,11 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useMutation } from "react-query";
 
 const useAddSolde = () => {
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
-
     return useMutation(({ solde }: { solde: any}) =>
-        axios.post(
-            `${import.meta.env.VITE_REACT_APP_API_URL}/Soldes`,
-            solde,
-            { headers }
+        apiInstance.post(
+            `/Soldes`,
+            solde
         ).then(res => res.data)
     );
 };

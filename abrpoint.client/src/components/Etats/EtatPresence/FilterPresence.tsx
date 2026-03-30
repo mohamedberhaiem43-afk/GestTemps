@@ -1,18 +1,16 @@
 import { Box, Grid, IconButton } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
-import axios from "axios";
 import { useContext, useEffect, useState } from "react";
 import { Print, Search } from "@mui/icons-material";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { EmployeeContext } from "../../Pointeuse/EtatPeriodique/EmployeeContext";
 import { useAuth } from "../../helper/AuthProvider";
+import apiInstance from "../../API/apiInstance";
 
 function FilterPresence() {
-    const token = localStorage.getItem('authToken');
     const { soccod } = useAuth();
-    const headers = { Authorization: `Bearer ${token}` };
     const regime = {
         'M': "Mensuelle",
         'H': "Horaire"
@@ -38,11 +36,11 @@ function FilterPresence() {
     const { data: emplibs = [] } = useGetEmployeesLibs();
 
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`)
+        apiInstance.get(`/Sites/get-sitlibs`)
             .then((res) => setFiliale(res.data))
             .catch((err) => console.error(err));
 
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Parametres/deb-mois/${soccod}`, { headers })
+        apiInstance.get(`/Parametres/deb-mois/${soccod}`)
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
                 
@@ -77,19 +75,16 @@ function FilterPresence() {
         try {
             if (!soccod) return;
             
-            // Convert selected employees to codes if needed
             const empCodesToSend = selectedEmpCodes.length > 0 
                 ? selectedEmpCodes 
                 : (selectedEmp ? [selectedEmp.empcod] : []);
 
-
             const params = new URLSearchParams();
             empCodesToSend.forEach(code => params.append('empcods', code));
 
-            const response = await axios.get(
-                `${import.meta.env.VITE_REACT_APP_API_URL}/Presences/get-etat-presence-report/${soccod}/${dateDebut}/${dateFin}/${selectedRegime}`,
+            const response = await apiInstance.get(
+                `/Presences/get-etat-presence-report/${soccod}/${dateDebut}/${dateFin}/${selectedRegime}`,
                 {
-                    headers,
                     params,
                     responseType: 'blob'
                 }
@@ -104,12 +99,12 @@ function FilterPresence() {
             link.click();
             link.remove();
         } catch (error) {
-            console.error("Erreur génération rapport:", error);
+            console.error("Erreur g??n??ration rapport:", error);
         }
     };
 
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`, { headers })
+        apiInstance.get(`/Services/get-servlibs/${soccod}`)
             .then((res) => setServices(res.data))
             .catch((err) => console.error(err));
     }, [soccod]);
@@ -144,7 +139,6 @@ function FilterPresence() {
 
     const handleEmployeeSelection = (selected: string[]) => {
         setSelectedEmpCodes(selected);
-        // If you need to also set the full employee object in context:
         if (selected.length === 1) {
             const emp = emplibs.find(e => e.empcod === selected[0]);
             setSelectedEmp(emp || null);
@@ -158,93 +152,26 @@ function FilterPresence() {
             <Grid container direction="row" spacing={2} alignItems="end">
                 <Grid item xs={1.5}>
                     {filiale && (
-                        <SelectInputComponent
-                            label='Filiale'
-                            value={selectedFiliale}
-                            setValue={setSelectedFiliale}
-                            maplist={filiale}
-                        />
+                        <SelectInputComponent label='Filiale' value={selectedFiliale} setValue={setSelectedFiliale} maplist={filiale} />
                     )}
                 </Grid>
                 <Grid item xs={1.5}>
                     {services && (
-                        <SelectInputComponent
-                            label='Service'
-                            value={selectedService}
-                            setValue={setSelectedService}
-                            maplist={services}
-                        />
+                        <SelectInputComponent label='Service' value={selectedService} setValue={setSelectedService} maplist={services} />
                     )}
                 </Grid>
                 <Grid item xs={1}>
-                    <SelectInputComponent
-                        label='Régime'
-                        value={selectedRegime}
-                        setValue={setSelectedRegime}
-                        maplist={regime}
-                    />
+                    <SelectInputComponent label='R??gime' value={selectedRegime} setValue={setSelectedRegime} maplist={regime} />
                 </Grid>
                 <Grid item xs={1.5}>
-                    <SelectInputComponent
-                        label='Employés'
-                        value={selectedEmpCodes}
-                        setValue={handleEmployeeSelection}
-                        maplist={emplibs}
-                        multiple={true}
-                    />
+                    <SelectInputComponent label='Employ??s' value={selectedEmpCodes} setValue={handleEmployeeSelection} maplist={emplibs} multiple={true} />
                 </Grid>
-                <Grid item xs={0.6}>
-                    <InputComponent
-                        type='number'
-                        label='Année'
-                        value={annee}
-                        setValue={setAnnee}
-                    />
-                </Grid>
-                <Grid item xs={1}>
-                    <InputComponent
-                        type='date'
-                        label='Date Début'
-                        value={dateDebut}
-                        setValue={setStartDate}
-                    />
-                </Grid>
-                <Grid item xs={1}>
-                    <InputComponent
-                        type='date'
-                        label='Date Fin'
-                        value={dateFin}
-                        setValue={setEndDate}
-                    />
-                </Grid>
-                <Grid item xs={0.5}>
-                    <IconButton
-                        color="primary"
-                        onClick={handleApplyFilter}
-                        sx={{ border: '1px solid', borderColor: 'divider' }}
-                    >
-                        <Search />
-                    </IconButton>
-                </Grid>
-                <Grid item xs={0.5}>
-                    <IconButton
-                        color="primary"
-                        onClick={handlePrintReport}
-                        sx={{ border: '1px solid', borderColor: 'divider' }}
-                    >
-                        <Print />
-                    </IconButton>
-                </Grid>
-                <Grid item xs={1}>
-                    {presence && (
-                        <SelectInputComponent
-                            label='Présence'
-                            value={pres}
-                            setValue={setPres}
-                            maplist={presence}
-                        />
-                    )}
-                </Grid>
+                <Grid item xs={0.6}><InputComponent type='number' label='Ann??e' value={annee} setValue={setAnnee} /></Grid>
+                <Grid item xs={1}><InputComponent type='date' label='Date D??but' value={dateDebut} setValue={setStartDate} /></Grid>
+                <Grid item xs={1}><InputComponent type='date' label='Date Fin' value={dateFin} setValue={setEndDate} /></Grid>
+                <Grid item xs={0.5}><IconButton color="primary" onClick={handleApplyFilter} sx={{ border: '1px solid', borderColor: 'divider' }}><Search /></IconButton></Grid>
+                <Grid item xs={0.5}><IconButton color="primary" onClick={handlePrintReport} sx={{ border: '1px solid', borderColor: 'divider' }}><Print /></IconButton></Grid>
+                <Grid item xs={1}>{presence && (<SelectInputComponent label='Pr??sence' value={pres} setValue={setPres} maplist={presence} />)}</Grid>
             </Grid>
         </Box>
     );

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Box, Grid, InputLabel, Input, IconButton, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import { Pointeuse } from "../../models/PointeuseModel";
-import axios from "axios";
+import apiInstance from "../API/apiInstance";
 
 interface Props {
   selected: Pointeuse | null;
@@ -33,14 +33,9 @@ export default function SaisiePointeuse({ selected }: Props) {
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     // Add the API call here to submit the form data
-    axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Pointeuse`, pointeuse, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-        'Content-Type': 'application/json',
-      }
-    })
+    apiInstance.post(`/Pointeuse`, pointeuse)
       .then(() => {
-        
+
         setPointeuse({
           poicod: '',
           soccod: sessionStorage.getItem('soccod') || "",

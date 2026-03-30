@@ -44,8 +44,7 @@ interface SaisieAutSortieProps {
 export default function SaisieAutSortie({ type }: SaisieAutSortieProps) {
   const { t } = useTranslation();
   const { selectedSortieGeneral } = useSortieGeneralContext();
-  const uticod = localStorage.getItem('Uticod');
-  const { soccod } = useAuth();
+  const { soccod, uticod } = useAuth();
   
   const [empcod, setEmpcod] = useState<string | null>("");
   const [concod, setConcod] = useState<string>(generateNumeroOrdre());

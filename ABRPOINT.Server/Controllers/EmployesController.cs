@@ -13,11 +13,13 @@ namespace ABRPOINT.Server.Controllers
     public class EmployesController : ControllerBase
     {
         private readonly IEmployeRepository _employeRepository;
+        private readonly IUtilisateurRepository _utilisateurRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
-        public EmployesController(IEmployeRepository employeRepository,IReportsGenerationService reportsGenerationService)
+        public EmployesController(IEmployeRepository employeRepository,IReportsGenerationService reportsGenerationService, IUtilisateurRepository utilisateurRepository)
         {
             _employeRepository = employeRepository;
             _reportsGenerationService = reportsGenerationService;
+            _utilisateurRepository = utilisateurRepository;
         }
 
         // GET: api/employes
@@ -193,6 +195,15 @@ namespace ABRPOINT.Server.Controllers
                 if(employe != null && !string.IsNullOrEmpty(employe.Empcod))
                 {
                     await _employeRepository.AddAsync(employe);
+                    Utilisateur utilisateur = new Utilisateur(){ Utiactif = "1", Utiadm = "0",
+                        Uticod = employe.Empcod, Utinom = employe.Emplib,Utimps=employe.Empcin,Utimail=employe.Empemail };
+                    Socuser socuser = new Socuser()
+                    {
+                        Soccod = employe.Soccod,
+                        Sitcod = employe.Sitcod,
+                        Uticod = employe.Empcod,
+                    };
+                    await _utilisateurRepository.AddAsync(utilisateur, socuser);
                     return Ok(new { message = "Employé ajouté avec succès" });
                 }
                     return BadRequest(new { message = "Veuillez remplir les champs obligatoires" });

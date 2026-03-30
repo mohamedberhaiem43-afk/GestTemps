@@ -7,7 +7,7 @@ import {
 } from 'material-react-table';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import axios from 'axios';
+import apiInstance from '../../API/apiInstance';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
@@ -20,18 +20,13 @@ import { t } from 'i18next';
 const VilleTable = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const [editedVilles, setEditedVilles] = useState<Record<string, VilleModel>>({});
-  const token = localStorage.getItem('authToken');
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
 
   const { data: villes = [], isLoading, isError, refetch } = useGetVilles();
 
   const openDeleteConfirmModal = (row: MRT_Row<VilleModel>) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette ville ?')) {
-      axios
-        .delete(`${import.meta.env.VITE_REACT_APP_API_URL}/Villes/${row.original.vilcod}`, { headers })
+      apiInstance
+        .delete(`/Villes/${row.original.vilcod}`)
         .then(() => refetch())
         .catch((error) => console.error('Erreur suppression : ', error));
     }
@@ -80,13 +75,13 @@ const VilleTable = () => {
             vilcod: ville.vilcod,
             villib: ville.villib,
           };
-          await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/Villes`, newVille, { headers });
+          await apiInstance.post(`/Villes`, newVille);
         })
       );
       setEditedVilles({});
       refetch();
     } catch (error) {
-      console.error('Erreur lors de l’ajout de ville :', error);
+      console.error("Erreur lors de l’ajout de ville :", error);
     }
   };
 
@@ -98,7 +93,7 @@ const VilleTable = () => {
             vilcod: ville.vilcod,
             villib: ville.villib,
           };
-          await axios.put(`${import.meta.env.VITE_REACT_APP_API_URL}/Villes/${ville.vilcod}`, updatedVille, { headers });
+          await apiInstance.put(`/Villes/${ville.vilcod}`, updatedVille);
         })
       );
       setEditedVilles({});

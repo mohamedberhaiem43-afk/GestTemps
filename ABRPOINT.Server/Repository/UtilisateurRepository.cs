@@ -92,12 +92,20 @@ namespace ABRPOINT.Server.Repository
         }
         public async Task AddAsync(Utilisateur utilisateur,Socuser socuser)
         {
-            if (utilisateur != null)
+            try
             {
-                utilisateur.Utimps = BCrypt.Net.BCrypt.HashPassword(utilisateur.Utimps);
-                await _dbContext.Utilisateurs.AddAsync(utilisateur);
-                await _dbContext.Socusers.AddAsync(socuser);
-                await _dbContext.SaveChangesAsync();
+                if (utilisateur != null)
+                {
+                    utilisateur.Utimps = BCrypt.Net.BCrypt.HashPassword(utilisateur.Utimps);
+                    await _dbContext.Utilisateurs.AddAsync(utilisateur);
+                    await _dbContext.SaveChangesAsync();
+                    await _dbContext.Socusers.AddAsync(socuser);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 

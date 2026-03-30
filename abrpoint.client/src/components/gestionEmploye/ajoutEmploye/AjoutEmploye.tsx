@@ -25,7 +25,6 @@ export default function BasicGrid() {
 
   const { selectedEmp } = useContext(EmployeeContext);
   
-  // Initialize employeData with proper default values
   const getDefaultEmployeData = (): Employe => ({
     empcod: '',
     soccod: soccod || '',
@@ -96,7 +95,6 @@ export default function BasicGrid() {
       setCombinedData(selectedEmp);
       setMode('update');
     } else if (!combinedData.empcod) {
-      // Only reset if there's no existing data
       const defaultData = getDefaultEmployeData();
       setEmployeData(defaultData);
       setCombinedData(defaultData);
@@ -106,12 +104,11 @@ export default function BasicGrid() {
 
   const handleCombinedDataChange = (data: Employe) => {
     setCombinedData(data);
-    setEmployeData(data); // Keep employeData in sync
+    setEmployeData(data);
   };
   const { mutate: addEmploye } = useAddEmploye();
   const { mutate: updateEmploye } = useUpdateEmploye();
 
-  // Helper function to safely format dates
   const formatDate = (date: any): Date | null => {
     if (!date) return null;
     
@@ -139,7 +136,6 @@ export default function BasicGrid() {
         empsort: formatDate(combinedData.empsort),
         empdcin: formatDate(combinedData.empdcin) || new Date(),
         empoptim: formatDate(combinedData.empoptim),
-        // Ensure actif is properly set
         actif: combinedData.actif,
       };
 

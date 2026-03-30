@@ -14,7 +14,7 @@ public partial class Socuser
     public string? Soccod { get; set; }
 
     [Column("uticod")]
-    [StringLength(2)]
+    [StringLength(20)]
     public string? Uticod { get; set; }
 
     [Column("sitcod")]

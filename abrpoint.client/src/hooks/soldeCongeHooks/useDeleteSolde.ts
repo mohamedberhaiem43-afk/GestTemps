@@ -1,15 +1,11 @@
-import axios from "axios";
+import apiInstance from "../../components/API/apiInstance";
 import { useMutation } from "react-query";
 import { Solde } from "../../models/Solde";
 
 const useDeleteSolde= () => {
-    const token = localStorage.getItem('authToken');
-    const headers = { Authorization: `Bearer ${token}` };
-    
     return useMutation((solde:Solde) =>
-        axios.delete(
-            `${import.meta.env.VITE_REACT_APP_API_URL}/Soldes/${solde.soccod}/${solde.empcod}`,
-            { headers }
+        apiInstance.delete(
+            `/Soldes/${solde.soccod}/${solde.empcod}`
         ).then(res=>res.data)
     );
 };
