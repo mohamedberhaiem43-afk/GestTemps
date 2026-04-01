@@ -1,4 +1,4 @@
-import { Box, Grid, IconButton } from "@mui/material";
+﻿import { Box, Grid, IconButton } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import { useEffect, useState } from "react";
@@ -48,7 +48,7 @@ function FilterPeriode() {
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
     
-    // Récupérer les données d'absence avec le hook
+    // RÃ©cupÃ©rer les donnÃ©es d'absence avec le hook
     const { data: absenceData = [] } = useGetEtatAbsence(
         new Date(dateDebut),
         new Date(dateFin),
@@ -106,9 +106,12 @@ function FilterPeriode() {
 
                 const formattedStartMonth = String(startMonth).padStart(2, '0');
                 const formattedEndMonth = String(endMonth).padStart(2, '0');
+                const startDay = Math.min(Math.max(Number(joudeb) || 1, 1), new Date(startYear, startMonth, 0).getDate());
+                const endDay = Math.min(Math.max(Number(joufin) || 1, 1), new Date(endYear, endMonth, 0).getDate());
 
-                const initialDateDebut = `${startYear}-${formattedStartMonth}-${joudeb}`;
-                const initialDateFin = `${endYear}-${formattedEndMonth}-${joufin}`;
+                const initialDateDebut = `${startYear}-${formattedStartMonth}-${String(startDay).padStart(2, '0')}`;
+                const initialDateFin = `${endYear}-${formattedEndMonth}-${String(endDay).padStart(2, '0')}`;
+
 
                 setAnnee(currentYear.toString());
                 setStartDate(initialDateDebut);
@@ -136,11 +139,11 @@ function FilterPeriode() {
                     }
                 );
 
-                // Créer le blob PDF
+                // CrÃ©er le blob PDF
                 const blob = new Blob([response.data], { type: 'application/pdf' });
                 const url = window.URL.createObjectURL(blob);
 
-                // Télécharger le fichier
+                // TÃ©lÃ©charger le fichier
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = `etat-absence-${dateDebut}-${dateFin}.pdf`;
@@ -152,21 +155,21 @@ function FilterPeriode() {
                 window.URL.revokeObjectURL(url);
 
             } catch (error: any) {
-                console.error("Erreur génération rapport:", error);
+                console.error("Erreur gÃ©nÃ©ration rapport:", error);
                 
                 if (error.response) {
                     console.error("Status:", error.response.status);
                     console.error("Status Text:", error.response.statusText);
                     
-                    // Si c'est une erreur 405, vérifier la configuration
+                    // Si c'est une erreur 405, vÃ©rifier la configuration
                     if (error.response.status === 405) {
-                        alert("Erreur 405: Méthode non autorisée. Vérifiez la configuration du serveur.");
+                        alert("Erreur 405: MÃ©thode non autorisÃ©e. VÃ©rifiez la configuration du serveur.");
                     } else if (error.response.status === 401) {
-                        alert("Non autorisé. Veuillez vous reconnecter.");
+                        alert("Non autorisÃ©. Veuillez vous reconnecter.");
                     } else if (error.response.status === 403) {
-                        alert("Accès interdit. Vous n'avez pas les permissions nécessaires.");
+                        alert("AccÃ¨s interdit. Vous n'avez pas les permissions nÃ©cessaires.");
                     } else {
-                        alert("Erreur lors de la génération du rapport.");
+                        alert("Erreur lors de la gÃ©nÃ©ration du rapport.");
                     }
                 } else {
                     alert("Erreur de connexion au serveur.");

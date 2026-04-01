@@ -161,17 +161,17 @@ function FilterPresence() {
                     )}
                 </Grid>
                 <Grid item xs={1}>
-                    <SelectInputComponent label='R??gime' value={selectedRegime} setValue={setSelectedRegime} maplist={regime} />
+                    <SelectInputComponent label='Régime' value={selectedRegime} setValue={setSelectedRegime} maplist={regime} />
                 </Grid>
                 <Grid item xs={1.5}>
-                    <SelectInputComponent label='Employ??s' value={selectedEmpCodes} setValue={handleEmployeeSelection} maplist={emplibs} multiple={true} />
+                    <SelectInputComponent label='Employés' value={selectedEmpCodes} setValue={handleEmployeeSelection} maplist={emplibs} multiple={true} />
                 </Grid>
-                <Grid item xs={0.6}><InputComponent type='number' label='Ann??e' value={annee} setValue={setAnnee} /></Grid>
-                <Grid item xs={1}><InputComponent type='date' label='Date D??but' value={dateDebut} setValue={setStartDate} /></Grid>
+                <Grid item xs={0.6}><InputComponent type='number' label='Année' value={annee} setValue={setAnnee} /></Grid>
+                <Grid item xs={1}><InputComponent type='date' label='Date Début' value={dateDebut} setValue={setStartDate} /></Grid>
                 <Grid item xs={1}><InputComponent type='date' label='Date Fin' value={dateFin} setValue={setEndDate} /></Grid>
                 <Grid item xs={0.5}><IconButton color="primary" onClick={handleApplyFilter} sx={{ border: '1px solid', borderColor: 'divider' }}><Search /></IconButton></Grid>
                 <Grid item xs={0.5}><IconButton color="primary" onClick={handlePrintReport} sx={{ border: '1px solid', borderColor: 'divider' }}><Print /></IconButton></Grid>
-                <Grid item xs={1}>{presence && (<SelectInputComponent label='Pr??sence' value={pres} setValue={setPres} maplist={presence} />)}</Grid>
+                <Grid item xs={1}>{presence && (<SelectInputComponent label='Présence' value={pres} setValue={setPres} maplist={presence} />)}</Grid>
             </Grid>
         </Box>
     );

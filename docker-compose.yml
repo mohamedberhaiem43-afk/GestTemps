@@ -29,7 +29,10 @@ services:
       - app-network
   abrpoint.server:
     container_name: abrpoint.server
-    image: mohamedbenrhaiem2003/abrpoint-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    image: abrpoint-server:local
     volumes:
        - uploads_data:/app/uploads
     environment:
@@ -38,6 +41,17 @@ services:
       DB_USER: "sa"
       DB_PASSWORD: "PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A="
       ASPNETCORE_URLS: "http://+:8080"
+      DatabaseInitialization__Enabled: "true"
+      DatabaseInitialization__SocieteCode: "01"
+      DatabaseInitialization__SocieteName: "Default Company"
+      DatabaseInitialization__SiteCode: "01"
+      DatabaseInitialization__SiteName: "Main Site"
+      DatabaseInitialization__AdminCode: "AD"
+      DatabaseInitialization__AdminFirstName: "Admin"
+      DatabaseInitialization__AdminLastName: "System"
+      DatabaseInitialization__AdminEmail: "admin@abrpoint.local"
+      DatabaseInitialization__AdminPassword: "123"
+      DatabaseInitialization__ApplicationCode: "GRH"
     depends_on:
       - abrpoint.database
     networks:
@@ -51,3 +65,6 @@ services:
       - abrpoint.server
     networks:
       - app-network
+
+
+

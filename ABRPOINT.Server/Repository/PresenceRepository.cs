@@ -643,7 +643,6 @@ namespace ABRPOINT.Server.Repository
 
                     // 5️⃣ Créer présence si absente
                     presenceDict.TryGetValue(date.Date, out var presence);
-
                     if (presence == null)
                     {
                         presence = new PresenceDto
@@ -655,8 +654,8 @@ namespace ABRPOINT.Server.Repository
                             Codposte = employePostes.GetValueOrDefault((Empcod: empcod, Date: date))
                         };
                     }
-
-                    // 6️⃣ Lookup batch - 🆕 with employment period validation
+                    presence.Tothabs = "00:00";
+                    // 6?? Lookup batch - ?? with employment period validation
                     string? sanction = null;
                     if (IsWithinEmploymentPeriod(date))
                     {
@@ -806,6 +805,19 @@ namespace ABRPOINT.Server.Repository
                             presence.Jour += (float)GenericMethodes.journeeTime(heuresConge, empparam);
                             allDates.Add(presence);
                             continue;
+                        }
+                        if (presence.Prerepos != "1")
+                        {
+                            var presenceEntity = _mapper.Map<Presence>(presence);
+                            float? workedHours = GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                            presence.Tothabs = GenericMethodes.ConvertDoubleToHHmm(
+                                await _absenceService.CalculateHeureAbsences(
+                                    presenceEntity,
+                                    soccod,
+                                    presence.Codposte,
+                                    presence.Predat,
+                                    autorisation,
+                                    workedHours));
                         }
                         TimeSpan totalTime = TimeSpan.Zero;
 

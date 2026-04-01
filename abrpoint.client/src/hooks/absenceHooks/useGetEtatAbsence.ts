@@ -1,6 +1,18 @@
-import { useQuery } from "react-query";
+﻿import { useQuery } from "react-query";
 import EtatAbsenceService from "../../services/AbsenceService/EtatAbsenceService";
 import { useAuth } from "../../components/helper/AuthProvider";
+
+const isValidDate = (date: Date | null | undefined): date is Date => {
+  return date instanceof Date && !Number.isNaN(date.getTime());
+};
+
+const formatDate = (date: Date | null | undefined) => {
+  if (!isValidDate(date)) {
+    return null;
+  }
+
+  return date.toISOString().split("T")[0];
+};
 
 const useGetEtatAbsence = (
   datedebut: Date,
@@ -14,16 +26,17 @@ const useGetEtatAbsence = (
 ) => {
   const { soccod } = useAuth();
 
-  const formatDate = (date: Date) => date.toISOString().split('T')[0];
-  const formattedDebut = formatDate(datedebut) + "T00:00:00";
-  const formattedFin = formatDate(datefin) + "T00:00:00";
+  const formattedDebutDate = formatDate(datedebut);
+  const formattedFinDate = formatDate(datefin);
+  const formattedDebut = formattedDebutDate ? `${formattedDebutDate}T00:00:00` : "";
+  const formattedFin = formattedFinDate ? `${formattedFinDate}T00:00:00` : "";
+  const hasSelectedEmployees = Array.isArray(empcods) && empcods.length > 0;
+  const hasValidDates = Boolean(formattedDebutDate && formattedFinDate);
 
   const params = new URLSearchParams();
-  // Vérifiez que empcods existe et est un tableau
-  if (empcods && Array.isArray(empcods)) {
-    empcods.forEach(cod => params.append("empcods", cod));
+  if (Array.isArray(empcods)) {
+    empcods.forEach((cod) => params.append("empcods", cod));
   }
-  
 
   return useQuery({
     queryKey: [
@@ -36,14 +49,13 @@ const useGetEtatAbsence = (
       absret,
       presNonOpt,
       sansPointageInvalide,
-      selectedAbstype
+      selectedAbstype,
     ],
     queryFn: () =>
       EtatAbsenceService.getAllWithParams(
-        `get-etat-absence/${soccod}/${formattedDebut}/${formattedFin}/${absaut}/${absret}/${presNonOpt}/${sansPointageInvalide}/0?${params.toString()}`
+        `get-etat-absence/${soccod}/${formattedDebut}/${formattedFin}/${absaut}/${absret}/${presNonOpt}/${sansPointageInvalide}/${selectedAbstype}?${params.toString()}`
       ),
-    // La requête se lance seulement si les dates sont définies
-    enabled: !!soccod && !!datedebut && !!datefin && (empcods !== null && empcods.length > 0),
+    enabled: Boolean(soccod) && hasValidDates && hasSelectedEmployees,
   });
 };
 

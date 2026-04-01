@@ -18,13 +18,20 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
 var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 
 
-var connectionString = $"Server={dbHost};Database={dbName};User Id={dbUser};Password={dbPassword};TrustServerCertificate=True;";
+var connectionString = !string.IsNullOrWhiteSpace(dbName) && !string.IsNullOrWhiteSpace(dbPassword)
+    ? $"Server={dbHost};Database={dbName};User Id={dbUser};Password={dbPassword};TrustServerCertificate=True;"
+    : builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("A database connection string could not be resolved.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         connectionString,
         sqlOptions => sqlOptions.EnableRetryOnFailure()
     ));
+
+builder.Services.Configure<DatabaseInitializationOptions>(
+    builder.Configuration.GetSection(DatabaseInitializationOptions.SectionName));
+builder.Services.AddScoped<DatabaseInitializer>();
 
 builder.Services.AddControllers().AddJsonOptions(x =>
                 x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
@@ -105,11 +112,10 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(uploadsPath),
     RequestPath = "/api/uploads"  // match the URL you're calling
 });
-// Apply EF Core migrations automatically
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    //db.Database.Migrate(); // Creates database + tables if they don't exist
+    var databaseInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+    await databaseInitializer.InitializeAsync();
 }
 
 app.UseDefaultFiles();
@@ -131,3 +137,5 @@ app.MapControllers();
 app.MapFallbackToFile("/index.html");
 
 app.Run();
+
+
