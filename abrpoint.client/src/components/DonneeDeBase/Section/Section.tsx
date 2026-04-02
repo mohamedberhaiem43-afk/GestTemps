@@ -4,7 +4,7 @@ import {
   MRT_Row,
   type MRT_ColumnDef,
 } from 'material-react-table';
-import { Box, CircularProgress, IconButton, Tooltip, Select, MenuItem, FormControl } from '@mui/material';
+import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
@@ -112,7 +112,6 @@ const SectionTable = () => {
         columns={columns}
         data={sections}
         enableEditing
-        editingMode='modal'
         onEditingRowSave={(params) => {
           const value = params.values as SectionModel;
           setEditedSections((prev) => ({
@@ -121,7 +120,11 @@ const SectionTable = () => {
           }));
           return Promise.resolve();
         }}
-        onCreatingRowSave={handleSaveNewRow}
+        onCreatingRowSave={async ({ exitCreatingMode, values }) => {
+          const section = values as SectionModel;
+          await handleSaveNewRow(section);
+          exitCreatingMode();
+        }}
         enableRowActions
         renderRowActions={({ row }) => (
           <Box sx={{ display: 'flex', gap: '1rem' }}>
