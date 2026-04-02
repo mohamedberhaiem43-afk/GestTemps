@@ -61,6 +61,7 @@ namespace ABRPOINT.Server.Repository
                 throw new InvalidOperationException($"Erreur lors de la récupération des sites pour la société {soccod}", ex);
             }
         }
+        public async Task<Dictionary<string, string>> GetSitLibs(string soccod, string uticod)
         {
             // Perform a join between Socusers and Sites based on Sitcod
             return await _dbContext.Socusers
