@@ -6,6 +6,7 @@ import InputComponent from "../../../Inputs/Input";
 import CheckboxComponent from "../../../CheckboxComponent/CheckboxComponent";
 import { useAuth } from "../../../helper/AuthProvider";
 import { useTranslation } from 'react-i18next';
+import useGetSiteLibs from "../../../../hooks/siteHooks/useGetSiteLibs";
 
 const TravailInfo = ({
   formData,
@@ -17,14 +18,13 @@ const TravailInfo = ({
        { target: { name: string; value: any } }
   ) => void;
 }) => {
-  const uticod = localStorage.getItem("Uticod");
   const { soccod } = useAuth();
   const { t } = useTranslation();
-  const [filiales,setFiliales] = useState([]);
-  const [services,setServices] = useState([]);
-  const [directions,setDirections] = useState([]);
-  const [horaires,setHoraires] = useState([]);
-  const [calendrier,setCalendrier] = useState([]);
+  const { data: filiales = {} } = useGetSiteLibs();
+  const [services,setServices] = useState<Record<string,string>>({});
+  const [directions,setDirections] = useState<Record<string,string>>({});
+  const [horaires,setHoraires] = useState<Record<string,string>>({});
+  const [calendrier,setCalendrier] = useState<any[]>([]);
 
   const handleCheckboxChange = (e:any) => {
     const { name, checked } = e.target;
@@ -32,27 +32,23 @@ const TravailInfo = ({
   };
   useEffect(()=>{
     apiInstance
-    .get(`/Sites/get-sitlibs/${soccod}/${uticod}`)
-    .then((res) =>setFiliales(res.data))
-    .catch((err) => console.error("Error adding sanction", err));
-    apiInstance
     .get(`/Services/get-servlibs/${soccod}`)
-    .then((res) =>setServices(res.data))
-    .catch((err) => console.error("Error adding sanction", err));
+    .then((res) => setServices(res.data))
+    .catch((err) => console.error("Error fetching services", err));
     apiInstance
     .get(`/Directions/get-dirlibs/${soccod}`)
-    .then((res) =>setDirections(res.data))
-    .catch((err) => console.error("Error adding sanction", err));
+    .then((res) => setDirections(res.data))
+    .catch((err) => console.error("Error fetching directions", err));
     apiInstance
     .get(`/Lcategories/get-horlibs/${soccod}`)
-    .then((res) =>setHoraires(res.data))
-    .catch((err) => console.error("Error adding sanction", err));
+    .then((res) => setHoraires(res.data))
+    .catch((err) => console.error("Error fetching horaires", err));
     apiInstance
     .get(`/Calendriers`)
-    .then((res) =>setCalendrier(res.data))
-    .catch((err) => console.error("Error adding sanction", err));
+    .then((res) => setCalendrier(res.data))
+    .catch((err) => console.error("Error fetching calendriers", err));
 
-  },[])
+  },[soccod])
   
   return (
     <Box>

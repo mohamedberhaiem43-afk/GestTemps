@@ -81,12 +81,12 @@ namespace ABRPOINT.Server.Repository
             try
             {
                 return _dbContext.Sections
-                                   .ToDictionary(abs => abs.Seccod, abs => abs.Seclib);
+                    .Where(sec => sec.Soccod == soccod)
+                    .ToDictionary(abs => abs.Seccod ?? string.Empty, abs => abs.Seclib ?? string.Empty);
             }
             catch (Exception ex)
             {
-
-                throw new Exception("",ex);
+                throw new Exception("Erreur lors de la récupération des sections", ex);
             }
         }
 

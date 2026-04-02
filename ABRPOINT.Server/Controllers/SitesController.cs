@@ -2,7 +2,6 @@
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -71,6 +70,7 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = ex.Message });
             }
         }
+        [HttpGet("get-sitlibs/{soccod}/{uticod}")]
         public async Task<IActionResult> GetSitLibsByUser(string soccod, string uticod)
         {
             try

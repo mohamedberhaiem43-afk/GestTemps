@@ -70,7 +70,7 @@ public sealed class DatabaseInitializer
         {
             try
             {
-                await _dbContext.Database.MigrateAsync(cancellationToken);
+                //await _dbContext.Database.MigrateAsync(cancellationToken);
                 return;
             }
             catch (Exception ex) when (attempt < maxAttempts && IsTransient(ex))
@@ -267,7 +267,7 @@ END", cancellationToken);
             }, cancellationToken);
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        //await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private static bool IsTransient(Exception ex)

@@ -43,27 +43,30 @@ namespace ABRPOINT.Server.Controllers
             return _sectionRepository.GetSecLibs(soccod);
         }
 
-        // GET api/Services/5
+        // GET api/Sections/{soccod}/{seccod}
         [HttpGet("{soccod}/{seccod}")]
-        public ActionResult<Section> Get(string sercod, string soccod)
+        public ActionResult<Section> GetById(string soccod, string seccod)
         {
-            var service = _sectionRepository.GetBySeccod(sercod, soccod);
-            if (service == null)
+            var section = _sectionRepository.GetBySeccod(seccod, soccod);
+            if (section == null)
             {
                 return NotFound();
             }
-            return Ok(service);
+            return Ok(section);
         }
 
-        // POST api/Services
+        // POST api/Sections
+        [HttpPost]
         public IActionResult Post([FromBody] Section section)
         {
+            if (section == null || string.IsNullOrWhiteSpace(section.Seccod) || string.IsNullOrWhiteSpace(section.Soccod))
+            {
+                return BadRequest(new { message = "Code section et code société sont obligatoires" });
+            }
             try
             {
-
                 _sectionRepository.Add(section);
-                return Ok(section);
-
+                return CreatedAtAction(nameof(GetById), new { soccod = section.Soccod, seccod = section.Seccod }, section);
             }
             catch (Exception ex)
             {
@@ -71,13 +74,19 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        // PUT api/Services/5
+        // PUT api/Sections/{soccod}/{seccod}
         [HttpPut("{soccod}/{seccod}")]
-        public IActionResult Put(string seccod, [FromBody] Section section)
+        public IActionResult Put(string soccod, string seccod, [FromBody] Section section)
         {
-            if (section == null || seccod != section.Seccod)
+            if (section == null || seccod != section.Seccod || soccod != section.Soccod)
             {
                 return BadRequest();
+            }
+
+            var existing = _sectionRepository.GetBySeccod(seccod, soccod);
+            if (existing == null)
+            {
+                return NotFound();
             }
 
             _sectionRepository.Update(section);

@@ -4,21 +4,21 @@ import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetSiteLibs = () => {
   const queryClient = useQueryClient();
-  const { soccod } = useAuth();
+  const { soccod, uticod } = useAuth();
 
-  return useQuery({
-    queryKey: ["sitlibs", soccod],
+  return useQuery<Record<string,string>>({
+    queryKey: ["sitlibs", soccod, uticod],
     queryFn: async () => {
-      if (!soccod) return {};
-      const response = await apiInstance.get(
-        `/Sites/get-sitlibs/${soccod}`
+      if (!soccod || !uticod) return {};
+      const response = await apiInstance.get<Record<string,string>>(
+        `/Sites/get-sitlibs/${soccod}/${uticod}`
       );
-      return response.data;
+      return response.data || {};
     },
     initialData: () => {
-      return queryClient.getQueryData(["sitlibs", soccod]);
+      return queryClient.getQueryData<Record<string,string>>(["sitlibs", soccod, uticod]) || {};
     },
-    enabled: !!soccod,
+    enabled: !!soccod && !!uticod,
   });
 };
 

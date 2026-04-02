@@ -111,7 +111,6 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-
                 throw new Exception("",ex);
             }
         }
