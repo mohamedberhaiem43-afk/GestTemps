@@ -33,7 +33,9 @@ function FilterCahierConge() {
     const setDateRange = dateRangeContext?.setDateRange;
     const {data:emplibs=[]} = useGetEmployeesLibs();
     useEffect(() => {
-        apiInstance.get(`/Sites/get-sitlibs`)
+        if (!soccod) return;
+        
+        apiInstance.get(`/Sites/get-sitlibs/${soccod}`)
             .then((res) => setFiliale(res.data))
             .catch((err) => console.error(err));
 

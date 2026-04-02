@@ -56,7 +56,9 @@ function FilterPointageMois() {
         setSnackbarOpen(false);
     };
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs`)
+        if (!soccod) return;
+        
+        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs/${soccod}`)
             .then((res) => setFiliale(res.data))
             .catch((err) => console.error(err));
 

@@ -49,7 +49,28 @@ namespace ABRPOINT.Server.Controllers
             }
         }
         
-        [HttpGet("get-sitlibs/{soccod}/{uticod}")]
+        [HttpGet("get-sitlibs/{soccod}")]
+        public async Task<IActionResult> GetSitLibsBySociety(string soccod)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(soccod))
+                {
+                    return BadRequest(new { message = "Le code société est obligatoire" });
+                }
+                
+                var sitLibs = await _siteRepository.GetSitLibs(soccod);
+                return Ok(sitLibs);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(500, new { message = ex.Message, details = ex.InnerException?.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = ex.Message });
+            }
+        }
         public async Task<IActionResult> GetSitLibsByUser(string soccod, string uticod)
         {
             try

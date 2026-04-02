@@ -45,7 +45,22 @@ namespace ABRPOINT.Server.Repository
                              .Select(group => group.First())  // Take the first item from each group
                              .ToDictionaryAsync(abs => abs.Sitcod, abs => abs.Sitlib);
         }
-        public async Task<Dictionary<string, string>> GetSitLibs(string soccod, string uticod)
+
+        public async Task<Dictionary<string, string>> GetSitLibs(string soccod)
+        {
+            try
+            {
+                return await _dbContext.Sites
+                    .Where(s => s.Soccod == soccod)
+                    .GroupBy(s => s.Sitcod)
+                    .Select(group => group.First())
+                    .ToDictionaryAsync(s => s.Sitcod, s => s.Sitlib ?? s.Sitcod);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Erreur lors de la récupération des sites pour la société {soccod}", ex);
+            }
+        }
         {
             // Perform a join between Socusers and Sites based on Sitcod
             return await _dbContext.Socusers
