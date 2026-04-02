@@ -154,7 +154,15 @@ namespace ABRPOINT.Server.Repository
                 if (fin.HasValue)
                     query = query.Where(f => f.Ferdate <= fin.Value);
 
-                return await query.SumAsync(f => (float?)f.Ferheure);
+                var result = await query.SumAsync(f => (float?)f.Ferheure);
+
+                // Prevent infinity values that can't be serialized to JSON
+                if (result.HasValue && (float.IsInfinity(result.Value) || float.IsNaN(result.Value)))
+                {
+                    result = 0;
+                }
+
+                return result;
             }
             catch (Exception)
             {

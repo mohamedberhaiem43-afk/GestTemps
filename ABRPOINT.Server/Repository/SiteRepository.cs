@@ -120,7 +120,7 @@ namespace ABRPOINT.Server.Repository
             try
             {
                 var rowsAffected = await _dbContext.Sites
-                    .Where(s => s.Soccod == site.Soccod && s.Sitsoc == site.Sitcod)
+                    .Where(s => s.Soccod == site.Soccod && s.Sitcod == site.Sitcod)
                     .ExecuteUpdateAsync(setters => setters
                         .SetProperty(s => s.Sitlib, site.Sitlib)
                         .SetProperty(s => s.Sitadr, site.Sitadr)

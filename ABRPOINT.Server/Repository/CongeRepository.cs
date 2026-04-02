@@ -7,6 +7,12 @@ using System.Globalization;
 
 namespace ABRPOINT.Server.Repository
 {
+    public class MonthlyData
+    {
+        public int Month { get; set; }
+        public float? TotalDays { get; set; }
+    }
+
     public class CongeRepository : ICongeRepository
     {
         private readonly ApplicationDbContext _dbContext;
@@ -392,6 +398,12 @@ namespace ABRPOINT.Server.Repository
                                 c.Condep >= datedebut && c.Conret <= datefin)
                     .SumAsync(c => c.Connbjour);
 
+                // Prevent infinity values that can't be serialized to JSON
+                if (NbCongeRecus.HasValue && (float.IsInfinity(NbCongeRecus.Value) || float.IsNaN(NbCongeRecus.Value)))
+                {
+                    NbCongeRecus = 0;
+                }
+
                 float? solde = await _dbContext.Sites
                     .Where(p => p.Soccod == soccod)
                     .Select(p => p.Sitconge)
@@ -407,28 +419,52 @@ namespace ABRPOINT.Server.Repository
                                 s.Condep >= datedebut && s.Conret <= datefin)
                     .SumAsync(s => s.Connbjour);
 
+                // Prevent infinity values that can't be serialized to JSON
+                if (empsanctions.HasValue && (float.IsInfinity(empsanctions.Value) || float.IsNaN(empsanctions.Value)))
+                {
+                    empsanctions = 0;
+                }
+
                 // Monthly breakdown of sanctions
                 var sanctionsPerMonth = await _dbContext.Sanctions
                     .Where(s => s.Soccod == soccod && s.Empcod == empcod &&
                                 s.Condep >= datedebut && s.Conret <= datefin)
                     .GroupBy(s => s.Condep!.Value.Month)
-                    .Select(g => new
+                    .Select(g => new MonthlyData
                     {
                         Month = g.Key, // 1 = Jan, 2 = Feb, ...
                         TotalDays = g.Sum(x => x.Connbjour)
                     })
                     .ToListAsync();
+
+                // Prevent infinity values in grouped sums
+                foreach (var item in sanctionsPerMonth)
+                {
+                    if (item.TotalDays.HasValue && (float.IsInfinity(item.TotalDays.Value) || float.IsNaN(item.TotalDays.Value)))
+                    {
+                        item.TotalDays = 0;
+                    }
+                }
                 // Regroupement des congés reçus par mois
                 var congesParMois = await _dbContext.Conges
                     .Where(c => c.Soccod == soccod && c.Empcod == empcod &&
                                 c.Condep >= datedebut && c.Conret <= datefin)
                     .GroupBy(c => c.Condep!.Value.Month)
-                    .Select(g => new
+                    .Select(g => new MonthlyData
                     {
                         Month = g.Key,
                         TotalDays = g.Sum(c => c.Connbjour)
                     })
                     .ToListAsync();
+
+                // Prevent infinity values in grouped sums
+                foreach (var item in congesParMois)
+                {
+                    if (item.TotalDays.HasValue && (float.IsInfinity(item.TotalDays.Value) || float.IsNaN(item.TotalDays.Value)))
+                    {
+                        item.TotalDays = 0;
+                    }
+                }
                 // Dictionnaire de congés par mois
                 var nbCongeRecuParMois = congesParMois.ToDictionary(
                     x => new DateTime(2000, x.Month, 1).ToString("MMMM", new CultureInfo("fr-FR")),
@@ -478,6 +514,12 @@ namespace ABRPOINT.Server.Repository
                         c.Condep.Value.Year == year &&
                         c.Condep.Value.Month == month)
                     .SumAsync(c => c.Connbjour ?? 0);
+
+                // Prevent infinity values that can't be serialized to JSON
+                if (float.IsInfinity(totalConge) || float.IsNaN(totalConge))
+                {
+                    totalConge = 0;
+                }
 
                 return totalConge;
             }
