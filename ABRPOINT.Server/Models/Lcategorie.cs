@@ -9,7 +9,8 @@ public partial class Lcategorie
 {
     [Key]
     [Column("ordre")]
-    public int? Ordre { get; set; }
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int Ordre { get; set; }
 
     [Column("soccod")]
     [StringLength(6)]
