@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Annotations.AdminAttributes;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
@@ -32,6 +32,49 @@ namespace GestionDesTickets.Server.Controllers
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
         }
+        private bool IsHttpsRequest()
+        {
+            if (Request.IsHttps)
+            {
+                return true;
+            }
+
+            if (Request.Headers.TryGetValue("X-Forwarded-Proto", out var forwardedProto))
+            {
+                var protocol = forwardedProto.ToString().Split(',')[0].Trim();
+                return string.Equals(protocol, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
+        private CookieOptions CreateCookieOptions(DateTimeOffset expires, bool httpOnly = true)
+        {
+            var isHttps = IsHttpsRequest();
+
+            return new CookieOptions
+            {
+                HttpOnly = httpOnly,
+                Secure = isHttps,
+                SameSite = isHttps ? SameSiteMode.None : SameSiteMode.Lax,
+                Expires = expires,
+                Path = "/"
+            };
+        }
+
+        private CookieOptions CreateDeleteCookieOptions(bool httpOnly = true)
+        {
+            var isHttps = IsHttpsRequest();
+
+            return new CookieOptions
+            {
+                HttpOnly = httpOnly,
+                Secure = isHttps,
+                SameSite = isHttps ? SameSiteMode.None : SameSiteMode.Lax,
+                Path = "/"
+            };
+        }
+
 
         [Authorize]
         [HttpGet("users-list/{soccod}/{uticod}")]
@@ -44,7 +87,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "probléme de récupération des utilisateurs " + ex);
+                return StatusCode(500, "problÃ©me de rÃ©cupÃ©ration des utilisateurs " + ex);
             }
         }
         [Authorize]
@@ -119,16 +162,19 @@ namespace GestionDesTickets.Server.Controllers
                 Socuser? societe = null;
                 if (!string.IsNullOrEmpty(user.Usersit))
                 {
-                    societe = await _dbContext.Socusers.SingleOrDefaultAsync(s=>s.Soccod == user.Company &&
-                    s.Uticod == dbUser.Uticod &&
-                    s.Sitcod == user.Usersit);
+                    societe = await _dbContext.Socusers.SingleOrDefaultAsync(s => s.Soccod == user.Company &&
+                        s.Uticod == dbUser.Uticod &&
+                        s.Sitcod == user.Usersit);
 
-                     soclib = await _dbContext.Societes
-                    .Where(s => s.Soccod == societe.Soccod)
-                    .Select(s => s.Soclib)
-                    .FirstOrDefaultAsync();
-
+                    if (societe != null)
+                    {
+                        soclib = await _dbContext.Societes
+                            .Where(s => s.Soccod == societe.Soccod)
+                            .Select(s => s.Soclib)
+                            .FirstOrDefaultAsync();
+                    }
                 }
+
                 List<string> sitcods = await _dbContext.Socusers
                     .Where(s => s.Soccod == user.Company && s.Uticod == dbUser.Uticod)
                     .Select(s => s.Sitcod)
@@ -149,46 +195,20 @@ namespace GestionDesTickets.Server.Controllers
                     await _dbContext.RefreshTokens.AddAsync(refreshTokenEntity);
                     await _dbContext.SaveChangesAsync();
 
-                    // Set httpOnly secure cookies
-                    Response.Cookies.Append("accessToken", accessToken, new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Expires = DateTimeOffset.UtcNow.AddMinutes(30)
-                    });
+                    // Keep HTTPS behavior in secure deployments and fall back to HTTP-safe cookies otherwise.
+                    Response.Cookies.Append("accessToken", accessToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddMinutes(30)));
+                    Response.Cookies.Append("refreshToken", refreshToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
+                    Response.Cookies.Append("uticod", dbUser.Uticod ?? string.Empty, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
 
-                    Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Expires = DateTimeOffset.UtcNow.AddDays(7)
-                    });
-
-                    Response.Cookies.Append("uticod", dbUser.Uticod ?? string.Empty, new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Expires = DateTimeOffset.UtcNow.AddDays(7)
-                    });
-
-                    // Admin cookie remains accessible for non-sensitive UI logic
-                    Response.Cookies.Append("admin", dbUser.Utiadm, new CookieOptions
-                    {
-                        HttpOnly = false,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Expires = DateTimeOffset.UtcNow.AddDays(7)
-                    });
+                    // Admin cookie remains accessible for non-sensitive UI logic.
+                    Response.Cookies.Append("admin", dbUser.Utiadm, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7), httpOnly: false));
 
                     var socimg = await _dbContext.Societes
                         .Where(s => s.Soccod == user.Company)
                         .Select(s => s.Socimg)
                         .FirstOrDefaultAsync();
 
-                    string utilib = dbUser.Utiprn + " "+ dbUser.Utinom;
+                    string utilib = dbUser.Utiprn + " " + dbUser.Utinom;
                     return Ok(new { dbUser.Uticod, dbUser.Utiimg, socimg, utilib, societe, sitcods, soclib, dbUser.Utiadm, isEmp });
                 }
 
@@ -199,6 +219,7 @@ namespace GestionDesTickets.Server.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+
 
         // POST api/Utilisateurs/refresh
         [HttpPost("refresh")]
@@ -242,30 +263,9 @@ namespace GestionDesTickets.Server.Controllers
                 _dbContext.RefreshTokens.Add(newRefreshTokenEntity);
                 await _dbContext.SaveChangesAsync();
 
-                // Set new httpOnly secure cookies
-                Response.Cookies.Append("accessToken", newAccessToken, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.None,
-                    Expires = DateTimeOffset.UtcNow.AddMinutes(30)
-                });
-
-                Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.None,
-                    Expires = DateTimeOffset.UtcNow.AddDays(7)
-                });
-
-                Response.Cookies.Append("uticod", user.Uticod ?? string.Empty, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.None,
-                    Expires = DateTimeOffset.UtcNow.AddDays(7)
-                });
+                Response.Cookies.Append("accessToken", newAccessToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddMinutes(30)));
+                Response.Cookies.Append("refreshToken", newRefreshToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
+                Response.Cookies.Append("uticod", user.Uticod ?? string.Empty, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
 
                 return Ok(new { message = "Token refreshed successfully" });
             }
@@ -331,10 +331,10 @@ namespace GestionDesTickets.Server.Controllers
                 }
 
                 // Clear cookies
-                Response.Cookies.Delete("accessToken");
-                Response.Cookies.Delete("refreshToken");
-                Response.Cookies.Delete("uticod");
-                Response.Cookies.Delete("admin");
+                Response.Cookies.Delete("accessToken", CreateDeleteCookieOptions());
+                Response.Cookies.Delete("refreshToken", CreateDeleteCookieOptions());
+                Response.Cookies.Delete("uticod", CreateDeleteCookieOptions());
+                Response.Cookies.Delete("admin", CreateDeleteCookieOptions(httpOnly: false));
 
                 return Ok(new { message = "Logged out successfully" });
             }

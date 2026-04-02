@@ -2780,7 +2780,8 @@ namespace ABRPOINT.Server.Migrations
                     socsmig = table.Column<double>(type: "float", nullable: true),
                     soclibar = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     socadrar = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    socrespar = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
+                    socrespar = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    socimg = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3042,6 +3043,23 @@ namespace ABRPOINT.Server.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ville", x => x.vilcod);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "refresh_tokens",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    token = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    expires_at = table.Column<DateTime>(type: "datetime", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: false),
+                    revoked = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_refresh_tokens", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -3410,6 +3428,9 @@ namespace ABRPOINT.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "ville");
+
+            migrationBuilder.DropTable(
+                name: "refresh_tokens");
 
             migrationBuilder.DropTable(
                 name: "employe");

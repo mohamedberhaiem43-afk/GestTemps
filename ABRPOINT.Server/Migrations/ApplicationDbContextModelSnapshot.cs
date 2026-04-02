@@ -8818,6 +8818,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("socadrar");
 
+                    b.Property<string>("Socimg")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("socimg");
+
                     b.Property<string>("Socccb")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
@@ -9807,6 +9812,42 @@ namespace ABRPOINT.Server.Migrations
                     b.HasKey("Vilcod");
 
                     b.ToTable("ville");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RefreshToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int")
+                        .HasColumnName("id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("uticod");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("token");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Revoked")
+                        .HasColumnType("bit")
+                        .HasColumnName("revoked");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("refresh_tokens");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Avance", b =>
