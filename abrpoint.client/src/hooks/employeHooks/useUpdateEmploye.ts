@@ -6,7 +6,7 @@ const useUpdateEmploye = () => {
   return useMutation({
     mutationKey: ["employe"],
     mutationFn: (employe: Employe) => {
-      if (!employe || typeof employe !== 'object' || employe.empcod == '') {
+      if (!employe || typeof employe !== 'object' || !employe.empcod || !employe.soccod || !employe.sitcod) {
         return Promise.reject(new Error("Données de l'employé non valides"));
       }
       return EmployeService.putObject(`update-employe`,employe);

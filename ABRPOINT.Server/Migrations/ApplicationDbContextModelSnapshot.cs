@@ -1819,6 +1819,16 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
 
+                    b.Property<string>("Empcmp")
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("empcmp");
+
+                    b.Property<string>("Empferepos")
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("empferepos");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
@@ -9762,6 +9772,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("uticod");
+                        
+                    b.Property<string>("Utiimg")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("utiimg");
 
                     b.Property<string>("Utiactif")
                         .HasMaxLength(1)

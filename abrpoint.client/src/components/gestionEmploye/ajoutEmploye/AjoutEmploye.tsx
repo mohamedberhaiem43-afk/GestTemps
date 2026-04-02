@@ -16,7 +16,7 @@ import { useAuth } from '../../helper/AuthProvider';
 import { useTranslation } from 'react-i18next';
 
 export default function BasicGrid() {
-  const { soccod } = useAuth();
+  const { soccod, sitcod } = useAuth();
   const { t } = useTranslation();
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export default function BasicGrid() {
   const getDefaultEmployeData = (): Employe => ({
     empcod: '',
     soccod: soccod || '',
-    sitcod: '',
+    sitcod: sitcod || '',
     emplib: '',
     empmat: '',
     empsexe: '',
@@ -131,6 +131,7 @@ export default function BasicGrid() {
       const employeToSave: Employe = {
         ...combinedData,
         soccod: soccod || '',
+        sitcod: sitcod || '',
         empemb: formatDate(combinedData.empemb),
         empretraite: formatDate(combinedData.empretraite),
         empsort: formatDate(combinedData.empsort),
@@ -166,6 +167,8 @@ export default function BasicGrid() {
     try {
       const employeToUpdate: Employe = {
         ...combinedData,
+        soccod: soccod || '',
+        sitcod: sitcod || '',
         actif: combinedData.actif,
         empemb: formatDate(combinedData.empemb),
         empretraite: formatDate(combinedData.empretraite),

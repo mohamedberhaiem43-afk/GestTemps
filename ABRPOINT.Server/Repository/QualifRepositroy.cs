@@ -36,13 +36,21 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                return _dbContext.Qualifs
-                    .Where(q=>q.Soccod == soccod)
-                                   .ToDictionary(abs => abs.Quacod, abs => abs.Qualib);
+                var qualifs = _dbContext.Qualifs
+                    .Where(q => q.Soccod == soccod)
+                    .ToList();
+                
+                if (qualifs == null || qualifs.Count == 0)
+                {
+                    return new Dictionary<string, string>();
+                }
+                
+                return qualifs.ToDictionary(q => q.Quacod, q => q.Qualib ?? q.Quacod);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                System.Diagnostics.Debug.WriteLine($"Error in GetQuaLibs: {ex.Message}");
+                throw new InvalidOperationException($"Erreur lors de la récupération des qualifications pour la société {soccod}", ex);
             }
         }
 

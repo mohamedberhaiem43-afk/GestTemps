@@ -28,9 +28,26 @@ namespace ABRPOINT.Server.Controllers
         }
 
         [HttpGet("get-qualibs/{soccod}")]
-        public Dictionary<string, string> GetQualibs(string soccod)
+        public IActionResult GetQualibs(string soccod)
         {
-            return _qualifRepository.GetQuaLibs(soccod);
+            try
+            {
+                if (string.IsNullOrEmpty(soccod))
+                {
+                    return BadRequest(new { message = "Le code société (soccod) est obligatoire" });
+                }
+                
+                var qualibs = _qualifRepository.GetQuaLibs(soccod);
+                return Ok(qualibs);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(500, new { message = ex.Message, details = ex.InnerException?.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de la récupération des qualifications", details = ex.Message });
+            }
         }
 
 

@@ -762,7 +762,9 @@ namespace ABRPOINT.Server.Migrations
                     empminhjour = table.Column<int>(type: "int", nullable: true),
                     emppanier = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     seccod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    poscod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true)
+                    poscod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    empferepos = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    empcmp = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3026,7 +3028,8 @@ namespace ABRPOINT.Server.Migrations
                     utimps = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     utiactif = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     utiadm = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
-                    Utimail = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    Utimail = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Utiimg = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
