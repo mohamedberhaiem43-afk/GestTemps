@@ -54,6 +54,14 @@ namespace ABRPOINT.Server.Repository
             {
                 if (!string.IsNullOrEmpty(employe.Soccod))
                 {
+                    bool exists = await _dbContext.Employes.AnyAsync(e => e.Soccod == employe.Soccod &&
+                                                                             e.Empcod == employe.Empcod &&
+                                                                             e.Sitcod == employe.Sitcod);
+                    if (exists)
+                    {
+                        throw new InvalidOperationException($"Employe {employe.Empcod}-{employe.Soccod}-{employe.Sitcod} existe déjà.");
+                    }
+
                     short? longbdg = await _parametreRepository.GetLongbdg(employe.Soccod);
 
                     // Parse longbdg to get the required number of digits
@@ -61,6 +69,7 @@ namespace ABRPOINT.Server.Repository
                     {
                         employe.Empmat = GenericMethodes.FormatEmpmat(employe.Empmat, longbdg);
                     }
+
                     await _dbContext.Employes.AddAsync(employe);
                     await _dbContext.SaveChangesAsync();
                 }
@@ -1301,10 +1310,41 @@ DateTime? debut = null, DateTime? fin = null)
         {
             try
             {
-                if(employe.Count != 0)
+                if (employe.Count != 0)
                 {
-                    await _dbContext.AddRangeAsync(employe);
-                    await _dbContext.SaveChangesAsync();
+                    var soccods = employe
+                        .Where(e => !string.IsNullOrEmpty(e.Soccod))
+                        .Select(e => e.Soccod)
+                        .Distinct()
+                        .ToList();
+
+                    var empcods = employe
+                        .Where(e => !string.IsNullOrEmpty(e.Empcod))
+                        .Select(e => e.Empcod)
+                        .Distinct()
+                        .ToList();
+
+                    var sitcods = employe
+                        .Where(e => !string.IsNullOrEmpty(e.Sitcod))
+                        .Select(e => e.Sitcod)
+                        .Distinct()
+                        .ToList();
+
+                    var existingKeys = await _dbContext.Employes
+                        .Where(e => soccods.Contains(e.Soccod) && empcods.Contains(e.Empcod) && sitcods.Contains(e.Sitcod))
+                        .Select(e => new { e.Soccod, e.Empcod, e.Sitcod })
+                        .ToListAsync();
+
+                    var newEmployes = employe
+                        .Where(e => !string.IsNullOrEmpty(e.Soccod) && !string.IsNullOrEmpty(e.Empcod) && !string.IsNullOrEmpty(e.Sitcod))
+                        .Where(e => !existingKeys.Any(ex => ex.Soccod == e.Soccod && ex.Empcod == e.Empcod && ex.Sitcod == e.Sitcod))
+                        .ToList();
+
+                    if (newEmployes.Count > 0)
+                    {
+                        await _dbContext.AddRangeAsync(newEmployes);
+                        await _dbContext.SaveChangesAsync();
+                    }
                 }
             }
             catch (Exception)

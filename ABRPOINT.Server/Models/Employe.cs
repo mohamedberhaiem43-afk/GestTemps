@@ -51,7 +51,7 @@ public partial class Employe
     public string? Catcod { get; set; }
 
     [Column("empnbp")]
-    public float? Empnbp { get; set; }
+    public int? Empnbp { get; set; }
 
     [Column("natcod")]
     [StringLength(4)]
@@ -209,7 +209,7 @@ public partial class Employe
     public string? Empnuit { get; set; }
 
     [Column("empminhjour")]
-    public double? Empminhjour { get; set; }
+    public int? Empminhjour { get; set; }
 
     [Column("emppanier")]
     [StringLength(1)]
