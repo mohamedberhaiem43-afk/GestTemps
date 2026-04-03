@@ -1001,6 +1001,7 @@ DateTime? debut = null, DateTime? fin = null)
         }
         double CustomRound(double value)
         {
+<<<<<<< HEAD
             if (!double.IsFinite(value)) return 0;
 
             double fraction = value - Math.Floor(value);
@@ -1013,11 +1014,31 @@ DateTime? debut = null, DateTime? fin = null)
         }
 
         public async Task<EmpEtatConge> GetEmpEtatConge(string soccod, string empcod, string moisdeb, string moisfin, string annee)
+=======
+            double fraction = value - Math.Floor(value);
+
+            if (Math.Abs(fraction - 0.5) < 0.000001)
+            {
+                return Math.Round(value, 2); // conserve 13.5 → 13.5
+            }
+            else if (fraction < 0.5)
+            {
+                return Math.Round(Math.Floor(value), 2); // 13.2 → 13.00
+            }
+            else
+            {
+                return Math.Round(Math.Ceiling(value), 2); // 13.6 → 14.00
+            }
+        }
+
+        public async Task<EmpEtatConge> GetEmpEtatConge(string soccod, string empcod, string moisdeb,string moisfin,string annee)
+>>>>>>> 28cea3e2ad1806dea711b08ddb14d8aeead30584
         {
             try
             {
                 dynamic result = await Calc_solde_conge(soccod, empcod, moisdeb, moisfin, annee);
 
+<<<<<<< HEAD
                 double cm         = double.IsFinite((double)result.cm)         ? (double)result.cm         : 0;
                 double anciente   = double.IsFinite((double)result.anciente)   ? (double)result.anciente   : 0;
                 double droitConge = double.IsFinite((double)result.droitConge) ? (double)result.droitConge : 0;
@@ -1029,6 +1050,10 @@ DateTime? debut = null, DateTime? fin = null)
                     CustomRound(droitConge),
                     CustomRound(sa)
                 );
+=======
+                EmpEtatConge empEtatConge = new EmpEtatConge(CustomRound((double)result.cm),(int)Math.Round((double)result.anciente),
+                    CustomRound((double)result.droitConge),CustomRound((double)result.sa));
+>>>>>>> 28cea3e2ad1806dea711b08ddb14d8aeead30584
 
                 return empEtatConge;
             }
@@ -1074,15 +1099,21 @@ DateTime? debut = null, DateTime? fin = null)
                     anciente--;
             }
             if (anciente != 0)
+<<<<<<< HEAD
             {
                 parecart = await _parametreRepository.GetParancemp(soccod);
                 droitConge += Math.Floor((double)anciente / parecart);
             }
+=======
+                parecart = await _parametreRepository.GetParancemp(soccod);
+                droitConge += Math.Floor((double)anciente / parecart);
+>>>>>>> 28cea3e2ad1806dea711b08ddb14d8aeead30584
 
             for (int i = 0; i < int.Parse(moisfin.TrimStart('0')); i++) // Remove leading zero from moisfin
             {
                 string currentMonth = (i + 1).ToString("D2"); // Convert month to "01", "02", ..., "12" format
                 calendsoc = await _calendrierRepository.GetCalendrier(soccod, annee, currentMonth, caltype);
+<<<<<<< HEAD
                 float nbConge = await _congeRepository.GetNbCongeRecue(soccod, empcod,annee,currentMonth);
                 
                 // Prevent infinity/NaN from being accumulated
@@ -1104,6 +1135,23 @@ DateTime? debut = null, DateTime? fin = null)
                 else if (employe.Empreg == "H" && nbheuret != 0)
                     droitmensuelle += (nbtravmois * nbheurejour * cm) / nbheuret;
             }
+=======
+                congeRecue += await _congeRepository.GetNbCongeRecue(soccod, empcod,annee,currentMonth);
+
+                if (calendsoc != null)
+                {
+                    nbheuret = (double)calendsoc.CalNbh;
+                    nbjourt = (double)calendsoc.CalTrav;
+                    nbheurejour = (double)calendsoc.CalHjour;
+                    // nbtravmois = nbjourt - (les absences != (abscng));
+                    nbtravmois = nbjourt - calc_absences_par_mois(soccod, currentMonth, annee, empcod);
+                    if(employe.Empreg == "M")
+                        droitmensuelle += (nbtravmois * cm) / nbjourt;
+                    else if(employe.Empreg == "H")
+                        droitmensuelle += (nbtravmois * nbheurejour * cm) / nbheuret;
+
+                }
+>>>>>>> 28cea3e2ad1806dea711b08ddb14d8aeead30584
             }
             if (anciente < parecart)
                 anciente = 0;
