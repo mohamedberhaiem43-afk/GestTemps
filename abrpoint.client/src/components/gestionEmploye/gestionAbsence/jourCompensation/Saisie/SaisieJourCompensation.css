@@ -1,0 +1,7 @@
+#root > div > main > div.MuiBox-root.css-f4e34s > div > div > div.MuiGrid-root.MuiGrid-container.css-11lq3yg-MuiGrid-root > div:nth-child(1) > div > form > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-3.css-1equabv-MuiGrid-root > div > div,
+#root > div > main > div.MuiBox-root.css-f4e34s > div > div > div.MuiGrid-root.MuiGrid-container.css-11lq3yg-MuiGrid-root > div:nth-child(1) > div > form > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div:nth-child(4) > div > div{
+    min-width: 8vw;
+}
+.heures-span{
+    color: rgb(44, 98, 235);
+}

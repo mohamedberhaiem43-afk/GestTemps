@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/07/2025 09:30:11" ReportInfo.Modified="01/30/2026 18:14:12" ReportInfo.CreatorVersion="2024.1.7.0">
+  <Dictionary>
+    <BusinessObjectDataSource Name="EtatGlobalData" ReferenceName="EtatGlobalData" DataType="System.Int32" Enabled="true">
+      <Column Name="empmat" DataType="System.String"/>
+      <Column Name="emplib" DataType="System.String"/>
+      <Column Name="empreg" DataType="System.String"/>
+      <Column Name="jourtrv" DataType="System.Int32"/>
+      <Column Name="tothre" DataType="System.String"/>
+      <Column Name="jferier" DataType="System.Int32"/>
+      <Column Name="jftrv" DataType="System.Int32"/>
+      <Column Name="hftrv" DataType="System.String"/>
+      <Column Name="hnuit" DataType="System.String"/>
+      <Column Name="jconge" DataType="System.Int32"/>
+      <Column Name="hs50" DataType="System.String"/>
+      <Column Name="hs25" DataType="System.String"/>
+      <Column Name="csf" DataType="System.String"/>
+    </BusinessObjectDataSource>
+    <Parameter Name="soccod" DataType="System.String" AsString=""/>
+    <Parameter Name="soclib" DataType="System.String" AsString=""/>
+    <Parameter Name="datedebut" DataType="System.DateTime" AsString=""/>
+    <Parameter Name="datefin" DataType="System.DateTime" AsString=""/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitle1" Width="718.2"/>
+    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="718.2" Height="113.4">
+      <ShapeObject Name="Shape1" Width="718.2" Height="85.05"/>
+      <LineObject Name="Line1" Left="198.45" Height="85.05"/>
+      <LineObject Name="Line2" Left="567" Height="85.05"/>
+      <TextObject Name="Text1" Left="207.9" Top="9.45" Width="349.65" Height="66.15" Text="ETAT GLOBAL DE PRESENCE&#13;&#10;DU [FormatDateTime([datedebut], &quot;dd/MM/yyyy&quot;)] AU [FormatDateTime([datefin], &quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" Font="Arial, 14pt, style=Bold"/>
+      <TextObject Name="Text2" Left="576.45" Top="9.45" Width="132.3" Height="18.9" Text="Date [Format(&quot;{0:dd/MM/yyyy}&quot;, [Date])]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <LineObject Name="Line3" Left="567" Top="37.8" Width="151.2"/>
+      <TextObject Name="Text3" Left="576.45" Top="47.25" Width="132.3" Height="18.9" Text="Page [Page]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text4" Width="198.45" Height="75.6" Border.Color="DodgerBlue" Text="[soclib]" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold"/>
+    </PageHeaderBand>
+    <ColumnHeaderBand Name="ColumnHeader1" Top="119.8" Width="718.2" Height="18.9">
+      <ShapeObject Name="Shape3" Width="718.2" Height="18.9"/>
+      <LineObject Name="Line4" Left="47.25" Height="18.9"/>
+      <LineObject Name="Line5" Left="170.1" Height="18.9"/>
+      <LineObject Name="Line6" Left="198.15" Height="18.9"/>
+      <LineObject Name="Line7" Left="253.3" Height="18.9"/>
+      <LineObject Name="Line8" Left="303.4" Height="18.9"/>
+      <LineObject Name="Line9" Left="358.7" Height="18.9"/>
+      <LineObject Name="Line10" Left="406.35" Height="18.9"/>
+      <LineObject Name="Line11" Left="459.4" Height="18.9"/>
+      <LineObject Name="Line12" Left="506.65" Height="18.9"/>
+      <LineObject Name="Line13" Left="563.35" Height="18.9"/>
+      <LineObject Name="Line14" Left="623.7" Height="18.9"/>
+      <LineObject Name="Line15" Left="661.5" Height="18.9"/>
+      <TextObject Name="Text5" Width="47.25" Height="18.9" Text="Mat" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text6" Left="47.25" Width="103.95" Height="18.9" Text="Nom et prénom" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text7" Left="170.1" Width="28.35" Height="18.9" Text="Reg" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text8" Left="198.45" Width="54.85" Height="18.9" Text="Jour Trv" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text9" Left="253.3" Width="50.1" Height="18.9" Text="Tot. Hre" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text10" Left="303.4" Width="55.3" Height="18.9" Text="J. Férier" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text11" Left="358.7" Width="47.65" Height="18.9" Text="J.F. Trv" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text12" Left="406.35" Width="53.05" Height="18.9" Text="H.F. Trv" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text13" Left="459.4" Width="47.25" Height="18.9" Text="H.Nuit" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text14" Left="506.65" Width="56.7" Height="18.9" Text="H.S. 25%" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text15" Left="563.35" Width="60.35" Height="18.9" Text="H.S. 50%" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text16" Left="623.7" Width="37.8" Height="18.9" Text="CSF" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text17" Left="661.5" Width="56.7" Height="18.9" Text="J. Congé" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+    </ColumnHeaderBand>
+    <DataBand Name="Data1" Top="141.9" Width="718.2" Height="18.9" DataSource="EtatGlobalData">
+      <ShapeObject Name="Shape2" Width="718.2" Height="18.9"/>
+      <LineObject Name="Line16" Left="47.25" Height="18.9"/>
+      <LineObject Name="Line17" Left="170.1" Height="18.9"/>
+      <LineObject Name="Line18" Left="198.15" Height="18.9"/>
+      <LineObject Name="Line19" Left="253.3" Height="18.9"/>
+      <LineObject Name="Line20" Left="303.4" Height="18.9"/>
+      <LineObject Name="Line21" Left="358.7" Height="18.9"/>
+      <LineObject Name="Line22" Left="406.35" Height="18.9"/>
+      <LineObject Name="Line23" Left="459.4" Height="18.9"/>
+      <LineObject Name="Line24" Left="506.65" Height="18.9"/>
+      <LineObject Name="Line25" Left="563.35" Height="18.9"/>
+      <LineObject Name="Line26" Left="623.7" Height="18.9"/>
+      <LineObject Name="Line27" Left="661.5" Height="18.9"/>
+      <TextObject Name="Data_Mat" Width="47.25" Height="18.9" Text="[EtatGlobalData.empmat]" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_Nom" Left="47.25" Width="122.85" Height="18.9" Text="[EtatGlobalData.emplib]" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_Reg" Left="170.1" Width="28.35" Height="18.9" Text="[EtatGlobalData.empreg]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_JourTrv" Left="198.45" Width="45.4" Height="18.9" Text="[EtatGlobalData.jourtrv]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_TotHre" Left="253.3" Width="50.1" Height="18.9" Text="[EtatGlobalData.tothre]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_JFerier" Left="303.4" Width="55.3" Height="18.9" Text="[EtatGlobalData.jferier]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_JFTrv" Left="358.7" Width="47.65" Height="18.9" Text="[EtatGlobalData.jftrv]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_HFTrv" Left="406.35" Width="43.6" Height="18.9" Text="[EtatGlobalData.hftrv]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_HNuit" Left="468.85" Width="37.8" Height="18.9" Text="[EtatGlobalData.hnuit]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_HS25" Left="516.1" Width="47.25" Height="18.9" Text="[EtatGlobalData.hs25]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_HS50" Left="572.8" Width="50.9" Height="18.9" Text="[EtatGlobalData.hs50]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_CSF" Left="623.7" Width="37.8" Height="18.9" Text="[EtatGlobalData.csf]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="Data_JConge" Left="670.95" Width="47.25" Height="18.9" Text="[EtatGlobalData.jconge]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="164" Width="718.2" Height="18.9"/>
+  </ReportPage>
+</Report>

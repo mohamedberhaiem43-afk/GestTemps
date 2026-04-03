@@ -1,0 +1,125 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/10/2025 13:32:51" ReportInfo.Modified="07/22/2025 22:25:50" ReportInfo.CreatorVersion="2024.2.20.0">
+  <Dictionary>
+	  <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqSfQ2H/Siq8AJ5BWRwV5dPevq4wghVtMaiZ3kouGEbFRYQ+IgrJOIHKJ4mjiZArG8RiymlGPkUQMqqgSmKxNuc1oGk42wcgt6j+HzJw7ay7EHC/n7cZ0x4Zwp5049ieHbrLyxBZr9U0Bf0C5l5WaxQH3PxHDeSBlYvUp2sq8QwpNdLx9zlYyzPB0+uIJfsj1Uay0HT5L+hSVXBvwyLHNjw8qr1hUbxeobP9dqbBVKdU+Ii+l+5K2zGzdn+U68TO86">
+		  <TableDataSource Name="Table" Alias="CahierConge" DataType="System.Int32" Enabled="true" SelectCommand="WITH EmpList AS (&#13;&#10;    SELECT LTRIM(RTRIM(value)) AS Empcod &#13;&#10;    FROM STRING_SPLIT(@empcod, ',')&#13;&#10;),&#13;&#10;BaseData AS (&#13;&#10;    SELECT &#13;&#10;        e.Empcod,&#13;&#10;        e.Empmat,&#13;&#10;        e.Emplib,&#13;&#10;        e.Empdnais,&#13;&#10;        e.Empemb,&#13;&#10;        e.Empreg,&#13;&#10;        e.Empsbrut,&#13;&#10;        soc.soclib,&#13;&#10;        soc.socadr,&#13;&#10;        s.Sitconge AS Soldini,&#13;&#10;        cs.cal_trav,&#13;&#10;        cs.cal_nbh,&#13;&#10;        p.Parancemp AS AncienneteParam,&#13;&#10;        DATEDIFF(DAY, e.Empemb, @datedebut) / 365.0 AS EmpYears&#13;&#10;    FROM Employe e&#13;&#10;    JOIN EmpList el &#13;&#10;        ON UPPER(LTRIM(RTRIM(e.Empcod))) = UPPER(LTRIM(RTRIM(el.Empcod)))&#13;&#10;    LEFT JOIN Site s &#13;&#10;        ON s.Soccod = e.Soccod AND s.Sitcod = e.Sitcod&#13;&#10;    LEFT JOIN calendsoc cs &#13;&#10;        ON cs.Soccod = e.Soccod &#13;&#10;        AND cs.cal_an = CAST(YEAR(@datedebut) AS VARCHAR)&#13;&#10;        AND cs.cal_mois = RIGHT('00' + CAST(MONTH(@datedebut) AS VARCHAR), 2)&#13;&#10;        AND cs.Caltype = e.Caltype&#13;&#10;    LEFT JOIN Parametre p &#13;&#10;        ON p.Soccod = e.Soccod&#13;&#10;    LEFT JOIN Societe soc &#13;&#10;        ON soc.Soccod = e.Soccod&#13;&#10;    WHERE e.Soccod = @soccod&#13;&#10;),&#13;&#10;CongeData AS (&#13;&#10;    SELECT &#13;&#10;        c.Empcod,&#13;&#10;        c.Condep,&#13;&#10;        c.Conamdep,&#13;&#10;        c.Conret,&#13;&#10;        c.Conamret,&#13;&#10;        c.Connbjour&#13;&#10;    FROM Conge c&#13;&#10;    WHERE c.Soccod = @soccod&#13;&#10;      AND c.Condep &gt;= @datedebut&#13;&#10;      AND c.Conret &lt;= @datefin&#13;&#10;)&#13;&#10;&#13;&#10;SELECT &#13;&#10;    b.soclib,&#13;&#10;    b.socadr,&#13;&#10;    b.Empmat,&#13;&#10;    b.Emplib,&#13;&#10;    b.Empdnais,&#13;&#10;    b.Empemb,&#13;&#10;    b.Empreg,&#13;&#10;    b.Soldini,&#13;&#10;    b.cal_trav,&#13;&#10;    b.cal_nbh,&#13;&#10;    b.Empsbrut,&#13;&#10;    ISNULL(b.AncienneteParam, 5) AS AncienneteParam,&#13;&#10;&#13;&#10;    FLOOR(CASE &#13;&#10;        WHEN b.EmpYears &lt; ISNULL(b.AncienneteParam, 5) THEN 0 &#13;&#10;        ELSE b.EmpYears / ISNULL(b.AncienneteParam, 5) &#13;&#10;    END) AS Jouanc,&#13;&#10;&#13;&#10;    ROUND(CASE &#13;&#10;        WHEN b.cal_trav = 0 THEN 0 &#13;&#10;        ELSE b.Empsbrut / b.cal_trav &#13;&#10;    END, 4) AS Saljou,&#13;&#10;&#13;&#10;    ROUND(FLOOR(CASE &#13;&#10;        WHEN b.EmpYears &lt; ISNULL(b.AncienneteParam, 5) THEN 0 &#13;&#10;        ELSE b.EmpYears / ISNULL(b.AncienneteParam, 5) &#13;&#10;    END) * &#13;&#10;    CASE &#13;&#10;        WHEN b.cal_trav = 0 THEN 0 &#13;&#10;        ELSE b.Empsbrut / b.cal_trav &#13;&#10;    END, 4) AS Montanc,&#13;&#10;&#13;&#10;    cg.Condep AS Datdep,&#13;&#10;    cg.Conamdep AS Depam,&#13;&#10;    cg.Conret AS Datret,&#13;&#10;    cg.Conamret AS Retam,&#13;&#10;    cg.Connbjour AS Totdupres,&#13;&#10;&#13;&#10;    ROUND(cg.Connbjour * &#13;&#10;    CASE &#13;&#10;        WHEN b.cal_trav = 0 THEN 0 &#13;&#10;        ELSE b.Empsbrut / b.cal_trav &#13;&#10;    END, 4) AS Indemcong,&#13;&#10;&#13;&#10;    CASE &#13;&#10;        WHEN b.EmpYears &lt; ISNULL(b.AncienneteParam, 5) THEN cg.Connbjour &#13;&#10;        ELSE cg.Connbjour - FLOOR(b.EmpYears / ISNULL(b.AncienneteParam, 5)) &#13;&#10;    END AS Congedu,&#13;&#10;&#13;&#10;    ROUND(CASE &#13;&#10;        WHEN b.EmpYears &lt; ISNULL(b.AncienneteParam, 5) THEN &#13;&#10;            cg.Connbjour * CASE WHEN b.cal_trav = 0 THEN 0 ELSE b.Empsbrut / b.cal_trav END &#13;&#10;        ELSE &#13;&#10;            (cg.Connbjour - FLOOR(b.EmpYears / ISNULL(b.AncienneteParam, 5))) * &#13;&#10;            CASE WHEN b.cal_trav = 0 THEN 0 ELSE b.Empsbrut / b.cal_trav END &#13;&#10;    END, 4) AS Indemdu&#13;&#10;&#13;&#10;FROM BaseData b&#13;&#10;LEFT JOIN CongeData cg ON cg.Empcod = b.Empcod&#13;&#10;ORDER BY b.Empcod, cg.Condep DESC;">
+        <Column Name="emplib" DataType="System.String"/>
+        <Column Name="empdnais" DataType="System.String"/>
+        <Column Name="empemb" DataType="System.DateTime"/>
+        <Column Name="Empmat" DataType="System.String"/>
+        <Column Name="Empreg" DataType="System.String"/>
+        <Column Name="AncienneteParam" DataType="System.String"/>
+        <Column Name="Empsbrut" DataType="System.Double"/>
+        <Column Name="Soldini" DataType="System.Single"/>
+        <Column Name="Indemcong" DataType="System.Double"/>
+        <Column Name="cal_trav" DataType="System.Single"/>
+        <Column Name="cal_nbh" DataType="System.Single"/>
+        <Column Name="Jouanc" DataType="System.Decimal"/>
+        <Column Name="Saljou" DataType="System.Double"/>
+        <Column Name="Montanc" DataType="System.Double"/>
+        <Column Name="Datdep" DataType="System.DateTime"/>
+        <Column Name="Depam" DataType="System.String"/>
+        <Column Name="Datret" DataType="System.DateTime"/>
+        <Column Name="Retam" DataType="System.String"/>
+        <Column Name="Totdupres" DataType="System.Single"/>
+        <Column Name="Congedu" DataType="System.Single"/>
+        <Column Name="Indemdu" DataType="System.Double"/>
+        <Column Name="soclib" DataType="System.String"/>
+        <Column Name="socadr" DataType="System.String"/>
+        <CommandParameter Name="datedebut" DataType="4" Expression="[datedebut]"/>
+        <CommandParameter Name="datefin" DataType="4" Expression="[datefin]"/>
+        <CommandParameter Name="empcod" DataType="22" Expression="[empcod]"/>
+        <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
+      </TableDataSource>
+    </MsSqlDataConnection>
+  </Dictionary>
+  <ReportPage Name="Page1" Landscape="true" PaperWidth="297" PaperHeight="210" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitle1" Width="1047.06"/>
+    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="1047.06" Height="189">
+      <ShapeObject Name="Shape1" Left="9.45" Width="1030.05" Height="103.95"/>
+      <LineObject Name="Line1" Left="189" Height="103.95"/>
+      <LineObject Name="Line2" Left="831.6" Height="103.95"/>
+      <TextObject Name="Text1" Left="189" Top="9.45" Width="633.15" Height="28.35" Text="CAHIER DES CONGES PAYES ANNEE 2022" HorzAlign="Center" Font="Arial, 16pt, style=Bold"/>
+      <TextObject Name="Text2" Left="217.35" Top="47.25" Width="604.8" Height="37.8" Text="La Durée des Congés Payés est calculé en Raison des Services Accomplis Entre le 1er Janvier 2022 et le 31 Décembre 2022" HorzAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text3" Left="841.05" Top="18.9" Width="141.75" Height="18.9" Text="Date [Date]" Font="Arial, 10pt"/>
+      <TextObject Name="Text4" Left="841.05" Top="56.7" Width="170.1" Height="18.9" Text="[PageN]/[TotalPages#]" Font="Arial, 10pt"/>
+      <TextObject Name="Text5" Left="9.45" Top="9.45" Width="170.1" Height="18.9" Text="[CahierConge.soclib]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text6" Left="9.45" Top="37.8" Width="170.1" Height="18.9" Text="[CahierConge.socadr]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <ShapeObject Name="Shape2" Left="9.45" Top="113.4" Width="1030.05" Height="75.6"/>
+      <TextObject Name="Text7" Left="9.45" Top="113.4" Width="113.4" Height="75.6" Text="Nom et Prénom" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text8" Left="113.4" Top="113.4" Width="75.6" Height="75.6" Text="Date de Naissance" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text9" Left="189" Top="113.4" Width="75.6" Height="75.6" Text="Date d'Embauche" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <LineObject Name="Line5" Left="264.6" Top="113.4" Height="75.6"/>
+      <TextObject Name="Text13" Left="264.6" Top="113.4" Width="75.6" Height="75.6" Text="Salaire Journalière au moment du Congé" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <LineObject Name="Line7" Left="330.75" Top="113.4" Height="75.6"/>
+      <TextObject Name="Text15" Left="330.75" Top="113.4" Width="66.15" Height="75.6" Text="Somme Perçue au moment Référence" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <LineObject Name="Line9" Left="529.2" Top="160.65"/>
+      <TextObject Name="Text17" Left="387.45" Top="113.4" Width="160.65" Height="18.9" Text="Congé Annuel Normal" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <LineObject Name="Line12" Left="387.45" Top="132.3" Width="198.45"/>
+      <TextObject Name="Text18" Left="387.45" Top="132.3" Width="66.15" Height="56.7" Text="Total Présence p. de Réf" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text19" Left="453.6" Top="132.3" Width="56.7" Height="56.7" Text="Nb.Jours&#13;&#10;Congé &#13;&#10;dù" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line15" Left="595.35" Top="151.2" Height="37.8"/>
+      <TextObject Name="Text20" Left="500.85" Top="132.3" Width="56.7" Height="56.7" Text="Montant Indemnité dù" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text21" Left="557.55" Top="113.4" Width="207.9" Height="18.9" Text="Supplément du Congé" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <LineObject Name="Line19" Left="585.9" Top="132.3" Width="283.5"/>
+      <TextObject Name="Text22" Left="557.55" Top="151.2" Width="37.8" Height="37.8" Text="Jours dù" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text23" Left="652.05" Top="132.3" Width="122.85" Height="18.9" Text="J. Travailleur" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line20" Left="708.75" Top="151.2" Height="37.8"/>
+      <LineObject Name="Line21" Left="774.9" Top="113.4" Height="75.6"/>
+      <TextObject Name="Text24" Left="595.35" Top="151.2" Width="56.7" Height="37.8" Text="Indemnité dù" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text26" Left="652.05" Top="151.2" Width="37.8" Height="37.8" Text="Jours dù" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text27" Left="708.75" Top="151.2" Width="66.15" Height="37.8" Text="Indemnité dù" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line23" Left="822.15" Top="132.3" Height="56.7"/>
+      <LineObject Name="Line25" Left="869.4" Top="113.4" Height="75.6"/>
+      <TextObject Name="Text28" Left="774.9" Top="113.4" Width="94.5" Height="18.9" Text="Récaptulation" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text29" Left="774.9" Top="132.3" Width="47.25" Height="56.7" Text="Total&#13;&#10;Jours&#13;&#10;Congé dù" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <TextObject Name="Text30" Left="822.15" Top="132.3" Width="56.7" Height="56.7" Text="Total Indemnité Congé" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line26" Left="453.6" Top="132.3" Height="56.7"/>
+      <LineObject Name="Line29" Left="926.1" Top="113.4" Height="75.6"/>
+      <LineObject Name="Line31" Left="387.45" Top="113.4" Height="75.6"/>
+      <LineObject Name="Line32" Left="500.85" Top="132.3" Height="56.7"/>
+      <LineObject Name="Line33" Left="557.55" Top="113.4" Height="75.6"/>
+      <LineObject Name="Line34" Left="652.05" Top="132.3" Height="56.7"/>
+      <TextObject Name="Text25" Left="557.55" Top="132.3" Width="94.5" Height="18.9" Text="Ancienneté" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt, style=Bold"/>
+      <LineObject Name="Line22" Left="557.55" Top="151.2" Width="217.35"/>
+      <TextObject Name="Text31" Left="869.4" Top="113.4" Width="56.7" Height="75.6" Text="Date départ en Congé" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text32" Left="926.1" Top="113.4" Width="56.7" Height="75.6" Text="Date de Rentrée" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="Text33" Left="963.9" Top="113.4" Width="75.6" Height="75.6" Text="Signature" HorzAlign="Right" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <LineObject Name="Line35" Left="982.8" Top="113.4" Height="75.6"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="195.4" Width="1047.06" Height="37.8" DataSource="Table">
+      <ShapeObject Name="Shape3" Left="9.45" Width="1030.05" Height="37.8"/>
+      <LineObject Name="Line3" Left="113.4" Top="37.8" Height="-113.4"/>
+      <LineObject Name="Line4" Left="189" Top="37.8" Height="-113.4"/>
+      <TextObject Name="Text10" Left="9.45" Width="103.95" Height="37.8" Text="[CahierConge.emplib]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text11" Left="113.4" Width="75.6" Height="37.8" Text="[CahierConge.empdnais]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text12" Left="189" Width="75.6" Height="37.8" Text="[IIf([CahierConge.empemb] == null, &quot;&quot;, FormatDateTime([CahierConge.empemb], &quot;dd/MM/yyyy&quot;))]&#13;&#10;" VertAlign="Center" Font="Arial, 7pt"/>
+      <LineObject Name="Line6" Left="264.6" Height="37.8"/>
+      <TextObject Name="Text14" Left="264.6" Width="66.15" Height="37.8" Font="Arial, 9pt, style=Bold"/>
+      <LineObject Name="Line8" Left="330.75" Height="37.8"/>
+      <TextObject Name="Text16" Left="330.75" Width="47.25" Height="37.8" Font="Arial, 9pt, style=Bold"/>
+      <LineObject Name="Line10" Left="387.45" Height="37.8"/>
+      <LineObject Name="Line14" Left="453.6" Height="37.8"/>
+      <LineObject Name="Line16" Left="500.85" Height="37.8"/>
+      <LineObject Name="Line18" Left="557.55" Height="37.8"/>
+      <LineObject Name="Line24" Left="595.35" Height="37.8"/>
+      <LineObject Name="Line28" Left="708.75" Height="37.8"/>
+      <LineObject Name="Line30" Left="774.9" Height="37.8"/>
+      <LineObject Name="Line27" Left="652.05" Height="37.8"/>
+      <LineObject Name="Line36" Left="822.15" Height="37.8"/>
+      <LineObject Name="Line37" Left="869.4" Height="37.8"/>
+      <LineObject Name="Line38" Left="926.1" Height="37.8"/>
+      <LineObject Name="Line39" Left="982.8" Height="37.8"/>
+      <TextObject Name="Text34" Left="869.4" Width="56.7" Height="37.8" Text="[IIf([CahierConge.datdep] == null, &quot;&quot;, FormatDateTime([CahierConge.datdep], &quot;dd/MM/yyyy&quot;))]&#13;&#10;" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text35" Left="926.1" Width="56.7" Height="37.8" Text="[IIf([CahierConge.datret] == null, &quot;&quot;, FormatDateTime([CahierConge.datret], &quot;dd/MM/yyyy&quot;))]&#13;&#10;" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text36" Left="264.6" Width="66.15" Height="37.8" Text="[CahierConge.Saljou]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text37" Left="453.6" Width="47.25" Height="37.8" Text="[CahierConge.Congedu]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text38" Left="500.85" Width="56.7" Height="37.8" Text="[CahierConge.Indemdu]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text39" Left="822.15" Width="47.25" Height="37.8" Text="[CahierConge.Indemcong]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text40" Left="774.9" Width="47.25" Height="37.8" Text="[CahierConge.Totdupres]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text41" Left="557.55" Width="37.8" Height="37.8" Text="[CahierConge.Jouanc]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text42" Left="595.35" Width="56.7" Height="37.8" Text="[CahierConge.Montanc]" VertAlign="Center" Font="Arial, 7pt"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="236.4" Width="1047.06" Height="18.9"/>
+  </ReportPage>
+</Report>

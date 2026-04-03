@@ -1,0 +1,32 @@
+.jourdeb{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    width: 100%;
+    align-items: center;
+    margin: 5px;
+}
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div{
+    padding: 10px;
+}
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div > div.jourdeb > label,
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div > label:nth-child(2)
+{
+    flex-direction: row-reverse;
+    gap: 10px;
+    justify-content: start;
+    margin: 2px;
+}
+#intpaie-select{
+   width: 100%;
+}#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div > div.jourdeb > div{
+    min-width: 10vw;
+}#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div > div.jourdeb > label:nth-child(4){
+    margin: 2px;
+}
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div > div.jourdeb > label:nth-child(1) > div > input,
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div > label:nth-child(2) > div > input,
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.css-1idn90j-MuiGrid-root > div > div > div.jourdeb > label:nth-child(4) > div > input
+{
+    width: 4vw;
+}

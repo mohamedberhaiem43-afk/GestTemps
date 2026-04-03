@@ -1,0 +1,556 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "dataBase": "Base Data",
+    "administrator": "Administrator",
+    "clockingMachine": "Clocking Machine",
+    "employee": "Employee",
+    "timeClass": "Time Class",
+    "payrollPreparation": "Payroll Preparation",
+    "reports": "Reports",
+    "companySettings": "Company Settings",
+    "society": "Company",
+    "direction": "Direction",
+    "service": "Service",
+    "section": "Section",
+    "branch": "Branch",
+    "country": "Country",
+    "city": "City",
+    "function": "Function",
+    "rubric": "Rubric",
+    "users": "Users",
+    "accessRights": "Access Rights",
+    "clockingReading": "Clocking Reading",
+    "clockingList": "Clocking List",
+    "clockingOptimization": "Clocking Optimization",
+    "periodicReport": "Periodic Report",
+    "employeeManagement": "Employee Management",
+    "contract": "Contract",
+    "contractManagement": "Contract Management",
+    "renewal": "Renewal",
+    "breastfeeding": "Breastfeeding",
+    "leave": "Leave",
+    "leaveRequest": "Leave Request",
+    "leaveBalance": "Leave Balance",
+    "leaveTitle": "Leave Title",
+    "generalLeave": "General Leave",
+    "absences": "Absences",
+    "compensationDay": "Compensation Day",
+    "exitAuthorization": "Exit Authorization",
+    "generalExit": "General Exit",
+    "absenceAndSanction": "Absence and Sanction",
+    "workSchedule": "Work Schedule",
+    "workStation": "Work Station",
+    "absenceTypes": "Absence Types",
+    "publicHolidays": "Public Holidays",
+    "salaryAdvance": "Salary Advance",
+    "monthlyClocking": "Monthly Clocking",
+    "leaveRights": "Leave Rights",
+    "attendanceReport": "Attendance Report",
+    "lateReport": "Late Report",
+    "absenceReport": "Absence Report",
+    "contractExpiry": "Contract Expiry",
+    "leaveBook": "Leave Book",
+    "profile": "Profile",
+    "companyParameter": "Company Parameter",
+    "companyCalendar": "Company Calendar",
+    "chatBot": "Chat Bot",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "breadcrumb": {
+    "param-societe": "Company Settings",
+    "societe": "Company",
+    "gestion-employe": "Employee Management",
+    "etat-periodique": "Periodic Report",
+    "allaitement": "Breastfeeding",
+    "gestion-utilisateur": "Users",
+    "pointage-du-mois": "Monthly Clocking",
+    "lecture-pointeuse": "Clocking Reading"
+  },
+  "allaitement": {
+    "title": "Breastfeeding",
+    "list": {
+      "order": "Order No",
+      "code": "Code",
+      "name": "Name",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "period": "Period",
+      "exportAll": "Export all rows (PDF)",
+      "exportPage": "Export page rows (PDF)",
+      "exportSelected": "Export selected rows (PDF)"
+    },
+    "form": {
+      "employee": "Employee",
+      "order": "Order No",
+      "date": "Date",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "manage": "Manage Employee"
+    }
+  },
+  "employe": {
+    "save": "Save",
+    "update": "Update",
+    "addSuccess": "Employee added successfully",
+    "addError": "Failed to add employee",
+    "updateSuccess": "Employee updated successfully",
+    "updateError": "Failed to update employee",
+    "prepareError": "Error preparing data",
+    "tabs": {
+      "basic": "Basic information",
+      "work": "Work information",
+      "employeeInfo": "Employee information",
+      "contact": "Contact",
+      "complement": "Complement"
+    },
+    "form": {
+      "cin": "CIN No",
+      "name": "Name",
+      "badge": "Badge No",
+      "birthDate": "Birth Date",
+      "birthPlace": "Birth Place",
+      "matricule": "Matricule",
+      "sex": "Sex"
+    },
+    "gender": {
+      "male": "Male",
+      "female": "Female"
+    },
+    "work": {
+      "regime": "Regime",
+      "hourly": "Hourly",
+      "monthly": "Monthly",
+      "branch": "Branch",
+      "charge": "Charge",
+      "direct": "Direct",
+      "indirect": "Indirect",
+      "service": "Service",
+      "direction": "Direction",
+      "timeClass": "Time Class",
+      "maxDaysPerMonth": "Max days/month",
+      "maxHoursPerDay": "Max hours/day",
+      "calendarType": "Calendar Type",
+      "eliminateDelay": "Eliminate delay",
+      "minHoursPerDay": "Min hours/day"
+    },
+    "contact": {
+      "address": "Address",
+      "nationality": "Nationality",
+      "city": "City",
+      "tel": "Phone",
+      "mobile": "Mobile",
+      "email": "Email",
+      "civilStatus": "Civil status",
+      "single": "Single",
+      "married": "Married",
+      "divorced": "Divorced"
+    },
+    "messages": {
+      "contractDownloadError": "Error downloading contract",
+      "deleteSuccess": "Employee deleted successfully",
+      "deleteError": "Failed to delete employee",
+      "selectWordFile": "Please select a Word file (.doc or .docx)",
+      "selectContractTemplate": "Please select a contract template",
+      "contractGenerated": "Contract generated successfully",
+      "contractGenerateError": "Error generating contract",
+      "confirmDelete": "Are you sure you want to delete this employee?"
+    },
+    "dialog": {
+      "selectTemplateFor": "Select a contract template for {{name}}",
+      "addTemplate": "Add a new template (.doc/.docx)",
+      "selectedYes": "Selected: Yes",
+      "selectedNo": "Selected: No",
+      "noTemplates": "No contract template available. Add a Word file (.doc/.docx)."
+    },
+    "actions": {
+      "generateContractPDF": "Generate contract PDF"
+    },
+    "documents": {
+      "individualSheetTitle": "Individual Sheet",
+      "hireDate": "Hire Date",
+      "exitDate": "Exit Date"
+    },
+    "labels": {
+      "name": "Name",
+      "active": "Active",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active Employee",
+      "inactive": "Inactive Employee"
+    },
+    "fields": {
+      "nightHours": "Night hours",
+      "lunch": "Lunch",
+      "position": "Position",
+      "countRest": "Count rest",
+      "exitReason": "Exit reason",
+      "retirementDate": "Retirement date",
+      "nbPosts": "Nb. Positions"
+    },
+    "options": {
+      "nightHours": { "0": "0-Normal", "1": "1-Special" },
+      "panier": { "0": "0- No lunch", "1": "1- Lunch 7H", "2": "2- Lunch 6H" },
+      "poste": { "finance": "Finance", "manager": "Manager" },
+      "countRest": { "0": "0- No Count", "1": "1- All Rest", "2": "2- Saturday Rest", "3": "3- Sunday Rest" }
+    },
+    "columns": {
+      "active": "Active"
+    },
+  "complement": {
+      "arabicTitle": "Arabic Contacts",
+      "base": "S.Base/TH",
+      "category": "Category",
+      "grossSalary": "Gross Salary",
+      "netSalary": "Net Salary",
+      "echelon": "Echelon",
+      "scale": "Scale",
+      "subCategory": "Sub Category"
+    }
+  },
+  "login": {
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "company": "Company",
+    "site": "Branch / Site",
+    "button": "Sign in",
+    "requiredError": "Please fill in all required fields",
+    "loginError": "Login failed. Please check your credentials."
+  },
+  "weeklyHoursTable": {
+    "dateStart": "Start date",
+    "dateEnd": "End date",
+    "hours": "Hours"
+  },
+  "pointageDuMois": {
+    "errorLoading": "Error loading data.",
+    "total": "TOTAL",
+    "weekDetails": "Week details {{numSem}}"
+  },
+  "dailyHours": {
+    "noData": "No daily hours data available",
+    "day": "Day",
+    "date": "Date",
+    "hoursWorked": "Worked Hours"
+  },
+  "common": {
+    "qualification": "Qualification",
+    "function": "Function",
+    "morning": "Morning",
+    "confirmation": "Confirmation",
+    "rest": "Rest",
+    "code": "Code",
+    "label": "Label",
+    "before": "Before",
+    "after": "After",
+    "new": "New",
+    "search": "Search",
+    "previous": "Previous",
+    "current": "Current",
+    "seniority": "Seniority",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "month": "Month",
+    "year": "Year",
+    "everyDay": "Every day",
+    "saturday": "Saturday",
+    "hoursPerDay": "Hours/day",
+    "daysPerMonth": "Days/month",
+    "hoursPerMonth": "Hours/month",
+    "minNightHoursPerDay": "Min night hours/day",
+    "countNightHours": "Count night hours",
+    "decreaseNightMeals": "Decrease night meals",
+    "periodicRest": "Periodic rest",
+    "mealsPerDay": "Meals/day",
+    "restDay": "Rest day",
+    "date": "Date",
+    "ref": "Ref",
+    "orderNumber": "Order No",
+    "dateStart": "Start Date",
+    "dateEnd": "End Date",
+    "imputation": "Imputation",
+    "phone": "Phone",
+    "nbDays": "Nb.Days",
+    "nbHours": "Nb.Hours",
+    "wholeDay": "Whole Day",
+    "mornings": "Mornings",
+    "afternoons": "Afternoons",
+    "afternoon": "Afternoon",
+    "requiredFields": "Please fill all required fields",
+    "employee": "Employee",
+    "reason": "Reason",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "exception": "Exception",
+    "presence": "Presence",
+    "yes": "Yes",
+    "no": "No",
+    "confirmDelete": "Are you sure you want to delete this item?"
+  },
+  "list": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "purge": "Purge",
+    "contract": "Contract",
+    "workAttestation": "Work Attestation",
+    "medicalVisit": "Medical Visit",
+    "individualSheet": "Individual Sheet",
+    "employeeHours": "Employee Hours",
+    "exportSelection": "Export selection",
+    "messages": {
+      "deleteSuccess": "Deletion successful",
+      "deleteError": "Error during deletion",
+      "actionForbidden": "Action forbidden: you don't have permission."
+    }
+  },
+  "conge": {
+    "orderNumber": "Order No",
+    "address": "Leave address",
+    "added": "Leave added successfully",
+    "addError": "Failed to add leave",
+    "createNew": "Create a new leave",
+    "messages": {
+      "bulkAddSuccess": "Leaves added successfully",
+      "bulkAddError": "Error adding leaves",
+      "addSuccess": "Leave added successfully",
+      "addError": "Failed to add leave",
+      "updateSuccess": "Leave updated successfully",
+      "updateError": "Failed to update leave",
+      "deleteSuccess": "Leave deleted successfully",
+      "deleteError": "Failed to delete leave",
+      "deleteErrorAlert": "Error deleting leave."
+    },
+    "errors": {
+      "notHired": "Employee is not hired on the specified date."
+    },
+    "actions": {
+      "exception": "Exception",
+      "print": "Print"
+    },
+    "confirmDelete": "Are you sure you want to delete this leave (Order No: {{order}})?"
+  },
+  "contract": {
+    "number": "Contract No",
+    "date": "Contract Date",
+    "type": "Contract Type"
+  },
+  "employeeLevel": {
+    "cadre": "Cadre",
+    "maitrise": "Maitrise",
+    "executant": "Executant"
+  },
+  "sanction": {
+    "addSuccess": "Absence added successfully",
+    "addError": "Failed to add absence",
+    "fillImputation": "Please provide imputation"
+  },
+  "post": {
+    "toleranceEntry": "Entry tolerance",
+    "toleranceExit": "Exit tolerance",
+    "autoRest": "Automatic rest after/before work",
+    "option": {
+      "0Before": "0-Before",
+      "1After": "1-After",
+      "0After": "0-After",
+      "1Before": "1-Before"
+    }
+  },
+  "empEtatPeriodique": {
+    "enterReason": "Enter a reason",
+    "reason": "Reason",
+    "menu": {
+      "absence": "Absence",
+      "conge": "Leave",
+      "autorisation": "Exit authorization",
+      "optimisation": "Pointing optimization (day)"
+    },
+    "filters": {
+      "branch": "Branch",
+      "service": "Service",
+      "regime": "Regime",
+      "employees": "Employees",
+      "month": "Month",
+      "year": "Year",
+      "presence": "Presence"
+    },
+    "exportB01T": "Export Excel (B01T format)",
+    "noDataToExport": "No data to export",
+    "empPoste": {
+      "entry": "Entry",
+      "exit": "Exit",
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "toleranceEntry": "Tolerance Entry",
+      "toleranceExit": "Tolerance Exit",
+      "class": "Class",
+      "post": "Post",
+      "meal": "Meal",
+      "round": "Round",
+      "roundSup": "Round Sup"
+    },
+    "headers": {
+      "date": "Date",
+      "day": "Day",
+      "rest": "Rest",
+      "entry1": "Entry 1",
+      "exit1": "Exit 1",
+      "meal": "Meal",
+      "entry2": "Entry 2",
+      "exit2": "Exit 2",
+      "entry3": "Entry 3",
+      "exit3": "Exit 3",
+      "clockingMachine": "Clocking Machine",
+      "totalHour": "Total Hour",
+      "nightHour": "Night Hour",
+      "overtimeHour": "Overtime Hour",
+      "total": "Total",
+      "dayLabel": "Day",
+      "state": "State",
+      "observation": "Observation",
+      "late": "Late",
+      "hraut": "H. Aut. Exit",
+      "totcmp": "Tot. cmp",
+      "matricule": "ID",
+      "employee": "Employee",
+      "nbDays": "Days",
+      "actions": "Actions",
+      "totalAbsence": "Total Absence",
+      "shower": "Shower",
+      "nbjours": "Nb. Days",
+      "totret": "Total delay.",
+      "tothre": "Total Hours"
+    },
+    "actions": {
+      "more": "More"
+    },
+    "errorLoading": "Error loading data."
+  },
+  "integrationPaie": {
+    "employees": "Employees:",
+    "rubrics": "Configured rubrics:",
+    "rowsToExport": "Lines to export:"
+  },
+  "helper": {
+    "manipulate": "Manipulate"
+  },
+  "paramSoc": {
+    "part1": {
+      "jourDebut": "Start day",
+      "jourFin": "End day",
+      "hourMethod": "Presence hours calculation method",
+      "divideHoursBy": "Divide hours by",
+      "presenceHoursCalculated": "Presence hours calculated",
+      "presenceCalcMethod": "Presence calculation method",
+      "method": {
+        "workedHours": "Worked hours",
+        "classeAbsence": "Absence class",
+        "daysWorked": "Days worked",
+        "hoursDaysWorked": "Hours/Days worked",
+        "presenceTime": "Presence time",
+        "departure": "Departure",
+        "arrival": "Arrival"
+      },
+      "annualLeaveIncrease": "Annual leave increase",
+      "seniorityLabel": "Seniority",
+      "fiveYears": "5 Years",
+      "saisieConge": "Leave entry",
+      "daysBeforeOrAfter": "Days before or after"
+    }
+  },
+  "app": {
+    "name": "ABRPOINT"
+  },
+  "dashboard": {
+    "employeeDashboard": "My Employee Space",
+    "welcome": "Welcome",
+    "myPresence": "My Presence",
+    "myLeaves": "My Leaves",
+    "workedHours": "Worked Hours",
+    "pendingRequests": "Pending Requests",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "recentLeaveRequests": "My Recent Leave Requests",
+    "recentPresence": "My Recent Presence",
+    "noLeaveRequests": "No leave requests",
+    "noPresenceData": "No presence data",
+    "date": "Date",
+    "type": "Type",
+    "status": "Status",
+    "days": "Days",
+    "arrival": "Arrival",
+    "departure": "Departure",
+    "hours": "Hours",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "pending": "Pending",
+    "present": "Present",
+    "absent": "Absent",
+    "onLeave": "On Leave",
+    "unknown": "Unknown"
+  },
+  "loading": {
+    "loading": "Loading..."
+  },
+  "optimisation": {
+    "info": "This will recalculate the clocking for the selected period.",
+    "dateStart": "Start date",
+    "dateEnd": "End date",
+    "optimizing": "Optimizing...",
+    "optimizeButton": "Optimize clocking"
+  },
+  "donneeSociete": {
+    "requiredFields": "Code and Label are required!",
+    "added": "Company added successfully!",
+    "addError": "Failed to add Company. Please try again."
+  },
+  "profile": {
+    "imageSaved": "Image saved successfully.",
+    "imageSaveError": "Error saving image.",
+    "uploadImage": "Upload Image",
+    "changePassword": {
+      "button": "Change password",
+      "title": "Change password",
+      "oldLabel": "Old password",
+      "newLabel": "New password",
+      "fillFields": "Please enter current and new password.",
+      "success": "Password changed successfully.",
+      "error": "Error changing password."
+    }
+  },
+  "user": {
+    "updateSuccess": "User updated successfully",
+    "updateError": "Error updating user"
+  },
+  "rubrique": {
+    "save": "Save rubrique",
+    "edit": "Edit rubrique"
+  },
+  "filter": {
+    "withoutPointage": "Without clocking (unjustified absence)",
+    "allAbsence": "All absence",
+    "justifiedAbsence": "Justified absence",
+    "invalidPointage": "Invalid clocking",
+    "absenceDayLate": "Absence during day + Late",
+    "authorizedAbsence": "Authorized absence",
+    "withoutInvalidPointage": "Without Invalid Clocking",
+    "presenceNotOptimized": "Presence not optimized",
+    "absenceType": "Absence Type"
+  }
+}

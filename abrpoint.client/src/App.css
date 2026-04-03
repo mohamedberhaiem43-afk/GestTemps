@@ -1,0 +1,18 @@
+﻿#root {
+    margin: 0 auto;
+    text-align: center;
+}
+
+#root > div.container
+{
+    display: flex;
+    flex-direction: column;
+    max-width: 90vw;
+    /* border: red solid 1px; */
+    margin-left: 15%;
+    margin-top: -5%;
+}
+body > div.MuiPopover-root.MuiMenu-root.MuiModal-root.css-10nakn3-MuiModal-root-MuiPopover-root-MuiMenu-root > div.MuiPaper-root.MuiPaper-elevation.MuiPaper-rounded.MuiPaper-elevation8.MuiPopover-paper.MuiMenu-paper.MuiMenu-paper.css-3dzjca-MuiPaper-root-MuiPopover-paper-MuiMenu-paper
+{
+    max-width: fit-content;
+}

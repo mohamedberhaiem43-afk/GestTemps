@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="02/01/2026 11:51:05" ReportInfo.Modified="02/02/2026 10:28:16" ReportInfo.CreatorVersion="2024.1.7.0">
+  <Dictionary>
+    <BusinessObjectDataSource Name="EtatDetaille" ReferenceName="EtatDetaille" DataType="System.Int32" Enabled="true">
+      <Column Name="Predat" DataType="System.String"/>
+      <Column Name="Jour" DataType="System.String"/>
+      <Column Name="Prerepos" DataType="System.String"/>
+      <Column Name="Preentmatup" DataType="System.String"/>
+      <Column Name="Presortmatup" DataType="System.String"/>
+      <Column Name="Prerepas" DataType="System.String"/>
+      <Column Name="Preentamidiup" DataType="System.String"/>
+      <Column Name="Presortamidiup" DataType="System.String"/>
+      <Column Name="Preentsupup" DataType="System.String"/>
+      <Column Name="Presortsupup" DataType="System.String"/>
+      <Column Name="TotalHeure" DataType="System.String"/>
+      <Column Name="Tothnuit" DataType="System.String"/>
+      <Column Name="Tothsup" DataType="System.String"/>
+      <Column Name="Tothre" DataType="System.String"/>
+      <Column Name="Etat" DataType="System.String"/>
+      <Column Name="Preobs" DataType="System.String"/>
+      <Column Name="Totret" DataType="System.String"/>
+      <Column Name="Tothabs" DataType="System.String"/>
+    </BusinessObjectDataSource>
+    <Parameter Name="ParamEmpcod" DataType="System.String" AsString=""/>
+    <Parameter Name="ParamEmplib" DataType="System.String" AsString=""/>
+    <Parameter Name="ParamDebut" DataType="System.String" AsString=""/>
+    <Parameter Name="ParamFin" DataType="System.String" AsString=""/>
+  </Dictionary>
+  <ReportPage Name="Page1" Landscape="true" PaperWidth="297" PaperHeight="210" RawPaperSize="9" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitle1" Width="1047.06" Height="45">
+      <ShapeObject Name="ShapeTitleBg" Width="1047.06" Height="45" Fill.Color="LightGray"/>
+      <TextObject Name="TextTitle" Top="3" Width="1047.06" Height="18" Text="ETAT DÉTAILLÉ DE PRESENCE" HorzAlign="Center" Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="TextEmpInfo" Left="10" Top="24" Width="500" Height="16" Text="[ParamEmpcod] — [ParamEmplib]" Font="Arial, 9pt"/>
+      <TextObject Name="TextPeriode" Left="547.06" Top="24" Width="490" Height="16" Text="Période : [ParamDebut] au [ParamFin]" HorzAlign="Right" Font="Arial, 9pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="48.2" Width="1047.06" Height="24">
+      <ShapeObject Name="ShapeHdrBg" Width="1047.06" Height="24" Fill.Color="Silver"/>
+      <TextObject Name="HdrDate" Left="2" Top="3" Width="65" Height="18" Text="Date" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrJour" Left="67" Top="3" Width="36.1" Height="18" Text="Jour" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrRep" Left="103.1" Top="3" Width="46.9" Height="18" Text="Rep" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrE1" Left="150" Top="3" Width="52" Height="18" Text="Entrée 1" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrS1" Left="202" Top="3" Width="52" Height="18" Text="Sortie 1" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrRepas" Left="254" Top="3" Width="40" Height="18" Text="Repas" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrE2" Left="294" Top="3" Width="52" Height="18" Text="Entrée 2" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrS2" Left="346" Top="3" Width="52" Height="18" Text="Sortie 2" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrE3" Left="398" Top="3" Width="52" Height="18" Text="Entrée 3" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrS3" Left="450" Top="3" Width="52" Height="18" Text="Sortie 3" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrTotH" Left="502" Top="3" Width="61.45" Height="18" Text="Tot. Heure" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrNuit" Left="563.45" Top="3" Width="45" Height="18" Text="Nuit" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrSup" Left="608.45" Top="3" Width="45" Height="18" Text="Sup" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrTotal" Left="653.45" Top="3" Width="52" Height="18" Text="Total" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrEtat" Left="705.45" Top="3" Width="114.15" Height="18" Text="Etat" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrObs" Left="819.6" Top="3" Width="82.2" Height="18" Text="Observation" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrRetard" Left="911.25" Top="3" Width="45" Height="18" Text="Retard" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      <TextObject Name="HdrAbs" Left="956.25" Top="3" Width="54.45" Height="18" Text="Absence" HorzAlign="Center" Font="Arial, 8pt, style=Bold"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="75.4" Width="1047.06" Height="18" DataSource="EtatDetaille">
+      <TextObject Name="DtPredat" Left="2" Top="2" Width="65" Height="14" Text="[FormatDateTime([EtatDetaille.Predat], &quot;dd/MM/yyyy&quot;)]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtJournee" Left="67" Top="2" Width="36.1" Height="14" Text="[EtatDetaille.Jour]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtRepos" Left="103.1" Top="2" Width="46.9" Height="14" Text="[EtatDetaille.Prerepos]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtPreentmatup" Left="150" Top="2" Width="52" Height="14" Text="[EtatDetaille.Preentmatup]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtPresortmatup" Left="202" Top="2" Width="52" Height="14" Text="[EtatDetaille.Presortmatup]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtPrerepas" Left="254" Top="2" Width="40" Height="14" Text="[EtatDetaille.Prerepas]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtPreentamidiup" Left="294" Top="2" Width="52" Height="14" Text="[EtatDetaille.Preentamidiup]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtPresortamidiup" Left="346" Top="2" Width="52" Height="14" Text="[EtatDetaille.Presortamidiup]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtPreentsupup" Left="398" Top="2" Width="52" Height="14" Text="[EtatDetaille.Preentsupup]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtPresortsupup" Left="450" Top="2" Width="52" Height="14" Text="[EtatDetaille.Presortsupup]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtTotalHeure" Left="502" Top="2" Width="52" Height="14" Text="[EtatDetaille.TotalHeure]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtTothnuit" Left="554" Top="2" Width="45" Height="14" Text="[EtatDetaille.Tothnuit]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtTothsup" Left="599" Top="2" Width="45" Height="14" Text="[EtatDetaille.Tothsup]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtTothre" Left="644" Top="2" Width="52" Height="14" Text="[EtatDetaille.Tothre]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtEtat" Left="696" Top="2" Width="123.6" Height="14" Text="[EtatDetaille.Etat]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtPreobs" Left="819.6" Top="2" Width="91.65" Height="14" Text="[EtatDetaille.Preobs]" Font="Arial, 7pt"/>
+      <TextObject Name="DtTotret" Left="911.25" Top="2" Width="45" Height="14" Text="[EtatDetaille.Totret]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="DtTothabs" Left="956.25" Top="2" Width="45" Height="14" Text="[EtatDetaille.Tothabs]" HorzAlign="Center" Font="Arial, 7pt"/>
+      <LineObject Name="LineSep" Left="47.25" Top="17" Width="1047.06" Border.Color="Silver"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="96.6" Width="1047.06" Height="18">
+      <TextObject Name="FooterPage" Top="2" Width="1047.06" Height="14" Text="Page [Page] / [TotalPages#]" HorzAlign="Center" Font="Arial, 8pt"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

@@ -1,0 +1,16 @@
+.intitule-inputs 
+{
+    position: relative;
+    transform: translateY(-10%);
+    
+}
+#root > div > main > div.MuiBox-root.css-f4e34s > div > div > div.MuiGrid-root.MuiGrid-container.css-11lq3yg-MuiGrid-root > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.saisie-absence.css-1idn90j-MuiGrid-root > div > form > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-5.intitule-inputs.css-k3f0g4-MuiGrid-root > div > div:nth-child(3) > div > div,
+#root > div > main > div.MuiBox-root.css-f4e34s > div > div > div.MuiGrid-root.MuiGrid-container.css-11lq3yg-MuiGrid-root > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-12.saisie-absence.css-1idn90j-MuiGrid-root > div > form > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-5.intitule-inputs.css-k3f0g4-MuiGrid-root > div > div:nth-child(4) > div > div
+{
+    min-width: 5vw;
+}
+.type-imputation
+{
+    transform: translateX(5%) translateY(-15%) ;
+    min-width: 43vw !important;
+}

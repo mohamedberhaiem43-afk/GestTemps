@@ -1,0 +1,22 @@
+.gestion-contrat-container {
+    margin-top: -2%;
+    min-height: 85vh;
+}
+
+.contract-form-shell {
+    width: 100%;
+}
+
+.contract-form-panel {
+    padding: 24px;
+    border-radius: 20px;
+    border: 1px solid #dbe3ef;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.contract-section-card {
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid #e5ebf3;
+    background-color: #ffffff;
+}

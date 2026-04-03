@@ -1,0 +1,22 @@
+#simple-tabpanel-5 > div > div > div > div:nth-child(2) > div > label.MuiFormControlLabel-root.MuiFormControlLabel-labelPlacementEnd.css-j204z7-MuiFormControlLabel-root
+{
+    flex-direction: row-reverse;
+    justify-content: start;
+    width: 100%;
+    margin: 5px;
+}
+.selects{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin: 5px;
+}
+#simple-tabpanel-5 > div > div > div > div:nth-child(2) > div > div > fieldset > div
+{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin: 5px;
+
+}

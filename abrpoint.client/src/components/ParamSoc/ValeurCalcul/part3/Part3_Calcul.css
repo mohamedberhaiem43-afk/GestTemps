@@ -1,0 +1,27 @@
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(1),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(2),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(3),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(4),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(5),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(6),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(7),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(8),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(9),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-7.css-uqwprf-MuiGrid-root > div > div > label:nth-child(10)
+{
+    flex-direction: row-reverse;
+    justify-content: start;
+    flex-wrap: wrap;
+    margin: 5px;
+}
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-5.css-k3f0g4-MuiGrid-root > div > div > div:nth-child(1) > label:nth-child(1),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-5.css-k3f0g4-MuiGrid-root > div > div > div:nth-child(1) > label:nth-child(2),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-5.css-k3f0g4-MuiGrid-root > div > div > div:nth-child(2) > label:nth-child(1),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-5.css-k3f0g4-MuiGrid-root > div > div > label:nth-child(3),
+#simple-tabpanel-1 > div > div > div > div.MuiGrid-root.MuiGrid-item.MuiGrid-grid-xs-5.css-k3f0g4-MuiGrid-root > div > div > label:nth-child(4)
+{
+    flex-direction: row-reverse;
+    justify-content: start;
+    flex-wrap: wrap;
+    margin: 5px;
+}

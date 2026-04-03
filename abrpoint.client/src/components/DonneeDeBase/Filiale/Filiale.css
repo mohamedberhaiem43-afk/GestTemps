@@ -1,0 +1,22 @@
+/* .filialeform{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: start;
+    width: 100%;
+    gap: 15px;
+}
+.filialeContainer{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.filialecontainer{
+    max-width: 95vw;
+    margin-left: 15%;
+    margin-top: -14%;
+}
+
+#root > div.filialecontainer > div.filialeContainer > form > div{
+    max-width: 150px;
+
+} */

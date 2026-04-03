@@ -1,0 +1,70 @@
+volumes:
+  sqlserver-data:
+  uploads_data:
+networks:
+  app-network:
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+    - "80:80"
+    volumes:
+    - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    - uploads_data:/app/uploads:ro
+    depends_on:
+    - abrpoint.server
+    - abrpoint.client
+    networks:
+    - app-network
+  abrpoint.database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: abrpoint.database
+    environment:
+      SA_PASSWORD: "PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A="
+      ACCEPT_EULA: "Y"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./sql-backup:/var/opt/sql-backup
+    networks:
+      - app-network
+  abrpoint.server:
+    container_name: abrpoint.server
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    image: abrpoint-server:local
+    volumes:
+       - uploads_data:/app/uploads
+    environment:
+      DB_HOST: "abrpoint.database"
+      DB_NAME: "ABRPOINT"
+      DB_USER: "sa"
+      DB_PASSWORD: "PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A="
+      ASPNETCORE_URLS: "http://+:8080"
+      DatabaseInitialization__Enabled: "true"
+      DatabaseInitialization__SocieteCode: "01"
+      DatabaseInitialization__SocieteName: "Default Company"
+      DatabaseInitialization__SiteCode: "01"
+      DatabaseInitialization__SiteName: "Main Site"
+      DatabaseInitialization__AdminCode: "AD"
+      DatabaseInitialization__AdminFirstName: "Admin"
+      DatabaseInitialization__AdminLastName: "System"
+      DatabaseInitialization__AdminEmail: "admin@abrpoint.local"
+      DatabaseInitialization__AdminPassword: "123"
+      DatabaseInitialization__ApplicationCode: "GRH"
+    depends_on:
+      - abrpoint.database
+    networks:
+      - app-network
+    expose:
+      - "8080"
+  abrpoint.client:
+    container_name: abrpoint.client
+    image: mohamedbenrhaiem2003/abrpoint-client:latest
+    depends_on:
+      - abrpoint.server
+    networks:
+      - app-network
+
+
+
