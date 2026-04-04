@@ -48,6 +48,10 @@ namespace ABRPOINT.Server.Repository
 
             var startDate = datedebut.Date;
             var endDate = datefin.Date;
+            var today = DateTime.Today;
+            if (endDate > today)
+                endDate = today;
+
             var hasSelectedAbsType = !string.IsNullOrWhiteSpace(selectedAbsType) && selectedAbsType != "0";
 
             static int GetMinutes(DateTime? t)
