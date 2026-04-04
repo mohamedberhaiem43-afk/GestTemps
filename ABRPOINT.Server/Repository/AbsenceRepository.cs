@@ -97,25 +97,26 @@ namespace ABRPOINT.Server.Repository
                 .Where(e => e.Soccod == soccod && empcods.Contains(e.Empcod))
                 .ToDictionaryAsync(e => e.Empcod);
 
-            var sanctions = await (
-                from s in _dbContext.Sanctions.AsNoTracking()
-                join a in _dbContext.Absences.AsNoTracking()
-                    on new { s.Soccod, s.Abscod } equals new { a.Soccod, a.Abscod }
-                where s.Soccod == soccod
-                      && empcods.Contains(s.Empcod)
-                      && s.Condep <= datefin
-                      && s.Conret >= datedebut)
-                select new
-                {
-                    s.Empcod,
-                    s.Condep,
-                    s.Conret,
-                    s.Abscod,
-                    a.Abslib,
-                    a.Abscng,
-                    a.Abspayer
-                }
-            ).ToListAsync();
+            var sanctions = await _dbContext.Sanctions
+                .AsNoTracking()
+                .Where(s => s.Soccod == soccod
+                            && empcods.Contains(s.Empcod)
+                            && s.Condep <= datefin
+                            && s.Conret >= datedebut)
+                .Join(_dbContext.Absences.AsNoTracking(),
+                    s => new { s.Soccod, s.Abscod },
+                    a => new { a.Soccod, a.Abscod },
+                    (s, a) => new
+                    {
+                        s.Empcod,
+                        s.Condep,
+                        s.Conret,
+                        s.Abscod,
+                        a.Abslib,
+                        a.Abscng,
+                        a.Abspayer
+                    })
+                .ToListAsync();
 
             var presences = await _dbContext.Presences
                 .AsNoTracking()
@@ -422,21 +423,18 @@ namespace ABRPOINT.Server.Repository
 
                     if (radioValue == "2")
                     {
-                        return etatAbsence.Absjust == 1
-                            && (string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                        return etatAbsence.Absjust == 1;
                     }
 
                     if (radioValue == "3")
                     {
-                        return hasInvalidPointage
-                            && (string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                        return hasInvalidPointage;
                     }
 
                     if (radioValue == "0")
                     {
                         return hasNoPointage
-                            && (IsGeneratedNonPresent(etatAbsence) || etatAbsence.Absnj == 1)
-                            && (string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                            && (IsGeneratedNonPresent(etatAbsence) || etatAbsence.Absnj == 1);
                     }
 
                     var includeTypedAbsence = HasTypedAbsence(etatAbsence);
@@ -448,7 +446,7 @@ namespace ABRPOINT.Server.Repository
                         || includeAuthorizedAbsence
                         || includeRetard;
 
-                    return includeByRadio && (string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                    return includeByRadio;
                 });
 
             return filteredResults
