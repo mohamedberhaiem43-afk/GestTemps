@@ -48,7 +48,7 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public byte[] GenerateCahierCongeReport(string soccod, DateTime? datedebut,DateTime? datefin,List<string>empcods)
+        public byte[] GenerateCahierCongeReport(string soccod, DateTime? datedebut,DateTime? datefin,List<string>empcods, string justified = "", string absenceType = "")
         {
             try
             {
@@ -59,6 +59,8 @@ namespace ABRPOINT.Server.Repository
                 // Convert list of empcods to comma-separated string
                 string empcodCsv = string.Join(",", empcods.Select(e => e.Trim()));
                 report.SetParameterValue("empcod", empcodCsv);
+                report.SetParameterValue("justified", justified);
+                report.SetParameterValue("absenceType", absenceType);
                 report.Prepare();
 
                 using (var ms = new MemoryStream())

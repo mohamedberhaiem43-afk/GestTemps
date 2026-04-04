@@ -16,6 +16,24 @@ function FilterCahierConge() {
         'H': "Horaire"
     };
 
+    const justifiedOptions = {
+        '': 'Tous les types',
+        '1': 'Justifiée',
+        '0': 'Non justifiée'
+    };
+
+    const absenceTypeOptions = {
+        '': 'Tous les types',
+        '1': 'CSF',
+        '2': 'Congés',
+        '3': 'Non justifiée',
+        '4': 'MAP',
+        '5': 'CSS',
+        '6': 'FM',
+        '8': 'Accident du travail',
+        '9': 'Maladie'
+    };
+
     const {
         selectedEmpCodes: selectedEmpcods,
         setSelectedEmpCodes: setSelectedEmpcods,
@@ -37,6 +55,8 @@ function FilterCahierConge() {
     const [dateDebut, setStartDate] = useState(() =>new Date().toISOString().slice(0, 10));
     const [dateFin, setEndDate] = useState(() =>new Date().toISOString().slice(0, 10));
     const [annee, setAnnee] = useState(new Date().getFullYear().toString());
+    const [justified, setJustified] = useState<string>('');
+    const [absenceType, setAbsenceType] = useState<string>('');
 
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
@@ -83,7 +103,11 @@ function FilterCahierConge() {
                 `/Conges/get-cahier-de-conge-report/${soccod}/${dateDebut}/${dateFin}`,
                 {
                     responseType: 'blob',
-                    params: { empcods: effectiveEmpcods.join(',') }
+                    params: { 
+                        empcods: effectiveEmpcods.join(','),
+                        justified: justified,
+                        absenceType: absenceType
+                    }
                 }
             );
 
@@ -157,6 +181,22 @@ function FilterCahierConge() {
                         value={selectedRegime}
                         setValue={setSelectedRegime}
                         maplist={regime}
+                    />
+                </Grid>
+                <Grid item xs={1.2}>
+                    <SelectInputComponent
+                        label='Absence Justifiée'
+                        value={justified}
+                        setValue={setJustified}
+                        maplist={justifiedOptions}
+                    />
+                </Grid>
+                <Grid item xs={1.5}>
+                    <SelectInputComponent
+                        label='Type Absence'
+                        value={absenceType}
+                        setValue={setAbsenceType}
+                        maplist={absenceTypeOptions}
                     />
                 </Grid>
                 <Grid item xs={1.5}>

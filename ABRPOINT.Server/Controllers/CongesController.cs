@@ -101,11 +101,12 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-cahier-de-conge-report/{soccod}/{datedebut}/{datefin}")]
         [CanGetCahierConge]
-        public IActionResult GenerateCahierCongeReport(string soccod,DateTime datedebut,DateTime datefin, [FromQuery]List<string>empcods)
+        public IActionResult GenerateCahierCongeReport(string soccod,DateTime datedebut,DateTime datefin, 
+            [FromQuery]List<string> empcods, [FromQuery] string justified = "", [FromQuery] string absenceType = "")
         {
             try
             {
-                var pdfBytes = _reportsGenerationRepository.GenerateCahierCongeReport(soccod,datedebut,datefin,empcods);
+                var pdfBytes = _reportsGenerationRepository.GenerateCahierCongeReport(soccod, datedebut, datefin, empcods, justified, absenceType);
                 return File(pdfBytes, "application/pdf", "CahierDeConge.pdf");
             }
             catch (Exception ex)

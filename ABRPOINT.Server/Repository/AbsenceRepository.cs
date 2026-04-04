@@ -173,8 +173,19 @@ namespace ABRPOINT.Server.Repository
                 if (!employes.TryGetValue(sanction.Empcod, out var employe) || !sanction.Condep.HasValue || !sanction.Conret.HasValue)
                     continue;
 
+                // Filter absences by employment period (embauche to sortie)
+                var employeeStartDate = employe.Empemb?.Date ?? startDate;
+                var employeeEndDate = employe.Empsort?.Date ?? endDate.AddDays(1); // AddDays(1) because Empsort is exclusive
+                
                 var sanctionStart = sanction.Condep.Value.Date < startDate ? startDate : sanction.Condep.Value.Date;
                 var sanctionEnd = sanction.Conret.Value.Date > endDate ? endDate : sanction.Conret.Value.Date;
+
+                // Ensure sanction dates are within employment period
+                if (sanctionStart >= employeeEndDate || sanctionEnd < employeeStartDate)
+                    continue;
+
+                sanctionStart = sanctionStart < employeeStartDate ? employeeStartDate : sanctionStart;
+                sanctionEnd = sanctionEnd >= employeeEndDate ? employeeEndDate.AddDays(-1) : sanctionEnd;
 
                 for (var date = sanctionStart; date <= sanctionEnd; date = date.AddDays(1))
                 {
@@ -227,6 +238,13 @@ namespace ABRPOINT.Server.Repository
 
                     if (!employes.TryGetValue(presence.Empcod, out var employe))
                         continue;
+
+                    // Filter retards by employment period (embauche to sortie)
+                    var presenceDate = presence.Predat.Value.Date;
+                    if (employe.Empemb.HasValue && presenceDate < employe.Empemb.Value.Date)
+                        continue; // Before hire date
+                    if (employe.Empsort.HasValue && presenceDate >= employe.Empsort.Value.Date)
+                        continue; // On or after exit date
 
                     int totalRetard =
                         GetMinutes(presence.Preretmateup) +
@@ -333,6 +351,13 @@ namespace ABRPOINT.Server.Repository
 
                 if (!employes.TryGetValue(presence.Empcod, out var employe))
                     continue;
+
+                // Filter invalid pointages by employment period (embauche to sortie)
+                var presenceDate = presence.Predat.Value.Date;
+                if (employe.Empemb.HasValue && presenceDate < employe.Empemb.Value.Date)
+                    continue; // Before hire date
+                if (employe.Empsort.HasValue && presenceDate >= employe.Empsort.Value.Date)
+                    continue; // On or after exit date
 
                 if (!result.TryGetValue(key, out var invalidEtat))
                 {
