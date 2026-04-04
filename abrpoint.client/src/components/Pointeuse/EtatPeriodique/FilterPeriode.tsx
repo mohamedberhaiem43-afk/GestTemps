@@ -1,7 +1,7 @@
-﻿import { Box, Grid, IconButton } from "@mui/material";
+﻿import { Box, Grid, IconButton, Typography } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from 'react-i18next';
 import { useDateRange } from "./FilterContext";
 import { Print, Search } from "@mui/icons-material";
@@ -13,11 +13,12 @@ import RadioGroupComponent, { FormControlLabelComponent } from "../../RadioGroup
 import { useAbsenceContext } from "../../helper/AbsParamsContext";
 import { useAuth } from "../../helper/AuthProvider";
 import apiInstance from "../../API/apiInstance";
+import type Employe from "../../../models/Employe";
 
 
 function FilterPeriode() {
     const { t } = useTranslation();
-    const { soccod } =useAuth();
+    const { soccod, uticod } =useAuth();
     const regime = {
         'M': "Mensuelle",
         'H': "Horaire"
@@ -25,6 +26,7 @@ function FilterPeriode() {
     const presence = null;
     
     const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
+    const [accessibleEmployees, setAccessibleEmployees] = useState<Employe[]>([]);
     const { setAbsParams } = useAbsenceContext();
     const {data:abslibs={}} = useGetAbsencesLibs();
     const [filiale, setFiliale] = useState<Record<string,string>>({});
@@ -45,16 +47,31 @@ function FilterPeriode() {
     const [selectedService, setSelectedService] = useState<string>('');
     const [selectedAbstype, setSelectedAbstype] = useState<string>('0');
     const [selectedRegime, setSelectedRegime] = useState<string>('');
+    const effectiveEmpcods = useMemo(() => {
+        if (selectedEmpcods.length > 0)
+            return selectedEmpcods;
+
+        return accessibleEmployees
+            .filter((employee) => employee.actif === "A")
+            .filter((employee) => !selectedFiliale || employee.sitcod === selectedFiliale)
+            .filter((employee) => !selectedService || employee.sercod === selectedService)
+            .filter((employee) => !selectedRegime || employee.empreg === selectedRegime)
+            .map((employee) => employee.empcod);
+    }, [accessibleEmployees, selectedEmpcods, selectedFiliale, selectedService, selectedRegime]);
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
     const isAllAbsenceMode = radioValue === "1";
+    const hasEffectiveEmployees = effectiveEmpcods.length > 0;
+    const effectiveEmployeesLabel = selectedEmpcods.length > 0
+        ? `${selectedEmpcods.length} employe(s) selectionne(s)`
+        : `${effectiveEmpcods.length} employe(s) filtre(s)`;
     const isJustifiedAbsenceMode = radioValue === "2";
     
     // RÃƒÂ©cupÃƒÂ©rer les donnÃƒÂ©es d'absence avec le hook
     const { data: absenceData = [] } = useGetEtatAbsence(
         new Date(dateDebut),
         new Date(dateFin),
-        selectedEmpcods.length > 0 ? selectedEmpcods : null,
+        effectiveEmpcods.length > 0 ? effectiveEmpcods : null,
         absaut,
         absret,
         presNonOpt,
@@ -88,6 +105,14 @@ function FilterPeriode() {
         }
     },[radioValue])
     const {data:emplibs=[]} = useGetEmployeesLibs();
+    useEffect(() => {
+        if (!soccod || !uticod) return;
+
+        apiInstance.get(`/Employes/${soccod}/${uticod}`)
+            .then((res) => setAccessibleEmployees(res.data ?? []))
+            .catch((err) => console.error(err));
+    }, [soccod, uticod]);
+
     useEffect(() => {
         if (!soccod) return;
         
@@ -210,7 +235,7 @@ function FilterPeriode() {
             selectedService,
             pres,
             mois,
-            empcods:selectedEmpcods,
+            empcods: effectiveEmpcods.length > 0 ? effectiveEmpcods : null,
             compterAvance:false,
             retapres: false,
             retmat: false,
@@ -295,6 +320,7 @@ function FilterPeriode() {
                 <Grid item xs={0.5}>
                     <IconButton
                         color="primary"
+                        disabled={!hasEffectiveEmployees}
                         onClick={handleApplyFilter}
                         sx={{ border: '1px solid', borderColor: 'divider' }}
                     >
@@ -305,6 +331,7 @@ function FilterPeriode() {
                 <Grid item xs={0.5}>
                     <IconButton
                         color="primary"
+                        disabled={!hasEffectiveEmployees}
                         onClick={handlePrintReport}
                         sx={{ border: '1px solid', borderColor: 'divider' }}
                     >
@@ -369,12 +396,20 @@ function FilterPeriode() {
                         />
                     )}
                 </Grid>
+                <Grid item xs={12}>
+                    <Typography variant="body2" color={hasEffectiveEmployees ? "text.secondary" : "warning.main"}>
+                        {hasEffectiveEmployees
+                            ? effectiveEmployeesLabel
+                            : "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe ou ajustez la filiale, le service ou le regime."}
+                    </Typography>
+                </Grid>
             </Grid>
         </Box>
     );
 
 }
 export default FilterPeriode;
+
 
 
 

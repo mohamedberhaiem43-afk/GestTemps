@@ -1,4 +1,4 @@
-import { Box, Grid, IconButton } from "@mui/material";
+﻿import { Box, Grid, IconButton, Typography } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import { useEffect, useState } from "react";
@@ -7,8 +7,7 @@ import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { useAuth } from "../../helper/AuthProvider";
 import apiInstance from "../../API/apiInstance";
-
-
+import { useEmployeeFilter } from "../../../hooks/employeHooks/useEmployeeFilter";
 
 function FilterCahierConge() {
     const { soccod } = useAuth();
@@ -16,36 +15,42 @@ function FilterCahierConge() {
         'M': "Mensuelle",
         'H': "Horaire"
     };
-    
-    const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
-    const [filiale, setFiliale] = useState<Record<string,string>>({});
-    const [services, setServices] = useState<Record<string,string>>({});
+
+    const {
+        selectedEmpCodes: selectedEmpcods,
+        setSelectedEmpCodes: setSelectedEmpcods,
+        filiale,
+        services,
+        selectedFiliale,
+        setSelectedFiliale,
+        selectedService,
+        setSelectedService,
+        selectedRegime,
+        setSelectedRegime,
+        effectiveEmpcods,
+        hasEffectiveEmployees,
+        effectiveEmployeesLabel,
+    } = useEmployeeFilter();
+
     const [pres] = useState('P');
     const [mois, setMois] = useState('7');
-    // Removed unused setDebMois state
     const [dateDebut, setStartDate] = useState(() =>new Date().toISOString().slice(0, 10));
     const [dateFin, setEndDate] = useState(() =>new Date().toISOString().slice(0, 10));
     const [annee, setAnnee] = useState(new Date().getFullYear().toString());
-    const [selectedFiliale, setSelectedFiliale] = useState<string>(sessionStorage.getItem('sitcod') ?? '');
-    const [selectedService, setSelectedService] = useState<string>('');
-    const [selectedRegime, setSelectedRegime] = useState<string>('');
+
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
     const {data:emplibs=[]} = useGetEmployeesLibs();
+
     useEffect(() => {
         if (!soccod) return;
-        
-        apiInstance.get(`/Sites/get-sitlibs/${soccod}`)
-            .then((res) => setFiliale(res.data))
-            .catch((err) => console.error(err));
 
         apiInstance.get(`/Parametres/deb-mois/${soccod}`)
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
-                // Removed setDebMois as it is unused
-                
+
                 const currentYear = new Date().getFullYear();
-                let currentMonth = new Date().getMonth() + 1; // Add 1 to zero-based month
+                let currentMonth = new Date().getMonth() + 1;
 
                 let startMonth = moisdeb === 'P' ? currentMonth - 1 : currentMonth;
                 let endMonth = moisfin === 'P' ? currentMonth - 1 : currentMonth;
@@ -58,7 +63,6 @@ function FilterCahierConge() {
 
                 const formattedStartMonth = String(startMonth).padStart(2, '0');
                 const formattedEndMonth = String(endMonth).padStart(2, '0');
-
                 const initialDateDebut = `${startYear}-${formattedStartMonth}-${joudeb}`;
                 const initialDateFin = `${endYear}-${formattedEndMonth}-${joufin}`;
 
@@ -69,41 +73,33 @@ function FilterCahierConge() {
             .catch((err) => {
                 console.error("Error:", err.response ? err.response.data : err.message);
             });
-    }, []);
-
-    const handlePrintReport = async () => {
-    try {
-            const empcodParam = selectedEmpcods?.length > 0 ? selectedEmpcods.join(',') : '';
-            const response = await apiInstance.get(
-            `/Conges/get-cahier-de-conge-report/${soccod}/${dateDebut}/${dateFin}`, 
-            {
-                responseType: 'blob',
-                params: {empcods: empcodParam}
-            }
-        );
-
-        const blob = new Blob([response.data], { type: 'application/pdf' }); // ou 'application/vnd.ms-excel' etc.
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `cahier-de-conge.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    } catch (error) {
-        console.error("Erreur génération rapport:", error);
-    }
-    };
-
-
-
-    useEffect(() => {
-        apiInstance.get(`/Services/get-servlibs/${soccod}`)
-            .then((res) => setServices(res.data))
-            .catch((err) => console.error(err));
     }, [soccod]);
 
-    // Update dateDebut and dateFin when annee changes
+    const handlePrintReport = async () => {
+        try {
+            if (!soccod || !hasEffectiveEmployees) return;
+
+            const response = await apiInstance.get(
+                `/Conges/get-cahier-de-conge-report/${soccod}/${dateDebut}/${dateFin}`,
+                {
+                    responseType: 'blob',
+                    params: { empcods: effectiveEmpcods.join(',') }
+                }
+            );
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `cahier-de-conge.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Erreur generation rapport:", error);
+        }
+    };
+
     useEffect(() => {
         if (annee) {
             const startDateParts = dateDebut.split('-');
@@ -112,21 +108,22 @@ function FilterCahierConge() {
             setEndDate(`${annee}-${endDateParts[1]}-${endDateParts[2]}`);
         }
     }, [annee]);
+
     const handleApplyFilter = () => {
         if (setDateRange) {
             setDateRange({
-            dateDebut: new Date(dateDebut),
-            dateFin: new Date(dateFin),
-            selectedFiliale: selectedFiliale ?? '',
-            selectedRegime,
-            selectedService,
-            pres,
-            mois,
-            empcods:selectedEmpcods,
-            retapres: false,
-            retmat: false,
-            retmin: 0,
-            compterAvance: false
+                dateDebut: new Date(dateDebut),
+                dateFin: new Date(dateFin),
+                selectedFiliale: selectedFiliale ?? '',
+                selectedRegime,
+                selectedService,
+                pres,
+                mois,
+                empcods: hasEffectiveEmployees ? effectiveEmpcods : null,
+                retapres: false,
+                retmat: false,
+                retmin: 0,
+                compterAvance: false
             });
         }
     };
@@ -134,7 +131,6 @@ function FilterCahierConge() {
     return (
         <Box>
             <Grid container direction="row" spacing={2} alignItems="end">
-               
                 <Grid item xs={1.5}>
                     {filiale && (
                         <SelectInputComponent
@@ -157,7 +153,7 @@ function FilterCahierConge() {
                 </Grid>
                 <Grid item xs={1}>
                     <SelectInputComponent
-                        label='Régime'
+                        label='Regime'
                         value={selectedRegime}
                         setValue={setSelectedRegime}
                         maplist={regime}
@@ -165,8 +161,7 @@ function FilterCahierConge() {
                 </Grid>
                 <Grid item xs={1.5}>
                     <SelectInputComponent
-                        label='Employés'
-                        
+                        label='Employes'
                         value={selectedEmpcods ?? []}
                         setValue={setSelectedEmpcods}
                         maplist={emplibs}
@@ -184,7 +179,7 @@ function FilterCahierConge() {
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
-                        label='Année'
+                        label='Annee'
                         value={annee}
                         setValue={setAnnee}
                     />
@@ -192,7 +187,7 @@ function FilterCahierConge() {
                 <Grid item xs={1}>
                     <InputComponent
                         type='date'
-                        label='Date Début'
+                        label='Date Debut'
                         value={dateDebut}
                         setValue={setStartDate}
                     />
@@ -208,28 +203,33 @@ function FilterCahierConge() {
                 <Grid item xs={0.5}>
                     <IconButton
                         color="primary"
+                        disabled={!hasEffectiveEmployees}
                         onClick={handleApplyFilter}
                         sx={{ border: '1px solid', borderColor: 'divider' }}
                     >
                         <Search />
                     </IconButton>
                 </Grid>
-                {/* Bouton Imprimer */}
                 <Grid item xs={0.5}>
                     <IconButton
                         color="primary"
+                        disabled={!hasEffectiveEmployees}
                         onClick={handlePrintReport}
                         sx={{ border: '1px solid', borderColor: 'divider' }}
                     >
                         <Print />
                     </IconButton>
                 </Grid>
-              
+                <Grid item xs={12}>
+                    <Typography variant="body2" color={hasEffectiveEmployees ? "text.secondary" : "warning.main"}>
+                        {hasEffectiveEmployees
+                            ? effectiveEmployeesLabel
+                            : "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe ou ajustez la filiale, le service ou le regime."}
+                    </Typography>
+                </Grid>
             </Grid>
         </Box>
     );
-
 }
+
 export default FilterCahierConge;
-
-

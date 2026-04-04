@@ -1,4 +1,4 @@
-import { Box, Grid, IconButton } from "@mui/material";
+﻿import { Box, Grid, IconButton, Typography } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import apiInstance from "../../API/apiInstance";
@@ -9,6 +9,7 @@ import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { EmployeeContext } from "../../Pointeuse/EtatPeriodique/EmployeeContext";
 import { useAuth } from "../../helper/AuthProvider";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
+import { useEmployeeFilter } from "../../../hooks/employeHooks/useEmployeeFilter";
 
 function FilterRetard() {
     const { soccod } = useAuth();
@@ -17,40 +18,52 @@ function FilterRetard() {
         'H': "Horaire"
     };
     const presence = null;
-    
-    const { selectedEmp, setSelectedEmp } = useContext(EmployeeContext);
-    const [selectedEmpCodes, setSelectedEmpCodes] = useState<string[]>([]);
+
+    const { setSelectedEmp } = useContext(EmployeeContext);
+    const {
+        selectedEmpCodes,
+        accessibleEmployees,
+        filiale,
+        services,
+        selectedFiliale,
+        setSelectedFiliale,
+        selectedService,
+        setSelectedService,
+        selectedRegime,
+        setSelectedRegime,
+        effectiveEmpcods,
+        hasEffectiveEmployees,
+        effectiveEmployeesLabel,
+        handleEmployeeSelection: baseHandleEmployeeSelection,
+    } = useEmployeeFilter();
+
+    // Initialize regime to 'T' for all regimes
+    useEffect(() => {
+        setSelectedRegime('T');
+    }, []);
+
     const [compterAvance, setCompterAvance] = useState(false);
     const [retmat, setRetmat] = useState(true);
     const [retapres, setRetapres] = useState(true);
     const [retmin, setRetmin] = useState(0);
 
-    const [filiale, setFiliale] = useState<Record<string,string>>({});
-    const [services, setServices] = useState<Record<string,string>>({});
     const [pres, setPres] = useState('P');
     const [mois] = useState('7');
     const [dateDebut, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [dateFin, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [annee, setAnnee] = useState(new Date().getFullYear().toString());
-    const [selectedFiliale, setSelectedFiliale] = useState<string>(sessionStorage.getItem('sitcod') ?? '');
-    const [selectedService, setSelectedService] = useState<string>('');
-    const [selectedRegime, setSelectedRegime] = useState<string>('T');
-    
+
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
     const { data: emplibs = [] } = useGetEmployeesLibs();
 
     useEffect(() => {
         if (!soccod) return;
-        
-        apiInstance.get(`/Sites/get-sitlibs/${soccod}`)
-            .then((res) => setFiliale(res.data))
-            .catch((err) => console.error(err));
 
         apiInstance.get(`/Parametres/deb-mois/${soccod}`)
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
-                
+
                 const currentYear = new Date().getFullYear();
                 let currentMonth = new Date().getMonth() + 1;
 
@@ -65,7 +78,6 @@ function FilterRetard() {
 
                 const formattedStartMonth = String(startMonth).padStart(2, '0');
                 const formattedEndMonth = String(endMonth).padStart(2, '0');
-
                 const initialDateDebut = `${startYear}-${formattedStartMonth}-${joudeb}`;
                 const initialDateFin = `${endYear}-${formattedEndMonth}-${joufin}`;
 
@@ -76,24 +88,19 @@ function FilterRetard() {
             .catch((err) => {
                 console.error("Error:", err.response ? err.response.data : err.message);
             });
-    }, []);
+    }, [soccod]);
 
     const handlePrintReport = async () => {
         try {
-            if (!soccod) return;
-            
-            // Convert selected employees to codes if needed
-            const empCodesToSend = selectedEmpCodes.length > 0 
-                ? selectedEmpCodes 
-                : (selectedEmp ? [selectedEmp.empcod] : []);
+            if (!soccod || !hasEffectiveEmployees) return;
 
             const params = new URLSearchParams();
-            empCodesToSend.forEach(code => params.append('empcods', code));
+            effectiveEmpcods.forEach(code => params.append('empcods', code));
 
             const response = await apiInstance.get(
                 `/Presences/get-etat-retard-report/${soccod}/${dateDebut}/${dateFin}/${selectedRegime}`,
                 {
-                                        params,
+                    params,
                     responseType: 'blob'
                 }
             );
@@ -107,15 +114,9 @@ function FilterRetard() {
             link.click();
             link.remove();
         } catch (error) {
-            console.error("Erreur génération rapport:", error);
+            console.error("Erreur generation rapport:", error);
         }
     };
-
-    useEffect(() => {
-        apiInstance.get(`/Services/get-servlibs/${soccod}`)
-            .then((res) => setServices(res.data))
-            .catch((err) => console.error(err));
-    }, [soccod]);
 
     useEffect(() => {
         if (annee) {
@@ -124,7 +125,6 @@ function FilterRetard() {
             setStartDate(`${annee}-${startDateParts[1]}-${startDateParts[2]}`);
             setEndDate(`${annee}-${endDateParts[1]}-${endDateParts[2]}`);
         }
-        
     }, [annee]);
 
     const handleApplyFilter = () => {
@@ -137,7 +137,7 @@ function FilterRetard() {
                 selectedService,
                 pres,
                 mois,
-                empcods: selectedEmpCodes,
+                empcods: hasEffectiveEmployees ? effectiveEmpcods : null,
                 compterAvance,
                 retmin,
                 retmat,
@@ -145,23 +145,24 @@ function FilterRetard() {
             });
         }
     };
-        useEffect(() => {
-            if (!setDateRange) return;
 
-            setDateRange(prev => ({
-                ...prev,
-                compterAvance,
-                retmin,
-                retmat,
-                retapres
-            }));
-        }, [compterAvance,retmin,retmat,retapres]);
+    useEffect(() => {
+        if (!setDateRange) return;
+
+        setDateRange(prev => ({
+            ...prev,
+            compterAvance,
+            retmin,
+            retmat,
+            retapres,
+            empcods: hasEffectiveEmployees ? effectiveEmpcods : null,
+        }));
+    }, [compterAvance, retmin, retmat, retapres, hasEffectiveEmployees, effectiveEmpcods, setDateRange]);
 
     const handleEmployeeSelection = (selected: string[]) => {
-        setSelectedEmpCodes(selected);
-        // If you need to also set the full employee object in context:
+        baseHandleEmployeeSelection(selected);
         if (selected.length === 1) {
-            const emp = emplibs.find(e => e.empcod === selected[0]);
+            const emp = accessibleEmployees.find((employee) => employee.empcod === selected[0]);
             setSelectedEmp(emp || null);
         } else {
             setSelectedEmp(null);
@@ -193,7 +194,7 @@ function FilterRetard() {
                 </Grid>
                 <Grid item xs={1}>
                     <SelectInputComponent
-                        label='Régime'
+                        label='Regime'
                         value={selectedRegime}
                         setValue={setSelectedRegime}
                         maplist={regime}
@@ -201,7 +202,7 @@ function FilterRetard() {
                 </Grid>
                 <Grid item xs={1}>
                     <SelectInputComponent
-                        label='Employés'
+                        label='Employes'
                         value={selectedEmpCodes}
                         setValue={handleEmployeeSelection}
                         maplist={emplibs}
@@ -211,7 +212,7 @@ function FilterRetard() {
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
-                        label='Année'
+                        label='Annee'
                         value={annee}
                         setValue={setAnnee}
                     />
@@ -219,7 +220,7 @@ function FilterRetard() {
                 <Grid item xs={1}>
                     <InputComponent
                         type='date'
-                        label='Date Début'
+                        label='Date Debut'
                         value={dateDebut}
                         setValue={setStartDate}
                     />
@@ -244,10 +245,11 @@ function FilterRetard() {
                 <Grid item xs={0.7}>
                     <CheckboxComponent label={"Ret. AM"} value={retapres} setValue={setRetapres} />
                 </Grid>
-                <Grid item display={'flex'} flexDirection={'row'} xs={1} justifyContent={'space-around'} >
+                <Grid item display={'flex'} flexDirection={'row'} xs={1} justifyContent={'space-around'}>
                     <Grid item xs={0.3}>
                         <IconButton
                             color="primary"
+                            disabled={!hasEffectiveEmployees}
                             onClick={handleApplyFilter}
                             sx={{ border: '1px solid', borderColor: 'divider' }}
                         >
@@ -257,6 +259,7 @@ function FilterRetard() {
                     <Grid item xs={0.3}>
                         <IconButton
                             color="primary"
+                            disabled={!hasEffectiveEmployees}
                             onClick={handlePrintReport}
                             sx={{ border: '1px solid', borderColor: 'divider' }}
                         >
@@ -267,12 +270,19 @@ function FilterRetard() {
                 <Grid item xs={1}>
                     {presence && (
                         <SelectInputComponent
-                            label='Présence'
+                            label='Presence'
                             value={pres}
                             setValue={setPres}
                             maplist={presence}
                         />
                     )}
+                </Grid>
+                <Grid item xs={12}>
+                    <Typography variant="body2" color={hasEffectiveEmployees ? "text.secondary" : "warning.main"}>
+                        {hasEffectiveEmployees
+                            ? effectiveEmployeesLabel
+                            : "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe ou ajustez la filiale, le service ou le regime."}
+                    </Typography>
                 </Grid>
             </Grid>
         </Box>
