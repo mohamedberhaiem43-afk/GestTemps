@@ -9,7 +9,7 @@ namespace ABRPOINT.Server.Interfaces
         IEnumerable<Absence> GetAll(string soccod);
         Task<Dictionary<string, string>> GetAbsLibs(string soccod);
         Task<List<EtatAbsence>> GetEtatAbsence(string soccod, DateTime datedebut, DateTime datefin,
-            bool absaut, bool absret, bool presNonOpt, bool sansPointageInvalide, string radioValue, string? selectedAbsType, List<string>? empcods);
+            bool absaut, bool absret, bool presNonOpt, bool sansPointageInvalide, string radioValue, List<string>? empcods);
     }
 }
 

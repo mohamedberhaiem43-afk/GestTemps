@@ -7,7 +7,6 @@ import { useDateRange } from "./FilterContext";
 import { Print, Search } from "@mui/icons-material";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
-import useGetAbsencesLibs from "../../../hooks/absenceHooks/useGetAbsenceLibs";
 import useGetEtatAbsence from "../../../hooks/absenceHooks/useGetEtatAbsence";
 import RadioGroupComponent, { FormControlLabelComponent } from "../../RadioGroupComponent/RadioGroupComponent";
 import { useAbsenceContext } from "../../helper/AbsParamsContext";
@@ -28,7 +27,6 @@ function FilterPeriode() {
     const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
     const [accessibleEmployees, setAccessibleEmployees] = useState<Employe[]>([]);
     const { setAbsParams } = useAbsenceContext();
-    const {data:abslibs={}} = useGetAbsencesLibs();
     const [filiale, setFiliale] = useState<Record<string,string>>({});
     const [services, setServices] = useState<Record<string,string>>({});
     const [pres, setPres] = useState('P');
@@ -37,7 +35,6 @@ function FilterPeriode() {
     const [absaut, setAbsaut] = useState<boolean>(true);
     const [sansPointageInvalide, setSansPointageInvalide] = useState<boolean>(true);
     const [presNonOpt, setPresNonOpt] = useState<boolean>(false);
-    const [dispTypeabs, setDispTypeabs] = useState<string>('none');
     const [radioValue, setRadioValue] = useState<string>('1');
     // Removed unused setDebMois state
     const [dateDebut, setStartDate] = useState(() =>new Date().toISOString().slice(0, 10));
@@ -45,7 +42,6 @@ function FilterPeriode() {
     const [annee, setAnnee] = useState(new Date().getFullYear().toString());
     const [selectedFiliale, setSelectedFiliale] = useState<string>(sessionStorage.getItem('sitcod') ?? '');
     const [selectedService, setSelectedService] = useState<string>('');
-    const [selectedAbstype, setSelectedAbstype] = useState<string>('0');
     const [selectedRegime, setSelectedRegime] = useState<string>('');
     const effectiveEmpcods = useMemo(() => {
         if (selectedEmpcods.length > 0)
@@ -65,10 +61,9 @@ function FilterPeriode() {
     const effectiveEmployeesLabel = selectedEmpcods.length > 0
         ? `${selectedEmpcods.length} employe(s) selectionne(s)`
         : `${effectiveEmpcods.length} employe(s) filtre(s)`;
-    const isJustifiedAbsenceMode = radioValue === "2";
     
-    // RÃƒÂ©cupÃƒÂ©rer les donnÃƒÂ©es d'absence avec le hook
-    const { data: absenceData = [] } = useGetEtatAbsence(
+
+        const { data: absenceData = [] } = useGetEtatAbsence(
         new Date(dateDebut),
         new Date(dateFin),
         effectiveEmpcods.length > 0 ? effectiveEmpcods : null,
@@ -76,7 +71,6 @@ function FilterPeriode() {
         absret,
         presNonOpt,
         sansPointageInvalide,
-        selectedAbstype,
         radioValue
     );
     useEffect(()=>{
@@ -96,12 +90,6 @@ function FilterPeriode() {
             setAbsaut(true);
             setSansPointageInvalide(false);
             setPresNonOpt(false);
-        }
-        if(radioValue == "2")
-            setDispTypeabs('block');
-        else {
-            setDispTypeabs('none');
-            setSelectedAbstype('0');
         }
     },[radioValue])
     const {data:emplibs=[]} = useGetEmployeesLibs();
@@ -247,7 +235,6 @@ function FilterPeriode() {
             absaut,
             sansPointageInvalide,
             presNonOpt,
-            selectedAbstype,
             radioValue,
         });
     };
@@ -377,14 +364,6 @@ function FilterPeriode() {
                         setValue={setPresNonOpt}
                         disabled={!isAllAbsenceMode}
                     />
-                </Grid>
-                <Grid item xs={1} display={dispTypeabs}>
-                    <SelectInputComponent
-                    label={"Type Absence"}
-                    value={selectedAbstype}
-                    setValue={setSelectedAbstype}
-                    maplist={abslibs}
-                    disabled={!isJustifiedAbsenceMode} />
                 </Grid>
                 <Grid item xs={1}>
                 {presence && (

@@ -76,10 +76,10 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        [HttpGet("get-etat-absence/{soccod}/{datedebut}/{datefin}/{absaut}/{absret}/{presNonOpt}/{sansPointageInvalide}/{radioValue}/{selectedAbsType}")]
+        [HttpGet("get-etat-absence/{soccod}/{datedebut}/{datefin}/{absaut}/{absret}/{presNonOpt}/{sansPointageInvalide}/{radioValue}")]
         [CanGetAbsence]
         public async Task<IActionResult> GetEtatAbsence(string soccod, DateTime datedebut, DateTime datefin, bool absaut, bool absret,
-            bool presNonOpt, bool sansPointageInvalide, string radioValue, string? selectedAbsType, [FromQuery] List<string>? empcods)
+            bool presNonOpt, bool sansPointageInvalide, string radioValue, [FromQuery] List<string>? empcods)
                     {
             if(string.IsNullOrEmpty(soccod))
                 return BadRequest(new { Message = "Veuillez saisie le soccod des absences." });
@@ -88,7 +88,7 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 List<EtatAbsence> etatAbsences = await _absenceRepository.GetEtatAbsence(soccod, datedebut, datefin, absaut, absret,
-                    presNonOpt, sansPointageInvalide, radioValue, selectedAbsType, empcods);
+                    presNonOpt, sansPointageInvalide, radioValue, empcods);
                 return Ok(etatAbsences);
             }
             catch (Exception)

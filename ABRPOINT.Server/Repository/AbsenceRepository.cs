@@ -41,7 +41,7 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
-        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,bool presNonOpt,bool sansPointageInvalide,string radioValue,string? selectedAbsType,List<string>? empcods)
+        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,bool presNonOpt,bool sansPointageInvalide,string radioValue, List<string>? empcods)
         {
             if (empcods == null || empcods.Count == 0)
                 return new List<EtatAbsence>();
@@ -51,8 +51,6 @@ namespace ABRPOINT.Server.Repository
             var today = DateTime.Today;
             if (endDate > today)
                 endDate = today;
-
-            var hasSelectedAbsType = !string.IsNullOrWhiteSpace(selectedAbsType) && selectedAbsType != "0";
 
             static int GetMinutes(DateTime? t)
                 => t.HasValue ? (int)t.Value.TimeOfDay.TotalMinutes : 0;
@@ -106,8 +104,7 @@ namespace ABRPOINT.Server.Repository
                 where s.Soccod == soccod
                       && empcods.Contains(s.Empcod)
                       && s.Condep <= datefin
-                      && s.Conret >= datedebut
-                      && (!hasSelectedAbsType || a.Abscng.ToString() == selectedAbsType)
+                      && s.Conret >= datedebut)
                 select new
                 {
                     s.Empcod,
@@ -426,20 +423,20 @@ namespace ABRPOINT.Server.Repository
                     if (radioValue == "2")
                     {
                         return etatAbsence.Absjust == 1
-                            && (!hasSelectedAbsType || string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                            && (string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
                     }
 
                     if (radioValue == "3")
                     {
                         return hasInvalidPointage
-                            && (!hasSelectedAbsType || string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                            && (string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
                     }
 
                     if (radioValue == "0")
                     {
                         return hasNoPointage
                             && (IsGeneratedNonPresent(etatAbsence) || etatAbsence.Absnj == 1)
-                            && (!hasSelectedAbsType || string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                            && (string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
                     }
 
                     var includeTypedAbsence = HasTypedAbsence(etatAbsence);
@@ -451,7 +448,7 @@ namespace ABRPOINT.Server.Repository
                         || includeAuthorizedAbsence
                         || includeRetard;
 
-                    return includeByRadio && (!hasSelectedAbsType || string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                    return includeByRadio && (string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
                 });
 
             return filteredResults

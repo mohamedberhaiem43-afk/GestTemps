@@ -5,7 +5,6 @@ interface AbsParams {
   absaut: boolean;
   sansPointageInvalide: boolean;
   presNonOpt: boolean;
-  selectedAbstype: string;
   radioValue: string;
 }
 
@@ -19,7 +18,6 @@ const defaultAbsParams: AbsParams = {
   absaut: true,
   sansPointageInvalide: true,
   presNonOpt: false,
-  selectedAbstype: "0",
   radioValue: "1",
 };
 

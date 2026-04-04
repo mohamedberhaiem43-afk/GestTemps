@@ -29,7 +29,6 @@ const ListeAbsence = () => {
     absParams.absret,
     absParams.presNonOpt,
     absParams.sansPointageInvalide,
-    absParams.selectedAbstype,
     absParams.radioValue
   );
   
@@ -52,12 +51,12 @@ const ListeAbsence = () => {
         },
         {
           accessorKey: 'emplib',
-          header: 'Nom et PrÃƒÂ©nom',
+          header: 'Nom et Prénom',
           size: 180,
         },
         {
           accessorKey: 'empreg',
-          header: 'RÃƒÂ©gime',
+          header: 'Régime',
           size: 60,
         },
         {
@@ -81,7 +80,7 @@ const ListeAbsence = () => {
         },
         {
           accessorKey: 'congepaye',
-          header: 'CongÃƒÂ© PayÃƒÂ©',
+          header: 'Congé Payé',
           size: 60,
         },
         {
@@ -131,20 +130,20 @@ const ListeAbsence = () => {
         },
         {
             accessorKey:'autsp',
-            header: 'Aut. S. PayÃƒÂ©',
+            header: 'Aut. S. Payé',
             size: 10,
 
         },
         {
             accessorKey:'autsnp',
-            header: 'Aut. S. Non PayÃƒÂ©',
+            header: 'Aut. S. Non Payé',
             size: 10,
 
         },
 
         {
             accessorKey:'css',
-            header: 'CongÃƒÂ© S. Sans Solde',
+            header: 'Congé Sans Solde',
             size: 10,
 
         },

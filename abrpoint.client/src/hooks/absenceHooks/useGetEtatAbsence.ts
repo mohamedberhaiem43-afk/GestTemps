@@ -22,7 +22,6 @@ const useGetEtatAbsence = (
   absret: boolean,
   presNonOpt: boolean,
   sansPointageInvalide: boolean,
-  selectedAbstype: string,
   radioValue: string,
 ) => {
   const { soccod } = useAuth();
@@ -50,12 +49,11 @@ const useGetEtatAbsence = (
       absret,
       presNonOpt,
       sansPointageInvalide,
-      selectedAbstype,
       radioValue,
     ],
     queryFn: () =>
       EtatAbsenceService.getAllWithParams(
-        `get-etat-absence/${soccod}/${formattedDebut}/${formattedFin}/${absaut}/${absret}/${presNonOpt}/${sansPointageInvalide}/${radioValue}/${selectedAbstype}?${params.toString()}`
+        `get-etat-absence/${soccod}/${formattedDebut}/${formattedFin}/${absaut}/${absret}/${presNonOpt}/${sansPointageInvalide}/${radioValue}?${params.toString()}`
       ),
     enabled: Boolean(soccod) && hasValidDates && hasSelectedEmployees,
   });
