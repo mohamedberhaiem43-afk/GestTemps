@@ -431,24 +431,27 @@ namespace ABRPOINT.Server.Repository
 
                     if (radioValue == "3")
                     {
-                        return hasInvalidPointage;
+                        return hasInvalidPointage
+                            && (!hasSelectedAbsType || string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
                     }
 
                     if (radioValue == "0")
                     {
                         return hasNoPointage
-                            && (IsGeneratedNonPresent(etatAbsence) || etatAbsence.Absnj == 1);
+                            && (IsGeneratedNonPresent(etatAbsence) || etatAbsence.Absnj == 1)
+                            && (!hasSelectedAbsType || string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
                     }
 
                     var includeTypedAbsence = HasTypedAbsence(etatAbsence);
                     var includeGeneratedNonPresent = presNonOpt && IsGeneratedNonPresent(etatAbsence);
                     var includeAuthorizedAbsence = absaut && HasAuthorizedAbsence(etatAbsence);
                     var includeRetard = absret && HasRetard(etatAbsence);
-
-                    return includeTypedAbsence
+                    var includeByRadio = includeTypedAbsence
                         || includeGeneratedNonPresent
                         || includeAuthorizedAbsence
                         || includeRetard;
+
+                    return includeByRadio && (!hasSelectedAbsType || string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
                 });
 
             return filteredResults

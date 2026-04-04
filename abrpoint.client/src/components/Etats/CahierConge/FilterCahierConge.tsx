@@ -25,7 +25,7 @@ function FilterCahierConge() {
     const absenceTypeOptions = {
         '': 'Tous les types',
         '1': 'CSF',
-        '2': 'Congés',
+        '2': 'Justifiée',
         '3': 'Non justifiée',
         '4': 'MAP',
         '5': 'CSS',
