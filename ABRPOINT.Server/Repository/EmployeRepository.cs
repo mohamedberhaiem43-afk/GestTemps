@@ -23,11 +23,12 @@ namespace ABRPOINT.Server.Repository
         private readonly IPosteRepository _posteRepository;
         private readonly IautoriserRepository _autorisationRepository;
         private readonly IMapper _mapper;
-        private readonly ILogger _logger;   
+        private readonly ILogger<EmployeRepository> _logger;
+
         public EmployeRepository(ApplicationDbContext dbContext, ISiteRepository siteRepository, ICalendrierRepository icalendrierRepository,
             IParametreRepository parametreRepository, ICongeRepository congeRepository, IMapper mapper, ILogger<EmployeRepository> logger,
-            IHeureRetardService retardService,IPosteRepository posteRepository,IJourFerieRepository ferierRepository,
-            IUtilisateurRepository utilisateurRepository,IautoriserRepository autorisationRepository)
+            IHeureRetardService retardService, IPosteRepository posteRepository, IJourFerieRepository ferierRepository,
+            IUtilisateurRepository utilisateurRepository, IautoriserRepository autorisationRepository)
         {
             _dbContext = dbContext;
             _siteRepository = siteRepository;
@@ -41,13 +42,14 @@ namespace ABRPOINT.Server.Repository
             _autorisationRepository = autorisationRepository;
             _mapper = mapper;
             _logger = logger;
-
         }
+
         public void Add(Employe employe)
         {
             _dbContext.Employes.Add(employe);
             _dbContext.SaveChanges();
         }
+
         public async Task AddAsync(Employe employe)
         {
             try
@@ -134,17 +136,14 @@ namespace ABRPOINT.Server.Repository
             {
                 var empHoraires = await _dbContext.Employes
                     .Where(emp => emp.Empcod == empcod && emp.Soccod == soccod)
-
                     .Join(_dbContext.Lcategories.Where(c => c.Soccod == soccod),
                         emp => emp.Catcod,
                         lcat => lcat.Catcod,
                         (emp, lcat) => new { emp, lcat })
-
                     .Join(_dbContext.Postes.Where(p => p.Soccod == soccod),
                         combined => combined.lcat.Codposte,
                         p => p.Codposte,
                         (combined, p) => p)
-
                     .Distinct()
                     .ToListAsync();
 
@@ -159,7 +158,6 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-
         public void Delete(Employe employe)
         {
             if (employe != null)
@@ -173,15 +171,16 @@ namespace ABRPOINT.Server.Repository
         {
             return _dbContext.Employes.ToList();
         }
+
         public async Task<(TimeSpan? Debut, TimeSpan? Fin)> GetEmpNuitIntervalle(string soccod, string empcod)
         {
             try
             {
                 string? empnuit = await _dbContext.Employes.Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
-                    .Select(emp=> emp.Empnuit)
+                    .Select(emp => emp.Empnuit)
                     .SingleOrDefaultAsync();
-                if(empnuit == null || empnuit == "9")
-                    return (null,null);
+                if (empnuit == null || empnuit == "9")
+                    return (null, null);
                 var result = await (from emp in _dbContext.Employes
                                     where emp.Empcod == empcod && emp.Soccod == soccod
                                     join param in _dbContext.Parametres
@@ -209,7 +208,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<decimal> GetTotRetards(string empcod, DateTime dateDeb, DateTime dateFin,string soccod)
+        public async Task<decimal> GetTotRetards(string empcod, DateTime dateDeb, DateTime dateFin, string soccod)
         {
             try
             {
@@ -217,12 +216,11 @@ namespace ABRPOINT.Server.Repository
                     .Where(p => p.Empcod == empcod && p.Dmdate >= dateDeb && p.Dmdate <= dateFin && p.Soccod == soccod)
                     .ToListAsync();
 
-
                 decimal totalMinutes = 0;
 
                 foreach (var p in presences)
                 {
-                    string codpost = await _posteRepository.GetEmpPoste(p.Soccod, p.Empcod, p.Predat,p.Catcod);
+                    string codpost = await _posteRepository.GetEmpPoste(p.Soccod, p.Empcod, p.Predat, p.Catcod);
                     var poste = await _posteRepository.GetPoste(p.Soccod, codpost);
 
                     PresenceDto presence = _mapper.Map<Presence, PresenceDto>(p);
@@ -251,7 +249,6 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-
         public async Task<Dictionary<string, int>> GetTotRetardsBatch(List<string> empcods, DateTime? dateDeb, DateTime? dateFin, string soccod)
         {
             if (empcods == null || !empcods.Any())
@@ -260,14 +257,14 @@ namespace ABRPOINT.Server.Repository
             if (!dateDeb.HasValue || !dateFin.HasValue)
                 throw new ArgumentException("dateDeb et dateFin sont obligatoires");
 
-            // 🆕 Récupérer les dates d'emploi pour tous les employés
+            // ?? Récupérer les dates d'emploi pour tous les employés
             var employeeDates = await _dbContext.Employes
                 .Where(e => empcods.Contains(e.Empcod) && e.Soccod == soccod)
                 .Select(e => new { e.Empcod, e.Empemb, e.Empsort })
                 .ToDictionaryAsync(e => e.Empcod);
 
             // =====================================
-            // 1️⃣ Chargement des présences
+            // 1?? Chargement des présences
             // =====================================
             var presences = await _dbContext.Presences
                 .Where(p =>
@@ -282,7 +279,7 @@ namespace ABRPOINT.Server.Repository
                 return new Dictionary<string, int>();
 
             // =====================================
-            // 2️⃣ Charger les congés (batch) - 🆕 avec filtrage
+            // 2?? Charger les congés (batch) - ?? avec filtrage
             // =====================================
             var demandesConge = presences
                 .Select(p => (p.Soccod, p.Empcod, p.Dmdate!.Value.Date))
@@ -301,21 +298,21 @@ namespace ABRPOINT.Server.Repository
                 await _congeRepository.GetCongeLibBatch(demandesConge);
 
             // =====================================
-            // 3️⃣ Charger les postes (batch)
+            // 3?? Charger les postes (batch)
             // =====================================
             var empdates = presences
-                .Select(p => (p.Soccod, p.Empcod, p.Dmdate!.Value.Date, p.Codposte,p.Catcod))
+                .Select(p => (p.Soccod, p.Empcod, p.Dmdate!.Value.Date, p.Codposte, p.Catcod))
                 .Distinct()
                 .ToList();
 
             var postesEmp = new Dictionary<(string soc, string Empcod, DateTime Date), string?>();
-            foreach (var (soc, empcod, date, codposte,catcod) in empdates)
+            foreach (var (soc, empcod, date, codposte, catcod) in empdates)
             {
                 string? posteCode = codposte;
 
                 if (string.IsNullOrEmpty(posteCode))
                 {
-                    posteCode = await _posteRepository.GetEmpPoste(soc, empcod, date,catcod);
+                    posteCode = await _posteRepository.GetEmpPoste(soc, empcod, date, catcod);
                 }
 
                 postesEmp[(soc, empcod, date)] = posteCode;
@@ -329,13 +326,13 @@ namespace ABRPOINT.Server.Repository
             var postes = new Dictionary<string, Poste>();
             foreach (var posteCod in posteCodes)
             {
-                var poste = await _posteRepository.GetPoste(soccod, posteCod);
+                var poste = await _posteRepository.GetPoste(soccod, posteCod!);
                 if (poste != null)
                     postes[posteCod!] = poste;
             }
 
             // =====================================
-            // 4️⃣ Autorisations (batch) - 🆕 avec filtrage
+            // 4?? Autorisations (batch) - ?? avec filtrage
             // =====================================
             var demandesAut = presences
                 .Select(p => (p.Empcod, p.Dmdate!.Value.Date))
@@ -354,7 +351,7 @@ namespace ABRPOINT.Server.Repository
                 await _autorisationRepository.GetAutLibBatch(soccod, demandesAut);
 
             // =====================================
-            // 5️⃣ Calcul des retards
+            // 5?? Calcul des retards
             // =====================================
             var result = new Dictionary<string, int>();
 
@@ -363,16 +360,16 @@ namespace ABRPOINT.Server.Repository
                 var date = p.Dmdate!.Value.Date;
                 var congeKey = (p.Soccod, p.Empcod, date);
 
-                // ❌ Skip if employee is on congé
+                // ? Skip if employee is on congé
                 if (conges.TryGetValue(congeKey, out var congeData) &&
                     !string.IsNullOrEmpty(congeData.Abslib))
                     continue;
 
-                // ✅ Récupérer le poste depuis le dictionnaire
+                // ? Récupérer le poste depuis le dictionnaire
                 if (!postesEmp.TryGetValue((p.Soccod, p.Empcod, date), out var postEmp))
                     continue;
 
-                // ✅ Récupérer les détails du poste depuis le dictionnaire
+                // ? Récupérer les détails du poste depuis le dictionnaire
                 if (string.IsNullOrEmpty(postEmp) || !postes.TryGetValue(postEmp, out var poste))
                     continue;
 
@@ -396,18 +393,35 @@ namespace ABRPOINT.Server.Repository
 
             return result;
         }
+
         public async Task<IEnumerable<EmployeDto>> GetAllAsync(string soccod, string uticod)
         {
             try
             {
                 var employes = await _dbContext.Employes
+                    .AsNoTracking()
                     .Where(e => e.Soccod == soccod &&
                            _dbContext.Socusers.Any(s => s.Soccod == soccod &&
                                                         s.Uticod == uticod &&
                                                         s.Sitcod == e.Sitcod))
+                    .Select(e => new EmployeDto
+                    {
+                        Empcod = e.Empcod,
+                        Soccod = e.Soccod,
+                        Sitcod = e.Sitcod,
+                        Emplib = e.Emplib,
+                        Empreg = e.Empreg,
+                        Empfonc = e.Empfonc,
+                        Empemb = e.Empemb,
+                        Empsort = e.Empsort,
+                        Actif = e.Actif,
+                        Quacod = e.Quacod,
+                        Sercod = e.Sercod,
+                        Empferepos = e.Empferepos
+                    })
                     .ToListAsync();
 
-                return _mapper.Map<IEnumerable<EmployeDto>>(employes);
+                return employes;
             }
             catch (Exception ex)
             {
@@ -415,6 +429,7 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
         public IEnumerable<Employe> GetAll(string soccod, string uticod)
         {
             // Check if soccod and uticod have values
@@ -436,7 +451,6 @@ namespace ABRPOINT.Server.Repository
             return GetAll();
         }
 
-
         public async Task<Employe> GetByEmpcod(string soccod, string empcod)
         {
             try
@@ -449,7 +463,6 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-
 
         public async Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod)
         {
@@ -512,6 +525,7 @@ namespace ABRPOINT.Server.Repository
                 _dbContext.SaveChanges();
             }
         }
+
         private string SumTimeSpans(List<string> timeSpans)
         {
             var total = TimeSpan.Zero;
@@ -522,6 +536,7 @@ namespace ABRPOINT.Server.Repository
             }
             return total.ToString(@"hh\:mm\:ss");
         }
+
         private double CalculateHoursWithLimits(Presence presence, EmpparamPointageMois empparam)
         {
             float actualHours = (float)GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
@@ -539,6 +554,7 @@ namespace ABRPOINT.Server.Repository
 
             return actualHours;
         }
+
         private double journeeTime(float dayworkhours, EmpparamPointageMois empparam)
         {
             // PRIORITÉ 1: Utiliser les paramètres de l'employé (comportement actuel)
@@ -564,7 +580,7 @@ namespace ABRPOINT.Server.Repository
         }
 
         public async Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, List<string>? empcods = null, string? empreg = null, string? service = null,
-DateTime? debut = null, DateTime? fin = null)
+            DateTime? debut = null, DateTime? fin = null)
         {
             try
             {
@@ -576,14 +592,14 @@ DateTime? debut = null, DateTime? fin = null)
                     return new List<EmployeePresenceDto>();
                 }
 
-                // 🔹 Récupérer le paramètre d'arrondi
+                // ?? Récupérer le paramètre d'arrondi
                 var param = await _parametreRepository.GetEtatPeriodiqueParamAsync(soccod);
                 float arrondi = param?.Arrondi ?? 0f;
 
                 var empcodsList = empcods?.ToList();
 
                 // ==========================
-                // 1️⃣ Requête principale SQL
+                // 1?? Requête principale SQL
                 // ==========================
                 var baseQuery =
                     from e in _dbContext.Employes
@@ -619,7 +635,7 @@ DateTime? debut = null, DateTime? fin = null)
                 }
 
                 // ================================
-                // 2️⃣ Matérialiser et dédupliquer
+                // 2?? Matérialiser et dédupliquer
                 // ================================
                 var rawData = await baseQuery.ToListAsync();
 
@@ -641,13 +657,13 @@ DateTime? debut = null, DateTime? fin = null)
                             totalMinutes += (int)tothre.TotalMinutes;
                         }
 
-                        // ✅ Tothsup
+                        // ? Tothsup
                         if (TimeSpan.TryParse(x.Tothsup ?? "", out var tothsup))
                         {
                             totalMinutes += (int)tothsup.TotalMinutes;
                         }
 
-                        // ✅ Totcmp (heures décimales → minutes)
+                        // ? Totcmp (heures décimales ? minutes)
                         if (x.Totcmp.HasValue)
                         {
                             totalMinutes += (int)TimeSpan.FromHours(x.Totcmp.Value).TotalMinutes;
@@ -665,32 +681,32 @@ DateTime? debut = null, DateTime? fin = null)
 
                 var empList = presenceDataRaw.Select(x => x.Empcod).Distinct().ToList();
 
-                // 🆕 Récupérer les dates empemb et empsort pour tous les employés
+                // ?? Récupérer les dates empemb et empsort pour tous les employés
                 var employeeDates = await _dbContext.Employes
                     .Where(e => empList.Contains(e.Empcod) && e.Soccod == soccod)
                     .Select(e => new { e.Empcod, e.Empemb, e.Empsort })
                     .ToDictionaryAsync(e => e.Empcod);
 
                 // ================================
-                // 3️⃣ Récupérer les jours fériés
+                // 3?? Récupérer les jours fériés
                 // ================================
                 var feriers = await _ferierRepository.GetByFerdateBatch(soccod, debut.Value, fin.Value);
                 var ferierDates = feriers.Keys.ToHashSet();
 
                 // ================================
-                // 4️⃣ Récupérer TOUS les congés pour la période
+                // 4?? Récupérer TOUS les congés pour la période
                 // ================================
-                // ✅ Créer une liste de TOUTES les dates de la période pour chaque employé
+                // ? Créer une liste de TOUTES les dates de la période pour chaque employé
                 var allDatesInPeriod = new List<(string Soccod, string Empcod, DateTime Date)>();
 
                 foreach (var emp in empList)
                 {
-                    // 🆕 Récupérer les dates d'emploi
+                    // ?? Récupérer les dates d'emploi
                     var empDates = employeeDates.GetValueOrDefault(emp);
 
                     for (DateTime date = debut.Value.Date; date <= fin.Value.Date; date = date.AddDays(1))
                     {
-                        // 🆕 Filtrer les dates hors période d'emploi
+                        // ?? Filtrer les dates hors période d'emploi
                         if (empDates != null)
                         {
                             if (empDates.Empemb.HasValue && date < empDates.Empemb.Value) continue;
@@ -701,12 +717,12 @@ DateTime? debut = null, DateTime? fin = null)
                     }
                 }
 
-                // ✅ Récupérer tous les congés pour toutes les dates (déjà filtrées)
+                // ? Récupérer tous les congés pour toutes les dates (déjà filtrées)
                 var conges = await _congeRepository.GetCongeLibBatch(allDatesInPeriod);
                 var nbhconge = await _parametreRepository.GetNbhConge(soccod) ?? 0;
 
                 // ================================
-                // 5️⃣ Calcul des heures de congés par employé
+                // 5?? Calcul des heures de congés par employé
                 // ================================
                 var congeMinutesParEmp = allDatesInPeriod
                     .GroupBy(x => x.Empcod)
@@ -729,7 +745,7 @@ DateTime? debut = null, DateTime? fin = null)
                     );
 
                 // ================================
-                // 6️⃣ Calcul des heures fériées travaillées
+                // 6?? Calcul des heures fériées travaillées
                 // ================================
                 var ferierTravailleParEmp = presenceDataRaw
                     .Where(x => x.MinutesArrondies > 0 && ferierDates.Contains(x.Predat.Value.Date))
@@ -740,13 +756,13 @@ DateTime? debut = null, DateTime? fin = null)
                     );
 
                 // ================================
-                // 7️⃣ Calcul des heures fériées non travaillées
+                // 7?? Calcul des heures fériées non travaillées
                 // ================================
                 float ferierHeure = await _ferierRepository.GetTotheureFerierParPeriode(soccod, debut, fin) ?? 0;
                 int ferierMinutesGlobal = (int)TimeSpan.FromHours(ferierHeure).TotalMinutes;
 
                 // ================================
-                // 8️⃣ Agrégation par employé (heures normales)
+                // 8?? Agrégation par employé (heures normales)
                 // ================================
                 var presenceData = presenceDataRaw
                     .GroupBy(x => new { x.Empcod, x.Emplib })
@@ -763,13 +779,13 @@ DateTime? debut = null, DateTime? fin = null)
                     return new List<EmployeePresenceDto>();
 
                 // ================================
-                // 9️⃣ Données batch complémentaires
+                // 9?? Données batch complémentaires
                 // ================================
                 var nbJours = await GetNbJoursBatch(empList, debut, fin, soccod);
                 var retards = await GetTotRetardsBatch(empList, debut, fin, soccod);
 
                 // ================================
-                // 🔟 Assemblage final
+                // ?? Assemblage final
                 // ================================
                 return presenceData.Select(x =>
                 {
@@ -781,7 +797,7 @@ DateTime? debut = null, DateTime? fin = null)
                         Empcod = x.Empcod,
                         Emplib = x.Emplib,
 
-                        // ✅ heures normales + heures fériées travaillées + heures fériées non travaillées + heures de congés
+                        // ? heures normales + heures fériées travaillées + heures fériées non travaillées + heures de congés
                         TotalMinutes = x.TotalMinutes + ferierTravMinutes + ferierMinutesGlobal + congeMinutes,
 
                         NbJours = nbJours.GetValueOrDefault(x.Empcod),
@@ -795,7 +811,6 @@ DateTime? debut = null, DateTime? fin = null)
                 throw;
             }
         }
-
 
         public async Task<float?> GetNbJours(string empcod, DateTime? dateDeb, DateTime? dateFin)
         {
@@ -821,8 +836,6 @@ DateTime? debut = null, DateTime? fin = null)
             }
         }
 
-
-
         public async Task<Dictionary<string, float>> GetNbJoursBatch(List<string> empcods, DateTime? dateDeb, DateTime? dateFin, string soccod)
         {
             if (empcods == null || !empcods.Any())
@@ -830,20 +843,20 @@ DateTime? debut = null, DateTime? fin = null)
             if (!dateDeb.HasValue || !dateFin.HasValue)
                 throw new ArgumentException("dateDeb et dateFin sont obligatoires");
 
-            // 🆕 Récupérer les dates d'emploi pour tous les employés
+            // ?? Récupérer les dates d'emploi pour tous les employés
             var employeeDates = await _dbContext.Employes
                 .Where(e => empcods.Contains(e.Empcod) && e.Soccod == soccod)
                 .Select(e => new { e.Empcod, e.Empemb, e.Empsort })
                 .ToDictionaryAsync(e => e.Empcod);
 
             // =====================================
-            // 1️⃣ Charger les jours fériés
+            // 1?? Charger les jours fériés
             // =====================================
             var feriers = await _ferierRepository.GetByFerdateBatch(soccod, dateDeb.Value, dateFin.Value);
             var ferierDates = feriers.Keys.ToHashSet();
 
             // =====================================
-            // 2️⃣ Charger les présences (1 requête)
+            // 2?? Charger les présences (1 requête)
             // =====================================
             var presences = await _dbContext.Presences
                 .Where(p =>
@@ -870,7 +883,7 @@ DateTime? debut = null, DateTime? fin = null)
                 return new Dictionary<string, float>();
 
             // =====================================
-            // 3️⃣ Charger les congés (batch) - 🆕 avec filtrage
+            // 3?? Charger les congés (batch) - ?? avec filtrage
             // =====================================
             var demandesConge = presences
                 .Select(p => (p.Presence.Soccod, p.Empcod, p.Date))
@@ -888,7 +901,7 @@ DateTime? debut = null, DateTime? fin = null)
             var conges = await _congeRepository.GetCongeLibBatch(demandesConge);
 
             // =====================================
-            // 4️⃣ Pré-charger les emparam pour tous les employés
+            // 4?? Pré-charger les emparam pour tous les employés
             // =====================================
             var empparams = new Dictionary<(string, DateTime), EmpparamPointageMois>();
 
@@ -908,7 +921,7 @@ DateTime? debut = null, DateTime? fin = null)
             }
 
             // =====================================
-            // 5️⃣ Calcul NbJours (exclusion repos)
+            // 5?? Calcul NbJours (exclusion repos)
             // =====================================
             var result = new Dictionary<string, float>();
 
@@ -921,7 +934,7 @@ DateTime? debut = null, DateTime? fin = null)
                 if (!string.IsNullOrEmpty(p?.Tothre))
                     res = journeeTime((float)GenericMethodes.ConvertTimeToDecimal(p.Tothre), emparam);
 
-                // ✅ Si c'est un jour férié AVEC présence
+                // ? Si c'est un jour férié AVEC présence
                 if (feriers.TryGetValue(p.Date, out var ferier))
                 {
                     res = journeeTime((float)ferier.Ferheure, emparam);
@@ -933,7 +946,7 @@ DateTime? debut = null, DateTime? fin = null)
                     continue;
                 }
 
-                // ✅ Exclure les jours de repos
+                // ? Exclure les jours de repos
                 if (p.Presence.Prerepos == "1")
                     continue;
 
@@ -951,13 +964,13 @@ DateTime? debut = null, DateTime? fin = null)
                 if (!result.ContainsKey(p.Empcod))
                     result[p.Empcod] = 0;
 
-                // ✅ Si Connbjour = 0.5, ajouter 0.5, sinon ajouter 1
+                // ? Si Connbjour = 0.5, ajouter 0.5, sinon ajouter 1
                 float journeeValue = (connbjour.HasValue && connbjour.Value == 0.5f) ? 0.5f : 1f;
                 result[p.Empcod] += journeeValue;
             }
 
             // =====================================
-            // 6️⃣ Ajouter les jours fériés NON présents dans les présences
+            // 6?? Ajouter les jours fériés NON présents dans les présences
             // =====================================
             var presenceDates = presences
                 .GroupBy(p => p.Empcod)
@@ -978,7 +991,7 @@ DateTime? debut = null, DateTime? fin = null)
 
                 foreach (var ferierDate in feriersSansPresence)
                 {
-                    // 🆕 Vérifier la période d'emploi pour les jours fériés
+                    // ?? Vérifier la période d'emploi pour les jours fériés
                     var empDates = employeeDates.GetValueOrDefault(empcod);
                     if (empDates != null)
                     {
@@ -999,9 +1012,9 @@ DateTime? debut = null, DateTime? fin = null)
 
             return result;
         }
+
         double CustomRound(double value)
         {
-<<<<<<< HEAD
             if (!double.IsFinite(value)) return 0;
 
             double fraction = value - Math.Floor(value);
@@ -1014,35 +1027,15 @@ DateTime? debut = null, DateTime? fin = null)
         }
 
         public async Task<EmpEtatConge> GetEmpEtatConge(string soccod, string empcod, string moisdeb, string moisfin, string annee)
-=======
-            double fraction = value - Math.Floor(value);
-
-            if (Math.Abs(fraction - 0.5) < 0.000001)
-            {
-                return Math.Round(value, 2); // conserve 13.5 → 13.5
-            }
-            else if (fraction < 0.5)
-            {
-                return Math.Round(Math.Floor(value), 2); // 13.2 → 13.00
-            }
-            else
-            {
-                return Math.Round(Math.Ceiling(value), 2); // 13.6 → 14.00
-            }
-        }
-
-        public async Task<EmpEtatConge> GetEmpEtatConge(string soccod, string empcod, string moisdeb,string moisfin,string annee)
->>>>>>> 28cea3e2ad1806dea711b08ddb14d8aeead30584
         {
             try
             {
                 dynamic result = await Calc_solde_conge(soccod, empcod, moisdeb, moisfin, annee);
 
-<<<<<<< HEAD
-                double cm         = double.IsFinite((double)result.cm)         ? (double)result.cm         : 0;
-                double anciente   = double.IsFinite((double)result.anciente)   ? (double)result.anciente   : 0;
+                double cm = double.IsFinite((double)result.cm) ? (double)result.cm : 0;
+                double anciente = double.IsFinite((double)result.anciente) ? (double)result.anciente : 0;
                 double droitConge = double.IsFinite((double)result.droitConge) ? (double)result.droitConge : 0;
-                double sa         = double.IsFinite((double)result.sa)         ? (double)result.sa         : 0;
+                double sa = double.IsFinite((double)result.sa) ? (double)result.sa : 0;
 
                 EmpEtatConge empEtatConge = new EmpEtatConge(
                     CustomRound(cm),
@@ -1050,10 +1043,6 @@ DateTime? debut = null, DateTime? fin = null)
                     CustomRound(droitConge),
                     CustomRound(sa)
                 );
-=======
-                EmpEtatConge empEtatConge = new EmpEtatConge(CustomRound((double)result.cm),(int)Math.Round((double)result.anciente),
-                    CustomRound((double)result.droitConge),CustomRound((double)result.sa));
->>>>>>> 28cea3e2ad1806dea711b08ddb14d8aeead30584
 
                 return empEtatConge;
             }
@@ -1063,7 +1052,7 @@ DateTime? debut = null, DateTime? fin = null)
             }
         }
 
-        private async Task<Object> Calc_solde_conge(string soccod, string empcod, string moisdeb,string moisfin,string annee)
+        private async Task<object> Calc_solde_conge(string soccod, string empcod, string moisdeb, string moisfin, string annee)
         {
             double droitConge = 0;
             double nbheuret = 208;
@@ -1084,13 +1073,12 @@ DateTime? debut = null, DateTime? fin = null)
             if (site == null)
                 throw new ArgumentNullException("Site data is null");
 
-
             double cm = site.Sitconge.HasValue ? (double)site.Sitconge.Value / 12 : 0;
 
             //sans anciente si sitsancm=1
             if ((site.Sitsancm == "1" && employe.Empreg == "M") ||
                 (site.Sitsanch == "1" && employe.Empreg == "H"))
-                    anciente = 0;
+                anciente = 0;
             else
             {
                 anciente = int.Parse(annee) - employe.Empemb.Value.Year;
@@ -1099,66 +1087,44 @@ DateTime? debut = null, DateTime? fin = null)
                     anciente--;
             }
             if (anciente != 0)
-<<<<<<< HEAD
             {
                 parecart = await _parametreRepository.GetParancemp(soccod);
                 droitConge += Math.Floor((double)anciente / parecart);
             }
-=======
-                parecart = await _parametreRepository.GetParancemp(soccod);
-                droitConge += Math.Floor((double)anciente / parecart);
->>>>>>> 28cea3e2ad1806dea711b08ddb14d8aeead30584
 
             for (int i = 0; i < int.Parse(moisfin.TrimStart('0')); i++) // Remove leading zero from moisfin
             {
                 string currentMonth = (i + 1).ToString("D2"); // Convert month to "01", "02", ..., "12" format
                 calendsoc = await _calendrierRepository.GetCalendrier(soccod, annee, currentMonth, caltype);
-<<<<<<< HEAD
-                float nbConge = await _congeRepository.GetNbCongeRecue(soccod, empcod,annee,currentMonth);
-                
+                float nbConge = await _congeRepository.GetNbCongeRecue(soccod, empcod, annee, currentMonth);
+
                 // Prevent infinity/NaN from being accumulated
                 if (!float.IsInfinity(nbConge) && !float.IsNaN(nbConge))
                 {
                     congeRecue += nbConge;
                 }
 
-            if (calendsoc != null)
-            {
-                nbheuret = (double)calendsoc.CalNbh;
-                nbjourt  = (double)calendsoc.CalTrav;
-                nbheurejour = (double)calendsoc.CalHjour;
-
-                nbtravmois = nbjourt - calc_absences_par_mois(soccod, currentMonth, annee, empcod);
-
-                if (employe.Empreg == "M" && nbjourt != 0)
-                    droitmensuelle += (nbtravmois * cm) / nbjourt;
-                else if (employe.Empreg == "H" && nbheuret != 0)
-                    droitmensuelle += (nbtravmois * nbheurejour * cm) / nbheuret;
-            }
-=======
-                congeRecue += await _congeRepository.GetNbCongeRecue(soccod, empcod,annee,currentMonth);
-
                 if (calendsoc != null)
                 {
                     nbheuret = (double)calendsoc.CalNbh;
                     nbjourt = (double)calendsoc.CalTrav;
                     nbheurejour = (double)calendsoc.CalHjour;
-                    // nbtravmois = nbjourt - (les absences != (abscng));
-                    nbtravmois = nbjourt - calc_absences_par_mois(soccod, currentMonth, annee, empcod);
-                    if(employe.Empreg == "M")
-                        droitmensuelle += (nbtravmois * cm) / nbjourt;
-                    else if(employe.Empreg == "H")
-                        droitmensuelle += (nbtravmois * nbheurejour * cm) / nbheuret;
 
+                    nbtravmois = nbjourt - calc_absences_par_mois(soccod, currentMonth, annee, empcod);
+
+                    if (employe.Empreg == "M" && nbjourt != 0)
+                        droitmensuelle += (nbtravmois * cm) / nbjourt;
+                    else if (employe.Empreg == "H" && nbheuret != 0)
+                        droitmensuelle += (nbtravmois * nbheurejour * cm) / nbheuret;
                 }
->>>>>>> 28cea3e2ad1806dea711b08ddb14d8aeead30584
             }
             if (anciente < parecart)
                 anciente = 0;
             droitConge += droitmensuelle;
             sa = droitConge - congeRecue;
-            return new { anciente, cm,droitConge,sa };
+            return new { anciente, cm, droitConge, sa };
         }
+
         private double calc_absences_par_mois(string soccod, string mois, string annee, string empcod)
         {
             double nbjabsence = 0;
@@ -1198,12 +1164,12 @@ DateTime? debut = null, DateTime? fin = null)
                     absfin = wcng_fin;
                 if ((absence.Conamdep == "1" && absence.Conamret == "1") || (absence.Conamdep == "0" && absence.Conamret == "0"))
                     nbjabsence += (absfin - absdeb).TotalDays + 1; // Ajouter les jours (inclure le jour de départ)
-
                 else
                     nbjabsence += (absfin - absdeb).TotalDays + 0.5;
             }
             return nbjabsence;
         }
+
         private double calc_conge_par_mois(string soccod, string mois, string annee, string empcod)
         {
             double nbjconge = 0;
@@ -1284,7 +1250,7 @@ DateTime? debut = null, DateTime? fin = null)
                 })
                 .SingleOrDefaultAsync();
 
-                    return empRegNiveau;
+                return empRegNiveau;
             }
             catch (Exception)
             {
@@ -1319,7 +1285,7 @@ DateTime? debut = null, DateTime? fin = null)
                     .ToListAsync();
 
                 var dateYear = date.Value.Year;
-                if(!matchingPostes.Any(mp => mp.Catdu.Value.Year == dateYear || mp.Catau.Value.Year == dateYear))
+                if (!matchingPostes.Any(mp => mp.Catdu.Value.Year == dateYear || mp.Catau.Value.Year == dateYear))
                 {
                     matchingPostes = matchingPostes.Where(mp => mp.Catfixe == "1").ToList();
                 }
@@ -1356,7 +1322,7 @@ DateTime? debut = null, DateTime? fin = null)
                     .Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
                     .Select(emp => emp.Empretard)
                     .SingleOrDefaultAsync();
-                if (string.IsNullOrEmpty(empretard) || empretard == "1")  
+                if (string.IsNullOrEmpty(empretard) || empretard == "1")
                     return false;
                 return true;
             }
@@ -1427,7 +1393,7 @@ DateTime? debut = null, DateTime? fin = null)
                               from e in empJoin.DefaultIfEmpty() // LEFT JOIN
                               where p.Soccod == soccod &&
                                     p.Predat >= yesterday &&
-                                    p.Predat < today&&
+                                    p.Predat < today &&
                                     sitcods.Contains(e.Sitcod)
                               select new { Presence = p, Employe = e })
                              .AsEnumerable() // switch to client-side evaluation
@@ -1468,7 +1434,6 @@ DateTime? debut = null, DateTime? fin = null)
                     return existing;
                 }
                 return new Employe();
-                ;
             }
             catch (Exception)
             {
@@ -1480,7 +1445,7 @@ DateTime? debut = null, DateTime? fin = null)
         {
             try
             {
-                string? emplib = await _dbContext.Employes.Where(e => e.Empmat == user_id).Select(e=>e.Emplib).FirstOrDefaultAsync();
+                string? emplib = await _dbContext.Employes.Where(e => e.Empmat == user_id).Select(e => e.Emplib).FirstOrDefaultAsync();
                 return emplib;
             }
             catch (Exception)
@@ -1523,7 +1488,7 @@ DateTime? debut = null, DateTime? fin = null)
             }
         }
 
-        public async Task<string?> GetEmpPanier(string soccod,string empcod)
+        public async Task<string?> GetEmpPanier(string soccod, string empcod)
         {
             try
             {
@@ -1537,6 +1502,7 @@ DateTime? debut = null, DateTime? fin = null)
                 throw;
             }
         }
+
         public async Task<Dictionary<DateTime, string>> GetEmpPostesByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate)
         {
             try
@@ -1610,7 +1576,7 @@ DateTime? debut = null, DateTime? fin = null)
             }
         }
 
-        public async Task<EmpparamPointageMois> GetEmpparam(string soccod, string empcod, DateTime date,string codpost)
+        public async Task<EmpparamPointageMois> GetEmpparam(string soccod, string empcod, DateTime date, string? codpost)
         {
             try
             {
@@ -1632,7 +1598,7 @@ DateTime? debut = null, DateTime? fin = null)
                 // 2. Récupérer le code poste
                 string? codPoste = !string.IsNullOrEmpty(codpost)
                     ? codpost
-                    : await _posteRepository.GetEmpPoste(soccod, empcod, date,null);
+                    : await _posteRepository.GetEmpPoste(soccod, empcod, date, null);
 
                 if (string.IsNullOrEmpty(codPoste))
                     return emparam;
@@ -1732,6 +1698,7 @@ DateTime? debut = null, DateTime? fin = null)
                 .Take(20) // Limiter les résultats pour les performances
                 .ToListAsync();
         }
+
         public async Task<List<Employe>> SearchByTerms(string soccod, List<string> terms)
         {
             if (terms == null || !terms.Any())

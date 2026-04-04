@@ -13,6 +13,7 @@ namespace ABRPOINT.Server.Interfaces
         Task<IDictionary<string, string>> GetCalendriers(string soccod);
         Task<bool> CloneCalendrier(string soccod, int annee);
         Task<bool> CloneLCalendrier(string soccod, int annee);
+        Task AddCalendrier(string soccod, string annee, string caltype);
         Task<(string? calend,float? hours, DateTime? startDate, DateTime? endDate,int? jourferier,float? heuresferier)> GetNbHeuresParSemaineWithDates(string soccod, string mois, string annee, string semaine, string empcod);
     }
 }

@@ -29,12 +29,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
 import IntegrationPaieButton from '../../helper/IntegrationPaieButton';
 import useGetRubriquesPaire from '../../../hooks/rubriqueHooks/useGetRubriquePaire';
-import axios from 'axios';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../helper/TimeConverter/formatDateForApi';
 import { useTranslation } from 'react-i18next';
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
+import apiInstance from '../../API/apiInstance';
 interface EtatGlobalData {
   empmat: string;
   emplib: string;
@@ -61,16 +61,10 @@ interface EtatGlobalRequest {
 const generateEtatGlobalReport = async (
   request: EtatGlobalRequest
 ): Promise<Blob> => {
-
-  const token = localStorage.getItem('authToken');
-  const response = await axios.post(
-    `${import.meta.env.VITE_REACT_APP_API_URL}/Presences/etat-global`,
+  const response = await apiInstance.post(
+    '/Presences/etat-global',
     request,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
       responseType: 'blob',
     }
   );
@@ -709,3 +703,6 @@ const PointageDuMois = () => {
 };
 
 export default PointageDuMois;
+
+
+

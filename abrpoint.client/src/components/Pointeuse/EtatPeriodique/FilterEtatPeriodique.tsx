@@ -1,7 +1,6 @@
 import { Box, Grid, IconButton } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
-import axios from "axios";
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from 'react-i18next';
 import { useDateRange } from "./FilterContext";
@@ -10,12 +9,12 @@ import useGetEmployee from "../../../hooks/employeHooks/useGetEmployee";
 import { useAuth } from "../../helper/AuthProvider";
 import { EmployeeContext } from "./EmployeeContext";
 import useGenerateEtatDetaille from "../../../hooks/presenceHooks/useGenerateEtatDetaille";
+import apiInstance from "../../API/apiInstance";
+import axios from "axios";
 
 function FilterEtatPeriodique() {
     const { t } = useTranslation();
-    const token = localStorage.getItem('authToken');
     const { soccod } = useAuth();
-    const headers = { Authorization: `Bearer ${token}` };
     const regime = {
         'M': "Mensuelle",
         'H': "Horaire"
@@ -77,18 +76,17 @@ function FilterEtatPeriodique() {
     useEffect(() => {
         if (!soccod) return;
         
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Sites/get-sitlibs/${soccod}`)
+        apiInstance.get(`/Sites/get-sitlibs/${soccod}`)
             .then((res) => setFiliale(res.data))
             .catch((err) => console.error(err));
 
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Parametres/deb-mois/${soccod}`, { headers })
+        apiInstance.get(`/Parametres/deb-mois/${soccod}`)
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
-                // Removed setDebMois as it is unused
-                        setParamMois({ joudeb, joufin, moisdeb, moisfin }); // <-- Save for reuse
+                setParamMois({ joudeb, joufin, moisdeb, moisfin });
 
                 const currentYear = new Date().getFullYear();
-                let currentMonth = new Date().getMonth() + 1; // Add 1 to zero-based month
+                let currentMonth = new Date().getMonth() + 1;
 
                 let startMonth = moisdeb === 'P' ? currentMonth - 1 : currentMonth;
                 let endMonth = moisfin === 'P' ? currentMonth - 1: currentMonth;
@@ -112,12 +110,12 @@ function FilterEtatPeriodique() {
             .catch((err) => {
                 console.error("Error:", err.response ? err.response.data : err.message);
             });
-    }, []);
+    }, [soccod]);
 
 
 
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`, { headers })
+        axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/Services/get-servlibs/${soccod}`, { withCredentials: true })
             .then((res) => setServices(res.data))
             .catch((err) => console.error(err));
     }, [soccod]);
@@ -270,3 +268,6 @@ function FilterEtatPeriodique() {
 
 }
 export default FilterEtatPeriodique;
+
+
+

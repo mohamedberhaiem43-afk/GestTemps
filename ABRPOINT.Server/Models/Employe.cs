@@ -50,8 +50,8 @@ public partial class Employe
     [StringLength(2)]
     public string? Catcod { get; set; }
 
-    [Column("empnbp")]
-    public int? Empnbp { get; set; }
+    [Column("empnbp", TypeName = "real")]
+    public float? Empnbp { get; set; }
 
     [Column("natcod")]
     [StringLength(4)]
@@ -208,8 +208,8 @@ public partial class Employe
     [StringLength(1)]
     public string? Empnuit { get; set; }
 
-    [Column("empminhjour")]
-    public int? Empminhjour { get; set; }
+    [Column("empminhjour", TypeName = "float")]
+    public double? Empminhjour { get; set; }
 
     [Column("emppanier")]
     [StringLength(1)]
@@ -230,3 +230,4 @@ public partial class Employe
     public string? Empcmp { get; set; }
 
 }
+

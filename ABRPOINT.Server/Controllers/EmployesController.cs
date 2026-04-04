@@ -130,14 +130,22 @@ namespace ABRPOINT.Server.Controllers
         [CanGetEmploye]
         public async Task<ActionResult<Employe>> GetEmploye(string soccod, string empcod)
         {
-            Employe employe = new Employe();
-            if (empcod != null && empcod!="null")
+            try
             {
-                employe = await _employeRepository.GetByEmpcod(soccod, empcod);
-                if (employe == null)
-                    return NotFound();
+                Employe employe = new Employe();
+                if (empcod != null && empcod != "null")
+                {
+                    employe = await _employeRepository.GetByEmpcod(soccod, empcod);
+                    if (employe == null)
+                        return NotFound();
+                }
+                return Ok(employe);
             }
-            return Ok(employe);
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
 
         [HttpGet("get-libs/{soccod}/{uticod}")]

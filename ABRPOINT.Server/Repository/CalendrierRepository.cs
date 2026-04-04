@@ -501,6 +501,72 @@ namespace ABRPOINT.Server.Repository
             return true;
         }
 
+        public async Task AddCalendrier(string soccod, string annee, string caltype)
+        {
+            // Vérifier si le calendrier existe déjà
+            var exists = await _dbContext.Calendsocs
+                .AnyAsync(c => c.Soccod == soccod && c.CalAn == annee && c.Caltype == caltype);
+
+            if (exists)
+                throw new Exception($"Le calendrier {annee}/{caltype} existe déjà pour la société {soccod}");
+
+            // Créer les entrées Calendsoc pour chaque mois
+            var calendsocs = new List<Calendsoc>();
+            for (int month = 1; month <= 12; month++)
+            {
+                calendsocs.Add(new Calendsoc
+                {
+                    Soccod = soccod,
+                    Caltype = caltype,
+                    CalAn = annee,
+                    CalMois = month.ToString("00"),
+                    CalSem = month,
+                    CalNbh = 176, // Valeur par défaut (22 jours * 8h)
+                    CalTrav = 22,
+                    CalHjour = 8,
+                    CalHouv = 8,
+                    Callib = $"Calendrier {annee}",
+                    CalHsem = 40
+                });
+            }
+
+            await _dbContext.Calendsocs.AddRangeAsync(calendsocs);
+            await _dbContext.SaveChangesAsync();
+
+            // Créer les entrées Lcalendsoc pour chaque jour de l'année
+            var lcalendsocs = new List<Lcalendsoc>();
+            int year = int.Parse(annee);
+            var startDate = new DateTime(year, 1, 1);
+            var endDate = new DateTime(year, 12, 31);
+
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                int weekNum = GetWeekNumber(date);
+                float nbh = date.DayOfWeek == DayOfWeek.Sunday || date.DayOfWeek == DayOfWeek.Saturday ? 0 : 8;
+
+                lcalendsocs.Add(new Lcalendsoc
+                {
+                    Soccod = soccod,
+                    Caltype = caltype,
+                    CalDate = date,
+                    CalAn = annee,
+                    CalMois = date.Month.ToString("00"),
+                    CalSem = weekNum,
+                    CalNbh = nbh,
+                    CalTrav = nbh > 0 ? 1 : 0
+                });
+            }
+
+            await _dbContext.Lcalendsocs.AddRangeAsync(lcalendsocs);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        private int GetWeekNumber(DateTime date)
+        {
+            var dayOfYear = date.DayOfYear;
+            return ((dayOfYear - 1) / 7) + 1;
+        }
+
 
     }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -97,6 +97,12 @@ export default function AbsenceSanctionSaisie() {
 
   const handleSubmit = (event: any) => {
     event.preventDefault();
+
+    if (!abscod) {
+      handleSnackbarOpening("Veuillez saisir le code absence", 'error');
+      return;
+    }
+
     setIsLoading(true);
 
     let sanctionData: Sanction = {
@@ -112,29 +118,30 @@ export default function AbsenceSanctionSaisie() {
       connbjour,
       conjour,
       abscod,
+      consanc: 'N',
     };
 
     if (mode === 'save') {
       addSanction(sanctionData, {
         onSuccess() {
-          handleSnackbarOpening("Ajout de sanction avec succès", 'success');
+          handleSnackbarOpening("Ajout de sanction avec succÃ¨s", 'success');
           resetForm();
           setIsLoading(false);
         },
         onError() {
-          handleSnackbarOpening("Échec d'ajout de sanction", 'error');
+          handleSnackbarOpening("Ã‰chec d'ajout de sanction", 'error');
           setIsLoading(false);
         },
       });
     } else if (mode === 'edit') {
       updateSanction(sanctionData, {
         onSuccess() {
-          handleSnackbarOpening("Modification de sanction avec succès", 'success');
+          handleSnackbarOpening("Modification de sanction avec succÃ¨s", 'success');
           resetForm();
           setIsLoading(false);
         },
         onError() {
-          handleSnackbarOpening("Problème lors de modification de sanction", 'error');
+          handleSnackbarOpening("ProblÃ¨me lors de modification de sanction", 'error');
           setIsLoading(false);
         },
       });
@@ -171,7 +178,7 @@ export default function AbsenceSanctionSaisie() {
   return (
     <Box component="form" sx={{ mx: 'auto' }} onSubmit={handleSubmit}>
       
-      {/* En-tête avec Actions */}
+      {/* En-tÃªte avec Actions */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
@@ -200,11 +207,11 @@ export default function AbsenceSanctionSaisie() {
           {/* Les 3 sections en ligne */}
           <Grid container spacing={2} sx={{ mb: 3 }} wrap="nowrap" alignItems="flex-start">
             
-            {/* Section 1: Informations Générales */}
+            {/* Section 1: Informations GÃ©nÃ©rales */}
             <Grid item xs={4}>
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <AssignmentIcon fontSize="small" /> Informations Générales
+                  <AssignmentIcon fontSize="small" /> Informations GÃ©nÃ©rales
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
@@ -244,14 +251,14 @@ export default function AbsenceSanctionSaisie() {
               </Box>
             </Grid>
 
-            {/* Section 2: Période de Sanction */}
+            {/* Section 2: PÃ©riode de Sanction */}
             <Grid item xs={4}>
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalendarTodayIcon fontSize="small" /> Période de Sanction
+                  <CalendarTodayIcon fontSize="small" /> PÃ©riode de Sanction
                 </Typography>
                 <Grid container spacing={2}>
-                  {/* Date Départ */}
+                  {/* Date DÃ©part */}
                   <Grid item xs={6}>
                     <InputComponent
                       type='date'
@@ -285,7 +292,7 @@ export default function AbsenceSanctionSaisie() {
                     />
                   </Grid>
 
-                  {/* Nombre de jours calculé */}
+                  {/* Nombre de jours calculÃ© */}
                   <Grid item xs={3} mt={2}>
                     <TextField
                       label={t('common.nbDays')}
@@ -307,11 +314,11 @@ export default function AbsenceSanctionSaisie() {
               </Box>
             </Grid>
 
-            {/* Section 3: Type et Période */}
+            {/* Section 3: Type et PÃ©riode */}
             <Grid item xs={4}>
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <InfoIcon fontSize="small" /> Type et Période
+                  <InfoIcon fontSize="small" /> Type et PÃ©riode
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
@@ -325,7 +332,7 @@ export default function AbsenceSanctionSaisie() {
                   <Grid item xs={12}>
                     <FormControl component="fieldset" fullWidth>
                       <FormLabel component="legend" sx={{ fontSize: '0.875rem', mb: 1 }}>
-                        Période
+                        PÃ©riode
                       </FormLabel>
                       <RadioGroup
                         row

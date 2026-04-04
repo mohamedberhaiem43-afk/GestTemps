@@ -23,7 +23,8 @@ import useUpdateCalendrier from "../../../hooks/calendrierHooks/useUpdateCalendr
 import { useCalendrierContext } from "../../helper/CalendrierContext";
 import useGetCalendrier from "../../../hooks/calendrierHooks/useGetCalendriers";
 import useCloneCalendrier from "../../../hooks/calendrierHooks/useCloneCalendrier";
-import { ContentCopy } from "@mui/icons-material";
+import useAddCalendrier from "../../../hooks/calendrierHooks/useAddCalendrier";
+import { ContentCopy, Add } from "@mui/icons-material";
 import { t } from "i18next";
 
 const WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -58,6 +59,8 @@ function SocieteCalendrier() {
   const [allDay, setAllDay] = useState("8");
   const [calendrier, setCalendrier] = useState("8");
   const [samedi, setSamedi] = useState("5");
+  const [newAnnee, setNewAnnee] = useState("");
+  const [newCaltype, setNewCaltype] = useState("8");
   useEffect(() => {
     setSelectedCalendrier("2024");
   }, [setSelectedCalendrier]); // Runs only once when component mounts
@@ -94,6 +97,29 @@ if (jourRepos) {
   const cloneCalendrier = useCloneCalendrier(
   Number(selectedCalendrier)
 );
+const addCalendrier = useAddCalendrier();
+
+const handleAdd = () => {
+  if (!newAnnee) {
+    alert("Veuillez entrer une année");
+    return;
+  }
+  if (!window.confirm(`Ajouter un nouveau calendrier pour l'année ${newAnnee} ?`)) return;
+
+  addCalendrier.mutate(
+    { soccod, annee: newAnnee, caltype: newCaltype },
+    {
+      onSuccess: () => {
+        setNewAnnee("");
+        refetch();
+      },
+      onError: (error: any) => {
+        alert(error?.response?.data || "Erreur lors de l'ajout du calendrier");
+      }
+    }
+  );
+};
+
 const handleClone = () => {
   if (
     !window.confirm(
@@ -181,6 +207,20 @@ const handleClone = () => {
           title="Cloner l'année précédente"
         >
           <ContentCopy />
+        </IconButton>
+        <Grid item xs={1}>
+          <InputComponent type="number" label="Nouvelle année" value={newAnnee} setValue={setNewAnnee} />
+        </Grid>
+        <Grid item xs={1}>
+          <InputComponent type="number" label="Type" value={newCaltype} setValue={setNewCaltype} />
+        </Grid>
+        <IconButton
+          onClick={handleAdd}
+          color="success"
+          aria-label="add"
+          title="Ajouter un nouveau calendrier"
+        >
+          <Add />
         </IconButton>
 
       </Box>

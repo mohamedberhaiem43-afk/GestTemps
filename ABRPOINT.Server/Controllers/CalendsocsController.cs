@@ -1,5 +1,4 @@
 ﻿using ABRPOINT.Server.Interfaces;
-using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -70,6 +69,21 @@ namespace ABRPOINT.Server.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"Erreur lors de la modification de la calendrier: {ex.Message}");
+                return StatusCode(500, "Erreur interne du serveur");
+            }
+        }
+
+        [HttpPost("add-calendrier/{soccod}/{annee}/{caltype}")]
+        public async Task<IActionResult> AddCalendrier(string soccod, string annee, string caltype)
+        {
+            try
+            {
+                await _calendrierRepository.AddCalendrier(soccod, annee, caltype);
+                return Ok("Calendrier ajouté avec succès");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'ajout du calendrier: {ex.Message}");
                 return StatusCode(500, "Erreur interne du serveur");
             }
         }

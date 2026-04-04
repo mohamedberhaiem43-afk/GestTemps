@@ -72,8 +72,8 @@ public partial class Empaff
     [StringLength(4)]
     public string? Socaff { get; set; }
 
-    [Column("empnbp")]
-    public int? Empnbp { get; set; }
+    [Column("empnbp", TypeName = "real")]
+    public float? Empnbp { get; set; }
 
     [Column("sitaff")]
     [StringLength(2)]

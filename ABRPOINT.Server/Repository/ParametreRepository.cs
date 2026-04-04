@@ -1,4 +1,4 @@
-ï»¿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -212,7 +212,7 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-                throw new Exception("Erreur lors de la rÃ©cupÃ©ration des paramÃ¨tres de nuit: " + ex.Message, ex);
+                throw new Exception("Erreur lors de la récupération des paramètres de nuit: " + ex.Message, ex);
             }
         }
 
@@ -258,11 +258,11 @@ namespace ABRPOINT.Server.Repository
 
                 // --- DebutReel ---
                 if (!int.TryParse(result.Joudeb, out int jourDebReel))
-                    jourDebReel = 1; // valeur par dÃ©faut si parse Ã©choue
+                    jourDebReel = 1; // valeur par défaut si parse échoue
 
                 result.DebutReel = jourDebReel;
 
-                // --- DebutCalc (ajustÃ© si Sochsup = "L") ---
+                // --- DebutCalc (ajusté si Sochsup = "L") ---
                 DateTime tempDate = new DateTime(2000, 1, jourDebReel);
 
                 if (result.Sochsup == "L")
@@ -311,7 +311,7 @@ namespace ABRPOINT.Server.Repository
 
                 result.DebutReel = jourDebReel;
 
-                // --- DebutCalc (ajustÃ© si Sochsup = "L") ---
+                // --- DebutCalc (ajusté si Sochsup = "L") ---
                 DateTime tempDate = new DateTime(2000, 1, jourDebReel);
 
                 if (result.Sochsup == "L")
@@ -410,7 +410,7 @@ namespace ABRPOINT.Server.Repository
                 if (predat == null)
                     return false;
 
-                // Si "Sans Compter" (0), aucun jour n'est considÃ©rÃ© comme repos
+                // Si "Sans Compter" (0), aucun jour n'est considéré comme repos
                 if (empferepos == "0")
                     return false;
 
@@ -420,7 +420,7 @@ namespace ABRPOINT.Server.Repository
                 string dayName = predat.Value.ToString("dddd", new System.Globalization.CultureInfo("fr-FR"));
                 dayName = char.ToUpper(dayName[0]) + dayName.Substring(1); // Capitalize
 
-                // Option 1: Tout Repos - vÃ©rifier tous les jours selon le poste
+                // Option 1: Tout Repos - vérifier tous les jours selon le poste
                 if (empferepos == "1")
                 {
                     if ((dayName == "Lundi" && poste?.Lunrepos == "1") ||
@@ -469,7 +469,7 @@ namespace ABRPOINT.Server.Repository
                     .Where(e => e.Soccod == soccod && e.Empcod == empcod)
                     .Select(e => e.Empferepos)
                     .SingleOrDefaultAsync();
-                // Si "Sans Compter" (0), aucun jour n'est considÃ©rÃ© comme repos
+                // Si "Sans Compter" (0), aucun jour n'est considéré comme repos
                 if (empferepos == "0")
                     return (false, empferepos);
 
@@ -479,7 +479,7 @@ namespace ABRPOINT.Server.Repository
                 string dayName = predat.Value.ToString("dddd", new System.Globalization.CultureInfo("fr-FR"));
                 dayName = char.ToUpper(dayName[0]) + dayName.Substring(1); // Capitalize
 
-                // Option 1: Tout Repos - vÃ©rifier tous les jours selon le poste
+                // Option 1: Tout Repos - vérifier tous les jours selon le poste
                 if (empferepos == "1")
                 {
                     if ((dayName == "Lundi" && poste?.Lunrepos == "1") ||
@@ -554,19 +554,28 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(updatedParam.Soccod))
+                    throw new ArgumentException("Le code société est obligatoire.", nameof(updatedParam));
+
                 var param = await _dbContext.Parametres
                     .FirstOrDefaultAsync(p => p.Soccod == updatedParam.Soccod);
+
                 if (param != null)
                 {
                     _dbContext.Entry(param).State = EntityState.Detached;
                     _dbContext.Parametres.Update(updatedParam);
-                    await _dbContext.SaveChangesAsync();
                 }
+                else
+                {
+                    await _dbContext.Parametres.AddAsync(updatedParam);
+                }
+
+                await _dbContext.SaveChangesAsync();
                 return true;
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to update Parametre with Soccod: {updatedParam.Soccod}", ex);
+                throw new Exception($"Failed to save Parametre with Soccod: {updatedParam.Soccod}", ex);
             }
         }
 
@@ -601,7 +610,7 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                // RÃ©cupÃ©ration du paramÃ¨tre pour la sociÃ©tÃ©
+                // Récupération du paramètre pour la société
                 var param = await _dbContext.Parametres
                     .Where(p => p.Soccod == soccod)
                     .Select(p => new ArrondiParam
@@ -664,7 +673,7 @@ namespace ABRPOINT.Server.Repository
             if (!nbhconge.HasValue)
                 return new Dictionary<string, float>();
 
-            // 1ï¸âƒ£ RÃ©cupÃ©rer les donnÃ©es brutes depuis la base
+            // 1?? Récupérer les données brutes depuis la base
             var congesData = await _dbContext.Conges
                 .Where(c =>
                     c.Soccod == soccod &&
@@ -674,11 +683,11 @@ namespace ABRPOINT.Server.Repository
                 .Select(c => new
                 {
                     c.Empcod,
-                    c.Conjour  // âœ… RÃ©cupÃ©rer la valeur string brute
+                    c.Conjour  // ? Récupérer la valeur string brute
                 })
                 .ToListAsync();
 
-            // 2ï¸âƒ£ Parser en mÃ©moire (cÃ´tÃ© client)
+            // 2?? Parser en mémoire (côté client)
             var conges = congesData
                 .Select(c => new
                 {
@@ -693,7 +702,7 @@ namespace ABRPOINT.Server.Repository
                 })
                 .ToList();
 
-            // 3ï¸âƒ£ Grouper et calculer
+            // 3?? Grouper et calculer
             return conges
                 .GroupBy(c => c.Empcod)
                 .ToDictionary(
@@ -704,3 +713,5 @@ namespace ABRPOINT.Server.Repository
 
     }
 }
+
+
