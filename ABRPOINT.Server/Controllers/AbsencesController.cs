@@ -26,19 +26,19 @@ namespace ABRPOINT.Server.Controllers
         public IActionResult Get(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
-                return BadRequest(new {Message = "code société est obligatoire"});
+                return BadRequest(new {Message = "code sociÃ©tÃ© est obligatoire"});
             try
             {   
                 IEnumerable<Absence> absence = _absenceRepository.GetAll(soccod);
 
                 if(absence == null ||  !absence.Any())
-                    return NotFound(new {Message = $"Aucun absenec trouvée avec code : {soccod}" });
+                    return NotFound(new {Message = $"Aucun absenec trouvÃ©e avec code : {soccod}" });
 
                 return Ok(absence);
             }
             catch (Exception ex)
             {
-                return StatusCode(500,"Probléme de recuperation des absences ") ;
+                return StatusCode(500,"ProblÃ©me de recuperation des absences ") ;
             }
         }
         [HttpGet("get-absence-report/{soccod}/{empcod}/{concod}")]
@@ -46,7 +46,7 @@ namespace ABRPOINT.Server.Controllers
         public IActionResult GetAbsenceReport(string soccod,string empcod,string concod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
-                return BadRequest(new {Message = "code société est obligatoire"});
+                return BadRequest(new {Message = "code sociÃ©tÃ© est obligatoire"});
             try
             {
 
@@ -55,7 +55,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de récupérer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de rÃ©cupÃ©rer des contrats", details = ex.Message });
             }
         }
         [HttpGet("get-libs/{soccod}")]
@@ -72,28 +72,28 @@ namespace ABRPOINT.Server.Controllers
             catch (Exception)
             {
 
-                return StatusCode(500, "probléme de récupération d'absences");
+                return StatusCode(500, "problÃ©me de rÃ©cupÃ©ration d'absences");
             }
         }
 
-        [HttpGet("get-etat-absence/{soccod}/{datedebut}/{datefin}/{absaut}/{absret}/{presNonOpt}/{sansPointageInvalide}/{selectedAbsType}")]
+        [HttpGet("get-etat-absence/{soccod}/{datedebut}/{datefin}/{absaut}/{absret}/{presNonOpt}/{sansPointageInvalide}/{radioValue}/{selectedAbsType}")]
         [CanGetAbsence]
         public async Task<IActionResult> GetEtatAbsence(string soccod, DateTime datedebut, DateTime datefin, bool absaut, bool absret,
-            bool presNonOpt, bool sansPointageInvalide, string? selectedAbsType, [FromQuery] List<string>? empcods)
+            bool presNonOpt, bool sansPointageInvalide, string radioValue, string? selectedAbsType, [FromQuery] List<string>? empcods)
                     {
             if(string.IsNullOrEmpty(soccod))
                 return BadRequest(new { Message = "Veuillez saisie le soccod des absences." });
-            if(empcods.Count() == 0)
-                return BadRequest(new { Message = "Veuillez saisie les employé des absences." });
+            if(empcods == null || empcods.Count == 0)
+                return BadRequest(new { Message = "Veuillez saisie les employÃ© des absences." });
             try
             {
                 List<EtatAbsence> etatAbsences = await _absenceRepository.GetEtatAbsence(soccod, datedebut, datefin, absaut, absret,
-                    presNonOpt, sansPointageInvalide, selectedAbsType, empcods);
+                    presNonOpt, sansPointageInvalide, radioValue, selectedAbsType, empcods);
                 return Ok(etatAbsences);
             }
             catch (Exception)
             {
-                return StatusCode(500, "probléme de récupération d'absences");
+                return StatusCode(500, "problÃ©me de rÃ©cupÃ©ration d'absences");
             }
         }
         [HttpPost("get-etat-absence-report")]
@@ -110,7 +110,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 Console.WriteLine($"Error generating report: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                return StatusCode(500, new { message = "Problème génération état d'absences", error = ex.Message });
+                return StatusCode(500, new { message = "ProblÃ¨me gÃ©nÃ©ration Ã©tat d'absences", error = ex.Message });
             }
         }
         // POST api/<DirectionsController>
@@ -126,12 +126,12 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 _absenceRepository.Add(absence);
-                return Ok(new { Message = "absence ajoutée avec succées." });
+                return Ok(new { Message = "absence ajoutÃ©e avec succÃ©es." });
             }
             catch (Exception ex)
             {
 
-                return StatusCode(500, "probléme d'ajout d'absence");
+                return StatusCode(500, "problÃ©me d'ajout d'absence");
             }
             
         }
@@ -144,11 +144,11 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 _absenceRepository.Update(absence);
-                return Ok("absence modifiée avec sucées");
+                return Ok("absence modifiÃ©e avec sucÃ©es");
             }
             catch (Exception)
             {
-                return StatusCode(500, "probléme de modification d'absence");
+                return StatusCode(500, "problÃ©me de modification d'absence");
             }
            
         }
@@ -159,13 +159,13 @@ namespace ABRPOINT.Server.Controllers
         public IActionResult Delete(string soccod, string abscod)
         {
             if(string.IsNullOrEmpty(abscod) || string.IsNullOrEmpty(soccod))
-                return BadRequest(new { Message = "code société et code absence sont obligatoires." });
+                return BadRequest(new { Message = "code sociÃ©tÃ© et code absence sont obligatoires." });
 
             try
             {
                 Absence absence = _absenceRepository.GetByAbscod(soccod, abscod);
                 if (absence == null)
-                    return NotFound(new {Message = "absence avec non trouvée."});
+                    return NotFound(new {Message = "absence avec non trouvÃ©e."});
                 
                 _absenceRepository.Delete(absence);
                 return NoContent();
@@ -173,9 +173,10 @@ namespace ABRPOINT.Server.Controllers
             catch (Exception ex)
             {
 
-                return StatusCode(500, "probléme de suppression d'absence");
+                return StatusCode(500, "problÃ©me de suppression d'absence");
             }
             
         }
     }
 }
+

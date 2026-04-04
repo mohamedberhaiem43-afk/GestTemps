@@ -47,8 +47,10 @@ function FilterPeriode() {
     const [selectedRegime, setSelectedRegime] = useState<string>('');
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
+    const isAllAbsenceMode = radioValue === "1";
+    const isJustifiedAbsenceMode = radioValue === "2";
     
-    // RÃ©cupÃ©rer les donnÃ©es d'absence avec le hook
+    // RÃƒÂ©cupÃƒÂ©rer les donnÃƒÂ©es d'absence avec le hook
     const { data: absenceData = [] } = useGetEtatAbsence(
         new Date(dateDebut),
         new Date(dateFin),
@@ -57,7 +59,8 @@ function FilterPeriode() {
         absret,
         presNonOpt,
         sansPointageInvalide,
-        selectedAbstype
+        selectedAbstype,
+        radioValue
     );
     useEffect(()=>{
         if(radioValue == "0"){
@@ -75,11 +78,14 @@ function FilterPeriode() {
             setAbsret(true);
             setAbsaut(true);
             setSansPointageInvalide(false);
+            setPresNonOpt(false);
         }
         if(radioValue == "2")
             setDispTypeabs('block');
-        else
+        else {
             setDispTypeabs('none');
+            setSelectedAbstype('0');
+        }
     },[radioValue])
     const {data:emplibs=[]} = useGetEmployeesLibs();
     useEffect(() => {
@@ -141,11 +147,11 @@ function FilterPeriode() {
                     }
                 );
 
-                // CrÃ©er le blob PDF
+                // CrÃƒÂ©er le blob PDF
                 const blob = new Blob([response.data], { type: 'application/pdf' });
                 const url = window.URL.createObjectURL(blob);
 
-                // TÃ©lÃ©charger le fichier
+                // TÃƒÂ©lÃƒÂ©charger le fichier
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = `etat-absence-${dateDebut}-${dateFin}.pdf`;
@@ -157,21 +163,21 @@ function FilterPeriode() {
                 window.URL.revokeObjectURL(url);
 
             } catch (error: any) {
-                console.error("Erreur gÃ©nÃ©ration rapport:", error);
+                console.error("Erreur gÃƒÂ©nÃƒÂ©ration rapport:", error);
                 
                 if (error.response) {
                     console.error("Status:", error.response.status);
                     console.error("Status Text:", error.response.statusText);
                     
-                    // Si c'est une erreur 405, vÃ©rifier la configuration
+                    // Si c'est une erreur 405, vÃƒÂ©rifier la configuration
                     if (error.response.status === 405) {
-                        alert("Erreur 405: MÃ©thode non autorisÃ©e. VÃ©rifiez la configuration du serveur.");
+                        alert("Erreur 405: MÃƒÂ©thode non autorisÃƒÂ©e. VÃƒÂ©rifiez la configuration du serveur.");
                     } else if (error.response.status === 401) {
-                        alert("Non autorisÃ©. Veuillez vous reconnecter.");
+                        alert("Non autorisÃƒÂ©. Veuillez vous reconnecter.");
                     } else if (error.response.status === 403) {
-                        alert("AccÃ¨s interdit. Vous n'avez pas les permissions nÃ©cessaires.");
+                        alert("AccÃƒÂ¨s interdit. Vous n'avez pas les permissions nÃƒÂ©cessaires.");
                     } else {
-                        alert("Erreur lors de la gÃ©nÃ©ration du rapport.");
+                        alert("Erreur lors de la gÃƒÂ©nÃƒÂ©ration du rapport.");
                     }
                 } else {
                     alert("Erreur de connexion au serveur.");
@@ -217,6 +223,7 @@ function FilterPeriode() {
             sansPointageInvalide,
             presNonOpt,
             selectedAbstype,
+            radioValue,
         });
     };
 
@@ -313,22 +320,44 @@ function FilterPeriode() {
                     </RadioGroupComponent>
                 </Grid>
                 <Grid item xs={2}>
-                    <CheckboxComponent label={t('filter.absenceDayLate')} value={absret} setValue={setAbsret} />
+                    <CheckboxComponent
+                        label={t('filter.absenceDayLate')}
+                        value={absret}
+                        setValue={setAbsret}
+                        disabled={!isAllAbsenceMode}
+                    />
                 </Grid>
                 <Grid item xs={1.3}>
-                    <CheckboxComponent label={t('filter.authorizedAbsence')} value={absaut} setValue={setAbsaut} />
+                    <CheckboxComponent
+                        label={t('filter.authorizedAbsence')}
+                        value={absaut}
+                        setValue={setAbsaut}
+                        disabled={!isAllAbsenceMode}
+                    />
                 </Grid>
                 <Grid item xs={1.5}>
-                    <CheckboxComponent label={t('filter.withoutInvalidPointage')} value={sansPointageInvalide} setValue={setSansPointageInvalide} />
+                    <CheckboxComponent
+                        label={t('filter.withoutInvalidPointage')}
+                        value={sansPointageInvalide}
+                        setValue={setSansPointageInvalide}
+                        disabled={!isAllAbsenceMode}
+                    />
                 </Grid>
                 <Grid item xs={2}>
-                    <CheckboxComponent label={t('filter.presenceNotOptimized')} value={presNonOpt} setValue={setPresNonOpt} />
+                    <CheckboxComponent
+                        label={t('filter.presenceNotOptimized')}
+                        value={presNonOpt}
+                        setValue={setPresNonOpt}
+                        disabled={!isAllAbsenceMode}
+                    />
                 </Grid>
                 <Grid item xs={1} display={dispTypeabs}>
-                    <SelectInputComponent label={"Type Absence"}
-                    value={selectedAbstype} 
+                    <SelectInputComponent
+                    label={"Type Absence"}
+                    value={selectedAbstype}
                     setValue={setSelectedAbstype}
-                    maplist={abslibs} />
+                    maplist={abslibs}
+                    disabled={!isJustifiedAbsenceMode} />
                 </Grid>
                 <Grid item xs={1}>
                 {presence && (
@@ -346,5 +375,6 @@ function FilterPeriode() {
 
 }
 export default FilterPeriode;
+
 
 

@@ -6,6 +6,7 @@ interface AbsParams {
   sansPointageInvalide: boolean;
   presNonOpt: boolean;
   selectedAbstype: string;
+  radioValue: string;
 }
 
 interface AbsParamsContextType {
@@ -18,7 +19,8 @@ const defaultAbsParams: AbsParams = {
   absaut: true,
   sansPointageInvalide: true,
   presNonOpt: false,
-  selectedAbstype: '',
+  selectedAbstype: "0",
+  radioValue: "1",
 };
 
 const AbsenceContext = createContext<AbsParamsContextType | undefined>(undefined);
@@ -26,7 +28,7 @@ const AbsenceContext = createContext<AbsParamsContextType | undefined>(undefined
 export const useAbsenceContext = () => {
   const context = useContext(AbsenceContext);
   if (!context) {
-    throw new Error('useAbsenceContext must be used within a AbsParamsProvider');
+    throw new Error("useAbsenceContext must be used within a AbsParamsProvider");
   }
   return context;
 };

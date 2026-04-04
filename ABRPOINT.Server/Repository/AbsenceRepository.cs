@@ -1,4 +1,4 @@
-using ABRPOINT.Server.Data;
+﻿using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Exceptions;
 using ABRPOINT.Helper;
@@ -32,7 +32,7 @@ namespace ABRPOINT.Server.Repository
             }
             catch (DbUpdateException dbEx)
             {
-                throw new RepositoryException("ProblÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©me au niveau base de donnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e",dbEx);
+                throw new RepositoryException("ProblÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©me au niveau base de donnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e",dbEx);
             }
             catch (Exception ex)
             {
@@ -41,14 +41,14 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
-        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,bool presNonOpt,bool sansPointageInvalide,string? selectedAbsType,List<string>? empcods)
+        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,bool presNonOpt,bool sansPointageInvalide,string radioValue,string? selectedAbsType,List<string>? empcods)
         {
             if (empcods == null || empcods.Count == 0)
                 return new List<EtatAbsence>();
 
             var startDate = datedebut.Date;
             var endDate = datefin.Date;
-            var shouldFilterByAbsType = !string.IsNullOrWhiteSpace(selectedAbsType) && selectedAbsType != "0";
+            var hasSelectedAbsType = !string.IsNullOrWhiteSpace(selectedAbsType) && selectedAbsType != "0";
 
             static int GetMinutes(DateTime? t)
                 => t.HasValue ? (int)t.Value.TimeOfDay.TotalMinutes : 0;
@@ -103,7 +103,7 @@ namespace ABRPOINT.Server.Repository
                       && empcods.Contains(s.Empcod)
                       && s.Condep <= datefin
                       && s.Conret >= datedebut
-                      && (!shouldFilterByAbsType || s.Abscod == selectedAbsType)
+                      && (!hasSelectedAbsType || s.Abscod == selectedAbsType)
                 select new
                 {
                     s.Empcod,
@@ -137,6 +137,34 @@ namespace ABRPOINT.Server.Repository
                 .Where(p => p.Predat.HasValue && !string.IsNullOrWhiteSpace(p.Empcod))
                 .GroupBy(p => (p.Empcod!, p.Predat!.Value.Date))
                 .ToDictionary(g => g.Key, g => g.First());
+
+            var pointageValidityByKey = new Dictionary<(string Empcod, DateTime Date), bool>();
+            foreach (var presenceEntry in presencesByEmployeeDate)
+            {
+                pointageValidityByKey[presenceEntry.Key] = await IsPointageValid(presenceEntry.Value, presenceEntry.Key.Date);
+            }
+
+            static bool HasRetard(EtatAbsence etatAbsence)
+                => !string.IsNullOrWhiteSpace(etatAbsence.Absjourretard) && etatAbsence.Absjourretard != "00:00";
+
+            static bool IsGeneratedNonPresent(EtatAbsence etatAbsence)
+                => string.IsNullOrWhiteSpace(etatAbsence.Abscod)
+                    && string.Equals(etatAbsence.Motif, "Non present", StringComparison.OrdinalIgnoreCase);
+
+            static bool HasTypedAbsence(EtatAbsence etatAbsence)
+                => etatAbsence.CSF == 1
+                    || etatAbsence.Absjust == 1
+                    || etatAbsence.FM == 1
+                    || etatAbsence.Absmal == 1
+                    || etatAbsence.Absnj == 1
+                    || etatAbsence.MAP == 1
+                    || etatAbsence.CSS == 1
+                    || etatAbsence.Acctrav == 1
+                    || etatAbsence.Arrtech == 1
+                    || etatAbsence.Congepaye == 1;
+
+            static bool HasAuthorizedAbsence(EtatAbsence etatAbsence)
+                => etatAbsence.Autsp == 1;
 
             var result = new Dictionary<(string Empcod, DateTime Date), EtatAbsence>();
 
@@ -231,7 +259,7 @@ namespace ABRPOINT.Server.Repository
                 }
             }
 
-            if (!shouldFilterByAbsType)
+            if (radioValue != "2")
             {
                 foreach (var employe in employes.Values)
                 {
@@ -294,7 +322,107 @@ namespace ABRPOINT.Server.Repository
                 }
             }
 
-            return result.Values
+            foreach (var presence in presences)
+            {
+                if (!presence.Predat.HasValue || string.IsNullOrWhiteSpace(presence.Empcod))
+                    continue;
+
+                var key = (presence.Empcod, presence.Predat.Value.Date);
+                if (!pointageValidityByKey.TryGetValue(key, out var isPointageValid) || isPointageValid)
+                    continue;
+
+                if (!employes.TryGetValue(presence.Empcod, out var employe))
+                    continue;
+
+                if (!result.TryGetValue(key, out var invalidEtat))
+                {
+                    result[key] = new EtatAbsence
+                    {
+                        Empcod = presence.Empcod,
+                        Empmat = employe.Empmat,
+                        Emplib = employe.Emplib,
+                        Empreg = employe.Empreg,
+                        Date = presence.Predat.Value.Date,
+                        Motif = "Pointage invalide"
+                    };
+
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(invalidEtat.Motif))
+                    invalidEtat.Motif = "Pointage invalide";
+            }
+
+            var filteredResults = result.Values
+                .Select(etatAbsence =>
+                {
+                    var filteredAbsence = new EtatAbsence
+                    {
+                        Empcod = etatAbsence.Empcod,
+                        Empmat = etatAbsence.Empmat,
+                        Emplib = etatAbsence.Emplib,
+                        Empreg = etatAbsence.Empreg,
+                        Date = etatAbsence.Date,
+                        Abscod = etatAbsence.Abscod,
+                        Motif = etatAbsence.Motif,
+                        Congepaye = etatAbsence.Congepaye,
+                        Acctrav = etatAbsence.Acctrav,
+                        CSF = etatAbsence.CSF,
+                        Absjust = etatAbsence.Absjust,
+                        FM = etatAbsence.FM,
+                        Arrtech = etatAbsence.Arrtech,
+                        Absmal = etatAbsence.Absmal,
+                        Absnj = etatAbsence.Absnj,
+                        MAP = etatAbsence.MAP,
+                        Autsp = absaut ? etatAbsence.Autsp : null,
+                        CSS = etatAbsence.CSS,
+                        Absjourretard = absret ? etatAbsence.Absjourretard : null,
+                        Absence = etatAbsence.Absence,
+                    };
+
+                    return filteredAbsence;
+                })
+                .Where(etatAbsence =>
+                {
+                    if (string.IsNullOrWhiteSpace(etatAbsence.Empcod) || !etatAbsence.Date.HasValue)
+                        return false;
+
+                    var key = (etatAbsence.Empcod, etatAbsence.Date.Value.Date);
+                    var hasPresence = presencesByEmployeeDate.TryGetValue(key, out var presence);
+                    var hasNoPointage = !hasPresence || GenericMethodes.NotPresent(presence);
+                    var hasInvalidPointage = hasPresence
+                        && pointageValidityByKey.TryGetValue(key, out var isPointageValid)
+                        && !isPointageValid;
+
+                    if (radioValue == "2")
+                    {
+                        return etatAbsence.Absjust == 1
+                            && (!hasSelectedAbsType || string.Equals(etatAbsence.Abscod, selectedAbsType, StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    if (radioValue == "3")
+                    {
+                        return hasInvalidPointage;
+                    }
+
+                    if (radioValue == "0")
+                    {
+                        return hasNoPointage
+                            && (IsGeneratedNonPresent(etatAbsence) || etatAbsence.Absnj == 1);
+                    }
+
+                    var includeTypedAbsence = HasTypedAbsence(etatAbsence);
+                    var includeGeneratedNonPresent = presNonOpt && IsGeneratedNonPresent(etatAbsence);
+                    var includeAuthorizedAbsence = absaut && HasAuthorizedAbsence(etatAbsence);
+                    var includeRetard = absret && HasRetard(etatAbsence);
+
+                    return includeTypedAbsence
+                        || includeGeneratedNonPresent
+                        || includeAuthorizedAbsence
+                        || includeRetard;
+                });
+
+            return filteredResults
                 .OrderBy(r => r.Date)
                 .ThenBy(r => r.Empcod)
                 .ToList();
@@ -313,7 +441,7 @@ namespace ABRPOINT.Server.Repository
             catch (DbUpdateException dbEx)
             {
 
-                throw new RepositoryException("ProblÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©me au niveau base de donnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e ",dbEx);
+                throw new RepositoryException("ProblÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©me au niveau base de donnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e ",dbEx);
             }
             catch (Exception ex)
             {
@@ -338,7 +466,7 @@ namespace ABRPOINT.Server.Repository
             }
             catch (InvalidOperationException opEx)
             {
-                throw new InvalidOperationException("clÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© dupliquÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© est dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ctÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e ",opEx);
+                throw new InvalidOperationException("clÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© dupliquÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© est dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ctÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e ",opEx);
             }
             catch (Exception ex)
             {
@@ -362,7 +490,7 @@ namespace ABRPOINT.Server.Repository
         public IEnumerable<Absence> GetAll(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
-                throw new ArgumentException("code sociÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© est null",nameof(soccod));
+                throw new ArgumentException("code sociÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© est null",nameof(soccod));
             try
             {
                 IEnumerable<Absence> absences = _dbContext.Absences
@@ -371,7 +499,7 @@ namespace ABRPOINT.Server.Repository
                     .Select(g=>g.First())
                     .ToList();
                 if (absences == null)
-                    throw new ArgumentNullException("Aucune absences trouvÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e");
+                    throw new ArgumentNullException("Aucune absences trouvÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e");
 
                 return absences;
                 
@@ -379,7 +507,7 @@ namespace ABRPOINT.Server.Repository
             catch (Exception ex)
             {
 
-                throw new RepositoryException("Erreur innatendue s'est produit lors de rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ration d'absences "
+                throw new RepositoryException("Erreur innatendue s'est produit lors de rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ration d'absences "
                     ,ex);
             }
         }
@@ -396,7 +524,7 @@ namespace ABRPOINT.Server.Repository
                     .FirstOrDefault(s => s.Soccod == soccod && s.Abscod == abscod);
 
                 if (absence == null)
-                    throw new ArgumentNullException($"Aucun absence trouvÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e avec code societe '{soccod}'" +
+                    throw new ArgumentNullException($"Aucun absence trouvÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e avec code societe '{soccod}'" +
                         $"et code absence '${abscod}'");
                 return absence;
             }
@@ -427,3 +555,4 @@ namespace ABRPOINT.Server.Repository
         }
     }
 }
+

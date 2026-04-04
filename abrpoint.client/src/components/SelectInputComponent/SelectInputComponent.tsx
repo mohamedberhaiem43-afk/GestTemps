@@ -1,4 +1,4 @@
-import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+﻿import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 
 interface SelectInputComponentProps {
     label: string;
@@ -7,17 +7,19 @@ interface SelectInputComponentProps {
     maplist: Record<string, string> | Record<string, string>[];
     multiple?: boolean;
     onClick?: any;
+    disabled?: boolean;
 }
 
-export default function SelectComponent({label, value, setValue, maplist, multiple, onClick}: SelectInputComponentProps)
+export default function SelectComponent({label, value, setValue, maplist, multiple, onClick, disabled = false}: SelectInputComponentProps)
 {
     return(
         <>
-               <FormControl variant="standard" fullWidth>
+               <FormControl variant="standard" fullWidth disabled={disabled}>
                   <InputLabel shrink  id="employe-label">{label}</InputLabel>
                   <Select
                     size="small"
                     required
+                    disabled={disabled}
                     label={label}
                     value={multiple ? (Array.isArray(value) ? value : []) : value}
                     multiple={multiple || false}

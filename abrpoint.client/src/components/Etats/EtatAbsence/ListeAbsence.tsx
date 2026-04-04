@@ -1,4 +1,4 @@
-import { useMemo, useContext } from 'react';
+﻿import { useMemo, useContext } from 'react';
 import {
   type MRT_ColumnDef,
 } from 'material-react-table';
@@ -29,7 +29,8 @@ const ListeAbsence = () => {
     absParams.absret,
     absParams.presNonOpt,
     absParams.sansPointageInvalide,
-    absParams.selectedAbstype
+    absParams.selectedAbstype,
+    absParams.radioValue
   );
   
   const columns = useMemo<MRT_ColumnDef<EtatAbsence>[]>(() => [
@@ -51,12 +52,12 @@ const ListeAbsence = () => {
         },
         {
           accessorKey: 'emplib',
-          header: 'Nom et Prénom',
+          header: 'Nom et PrÃƒÂ©nom',
           size: 180,
         },
         {
           accessorKey: 'empreg',
-          header: 'Régime',
+          header: 'RÃƒÂ©gime',
           size: 60,
         },
         {
@@ -80,7 +81,7 @@ const ListeAbsence = () => {
         },
         {
           accessorKey: 'congepaye',
-          header: 'Congé Payé',
+          header: 'CongÃƒÂ© PayÃƒÂ©',
           size: 60,
         },
         {
@@ -130,20 +131,20 @@ const ListeAbsence = () => {
         },
         {
             accessorKey:'autsp',
-            header: 'Aut. S. Payé',
+            header: 'Aut. S. PayÃƒÂ©',
             size: 10,
 
         },
         {
             accessorKey:'autsnp',
-            header: 'Aut. S. Non Payé',
+            header: 'Aut. S. Non PayÃƒÂ©',
             size: 10,
 
         },
 
         {
             accessorKey:'css',
-            header: 'Congé S. Sans Solde',
+            header: 'CongÃƒÂ© S. Sans Solde',
             size: 10,
 
         },
@@ -183,3 +184,4 @@ const ListeAbsence = () => {
 };
 
 export default ListeAbsence;
+
