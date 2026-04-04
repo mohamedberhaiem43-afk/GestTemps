@@ -50,8 +50,8 @@ public partial class Employe
     [StringLength(2)]
     public string? Catcod { get; set; }
 
-    [Column("empnbp", TypeName = "real")]
-    public float? Empnbp { get; set; }
+    [Column("empnbp")]
+    public int? Empnbp { get; set; }
 
     [Column("natcod")]
     [StringLength(4)]

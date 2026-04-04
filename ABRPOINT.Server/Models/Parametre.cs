@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace ABRPOINT.Server.Models;
 
@@ -31,23 +31,23 @@ public partial class Parametre
     public string? Ncom { get; set; }
 
     [Column("vitesse")]
-    public float? Vitesse { get; set; }
+    public int? Vitesse { get; set; }
 
     [Column("parite")]
-    public float? Parite { get; set; }
+    public int? Parite { get; set; }
 
     [Column("nbdigit")]
-    public float? Nbdigit { get; set; }
+    public int? Nbdigit { get; set; }
 
     [Column("xonoff")]
     [StringLength(1)]
     public string? Xonoff { get; set; }
 
     [Column("arrondi")]
-    public float? Arrondi { get; set; }
+    public int? Arrondi { get; set; }
 
     [Column("nbhconge")]
-    public float? Nbhconge { get; set; }
+    public int? Nbhconge { get; set; }
 
     [Column("nbhrepos")]
     public int? Nbhrepos { get; set; }
@@ -111,10 +111,10 @@ public partial class Parametre
     public string? Minuit { get; set; }
 
     [Column("parsom")]
-    public float? Parsom { get; set; }
+    public int? Parsom { get; set; }
 
     [Column("parecart")]
-    public float? Parecart { get; set; }
+    public int? Parecart { get; set; }
 
     [Column("nbhdemij")]
     public double? Nbhdemij { get; set; }
@@ -135,19 +135,19 @@ public partial class Parametre
     public string? Nuitfin { get; set; }
 
     [Column("arrhsortie")]
-    public float? Arrhsortie { get; set; }
+    public int? Arrhsortie { get; set; }
 
     [Column("arrhsmajore")]
-    public float? Arrhsmajore { get; set; }
+    public int? Arrhsmajore { get; set; }
 
     [Column("arrhentree")]
-    public float? Arrhentree { get; set; }
+    public int? Arrhentree { get; set; }
 
     [Column("arrhemajore")]
-    public float? Arrhemajore { get; set; }
+    public int? Arrhemajore { get; set; }
 
     [Column("moinsrepas")]
-    public float? Moinsrepas { get; set; }
+    public int? Moinsrepas { get; set; }
 
     [Column("ajustupd")]
     [StringLength(1)]
@@ -252,13 +252,13 @@ public partial class Parametre
     public string? Parelimftrv { get; set; }
 
     [Column("parmaxfer")]
-    public float? Parmaxfer { get; set; }
+    public int? Parmaxfer { get; set; }
 
     [Column("parminhjour")]
-    public float? Parminhjour { get; set; }
+    public int? Parminhjour { get; set; }
 
     [Column("parmaxhjour")]
-    public float? Parmaxhjour { get; set; }
+    public int? Parmaxhjour { get; set; }
 
     [Column("parpostlundi")]
     [StringLength(1)]
