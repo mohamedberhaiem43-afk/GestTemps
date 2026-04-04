@@ -73,7 +73,7 @@ const generateEtatGlobalReport = async (
 };
 
 
-// Fonction utilitaire pour télécharger le PDF
+// Fonction utilitaire pour tÃ©lÃ©charger le PDF
 const downloadPDF = (blob: Blob, filename: string) => {
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -88,9 +88,11 @@ const PointageDuMoisContent = () => {
   const context = useDateMoisPointageRange();
   const dateRange = context?.dateRange;
 
-  const mois = dateRange?.mois || '';
-  const annee = dateRange?.annee || '2025';
-  const semaine = dateRange?.semaine || '1';
+  const currentMonth = String(new Date().getMonth() + 1);
+  const currentYear = new Date().getFullYear().toString();
+  const mois = dateRange?.mois || currentMonth;
+  const annee = dateRange?.annee || currentYear;
+  const semaine = dateRange?.semaine || '0';
   const empcods = dateRange?.empcods || [];
   const [openDialog, setOpenDialog] = useState(false);
   const [numSem, setNumSem] = useState(1);
@@ -134,8 +136,8 @@ const PointageDuMoisContent = () => {
         columns: [
           { accessorKey: 'empCode', header: 'Code', size: 60 },
           { accessorKey: 'empMat', header: 'Matricule', size: 50 },
-          { accessorKey: 'empLib', header: 'Nom et Prénom', size: 60 },
-          { accessorKey: 'empReg', header: 'Régime', size: 50 },
+          { accessorKey: 'empLib', header: 'Nom et PrÃ©nom', size: 60 },
+          { accessorKey: 'empReg', header: 'RÃ©gime', size: 50 },
         ],
       },
     ],
@@ -144,7 +146,7 @@ const PointageDuMoisContent = () => {
 
   const { t } = useTranslation();
 
-  // ⚠️ Affichage de l'erreur
+  // âš ï¸ Affichage de l'erreur
   if (error) {
     return (
       <Box textAlign="center" mt={4}>
@@ -248,13 +250,13 @@ const totals = useMemo(() => {
 
 const handleGenerateReport = async () => {
   if (!selectedEmp || !totals) {
-    toast.error('Veuillez sélectionner un employé');
+    toast.error('Veuillez sÃ©lectionner un employÃ©');
     return;
   }
 
   try {
 
-    // Préparer les données pour le rapport
+    // PrÃ©parer les donnÃ©es pour le rapport
     const reportData: EtatGlobalData = {
       empmat: selectedEmp.empMat || '',
       emplib: selectedEmp.empLib || '',
@@ -271,7 +273,7 @@ const handleGenerateReport = async () => {
       csf: totals.csf.toFixed(2),
     };
 
-    // Calculer les dates de début et fin du mois
+    // Calculer les dates de dÃ©but et fin du mois
     const year = parseInt(annee);
     const month = parseInt(mois);
     const firstDay = new Date(year, month - 1, 1);
@@ -279,32 +281,32 @@ const handleGenerateReport = async () => {
 
     const request = {
       soccod: selectedEmp.empCod?.substring(0, 3) || '01', // Adapter selon votre logique
-      soclib: sessionStorage.getItem('soclib') || '', // À adapter selon vos données
+      soclib: sessionStorage.getItem('soclib') || '', // Ã€ adapter selon vos donnÃ©es
       datedebut: formatDate(firstDay.toISOString()),
       datefin: formatDate(lastDay.toISOString()),
       data: [reportData],
     };
 
-    toast.info('Génération du rapport en cours...');
+    toast.info('GÃ©nÃ©ration du rapport en cours...');
     const blob = await generateEtatGlobalReport(request);
     downloadPDF(blob, `EtatGlobal_${selectedEmp.empMat}_${mois}_${annee}.pdf`);
-    toast.success('Rapport généré avec succès !');
+    toast.success('Rapport gÃ©nÃ©rÃ© avec succÃ¨s !');
   } catch (error) {
-    console.error('Erreur lors de la génération du rapport:', error);
-    toast.error('Erreur lors de la génération du rapport');
+    console.error('Erreur lors de la gÃ©nÃ©ration du rapport:', error);
+    toast.error('Erreur lors de la gÃ©nÃ©ration du rapport');
   }
 };
 
-// Alternative: Générer le rapport pour TOUS les employés
+// Alternative: GÃ©nÃ©rer le rapport pour TOUS les employÃ©s
 const handleGenerateReportAll = async () => {
   if (pointageMois.length === 0) {
-    toast.error('Aucune donnée à exporter');
+    toast.error('Aucune donnÃ©e Ã  exporter');
     return;
   }
 
   try {
     const reportDataList: EtatGlobalData[] = pointageMois.map((emp) => {
-      // Calculer les totaux pour chaque employé
+      // Calculer les totaux pour chaque employÃ©
       const empTotals = emp.heuresSupplementairesResultats?.reduce(
         (acc:any, r:any) => {
           acc.nbJours += r.nbJours ?? 0;
@@ -367,29 +369,29 @@ const handleGenerateReportAll = async () => {
     const lastDay = new Date(year, month, 0);
 
     const request = {
-      soccod: sessionStorage.getItem('soccod') || '', // À adapter
-      soclib: sessionStorage.getItem('soclib') || '', // À adapter selon vos données
+      soccod: sessionStorage.getItem('soccod') || '', // Ã€ adapter
+      soclib: sessionStorage.getItem('soclib') || '', // Ã€ adapter selon vos donnÃ©es
       datedebut: firstDay.toISOString().split('T')[0],
       datefin: lastDay.toISOString().split('T')[0],
       data: reportDataList,
     };
 
-    toast.info('Génération du rapport en cours...');
+    toast.info('GÃ©nÃ©ration du rapport en cours...');
     const blob = await generateEtatGlobalReport(request);
     downloadPDF(blob, `EtatGlobal_Tous_${mois}_${annee}.pdf`);
-    toast.success('Rapport généré avec succès !');
+    toast.success('Rapport gÃ©nÃ©rÃ© avec succÃ¨s !');
   } catch (error) {
-    console.error('Erreur lors de la génération du rapport:', error);
-    toast.error('Erreur lors de la génération du rapport');
+    console.error('Erreur lors de la gÃ©nÃ©ration du rapport:', error);
+    toast.error('Erreur lors de la gÃ©nÃ©ration du rapport');
   }
 };
 
-  // ✅ Affichage normal après chargement
+  // âœ… Affichage normal aprÃ¨s chargement
   return (
     <Box sx={{ height: '95vh' }} maxWidth={'95vw'} maxHeight={'100vh'}>
       <Grid container spacing={2}>
           <BreadcrumbNavigation />
-        {/* 🔹 Filtre */}
+        {/* ðŸ”¹ Filtre */}
           <Grid item xs={12} display={loading ? 'none' : 'block'}>
             <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} mb={1}
 >
@@ -398,7 +400,7 @@ const handleGenerateReportAll = async () => {
 
               {/* RIGHT: ACTIONS */}
               <Box display="flex" alignItems="center" gap={0.5}>
-                <Tooltip title="Rapport employé">
+                <Tooltip title="Rapport employÃ©">
                   <IconButton color="error" size="small" onClick={handleGenerateReport}>
                     <PictureAsPdfIcon />
                   </IconButton>
@@ -410,7 +412,7 @@ const handleGenerateReportAll = async () => {
                   </IconButton>
                 </Tooltip>
 
-                <Tooltip title="Intégration Paie">
+                <Tooltip title="IntÃ©gration Paie">
                   <IntegrationPaieButton
                     pointageMoisData={pointageMois}
                     rubriques={rubriques}
@@ -423,7 +425,7 @@ const handleGenerateReportAll = async () => {
 
           </Grid>
 
-        {/* 🔹 Loader */}
+        {/* ðŸ”¹ Loader */}
         {loading && (
           <Grid item xs={12}>
             <Box display="flex" justifyContent="center" alignItems="center" mt={2} height={'60vh'} width={'90vw'} >
@@ -432,7 +434,7 @@ const handleGenerateReportAll = async () => {
           </Grid>
         )}
 
-        {/* 🔹 Contenu principal */}
+        {/* ðŸ”¹ Contenu principal */}
         {!loading && (
           <>
             {/* Ligne principale : DataList + Tableau principal */}
@@ -447,7 +449,7 @@ const handleGenerateReportAll = async () => {
                 <DataList
                   data={pointageMois}
                   columns={columns}
-                  message="Êtes-vous sûr de vouloir supprimer cet employé ?"
+                  message="ÃŠtes-vous sÃ»r de vouloir supprimer cet employÃ© ?"
                   deleteMethod={undefined}
                   idKey="empCode"
                   refetchMethod={undefined}
@@ -473,12 +475,12 @@ const handleGenerateReportAll = async () => {
                     <TableHead>
                       <TableRow>
                         {[
-                          'Semaine', 'Nb. Heures', 'Nb. Jours', 'Total Retard', 'HS25', 'HS50', 'HS','Jours Fériés','Heures Fériés','Heures Fériés Trav',
-                          'H.Fériés Trav 1', 'H.Fériés Trav 2', 'J.Férié Travaillé', 'Allaitement',
-                          'J. Abs N/Payé','Calend', 'Heure Absences','Jours Pointés' ,'Panier', 'Nb. Nuits', 'Congé Payé',
-                          'H.Congé Payé', 'H. Spéc Familiale', 'Heures Normales', 'Jours Repos', 'H.Nuits',
-                          'Heure Repos', 'Déplacement', 'ACT', 'Formation Mission', 'Abs. Just',
-                          'J. Arrêt  Technique', 'Maladie', 'Abs. NJ.', 'C. Spéc Familiale', 'CSS', 'MAP','Samedi Trav','Heure R.Samedi Trv',
+                          'Semaine', 'Nb. Heures', 'Nb. Jours', 'Total Retard', 'HS25', 'HS50', 'HS','Jours FÃ©riÃ©s','Heures FÃ©riÃ©s','Heures FÃ©riÃ©s Trav',
+                          'H.FÃ©riÃ©s Trav 1', 'H.FÃ©riÃ©s Trav 2', 'J.FÃ©riÃ© TravaillÃ©', 'Allaitement',
+                          'J. Abs N/PayÃ©','Calend', 'Heure Absences','Jours PointÃ©s' ,'Panier', 'Nb. Nuits', 'CongÃ© PayÃ©',
+                          'H.CongÃ© PayÃ©', 'H. SpÃ©c Familiale', 'Heures Normales', 'Jours Repos', 'H.Nuits',
+                          'Heure Repos', 'DÃ©placement', 'ACT', 'Formation Mission', 'Abs. Just',
+                          'J. ArrÃªt  Technique', 'Maladie', 'Abs. NJ.', 'C. SpÃ©c Familiale', 'CSS', 'MAP','Samedi Trav','Heure R.Samedi Trv',
                         ].map((label) => (
                           <TableCell
                             key={label}
@@ -634,7 +636,7 @@ const handleGenerateReportAll = async () => {
           </>
         )}
       </Grid>
-      {/* 🔹 Popup for week details */}
+      {/* ðŸ”¹ Popup for week details */}
       <Dialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}

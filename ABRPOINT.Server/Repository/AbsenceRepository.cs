@@ -1,6 +1,7 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Exceptions;
+using ABRPOINT.Helper;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,13 @@ namespace ABRPOINT.Server.Repository
         private readonly ApplicationDbContext _dbContext;
         private readonly IEmployeRepository _employeRepository;
         private readonly ISanctionRepository _sanctionRepository;
-        public AbsenceRepository(ApplicationDbContext dbContext,IEmployeRepository employeRepository,ISanctionRepository sanctionRepository)
+        private readonly IParametreRepository _parametreRepository;
+        public AbsenceRepository(ApplicationDbContext dbContext,IEmployeRepository employeRepository,ISanctionRepository sanctionRepository,IParametreRepository parametreRepository)
         {
             _dbContext = dbContext;
             _employeRepository = employeRepository;
             _sanctionRepository = sanctionRepository;
+            _parametreRepository = parametreRepository;
 
         }
         public void Add(Absence absence)
@@ -29,7 +32,7 @@ namespace ABRPOINT.Server.Repository
             }
             catch (DbUpdateException dbEx)
             {
-                throw new RepositoryException("Probléme au niveau base de donnée",dbEx);
+                throw new RepositoryException("ProblÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©me au niveau base de donnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e",dbEx);
             }
             catch (Exception ex)
             {
@@ -43,21 +46,55 @@ namespace ABRPOINT.Server.Repository
             if (empcods == null || empcods.Count == 0)
                 return new List<EtatAbsence>();
 
-            // ================= Helpers =================
+            var startDate = datedebut.Date;
+            var endDate = datefin.Date;
+            var shouldFilterByAbsType = !string.IsNullOrWhiteSpace(selectedAbsType) && selectedAbsType != "0";
+
             static int GetMinutes(DateTime? t)
                 => t.HasValue ? (int)t.Value.TimeOfDay.TotalMinutes : 0;
 
             static string FormatMinutes(int minutes)
                 => TimeSpan.FromMinutes(minutes).ToString(@"hh\:mm");
 
+            async Task<bool> IsPointageValid(Presence presence, DateTime date)
+            {
+                int actions = 0;
 
-            // ================= Employés =================
+                if (!string.IsNullOrEmpty(presence?.Preentmatup) && !string.IsNullOrEmpty(presence?.Presortmatup))
+                    actions++;
+                if (!string.IsNullOrEmpty(presence?.Preentamidiup) && !string.IsNullOrEmpty(presence?.Presortamidiup))
+                    actions++;
+
+                bool isRepos = false;
+                string? codpost = !string.IsNullOrWhiteSpace(presence.Codposte)
+                    ? presence.Codposte
+                    : await _employeRepository.GetEmpPoste(soccod, presence.Empcod, date);
+
+                if (!string.IsNullOrWhiteSpace(codpost))
+                {
+                    (isRepos, _) = await _parametreRepository.IsEmpcodRepos(soccod, date, codpost, presence.Empcod);
+                }
+
+                if (actions == 0 && (presence?.Prerepos == "0" || !isRepos))
+                    return false;
+
+                if (actions > 0 && presence?.Prerepos == "0")
+                    return true;
+
+                if (presence?.Prerepos == "1" && isRepos)
+                    return true;
+
+                if (presence?.Prerepos == "1" && !isRepos)
+                    return false;
+
+                return false;
+            }
+
             var employes = await _dbContext.Employes
                 .AsNoTracking()
                 .Where(e => e.Soccod == soccod && empcods.Contains(e.Empcod))
                 .ToDictionaryAsync(e => e.Empcod);
 
-            // ================= Sanctions =================
             var sanctions = await (
                 from s in _dbContext.Sanctions.AsNoTracking()
                 join a in _dbContext.Absences.AsNoTracking()
@@ -66,6 +103,7 @@ namespace ABRPOINT.Server.Repository
                       && empcods.Contains(s.Empcod)
                       && s.Condep <= datefin
                       && s.Conret >= datedebut
+                      && (!shouldFilterByAbsType || s.Abscod == selectedAbsType)
                 select new
                 {
                     s.Empcod,
@@ -78,37 +116,39 @@ namespace ABRPOINT.Server.Repository
                 }
             ).ToListAsync();
 
-            // ================= Présences =================
             var presences = await _dbContext.Presences
                 .AsNoTracking()
                 .Where(p => p.Soccod == soccod
                          && empcods.Contains(p.Empcod)
                          && p.Predat >= datedebut
                          && p.Predat <= datefin)
-                .Select(p => new
-                {
-                    p.Empcod,
-                    p.Predat,
-                    p.Preretmateup,
-                    p.Preretmatsup,
-                    p.Preretameup,
-                    p.Preretamsup,
-                    p.Tothabs
-                })
                 .ToListAsync();
 
+            var ferieDates = (await _dbContext.Feriers
+                .AsNoTracking()
+                .Where(f => f.Soccod == soccod
+                         && f.Ferdate >= datedebut
+                         && f.Ferdate <= datefin)
+                .Select(f => f.Ferdate!.Value.Date)
+                .ToListAsync())
+                .ToHashSet();
 
-            // clé logique : (employé + date)
+            var presencesByEmployeeDate = presences
+                .Where(p => p.Predat.HasValue && !string.IsNullOrWhiteSpace(p.Empcod))
+                .GroupBy(p => (p.Empcod!, p.Predat!.Value.Date))
+                .ToDictionary(g => g.Key, g => g.First());
+
             var result = new Dictionary<(string Empcod, DateTime Date), EtatAbsence>();
 
-
-            // ================= TRAITEMENT ABSENCES =================
             foreach (var sanction in sanctions)
             {
-                if (!employes.TryGetValue(sanction.Empcod, out var employe))
+                if (!employes.TryGetValue(sanction.Empcod, out var employe) || !sanction.Condep.HasValue || !sanction.Conret.HasValue)
                     continue;
 
-                for (var date = sanction.Condep!.Value.Date; date <= sanction.Conret!.Value.Date; date = date.AddDays(1))
+                var sanctionStart = sanction.Condep.Value.Date < startDate ? startDate : sanction.Condep.Value.Date;
+                var sanctionEnd = sanction.Conret.Value.Date > endDate ? endDate : sanction.Conret.Value.Date;
+
+                for (var date = sanctionStart; date <= sanctionEnd; date = date.AddDays(1))
                 {
                     var key = (sanction.Empcod, date);
 
@@ -150,44 +190,110 @@ namespace ABRPOINT.Server.Repository
                 }
             }
 
-
-            // ================= TRAITEMENT RETARDS =================
-            foreach (var presence in presences)
+            if (absret)
             {
-                if (!employes.TryGetValue(presence.Empcod, out var employe))
-                    continue;
-
-                int totalRetard =
-                    GetMinutes(presence.Preretmateup) +
-                    GetMinutes(presence.Preretmatsup) +
-                    GetMinutes(presence.Preretameup) +
-                    GetMinutes(presence.Preretamsup);
-
-                if (totalRetard == 0 && (string.IsNullOrEmpty(presence.Tothabs) && presence.Tothabs == "00:00"))
-                    continue;
-
-                var key = (presence.Empcod, presence.Predat.Value.Date);
-
-                if (!result.TryGetValue(key, out var etatAbsence))
+                foreach (var presence in presences)
                 {
-                    etatAbsence = new EtatAbsence
+                    if (!presence.Predat.HasValue || string.IsNullOrWhiteSpace(presence.Empcod))
+                        continue;
+
+                    if (!employes.TryGetValue(presence.Empcod, out var employe))
+                        continue;
+
+                    int totalRetard =
+                        GetMinutes(presence.Preretmateup) +
+                        GetMinutes(presence.Preretmatsup) +
+                        GetMinutes(presence.Preretameup) +
+                        GetMinutes(presence.Preretamsup);
+
+                    bool hasAbsenceHours = !string.IsNullOrWhiteSpace(presence.Tothabs) && presence.Tothabs != "00:00";
+                    if (totalRetard == 0 && !hasAbsenceHours)
+                        continue;
+
+                    var key = (presence.Empcod, presence.Predat.Value.Date);
+
+                    if (!result.TryGetValue(key, out var etatAbsence))
                     {
-                        Empcod = presence.Empcod,
-                        Empmat = employe.Empmat,
-                        Emplib = employe.Emplib,
-                        Empreg = employe.Empreg,
-                        Date = presence.Predat.Value.Date,
-                        Motif = "Retard"
-                    };
+                        etatAbsence = new EtatAbsence
+                        {
+                            Empcod = presence.Empcod,
+                            Empmat = employe.Empmat,
+                            Emplib = employe.Emplib,
+                            Empreg = employe.Empreg,
+                            Date = presence.Predat.Value.Date,
+                            Motif = "Retard"
+                        };
 
-                    result[key] = etatAbsence;
+                        result[key] = etatAbsence;
+                    }
+
+                    etatAbsence.Absjourretard = FormatMinutes(totalRetard);
                 }
-
-                etatAbsence.Absjourretard = FormatMinutes(totalRetard);
             }
 
+            if (!shouldFilterByAbsType)
+            {
+                foreach (var employe in employes.Values)
+                {
+                    var employeeStartDate = employe.Empemb?.Date ?? startDate;
+                    var employeeEndDate = employe.Empsort?.Date ?? endDate;
+                    var effectiveStart = employeeStartDate > startDate ? employeeStartDate : startDate;
+                    var effectiveEnd = employeeEndDate < endDate ? employeeEndDate : endDate;
 
-            // ================= RESULTAT FINAL =================
+                    if (effectiveStart > effectiveEnd)
+                        continue;
+
+                    var allDates = Enumerable
+                        .Range(0, (effectiveEnd - effectiveStart).Days + 1)
+                        .Select(offset => effectiveStart.AddDays(offset))
+                        .ToList();
+
+                    if (allDates.Count == 0)
+                        continue;
+
+                    var reposDays = await _parametreRepository.GetReposDaysByPeriod(soccod, employe.Empcod, allDates);
+
+                    foreach (var date in allDates)
+                    {
+                        var key = (employe.Empcod, date);
+
+                        if (result.ContainsKey(key))
+                            continue;
+
+                        if (ferieDates.Contains(date))
+                            continue;
+
+                        if (reposDays.TryGetValue(date, out var isRepos) && isRepos)
+                            continue;
+
+                        if (presencesByEmployeeDate.TryGetValue(key, out var presence))
+                        {
+                            if (!GenericMethodes.NotPresent(presence))
+                                continue;
+
+                            if (sansPointageInvalide)
+                            {
+                                var isPointageValid = await IsPointageValid(presence, date);
+                                if (!isPointageValid)
+                                    continue;
+                            }
+                        }
+
+                        result[key] = new EtatAbsence
+                        {
+                            Empcod = employe.Empcod,
+                            Empmat = employe.Empmat,
+                            Emplib = employe.Emplib,
+                            Empreg = employe.Empreg,
+                            Date = date,
+                            Motif = "Non present",
+                            Absnj = 1,
+                            Absence = 1
+                        };
+                    }
+                }
+            }
+
             return result.Values
                 .OrderBy(r => r.Date)
                 .ThenBy(r => r.Empcod)
@@ -207,7 +313,7 @@ namespace ABRPOINT.Server.Repository
             catch (DbUpdateException dbEx)
             {
 
-                throw new RepositoryException("Probléme au niveau base de donnée ",dbEx);
+                throw new RepositoryException("ProblÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©me au niveau base de donnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e ",dbEx);
             }
             catch (Exception ex)
             {
@@ -232,7 +338,7 @@ namespace ABRPOINT.Server.Repository
             }
             catch (InvalidOperationException opEx)
             {
-                throw new InvalidOperationException("clé dupliqué est détéctée ",opEx);
+                throw new InvalidOperationException("clÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© dupliquÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© est dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ctÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e ",opEx);
             }
             catch (Exception ex)
             {
@@ -256,7 +362,7 @@ namespace ABRPOINT.Server.Repository
         public IEnumerable<Absence> GetAll(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
-                throw new ArgumentException("code société est null",nameof(soccod));
+                throw new ArgumentException("code sociÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© est null",nameof(soccod));
             try
             {
                 IEnumerable<Absence> absences = _dbContext.Absences
@@ -265,7 +371,7 @@ namespace ABRPOINT.Server.Repository
                     .Select(g=>g.First())
                     .ToList();
                 if (absences == null)
-                    throw new ArgumentNullException("Aucune absences trouvée");
+                    throw new ArgumentNullException("Aucune absences trouvÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e");
 
                 return absences;
                 
@@ -273,7 +379,7 @@ namespace ABRPOINT.Server.Repository
             catch (Exception ex)
             {
 
-                throw new RepositoryException("Erreur innatendue s'est produit lors de récupération d'absences "
+                throw new RepositoryException("Erreur innatendue s'est produit lors de rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ration d'absences "
                     ,ex);
             }
         }
@@ -290,7 +396,7 @@ namespace ABRPOINT.Server.Repository
                     .FirstOrDefault(s => s.Soccod == soccod && s.Abscod == abscod);
 
                 if (absence == null)
-                    throw new ArgumentNullException($"Aucun absence trouvée avec code societe '{soccod}'" +
+                    throw new ArgumentNullException($"Aucun absence trouvÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e avec code societe '{soccod}'" +
                         $"et code absence '${abscod}'");
                 return absence;
             }
