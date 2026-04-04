@@ -107,7 +107,7 @@ namespace ABRPOINT.Server.Repository
                       && empcods.Contains(s.Empcod)
                       && s.Condep <= datefin
                       && s.Conret >= datedebut
-                      && (!hasSelectedAbsType || s.Abscod == selectedAbsType)
+                      && (!hasSelectedAbsType || a.Abscng.ToString() == selectedAbsType)
                 select new
                 {
                     s.Empcod,
