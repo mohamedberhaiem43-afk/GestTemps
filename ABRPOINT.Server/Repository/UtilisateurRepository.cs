@@ -102,12 +102,11 @@ namespace ABRPOINT.Server.Repository
                     await _dbContext.Socusers.AddAsync(socuser);
                     await _dbContext.SaveChangesAsync();
 
-                    // Ajouter les droits d'accès pour les absences, les demandes de congé et les droits de congé
+                    // Ajouter les droits d'accès pour les absences et les demandes de congé
                     var employeeModules = new[]
                     {
-                        new { Code = "absence", Sais = "1", Upd = "1", Supp = "1", Consult = "1" }, // Tous les droits pour les absences
-                        new { Code = "dem_conge", Sais = "1", Upd = "1", Supp = "1", Consult = "1" }, // Tous les droits pour les demandes de congé
-                        new { Code = "frm_dcong", Sais = "1", Upd = "1", Supp = "1", Consult = "1" }  // Tous les droits pour le module droits congé
+                        new { Code = "absence", Sais = "0", Upd = "0", Supp = "0", Consult = "1" }, // Consultation seulement pour les absences
+                        new { Code = "dem_conge", Sais = "1", Upd = "1", Supp = "1", Consult = "1" } // Tous les droits pour les demandes de congé
                     };
 
                     foreach (var module in employeeModules)
