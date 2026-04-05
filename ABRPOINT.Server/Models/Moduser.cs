@@ -8,6 +8,7 @@ public partial class Moduser
 {
     [Key]
     [Column("ordre")]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int? Ordre { get; set; }
 
     [Column("modcod")]

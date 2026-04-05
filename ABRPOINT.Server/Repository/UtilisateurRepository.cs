@@ -209,7 +209,6 @@ namespace ABRPOINT.Server.Repository
                     else
                     {
                         // Insert new
-                        mod.Ordre = await _dbContext.Modusers.MaxAsync(m => m.Ordre) + 1;
                         await _dbContext.Modusers.AddAsync(new Moduser
                         {
                             Uticod = utilisateur.Utilisateur.Uticod,
@@ -218,8 +217,7 @@ namespace ABRPOINT.Server.Repository
                             Modupd = mod.Modupd,
                             Modconsult = mod.Modconsult,
                             Modsupp = mod.Modsupp,
-                            Modsais = mod.Modsais,
-                            Ordre = mod.Ordre
+                            Modsais = mod.Modsais
                         });
                         await _dbContext.SaveChangesAsync();
                     }
