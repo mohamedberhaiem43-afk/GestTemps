@@ -89,7 +89,7 @@ namespace ABRPOINT.Server.Repository
                .Where(s => s.Soccod == qualif.Soccod && s.Quacod == qualif.Quacod)
                .ExecuteUpdateAsync(setters => setters
                    .SetProperty(s => s.Qualib, qualif.Qualib)
-                   .SetProperty(s => s.Catcod, qualif.Catcod)
+                   // .SetProperty(s => s.Catcod, qualif.Catcod) // Temporarily commented out due to missing column
                );
 
                 return rowsAffected > 0;

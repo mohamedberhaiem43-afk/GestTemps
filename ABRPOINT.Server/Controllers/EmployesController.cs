@@ -212,7 +212,7 @@ namespace ABRPOINT.Server.Controllers
                         Uticod = employe.Empcod,
                     };
                     await _utilisateurRepository.AddAsync(utilisateur, socuser);
-                    return Ok(new { message = "Employé ajouté avec succès. Un compte a été créé avec le numéro CIN comme mot de passe par défaut." });
+                    return Ok(new { message = "Employé ajouté avec succès" });
                 }
                     return BadRequest(new { message = "Veuillez remplir les champs obligatoires" });
             }
