@@ -88,7 +88,7 @@ namespace ABRPOINT.Server.Repository
                     .DistinctBy(c => new { c.Concod, c.Soccod })
                     .Select(c =>
                     {
-                        var conge = conges.FirstOrDefault(x => x.Concod == c.Concod && x.Empcod == c.Empcod);
+                        var conge = conges.FirstOrDefault(x => x.Concod == c.Concod);
                         c.Etat = conge == null
                             ? "En attente"
                             : conge.Conrefus == "1"
