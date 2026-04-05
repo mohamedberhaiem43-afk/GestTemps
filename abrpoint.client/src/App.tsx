@@ -221,6 +221,134 @@ function AdminNotifications() {
   );
 }
 
+function EmployeeNotifications() {
+  const { utiadm, soccod, uticod } = useAuth();
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const isEmployee = utiadm !== "1";
+  const approvedCount = notifications.length;
+  const notificationsOpen = Boolean(anchorEl);
+
+  const fetchApprovedNotifications = async () => {
+    if (!isEmployee || !soccod || !uticod) {
+      setNotifications([]);
+      return;
+    }
+
+    setIsLoadingNotifications(true);
+    try {
+      const response = await apiInstance.get(`/DemConges/get-emp-demconge/${soccod}/${uticod}`);
+      const data = Array.isArray(response.data) ? response.data : [];
+      const approvedRequests = data.filter((req: any) => req.etat === "Accepté");
+      setNotifications(approvedRequests);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des notifications d'approbation :", error);
+      setNotifications([]);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchApprovedNotifications();
+    const intervalId = setInterval(fetchApprovedNotifications, 60000);
+    return () => clearInterval(intervalId);
+  }, [isEmployee, soccod, uticod]);
+
+  const handleNotificationClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleViewLeaveRequests = () => {
+    setAnchorEl(null);
+    navigate("/dashboard");
+  };
+
+  if (!isEmployee) {
+    return null;
+  }
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Tooltip
+        title={
+          approvedCount > 0
+            ? `${approvedCount} demande(s) de congé approuvée(s)`
+            : "Aucune demande approuvée récemment"
+        }
+      >
+        <IconButton
+          onClick={handleNotificationClick}
+          size="large"
+          sx={{
+            bgcolor: approvedCount > 0 ? "rgba(76, 175, 80, 0.08)" : "transparent",
+            border: approvedCount > 0 ? "1px solid rgba(76, 175, 80, 0.3)" : "none",
+            color: approvedCount > 0 ? "#2e7d32" : "inherit",
+            '&:hover': {
+              bgcolor: approvedCount > 0 ? "rgba(76, 175, 80, 0.12)" : "rgba(0, 0, 0, 0.04)",
+            },
+          }}
+        >
+          <Badge badgeContent={approvedCount} color={approvedCount > 0 ? "success" : "default"}>
+            <NotificationsIcon sx={{ fontSize: 28 }} />
+          </Badge>
+        </IconButton>
+      </Tooltip>
+
+      {approvedCount > 0 && (
+        <Box
+          sx={{
+            px: 1.5,
+            py: 0.5,
+            borderRadius: 2,
+            bgcolor: "rgba(76, 175, 80, 0.12)",
+            color: "#2e7d32",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+          }}
+        >
+          {`${approvedCount} approuvée(s)`}
+        </Box>
+      )}
+
+      <Menu anchorEl={anchorEl} open={notificationsOpen} onClose={handleNotificationClose}>
+        <MenuItem disabled>
+          {isLoadingNotifications
+            ? "Chargement..."
+            : approvedCount > 0
+            ? `${approvedCount} demande(s) approuvée(s)`
+            : "Aucune demande approuvée"}
+        </MenuItem>
+        {!isLoadingNotifications && approvedCount > 0 && notifications.slice(0, 3).map((req) => (
+          <MenuItem key={req.concod}>
+            <ListItemText
+              primary={`Demande ${req.concod}`}
+              secondary={req.condat ? new Date(req.condat).toLocaleDateString() : ""}
+            />
+          </MenuItem>
+        ))}
+        {!isLoadingNotifications && approvedCount > 0 && (
+          <MenuItem onClick={handleViewLeaveRequests}>
+            <ListItemText primary="Voir mes demandes de congé" />
+          </MenuItem>
+        )}
+        {!isLoadingNotifications && approvedCount === 0 && (
+          <MenuItem onClick={fetchApprovedNotifications}>
+            <ListItemText primary="Actualiser" />
+          </MenuItem>
+        )}
+      </Menu>
+    </Box>
+  );
+}
+
 function App() {
   return (
 
@@ -230,7 +358,7 @@ function App() {
           <Box
             sx={{
               position: "fixed",
-              top: -25,
+              top: 10,
               right: 70,
               zIndex: 2000,
               p: 2,
@@ -240,6 +368,7 @@ function App() {
             }}
           >
             <AdminNotifications />
+            <EmployeeNotifications />
             <LanguageSwitcher />
           </Box>
           <DashboardLayoutBasic />

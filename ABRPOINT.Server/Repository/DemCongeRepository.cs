@@ -243,7 +243,7 @@ namespace ABRPOINT.Server.Repository
                     .ToListAsync();
 
                 var conges = await _dbContext.Conges
-                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .Where(e => e.Soccod == soccod)
                     .ToListAsync();
 
                 var result = empconges.Select(demconge =>
