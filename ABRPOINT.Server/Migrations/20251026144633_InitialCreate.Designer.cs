@@ -3601,8 +3601,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("modupd");
 
                     b.Property<string>("Uticod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
                     b.HasKey("Ordre");
@@ -8951,8 +8951,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("soccod");
 
                     b.Property<string>("Uticod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
                     b.Property<string>("Sitcod")
@@ -9747,8 +9747,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("totnuit");
 
                     b.Property<string>("Uticod")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
                     b.ToTable("~TMPCLP651021");
@@ -9757,8 +9757,8 @@ namespace ABRPOINT.Server.Migrations
             modelBuilder.Entity("ABRPOINT.Server.Models.Utilisateur", b =>
                 {
                     b.Property<string>("Uticod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
                     b.Property<string>("Utiactif")

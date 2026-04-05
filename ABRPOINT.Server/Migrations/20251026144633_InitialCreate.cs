@@ -1270,7 +1270,7 @@ namespace ABRPOINT.Server.Migrations
                     ordre = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     modcod = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
-                    uticod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
+                    uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     appcod = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: true),
                     modsais = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     modupd = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
@@ -2807,7 +2807,7 @@ namespace ABRPOINT.Server.Migrations
                 columns: table => new
                 {
                     soccod = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
-                    uticod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
+                    uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     sitcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
                     exercice = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true)
                 },
@@ -3022,7 +3022,7 @@ namespace ABRPOINT.Server.Migrations
                 name: "utilisateur",
                 columns: table => new
                 {
-                    uticod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
+                    uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     utinom = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     utiprn = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     utimps = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),

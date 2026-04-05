@@ -104,6 +104,8 @@
     "save": "Save",
     "update": "Update",
     "addSuccess": "Employee added successfully",
+    "addAccountSuccess": "Employee added successfully. An account has been created with the CIN number as the default password.",
+    "addMultipleSuccess": "Employees added successfully. Accounts have been created with CIN numbers as default passwords.",
     "addError": "Failed to add employee",
     "updateSuccess": "Employee updated successfully",
     "updateError": "Failed to update employee",

@@ -443,10 +443,24 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Calendsoc", b =>
                 {
+                    b.Property<string>("Soccod")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)")
+                        .HasColumnName("soccod");
+
                     b.Property<string>("CalAn")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("cal_an");
+
+                    b.Property<string>("CalMois")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)")
+                        .HasColumnName("cal_mois");
+
+                    b.Property<int?>("CalSem")
+                        .HasColumnType("int")
+                        .HasColumnName("cal_sem");
 
                     b.Property<float?>("CalHjour")
                         .HasColumnType("real")
@@ -460,18 +474,9 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("cal_hsem");
 
-                    b.Property<string>("CalMois")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
-                        .HasColumnName("cal_mois");
-
                     b.Property<float?>("CalNbh")
                         .HasColumnType("real")
                         .HasColumnName("cal_nbh");
-
-                    b.Property<int?>("CalSem")
-                        .HasColumnType("int")
-                        .HasColumnName("cal_sem");
 
                     b.Property<float?>("CalTrav")
                         .HasColumnType("real")
@@ -487,10 +492,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("caltype");
 
-                    b.Property<string>("Soccod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
-                        .HasColumnName("soccod");
+                    b.HasKey("Soccod", "CalAn", "CalMois", "CalSem");
 
                     b.ToTable("calendsoc");
                 });
@@ -1634,8 +1636,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("empmob");
 
-                    b.Property<int?>("Empnbp")
-                        .HasColumnType("int")
+                    b.Property<float?>("Empnbp")
+                        .HasColumnType("real")
                         .HasColumnName("empnbp");
 
                     b.Property<string>("Empreg")
@@ -1819,16 +1821,6 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
 
-                    b.Property<string>("Empcmp")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("empcmp");
-
-                    b.Property<string>("Empferepos")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("empferepos");
-
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
@@ -1865,9 +1857,9 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("empacin");
 
                     b.Property<string>("Empadr")
-                        .HasMaxLength(50)
+                        .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("empadr");
 
                     b.Property<string>("Empadrar")
@@ -1884,6 +1876,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)")
                         .HasColumnName("empcin");
+
+                    b.Property<string>("Empcmp")
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("empcmp");
 
                     b.Property<string>("Empcontrat")
                         .HasMaxLength(50)
@@ -1923,9 +1920,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("empemb");
 
+                    b.Property<string>("Empferepos")
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("empferepos");
+
                     b.Property<string>("Empfonc")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
                         .HasColumnName("empfonc");
 
                     b.Property<string>("Empfoncar")
@@ -1934,8 +1936,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("empfoncar");
 
                     b.Property<string>("Emplib")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("emplib");
 
                     b.Property<string>("Emplibar")
@@ -1961,8 +1963,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("float")
                         .HasColumnName("empmaxjour");
 
-                    b.Property<int?>("Empminhjour")
-                        .HasColumnType("int")
+                    b.Property<double?>("Empminhjour")
+                        .HasColumnType("float")
                         .HasColumnName("empminhjour");
 
                     b.Property<string>("Empmob")
@@ -2647,12 +2649,12 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lcategorie", b =>
                 {
-                    b.Property<int?>("Ordre")
+                    b.Property<int>("Ordre")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("ordre");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("Ordre"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Ordre"));
 
                     b.Property<string>("Cat100a")
                         .HasMaxLength(8)
@@ -3608,8 +3610,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("modupd");
 
                     b.Property<string>("Uticod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
                     b.HasKey("Ordre");
@@ -4845,15 +4847,15 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.Property<string>("Empreg")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("empreg");
-
                     b.Property<string>("Caltype")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("caltype");
+
+                    b.Property<string>("Empreg")
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("empreg");
 
                     b.Property<int?>("Ordre")
                         .HasColumnType("int")
@@ -4875,7 +4877,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("partranche2");
 
-                    b.HasKey("Soccod", "Empreg");
+                    b.HasKey("Soccod", "Caltype", "Empreg");
 
                     b.ToTable("partranche");
                 });
@@ -6560,60 +6562,60 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("merrepos");
 
-                    b.Property<float?>("Minhdemijourdim")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhdemijourdim")
+                        .HasColumnType("int")
                         .HasColumnName("minhdemijourdim");
 
-                    b.Property<float?>("Minhdemijourjeu")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhdemijourjeu")
+                        .HasColumnType("int")
                         .HasColumnName("minhdemijourjeu");
 
-                    b.Property<float?>("Minhdemijourlun")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhdemijourlun")
+                        .HasColumnType("int")
                         .HasColumnName("minhdemijourlun");
 
-                    b.Property<float?>("Minhdemijourmar")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhdemijourmar")
+                        .HasColumnType("int")
                         .HasColumnName("minhdemijourmar");
 
-                    b.Property<float?>("Minhdemijourmer")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhdemijourmer")
+                        .HasColumnType("int")
                         .HasColumnName("minhdemijourmer");
 
-                    b.Property<float?>("Minhdemijoursam")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhdemijoursam")
+                        .HasColumnType("int")
                         .HasColumnName("minhdemijoursam");
 
-                    b.Property<float?>("Minhdemijourven")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhdemijourven")
+                        .HasColumnType("int")
                         .HasColumnName("minhdemijourven");
 
-                    b.Property<float?>("Minhjourdim")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhjourdim")
+                        .HasColumnType("int")
                         .HasColumnName("minhjourdim");
 
-                    b.Property<float?>("Minhjourjeu")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhjourjeu")
+                        .HasColumnType("int")
                         .HasColumnName("minhjourjeu");
 
-                    b.Property<float?>("Minhjourlun")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhjourlun")
+                        .HasColumnType("int")
                         .HasColumnName("minhjourlun");
 
-                    b.Property<float?>("Minhjourmar")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhjourmar")
+                        .HasColumnType("int")
                         .HasColumnName("minhjourmar");
 
-                    b.Property<float?>("Minhjourmer")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhjourmer")
+                        .HasColumnType("int")
                         .HasColumnName("minhjourmer");
 
-                    b.Property<float?>("Minhjoursam")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhjoursam")
+                        .HasColumnType("int")
                         .HasColumnName("minhjoursam");
 
-                    b.Property<float?>("Minhjourven")
-                        .HasColumnType("real")
+                    b.Property<int?>("Minhjourven")
+                        .HasColumnType("int")
                         .HasColumnName("minhjourven");
 
                     b.Property<int?>("Retmin")
@@ -7057,24 +7059,24 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ordre");
 
-                    b.Property<int?>("Preapresent")
-                        .HasColumnType("int")
+                    b.Property<float?>("Preapresent")
+                        .HasColumnType("real")
                         .HasColumnName("preapresent");
 
-                    b.Property<int?>("Preapressort")
-                        .HasColumnType("int")
+                    b.Property<float?>("Preapressort")
+                        .HasColumnType("real")
                         .HasColumnName("preapressort");
 
-                    b.Property<int?>("Preavantent")
-                        .HasColumnType("int")
+                    b.Property<float?>("Preavantent")
+                        .HasColumnType("real")
                         .HasColumnName("preavantent");
 
-                    b.Property<int?>("Preavantsort")
-                        .HasColumnType("int")
+                    b.Property<float?>("Preavantsort")
+                        .HasColumnType("real")
                         .HasColumnName("preavantsort");
 
-                    b.Property<int?>("Predouche")
-                        .HasColumnType("int")
+                    b.Property<float?>("Predouche")
+                        .HasColumnType("real")
                         .HasColumnName("predouche");
 
                     b.Property<string>("Preentamidi")
@@ -7122,8 +7124,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("preobs");
 
-                    b.Property<int?>("Prerepas")
-                        .HasColumnType("int")
+                    b.Property<float?>("Prerepas")
+                        .HasColumnType("real")
                         .HasColumnName("prerepas");
 
                     b.Property<string>("Prerepos")
@@ -7163,8 +7165,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("preretmatsup");
 
-                    b.Property<int?>("Presem")
-                        .HasColumnType("int")
+                    b.Property<float?>("Presem")
+                        .HasColumnType("real")
                         .HasColumnName("presem");
 
                     b.Property<string>("Presortamidi")
@@ -7222,8 +7224,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.Property<int?>("Totcmp")
-                        .HasColumnType("int")
+                    b.Property<float?>("Totcmp")
+                        .HasColumnType("real")
                         .HasColumnName("totcmp");
 
                     b.Property<string>("Tothabs")
@@ -7904,6 +7906,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
+                    b.Property<string>("Catcod")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("catcod");
+
                     b.Property<string>("Qualib")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
@@ -8033,6 +8040,44 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("titcod");
 
                     b.ToTable("qualmens");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RefreshToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("Revoked")
+                        .HasColumnType("bit")
+                        .HasColumnName("revoked");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("token");
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("refresh_tokens");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Regleremp", b =>
@@ -8286,8 +8331,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("rubtaux");
 
                     b.Property<string>("Rubtype")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)")
                         .HasColumnName("rubtype");
 
                     b.Property<string>("Rubunite")
@@ -8296,8 +8341,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("rubunite");
 
                     b.Property<string>("Vartype")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)")
                         .HasColumnName("vartype");
 
                     b.HasKey("Rubcod", "Soccod");
@@ -8828,11 +8873,6 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("socadrar");
 
-                    b.Property<string>("Socimg")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("socimg");
-
                     b.Property<string>("Socccb")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
@@ -8853,6 +8893,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("sochsup");
 
+                    b.Property<string>("Socimg")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("socimg");
+
                     b.Property<string>("Soclib")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)")
@@ -8868,8 +8913,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("socmere");
 
-                    b.Property<float?>("Socmois")
-                        .HasColumnType("real")
+                    b.Property<int?>("Socmois")
+                        .HasColumnType("int")
                         .HasColumnName("socmois");
 
                     b.Property<string>("Socpresence")
@@ -8877,8 +8922,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("socpresence");
 
-                    b.Property<float?>("Socreg")
-                        .HasColumnType("real")
+                    b.Property<int?>("Socreg")
+                        .HasColumnType("int")
                         .HasColumnName("socreg");
 
                     b.Property<string>("Socresp")
@@ -8963,8 +9008,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("soccod");
 
                     b.Property<string>("Uticod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
                     b.Property<string>("Sitcod")
@@ -9769,14 +9814,9 @@ namespace ABRPOINT.Server.Migrations
             modelBuilder.Entity("ABRPOINT.Server.Models.Utilisateur", b =>
                 {
                     b.Property<string>("Uticod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
-                        
-                    b.Property<string>("Utiimg")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("utiimg");
 
                     b.Property<string>("Utiactif")
                         .HasMaxLength(1)
@@ -9787,6 +9827,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)")
                         .HasColumnName("utiadm");
+
+                    b.Property<string>("Utiimg")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("utiimg");
 
                     b.Property<string>("Utimail")
                         .HasMaxLength(100)
@@ -9827,42 +9872,6 @@ namespace ABRPOINT.Server.Migrations
                     b.HasKey("Vilcod");
 
                     b.ToTable("ville");
-                });
-
-            modelBuilder.Entity("ABRPOINT.Server.Models.RefreshToken", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<string>("Uticod")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("uticod");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("token");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("expires_at");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("Revoked")
-                        .HasColumnType("bit")
-                        .HasColumnName("revoked");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("refresh_tokens");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Avance", b =>

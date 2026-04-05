@@ -101,6 +101,29 @@ namespace ABRPOINT.Server.Repository
                     await _dbContext.SaveChangesAsync();
                     await _dbContext.Socusers.AddAsync(socuser);
                     await _dbContext.SaveChangesAsync();
+
+                    // Ajouter les droits d'accès pour les absences et demandes de congé
+                    var employeeModules = new[]
+                    {
+                        new { Code = "absence", Sais = "0", Upd = "0", Supp = "0", Consult = "1" }, // Consultation seulement pour les absences
+                        new { Code = "dem_conge", Sais = "1", Upd = "1", Supp = "1", Consult = "1" }  // Tous les droits pour les demandes de congé
+                    };
+
+                    foreach (var module in employeeModules)
+                    {
+                        var moduser = new Moduser
+                        {
+                            Modcod = module.Code,
+                            Uticod = utilisateur.Uticod,
+                            Appcod = "PAI", // Code application par défaut
+                            Modsais = module.Sais,
+                            Modupd = module.Upd,
+                            Modsupp = module.Supp,
+                            Modconsult = module.Consult
+                        };
+                        await _dbContext.Modusers.AddAsync(moduser);
+                    }
+                    await _dbContext.SaveChangesAsync();
                 }
             }
             catch (Exception)
