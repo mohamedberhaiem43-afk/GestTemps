@@ -59,6 +59,16 @@
     "about": "À propos",
     "contact": "Contact"
   },
+  "notifications": {
+    "loading": "Chargement des notifications...",
+    "newLeaveRequests": "{{count}} nouvelles demandes de congé",
+    "noNewLeaveRequests": "Aucune nouvelle demande de congé",
+    "pendingRequests": "{{count}} demande(s) en attente",
+    "pendingTooltip": "{{count}} demande(s) de congé en attente",
+    "noPendingTooltip": "Aucune nouvelle demande de congé",
+    "viewLeaveRequests": "Voir les demandes de congé",
+    "refresh": "Actualiser"
+  },
   "breadcrumb": {
     "param-societe": "Paramètres Société",
     "societe": "Société",

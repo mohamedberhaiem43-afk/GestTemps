@@ -58,6 +58,16 @@
     "about": "About",
     "contact": "Contact"
   },
+  "notifications": {
+    "loading": "Loading notifications...",
+    "newLeaveRequests": "{{count}} new leave requests",
+    "noNewLeaveRequests": "No new leave requests",
+    "pendingRequests": "{{count}} pending requests",
+    "pendingTooltip": "{{count}} pending leave request(s)",
+    "noPendingTooltip": "No new leave requests",
+    "viewLeaveRequests": "View leave requests",
+    "refresh": "Refresh"
+  },
   "breadcrumb": {
     "param-societe": "Company Settings",
     "societe": "Company",
