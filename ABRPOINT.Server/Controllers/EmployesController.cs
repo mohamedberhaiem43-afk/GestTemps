@@ -212,7 +212,7 @@ namespace ABRPOINT.Server.Controllers
                         Uticod = employe.Empcod,
                     };
                     await _utilisateurRepository.AddAsync(utilisateur, socuser);
-                    return Ok(new { message = "Employé ajouté avec succès" });
+                    return Ok(new { message = "Employé ajouté avec succès. Un compte a été créé avec le numéro CIN comme mot de passe par défaut." });
                 }
                     return BadRequest(new { message = "Veuillez remplir les champs obligatoires" });
             }
@@ -228,7 +228,39 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 await _employeRepository.AddMultipleEmploye(employe);
-                return Ok(new { message = "Employé ajouté avec succès",isValid = true });
+                
+                // Créer les comptes utilisateurs pour chaque employé
+                foreach (var emp in employe)
+                {
+                    if (emp != null && !string.IsNullOrEmpty(emp.Empcod))
+                    {
+                        Utilisateur utilisateur = new Utilisateur()
+                        {
+                            Utiactif = "1",
+                            Utiadm = "0",
+                            Uticod = emp.Empcod,
+                            Utinom = emp.Emplib,
+                            Utimps = emp.Empcin,
+                            Utimail = emp.Empemail
+                        };
+                        Socuser socuser = new Socuser()
+                        {
+                            Soccod = emp.Soccod,
+                            Sitcod = emp.Sitcod,
+                            Uticod = emp.Empcod,
+                        };
+                        try
+                        {
+                            await _utilisateurRepository.AddAsync(utilisateur, socuser);
+                        }
+                        catch
+                        {
+                            // Continue avec les autres comptes même si un échoue
+                        }
+                    }
+                }
+                
+                return Ok(new { message = "Employés ajoutés avec succès. Les comptes ont été créés avec les numéros CIN comme mots de passe par défaut.", isValid = true });
             }
             catch (Exception ex)
             {

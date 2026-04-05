@@ -105,6 +105,8 @@
     "save": "Enregistrer",
     "update": "Modifier",
     "addSuccess": "Employé ajouté avec succès",
+    "addAccountSuccess": "Employé ajouté avec succès. Un compte a été créé avec le numéro CIN comme mot de passe par défaut.",
+    "addMultipleSuccess": "Employés ajoutés avec succès. Les comptes ont été créés avec les numéros CIN comme mots de passe par défaut.",
     "addError": "Échec lors de l'ajout de l'employé",
     "updateSuccess": "Employé modifié avec succès",
     "updateError": "Échec lors de la modification de l'employé",
