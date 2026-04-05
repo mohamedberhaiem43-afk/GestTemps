@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Select, MenuItem, FormControl } from '@mui/material';
 
 function LanguageSwitcher() {
   const { i18n } = useTranslation();
 
-  const changeLanguage = (lng:string) => {
+  const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
     // For Arabic, change document direction
     document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
@@ -17,11 +18,18 @@ function LanguageSwitcher() {
   }, [i18n.language]);
 
   return (
-    <div style={{ margin: '20px' }}>
-      <button onClick={() => changeLanguage('en')}>English</button>
-      <button onClick={() => changeLanguage('fr')}>Français</button>
-      <button onClick={() => changeLanguage('ar')}>العربية</button>
-    </div>
+    <FormControl size="small" sx={{ minWidth: 100 }}>
+      <Select
+        value={i18n.language}
+        onChange={(e) => changeLanguage(e.target.value)}
+        displayEmpty
+        sx={{ fontSize: '0.875rem' }}
+      >
+        <MenuItem value="en">EN</MenuItem>
+        <MenuItem value="fr">FR</MenuItem>
+        <MenuItem value="ar">العربية</MenuItem>
+      </Select>
+    </FormControl>
   );
 }
 

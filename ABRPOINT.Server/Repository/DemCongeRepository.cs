@@ -92,8 +92,8 @@ namespace ABRPOINT.Server.Repository
                         c.Etat = conge == null
                             ? "En attente"
                             : conge.Conrefus == "1"
-                                ? "Refusé"
-                                : "Accepté";
+                                ? "Refusï¿½"
+                                : "Acceptï¿½";
                         return c;
                     })
                     .OrderByDescending(c => c.Condat)
@@ -191,15 +191,15 @@ namespace ABRPOINT.Server.Repository
                     // Find the DemConge by concod
                     var demConge = await _dbContext.Demconges.FindAsync(soccod, concod);
                     if (demConge == null)
-                        return (false, $"Demande de congé avec le code {concod} introuvable.");
+                        return (false, $"Demande de congï¿½ avec le code {concod} introuvable.");
 
                     // Check if Conge already exists
                     bool congeExist = await _dbContext.Conges
-                        .Where(c => c.Soccod == soccod && c.Concod == concod && c.Empcod == empcod)
+                        .Where(c => c.Soccod == soccod && c.Concod == concod)
                         .AnyAsync();
 
                     if (congeExist)
-                        return (false, $"Le congé {concod} a déjà été accepté.");
+                        return (false, $"Le congï¿½ {concod} a dï¿½jï¿½ ï¿½tï¿½ acceptï¿½.");
                     // Create a new Conge entity based on the DemConge
                     var conge = new Conge
                         {
@@ -226,7 +226,7 @@ namespace ABRPOINT.Server.Repository
                     // Save changes in a single transaction
                     await _dbContext.SaveChangesAsync();
 
-                    return (true, $"Demande de congé {concod} acceptée avec succès.");
+                    return (true, $"Demande de congï¿½ {concod} acceptï¿½e avec succï¿½s.");
                 }
                 catch (Exception ex)
                 {
@@ -254,9 +254,9 @@ namespace ABRPOINT.Server.Repository
                     if (conge == null)
                         etat = "En attente";
                     else if (conge.Conrefus == "1")
-                        etat = "Refusé";
+                        etat = "Refusï¿½";
                     else
-                        etat = "Accepté";
+                        etat = "Acceptï¿½";
 
                     return new DemcongeDto
                     {
