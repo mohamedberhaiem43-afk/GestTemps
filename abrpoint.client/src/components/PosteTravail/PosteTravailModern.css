@@ -1,0 +1,481 @@
+/* PosteTravail Modern Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap');
+
+.poste-travail-container {
+  width: 100%;
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 24px;
+  font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
+}
+
+/* Header */
+.poste-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.poste-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.poste-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.poste-chip {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  font-weight: 500;
+  padding: 4px 12px;
+}
+
+.poste-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  text-transform: none;
+  border-radius: 8px;
+}
+
+.action-btn.save {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.action-btn.save:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.action-btn.new {
+  background: #3b82f6;
+  color: white;
+}
+
+.action-btn.new:hover {
+  background: #2563eb;
+}
+
+.action-btn.delete {
+  background: #ef4444;
+  color: white;
+}
+
+.action-btn.delete:hover {
+  background: #dc2626;
+}
+
+.action-btn.delete:disabled {
+  background: #94a3b8;
+}
+
+/* Main Content */
+.poste-content {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+}
+
+.poste-left-column {
+  flex: 9 1 0%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.poste-right-column {
+  flex: 3 1 0%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Info Row */
+.poste-info-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.poste-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.poste-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.poste-field-large {
+  flex: 1;
+}
+
+.poste-input {
+  background: white;
+}
+
+.poste-input .MuiOutlinedInput-root {
+  border-radius: 8px;
+}
+
+/* Settings Row */
+.poste-settings-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.poste-card {
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+.card-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-title.error {
+  color: #ef4444;
+}
+
+/* Tolerance Cards */
+.tolerance-card {
+  flex: 0 0 auto;
+  min-width: 180px;
+}
+
+.tolerance-fields {
+  display: flex;
+  gap: 16px;
+}
+
+.tolerance-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tolerance-field label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.tolerance-input {
+  width: 70px;
+}
+
+.tolerance-input .MuiOutlinedInput-root {
+  border-radius: 6px;
+}
+
+/* Pauses Card */
+.pauses-card {
+  flex: 1;
+  min-width: 250px;
+}
+
+.pauses-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pauses-options .MuiFormControlLabel-label {
+  font-size: 13px;
+  color: #475569;
+}
+
+/* Schedule Card */
+.schedule-card {
+  flex: 1;
+}
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.schedule-legend {
+  display: flex;
+  gap: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.work {
+  background: #3b82f6;
+}
+
+.legend-dot.rest {
+  background: #94a3b8;
+}
+
+.schedule-table-container {
+  overflow-x: auto;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.schedule-table th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  padding: 12px 8px;
+  text-align: center;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.schedule-table .sub-header th {
+  background: #f8fafc;
+  font-weight: 500;
+  font-size: 11px;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.schedule-table td {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.schedule-table .day-cell {
+  font-weight: 600;
+  color: #334155;
+  text-align: left;
+  padding-left: 12px;
+}
+
+.schedule-table .rest-day {
+  background: #f8fafc;
+}
+
+.schedule-table .rest-day .day-cell {
+  color: #94a3b8;
+}
+
+.schedule-table .MuiTextField-root {
+  width: 70px;
+}
+
+.schedule-table .MuiOutlinedInput-root {
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.edit-btn {
+  color: #3b82f6;
+}
+
+.edit-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Right Column Cards */
+.list-card {
+  flex: 1;
+  max-height: 400px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.postes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.poste-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  border: 1px solid transparent;
+}
+
+.poste-item:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.poste-item.active {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+}
+
+.poste-item-indicator {
+  width: 4px;
+  height: 40px;
+  border-radius: 2px;
+  background: #e2e8f0;
+  margin-right: 12px;
+}
+
+.poste-item.active .poste-item-indicator {
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.poste-item-content {
+  flex: 1;
+}
+
+.poste-item-code {
+  font-weight: 600;
+  font-size: 13px;
+  color: #334155;
+}
+
+.poste-item-label {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.poste-item-check {
+  color: #3b82f6;
+  font-size: 20px;
+}
+
+/* Stats Card */
+.stats-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: white;
+}
+
+.stats-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  opacity: 0.9;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-family: 'Manrope', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .poste-content {
+    flex-direction: column;
+  }
+
+  .poste-left-column,
+  .poste-right-column {
+    flex: none;
+    width: 100%;
+  }
+
+  .poste-settings-row {
+    flex-direction: column;
+  }
+
+  .tolerance-card,
+  .pauses-card {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .poste-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .poste-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .poste-info-row {
+    flex-direction: column;
+  }
+
+  .poste-field-large {
+    width: 100%;
+  }
+
+  .schedule-table {
+    font-size: 10px;
+  }
+
+  .schedule-table .MuiTextField-root {
+    width: 50px;
+  }
+}

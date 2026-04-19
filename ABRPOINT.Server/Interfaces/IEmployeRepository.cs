@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Models;
 
 namespace ABRPOINT.Server.Interfaces
@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Interfaces
         IEnumerable<Employe> GetAll(string? soccod, string uticod);
         Task AddAsync(Employe employe);
         Task<Employe> GetByEmpcod(string soccod, string empcod);
-        Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod);
+        Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod, string? sitcod = null, string? sercod = null, string? dircod = null, string? empreg = null);
         Task<Dictionary<string, string>> GetFemmeLibs(string soccod, string uticod);
         Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod);
         Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, List<string>? empcods = null, string? empreg = null,
@@ -33,5 +33,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<IEnumerable<Employe>> GetByEmpLib(string soccod, string name);
         Task<List<Employe>> SearchByTerms(string soccod, List<string> terms);
         Task<List<Employe>> GetEmpMatList(string soccod, string term);
+        Task<EmployeeKpiDto> GetMyKPIs(string soccod, string uticod);
     }
 }

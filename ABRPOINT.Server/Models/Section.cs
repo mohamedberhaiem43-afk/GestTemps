@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ABRPOINT.Server.Models;
 
 [Table("section")]
-public partial class Section
+public partial class Section : BaseEntity
 {
     [Column("seccod")]
     [StringLength(10)]

@@ -1,120 +1,65 @@
 import {
   Box,
-  Button,
-  Chip,
-  Grid,
-  Paper,
-  Stack,
-  Tab,
-  Tabs,
+  CircularProgress,
   Typography,
 } from "@mui/material";
-import { useTranslation } from 'react-i18next';
-import DataList from "../../lists/list";
-import { MRT_ColumnDef } from "material-react-table";
 import { DroitConge } from "../../../models/DroitConge";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
-import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
-import InputComponent from "../../Inputs/Input";
 import DroitCongeService from "../../../services/CongeService/DroitCongeService";
-import ForbiddenMessage from "../../AlertModal/ForbiddenMessage";
-import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
+import SearchIcon from '@mui/icons-material/Search';
+import DownloadIcon from '@mui/icons-material/FileDownload';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import GroupIcon from '@mui/icons-material/Group';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { useAuth } from "../../helper/AuthProvider";
+import AccessDenied from "../../helper/AccessDenied";
+import './EtatDroitConge.css';
 
 function EtatDroitConge() {
+  const { hasPermission } = useAuth();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  if (!hasPermission('Paie et Rémunération', 'consult')) {
+    return <AccessDenied message="Vous n'avez pas le droit de consulter les droits de congés." />;
+  }
   const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
-  const { data: employeesLibs = [] } = useGetEmployeesLibs();
-  const { t } = useTranslation();
+  const { data: employeesLibs = {} } = useGetEmployeesLibs();
   const [datedebut, setDatedebut] = useState("2023-01-01");
-  const [datefin, setDatefin] = useState("2023-01-31");
+  const [datefin, setDatefin] = useState("2023-12-31");
   const [activeTab, setActiveTab] = useState(0);
+  const [loading, setLoading] = useState(false);
   const queryParams = new URLSearchParams();
-  selectedEmpcods.forEach(code => queryParams.append("empcods", code));
+  selectedEmpcods.forEach((code: string) => queryParams.append("empcods", code));
   const queryString = queryParams.toString();
   const [droitConges, setDroitConges] = useState<DroitConge[]>([]);
 
-  const columns = useMemo<MRT_ColumnDef<DroitConge>[]>(() => [
-    {
-      id: 'droitConge',
-      header: '',
-      columns: [
-        { accessorKey: 'empmat', header: 'Matricule', size: 30 },
-        { accessorKey: 'emplib', header: 'Nom et Prénom', size: 200 },
-        { accessorKey: 'empreg', header: 'Régime', size: 50 },
-        { accessorKey: 'empemb', header: 'Date Embauche', size: 60 },
-        { accessorKey: 'annee', header: 'Année', size: 30 },
-        { accessorKey: 'soldeinit', header: 'Droit Congé', size: 30 },
-        { accessorKey: 'nbcongerecu', header: 'Congé reçu', size: 30 },
-        { accessorKey: 'droitrestant', header: 'Total Droit', size: 30 },
-      ],
-    },
-  ], []);
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  const columns1 = useMemo<MRT_ColumnDef<DroitConge>[]>(() => {
-    const monthKeys = Object.keys(droitConges?.[0]?.nbabsenceparmois || {});
-
-    const monthColumns = monthKeys.map((month): MRT_ColumnDef<DroitConge> => ({
-      accessorFn: (row) => row.nbabsenceparmois[month],
-      header: month.charAt(0).toUpperCase() + month.slice(1),
-      id: month,
-      size: 30,
-    }));
-
-    return [
-      {
-        id: 'absences-per-month',
-        header: 'Absences par mois',
-        columns: [
-          { accessorKey: 'empmat', header: 'Matricule', size: 30 },
-          { accessorKey: 'emplib', header: 'Nom et Prénom', size: 200 },
-          { accessorKey: 'empreg', header: 'Régime', size: 50 },
-          { accessorKey: 'empemb', header: 'Date Embauche', size: 60 },
-          { accessorKey: 'annee', header: 'Année', size: 30 },
-          ...monthColumns,
-          { accessorKey: 'nbabsences', header: 'Total absences', size: 30 },
-        ],
-      },
-    ];
-  }, [droitConges]);
-
-  const columns2 = useMemo<MRT_ColumnDef<DroitConge>[]>(() => {
-    const monthKeys = Object.keys(droitConges?.[0]?.nbcongerecuparmois || {});
-
-    const monthColumns = monthKeys.map((month): MRT_ColumnDef<DroitConge> => ({
-      accessorFn: (row) => row.nbcongerecuparmois[month],
-      header: month.charAt(0).toUpperCase() + month.slice(1),
-      id: month,
-      size: 30,
-    }));
-
-    return [
-      {
-        id: 'conges-per-month',
-        header: 'Congés reçus par mois',
-        columns: [
-          { accessorKey: 'empmat', header: 'Matricule', size: 30 },
-          { accessorKey: 'emplib', header: 'Nom et Prénom', size: 200 },
-          { accessorKey: 'empreg', header: 'Régime', size: 50 },
-          { accessorKey: 'empemb', header: 'Date Embauche', size: 60 },
-          { accessorKey: 'annee', header: 'Année', size: 30 },
-          ...monthColumns,
-          { accessorKey: 'nbcongerecu', header: 'Total congés reçus', size: 30 },
-        ],
-      },
-    ];
-  }, [droitConges]);
-
-  const totalRights = droitConges.reduce((sum, item) => sum + Number(item.droitrestant || 0), 0);
+  // Computed totals
+  const totalEmployees = droitConges.length;
+  const totalRights = droitConges.reduce((sum, item) => sum + Number(item.soldeinit || 0), 0);
   const totalReceived = droitConges.reduce((sum, item) => sum + Number(item.nbcongerecu || 0), 0);
+  const totalRemaining = droitConges.reduce((sum, item) => sum + Number(item.droitrestant || 0), 0);
   const totalAbsences = droitConges.reduce((sum, item) => sum + Number(item.nbabsences || 0), 0);
+  const avgRights = totalEmployees > 0 ? (totalRights / totalEmployees) : 0;
+  const consumptionPct = totalRights > 0 ? ((totalRights - totalRemaining) / totalRights * 100) : 0;
 
   const handleSearch = async () => {
+    setLoading(true);
     try {
       const res = await DroitCongeService.getAllWithParams(
         `get-droit-de-conge/${sessionStorage.getItem("soccod")}/${datedebut}/${datefin}?${queryString}`
       );
       setDroitConges(res);
+      setCurrentPage(1);
       setErrorMsg(null);
     } catch (error: any) {
       if (error.response?.status === 403) {
@@ -122,145 +67,470 @@ function EtatDroitConge() {
       } else {
         setErrorMsg("Une erreur est survenue. Veuillez réessayer.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Get initials from name
+  const getInitials = (name: string) => {
+    if (!name) return '??';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+
+  // Tab definitions
   const tabDefinitions = [
-    {
-      label: 'Synthése des droits',
-      description: 'Vue globale par employ',
-      columns,
-    },
-    {
-      label: 'Congés reçus par mois',
-      description: 'Répartition mensuelle des congés',
-      columns: columns2,
-    },
-    {
-      label: 'Absences par mois',
-      description: 'Suivi détaillé des absences',
-      columns: columns1,
-    },
+    { label: 'SYNTHÈSE DES DROITS', description: 'Vue globale par employé' },
+    { label: 'CONGÉS REÇUS PAR MOIS', description: 'Répartition mensuelle des congés' },
+    { label: 'ABSENCES PAR MOIS', description: 'Suivi détaillé des absences' },
   ];
 
+  // Pagination logic
+  const totalPages = Math.ceil(droitConges.length / pageSize);
+  const paginatedData = droitConges.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Export CSV
+  const handleExport = () => {
+    if (droitConges.length === 0) return;
+    const headers = ['Matricule', 'Nom', 'Régime', 'Année', 'Droit Congé', 'Congé Reçu', 'Total Droit', 'Consommé', 'Solde Restant'];
+    const rows = droitConges.map(d => [
+      d.empmat, d.emplib, d.empreg, d.annee,
+      d.soldeinit, d.nbcongerecu, d.droitrestant,
+      d.nbabsences, (Number(d.droitrestant || 0) - Number(d.nbabsences || 0))
+    ]);
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'droits-conges.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        px: { xs: 1, md: 2 },
-        pb: 2,
-        gap: 2,
-        overflow: 'hidden',
-      }}
-      width={'90vw'}
-    >
-      <BreadcrumbNavigation />
+    <Box className="edc-container">
+      {/* Header with tabs */}
+      <Box className="edc-header">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <Typography className="edc-title">Droits de Congés</Typography>
+          <Box sx={{ width: '1px', height: '24px', background: '#e2e8f0' }} />
+          <Box className="edc-tabs">
+            {tabDefinitions.map((tab, idx) => (
+              <button
+                key={tab.label}
+                className={`edc-tab ${activeTab === idx ? 'edc-tab-active' : ''}`}
+                onClick={() => setActiveTab(idx)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </Box>
+        </Box>
+      </Box>
 
-      {errorMsg && <ForbiddenMessage message={errorMsg} />}
+      {/* Error message */}
+      {errorMsg && (
+        <Box className="edc-error">
+          <ErrorOutlineIcon sx={{ fontSize: 18 }} />
+          {errorMsg}
+        </Box>
+      )}
 
-      <Paper
-        elevation={0}
-        sx={{
-          p: { xs: 2, md: 2.5 },
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          background: 'linear-gradient(180deg, rgba(245,247,250,0.96) 0%, rgba(255,255,255,0.98) 100%)',
-        }}
-      >
-        <Stack spacing={2}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Row 1: Employee select + Date début */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2,
-              alignItems: 'stretch',
-            }}
-          >
-            <Grid item xs={6} sm={6}>
-            <SelectInputComponent
-              label={t('integrationPaie.employees')}
-              value={selectedEmpcods ?? []}
-              setValue={setSelectedEmpcods}
-              maplist={employeesLibs}
-              multiple={true}
+      {/* Filter Section */}
+      <Box className="edc-filter-section">
+        <Box className="edc-filter-row">
+          <Box className="edc-filter-field">
+            <label className="edc-filter-label">Collaborateur / Département</label>
+            <select
+              className="edc-filter-input"
+              value={selectedEmpcods[0] || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedEmpcods(val ? [val] : []);
+              }}
+            >
+              <option value="">Tous les employés</option>
+              {Object.entries(employeesLibs as Record<string, string>).map(([code, name]) => (
+                <option key={code} value={code}>
+                  {String(name)}
+                </option>
+              ))}
+            </select>
+          </Box>
+          <Box className="edc-filter-field-narrow">
+            <label className="edc-filter-label">Date Début</label>
+            <input
+              type="date"
+              className="edc-filter-input"
+              value={datedebut}
+              onChange={(e) => setDatedebut(e.target.value)}
             />
-            <InputComponent type="date" label={t('weeklyHoursTable.dateStart')} value={datedebut} setValue={setDatedebut} />
-            </Grid>
           </Box>
+          <Box className="edc-filter-field-narrow">
+            <label className="edc-filter-label">Date Fin</label>
+            <input
+              type="date"
+              className="edc-filter-input"
+              value={datefin}
+              onChange={(e) => setDatefin(e.target.value)}
+            />
+          </Box>
+          <button className="edc-search-btn" onClick={handleSearch} disabled={loading}>
+            <SearchIcon sx={{ fontSize: 16 }} />
+            RECHERCHE
+          </button>
+        </Box>
+      </Box>
 
-          {/* Row 2: Date fin + Bouton Rechercher */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2,
-              alignItems: 'center',
-            }}
-          >
-            <InputComponent type="date" label={t('weeklyHoursTable.dateEnd')} value={datefin} setValue={setDatefin} />
-            <Button variant="contained" size="large" onClick={handleSearch} sx={{ height: 42, width: '100%' }}>
-              {t('common.search')}
-            </Button>
+      {/* Summary Bento Grid */}
+      <Box className="edc-summary-grid">
+        <Box className="edc-summary-card">
+          <Box className="edc-summary-card-top">
+            <span className="edc-summary-label">Total Collaborateurs</span>
+            <Box className="edc-summary-icon edc-icon-bg-primary">
+              <GroupIcon sx={{ fontSize: 20 }} />
+            </Box>
+          </Box>
+          <Box className="edc-summary-value">
+            {totalEmployees.toLocaleString('fr-FR')}
+          </Box>
+          <Box className="edc-summary-footer edc-summary-footer-highlight">
+            Données filtrées
           </Box>
         </Box>
 
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Chip label={`Employés: ${droitConges.length}`} color="primary" variant="outlined" />
-            <Chip label={`Droits restants: ${totalRights.toFixed(2)}`} variant="outlined" />
-               <Chip label={`Employes: ${droitConges.length}`} color="primary" variant="outlined" />
-            <Chip label={`Droits restants: ${totalRights.toFixed(2)}`} variant="outlined" />
-            <Chip label={`Conges recus: ${totalReceived.toFixed(2)}`} variant="outlined" />
-            <Chip label={`Absences: ${totalAbsences.toFixed(2)}`} variant="outlined" />
+        <Box className="edc-summary-card edc-card-border-blue">
+          <Box className="edc-summary-card-top">
+            <span className="edc-summary-label">Total Droits Acquis</span>
+            <Box className="edc-summary-icon edc-icon-bg-blue">
+              <AccountBalanceWalletIcon sx={{ fontSize: 20 }} />
+            </Box>
           </Box>
-        </Stack>      <Tabs
-          value={activeTab}
-          onChange={(_, value) => setActiveTab(value)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{ px: 1.5, pt: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}
-        >
-          {tabDefinitions.map((tab) => (
-            <Tab key={tab.label} label={tab.label} />
-          ))}
-        </Tabs>
-
-        <Box sx={{ px: 2.5, pt: 2, pb: 1 }}>
-          <Typography variant="subtitle1" fontWeight={700}>
-            {tabDefinitions[activeTab].label}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {tabDefinitions[activeTab].description}
-          </Typography>
+          <Box className="edc-summary-value">
+            {totalRights.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+            <span className="edc-summary-unit">Jrs</span>
+          </Box>
+          <Box className="edc-summary-footer">
+            Moyenne: {avgRights.toFixed(1)} jrs / pers.
+          </Box>
         </Box>
 
-        <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, pb: 1.5 }}>
-          <DataList
-            data={droitConges}
-            columns={tabDefinitions[activeTab].columns}
-            message={undefined}
-            deleteMethod={undefined}
-            idKey={undefined}
-            refetchMethod={undefined}
-            reportGeneration1={undefined}
-            reportGeneration2={undefined}
-            reportGeneration3={undefined}
-            reportGeneration4={undefined}
-            empHoraires={undefined}
-            setData={undefined}
-            pageSize={10}
-            purge={undefined}
-          />
+        <Box className="edc-summary-card edc-card-border-amber">
+          <Box className="edc-summary-card-top">
+            <span className="edc-summary-label">Total Pris</span>
+            <Box className="edc-summary-icon edc-icon-bg-amber">
+              <EventAvailableIcon sx={{ fontSize: 20 }} />
+            </Box>
+          </Box>
+          <Box className="edc-summary-value">
+            {totalAbsences.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+            <span className="edc-summary-unit">Jrs</span>
+          </Box>
+          <Box className="edc-summary-footer" style={{ color: '#d97706' }}>
+            {consumptionPct.toFixed(0)}% de consommation
+          </Box>
         </Box>
-      </Paper>
+
+        <Box className="edc-summary-card edc-summary-card-accent">
+          <Box className="edc-summary-card-top">
+            <span className="edc-summary-label">Soldes Globaux</span>
+            <Box className="edc-summary-icon">
+              <BarChartIcon sx={{ fontSize: 20 }} />
+            </Box>
+          </Box>
+          <Box className="edc-summary-value">
+            {totalRemaining.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+            <span className="edc-summary-unit">Jrs</span>
+          </Box>
+          <Box className="edc-summary-footer">
+            Congés reçus: {totalReceived.toFixed(2)}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Loading */}
+      {loading && (
+        <Box className="edc-loading">
+          <CircularProgress size={40} />
+        </Box>
+      )}
+
+      {/* Data Ledger Table - Tab 0: Synthèse des droits */}
+      {!loading && activeTab === 0 && (
+        <Box className="edc-table-section">
+          <Box className="edc-table-header">
+            <Box>
+              <Typography className="edc-table-title">Détails des Entitlements</Typography>
+              <Typography className="edc-table-subtitle">
+                Affichage des données consolidées pour l'exercice en cours
+              </Typography>
+            </Box>
+            <Box className="edc-table-actions">
+              <button className="edc-export-btn" onClick={handleExport}>
+                <DownloadIcon sx={{ fontSize: 14 }} />
+                EXPORTER LA SÉLECTION
+              </button>
+              <button className="edc-filter-toggle">
+                <FilterListIcon sx={{ fontSize: 16 }} />
+              </button>
+            </Box>
+          </Box>
+          <Box className="edc-table-wrap">
+            <table className="edc-table">
+              <thead>
+                <tr>
+                  <th>Matricule</th>
+                  <th>Nom et Prénom</th>
+                  <th>Régime</th>
+                  <th>Année</th>
+                  <th className="edc-th-right">Droit Congé</th>
+                  <th className="edc-th-right">Congé reçu</th>
+                  <th className="edc-th-right edc-th-primary">Total Droit</th>
+                  <th className="edc-th-right">Consommé</th>
+                  <th className="edc-th-right">Solde Restant</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                      Aucune donnée. Cliquez sur RECHERCHE pour charger les droits de congés.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((item, idx) => {
+                    const consumed = Number(item.nbabsences || 0);
+                    const remaining = Number(item.droitrestant || 0) - consumed;
+                    const isPending = remaining > 0 && consumed === 0;
+                    return (
+                      <tr key={idx}>
+                        <td className="edc-td-matricule">{item.empmat}</td>
+                        <td>
+                          <Box className="edc-td-name-cell">
+                            <Box className="edc-td-avatar">{getInitials(item.emplib)}</Box>
+                            <span className="edc-td-name">{item.emplib}</span>
+                          </Box>
+                        </td>
+                        <td className="edc-td-text">{item.empreg}</td>
+                        <td className="edc-td-text">{item.annee}</td>
+                        <td className="edc-td-right">{Number(item.soldeinit || 0).toFixed(2)}</td>
+                        <td className="edc-td-right">{Number(item.nbcongerecu || 0).toFixed(2)}</td>
+                        <td className="edc-td-right edc-td-primary">{Number(item.droitrestant || 0).toFixed(2)}</td>
+                        <td className="edc-td-right edc-td-amber">{consumed.toFixed(2)}</td>
+                        <td className="edc-td-right edc-td-bold">{remaining.toFixed(2)}</td>
+                        <td>
+                          <span className={`edc-status-badge ${isPending ? 'edc-status-pending' : 'edc-status-valid'}`}>
+                            {isPending ? 'En Attente' : 'Validé'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </Box>
+          <Box className="edc-pagination">
+            <span className="edc-pagination-info">
+              Affichage de {Math.min((currentPage - 1) * pageSize + 1, droitConges.length)} à {Math.min(currentPage * pageSize, droitConges.length)} sur {droitConges.length} collaborateurs
+            </span>
+            <Box className="edc-pagination-controls">
+              <button
+                className="edc-page-btn edc-page-btn-nav"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                <ChevronLeftIcon sx={{ fontSize: 14 }} />
+              </button>
+              {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => (
+                <button
+                  key={i}
+                  className={`edc-page-btn ${currentPage === i + 1 ? 'edc-page-btn-active' : ''}`}
+                  onClick={() => setCurrentPage(i + 1)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              {totalPages > 3 && <span style={{ color: '#94a3b8', fontSize: '12px' }}>...</span>}
+              <button
+                className="edc-page-btn edc-page-btn-nav"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRightIcon sx={{ fontSize: 14 }} />
+              </button>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      {/* Tab 1: Congés reçus par mois - using raw table for month columns */}
+      {!loading && activeTab === 1 && (
+        <Box className="edc-table-section">
+          <Box className="edc-table-header">
+            <Box>
+              <Typography className="edc-table-title">Congés Reçus par Mois</Typography>
+              <Typography className="edc-table-subtitle">
+                Répartition mensuelle des congés reçus
+              </Typography>
+            </Box>
+            <Box className="edc-table-actions">
+              <button className="edc-export-btn" onClick={handleExport}>
+                <DownloadIcon sx={{ fontSize: 14 }} />
+                EXPORTER LA SÉLECTION
+              </button>
+            </Box>
+          </Box>
+          <Box className="edc-table-wrap">
+            <table className="edc-table">
+              <thead>
+                <tr>
+                  <th>Matricule</th>
+                  <th>Nom et Prénom</th>
+                  <th>Régime</th>
+                  <th>Année</th>
+                  {Object.keys(droitConges?.[0]?.nbcongerecuparmois || {}).map((month) => (
+                    <th key={month} className="edc-th-right">
+                      {month.charAt(0).toUpperCase() + month.slice(1)}
+                    </th>
+                  ))}
+                  <th className="edc-th-right edc-th-primary">Total Congés Reçus</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={20} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                      Aucune donnée. Cliquez sur RECHERCHE pour charger.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="edc-td-matricule">{item.empmat}</td>
+                      <td>
+                        <Box className="edc-td-name-cell">
+                          <Box className="edc-td-avatar">{getInitials(item.emplib)}</Box>
+                          <span className="edc-td-name">{item.emplib}</span>
+                        </Box>
+                      </td>
+                      <td className="edc-td-text">{item.empreg}</td>
+                      <td className="edc-td-text">{item.annee}</td>
+                      {Object.entries(item.nbcongerecuparmois || {}).map(([month, val]) => (
+                        <td key={month} className="edc-td-right">{Number(val).toFixed(2)}</td>
+                      ))}
+                      <td className="edc-td-right edc-td-primary">{Number(item.nbcongerecu || 0).toFixed(2)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Box>
+          <Box className="edc-pagination">
+            <span className="edc-pagination-info">
+              Affichage de {Math.min((currentPage - 1) * pageSize + 1, droitConges.length)} à {Math.min(currentPage * pageSize, droitConges.length)} sur {droitConges.length}
+            </span>
+            <Box className="edc-pagination-controls">
+              <button className="edc-page-btn edc-page-btn-nav" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>
+                <ChevronLeftIcon sx={{ fontSize: 14 }} />
+              </button>
+              {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => (
+                <button key={i} className={`edc-page-btn ${currentPage === i + 1 ? 'edc-page-btn-active' : ''}`} onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
+              ))}
+              <button className="edc-page-btn edc-page-btn-nav" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>
+                <ChevronRightIcon sx={{ fontSize: 14 }} />
+              </button>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      {/* Tab 2: Absences par mois */}
+      {!loading && activeTab === 2 && (
+        <Box className="edc-table-section">
+          <Box className="edc-table-header">
+            <Box>
+              <Typography className="edc-table-title">Absences par Mois</Typography>
+              <Typography className="edc-table-subtitle">
+                Suivi détaillé des absences mensuelles
+              </Typography>
+            </Box>
+            <Box className="edc-table-actions">
+              <button className="edc-export-btn" onClick={handleExport}>
+                <DownloadIcon sx={{ fontSize: 14 }} />
+                EXPORTER LA SÉLECTION
+              </button>
+            </Box>
+          </Box>
+          <Box className="edc-table-wrap">
+            <table className="edc-table">
+              <thead>
+                <tr>
+                  <th>Matricule</th>
+                  <th>Nom et Prénom</th>
+                  <th>Régime</th>
+                  <th>Année</th>
+                  {Object.keys(droitConges?.[0]?.nbabsenceparmois || {}).map((month) => (
+                    <th key={month} className="edc-th-right">
+                      {month.charAt(0).toUpperCase() + month.slice(1)}
+                    </th>
+                  ))}
+                  <th className="edc-th-right edc-th-primary">Total Absences</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={20} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                      Aucune donnée. Cliquez sur RECHERCHE pour charger.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="edc-td-matricule">{item.empmat}</td>
+                      <td>
+                        <Box className="edc-td-name-cell">
+                          <Box className="edc-td-avatar">{getInitials(item.emplib)}</Box>
+                          <span className="edc-td-name">{item.emplib}</span>
+                        </Box>
+                      </td>
+                      <td className="edc-td-text">{item.empreg}</td>
+                      <td className="edc-td-text">{item.annee}</td>
+                      {Object.entries(item.nbabsenceparmois || {}).map(([month, val]) => (
+                        <td key={month} className="edc-td-right edc-td-amber">{Number(val).toFixed(2)}</td>
+                      ))}
+                      <td className="edc-td-right edc-td-primary">{Number(item.nbabsences || 0).toFixed(2)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Box>
+          <Box className="edc-pagination">
+            <span className="edc-pagination-info">
+              Affichage de {Math.min((currentPage - 1) * pageSize + 1, droitConges.length)} à {Math.min(currentPage * pageSize, droitConges.length)} sur {droitConges.length}
+            </span>
+            <Box className="edc-pagination-controls">
+              <button className="edc-page-btn edc-page-btn-nav" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>
+                <ChevronLeftIcon sx={{ fontSize: 14 }} />
+              </button>
+              {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => (
+                <button key={i} className={`edc-page-btn ${currentPage === i + 1 ? 'edc-page-btn-active' : ''}`} onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
+              ))}
+              <button className="edc-page-btn edc-page-btn-nav" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>
+                <ChevronRightIcon sx={{ fontSize: 14 }} />
+              </button>
+            </Box>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 }
 
 export default EtatDroitConge;
-
-
-

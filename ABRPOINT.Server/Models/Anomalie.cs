@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("anomalie")]
-public partial class Anomalie
+public partial class Anomalie : BaseEntity
 {
     [Column("empcod")]
     [StringLength(4)]

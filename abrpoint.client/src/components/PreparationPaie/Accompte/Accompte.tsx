@@ -5,12 +5,19 @@ import InputComponent from "../../Inputs/Input";
 import RadioGroupComponent from "../../RadioGroupComponent/RadioGroupComponent";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { t } from "i18next";
+import { useAuth } from "../../helper/AuthProvider";
+import AccessDenied from "../../helper/AccessDenied";
 
 export default function Accompte() {
+    const { hasPermission } = useAuth();
     const [month, setMonth] = useState("");
     const [year, setYear] = useState("");
     const [niveau, setNiveau] = useState("0");
     const [filters, setFilters] = useState({ month: "", year: "",niveau });
+
+    if (!hasPermission('Paie et Rémunération', 'consult')) {
+        return <AccessDenied message="Vous n'avez pas le droit de consulter les acomptes sur salaire." />;
+    }
 
     const handleSearch = () => {
         setFilters({ month, year,niveau });

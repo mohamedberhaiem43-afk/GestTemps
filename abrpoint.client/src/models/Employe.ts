@@ -25,8 +25,8 @@ export default interface Employe {
     empcin: string;
     empdcin: Date | null;
     empacin: string;
-    empsbase: number | null;
-    empsbrut: number | null;
+    empsbase: string | null;
+    empsbrut: string | null;
     empdir: string | null;
     emptype: string | null;
     empniv: string | null; // Changed from string to string | null
@@ -44,7 +44,7 @@ export default interface Employe {
     empretard: string | null;
     empemail: string | null;
     empresp: string | null;
-    empsnet: number | null;
+    empsnet: string | null;
     empcontrat: string | null;
     empsitfam: string | null;
     empech: string | null;
@@ -57,4 +57,5 @@ export default interface Employe {
     seccod: string | null;
     poscod: string | null;
     parmois: string | null;
+    utirole?: string;
 }

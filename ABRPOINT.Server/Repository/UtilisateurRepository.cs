@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -26,6 +26,43 @@ namespace ABRPOINT.Server.Repository
                 _dbContext.SaveChanges();
             }
         }
+
+        public async Task<bool> DeleteUtilisateurAsync(string uticod)
+        {
+            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
+
+            return await executionStrategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _dbContext.Database.BeginTransactionAsync();
+                try
+                {
+                    var utilisateur = await _dbContext.Utilisateurs.FindAsync(uticod);
+                    if (utilisateur == null)
+                        return false;
+
+                    // Remove associated entries
+                    var socusers = await _dbContext.Socusers
+                        .Where(s => s.Uticod == uticod).ToListAsync();
+                    _dbContext.Socusers.RemoveRange(socusers);
+
+                    var modusers = await _dbContext.Modusers
+                        .Where(m => m.Uticod == uticod).ToListAsync();
+                    _dbContext.Modusers.RemoveRange(modusers);
+
+                    _dbContext.Utilisateurs.Remove(utilisateur);
+
+                    await _dbContext.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return true;
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
+        }
+
         public async Task<List<string>> GetSitcodsAccess(string soccod, string uticod)
         {
             try
@@ -90,38 +127,85 @@ namespace ABRPOINT.Server.Repository
                 _dbContext.SaveChanges();
             }
         }
-        public async Task AddAsync(Utilisateur utilisateur,Socuser socuser)
+        public async Task AddAsync(Utilisateur utilisateur, Socuser socuser)
         {
             try
             {
                 if (utilisateur != null)
                 {
                     utilisateur.Utimps = BCrypt.Net.BCrypt.HashPassword(utilisateur.Utimps);
+                    
+                    // Set default role if not provided
+                    if (string.IsNullOrEmpty(utilisateur.Utirole))
+                    {
+                        utilisateur.Utirole = "Utilisateur Standard";
+                    }
+
                     await _dbContext.Utilisateurs.AddAsync(utilisateur);
                     await _dbContext.SaveChangesAsync();
                     await _dbContext.Socusers.AddAsync(socuser);
                     await _dbContext.SaveChangesAsync();
 
-                    // Ajouter les droits d'accès pour les absences et les demandes de congé
-                    var employeeModules = new[]
-                    {
-                        new { Code = "absence", Sais = "0", Upd = "0", Supp = "0", Consult = "1" }, // Consultation seulement pour les absences
-                        new { Code = "dem_conge", Sais = "1", Upd = "1", Supp = "1", Consult = "1" } // Tous les droits pour les demandes de congé
-                    };
+                    // Fetch permissions for the assigned role
+                    var rolePermissions = await _dbContext.Roles
+                        .Include(r => r.Permissions)
+                        .Where(r => r.RoleName == utilisateur.Utirole)
+                        .SelectMany(r => r.Permissions)
+                        .ToListAsync();
 
-                    foreach (var module in employeeModules)
+                    if (rolePermissions != null && rolePermissions.Any())
                     {
-                        var moduser = new Moduser
+                        foreach (var perm in rolePermissions)
                         {
-                            Modcod = module.Code,
-                            Uticod = utilisateur.Uticod,
-                            Appcod = "PAI", // Code application par défaut
-                            Modsais = module.Sais,
-                            Modupd = module.Upd,
-                            Modsupp = module.Supp,
-                            Modconsult = module.Consult
+                            // Map labels to codes if necessary (Modcod has 15 chars limit)
+                            string modCode = perm.RpModule;
+                            if (modCode.Length > 15)
+                            {
+                                // Simple mapping for common labels from the migration
+                                if (modCode.Contains("Absences")) modCode = "absence";
+                                else if (modCode.Contains("Pointage")) modCode = "etat_point";
+                                else if (modCode.Contains("Employés")) modCode = "employe";
+                                else if (modCode.Contains("Contrats")) modCode = "emp_ctr";
+                                else if (modCode.Contains("Paie")) modCode = "paie";
+                                else modCode = modCode.Substring(0, 15);
+                            }
+
+                            var moduser = new Moduser
+                            {
+                                Modcod = modCode,
+                                Uticod = utilisateur.Uticod,
+                                Appcod = "GRH", // Fixed: appcod is max 3 characters in DB schema
+                                Modsais = perm.RpAdd,
+                                Modupd = perm.RpModify,
+                                Modsupp = perm.RpDelete,
+                                Modconsult = perm.RpConsult
+                            };
+                            await _dbContext.Modusers.AddAsync(moduser);
+                        }
+                    }
+                    else
+                    {
+                        // Fallback to legacy minimal defaults if no role permissions found
+                        var employeeModules = new[]
+                        {
+                            new { Code = "absence", Sais = "0", Upd = "0", Supp = "0", Consult = "1" }, 
+                            new { Code = "dem_conge", Sais = "1", Upd = "1", Supp = "1", Consult = "1" }
                         };
-                        await _dbContext.Modusers.AddAsync(moduser);
+
+                        foreach (var module in employeeModules)
+                        {
+                            var moduser = new Moduser
+                            {
+                                Modcod = module.Code,
+                                Uticod = utilisateur.Uticod,
+                                Appcod = "GRH", // Fixed: appcod is max 3 characters
+                                Modsais = module.Sais,
+                                Modupd = module.Upd,
+                                Modsupp = module.Supp,
+                                Modconsult = module.Consult
+                            };
+                            await _dbContext.Modusers.AddAsync(moduser);
+                        }
                     }
                     await _dbContext.SaveChangesAsync();
                 }
@@ -294,6 +378,46 @@ namespace ABRPOINT.Server.Repository
             {
                 throw;
             }
+        }
+
+        public async Task<bool> ResetPasswordAsync(string uticod, string newPassword)
+        {
+            var user = await _dbContext.Utilisateurs.FindAsync(uticod);
+            if (user == null) return false;
+
+            user.Utimps = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ToggleStatusAsync(string uticod)
+        {
+            var user = await _dbContext.Utilisateurs.FindAsync(uticod);
+            if (user == null) return false;
+
+            // Toggle between '1'/'Oui' and '0'/'Non' or whatever convention is used
+            // Looking at the codebase, utiactif is often '1' or 'Oui'
+            bool currentlyActive = user.Utiactif == "1" || user.Utiactif == "Oui";
+            user.Utiactif = currentlyActive ? "0" : "1";
+
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<string?> GetRoleByUticodAsync(string uticod)
+        {
+            var user = await _dbContext.Utilisateurs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Uticod == uticod);
+            return user?.Utirole;
+        }
+
+        public async Task UpdateRoleAsync(string uticod, string newRole)
+        {
+            await _dbContext.Utilisateurs
+                .Where(u => u.Uticod == uticod)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(u => u.Utirole, newRole));
         }
     }
 }

@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("banque")]
-public partial class Banque
+public partial class Banque : BaseEntity
 {
     [Column("bancod")]
     [StringLength(6)]

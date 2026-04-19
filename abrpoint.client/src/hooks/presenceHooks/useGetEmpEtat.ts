@@ -8,11 +8,20 @@ interface UseGetEmpEtatParams {
 }
 
 const useGetEmpEtat = ({ soccod, selectedEmpMat, dateRange }: UseGetEmpEtatParams) => {
-  // Format dates to ISO strings
-  const formatDate = (date: Date) => date.toISOString().replace('Z', '');
+  // Format dates to local ISO strings (avoiding timezone shifts from toISOString)
+  const formatDateToLocal = (date: Date): string => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  };
 
-  const formattedDateDebut = dateRange?.dateDebut ? formatDate(new Date(dateRange.dateDebut)) : null;
-  const formattedDateFin = dateRange?.dateFin ? formatDate(new Date(dateRange.dateFin)) : null;
+  const formattedDateDebut = dateRange?.dateDebut ? formatDateToLocal(new Date(dateRange.dateDebut)) : null;
+  const formattedDateFin = dateRange?.dateFin ? formatDateToLocal(new Date(dateRange.dateFin)) : null;
 
   return useQuery({
     queryKey: [
@@ -22,19 +31,18 @@ const useGetEmpEtat = ({ soccod, selectedEmpMat, dateRange }: UseGetEmpEtatParam
       formattedDateDebut,
       formattedDateFin
     ],
-    queryFn: () =>
-      EmpEtatService.getAllWithParams(
-        `emp-point-filtrer/${soccod}/${selectedEmpMat}/${formattedDateDebut}/${formattedDateFin}`
-      ),
+    queryFn: async () => {
+      const encodedDebut = encodeURIComponent(formattedDateDebut!);
+      const encodedFin = encodeURIComponent(formattedDateFin!);
+      return EmpEtatService.getAllWithParams(
+        `emp-point-filtrer/${soccod}/${selectedEmpMat}/${encodedDebut}/${encodedFin}`
+      );
+    },
     enabled: !!soccod && !!selectedEmpMat && !!formattedDateDebut && !!formattedDateFin,
     staleTime: 1000 * 60 * 5, // 5 minutes - data is considered fresh
     cacheTime: 1000 * 60 * 30, // 30 minutes - keep in cache
-    refetchInterval: 10000, // Refetch every 10 seconds (adjust as needed)
-    refetchIntervalInBackground: true,
     retry: 2,
-    onError: (error) => {
-      console.error('Error fetching EmpEtat data:', error);
-    }
+    refetchOnWindowFocus: true,
   });
 };
 

@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("suv_calend")]
-public partial class SuvCalend
+public partial class SuvCalend : BaseEntity
 {
     [Column("cal_date", TypeName = "datetime")]
     public DateTime? CalDate { get; set; }

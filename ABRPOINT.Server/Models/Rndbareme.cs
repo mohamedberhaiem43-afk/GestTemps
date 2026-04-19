@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("rndbareme")]
-public partial class Rndbareme
+public partial class Rndbareme : BaseEntity
 {
     [Column("soccod")]
     [StringLength(10)]

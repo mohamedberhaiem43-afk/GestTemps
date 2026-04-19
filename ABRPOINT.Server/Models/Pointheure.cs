@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("pointheure")]
-public partial class Pointheure
+public partial class Pointheure : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

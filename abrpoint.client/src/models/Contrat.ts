@@ -1,7 +1,8 @@
 export interface Contrat {
-    soccod: string; // Required, length 4
-    concod: string; // Required, length 9
-    empcod: string; // Required, length 12
+    soccod: string;
+    concod: string;
+    empcod: string;
+    emplib?: string | null;  // returned by get-with-emplib endpoint
     condat?: Date; // Optional, datetime
     contype?: string; // Optional, length 1
     sitcod?: string; // Optional, length 2
@@ -24,8 +25,8 @@ export interface Contrat {
     empcat?: string; // Optional, length 100
     empscat?: string; // Optional, length 100
     cnscod?: string; // Optional, length 6
-    empsbase?: number; // Optional, float
-    empsbrut?: number; // Optional, float
+    empsbase?: string; // Encrypted salary field
+    empsbrut?: string; // Encrypted salary field
     socresp?: string; // Optional, length 80
     dircod?: string; // Optional, length 10
     empcontrat?: string; // Optional, length 100

@@ -5,6 +5,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -209,6 +210,32 @@ namespace ABRPOINT.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Erreur lors de modification du contrat", details = ex.Message });
+            }
+        }
+
+        [HttpGet("expiring/{soccod}")]
+        public async Task<IActionResult> GetExpiringContracts(string soccod)
+        {
+            try
+            {
+                var now = DateTime.Now;
+                var monthStart = new DateTime(now.Year, now.Month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                var allContrats = await _contratRepository.GetAll(soccod, "");
+                var expiring = allContrats
+                    .Where(c => c.Empsort.HasValue && c.Empsort.Value >= monthStart && c.Empsort.Value <= monthEnd)
+                    .Select(c => new {
+                        c.Soccod, c.Concod, c.Empcod, c.Empsort, c.Contype, c.Empemb,
+                        Emplib = c.Empcod
+                    })
+                    .ToList();
+
+                return Ok(expiring);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats qui expirent", details = ex.Message });
             }
         }
 

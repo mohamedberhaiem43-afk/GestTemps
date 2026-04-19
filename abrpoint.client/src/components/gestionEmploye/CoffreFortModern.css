@@ -1,0 +1,422 @@
+.coffre-fort-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+  color: #191c1e;
+}
+
+.vault-header {
+  margin-bottom: 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.vault-title-section {
+  max-width: 600px;
+}
+
+.vault-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #0040a1;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.vault-title {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 0 0 1rem 0;
+  color: #191c1e;
+}
+
+.vault-description {
+  color: #424654;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.vault-stats-card {
+  background: #f2f4f6;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-bottom: 3px solid rgba(0, 86, 210, 0.2);
+}
+
+.stats-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.status-indicator {
+  padding: 0.25rem 0.75rem;
+  background: rgba(0, 108, 73, 0.1);
+  color: #005136;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(0, 108, 73, 0.2);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #008154;
+  border-radius: 50%;
+}
+
+.stats-value-container {
+  margin-top: auto;
+}
+
+.stats-number {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #191c1e;
+  line-height: 1;
+}
+
+.stats-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #424654;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+/* Folder Grid */
+.folder-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 4rem;
+}
+
+.folder-card {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.folder-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.08);
+}
+
+.folder-icon-wrapper {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  transition: transform 0.3s ease;
+}
+
+.folder-card:hover .folder-icon-wrapper {
+  transform: scale(1.1);
+}
+
+.folder-card.pay-slips .folder-icon-wrapper { background: #eef4ff; color: #0056d2; }
+.folder-card.contracts .folder-icon-wrapper { background: rgba(0, 108, 73, 0.08); color: #006c49; }
+.folder-card.certificates .folder-icon-wrapper { background: rgba(81, 95, 116, 0.08); color: #515f74; }
+
+.folder-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+}
+
+.folder-info {
+  font-size: 0.75rem;
+  color: #424654;
+  margin-bottom: 1rem;
+}
+
+.folder-progress-bar {
+  height: 6px;
+  background: #f2f4f6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.folder-card.pay-slips .progress-fill { background: #0056d2; }
+.folder-card.contracts .progress-fill { background: #006c49; }
+.folder-card.certificates .progress-fill { background: #515f74; }
+
+.new-collection-card {
+  border: 2px dashed #c3c6d6;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #737785;
+  box-shadow: none;
+}
+
+.new-collection-card .add-icon-circle {
+  width: 3rem;
+  height: 3rem;
+  background: #f2f4f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+/* Document Table */
+.document-table-container {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.vault-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vault-table thead {
+  background: #e6e8ea;
+}
+
+.vault-table th {
+  text-align: left;
+  padding: 1rem 1.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #424654;
+  font-weight: 600;
+}
+
+.vault-table tr {
+  border-bottom: 1px solid #eceef0;
+  transition: background 0.2s ease;
+}
+
+.vault-table tbody tr:hover {
+  background: #f7f9fb;
+}
+
+.vault-table td {
+  padding: 1rem 1.5rem;
+  vertical-align: middle;
+}
+
+.doc-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.doc-icon-box {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-icon-box.pdf { background: rgba(186, 26, 26, 0.08); color: #ba1a1a; }
+.doc-icon-box.doc { background: rgba(0, 86, 210, 0.08); color: #0056d2; }
+.doc-icon-box.other { background: rgba(81, 95, 116, 0.08); color: #515f74; }
+
+.doc-main-name {
+  font-weight: 700;
+  color: #191c1e;
+  font-size: 0.9375rem;
+}
+
+.doc-status-tag {
+  font-size: 0.625rem;
+  color: #005136;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.type-chip {
+  padding: 0.25rem 0.625rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.type-pay-slip { background: #d5e3fc; color: #3a485b; }
+.type-contract { background: rgba(0, 108, 73, 0.12); color: #005236; }
+.type-certificate { background: #eceef0; color: #424654; }
+
+.download-btn {
+  background: transparent;
+  border: none;
+  color: #0040a1;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.download-btn:hover {
+  background: #ffffff;
+  color: #0056d2;
+  transform: scale(1.1);
+}
+
+.download-btn:active {
+  transform: scale(0.9);
+}
+
+/* Floating Guard Layer */
+.privacy-guard-bar {
+  position: sticky;
+  bottom: 2rem;
+  z-index: 40;
+  max-width: 600px;
+  margin: 3rem auto 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+  border-radius: 1.25rem;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guard-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.guard-icon-circle {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(0, 86, 210, 0.1);
+  color: #0056d2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guard-text p:first-child {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.guard-text p:last-child {
+  font-size: 0.6rem;
+  color: #424654;
+  margin: 0;
+}
+
+.guard-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.guard-btn-secondary {
+  padding: 0.5rem 1rem;
+  background: #e6e8ea;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.guard-btn-primary {
+  padding: 0.5rem 1rem;
+  background: #0040a1;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  box-shadow: 0 4px 6px rgba(0, 64, 161, 0.2);
+  cursor: pointer;
+}
+
+.upload-button-floating {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  background: #0040a1;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 64, 161, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 50;
+  border: none;
+}
+
+.upload-button-floating:hover {
+  transform: scale(1.1) rotate(90deg);
+  background: #0056d2;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.coffre-fort-container > section {
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.coffre-fort-container > section:nth-child(2) { animation-delay: 0.1s; }
+.coffre-fort-container > section:nth-child(3) { animation-delay: 0.2s; }

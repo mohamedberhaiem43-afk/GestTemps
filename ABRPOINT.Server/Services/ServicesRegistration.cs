@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.CalculService;
+using ABRPOINT.Server.CalculService;
 using ABRPOINT.Server.CalculService.CalcTotHeures;
 using ABRPOINT.Server.CalculService.Conge;
 using ABRPOINT.Server.CalculService.DashboardService;
@@ -68,19 +68,25 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IDmpointService, DmpointService>();
             builder.Services.AddScoped<IModuleRepository, ModuleRepository>();
             builder.Services.AddScoped<IModuserRepository, ModuserRepository>();
+            builder.Services.AddScoped<INoteDeFraisRepository, NoteDeFraisRepository>();
+            builder.Services.AddScoped<IVaultRepository, VaultRepository>();
+            builder.Services.AddScoped<IDemandeAutorisationRepository, DemandeAutorisationRepository>();
+            builder.Services.AddScoped<IAiService, AiService>();
+            builder.Services.AddScoped<EncryptionService>();
             builder.Services.AddScoped<Kernel>(sp =>
             {
                 var kernelBuilder = Kernel.CreateBuilder();
 
                 // Créer d'abord le kernel pour pouvoir le passer au GeminiPlugin
                 var tempKernel = kernelBuilder.Build();
-                // Plugin Gemini avec référence au Kernel
+                // Plugin Gemini utilisant OpenRouter API
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 var config = sp.GetRequiredService<IConfiguration>();
-                var geminiApiKey = config["Gemini:ApiKey"];
+                var openRouterApiKey = config["OpenRouter:ApiKey"];
+                var openRouterModel = config["OpenRouter:ChatModel"] ?? "google/gemini-2.0-flash-001";
 
                 kernelBuilder.Plugins.AddFromObject(
-                    new GeminiPlugin(httpClientFactory, geminiApiKey, tempKernel),
+                    new GeminiPlugin(httpClientFactory, openRouterApiKey, openRouterModel, tempKernel),
                     "Gemini"
                 );
 

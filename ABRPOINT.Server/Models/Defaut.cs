@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("defaut")]
-public partial class Defaut
+public partial class Defaut : BaseEntity
 {
     [Column("defcod")]
     [StringLength(3)]

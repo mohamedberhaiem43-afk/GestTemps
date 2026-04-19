@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -87,6 +87,20 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500,ex);
             }
             
+        }
+
+        [HttpGet("by-emp/{soccod}/{empcod}")]
+        public async Task<IActionResult> GetByEmp(string soccod, string empcod)
+        {
+            try
+            {
+                var solde = await _soldeCongeRepository.GetByEmpCalculatedAsync(soccod, empcod);
+                return Ok(solde);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

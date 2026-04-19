@@ -1,10 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 namespace ABRPOINT.Server.Models;
 
 [Table("utilisateur")]
-public partial class Utilisateur
+public partial class Utilisateur : BaseEntity
 {
     [Key]
     [Column("uticod")]
@@ -34,4 +33,18 @@ public partial class Utilisateur
     [Column("utiimg")]
     [StringLength(500)]
     public string? Utiimg { get; set; }
+
+    [Column("utirole")]
+    [StringLength(50)]
+    public string? Utirole { get; set; }
+
+    [Column("uti2fa_enabled")]
+    [StringLength(1)]
+    public string? UtiTwoFactorEnabled { get; set; }
+
+    [Column("uti2fa_secret")]
+    [StringLength(200)]
+    public string? UtiTwoFactorSecret { get; set; }
+    public string? UtiResetCode { get; set; }
+    public DateTime? UtiResetCodeExpiry { get; set; }
 }

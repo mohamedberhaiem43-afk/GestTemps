@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("postesite")]
-public partial class Postesite
+public partial class Postesite : BaseEntity
 {
     [Column("code")]
     [StringLength(10)]

@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("sanction")]
 [PrimaryKey("Concod","Soccod")]
-public partial class Sanction
+public partial class Sanction : BaseEntity
 {
     [Required]
     [Column("concod")]

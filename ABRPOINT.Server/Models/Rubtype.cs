@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("rubtype")]
-public partial class Rubtype
+public partial class Rubtype : BaseEntity
 {
     [Column("rubtype")]
     [StringLength(10)]

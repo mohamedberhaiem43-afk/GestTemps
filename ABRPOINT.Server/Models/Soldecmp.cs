@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("soldecmp")]
-public partial class Soldecmp
+public partial class Soldecmp : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

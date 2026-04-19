@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("qualjrl")]
-public partial class Qualjrl
+public partial class Qualjrl : BaseEntity
 {
     [Column("ordre")]
     public int? Ordre { get; set; }

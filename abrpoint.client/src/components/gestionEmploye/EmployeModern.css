@@ -1,0 +1,184 @@
+/* Employe Modern Styles */
+
+/* Import Manrope and Inter fonts */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+/* Main container */
+.employe-modern-container {
+  width: 100%;
+  min-height: calc(100vh - 64px);
+  background-color: #f7f9fb;
+}
+
+/* Custom scrollbar */
+.employe-modern-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.employe-modern-container::-webkit-scrollbar-track {
+  background: #f2f4f6;
+  border-radius: 3px;
+}
+
+.employe-modern-container::-webkit-scrollbar-thumb {
+  background: #c3c6d6;
+  border-radius: 3px;
+}
+
+.employe-modern-container::-webkit-scrollbar-thumb:hover {
+  background: #737785;
+}
+
+/* Input styles */
+.employe-input {
+  background-color: #f2f4f6;
+  border-radius: 8px;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.employe-input:focus {
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(0, 64, 161, 0.1);
+}
+
+/* Card styles */
+.employe-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(25, 28, 30, 0.06);
+  background-color: #ffffff;
+  transition: box-shadow 0.2s ease;
+}
+
+.employe-card:hover {
+  box-shadow: 0 8px 24px rgba(25, 28, 30, 0.1);
+}
+
+/* Gradient card */
+.employe-gradient-card {
+  background: linear-gradient(135deg, #1e3a5f 0%, #0d1f33 100%);
+  color: #ffffff;
+}
+
+/* Status badges */
+.status-validated {
+  background-color: #006c49;
+  color: #ffffff;
+}
+
+.status-pending {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+/* Category badges */
+.category-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.category-badge-active {
+  background-color: #0040a1;
+  color: #ffffff;
+}
+
+.category-badge-inactive {
+  background-color: #e6e8ea;
+  color: #515f74;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .employe-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .employe-hero-title {
+    font-size: 1.5rem !important;
+  }
+  
+  .employe-table-container {
+    overflow-x: auto;
+  }
+}
+
+/* Animation keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.employe-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Performance bars */
+.performance-bar {
+  transition: background-color 0.2s ease;
+}
+
+.performance-bar:hover {
+  background-color: rgba(0, 64, 161, 0.2);
+}
+
+.performance-bar-active {
+  background-color: #0040a1;
+}
+
+/* Table styles */
+.employe-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.employe-table th {
+  text-align: left;
+  padding: 16px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: #515f74;
+  background-color: #e6e8ea;
+}
+
+.employe-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f2f4f6;
+}
+
+.employe-table tr:hover {
+  background-color: rgba(242, 244, 246, 0.5);
+}
+
+/* Button styles */
+.employe-button-primary {
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%);
+  box-shadow: 0 4px 12px rgba(0, 64, 161, 0.3);
+  border-radius: 12px;
+  text-transform: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.employe-button-primary:hover {
+  background: linear-gradient(135deg, #003380 0%, #0040a1 100%);
+  transform: translateY(-1px);
+}
+
+.employe-button-secondary {
+  border-radius: 12px;
+  text-transform: none;
+  font-weight: 600;
+}

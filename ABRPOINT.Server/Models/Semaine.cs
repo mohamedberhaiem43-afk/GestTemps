@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("semaine")]
-public partial class Semaine
+public partial class Semaine : BaseEntity
 {
     [Column("sitcod")]
     [StringLength(2)]

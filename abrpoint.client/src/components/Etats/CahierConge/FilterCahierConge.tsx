@@ -1,4 +1,4 @@
-﻿import { Box, Grid, IconButton, Typography } from "@mui/material";
+import { Box, Grid, IconButton, Typography } from "@mui/material";
 import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import { useEffect, useState } from "react";
@@ -60,7 +60,7 @@ function FilterCahierConge() {
 
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
-    const {data:emplibs=[]} = useGetEmployeesLibs();
+    const {data:emplibs=[]} = useGetEmployeesLibs(selectedFiliale, selectedService, undefined, selectedRegime);
 
     useEffect(() => {
         if (!soccod) return;

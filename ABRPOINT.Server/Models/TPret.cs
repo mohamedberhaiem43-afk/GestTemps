@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("t_pret")]
-public partial class TPret
+public partial class TPret : BaseEntity
 {
     public int? IdPret { get; set; }
 

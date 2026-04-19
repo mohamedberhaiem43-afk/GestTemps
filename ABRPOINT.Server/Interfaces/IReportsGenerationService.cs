@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Dtaos;
 
 namespace ABRPOINT.Server.Interfaces
 {
@@ -14,6 +14,11 @@ namespace ABRPOINT.Server.Interfaces
         byte[] GenerateAbsenceReport(string soccod,string empcod, string concod);
         byte[] GenerateVisiteMedicalReport(string soccod, string empcod);
         byte[] GenerateContratReport(string soccod, string empcod);
+        byte[] GenerateAttestationTravailReport(string soccod, string empcod);
+        byte[] GenerateCertificatTravailReport(string soccod, string empcod);
+        byte[] GenerateAttestationSalaireReport(string soccod, string empcod);
+        byte[] GenerateFromHtml(string html, string soccod, string empcod);
+        byte[] GenerateAllaitementReport(string soccod, string empcod, string concod);
         byte[] GenerateEtatGlobalReport(EtatGlobalRequest data);
         byte[] GenerateEtatDetailleReport(EtatDetailleRequest request);
         byte[] GetEtatAbsenceReport(EtatAbsenceReport etatAbsence);

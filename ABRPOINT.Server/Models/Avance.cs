@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("avance")]
-public partial class Avance
+public partial class Avance : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

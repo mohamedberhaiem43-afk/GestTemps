@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("echelle")]
-public partial class Echelle
+public partial class Echelle : BaseEntity
 {
     [Column("soccod")]
     [StringLength(4)]

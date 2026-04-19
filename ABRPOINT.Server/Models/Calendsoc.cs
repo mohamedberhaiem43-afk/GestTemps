@@ -7,7 +7,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("calendsoc")]
 [PrimaryKey("Soccod","CalAn", "CalMois", "CalSem")]
-public partial class Calendsoc
+public partial class Calendsoc : BaseEntity
 {
     [Column("soccod")]
     [StringLength(4)]

@@ -1,0 +1,562 @@
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import * as SecureStore from 'expo-secure-store';
+import { API_BASE_URL } from '../config/env';
+
+const TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+
+class ApiService {
+  private client: AxiosInstance;
+
+  constructor() {
+    this.client = axios.create({
+      baseURL: API_BASE_URL,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Request interceptor to add auth token
+    this.client.interceptors.request.use(
+      async (config: InternalAxiosRequestConfig) => {
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Response interceptor for token refresh
+    this.client.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          try {
+            const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+            if (refreshToken) {
+              const response = await axios.post(`${API_BASE_URL}/MobileAuth/refresh`, {
+                refreshToken,
+              });
+              const { token, refreshToken: newRefreshToken } = response.data;
+              await SecureStore.setItemAsync(TOKEN_KEY, token);
+              await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, newRefreshToken);
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return this.client(originalRequest);
+            }
+          } catch (refreshError) {
+            await this.clearTokens();
+            throw refreshError;
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  private async clearTokens() {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  }
+
+  async saveTokens(token: string, refreshToken: string) {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  }
+
+  async getStoredToken(): Promise<string | null> {
+    return SecureStore.getItemAsync(TOKEN_KEY);
+  }
+
+  // Auth endpoints
+  async login(email: string, password: string, company?: string) {
+    const response = await axios.post(`${API_BASE_URL}/MobileAuth/login`, {
+      email,
+      password,
+      company,
+    });
+    if (response.data.token) {
+      await this.saveTokens(response.data.token, response.data.refreshToken);
+    }
+    return response.data;
+  }
+
+  async logout() {
+    try {
+      const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+      await this.client.post('/MobileAuth/logout', { refreshToken });
+    } catch (e) {
+      // Ignore logout errors
+    }
+    await this.clearTokens();
+  }
+
+  async getCurrentUser() {
+    const response = await this.client.get('/MobileAuth/me');
+    return response.data;
+  }
+
+  // Presence endpoints
+  async getMyPresence(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Presences/emp-point/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  async getMyPresenceByDate(soccod: string, empcod: string, dateDebut: string, dateFin: string) {
+    const response = await this.client.get(
+      `/Presences/emp-point-filtrer/${soccod}/${empcod}/${dateDebut}/${dateFin}`
+    );
+    return response.data;
+  }
+
+  async updatePresence(soccod: string, empcod: string, predat: string, presence: any) {
+    const response = await this.client.put(
+      `/Presences/${soccod}/${empcod}/${predat}`,
+      presence
+    );
+    return response.data;
+  }
+
+  async markPresence(soccod: string, empcod: string, poicod?: string) {
+    const response = await this.client.post(
+      `/Presences/mark-presence/${soccod}/${empcod}${poicod ? `?poicod=${poicod}` : ''}`
+    );
+    return response.data;
+  }
+
+  // Leave request endpoints
+  async getMyLeaveRequests(soccod: string, empcod: string) {
+    const response = await this.client.get(`/DemConges/get-emp-demconge/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  async getMyLeaveRequestsByPeriod(soccod: string, empcod: string, datedebut: string, datefin: string) {
+    const response = await this.client.get(
+      `/DemConges/get-demconge-by-periode/${soccod}/${empcod}/${datedebut}/${datefin}`
+    );
+    return response.data;
+  }
+
+  async getAllLeaveRequests(soccod: string, uticod: string) {
+    const response = await this.client.get(`/DemConges/get-demconge/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  async getAllLeaveRequestsByPeriod(soccod: string, uticod: string, datedebut: string, datefin: string) {
+    const response = await this.client.get(
+      `/DemConges/get-demconge-by-periode/${soccod}/${uticod}/${datedebut}/${datefin}`
+    );
+    return response.data;
+  }
+
+  async getPendingLeaveRequestsByPeriod(soccod: string, uticod: string, datedebut: string, datefin: string) {
+    const response = await this.client.get(
+      `/DemConges/get-pending-demconge-by-periode/${soccod}/${uticod}/${datedebut}/${datefin}`
+    );
+    return response.data;
+  }
+
+  async createLeaveRequest(conge: any) {
+    const response = await this.client.post('/DemConges', conge);
+    return response.data;
+  }
+
+  async acceptLeaveRequest(soccod: string, concod: string, empcod: string) {
+    const response = await this.client.post(
+      `/DemConges/accept-demconge/${soccod}/${concod}/${empcod}`
+    );
+    return response.data;
+  }
+
+  async refuseLeaveRequest(soccod: string, concod: string, empcod: string) {
+    const response = await this.client.post(
+      `/DemConges/refuse-demconge/${soccod}/${concod}/${empcod}`
+    );
+    return response.data;
+  }
+
+  async updateLeaveRequest(conge: any) {
+    const response = await this.client.put('/DemConges', conge);
+    return response.data;
+  }
+
+  async deleteLeaveRequest(soccod: string, concod: string) {
+    const response = await this.client.delete(`/DemConges/${soccod}/${concod}`);
+    return response.data;
+  }
+
+  // Absence types
+  async getAbsences() {
+    const response = await this.client.get('/Absences');
+    return response.data;
+  }
+
+  // Balance/Solde endpoints
+  async getMyBalance(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Soldes/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  async getEmpLeaveBalance(soccod: string, empcod: string, moisdeb: string, moisfin: string, annee: string) {
+    const response = await this.client.get(
+      `/Employes/get-emp-etat-conge/${soccod}/${empcod}/${moisdeb}/${moisfin}/${annee}`
+    );
+    return response.data;
+  }
+
+  // Contracts/Vault endpoints
+  async getMyContracts(soccod: string, uticod: string) {
+    const response = await this.client.get(`/Contrats/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  // Authorization de sortie endpoints
+  async getMyAuthorizations(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Autorisers/my-auths/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  async getAuthorizations(soccod: string, uticod: string) {
+    const response = await this.client.get(`/Autorisers/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  async createMyAuthorization(autoriser: any) {
+    const response = await this.client.post('/Autorisers/my-auth', autoriser);
+    return response.data;
+  }
+
+  async createAuthorization(autoriser: any) {
+    const response = await this.client.post('/Autorisers', autoriser);
+    return response.data;
+  }
+
+  async updateAuthorization(autoriser: any) {
+    const response = await this.client.put('/Autorisers', autoriser);
+    return response.data;
+  }
+
+  // Employee endpoints
+  async getEmployees(soccod: string, uticod: string) {
+    const response = await this.client.get(`/Employes/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  async getEmployeesBySite(soccod: string, uticod: string, site: string) {
+    const response = await this.client.get(`/Employes/get-emps/${soccod}/${site}/${uticod}`);
+    return response.data;
+  }
+
+  async getEmployee(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Employes/get-employe/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  async addEmployee(employe: any) {
+    const response = await this.client.post('/Employes', employe);
+    return response.data;
+  }
+
+  async updateEmployee(employe: any) {
+    const response = await this.client.put('/Employes/update-employe', employe);
+    return response.data;
+  }
+
+  // Document scan (AI) endpoint
+  async scanEmployeDocument(fileUri: string, fileType: string) {
+    const formData = new FormData();
+    const filename = fileUri.split('/').pop() || 'document.jpg';
+    
+    formData.append('file', {
+      uri: fileUri,
+      type: fileType || 'image/jpeg',
+      name: filename,
+    } as any);
+
+    const response = await this.client.post('/DocumentScan/scan-employe', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000,
+    });
+    return response.data;
+  }
+
+  async quickScanDocument(fileUri: string, fileType: string) {
+    const formData = new FormData();
+    const filename = fileUri.split('/').pop() || 'document.jpg';
+    
+    formData.append('file', {
+      uri: fileUri,
+      type: fileType || 'image/jpeg',
+      name: filename,
+    } as any);
+
+    const response = await this.client.post('/DocumentScan/quick-scan', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000,
+    });
+    return response.data;
+  }
+
+  // Profile endpoints
+  async getProfile(soccod: string, uticod: string) {
+    const response = await this.client.get(`/Utilisateurs/get-profile/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  async uploadProfileImage(fileUri: string, uticod: string) {
+    const formData = new FormData();
+    const filename = fileUri.split('/').pop() || 'photo.jpg';
+    
+    formData.append('file', {
+      uri: fileUri,
+      type: 'image/jpeg',
+      name: filename,
+    } as any);
+
+    const response = await this.client.post(
+      `/Utilisateurs/upload-profile?uticod=${uticod}`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
+    return response.data;
+  }
+
+  // KPI endpoints
+  async getMyKPIs(soccod: string, uticod: string) {
+    const response = await this.client.get(`/Employes/get-my-kpis/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  // Expense (Note de frais) endpoints
+  async getMyExpenses(soccod: string, empcod: string) {
+    const response = await this.client.get(`/NoteDeFrais/by-emp/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  async getAllExpenses(soccod: string) {
+    const response = await this.client.get(`/NoteDeFrais/by-soc/${soccod}`);
+    return response.data;
+  }
+
+  async createExpense(expense: any, fileUri?: string) {
+    if (fileUri) {
+      const formData = new FormData();
+      const filename = fileUri.split('/').pop() || 'justificatif.jpg';
+      formData.append('file', {
+        uri: fileUri,
+        type: 'image/jpeg',
+        name: filename,
+      } as any);
+      formData.append('Soccod', expense.soccod);
+      formData.append('Empcod', expense.empcod);
+      formData.append('Titre', expense.titre);
+      formData.append('Categorie', expense.categorie);
+      formData.append('Montant', String(expense.montant));
+      formData.append('DateDepense', expense.dateDepense);
+      if (expense.projet) formData.append('Projet', expense.projet);
+
+      const response = await this.client.post('/NoteDeFrais/add', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
+      });
+      return response.data;
+    } else {
+      const response = await this.client.post('/NoteDeFrais/add', expense);
+      return response.data;
+    }
+  }
+
+  async deleteExpense(id: number) {
+    const response = await this.client.delete(`/NoteDeFrais/${id}`);
+    return response.data;
+  }
+
+  async updateExpenseStatus(id: number, status: string) {
+    const response = await this.client.put(`/NoteDeFrais/update-status/${id}/${status}`);
+    return response.data;
+  }
+
+  async deleteAuthorization(soccod: string, concod: string) {
+    const response = await this.client.delete(`/Autorisers/${soccod}/${concod}`);
+    return response.data;
+  }
+
+  // Demande Autorisation endpoints
+  async getDemandeAutorisations(soccod: string, uticod: string) {
+    const response = await this.client.get(`/DemandeAutorisations/get-all/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  async getDemandeAutorisationsByEmp(soccod: string, empcod: string) {
+    const response = await this.client.get(`/DemandeAutorisations/get-by-employe/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  async createDemandeAutorisation(demande: any) {
+    const response = await this.client.post('/DemandeAutorisations', demande);
+    return response.data;
+  }
+
+  async updateDemandeAutorisation(demande: any) {
+    const response = await this.client.put('/DemandeAutorisations', demande);
+    return response.data;
+  }
+
+  async deleteDemandeAutorisation(id: number) {
+    const response = await this.client.delete(`/DemandeAutorisations/${id}`);
+    return response.data;
+  }
+
+  async approveDemandeAutorisation(id: number, traitePar: string, commentaire?: string) {
+    const response = await this.client.post(`/DemandeAutorisations/approve/${id}`, { traitePar, commentaire });
+    return response.data;
+  }
+
+  async refuseDemandeAutorisation(id: number, traitePar: string, commentaire?: string) {
+    const response = await this.client.post(`/DemandeAutorisations/refuse/${id}`, { traitePar, commentaire });
+    return response.data;
+  }
+
+  async getAbsencesBySoc(soccod: string) {
+    const response = await this.client.get(`/Absences/get-libs/${soccod}`);
+    return response.data;
+  }
+
+  // Vault endpoints
+  async getVaultDocuments(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Vault/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  async uploadVaultDocument(fileUri: string, soccod: string, empcod: string, docType: string) {
+    const formData = new FormData();
+    const filename = fileUri.split('/').pop() || 'document.pdf';
+    const ext = filename.split('.').pop()?.toLowerCase() || 'pdf';
+    const mimeTypes: Record<string, string> = {
+      pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      png: 'image/png', doc: 'application/ms-word', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    formData.append('file', {
+      uri: fileUri,
+      type: mimeTypes[ext] || 'application/octet-stream',
+      name: filename,
+    } as any);
+    formData.append('soccod', soccod);
+    formData.append('empcod', empcod);
+    formData.append('docType', docType);
+
+    const response = await this.client.post('/Vault/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+    return response.data;
+  }
+
+  async signVaultDocument(id: number, signatureData: string, signerName: string) {
+    const response = await this.client.post(`/Vault/sign/${id}`, {
+      signatureData,
+      signerName,
+    });
+    return response.data;
+  }
+
+  async deleteVaultDocument(id: number) {
+    const response = await this.client.delete(`/Vault/${id}`);
+    return response.data;
+  }
+
+  // Employee horaires
+  async getEmpHoraires(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Employes/get-emp-horaires/${soccod}/${empcod}`);
+    return response.data;
+  }
+
+  // Admin daily pointage - uses dedicated endpoint with absence detection
+  async getDailyPointage(soccod: string, date: string) {
+    const response = await this.client.get(
+      `/Presences/daily-pointage/${soccod}/${date}`
+    );
+    return response.data;
+  }
+
+  // Employee private presence history
+  async getMyPresenceHistory(soccod: string, empcod: string, dateDebut: string, dateFin: string) {
+    const response = await this.client.get(
+      `/Presences/my-history/${soccod}/${empcod}/${dateDebut}/${dateFin}`
+    );
+    return response.data;
+  }
+
+  // Entry reminder for employee
+  async getEntryReminder(soccod: string, empcod: string) {
+    const response = await this.client.get(
+      `/Presences/entry-reminder/${soccod}/${empcod}`
+    );
+    return response.data;
+  }
+
+  // Notifications
+  async getNotifications(soccod: string, uticod: string) {
+    try {
+      const response = await this.client.get(`/DemConges/get-demconge/${soccod}/${uticod}`);
+      return response.data;
+    } catch {
+      return [];
+    }
+  }
+
+  // Societies
+  async getSocieties() {
+    const response = await this.client.get('/Societes');
+    return response.data;
+  }
+
+  // Reference data
+  async getFonctions() {
+    const response = await this.client.get('/Fonctions');
+    return response.data;
+  }
+
+  async getQualifications() {
+    const response = await this.client.get('/Qualifs');
+    return response.data;
+  }
+
+  async getDirections() {
+    const response = await this.client.get('/Directions');
+    return response.data;
+  }
+
+  async getServices() {
+    const response = await this.client.get('/Services');
+    return response.data;
+  }
+
+  async getSections() {
+    const response = await this.client.get('/Sections');
+    return response.data;
+  }
+
+  async getVilles() {
+    const response = await this.client.get('/Villes');
+    return response.data;
+  }
+
+  async getPays() {
+    const response = await this.client.get('/Pays');
+    return response.data;
+  }
+}
+
+export const apiService = new ApiService();
+export default apiService;

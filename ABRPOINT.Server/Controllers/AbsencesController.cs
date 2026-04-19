@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.AbsenceAttributes;
+using ABRPOINT.Server.Annotations.AbsenceAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -59,7 +59,6 @@ namespace ABRPOINT.Server.Controllers
             }
         }
         [HttpGet("get-libs/{soccod}")]
-        [CanGetAbsence]
         public async Task<IActionResult> GetAbsLibs(string soccod)
         {
             if(string.IsNullOrEmpty(soccod))
@@ -109,8 +108,63 @@ namespace ABRPOINT.Server.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"Error generating report: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                return StatusCode(500, new { message = "ProblÃ¨me gÃ©nÃ©ration Ã©tat d'absences", error = ex.Message });
+                return StatusCode(500, new { message = "Problème génération état d'absences", error = ex.Message });
+            }
+        }
+
+        [HttpGet("get-etat-absences-report/{soccod}/{datedebut}/{datefin}")]
+        [CanGetAbsence]
+        public IActionResult GetEtatAbsencesReport(string soccod, string datedebut, string datefin, [FromQuery] string empcods)
+        {
+            try
+            {
+                var codes = (empcods ?? "").Split(',').ToList();
+                var reportData = new EtatAbsenceReport
+                {
+                    //Soccod = soccod,
+                    Date = datedebut, // Or specific format
+                    DateFin = datefin,
+                    Data = codes.Select(c => new EtatAbsenceData { Empcod = c }).ToList() // Placeholder, service should handle data fetch or use these
+                };
+
+                // NOTE: The GetEtatAbsenceReport service method expects already populated data.
+                // We might need to fetch the data here first or update the service.
+                // For now, let's call the repository to get the data as the frontend does.
+                
+                // Fetching data first to populate the report
+                var dataTask = _absenceRepository.GetEtatAbsence(soccod, DateTime.Parse(datedebut), DateTime.Parse(datefin), 
+                    true, true, true, true, "tous", codes);
+                dataTask.Wait();
+                
+                var results = dataTask.Result;
+                reportData.Data = results.Select(r => new EtatAbsenceData {
+                    Empcod = r.Empcod,
+                    Empmat = r.Empmat,
+                    Emplib = r.Emplib,
+                    Date = r.Date ?? DateTime.MinValue,
+                    Abscod = r.Abscod,
+                    Motif = r.Motif,
+                    Absence = (byte?)r.Absence,
+                    Absjust = (byte?)r.Absjust,
+                    Absnj = (byte?)r.Absnj,
+                    Congepaye = (byte?)r.Congepaye,
+                    Acctrav = (byte?)r.Acctrav,
+                    CSF = (byte?)r.CSF,
+                    FM = (byte?)r.FM,
+                    Arrtech = (byte?)r.Arrtech,
+                    Absmal = (byte?)r.Absmal,
+                    MAP = (byte?)r.MAP,
+                    Autsp = (byte?)r.Autsp,
+                    CSS = (byte?)r.CSS,
+                    Absjourretard = r.Absjourretard
+                }).ToList();
+
+                var pdfBytes = _reportsGenerationService.GetEtatAbsenceReport(reportData);
+                return File(pdfBytes, "application/pdf", "etat-absences.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de la génération du rapport : " + ex.Message });
             }
         }
         // POST api/<DirectionsController>

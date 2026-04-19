@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("paieuser")]
-public partial class Paieuser
+public partial class Paieuser : BaseEntity
 {
     [Column("dircod")]
     [StringLength(15)]

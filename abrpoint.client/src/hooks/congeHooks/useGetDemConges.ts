@@ -15,7 +15,10 @@ const useGetDemConges = () => {
             const response = await apiInstance.get(endpoint);
             return response.data;
         },
-        enabled: !!soccod && !!uticod
+        enabled: !!soccod && !!uticod,
+        refetchInterval: 30000, // Refetch every 30 seconds for real-time notifications
+        refetchOnWindowFocus: true,
+        staleTime: 1000 * 60 * 2, // 2 minutes stale time
     })
 };
 

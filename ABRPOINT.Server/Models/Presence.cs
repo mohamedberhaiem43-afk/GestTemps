@@ -7,7 +7,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("presence")]
 [PrimaryKey("Empcod","Predat")]
-public partial class Presence
+public partial class Presence : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

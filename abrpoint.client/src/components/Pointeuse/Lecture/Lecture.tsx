@@ -6,8 +6,11 @@ import PointageListNonInscrit from "./PointageListNonInscrit";
 import { LogEntry } from "../../../hooks/pointeuseHooks/useGetPointages";
 import PointageEntryService from "../../../services/PointeuseService/PointageEntryService";
 import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
+import { useAuth } from "../../helper/AuthProvider";
+import AccessDenied from "../../helper/AccessDenied";
 
 function Lecture() {
+  const { hasPermission } = useAuth();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState("");
 
@@ -34,6 +37,10 @@ function Lecture() {
       setSnackbarOpen(true);
     }
   };
+
+  if (!hasPermission('Pointage et Temps', 'consult')) {
+    return <AccessDenied message="Vous n'avez pas le droit de consulter la lecture des pointages." />;
+  }
 
   return (
     <Box width="95vw" height="85vh" >

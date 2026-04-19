@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ABRPOINT.Server.Models;
 
 [Table("societe")]
-public partial class Societe
+public partial class Societe : BaseEntity
 {
     [Key]
     [Column("soccod")]

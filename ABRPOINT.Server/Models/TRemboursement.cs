@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("t_remboursement")]
-public partial class TRemboursement
+public partial class TRemboursement : BaseEntity
 {
     public int? IdAmortis { get; set; }
 

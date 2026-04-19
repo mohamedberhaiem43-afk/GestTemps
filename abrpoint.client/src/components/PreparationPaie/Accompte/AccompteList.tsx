@@ -4,6 +4,7 @@ import { Box, Button, Typography } from "@mui/material";
 import { Avance } from "../../../models/Avance";
 import useGetAvances from "../../../hooks/avanceHooks/useGetAvances";
 import useUpdateAvance from "../../../hooks/avanceHooks/useUpdateAvance";
+import { useAuth } from "../../helper/AuthProvider";
 
 interface AccompteListProps {
   month: string;
@@ -16,6 +17,9 @@ function AccompteList({ month, year, niveau }: AccompteListProps) {
   const [avances, setAvances] = useState<Avance[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const [editedAvances, setEditedAvances] = useState<Record<string, Avance>>({});
+
+  const { hasPermission } = useAuth();
+  const canModify = hasPermission('Paie et Rémunération', 'modify');
 
   useEffect(() => {
     if (Array.isArray(data)) {
@@ -102,24 +106,26 @@ const handleSaveAvances = async () => {
       columns={columns}
       data={avances}
       getRowId={(row) => row.empcod}
-      enableEditing
+      enableEditing={canModify}
       editDisplayMode="cell"
-      renderBottomToolbarCustomActions={() => (
+      renderTopToolbarCustomActions={() => (
         <Box sx={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <Button
-            variant="contained"
-            color="success"
-            onClick={handleSaveAvances}
-            disabled={
-              Object.keys(editedAvances).length === 0 ||
-              Object.values(validationErrors).some((e) => !!e)
-            }
-          >
-            Save
-          </Button>
+          {canModify && (
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleSaveAvances}
+              disabled={
+                Object.keys(editedAvances).length === 0 ||
+                Object.values(validationErrors).some((e) => !!e)
+              }
+            >
+              Enregistrer
+            </Button>
+          )}
           {Object.values(validationErrors).some((e) => !!e) && (
             <Typography color="error">
-              Fix validation errors before saving.
+              Veuillez corriger les erreurs avant d'enregistrer.
             </Typography>
           )}
         </Box>

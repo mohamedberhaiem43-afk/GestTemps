@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ABRPOINT.Server.Models;
 
 [Table("demconge")]
-public partial class Demconge
+public partial class Demconge : BaseEntity
 {
     [Column("concod")]
     [StringLength(10)]

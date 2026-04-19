@@ -223,9 +223,16 @@ Posez-moi une question!`
         onClick={() => setIsOpen(true)}
         sx={{
           position: 'fixed',
-          bottom: 16,
-          right: 16,
-          zIndex: 1000
+          bottom: 24,
+          right: 24,
+          zIndex: 1200,
+          background: 'linear-gradient(135deg, #0040a1 0%, #1a6eff 100%)',
+          boxShadow: '0 6px 20px rgba(0,64,161,0.35)',
+          '&:hover': {
+            background: 'linear-gradient(135deg, #003080 0%, #0040a1 100%)',
+            transform: 'scale(1.08)',
+          },
+          transition: 'all 0.2s',
         }}
       >
         <SmartToy />

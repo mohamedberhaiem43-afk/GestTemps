@@ -1,5 +1,6 @@
 import axios from "axios";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { RolePermission } from "../../models/Role";
 
 interface AuthContextType {
   soccod: string | null;
@@ -9,7 +10,11 @@ interface AuthContextType {
   uticod: string | null;
   utiadm: string | null;
   isEmp: boolean;
+  isManager: boolean;
+  sercod: string | null;
   authReady: boolean;
+  permissions: RolePermission[];
+  hasPermission: (module: string, action: 'consult' | 'add' | 'modify' | 'delete') => boolean;
   setAuthData: (data: Partial<AuthContextType>) => void;
   refreshAuth: () => Promise<void>;
   clearAuth: () => void;
@@ -23,10 +28,14 @@ const AuthContext = createContext<AuthContextType>({
   uticod: null,
   utiadm: null,
   isEmp: false,
+  isManager: false,
+  sercod: null,
   authReady: false,
-  setAuthData: () => {},
-  refreshAuth: async () => {},
-  clearAuth: () => {},
+  permissions: [],
+  hasPermission: () => false,
+  setAuthData: () => { },
+  refreshAuth: async () => { },
+  clearAuth: () => { },
 });
 
 const persistedKeys = new Set(["soccod", "soclib", "sitcod", "userName"]);
@@ -42,6 +51,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     uticod: null as string | null,
     utiadm: null as string | null,
     isEmp: false,
+    isManager: false,
+    sercod: null as string | null,
+    permissions: [] as RolePermission[],
   });
 
   const refreshAuth = useCallback(async () => {
@@ -55,12 +67,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (requestId !== requestIdRef.current) return;
 
+      const isAdmin = response.data.utiadm === '1';
+      const hasRole = !!(response.data.permissions && response.data.permissions.length > 0);
       setAuthData((prev) => ({
         ...prev,
         uticod: response.data.uticod ?? null,
         utiadm: response.data.utiadm ?? null,
         isEmp: Boolean(response.data.isEmp),
+        isManager: !isAdmin && hasRole,
+        sercod: response.data.sercod ?? null,
         userName: response.data.utilib ?? prev.userName ?? null,
+        permissions: response.data.permissions ?? [],
       }));
     } catch {
       if (requestId !== requestIdRef.current) return;
@@ -70,6 +87,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         uticod: null,
         utiadm: null,
         isEmp: false,
+        isManager: false,
+        sercod: null,
+        permissions: [],
       }));
     } finally {
       if (requestId === requestIdRef.current) {
@@ -112,11 +132,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       uticod: null,
       utiadm: null,
       isEmp: false,
+      isManager: false,
+      sercod: null,
+      permissions: [],
     });
   };
 
+  const hasPermission = useCallback((module: string, action: 'consult' | 'add' | 'modify' | 'delete') => {
+    if (authData.utiadm === '1') return true;
+    const perm = authData.permissions.find(p => p.rpModule === module);
+    if (!perm) return false;
+
+    switch (action) {
+      case 'consult': return perm.rpConsult === '1';
+      case 'add': return perm.rpAdd === '1';
+      case 'modify': return perm.rpModify === '1';
+      case 'delete': return perm.rpDelete === '1';
+      default: return false;
+    }
+  }, [authData.permissions, authData.utiadm]);
+
   return (
-    <AuthContext.Provider value={{ ...authData, authReady, setAuthData: setAuth, refreshAuth, clearAuth }}>
+    <AuthContext.Provider value={{ ...authData, authReady, hasPermission, setAuthData: setAuth, refreshAuth, clearAuth }}>
       {children}
     </AuthContext.Provider>
   );

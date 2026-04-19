@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [PrimaryKey("Poicod","Soccod","Uticod")]
 [Table("pointdroit")]
-public partial class Pointdroit
+public partial class Pointdroit : BaseEntity
 {
     [Column("poicod")]
     [StringLength(10)]

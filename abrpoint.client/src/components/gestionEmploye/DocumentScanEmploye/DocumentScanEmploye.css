@@ -1,0 +1,231 @@
+/* ── Document Scan Modal ─────────────────────────────────────────────────── */
+.scan-modal .MuiDialog-paper {
+  border-radius: 20px !important;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.scan-upload-zone {
+  border: 2.5px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 48px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 64, 161, 0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.scan-upload-zone:hover {
+  border-color: #0040a1;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 64, 161, 0.08);
+}
+
+.scan-upload-zone.dragging {
+  border-color: #0040a1;
+  background: linear-gradient(135deg, #e0edff 0%, #d0e2ff 100%);
+  transform: scale(1.01);
+  box-shadow: 0 12px 32px rgba(0, 64, 161, 0.15);
+}
+
+.scan-upload-zone.processing {
+  border-color: #0040a1;
+  border-style: solid;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.scan-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0040a1, #1a6eff, #0040a1);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  border-radius: 0 0 16px 16px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.scan-pulse-icon {
+  position: relative;
+}
+
+.scan-pulse-icon::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid #0040a1;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* Extracted fields grid */
+.extracted-field {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1.5px solid #e8ecf2;
+  transition: all 0.2s ease;
+}
+
+.extracted-field:hover {
+  border-color: #b8c4d0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.extracted-field.has-value {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.extracted-field.has-value:hover {
+  border-color: #16a34a;
+}
+
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.confidence-high {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.confidence-medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.confidence-low {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Preview thumbnail */
+.scan-preview-thumb {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1.5px solid #e8ecf2;
+  background: #fff;
+}
+
+/* Camera capture */
+.camera-container {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+}
+
+.camera-container video {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+}
+
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Suggestions */
+.suggestion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid #e8ecf2;
+  color: #475569;
+  transition: all 0.2s ease;
+}
+
+.suggestion-chip:hover {
+  background: #f0f5ff;
+  border-color: #0040a1;
+  color: #0040a1;
+}
+
+/* Document type badge */
+.doc-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Tab styles */
+.scan-tab {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: #64748b;
+}
+
+.scan-tab:hover {
+  background: #f0f5ff;
+  color: #0040a1;
+}
+
+.scan-tab.active {
+  background: #0040a1;
+  color: #fff;
+  border-color: #0040a1;
+  box-shadow: 0 4px 12px rgba(0, 64, 161, 0.25);
+}
+
+/* Animate in */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scan-results-animate {
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}

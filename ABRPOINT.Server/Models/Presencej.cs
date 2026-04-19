@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("presencej")]
-public partial class Presencej
+public partial class Presencej : BaseEntity
 {
     [Column("modcod")]
     [StringLength(20)]

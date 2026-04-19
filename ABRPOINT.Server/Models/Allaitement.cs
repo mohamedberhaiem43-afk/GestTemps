@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("allaitement")]
 [PrimaryKey("Concod","Soccod")]
-public partial class Allaitement
+public partial class Allaitement : BaseEntity
 {
     [Required]
     [Key]

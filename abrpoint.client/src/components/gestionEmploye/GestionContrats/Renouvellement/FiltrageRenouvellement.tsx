@@ -47,7 +47,11 @@ const calculateMonths = (start: string, end: string): number => {
 };
 
 function FiltrageRenouvellement({ filters, setFilters, selectedContract, onApplyFilters, onRenewSuccess }: FiltrageRenouvellementProps) {
-  const { soccod } = useAuth();
+  const { soccod, hasPermission } = useAuth();
+  
+  const canAdd = hasPermission('Contrats et Avenants', 'add');
+  const canModify = hasPermission('Contrats et Avenants', 'modify');
+  const canRenew = canAdd || canModify;
   const { sitcod = '', srvcod = '', echdeb = '', echfin = '' } = filters || {};
   const [newConcod, setNewConcod] = useState(generateNumeroOrdre());
   const [contractDate, setContractDate] = useState(getTodayDate());
@@ -258,14 +262,16 @@ function FiltrageRenouvellement({ filters, setFilters, selectedContract, onApply
               fullWidth
               size="small"
             />
-            <Button
-              variant="contained"
-              onClick={handleCreateContract}
-              disabled={mutation.isLoading}
-              sx={{ whiteSpace: 'nowrap', alignSelf: 'center', height: 40 }}
-            >
-              {mutation.isLoading ? 'En cours...' : 'Valider'}
-            </Button>
+            {canRenew && (
+              <Button
+                variant="contained"
+                onClick={handleCreateContract}
+                disabled={mutation.isLoading}
+                sx={{ whiteSpace: 'nowrap', alignSelf: 'center', height: 40 }}
+              >
+                {mutation.isLoading ? 'En cours...' : 'Valider'}
+              </Button>
+            )}
           </Box>
 
         </Stack>

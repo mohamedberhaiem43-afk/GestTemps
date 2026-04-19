@@ -1,0 +1,103 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { COLORS } from './src/config/env';
+
+// Screens
+import LoginScreen from './src/screens/LoginScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import PresenceHistoryScreen from './src/screens/PresenceHistoryScreen';
+import LeaveRequestScreen from './src/screens/LeaveRequestScreen';
+import ExpenseScreen from './src/screens/ExpenseScreen';
+import BalanceScreen from './src/screens/BalanceScreen';
+import DigitalVaultScreen from './src/screens/DigitalVaultScreen';
+import AuthorizationScreen from './src/screens/AuthorizationScreen';
+import DemandeAutorisationScreen from './src/screens/DemandeAutorisationScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+
+// Manager Screens
+import EmployeeListScreen from './src/screens/manager/EmployeeListScreen';
+import AddEmployeeScreen from './src/screens/manager/AddEmployeeScreen';
+import LeaveApprovalScreen from './src/screens/manager/LeaveApprovalScreen';
+import ExpenseApprovalScreen from './src/screens/manager/ExpenseApprovalScreen';
+import DailyPointageScreen from './src/screens/manager/DailyPointageScreen';
+
+const Stack = createNativeStackNavigator();
+
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function AppStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: COLORS.background },
+      }}
+    >
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      <Stack.Screen name="PresenceHistory" component={PresenceHistoryScreen} />
+      <Stack.Screen name="LeaveRequest" component={LeaveRequestScreen} />
+      <Stack.Screen name="Expense" component={ExpenseScreen} />
+      <Stack.Screen name="Balance" component={BalanceScreen} />
+      <Stack.Screen name="DigitalVault" component={DigitalVaultScreen} />
+      <Stack.Screen name="Authorization" component={AuthorizationScreen} />
+      <Stack.Screen name="DemandeAutorisation" component={DemandeAutorisationScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      {/* Manager Screens - always registered, access controlled by UI */}
+      <Stack.Screen name="EmployeeList" component={EmployeeListScreen} />
+      <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />
+      <Stack.Screen name="EmployeeDetail" component={ProfileScreen} />
+      <Stack.Screen name="LeaveApproval" component={LeaveApprovalScreen} />
+      <Stack.Screen name="ExpenseApproval" component={ExpenseApprovalScreen} />
+      <Stack.Screen name="DailyPointage" component={DailyPointageScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function RootNavigator() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  return isAuthenticated ? <AppStack /> : <AuthStack />;
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <NavigationContainer>
+          <StatusBar style="light" />
+          <RootNavigator />
+        </NavigationContainer>
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+});

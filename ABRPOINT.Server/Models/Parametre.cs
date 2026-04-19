@@ -1,9 +1,9 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace ABRPOINT.Server.Models;
 
 [Table("parametre")]
-public partial class Parametre
+public partial class Parametre : BaseEntity
 {
     [Required]
     [Key]
@@ -31,10 +31,10 @@ public partial class Parametre
     public string? Ncom { get; set; }
 
     [Column("vitesse")]
-    public int? Vitesse { get; set; }
+    public float? Vitesse { get; set; }
 
     [Column("parite")]
-    public int? Parite { get; set; }
+    public float? Parite { get; set; }
 
     [Column("nbdigit")]
     public int? Nbdigit { get; set; }
@@ -47,7 +47,7 @@ public partial class Parametre
     public int? Arrondi { get; set; }
 
     [Column("nbhconge")]
-    public int? Nbhconge { get; set; }
+    public float? Nbhconge { get; set; }
 
     [Column("nbhrepos")]
     public int? Nbhrepos { get; set; }

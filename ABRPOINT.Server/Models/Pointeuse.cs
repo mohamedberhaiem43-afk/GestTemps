@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [PrimaryKey("Poicod", "Soccod")]
 [Table("pointeuse")]
-public partial class Pointeuse
+public partial class Pointeuse : BaseEntity
 {
     [Key]
     [Column("poicod")]

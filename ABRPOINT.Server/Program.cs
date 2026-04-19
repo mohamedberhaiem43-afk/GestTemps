@@ -8,9 +8,14 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
+using DinkToPdf;
+using DinkToPdf.Contracts;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Register DinkToPdf (wkhtmltopdf) for HTML→PDF conversion
+builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
 var dbName = Environment.GetEnvironmentVariable("DB_NAME");
@@ -72,8 +77,16 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
-            var accessToken = context.Request.Cookies["accessToken"];
+            // First check Authorization header (for mobile app)
+            var authHeader = context.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+            {
+                context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                return Task.CompletedTask;
+            }
 
+            // Then check cookies (for web app)
+            var accessToken = context.Request.Cookies["accessToken"];
             if (!string.IsNullOrEmpty(accessToken))
             {
                 context.Token = accessToken;
@@ -87,11 +100,25 @@ builder.Services.AddAuthentication(options =>
 // Add CORS service
 builder.Services.AddCors(options =>
 {
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+
     options.AddPolicy("AllowReactApp", policy =>
     {
         policy.WithOrigins(
                 "http://abrpoint.client:3000",
-                "https://localhost:5173"
+                "https://localhost:5173",
+                "http://localhost:8081",
+                "http://localhost:8082",
+                "http://localhost:19000",
+                "http://localhost:19001",
+                "http://localhost:19002",
+                "http://localhost:19006",
+                "exp://localhost:8081"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()

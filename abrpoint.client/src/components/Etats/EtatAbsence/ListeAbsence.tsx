@@ -173,9 +173,11 @@ const ListeAbsence = () => {
           <Skeleton variant="rectangular" height={40} style={{ marginTop: 10 }} />
         </div>
       ) : (
-        <DataList data={data} columns={columns} message={undefined} deleteMethod={undefined} idKey={'abscod'}
-          refetchMethod={undefined} reportGeneration1={undefined} reportGeneration2={undefined} reportGeneration3={undefined}
-          reportGeneration4={undefined} empHoraires={undefined} setData={undefined} pageSize={5} purge={undefined} />
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <DataList data={data} columns={columns} message={undefined} deleteMethod={undefined} idKey={'abscod'}
+            refetchMethod={undefined} reportGeneration1={undefined} reportGeneration2={undefined} reportGeneration3={undefined}
+            reportGeneration4={undefined} empHoraires={undefined} setData={undefined} pageSize={5} purge={undefined} />
+        </div>
       )}
     </>
   );

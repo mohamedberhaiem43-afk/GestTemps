@@ -1,5 +1,6 @@
-﻿using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace ABRPOINT.Server.Data;
 
@@ -241,7 +242,123 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
+    public virtual DbSet<Role> Roles { get; set; }
+
+    public virtual DbSet<RolePermission> RolePermissions { get; set; }
+
+    public virtual DbSet<RolePointdroit> RolePointdroits { get; set; }
+
     public virtual DbSet<Ville> Villes { get; set; }
+    public virtual DbSet<NoteDeFrais> NoteDeFrais { get; set; }
+    public virtual DbSet<DocumentVault> DocumentVaults { get; set; }
+    public virtual DbSet<DemandeAutorisation> DemandeAutorisations { get; set; }
+    public virtual DbSet<AuditLog> AuditLogs { get; set; }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        var auditEntries = CollectAuditEntries();
+        OnBeforeSave();
+        var result = base.SaveChanges(acceptAllChangesOnSuccess);
+        SaveAuditEntriesSafe(auditEntries);
+        return result;
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        var auditEntries = CollectAuditEntries();
+        OnBeforeSave();
+        var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        await SaveAuditEntriesSafeAsync(auditEntries, cancellationToken);
+        return result;
+    }
+
+    private List<AuditLog> CollectAuditEntries()
+    {
+        var auditEntries = new List<AuditLog>();
+        foreach (var entry in ChangeTracker.Entries().Where(e => e.Entity is not AuditLog && e.Entity is BaseEntity && e.State != EntityState.Detached && e.State != EntityState.Unchanged))
+        {
+            var audit = new AuditLog
+            {
+                Action = entry.State.ToString(),
+                TableName = entry.Metadata.GetTableName(),
+                DateAction = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            // Try to extract Uticod from the entity if it has a Uticod property
+            if (entry.Entity is Utilisateur utilEntity)
+            {
+                audit.Uticod = utilEntity.Uticod;
+            }
+            else
+            {
+                var uticodProp = entry.Entity.GetType().GetProperty("Uticod");
+                if (uticodProp != null)
+                {
+                    audit.Uticod = uticodProp.GetValue(entry.Entity)?.ToString();
+                }
+            }
+
+            auditEntries.Add(audit);
+        }
+        return auditEntries;
+    }
+
+    private void SaveAuditEntriesSafe(List<AuditLog> auditEntries)
+    {
+        if (!auditEntries.Any()) return;
+        try
+        {
+            AuditLogs.AddRange(auditEntries);
+            base.SaveChanges(true);
+        }
+        catch
+        {
+            // Audit logging should never break the main operation
+            // Detach failed audit entries from change tracker
+            foreach (var audit in auditEntries)
+            {
+                Entry(audit).State = EntityState.Detached;
+            }
+        }
+    }
+
+    private async Task SaveAuditEntriesSafeAsync(List<AuditLog> auditEntries, CancellationToken cancellationToken)
+    {
+        if (!auditEntries.Any()) return;
+        try
+        {
+            AuditLogs.AddRange(auditEntries);
+            await base.SaveChangesAsync(true, cancellationToken);
+        }
+        catch
+        {
+            // Audit logging should never break the main operation
+            // Detach failed audit entries from change tracker
+            foreach (var audit in auditEntries)
+            {
+                Entry(audit).State = EntityState.Detached;
+            }
+        }
+    }
+
+    private void OnBeforeSave()
+    {
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedAt ??= DateTime.UtcNow;
+                    break;
+                case EntityState.Deleted:
+                    // Soft delete: mark as deleted instead of actually deleting
+                    entry.State = EntityState.Modified;
+                    entry.Entity.DeletedAt = DateTime.UtcNow;
+                    break;
+            }
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -338,8 +455,27 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Soccod).IsFixedLength();
         });
 
+        // Apply soft-delete global query filter for all BaseEntity types
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(
+                    GenerateSoftDeleteFilter(entityType.ClrType));
+            }
+        }
+
         OnModelCreatingPartial(modelBuilder);
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+
+    private static System.Linq.Expressions.LambdaExpression GenerateSoftDeleteFilter(Type entityType)
+    {
+        var param = System.Linq.Expressions.Expression.Parameter(entityType, "e");
+        var deletedAtProp = System.Linq.Expressions.Expression.PropertyOrField(param, "DeletedAt");
+        var nullConst = System.Linq.Expressions.Expression.Constant(null, typeof(DateTime?));
+        var condition = System.Linq.Expressions.Expression.Equal(deletedAtProp, nullConst);
+        return System.Linq.Expressions.Expression.Lambda(condition, param);
+    }
 }

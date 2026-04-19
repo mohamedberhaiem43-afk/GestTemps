@@ -1,0 +1,316 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+
+.dcm-container {
+  width: 100%;
+  min-height: 100vh;
+  background: #f7f9fb;
+  padding: 32px;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Header */
+.dcm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+}
+.dcm-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #191c1e;
+  letter-spacing: -0.02em;
+}
+.dcm-subtitle {
+  font-size: 14px;
+  color: #424654;
+  margin-top: 4px;
+}
+.dcm-new-btn {
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
+  color: white !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  font-size: 14px !important;
+  box-shadow: 0 4px 12px rgba(0,64,161,0.25) !important;
+  transition: transform 0.15s !important;
+}
+.dcm-new-btn:hover { transform: translateY(-2px) !important; }
+
+/* Body layout */
+.dcm-body {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.dcm-left { flex: 1; min-width: 0; }
+.dcm-sidebar { width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+
+/* Table */
+.dcm-table-head {
+  display: grid;
+  grid-template-columns: 2.5fr 1.2fr 1.8fr 1fr 2fr;
+  gap: 8px;
+  background: #e6e8ea;
+  border-radius: 12px 12px 0 0;
+  padding: 14px 20px;
+}
+.dcm-th {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #424654;
+}
+.dcm-rows { display: flex; flex-direction: column; gap: 2px; }
+.dcm-row {
+  display: grid;
+  grid-template-columns: 2.5fr 1.2fr 1.8fr 1fr 2fr;
+  gap: 8px;
+  align-items: center;
+  background: #ffffff;
+  padding: 16px 20px;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f2f4f6;
+}
+.dcm-row:last-child { border-radius: 0 0 12px 12px; border-bottom: none; }
+.dcm-row:hover { background: #f8fafc; }
+.dcm-row:hover .dcm-actions { opacity: 1; }
+
+/* Employee cell */
+.dcm-emp-cell { display: flex; align-items: center; gap: 12px; }
+.dcm-avatar {
+  width: 40px !important;
+  height: 40px !important;
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+}
+.dcm-emp-name { font-size: 14px; font-weight: 600; color: #191c1e; }
+.dcm-emp-sub { font-size: 11px; color: #737785; }
+
+/* Type badge */
+.dcm-type-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Period */
+.dcm-period-dates { font-size: 13px; font-weight: 600; color: #191c1e; }
+.dcm-period-days { font-size: 11px; color: #737785; margin-top: 2px; }
+
+/* Status badge */
+.dcm-status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Actions */
+.dcm-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.dcm-action-edit {
+  color: #64748b !important;
+  border-radius: 8px !important;
+}
+.dcm-action-edit:hover { background: #f1f5f9 !important; }
+.dcm-action-refuse {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  color: #991b1b !important;
+  background: #fee2e2 !important;
+}
+.dcm-action-refuse:hover { background: #fecaca !important; }
+.dcm-action-accept {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  color: white !important;
+  background: #0040a1 !important;
+}
+.dcm-action-accept:hover { background: #003380 !important; transform: translateY(-1px); }
+
+/* ── Sidebar ── */
+
+/* Calendar */
+.dcm-calendar-card {
+  padding: 20px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: #f2f4f6 !important;
+}
+.dcm-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.dcm-calendar-title { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 14px; color: #191c1e; }
+.dcm-calendar-nav { display: flex; gap: 2px; }
+.dcm-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.dcm-cal-dow { font-size: 9px; font-weight: 700; color: #737785; padding: 4px 0; text-transform: uppercase; }
+.dcm-cal-day {
+  position: relative;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 2px;
+  border-radius: 6px;
+  cursor: default;
+  color: #334155;
+}
+.dcm-cal-day--empty { color: transparent; }
+.dcm-cal-day--leave { background: rgba(0,64,161,0.1); color: #0040a1; font-weight: 700; }
+.dcm-cal-dot {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #0040a1;
+}
+
+/* Availability */
+.dcm-avail-card {
+  padding: 20px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: #f2f4f6 !important;
+}
+.dcm-avail-title { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 14px; color: #191c1e; margin-bottom: 12px; }
+.dcm-avail-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dcm-avail-label { font-size: 12px; font-weight: 500; color: #424654; }
+.dcm-avail-count { font-size: 12px; font-weight: 700; color: #005136; }
+.dcm-avail-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+.dcm-avail-fill { height: 100%; background: #005136; border-radius: 99px; transition: width 0.4s ease; }
+
+/* Stats grid */
+.dcm-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dcm-stat-card {
+  padding: 16px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: #ffffff !important;
+  text-align: center;
+}
+.dcm-stat-value { font-family: 'Manrope', sans-serif; font-size: 26px; font-weight: 800; }
+.dcm-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #737785; margin-top: 2px; }
+.dcm-stat-primary { color: #0040a1; }
+.dcm-stat-error { color: #ba1a1a; }
+.dcm-stat-warning { color: #854d0e; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .dcm-body { flex-direction: column; }
+  .dcm-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .dcm-calendar-card, .dcm-avail-card { flex: 1; min-width: 240px; }
+  .dcm-stats-grid { flex: 1; min-width: 200px; }
+}
+@media (max-width: 768px) {
+  .dcm-container { padding: 16px; }
+  .dcm-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .dcm-table-head, .dcm-row { grid-template-columns: 1fr 1fr; }
+  .dcm-col-period, .dcm-col-status { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  Dark Mode Overrides                                       */
+/* ═══════════════════════════════════════════════════════════ */
+[data-theme="dark"] .dcm-container {
+  background: #0f172a;
+}
+[data-theme="dark"] .dcm-title {
+  color: #f1f5f9;
+}
+[data-theme="dark"] .dcm-subtitle {
+  color: #94a3b8;
+}
+[data-theme="dark"] .dcm-table-head {
+  background: #1e293b;
+}
+[data-theme="dark"] .dcm-th {
+  color: #94a3b8;
+}
+[data-theme="dark"] .dcm-row {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+[data-theme="dark"] .dcm-row:hover {
+  background: #263348;
+}
+[data-theme="dark"] .dcm-emp-name {
+  color: #f1f5f9;
+}
+[data-theme="dark"] .dcm-emp-sub {
+  color: #64748b;
+}
+[data-theme="dark"] .dcm-period-dates {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .dcm-period-days {
+  color: #64748b;
+}
+[data-theme="dark"] .dcm-action-edit {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .dcm-action-edit:hover {
+  background: rgba(147,197,253,0.08) !important;
+}
+[data-theme="dark"] .dcm-calendar-card {
+  background: #1e293b !important;
+}
+[data-theme="dark"] .dcm-calendar-title {
+  color: #f1f5f9;
+}
+[data-theme="dark"] .dcm-cal-dow {
+  color: #64748b;
+}
+[data-theme="dark"] .dcm-cal-day {
+  color: #cbd5e1;
+}
+[data-theme="dark"] .dcm-cal-day--leave {
+  background: rgba(147,197,253,0.15);
+  color: #93c5fd;
+}
+[data-theme="dark"] .dcm-avail-card {
+  background: #1e293b !important;
+}
+[data-theme="dark"] .dcm-avail-title {
+  color: #f1f5f9;
+}
+[data-theme="dark"] .dcm-avail-label {
+  color: #94a3b8;
+}
+[data-theme="dark"] .dcm-avail-bar {
+  background: #334155;
+}
+[data-theme="dark"] .dcm-stat-card {
+  background: #1e293b !important;
+}
+[data-theme="dark"] .dcm-stat-label {
+  color: #64748b;
+}
+[data-theme="dark"] .dcm-stat-primary {
+  color: #93c5fd;
+}

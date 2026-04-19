@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ABRPOINT.Server.Models;
 
 [Table("autoriser")]
-public partial class Autoriser
+public partial class Autoriser : BaseEntity
 {
     [Required] 
     [Key]

@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("article")]
-public partial class Article
+public partial class Article : BaseEntity
 {
     [Column("artcod")]
     [StringLength(20)]

@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("pret")]
-public partial class Pret
+public partial class Pret : BaseEntity
 {
     [Column("precod")]
     [StringLength(10)]

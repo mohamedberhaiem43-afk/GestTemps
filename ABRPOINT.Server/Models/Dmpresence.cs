@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("dmpresence")]
-public partial class Dmpresence
+public partial class Dmpresence : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

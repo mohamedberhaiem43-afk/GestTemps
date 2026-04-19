@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("qualif")]
-public partial class Qualif
+public partial class Qualif : BaseEntity
 {
     [Column("quacod")]
     [StringLength(4)]

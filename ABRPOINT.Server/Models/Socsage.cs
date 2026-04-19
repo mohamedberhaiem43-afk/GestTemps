@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("socsage")]
-public partial class Socsage
+public partial class Socsage : BaseEntity
 {
     [Column("SOC_COD")]
     [StringLength(10)]

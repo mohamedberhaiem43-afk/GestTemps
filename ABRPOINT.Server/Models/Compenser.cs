@@ -7,7 +7,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("compenser")]
 [PrimaryKey("Concod","Soccod")]
-public partial class Compenser
+public partial class Compenser : BaseEntity
 {
     [Required]
     [Column("concod")]

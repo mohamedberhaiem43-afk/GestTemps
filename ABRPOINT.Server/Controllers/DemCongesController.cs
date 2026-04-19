@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.CongesAttributes.DemCongeAttributes;
+using ABRPOINT.Server.Annotations.CongesAttributes.DemCongeAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -47,13 +47,29 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-demconge-by-periode/{soccod}/{uticod}/{datedebut}/{datefin}")]
         [CanGetDemConge]
-        public async Task<List<Demconge>> GetCongeWithAbsenceAsync(string soccod, string uticod,DateTime datedebut,DateTime datefin)
+        public async Task<List<DemcongeDto>> GetCongeWithAbsenceAsync(string soccod, string uticod,DateTime datedebut,DateTime datefin)
         {
             try
             {
                 datedebut = datedebut.Date;
                 datefin = datefin.Date;
-                var result =  await _demandecongeRepository.GetAllByPeriod(soccod, uticod,datedebut,datefin);
+                    var result =  await _demandecongeRepository.GetAllByPeriod(soccod, uticod,datedebut,datefin);
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        [HttpGet("get-pending-demconge-by-periode/{soccod}/{uticod}/{datedebut}/{datefin}")]
+        [CanGetDemConge]
+        public async Task<List<Demconge>> GetPendingCongeWithAbsenceAsync(string soccod, string uticod,DateTime datedebut,DateTime datefin)
+        {
+            try
+            {
+                datedebut = datedebut.Date;
+                datefin = datefin.Date;
+                    var result =  await _demandecongeRepository.GetAllEnAttenteByPeriod(soccod, uticod,datedebut,datefin);
                 return result;
             }
             catch (Exception)
@@ -69,6 +85,39 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 var result = await _demandecongeRepository.AcceptDemCongeAsync(soccod, concod,empcod);
+
+                if (!result.Success)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = result.Message
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Erreur interne du serveur: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("refuse-demconge/{soccod}/{concod}/{empcod}")]
+        [CanAddDemConge]
+        public async Task<IActionResult> RefuseDemConge(string soccod, string concod,string empcod)
+        {
+            try
+            {
+                var result = await _demandecongeRepository.RefuseDemCongeAsync(soccod, concod,empcod);
 
                 if (!result.Success)
                 {

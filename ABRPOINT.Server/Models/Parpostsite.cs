@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("parpostsite")]
-public partial class Parpostsite
+public partial class Parpostsite : BaseEntity
 {
     [Column("codposte")]
     [StringLength(2)]

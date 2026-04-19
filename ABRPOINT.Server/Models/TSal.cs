@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("t_sal")]
-public partial class TSal
+public partial class TSal : BaseEntity
 {
     [Column("SA_CompteurNumero")]
     public int? SaCompteurNumero { get; set; }

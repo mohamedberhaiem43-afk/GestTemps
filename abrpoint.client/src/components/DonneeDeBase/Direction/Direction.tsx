@@ -21,6 +21,9 @@ const DirectionTable = () => {
   const [directions, setDirections] = useState<DirectionModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+
+  const soccod = sessionStorage.getItem('soccod') || '01';
 
   const openDeleteConfirmModal = (row: MRT_Row<DirectionModel>) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
@@ -35,9 +38,17 @@ const DirectionTable = () => {
   };
 
   useEffect(() => {
-    apiInstance.get(`/Directions/get-directions/${sessionStorage.getItem('soccod')}`)
-      .then((res) => {
-        setDirections(res.data);
+    const soc = sessionStorage.getItem('soccod') || '01';
+    const uti = sessionStorage.getItem('uticod') || '';
+    
+    setIsLoading(true);
+    Promise.all([
+      apiInstance.get(`/Directions/get-directions/${soc}`),
+      apiInstance.get(`/Utilisateurs/users-list/${soc}/${uti}`)
+    ])
+      .then(([dirRes, userRes]) => {
+        setDirections(dirRes.data);
+        setUsers(userRes.data);
         setIsLoading(false);
       })
       .catch((err) => {
@@ -45,7 +56,7 @@ const DirectionTable = () => {
         setIsError(true);
         setIsLoading(false);
       });
-  }, []); // Ensure this effect runs only once on mount
+  }, []);
 
   const columns = useMemo<MRT_ColumnDef<DirectionModel>[]>(() => [
     {
@@ -132,7 +143,30 @@ const DirectionTable = () => {
         },
       }),
     },
-  ], [validationErrors]);
+    {
+      accessorKey: 'dirresp',
+      header: 'Responsable',
+      editVariant: 'select',
+      editSelectOptions: users.map(u => ({
+        label: `${u.utiprn} ${u.utinom}`,
+        value: u.uticod
+      })),
+      muiEditTextFieldProps: ({ cell }) => ({
+        select: true,
+        onBlur: (event) => {
+          const rowId = cell.row.id;
+          const updatedValue = event.target.value;
+          setEditedDirections((prev) => ({
+            ...prev,
+            [rowId]: {
+              ...prev[rowId],
+              dirresp: updatedValue,
+            },
+          }));
+        },
+      }),
+    },
+  ], [validationErrors, users]);
 
   const handleSaveDirections = async () => {
     if (Object.values(validationErrors).some((error) => !!error)) return;
@@ -141,11 +175,12 @@ const DirectionTable = () => {
       await Promise.all(
         Object.values(editedDirections).map(async (direction) => {
           const sanitizedDirection = {
-            soccod: "01",
+            soccod: soccod,
             dircod: direction.dircod,
             dirlib: direction.dirlib,
             dirloc: direction.dirloc,
             diremail: direction.diremail,
+            dirresp: direction.dirresp,
           };
 
             const response = await apiInstance.post(`/Directions`, sanitizedDirection);
@@ -163,11 +198,12 @@ const handleEditDirections = async()=>{
         await Promise.all(
           Object.values(editedDirections).map(async (direction) => {
             const sanitizedDirection = {
-              soccod: "01",
+              soccod: soccod,
               dircod: direction.dircod,
               dirlib: direction.dirlib,
               dirloc: direction.dirloc,
               diremail: direction.diremail,
+              dirresp: direction.dirresp,
             };
               await apiInstance.put(`/Directions`, sanitizedDirection);
           })

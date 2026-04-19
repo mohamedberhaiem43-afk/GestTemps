@@ -5,11 +5,19 @@ import ListContrats from '../ListContrats';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import BreadcrumbNavigation from '../../../helper/BreadcrumbNavigation';
 import { Contrat } from '../../../../models/Contrat';
+import { useAuth } from '../../../helper/AuthProvider';
+import AccessDenied from '../../../helper/AccessDenied';
 
 const formatDateInput = (date: Date) => date.toISOString().split('T')[0];
 const addDays = (date: Date, days: number) => new Date(date.getTime() + (days * 24 * 60 * 60 * 1000));
 
 function RenouvellementContrat() {
+  const { hasPermission } = useAuth();
+  
+  if (!hasPermission('Contrats et Avenants', 'consult')) {
+    return <AccessDenied message="Vous n'avez pas le droit de consulter le renouvellement des contrats." />;
+  }
+
   const today = useMemo(() => new Date(), []);
   const initialFilters = useMemo<Filters>(() => ({
     sitcod: sessionStorage.getItem('sitcod') || '',

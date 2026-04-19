@@ -11,6 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using OtpNet;
+using QRCoder;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -75,6 +77,34 @@ namespace GestionDesTickets.Server.Controllers
             };
         }
 
+
+        [Authorize]
+        [HttpGet]
+        [Admin]
+        public async Task<IActionResult> GetAllUtilisateurs()
+        {
+            try
+            {
+                var users = await _dbContext.Utilisateurs
+                    .Select(u => new {
+                        u.Uticod,
+                        u.Utinom,
+                        u.Utiprn,
+                        u.Utimail,
+                        u.Utiactif,
+                        u.Utiadm,
+                        u.Utirole,
+                        uti2fa_enabled = u.UtiTwoFactorEnabled,
+                        u.Utiimg
+                    })
+                    .ToListAsync();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error fetching users", Error = ex.Message });
+            }
+        }
 
         [Authorize]
         [HttpGet("users-list/{soccod}/{uticod}")]
@@ -168,55 +198,116 @@ namespace GestionDesTickets.Server.Controllers
 
                     if (societe != null)
                     {
-                        soclib = await _dbContext.Societes
-                            .Where(s => s.Soccod == societe.Soccod)
-                            .Select(s => s.Soclib)
-                            .FirstOrDefaultAsync();
+                        if (dbUser.UtiTwoFactorEnabled == "1")
+                        {
+                            // Stop before issuing cookies
+                            return Ok(new { requires2fa = true, uticod = dbUser.Uticod, societe,societe.Sitcod });
+                        }
+
+                        return await CompleteLoginSequence(dbUser, user.Company ?? "", societe);
                     }
+
                 }
-
-                List<string> sitcods = await _dbContext.Socusers
-                    .Where(s => s.Soccod == user.Company && s.Uticod == dbUser.Uticod)
-                    .Select(s => s.Sitcod)
-                    .ToListAsync();
-
-                if (societe != null)
-                {
-                    var accessToken = GenerateJwtToken(dbUser.Uticod);
-                    var refreshToken = GenerateRefreshToken();
-
-                    // Save refresh token to database
-                    var refreshTokenEntity = new RefreshToken
-                    {
-                        Uticod = dbUser.Uticod,
-                        Token = refreshToken,
-                        ExpiresAt = DateTime.UtcNow.AddDays(7)
-                    };
-                    await _dbContext.RefreshTokens.AddAsync(refreshTokenEntity);
-                    await _dbContext.SaveChangesAsync();
-
-                    // Keep HTTPS behavior in secure deployments and fall back to HTTP-safe cookies otherwise.
-                    Response.Cookies.Append("accessToken", accessToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddMinutes(30)));
-                    Response.Cookies.Append("refreshToken", refreshToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
-                    Response.Cookies.Append("uticod", dbUser.Uticod ?? string.Empty, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
-
-                    // Admin cookie remains accessible for non-sensitive UI logic.
-                    Response.Cookies.Append("admin", dbUser.Utiadm, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7), httpOnly: false));
-
-                    var socimg = await _dbContext.Societes
-                        .Where(s => s.Soccod == user.Company)
-                        .Select(s => s.Socimg)
-                        .FirstOrDefaultAsync();
-
-                    string utilib = dbUser.Utiprn + " " + dbUser.Utinom;
-                    return Ok(new { dbUser.Uticod, dbUser.Utiimg, socimg, utilib, societe, sitcods, soclib, dbUser.Utiadm, isEmp });
-                }
-
                 return NotFound();
             }
             catch (Exception ex)
             {
                 return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        [HttpPost("complete-2fa-login")]
+        public async Task<IActionResult> Complete2FALogin([FromBody] Complete2FARequest request)
+        {
+            try
+            {
+                var dbUser = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == request.Uticod);
+                if (dbUser == null) return Unauthorized("Invalid user.");
+                if (dbUser.UtiTwoFactorEnabled != "1" || string.IsNullOrEmpty(dbUser.UtiTwoFactorSecret))
+                    return BadRequest("2FA not enabled for user.");
+
+                var secretBytes = Base32Encoding.ToBytes(dbUser.UtiTwoFactorSecret);
+                var totp = new Totp(secretBytes);
+                if (!totp.VerifyTotp(request.Code, out _, new VerificationWindow(1, 1)))
+                {
+                    return BadRequest("Code invalide");
+                }
+
+                var societe = await _dbContext.Socusers.SingleOrDefaultAsync(s => s.Soccod == request.Company &&
+                        s.Uticod == dbUser.Uticod &&
+                        s.Sitcod == request.Usersit);
+
+                if (societe != null)
+                {
+                    return await CompleteLoginSequence(dbUser, request.Company, societe);
+                }
+
+                return NotFound();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "An error occurred.");
+            }
+        }
+
+        private async Task<IActionResult> CompleteLoginSequence(Utilisateur dbUser, string company, Socuser societe)
+        {
+            try
+            {
+                var soclib = await _dbContext.Societes
+                .Where(s => s.Soccod == societe.Soccod)
+                .Select(s => s.Soclib)
+                .FirstOrDefaultAsync();
+
+                List<string> sitcods = await _dbContext.Socusers
+                    .Where(s => s.Soccod == company && s.Uticod == dbUser.Uticod)
+                    .Select(s => s.Sitcod)
+                    .ToListAsync();
+
+                var isEmp = await _dbContext.Employes.Where(e => e.Empcod == dbUser.Uticod).AnyAsync();
+
+                var accessToken = GenerateJwtToken(dbUser.Uticod);
+                var refreshToken = GenerateRefreshToken();
+
+                var refreshTokenEntity = new RefreshToken
+                {
+                    Uticod = dbUser.Uticod,
+                    Token = refreshToken,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7)
+                };
+                await _dbContext.RefreshTokens.AddAsync(refreshTokenEntity);
+                await _dbContext.SaveChangesAsync();
+
+                Response.Cookies.Append("accessToken", accessToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddMinutes(30)));
+                Response.Cookies.Append("refreshToken", refreshToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
+                Response.Cookies.Append("uticod", dbUser.Uticod ?? string.Empty, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
+                Response.Cookies.Append("admin", dbUser.Utiadm ?? "0", CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7), httpOnly: false));
+
+                var socimg = await _dbContext.Societes
+                    .Where(s => s.Soccod == company)
+                    .Select(s => s.Socimg)
+                    .FirstOrDefaultAsync();
+
+                string utilib = dbUser.Utiprn + " " + dbUser.Utinom;
+
+                // Fetch permissions for the user's role
+                var permissions = new List<RolePermission>();
+                if (!string.IsNullOrEmpty(dbUser.Utirole))
+                {
+                    var role = await _dbContext.Roles
+                        .Include(r => r.Permissions)
+                        .FirstOrDefaultAsync(r => r.RoleName == dbUser.Utirole);
+                    if (role?.Permissions != null)
+                    {
+                        permissions = role.Permissions;
+                    }
+                }
+
+                return Ok(new { dbUser.Uticod, dbUser.Utiimg, socimg, utilib, societe, sitcods, soclib, dbUser.Utiadm, isEmp, permissions });
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 
@@ -266,12 +357,77 @@ namespace GestionDesTickets.Server.Controllers
                 Response.Cookies.Append("accessToken", newAccessToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddMinutes(30)));
                 Response.Cookies.Append("refreshToken", newRefreshToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
                 Response.Cookies.Append("uticod", user.Uticod ?? string.Empty, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
-
                 return Ok(new { message = "Token refreshed successfully" });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while refreshing token", error = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpDelete("delete/{uticod}")]
+        [Admin]
+        public async Task<IActionResult> DeleteUtilisateur(string uticod)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(uticod))
+                {
+                    return BadRequest(new { Message = "User code is required" });
+                }
+
+                var success = await _utilisateurRepository.DeleteUtilisateurAsync(uticod);
+
+                if (!success)
+                {
+                    return NotFound(new { Message = "User not found" });
+                }
+
+                return Ok(new { Message = "Utilisateur supprimé avec succès." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Erreur interne lors de la suppression.", Details = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("reset-password-admin/{uticod}")]
+        [Admin]
+        public async Task<IActionResult> ResetPasswordAdmin(string uticod, [FromBody] string newPassword)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(newPassword))
+                    return BadRequest(new { Message = "Le nouveau mot de passe est requis." });
+
+                var success = await _utilisateurRepository.ResetPasswordAsync(uticod, newPassword);
+                if (!success) return NotFound(new { Message = "Utilisateur non trouvé" });
+
+                return Ok(new { Message = "Mot de passe réinitialisé avec succès." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Erreur lors de la réinitialisation.", Details = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("toggle-status/{uticod}")]
+        [Admin]
+        public async Task<IActionResult> ToggleStatus(string uticod)
+        {
+            try
+            {
+                var success = await _utilisateurRepository.ToggleStatusAsync(uticod);
+                if (!success) return NotFound(new { Message = "Utilisateur non trouvé" });
+
+                return Ok(new { Message = "Statut mis à jour avec succès." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Erreur lors de la mise à jour du statut.", Details = ex.Message });
             }
         }
 
@@ -287,7 +443,16 @@ namespace GestionDesTickets.Server.Controllers
 
             var user = await _dbContext.Utilisateurs
                 .Where(u => u.Uticod == uticod)
-                .Select(u => new { u.Uticod, u.Utiadm, u.Utiprn, u.Utinom })
+                .Select(u => new 
+                { 
+                    u.Uticod, 
+                    u.Utiadm, 
+                    u.Utiprn, 
+                    u.Utinom,
+                    Role = _dbContext.Roles
+                        .Include(r => r.Permissions)
+                        .FirstOrDefault(r => r.RoleName == u.Utirole)
+                })
                 .FirstOrDefaultAsync();
 
             if (user == null)
@@ -298,12 +463,24 @@ namespace GestionDesTickets.Server.Controllers
             var isEmp = await _dbContext.Employes.AnyAsync(e => e.Empcod == uticod);
             var utilib = $"{user.Utiprn} {user.Utinom}".Trim();
 
+            // Get user's service code for manager filtering
+            string? sercod = null;
+            if (isEmp)
+            {
+                sercod = await _dbContext.Employes
+                    .Where(e => e.Empcod == uticod)
+                    .Select(e => e.Sercod)
+                    .FirstOrDefaultAsync();
+            }
+
             return Ok(new
             {
                 uticod = user.Uticod,
                 utiadm = user.Utiadm,
                 isEmp,
-                utilib
+                utilib,
+                sercod,
+                permissions = user.Role?.Permissions ?? new List<RolePermission>()
             });
         }
 
@@ -423,7 +600,221 @@ namespace GestionDesTickets.Server.Controllers
                 throw;
             }
         }
-         
+
+        // ── 2FA Endpoints ──────────────────────────────────────────────
+
+        [Authorize]
+        [HttpPost("enable-2fa/{uticod}")]
+        public async Task<IActionResult> EnableTwoFactor(string uticod)
+        {
+            try
+            {
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
+                if (user == null) return NotFound(new { Message = "User not found" });
+
+                var secretKey = KeyGeneration.GenerateRandomKey(20);
+                var base32Secret = Base32Encoding.ToString(secretKey);
+
+                user.UtiTwoFactorSecret = base32Secret;
+                user.UtiTwoFactorEnabled = "0";
+                await _dbContext.SaveChangesAsync();
+
+                var issuer = "GestTemps";
+                var email = user.Utimail ?? user.Uticod ?? "User";
+                
+                // Use QRCoder's built-in PayloadGenerator to ensure strict TOTP spec compliance
+                var payload = new PayloadGenerator.OneTimePassword()
+                {
+                    Secret = base32Secret,
+                    Issuer = issuer,
+                    Label = email,
+                    Type = PayloadGenerator.OneTimePassword.OneTimePasswordAuthType.TOTP
+                };
+
+                using var qrGenerator = new QRCodeGenerator();
+                var qrCodeData = qrGenerator.CreateQrCode(payload.ToString(), QRCodeGenerator.ECCLevel.Q);
+                using var qrCode = new PngByteQRCode(qrCodeData);
+                var qrCodeImage = qrCode.GetGraphic(10);
+                var base64Qr = Convert.ToBase64String(qrCodeImage);
+
+                return Ok(new
+                {
+                    secret = base32Secret,
+                    qrCodeBase64 = $"data:image/png;base64,{base64Qr}",
+                    manualEntryKey = base32Secret
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error enabling 2FA", Error = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("verify-2fa/{uticod}")]
+        public async Task<IActionResult> VerifyTwoFactor(string uticod, [FromBody] Verify2FARequest request)
+        {
+            try
+            {
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
+                if (user == null) return NotFound(new { Message = "User not found" });
+                if (string.IsNullOrEmpty(user.UtiTwoFactorSecret))
+                    return BadRequest(new { Message = "2FA not initialized." });
+
+                var secretBytes = Base32Encoding.ToBytes(user.UtiTwoFactorSecret);
+                var totp = new Totp(secretBytes);
+
+                if (totp.VerifyTotp(request.Code, out _, new VerificationWindow(1, 1)))
+                {
+                    user.UtiTwoFactorEnabled = "1";
+                    await _dbContext.SaveChangesAsync();
+                    return Ok(new { Message = "2FA enabled successfully" });
+                }
+
+                return BadRequest(new { Message = "Invalid verification code" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error verifying 2FA", Error = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("disable-2fa/{uticod}")]
+        public async Task<IActionResult> DisableTwoFactor(string uticod)
+        {
+            try
+            {
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
+                if (user == null) return NotFound(new { Message = "User not found" });
+
+                user.UtiTwoFactorEnabled = "0";
+                user.UtiTwoFactorSecret = null;
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(new { Message = "2FA disabled successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error disabling 2FA", Error = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("verify-2fa-login")]
+        public async Task<IActionResult> VerifyTwoFactorLogin([FromBody] Verify2FARequest request)
+        {
+            try
+            {
+                var uticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(uticod)) return Unauthorized();
+
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
+                if (user == null) return Unauthorized();
+                if (string.IsNullOrEmpty(user.UtiTwoFactorSecret))
+                    return BadRequest(new { Message = "2FA not configured" });
+
+                var secretBytes = Base32Encoding.ToBytes(user.UtiTwoFactorSecret);
+                var totp = new Totp(secretBytes);
+
+                if (totp.VerifyTotp(request.Code, out _, new VerificationWindow(1, 1)))
+                {
+                    return Ok(new { Message = "2FA verified successfully" });
+                }
+
+                return BadRequest(new { Message = "Invalid verification code" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error verifying 2FA", Error = ex.Message });
+            }
+        }
+
+        // ── Forgot Password Endpoint ──────────────────────────────────
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.Utimail))
+                    return BadRequest(new { Message = "L'email est requis." });
+
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail == request.Utimail);
+                if (user == null)
+                    return Ok(new { Message = "Si un compte existe avec cet email, un code de réinitialisation a été généré." });
+
+                // Generate 6-digit reset code
+                var random = new Random();
+                var resetCode = random.Next(100000, 999999).ToString();
+
+                // Store code in user's UtiTwoFactorSecret temporarily (reuse field)
+                // In production, use a separate table and send via email
+                user.UtiResetCode = resetCode;
+                user.UtiResetCodeExpiry = DateTime.UtcNow.AddMinutes(15);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(new { Message = "Code de réinitialisation généré.", Code = resetCode });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Erreur lors de la demande de réinitialisation.", Error = ex.Message });
+            }
+        }
+
+        [HttpPost("reset-password-with-code")]
+        public async Task<IActionResult> ResetPasswordWithCode([FromBody] ResetPasswordWithCodeRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.Utimail) || string.IsNullOrEmpty(request.Code) || string.IsNullOrEmpty(request.NewPassword))
+                    return BadRequest(new { Message = "Tous les champs sont requis." });
+
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail == request.Utimail);
+                if (user == null)
+                    return BadRequest(new { Message = "Utilisateur non trouvé." });
+
+                if (user.UtiResetCode != request.Code || !user.UtiResetCodeExpiry.HasValue || user.UtiResetCodeExpiry < DateTime.UtcNow)
+                    return BadRequest(new { Message = "Code invalide ou expiré." });
+
+                // Reset password
+                user.Utimps = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                user.UtiResetCode = null;
+                user.UtiResetCodeExpiry = null;
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(new { Message = "Mot de passe réinitialisé avec succès." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Erreur lors de la réinitialisation.", Error = ex.Message });
+            }
+        }
+
+        // ── Role Endpoint ──────────────────────────────────────────────
+
+        [Authorize]
+        [HttpPut("update-role/{uticod}")]
+        [Admin]
+        public async Task<IActionResult> UpdateRole(string uticod, [FromBody] UpdateRoleRequest request)
+        {
+            try
+            {
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
+                if (user == null) return NotFound(new { Message = "User not found" });
+
+                user.Utirole = request.Role;
+                user.Utiadm = request.Role == "admin" ? "1" : "0";
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(new { Message = "Role updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error updating role", Error = ex.Message });
+            }
+        }
+
         // DELETE api/<UtilisateursController>/5
         [HttpDelete]
         public void Delete(Utilisateur utilisateur)

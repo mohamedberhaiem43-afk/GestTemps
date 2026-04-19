@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useContext } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, MRT_RowSelectionState, MRT_GlobalFilterTextField, MRT_ToggleFiltersButton, MRT_ColumnDef } from 'material-react-table';
 import { Box, Button, lighten, ListItemIcon, MenuItem } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -7,56 +7,45 @@ import autoTable from 'jspdf-autotable';
 import useGetAllaitement from '../../../hooks/allaitementHooks/useGetAllaitement';
 import { AllaitementDto } from '../../../models/Allaitement';
 import { Delete, Edit } from '@mui/icons-material';
-import PersonIcon from '@mui/icons-material/Person';
 import useDeleteAllaitement from '../../../hooks/allaitementHooks/useDeleteAllaitement';
 import AlertModal from '../../AlertModal/AlertModal';
 import CustomizedSnackbars from '../../Snackbar/Snackbar';
 import { useAllaitementContext } from '../../helper/AllaitementContext';
-import { EmployeeContext } from '../../Pointeuse/EtatPeriodique/EmployeeContext';
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 const formatDate = (date?: Date | string) => {
-    if (!date) return '';
-    const parsedDate = new Date(date);
-    return parsedDate.toLocaleDateString();
-  };
+  if (!date) return '';
+  const parsedDate = new Date(date);
+  return parsedDate.toLocaleDateString();
+};
 export const ListAllaitement: React.FC = () => {
   const { setSelectedAllaitement } = useAllaitementContext();
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { setSelectedEmpMat } = useContext(EmployeeContext);
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
-  const [AllaitementToDelete, setAllaitementToDelete] = useState<{soccod:string,concod:string}| null>(null);
+  const [AllaitementToDelete, setAllaitementToDelete] = useState<{ soccod: string, concod: string } | null>(null);
   const [openModal, setOpenModal] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [forbiddenError, setForbiddenError] = useState(false);
   const [forbiddenDeleteError, setForbiddenDeleteError] = useState(false);
 
   const { data = [], error, refetch } = useGetAllaitement();
-  const{ mutate:deleteAllaitement } = useDeleteAllaitement();
+  const { mutate: deleteAllaitement } = useDeleteAllaitement();
 
-  // Helper to navigate to employee management
-  const manageEmployee = (empcod: string) => {
-    setSelectedEmpMat(empcod);
-    navigate('/gestion-employe');
-  };
-  
-  const getAllaitementToEdit = (original: AllaitementDto) =>{
-    const selectedAllaitement = data.find((allaitement:any)=>allaitement.concod == original.concod);
-    if(selectedAllaitement){
+  const getAllaitementToEdit = (original: AllaitementDto) => {
+    const selectedAllaitement = data.find((allaitement: any) => allaitement.concod == original.concod);
+    if (selectedAllaitement) {
       setSelectedAllaitement(selectedAllaitement);
     }
 
   }
-    // 🔒 Détection des erreurs 403 lors du fetch
-    useEffect(() => {
-      if (error instanceof Error && error.message.includes("403")) {
-        setForbiddenError(true);
-        setTimeout(() => setForbiddenError(false), 5000);
-      }
-    }, [error]);
+  // 🔒 Détection des erreurs 403 lors du fetch
+  useEffect(() => {
+    if (error instanceof Error && error.message.includes("403")) {
+      setForbiddenError(true);
+      setTimeout(() => setForbiddenError(false), 5000);
+    }
+  }, [error]);
 
   const handleSnackbarClose = () => {
     setShowSuccessAlert(false);  // Reset Snackbar state after it closes
@@ -129,25 +118,25 @@ export const ListAllaitement: React.FC = () => {
     [t]
   );
 
-  
+
 
   const deleteAllaitementFunction = (soccod: string, concod: string) => {
-  deleteAllaitement(
-    { soccod, concod },
-    {
-      onSuccess() {
-        setShowSuccessAlert(true);
-        refetch();
-      },
-      onError(error: any) {
-        // Check if it's a 403 Forbidden error
-        if (error?.response?.status === 403 || error?.message?.includes('403')) {
-          setForbiddenDeleteError(true);
-        }
-      },
-    }
-  );
-};
+    deleteAllaitement(
+      { soccod, concod },
+      {
+        onSuccess() {
+          setShowSuccessAlert(true);
+          refetch();
+        },
+        onError(error: any) {
+          // Check if it's a 403 Forbidden error
+          if (error?.response?.status === 403 || error?.message?.includes('403')) {
+            setForbiddenDeleteError(true);
+          }
+        },
+      }
+    );
+  };
 
 
   const handleExportRows = (rows: MRT_Row<AllaitementDto>[]) => {
@@ -209,30 +198,17 @@ export const ListAllaitement: React.FC = () => {
     },
     renderRowActionMenuItems: ({ row, closeMenu }) => [
       <MenuItem
-      key="edit"
-      onClick={() => {
-        getAllaitementToEdit(row.original);
-        closeMenu();
-      }}
-      sx={{ m: 0 }}
-    >
-      <ListItemIcon>
-        <Edit />
-      </ListItemIcon>
-      {t('allaitement.actions.edit') || 'Edit'}
-    </MenuItem>,
-      <MenuItem
-        key="manage"
+        key="edit"
         onClick={() => {
-          manageEmployee(row.original.empcod);
+          getAllaitementToEdit(row.original);
           closeMenu();
         }}
         sx={{ m: 0 }}
       >
         <ListItemIcon>
-          <PersonIcon />
+          <Edit />
         </ListItemIcon>
-        {t('allaitement.actions.manage') || 'Gérer Employé'}
+        {t('allaitement.actions.edit') || 'Edit'}
       </MenuItem>,
       <MenuItem
         key="delete"
@@ -252,7 +228,7 @@ export const ListAllaitement: React.FC = () => {
     renderTopToolbar: ({ table }) => {
       const handleExportRows = (rows: any) => {
         const doc = new jsPDF();
-        const tableData = rows.map((row:any) => [
+        const tableData = rows.map((row: any) => [
           row.original.concod,  // N°Ordre
           row.original.empcod,  // Femme (Employee Code)
           new Date(row.original.condat).toLocaleDateString(),  // Date
@@ -290,7 +266,7 @@ export const ListAllaitement: React.FC = () => {
               onClick={() => handleExportRows(table.getSelectedRowModel().flatRows.map((row) => row.original))}
               variant="contained"
             >
-            <FileDownloadIcon/>
+              <FileDownloadIcon />
             </Button>
           </Box>
         </Box>
@@ -334,19 +310,19 @@ export const ListAllaitement: React.FC = () => {
     ),
   });
 
- 
-  
+
+
   return (
     <Box>
       {showSuccessAlert && (
-          <CustomizedSnackbars
-            open={showSuccessAlert}
-            message="Allaitement a été supprimée avec succès!"
-            severity="success"
-            onClose={handleSnackbarClose}
-          />
-        )}
-        {forbiddenError && (
+        <CustomizedSnackbars
+          open={showSuccessAlert}
+          message="Allaitement a été supprimée avec succès!"
+          severity="success"
+          onClose={handleSnackbarClose}
+        />
+      )}
+      {forbiddenError && (
         <ForbiddenMessage message="Vous n'avez pas les droits nécessaires pour consulter ces données." />
       )}
 
@@ -356,7 +332,7 @@ export const ListAllaitement: React.FC = () => {
           open={openModal}
           onClose={() => setOpenModal(false)} // Close modal without deleting
           onConfirm={() => {
-            deleteAllaitementFunction(AllaitementToDelete?.soccod||'', AllaitementToDelete?.concod||''); // Perform delete action
+            deleteAllaitementFunction(AllaitementToDelete?.soccod || '', AllaitementToDelete?.concod || ''); // Perform delete action
             setOpenModal(false); // Close modal after deletion
           }}
           message="Vous etes sure de supprimer cette allaitement?"

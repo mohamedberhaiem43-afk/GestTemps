@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.CalculService.Conge;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 
@@ -6,11 +7,13 @@ namespace ABRPOINT.Server.Repository
 {
     public class SoldeCongeRepository:ISoldeCongeRepository
     {
-
         private readonly ApplicationDbContext _dbContext;
-        public SoldeCongeRepository(ApplicationDbContext dbContext)
+        private readonly ICongeCalculationService _congeCalculationService;
+
+        public SoldeCongeRepository(ApplicationDbContext dbContext, ICongeCalculationService congeCalculationService)
         {
             _dbContext = dbContext;
+            _congeCalculationService = congeCalculationService;
         }
         public void Add(Solde solde)
         {
@@ -44,6 +47,23 @@ namespace ABRPOINT.Server.Repository
                 _dbContext.Soldes.Update(solde);
                 _dbContext.SaveChanges();
             }
+        }
+
+        public async Task<Solde> GetByEmpCalculatedAsync(string soccod, string empcod)
+        {
+            string year = DateTime.Now.Year.ToString();
+            string month = DateTime.Now.Month.ToString("D2");
+
+            var etat = await _congeCalculationService.GetEmpEtatCongeAsync(soccod, empcod, "01", month, year);
+
+            return new Solde
+            {
+                Soccod = soccod,
+                Empcod = empcod,
+                Annee = year,
+                Conge = (float?)etat.DroitConge,
+                Empconge = (float?)etat.SoldeAnterieur
+            };
         }
     }
 }

@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("parposte")]
-public partial class Parposte
+public partial class Parposte : BaseEntity
 {
     [Column("codposte")]
     [StringLength(2)]

@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("grille")]
-public partial class Grille
+public partial class Grille : BaseEntity
 {
     [Column("catcod")]
     [StringLength(4)]

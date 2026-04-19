@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("opbarre")]
-public partial class Opbarre
+public partial class Opbarre : BaseEntity
 {
     [Column("codbarre")]
     [StringLength(255)]

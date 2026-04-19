@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("motifpoint")]
-public partial class Motifpoint
+public partial class Motifpoint : BaseEntity
 {
     [Column("motcod")]
     [StringLength(12)]

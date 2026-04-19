@@ -14,7 +14,6 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
-
         }
         public void Add(Demconge demconge)
         {
@@ -53,7 +52,8 @@ namespace ABRPOINT.Server.Repository
                     .Where(c => c.Soccod == soccod)
                     .ToListAsync();
 
-                var rawResults = await (
+                // Build the base query (IQueryable, not materialized yet)
+                var query =
                     from c in _dbContext.Demconges
                     join a in _dbContext.Absences on c.Abscod equals a.Abscod
                     join e in _dbContext.Employes on c.Empcod equals e.Empcod
@@ -61,28 +61,40 @@ namespace ABRPOINT.Server.Repository
                         on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
                     where c.Soccod == soccod
                         && su.Uticod == uticod
-                    select new DemcongeEmpAbsDto
+                    select new { c, a, e };
+
+                // Conditionally filter by manager service code
+                string? managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
+                if (!string.IsNullOrEmpty(managerSercod))
+                {
+                    query = query.Where(x => x.e.Sercod == managerSercod);
+                }
+
+                // Now materialize with the final projection
+                var rawResults = await query
+                    .Select(x => new DemcongeEmpAbsDto
                     {
-                        Soccod = c.Soccod,
-                        Abscod = c.Abscod,
-                        Conadr = c.Conadr,
-                        Conamdep = c.Conamdep,
-                        Conamret = c.Conamret,
-                        Conjour = c.Conjour,
-                        Consolde = c.Consolde,
-                        Empcod = c.Empcod,
-                        Contel = c.Contel,
-                        Conref = c.Conref,
-                        Conrefus = c.Conrefus,
-                        Condg = c.Condg,
-                        Concod = c.Concod,
-                        Emplib = e.Emplib,
-                        Condat = c.Condat,
-                        Condep = c.Condep,
-                        Conret = c.Conret,
-                        Connbjour = c.Connbjour,
-                        Abslib = a.Abslib,
-                    }).ToListAsync();
+                        Soccod = x.c.Soccod,
+                        Abscod = x.c.Abscod,
+                        Conadr = x.c.Conadr,
+                        Conamdep = x.c.Conamdep,
+                        Conamret = x.c.Conamret,
+                        Conjour = x.c.Conjour,
+                        Consolde = x.c.Consolde,
+                        Empcod = x.c.Empcod,
+                        Contel = x.c.Contel,
+                        Conref = x.c.Conref,
+                        Conrefus = x.c.Conrefus,
+                        Condg = x.c.Condg,
+                        Concod = x.c.Concod,
+                        Emplib = x.e.Emplib,
+                        Condat = x.c.Condat,
+                        Condep = x.c.Condep,
+                        Conret = x.c.Conret,
+                        Connbjour = x.c.Connbjour,
+                        Abslib = x.a.Abslib,
+                    })
+                    .ToListAsync();
 
                 var result = rawResults
                     .DistinctBy(c => new { c.Concod, c.Soccod })
@@ -92,8 +104,8 @@ namespace ABRPOINT.Server.Repository
                         c.Etat = conge == null
                             ? "En attente"
                             : conge.Conrefus == "1"
-                                ? "Refus�"
-                                : "Accept�";
+                                ? "Refusé"
+                                : "Accepté";
                         return c;
                     })
                     .OrderByDescending(c => c.Condat)
@@ -119,11 +131,12 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
-        public async Task<List<Demconge>> GetAllByPeriod(string soccod, string uticod, DateTime datedebut, DateTime datefin)
+
+        public async Task<List<DemcongeDto>> GetAllByPeriod(string soccod, string uticod, DateTime datedebut, DateTime datefin)
         {
             try
             {
-                var rawResults = await (
+                var query =
                     from c in _dbContext.Demconges
                     join e in _dbContext.Employes on c.Empcod equals e.Empcod
                     join su in _dbContext.Socusers
@@ -132,23 +145,110 @@ namespace ABRPOINT.Server.Repository
                         && su.Uticod == uticod
                         && c.Condep >= datedebut
                         && c.Conret <= datefin
-                    select c
-                ).ToListAsync();
+                    select new { c, e };
+
+                string? managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
+                if (!string.IsNullOrEmpty(managerSercod))
+                {
+                    query = query.Where(x => x.e.Sercod == managerSercod);
+                }
+
+                var rawResults = await query.Select(x => x.c).ToListAsync();
+
+                // Fetch all relevant Conges records for the period
+                var conges = await _dbContext.Conges
+                    .Where(e => e.Soccod == soccod)
+                    .ToListAsync();
 
                 var result = rawResults
                     .DistinctBy(c => new { c.Concod, c.Soccod })
                     .OrderByDescending(c => c.Condat)
+                    .Select(demconge =>
+                    {
+                        var conge = conges.FirstOrDefault(c => c.Concod == demconge.Concod);
+                        string etat;
+                        if (conge == null)
+                            etat = "En attente";
+                        else if (conge.Conrefus == "1")
+                            etat = "Refusé";
+                        else
+                            etat = "Accepté";
+
+                        return new DemcongeDto
+                        {
+                            Concod = demconge.Concod,
+                            Soccod = demconge.Soccod,
+                            Empcod = demconge.Empcod,
+                            Condat = demconge.Condat,
+                            Conjour = demconge.Conjour,
+                            Condep = demconge.Condep,
+                            Conamdep = demconge.Conamdep,
+                            Conret = demconge.Conret,
+                            Conamret = demconge.Conamret,
+                            Abscod = demconge.Abscod,
+                            Conadr = demconge.Conadr,
+                            Contel = demconge.Contel,
+                            Condg = demconge.Condg,
+                            Conrefus = demconge.Conrefus,
+                            Connbjour = demconge.Connbjour,
+                            Conref = demconge.Conref,
+                            Consolde = demconge.Consolde,
+                            Etat = etat
+                        };
+                    })
                     .ToList();
 
                 return result;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
         }
 
+        public async Task<List<Demconge>> GetAllEnAttenteByPeriod(string soccod, string uticod, DateTime datedebut, DateTime datefin)
+        {
+            try
+            {
+                // Étape 1 : Récupérer les codes employés accessibles par l'utilisateur
+                var query =
+                    from c in _dbContext.Demconges
+                    join e in _dbContext.Employes on c.Empcod equals e.Empcod
+                    join su in _dbContext.Socusers
+                        on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
+                    where c.Soccod == soccod
+                        && su.Uticod == uticod
+                        && c.Condep >= datedebut
+                        && c.Conret <= datefin
+                    select new { c, e };
 
+                // Étape 2 : Filtrer par service du manager si applicable
+                string? managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
+                if (!string.IsNullOrEmpty(managerSercod))
+                {
+                    query = query.Where(x => x.e.Sercod == managerSercod);
+                }
+
+                // Étape 3 : Exclure les demandes qui ont déjà un congé correspondant
+                var result = await query
+                    .Where(x =>
+                        !_dbContext.Conges.Any(c =>
+                            c.Soccod == x.c.Soccod &&
+                            c.Empcod == x.c.Empcod &&
+                            c.Condep == x.c.Condep &&
+                            c.Conret == x.c.Conret))
+                    .Select(x => x.c)
+                    .Distinct()
+                    .OrderByDescending(c => c.Condat)
+                    .ToListAsync();
+
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
 
         public void Update(Demconge demconge)
         {
@@ -234,6 +334,58 @@ namespace ABRPOINT.Server.Repository
                 }
         }
 
+        public async Task<(bool Success,string Message)> RefuseDemCongeAsync(string soccod,string concod,string empcod)
+        {
+                try
+                {
+                    // Find the DemConge by concod
+                    var demConge = await _dbContext.Demconges.FindAsync(soccod, concod);
+                    if (demConge == null)
+                        return (false, $"Demande de congé avec le code {concod} introuvable.");
+
+                    // Check if Conge already exists
+                    bool congeExist = await _dbContext.Conges
+                        .Where(c => c.Soccod == soccod && c.Concod == concod)
+                        .AnyAsync();
+
+                    if (congeExist)
+                        return (false, $"Le congé {concod} a déjà été traité.");
+
+                    // Create a new Conge entity based on the DemConge with conrefus = 1
+                    var conge = new Conge
+                        {
+                            Concod = demConge.Concod,
+                            Soccod = demConge.Soccod,
+                            Empcod = demConge.Empcod,
+                            Abscod = demConge.Abscod,
+                            Condat = demConge.Condat,
+                            Condep = demConge.Condep,
+                            Conret = demConge.Conret,
+                            Conjour = demConge.Conjour,
+                            Connbjour = demConge.Connbjour,
+                            Consolde = demConge.Consolde,
+                            Conref = demConge.Conref,
+                            Conamdep = demConge.Conamdep,
+                            Conamret = demConge.Conamret,
+                            Conadr = demConge.Conadr,
+                            Condg = demConge.Condg,
+                            Contel = demConge.Contel,
+                            Conrefus = "1",
+                        };
+
+                    // Add the Conge record to the Conges table
+                    await _dbContext.Conges.AddAsync(conge);
+                    // Save changes in a single transaction
+                    await _dbContext.SaveChangesAsync();
+
+                    return (true, $"Demande de congé {concod} refusée avec succès.");
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Error refusing DemConge: {ex.Message}", ex);
+                }
+        }
+
         public async Task<List<DemcongeDto>> GetEmpDemconge(string soccod, string empcod)
         {
             try
@@ -245,7 +397,6 @@ namespace ABRPOINT.Server.Repository
                 var conges = await _dbContext.Conges
                     .Where(e => e.Soccod == soccod)
                     .ToListAsync();
-
                 var result = empconges.Select(demconge =>
                 {
                     var conge = conges.FirstOrDefault(c => c.Concod == demconge.Concod);
@@ -285,6 +436,23 @@ namespace ABRPOINT.Server.Repository
             {
                 throw;
             }
+        }
+
+        private async Task<string?> GetManagerServiceCodeAsync(string soccod, string uticod)
+        {
+            var user = await _dbContext.Utilisateurs.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Uticod == uticod);
+
+            if (user != null && user.Utiadm != "1")
+            {
+                if (user.Utirole == "Chef de service" || user.Utirole == "Manager" || user.Utirole == "Responsable")
+                {
+                    var emp = await _dbContext.Employes.AsNoTracking()
+                        .FirstOrDefaultAsync(e => e.Soccod == soccod && e.Empcod == uticod);
+                    return emp?.Sercod;
+                }
+            }
+            return null;
         }
     }
 }

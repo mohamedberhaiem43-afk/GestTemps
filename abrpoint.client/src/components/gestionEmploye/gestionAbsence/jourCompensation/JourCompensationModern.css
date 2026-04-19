@@ -1,0 +1,150 @@
+/* ===== JourCompensation Modern – Bento Grid Layout ===== */
+
+.jc-container {
+  min-height: 100vh;
+  background: #f1f5f9;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Header */
+.jc-header {
+  background: #ffffff;
+  color: #1e293b;
+  padding: 24px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+.jc-header-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.jc-header-sub {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+}
+
+/* Body */
+.jc-body {
+  padding: 24px 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 24px;
+}
+
+/* Form Card */
+.jc-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.jc-card-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+/* Fields */
+.jc-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.jc-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 14px;
+  transition: all 0.2s;
+  outline: none;
+}
+.jc-input:focus {
+  border-color: #0f172a;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15,23,42,0.05);
+}
+
+/* List Component */
+.jc-list-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+}
+.jc-list-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.jc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.jc-table th {
+  text-align: left;
+  padding: 12px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  background: #f8fafc;
+}
+.jc-table td {
+  padding: 14px 20px;
+  font-size: 13px;
+  border-bottom: 1px solid #f8fafc;
+}
+.jc-table tr:hover { background: #fafbfc; }
+
+.jc-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.jc-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: transparent;
+}
+.jc-edit-btn { color: #0284c7; }
+.jc-edit-btn:hover { background: #f0f9ff; }
+.jc-delete-btn { color: #ef4444; }
+.jc-delete-btn:hover { background: #fef2f2; }

@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [PrimaryKey("Soccod","Caltype","CalDate")]
 [Table("lcalendsoc")]
-public partial class Lcalendsoc
+public partial class Lcalendsoc : BaseEntity
 {
     [Column("cal_date", TypeName = "datetime")]
     public DateTime? CalDate { get; set; }

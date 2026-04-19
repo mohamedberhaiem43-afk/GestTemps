@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("lmotifpoint")]
-public partial class Lmotifpoint
+public partial class Lmotifpoint : BaseEntity
 {
     [Column("concod")]
     [StringLength(10)]

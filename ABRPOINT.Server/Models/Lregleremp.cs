@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("lregleremp")]
-public partial class Lregleremp
+public partial class Lregleremp : BaseEntity
 {
     [Column("ligne")]
     public int? Ligne { get; set; }

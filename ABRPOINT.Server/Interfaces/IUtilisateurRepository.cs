@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Models;
 
 namespace ABRPOINT.Server.Interfaces
@@ -14,5 +14,10 @@ namespace ABRPOINT.Server.Interfaces
         Task<bool> ChangePassword(UpdatePassword pwd);
         Task UpdateProfileImage(string? userId, string filePath);
         Task AddAsync(Utilisateur utilisateur, Socuser socuser);
+        Task<bool> DeleteUtilisateurAsync(string uticod);
+        Task<bool> ResetPasswordAsync(string uticod, string newPassword);
+        Task<bool> ToggleStatusAsync(string uticod);
+        Task<string?> GetRoleByUticodAsync(string uticod);
+        Task UpdateRoleAsync(string uticod, string newRole);
     }
 }

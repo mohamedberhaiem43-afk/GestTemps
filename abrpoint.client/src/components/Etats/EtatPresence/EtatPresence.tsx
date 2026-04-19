@@ -5,16 +5,22 @@ import { Item } from '../../helper/Item/Item';
 import { DateRangeProvider } from '../../Pointeuse/EtatPeriodique/FilterContext';
 import FilterPresence from './FilterPresence';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
+import { useAuth } from '../../helper/AuthProvider';
+import AccessDenied from '../../helper/AccessDenied';
 
 
 export default function EtatPresence() {
-    const queryClient = new QueryClient();
-    return (
-        <QueryClientProvider client={queryClient} >
+  const queryClient = new QueryClient();
+  const { hasPermission } = useAuth();
 
-        <Box width={"95vw"} height={'95vh'} ml={5} sx={{ flexGrow: 1 }}>
-                <BreadcrumbNavigation />
+  if (!hasPermission('Rapports et Statistiques', 'consult')) {
+    return <AccessDenied message="Vous n'avez pas le droit de consulter l'état de présence." />;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient} >
+
+        <Box width={"75vw"} height={'95vh'} sx={{ flexGrow: 1, overflowX: 'hidden', px: 1 }}>
             <Grid container spacing={2}>
                 <DateRangeProvider>
                     <Grid item xs={12}>

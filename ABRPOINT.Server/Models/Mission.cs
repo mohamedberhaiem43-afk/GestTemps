@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("mission")]
-public partial class Mission
+public partial class Mission : BaseEntity
 {
     [Column("concod")]
     [StringLength(10)]

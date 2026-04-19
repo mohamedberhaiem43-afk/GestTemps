@@ -16,10 +16,17 @@ namespace ABRPOINT.Server.Controllers
         [HttpGet("{soccod}/{mois}/{annee}/{semaine}")]
         public async Task<IActionResult> GetPointageMois(string soccod,[FromQuery] List<string> empcods,string mois,string annee,string semaine)
         {
-            var result = await _pointageMoisService
-                .GetPointageMois(soccod, empcods, mois, annee, semaine);
+            try
+            {
+                var result = await _pointageMoisService
+                    .GetPointageMois(soccod, empcods, mois, annee, semaine);
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

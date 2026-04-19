@@ -1,70 +1,140 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="01/12/2026 17:03:25" ReportInfo.Modified="01/29/2026 12:12:17" ReportInfo.CreatorVersion="2024.1.7.0">
+<?xml version="1.0" encoding="utf-8"?>
+<Report GuiVisible="True" ReportInfo.Created="04/15/2026 10:00:00" ReportInfo.Modified="04/15/2026 12:00:00" ReportInfo.CreatorVersion="2025.1.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqAFHGp6KQj27H4qUwAIR20hSnyrpNtgmeY+I5zyTmYE0HuZfX1hs9fAqnt4DRtzHm6rgmUW5jqSG1QnBcPDOxCmGAUt6xdCOa+Pz3gs9EUDo42l2k0kGVESqqjpXvJYc2Q4Q6jXj0ELzxBVLjkVF4dAGrVSVPPvanKoBM7W5S2JGEKfuaCeydvS0vtQ1o2wHRPPHFVTq/xz2LV8LJZ6MMTGRkvDD1+/g/PJfeRjVAlwChTjLqcZ7oXLpGt0y3p13F">
-      <TableDataSource Name="Table" DataType="System.Int32" Enabled="true" SelectCommand="select e.empcod, e.emplib, e.empcin, e.empadr, e.empsbase, e.empemb, e.empsort,e.empdcin,&#13;&#10;       sit.sitlib, dir.dirlib,&#13;&#10;       s.soccod, s.soclib, s.socadr&#13;&#10;from employe e&#13;&#10;inner join societe s on e.soccod = s.soccod&#13;&#10;left join site sit on e.sitcod = sit.sitcod and sit.soccod = e.soccod&#13;&#10;left join direction dir on e.dircod = dir.dircod and dir.soccod = e.soccod&#13;&#10;where e.empcod = @empcod &#13;&#10;  and s.soccod = @soccod">
-        <Column Name="empcod" DataType="System.String"/>
-        <Column Name="emplib" DataType="System.String"/>
-        <Column Name="empcin" DataType="System.String"/>
-        <Column Name="empadr" DataType="System.String"/>
-        <Column Name="soccod" DataType="System.String"/>
+    <MsSqlDataConnection Name="Connection" ConnectionString="">
+      <TableDataSource Name="Table" DataType="System.Int32" Enabled="true" SelectCommand="SELECT * FROM employe WHERE empcod = @empcod">
         <Column Name="soclib" DataType="System.String"/>
         <Column Name="socadr" DataType="System.String"/>
-        <Column Name="empsbase" DataType="System.Double"/>
-        <Column Name="sitlib" DataType="System.String"/>
-        <Column Name="dirlib" DataType="System.String"/>
-        <Column Name="empemb" DataType="System.DateTime"/>
-        <Column Name="empsort" DataType="System.DateTime"/>
-        <Column Name="empdcin" DataType="System.DateTime"/>
-        <CommandParameter Name="empcod" DataType="22" Expression="[empcod]"/>
-        <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
+        <Column Name="emplib" DataType="System.String"/>
+        <Column Name="empadr" DataType="System.String"/>
+        <Column Name="postelib" DataType="System.String"/>
+        <Column Name="empdatemb" DataType="System.DateTime"/>
+        <Column Name="empsal" DataType="System.Decimal"/>
       </TableDataSource>
     </MsSqlDataConnection>
+    <Parameter Name="empcod" DataType="System.String"/>
+    <Parameter Name="soccod" DataType="System.String"/>
   </Dictionary>
-  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
-    <ReportTitleBand Name="ReportTitle1" Width="718.2" Height="94.5">
-      <ShapeObject Name="Shape1" Width="718.2" Height="94.5"/>
-      <TextObject Name="Text2" Left="529.2" Top="9.45" Width="132.3" Height="18.9" Text="Le: [DateTime.Now.Day]/[DateTime.Now.Month]/[DateTime.Now.Year]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text1" Left="217.35" Top="9.45" Width="302.4" Height="56.7" Text="CONTRAT DE TRAVAIL A DUREE DETERMINEE" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text30" Left="-9.45" Top="9.45" Width="226.8" Height="28.35" Text="[UpperCase([Table.soclib])]" HorzAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text31" Left="-9.45" Top="47.25" Width="226.8" Height="47.25" Text="[UpperCase([Table.socadr])]" HorzAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text3" Left="302.4" Top="66.15" Width="141.75" Height="18.9" Text="[Table.empcod]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <LineObject Name="Line1" Left="226.8" Height="94.5"/>
-      <LineObject Name="Line2" Left="529.2" Height="94.5"/>
+  <ReportPage Name="Page1" Watermark.Enabled="true">
+    <ReportTitleBand Name="ReportTitle1" Width="718.2" Height="1000">
+      <TextObject Name="MainContent" Left="37.8" Top="37.8" Width="642.6" Height="900" Text="&lt;!--?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?--&gt;
+&lt;report scriptlanguage=&quot;CSharp&quot; reportinfo.created=&quot;01/12/2026 17:03:25&quot; reportinfo.modified=&quot;01/29/2026 12:12:17&quot; reportinfo.creatorversion=&quot;2024.1.7.0&quot;&gt;
+  &lt;dictionary&gt;
+    &lt;mssqldataconnection name=&quot;Connection&quot; connectionstring=&quot;rijcmlqAFHGp6KQj27H4qUwAIR20hSnyrpNtgmeY+I5zyTmYE0HuZfX1hs9fAqnt4DRtzHm6rgmUW5jqSG1QnBcPDOxCmGAUt6xdCOa+Pz3gs9EUDo42l2k0kGVESqqjpXvJYc2Q4Q6jXj0ELzxBVLjkVF4dAGrVSVPPvanKoBM7W5S2JGEKfuaCeydvS0vtQ1o2wHRPPHFVTq/xz2LV8LJZ6MMTGRkvDD1+/g/PJfeRjVAlwChTjLqcZ7oXLpGt0y3p13F&quot;&gt;
+      &lt;tabledatasource name=&quot;Table&quot; datatype=&quot;System.Int32&quot; enabled=&quot;true&quot; selectcommand=&quot;select e.empcod, e.emplib, e.empcin, e.empadr, e.empsbase, e.empemb, e.empsort,e.empdcin,
+       sit.sitlib, dir.dirlib,
+       s.soccod, s.soclib, s.socadr
+from employe e
+inner join societe s on e.soccod = s.soccod
+left join site sit on e.sitcod = sit.sitcod and sit.soccod = e.soccod
+left join direction dir on e.dircod = dir.dircod and dir.soccod = e.soccod
+where e.empcod = @empcod 
+  and s.soccod = @soccod&quot;&gt;
+        &lt;column name=&quot;empcod&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;emplib&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;empcin&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;empadr&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;soccod&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;soclib&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;socadr&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;empsbase&quot; datatype=&quot;System.Double&quot;&gt;
+        &lt;column name=&quot;sitlib&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;dirlib&quot; datatype=&quot;System.String&quot;&gt;
+        &lt;column name=&quot;empemb&quot; datatype=&quot;System.DateTime&quot;&gt;
+        &lt;column name=&quot;empsort&quot; datatype=&quot;System.DateTime&quot;&gt;
+        &lt;column name=&quot;empdcin&quot; datatype=&quot;System.DateTime&quot;&gt;
+        &lt;commandparameter name=&quot;empcod&quot; datatype=&quot;22&quot; expression=&quot;[empcod]&quot;&gt;
+        &lt;commandparameter name=&quot;soccod&quot; datatype=&quot;22&quot; expression=&quot;[soccod]&quot;&gt;
+      &lt;/commandparameter&gt;&lt;/commandparameter&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/column&gt;&lt;/tabledatasource&gt;
+    &lt;/mssqldataconnection&gt;
+  &lt;/dictionary&gt;
+  &lt;reportpage name=&quot;Page1&quot; watermark.font=&quot;Arial, 60pt&quot;&gt;
+    &lt;reporttitleband name=&quot;ReportTitle1&quot; width=&quot;718.2&quot; height=&quot;94.5&quot;&gt;
+      &lt;shapeobject name=&quot;Shape1&quot; width=&quot;718.2&quot; height=&quot;94.5&quot;&gt;
+      &lt;textobject name=&quot;Text2&quot; left=&quot;529.2&quot; top=&quot;9.45&quot; width=&quot;132.3&quot; height=&quot;18.9&quot; text=&quot;Le: [DateTime.Now.Day]/[DateTime.Now.Month]/[DateTime.Now.Year]&quot; horzalign=&quot;Center&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text1&quot; left=&quot;217.35&quot; top=&quot;9.45&quot; width=&quot;302.4&quot; height=&quot;56.7&quot; text=&quot;CONTRAT DE TRAVAIL A DUREE DETERMINEE&quot; horzalign=&quot;Center&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt, style=Bold&quot;&gt;
+      &lt;textobject name=&quot;Text30&quot; left=&quot;-9.45&quot; top=&quot;9.45&quot; width=&quot;226.8&quot; height=&quot;28.35&quot; text=&quot;[UpperCase([Table.soclib])]&quot; horzalign=&quot;Center&quot; font=&quot;Arial, 10pt, style=Bold&quot;&gt;
+      &lt;textobject name=&quot;Text31&quot; left=&quot;-9.45&quot; top=&quot;47.25&quot; width=&quot;226.8&quot; height=&quot;47.25&quot; text=&quot;[UpperCase([Table.socadr])]&quot; horzalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text3&quot; left=&quot;302.4&quot; top=&quot;66.15&quot; width=&quot;141.75&quot; height=&quot;18.9&quot; text=&quot;[Table.empcod]&quot; horzalign=&quot;Center&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt, style=Bold&quot;&gt;
+      &lt;lineobject name=&quot;Line1&quot; left=&quot;226.8&quot; height=&quot;94.5&quot;&gt;
+      &lt;lineobject name=&quot;Line2&quot; left=&quot;529.2&quot; height=&quot;94.5&quot;&gt;
+    &lt;/lineobject&gt;&lt;/lineobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/shapeobject&gt;&lt;/reporttitleband&gt;
+    &lt;pageheaderband name=&quot;PageHeader1&quot; top=&quot;97.7&quot; width=&quot;718.2&quot;&gt;
+    &lt;databand name=&quot;Data1&quot; top=&quot;100.9&quot; width=&quot;718.2&quot; height=&quot;1294.65&quot; datasource=&quot;Table&quot;&gt;
+      &lt;textobject name=&quot;Text4&quot; left=&quot;9.45&quot; top=&quot;9.45&quot; width=&quot;302.4&quot; height=&quot;18.9&quot; text=&quot;Le présent contrat de travail est conclu entre :&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text5&quot; left=&quot;9.45&quot; top=&quot;47.25&quot; width=&quot;94.5&quot; height=&quot;18.9&quot; text=&quot;1- La Société&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text6&quot; left=&quot;103.95&quot; top=&quot;47.25&quot; width=&quot;170.1&quot; height=&quot;18.9&quot; text=&quot;[Table.soclib]&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt, style=Bold&quot;&gt;
+      &lt;textobject name=&quot;Text7&quot; left=&quot;302.4&quot; top=&quot;47.25&quot; width=&quot;66.15&quot; height=&quot;18.9&quot; text=&quot;sise&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text8&quot; left=&quot;378&quot; top=&quot;47.25&quot; width=&quot;103.95&quot; height=&quot;18.9&quot; text=&quot;[Table.emplib]&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt, style=Bold&quot;&gt;
+      &lt;textobject name=&quot;Text9&quot; left=&quot;510.3&quot; top=&quot;47.25&quot; width=&quot;179.55&quot; height=&quot;18.9&quot; text=&quot;d'une part
+&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text10&quot; left=&quot;9.45&quot; top=&quot;85.05&quot; width=&quot;151.2&quot; height=&quot;18.9&quot; text=&quot;2- Monsieur/Mme/Mlle&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text11&quot; left=&quot;160.65&quot; top=&quot;85.05&quot; width=&quot;113.4&quot; height=&quot;18.9&quot; text=&quot;[Table.emplib]&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt, style=Bold&quot;&gt;
+      &lt;textobject name=&quot;Text12&quot; left=&quot;283.5&quot; top=&quot;85.05&quot; width=&quot;434.7&quot; height=&quot;18.9&quot; text=&quot;; CIN n° : [Table.empcin] délivré le : [FormatDateTime([Table.empdcin],&amp;quot;dd/MM/yyyy&amp;quot;)] ayant élu domicile à : 
+&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text13&quot; left=&quot;311.85&quot; top=&quot;122.85&quot; width=&quot;94.5&quot; height=&quot;18.9&quot; text=&quot;d'autre part&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt, style=Bold&quot;&gt;
+      &lt;textobject name=&quot;Text14&quot; left=&quot;9.45&quot; top=&quot;122.85&quot; width=&quot;292.95&quot; height=&quot;18.9&quot; text=&quot;[Table.socadr]&quot; vertalign=&quot;Center&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text15&quot; left=&quot;9.45&quot; top=&quot;179.55&quot; width=&quot;699.3&quot; height=&quot;37.8&quot; text=&quot;Pour l'exécution du présent contrat et de ses suites, les parties font élection de domicile à leurs adresses respectives sus-indiquées.
+
+
+
+&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text16&quot; left=&quot;9.45&quot; top=&quot;1030.05&quot; width=&quot;661.5&quot; height=&quot;264.6&quot; text=&quot;Le présent contrat prendra fin sans préavis ni indemnité dans l’un des cas suivants :
+- Expiration du délai du contrat
+- Faute grave commise par l’employé et stipulée par le code de travail
+- Non respect par l’employé de ses engagements et devoirs.
+
+
+
+
+
+
+
+
+Directeur Ressources Humaines	                                               L’employé(e)
+
+&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text17&quot; left=&quot;18.9&quot; top=&quot;982.8&quot; width=&quot;226.8&quot; height=&quot;18.9&quot; text=&quot;Artcile 7 : Fin du contrat&quot; font=&quot;Arial, 10pt, style=Bold, Underline&quot;&gt;
+        &lt;highlight&gt;
+          &lt;condition expression=&quot;Value == 0&quot; font=&quot;Arial, 10pt&quot;&gt;
+        &lt;/condition&gt;&lt;/highlight&gt;
+      &lt;/textobject&gt;
+      &lt;textobject name=&quot;Text18&quot; left=&quot;9.45&quot; top=&quot;907.2&quot; width=&quot;614.25&quot; height=&quot;66.15&quot; text=&quot;Les deux parties ont convenu de se référer à la législation du travail en vigueur pour tous les points qui ne sont pas évoqués par le présent contrat.
+
+&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text19&quot; left=&quot;9.45&quot; top=&quot;878.85&quot; width=&quot;217.35&quot; height=&quot;18.9&quot; text=&quot;Article 6 : Point Divers :&quot; font=&quot;Arial, 10pt, style=Bold, Underline&quot;&gt;
+      &lt;textobject name=&quot;Text20&quot; left=&quot;9.45&quot; top=&quot;774.9&quot; width=&quot;699.3&quot; height=&quot;85.05&quot; text=&quot;Monsieur/Mme [Table.emplib]  recevra un salaire de base de [Table.empsbase]  DT/Mois.
+Il bénéficit d'une part de la couverture sociale et des accidents de travail et d'autre part du tenu de travail selon les législations en vigueur.
+&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text21&quot; left=&quot;9.45&quot; top=&quot;756&quot; width=&quot;217.35&quot; height=&quot;18.9&quot; text=&quot;Article 5 : Rémunération :
+&quot; font=&quot;Arial, 10pt, style=Bold, Underline&quot;&gt;
+      &lt;textobject name=&quot;Text22&quot; left=&quot;9.45&quot; top=&quot;661.5&quot; width=&quot;699.3&quot; height=&quot;94.5&quot; text=&quot;Le contrat de  Monsieur/Mme [Table.emplib] est régi par les dispositions légales et conventionnelles applicables à l'entreprise, il est soumis au régime 48 h, Monsieur/Mme [Table.emplib] bénéficiera d’un jour de congé hebdomadaire désigné selon les nécessités de travail.&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text23&quot; left=&quot;9.45&quot; top=&quot;633.15&quot; width=&quot;217.35&quot; height=&quot;18.9&quot; text=&quot;Article 4 : Dispositions divers :
+&quot; font=&quot;Arial, 10pt, style=Bold, Underline&quot;&gt;
+      &lt;textobject name=&quot;Text24&quot; left=&quot;9.45&quot; top=&quot;548.1&quot; width=&quot;699.3&quot; height=&quot;75.6&quot; text=&quot;
+Monsieur/Mme [Table.emplib]  s’engage à exercer ses fonctions à [Table.socadr]  ou dans tout autre lieu qui lui sera désigné par la Direction Général sans que ce changement ne lui ouvre droit à aucune réparation ou indemnisation de quelque nature qu’elle soit.
+&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text25&quot; left=&quot;9.45&quot; top=&quot;529.2&quot; width=&quot;217.35&quot; height=&quot;18.9&quot; text=&quot;Article 3 : Lieu de travail :
+&quot; font=&quot;Arial, 10pt, style=Bold, Underline&quot;&gt;
+      &lt;textobject name=&quot;Text26&quot; left=&quot;18.9&quot; top=&quot;340.2&quot; width=&quot;689.85&quot; height=&quot;160.65&quot; text=&quot;Monsieur/Mme : [Table.emplib] s’engage à respecter :
+-	Les horaires du travail
+-	Le secret professionnel dont il/elle pourrait prendre connaissance à l’occasion de l’exercice de ses fonctions.
+-	Ses collègues et ses supérieurs hiérarchiques.
+
+     En outre, il/elle doit veiller au :
+-	Bon fonctionnement du service ou du département auquel il/elle est affecté(e).
+-	Au respect du règlement intérieur de la société qui constitue une partie intégrante du contrat et dont il reconnaît avoir pris connaissance lors de son embauche.&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text27&quot; left=&quot;9.45&quot; top=&quot;311.85&quot; width=&quot;292.95&quot; height=&quot;18.9&quot; text=&quot;Article 2 : Obligations Professionnelles :&quot; font=&quot;Arial, 10pt, style=Bold, Underline&quot;&gt;
+      &lt;textobject name=&quot;Text28&quot; left=&quot;9.45&quot; top=&quot;264.6&quot; width=&quot;699.3&quot; height=&quot;47.25&quot; text=&quot;La société sus indiquée accepte d’engager Monsieur : [Table.emplib] en qualité : DIRECTEUR D'[Table.dirlib]
+pour une durée allant du [FormatDateTime([Table.empemb],&amp;quot;dd/MM/yyyy&amp;quot;)] au [FormatDateTime([Table.empsort],&amp;quot;dd/MM/yyyy&amp;quot;)]
+
+&quot; font=&quot;Arial, 10pt&quot;&gt;
+      &lt;textobject name=&quot;Text29&quot; left=&quot;9.45&quot; top=&quot;236.25&quot; width=&quot;292.95&quot; height=&quot;18.9&quot; text=&quot;Article 1 : Duréé du contrat&quot; font=&quot;Arial, 10pt, style=Bold, Underline&quot;&gt;
+    &lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/textobject&gt;&lt;/databand&gt;
+    &lt;pagefooterband name=&quot;PageFooter1&quot; top=&quot;1398.75&quot; width=&quot;718.2&quot; height=&quot;18.9&quot;&gt;
+  &lt;/pagefooterband&gt;&lt;/pageheaderband&gt;&lt;/reportpage&gt;
+&lt;/report&gt;
+" HtmlTags="true" Font="Arial, 10pt"/>
     </ReportTitleBand>
-    <PageHeaderBand Name="PageHeader1" Top="97.7" Width="718.2"/>
-    <DataBand Name="Data1" Top="100.9" Width="718.2" Height="1294.65" DataSource="Table">
-      <TextObject Name="Text4" Left="9.45" Top="9.45" Width="302.4" Height="18.9" Text="Le présent contrat de travail est conclu entre :" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text5" Left="9.45" Top="47.25" Width="94.5" Height="18.9" Text="1- La Société" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text6" Left="103.95" Top="47.25" Width="170.1" Height="18.9" Text="[Table.soclib]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text7" Left="302.4" Top="47.25" Width="66.15" Height="18.9" Text="sise" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text8" Left="378" Top="47.25" Width="103.95" Height="18.9" Text="[Table.emplib]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text9" Left="510.3" Top="47.25" Width="179.55" Height="18.9" Text="d'une part&#13;&#10;" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text10" Left="9.45" Top="85.05" Width="151.2" Height="18.9" Text="2- Monsieur/Mme/Mlle" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text11" Left="160.65" Top="85.05" Width="113.4" Height="18.9" Text="[Table.emplib]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text12" Left="283.5" Top="85.05" Width="434.7" Height="18.9" Text="; CIN n° : [Table.empcin] délivré le : [FormatDateTime([Table.empdcin],&quot;dd/MM/yyyy&quot;)] ayant élu domicile à : &#13;&#10;" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text13" Left="311.85" Top="122.85" Width="94.5" Height="18.9" Text="d'autre part" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
-      <TextObject Name="Text14" Left="9.45" Top="122.85" Width="292.95" Height="18.9" Text="[Table.socadr]" VertAlign="Center" Font="Arial, 10pt"/>
-      <TextObject Name="Text15" Left="9.45" Top="179.55" Width="699.3" Height="37.8" Text="Pour l'exécution du présent contrat et de ses suites, les parties font élection de domicile à leurs adresses respectives sus-indiquées.&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;" Font="Arial, 10pt"/>
-      <TextObject Name="Text16" Left="9.45" Top="1030.05" Width="661.5" Height="264.6" Text="Le présent contrat prendra fin sans préavis ni indemnité dans l’un des cas suivants :&#13;&#10;- Expiration du délai du contrat&#13;&#10;- Faute grave commise par l’employé et stipulée par le code de travail&#13;&#10;- Non respect par l’employé de ses engagements et devoirs.&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;&#13;&#10;Directeur Ressources Humaines	                                               L’employé(e)&#13;&#10;&#13;&#10;" Font="Arial, 10pt"/>
-      <TextObject Name="Text17" Left="18.9" Top="982.8" Width="226.8" Height="18.9" Text="Artcile 7 : Fin du contrat" Font="Arial, 10pt, style=Bold, Underline">
-        <Highlight>
-          <Condition Expression="Value == 0" Font="Arial, 10pt"/>
-        </Highlight>
-      </TextObject>
-      <TextObject Name="Text18" Left="9.45" Top="907.2" Width="614.25" Height="66.15" Text="Les deux parties ont convenu de se référer à la législation du travail en vigueur pour tous les points qui ne sont pas évoqués par le présent contrat.&#13;&#10;&#13;&#10;" Font="Arial, 10pt"/>
-      <TextObject Name="Text19" Left="9.45" Top="878.85" Width="217.35" Height="18.9" Text="Article 6 : Point Divers :" Font="Arial, 10pt, style=Bold, Underline"/>
-      <TextObject Name="Text20" Left="9.45" Top="774.9" Width="699.3" Height="85.05" Text="Monsieur/Mme [Table.emplib]  recevra un salaire de base de [Table.empsbase]  DT/Mois.&#13;&#10;Il bénéficit d'une part de la couverture sociale et des accidents de travail et d'autre part du tenu de travail selon les législations en vigueur.&#13;&#10;" Font="Arial, 10pt"/>
-      <TextObject Name="Text21" Left="9.45" Top="756" Width="217.35" Height="18.9" Text="Article 5 : Rémunération :&#13;&#10;" Font="Arial, 10pt, style=Bold, Underline"/>
-      <TextObject Name="Text22" Left="9.45" Top="661.5" Width="699.3" Height="94.5" Text="Le contrat de  Monsieur/Mme [Table.emplib] est régi par les dispositions légales et conventionnelles applicables à l'entreprise, il est soumis au régime 48 h, Monsieur/Mme [Table.emplib] bénéficiera d’un jour de congé hebdomadaire désigné selon les nécessités de travail." Font="Arial, 10pt"/>
-      <TextObject Name="Text23" Left="9.45" Top="633.15" Width="217.35" Height="18.9" Text="Article 4 : Dispositions divers :&#13;&#10;" Font="Arial, 10pt, style=Bold, Underline"/>
-      <TextObject Name="Text24" Left="9.45" Top="548.1" Width="699.3" Height="75.6" Text="&#13;&#10;Monsieur/Mme [Table.emplib]  s’engage à exercer ses fonctions à [Table.socadr]  ou dans tout autre lieu qui lui sera désigné par la Direction Général sans que ce changement ne lui ouvre droit à aucune réparation ou indemnisation de quelque nature qu’elle soit.&#13;&#10;" Font="Arial, 10pt"/>
-      <TextObject Name="Text25" Left="9.45" Top="529.2" Width="217.35" Height="18.9" Text="Article 3 : Lieu de travail :&#13;&#10;" Font="Arial, 10pt, style=Bold, Underline"/>
-      <TextObject Name="Text26" Left="18.9" Top="340.2" Width="689.85" Height="160.65" Text="Monsieur/Mme : [Table.emplib] s’engage à respecter :&#13;&#10;-	Les horaires du travail&#13;&#10;-	Le secret professionnel dont il/elle pourrait prendre connaissance à l’occasion de l’exercice de ses fonctions.&#13;&#10;-	Ses collègues et ses supérieurs hiérarchiques.&#13;&#10;&#13;&#10;     En outre, il/elle doit veiller au :&#13;&#10;-	Bon fonctionnement du service ou du département auquel il/elle est affecté(e).&#13;&#10;-	Au respect du règlement intérieur de la société qui constitue une partie intégrante du contrat et dont il reconnaît avoir pris connaissance lors de son embauche." Font="Arial, 10pt"/>
-      <TextObject Name="Text27" Left="9.45" Top="311.85" Width="292.95" Height="18.9" Text="Article 2 : Obligations Professionnelles :" Font="Arial, 10pt, style=Bold, Underline"/>
-      <TextObject Name="Text28" Left="9.45" Top="264.6" Width="699.3" Height="47.25" Text="La société sus indiquée accepte d’engager Monsieur : [Table.emplib] en qualité : DIRECTEUR D'[Table.dirlib]&#13;&#10;pour une durée allant du [FormatDateTime([Table.empemb],&quot;dd/MM/yyyy&quot;)] au [FormatDateTime([Table.empsort],&quot;dd/MM/yyyy&quot;)]&#13;&#10;&#13;&#10;" Font="Arial, 10pt"/>
-      <TextObject Name="Text29" Left="9.45" Top="236.25" Width="292.95" Height="18.9" Text="Article 1 : Duréé du contrat" Font="Arial, 10pt, style=Bold, Underline"/>
-    </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="1398.75" Width="718.2" Height="18.9"/>
   </ReportPage>
 </Report>

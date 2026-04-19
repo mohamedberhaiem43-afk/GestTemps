@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("salaire")]
-public partial class Salaire
+public partial class Salaire : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

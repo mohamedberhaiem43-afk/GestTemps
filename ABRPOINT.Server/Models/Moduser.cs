@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ABRPOINT.Server.Models;
 
 [Table("moduser")]
-public partial class Moduser
+public partial class Moduser : BaseEntity
 {
     [Key]
     [Column("ordre")]

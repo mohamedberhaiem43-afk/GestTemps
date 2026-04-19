@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("planhoraire")]
-public partial class Planhoraire
+public partial class Planhoraire : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

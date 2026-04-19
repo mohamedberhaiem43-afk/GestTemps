@@ -22,8 +22,11 @@ import GetPointageMoisService from '../../../services/GetPointageMoisService';
 import CheckboxComponent from '../../CheckboxComponent/CheckboxComponent';
 import FilterPointageMois from '../../PreparationPaie/PointageDuMois/FilterPointageMois';
 import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from '../../PreparationPaie/PointageDuMois/FilterPointageMoisContext';
+import { useAuth } from '../../helper/AuthProvider';
+import AccessDenied from '../../helper/AccessDenied';
 
 const PointageDuMoisContent = () => {
+  const { hasPermission } = useAuth();
   const context = useDateMoisPointageRange();
   const dateRange = context?.dateRange;
 
@@ -94,6 +97,10 @@ const PointageDuMoisContent = () => {
         <Typography color="error">{error}</Typography>
       </Box>
     );
+  }
+
+  if (!hasPermission('Pointage et Temps', 'consult')) {
+    return <AccessDenied message="Vous n'avez pas le droit de consulter l'optimisation des pointages." />;
   }
 
   // ✅ Affichage normal après chargement

@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("partranche")]
 [PrimaryKey("Soccod","Caltype","Empreg")]
-public partial class Partranche
+public partial class Partranche : BaseEntity
 {
     [Column("soccod")]
     [StringLength(6)]

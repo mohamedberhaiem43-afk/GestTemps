@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("regleremp")]
-public partial class Regleremp
+public partial class Regleremp : BaseEntity
 {
     [Column("regordre")]
     [StringLength(10)]

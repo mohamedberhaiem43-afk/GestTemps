@@ -1,0 +1,492 @@
+/* Effectifs Globaux Modern Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+.effectifs-container {
+  width: 100%;
+  min-height: 100vh;
+  background: #f7f9fb;
+  padding: 32px;
+  font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
+}
+
+.effectifs-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #f7f9fb;
+}
+
+/* Header Section */
+.effectifs-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+  gap: 24px;
+}
+
+.effectifs-header-left {
+  flex: 1;
+}
+
+.effectifs-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0040a1;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+.effectifs-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: #191c1e;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.effectifs-description {
+  font-size: 14px;
+  color: #424654;
+  max-width: 500px;
+  line-height: 1.5;
+}
+
+.effectifs-header-right {
+  flex-shrink: 0;
+}
+
+.add-employee-btn {
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%);
+  color: #ffffff !important;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: none;
+  box-shadow: 0 32px 48px -4px rgba(25, 28, 30, 0.06);
+  transition: all 0.2s ease;
+}
+
+.add-employee-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 24px -4px rgba(0, 64, 161, 0.2);
+}
+
+/* Filters & Stats Grid */
+.effectifs-filters-grid {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.filters-container {
+  padding: 24px;
+  border-radius: 12px;
+  background: #f2f4f6;
+  box-shadow: none;
+}
+
+.filters-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-field label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #737785;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding-left: 4px;
+}
+
+.filter-select {
+  background: white;
+}
+
+.filter-select .MuiOutlinedInput-root {
+  border-radius: 8px;
+}
+
+/* Stats Card */
+.stats-card {
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.stats-content {
+  position: relative;
+  z-index: 1;
+}
+
+.stats-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.stats-value {
+  font-family: 'Manrope', sans-serif;
+  font-size: 44px;
+  font-weight: 800;
+  margin-top: 4px;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stats-trend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6ffbbe;
+  margin-top: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.stats-trend-icon {
+  font-size: 16px;
+}
+
+.stats-decoration {
+  position: absolute;
+  right: -16px;
+  bottom: -16px;
+  font-size: 100px;
+  opacity: 0.1;
+  color: white;
+}
+
+/* Search Container */
+.search-container {
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: none;
+  background: white;
+}
+
+.search-input {
+  width: 100%;
+}
+
+.search-input .MuiOutlinedInput-root {
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.search-icon {
+  color: #737785;
+}
+
+/* Table Container */
+.table-container {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 32px 48px -4px rgba(25, 28, 30, 0.06);
+}
+
+.employees-table {
+  width: 100%;
+}
+
+.table-header {
+  background: #e6e8ea;
+  font-size: 10px;
+  font-weight: 700;
+  color: #424654;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 16px 24px;
+  border-bottom: none;
+}
+
+.table-header-right {
+  text-align: right;
+}
+
+.table-row {
+  transition: background-color 0.15s ease;
+}
+
+.table-row:hover {
+  background: rgba(242, 244, 246, 0.5);
+}
+
+.table-row td {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f2f4f6;
+}
+
+/* Employee Cell */
+.employee-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employee-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%);
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.employee-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #191c1e;
+  font-family: 'Manrope', sans-serif;
+}
+
+.employee-email {
+  font-size: 12px;
+  color: #737785;
+}
+
+/* Matricule Chip */
+.matricule-chip {
+  background: #f2f4f6;
+  font-size: 12px;
+  font-weight: 500;
+  color: #424654;
+}
+
+/* Position & Department */
+.position-text,
+.department-text {
+  font-size: 14px;
+  color: #191c1e;
+}
+
+/* Contract Chip */
+.contract-chip {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Status Cell */
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-active {
+  background: #005136;
+}
+
+.status-inactive {
+  background: #c3c6d6;
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-active-text {
+  color: #006c49;
+}
+
+.status-inactive-text {
+  color: #737785;
+}
+
+/* Actions Cell */
+.actions-cell {
+  text-align: right;
+}
+
+.actions-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.table-row:hover .actions-buttons {
+  opacity: 1;
+}
+
+.action-btn {
+  border-radius: 8px;
+}
+
+.view-btn:hover,
+.edit-btn:hover {
+  background: rgba(0, 64, 161, 0.1);
+  color: #0040a1;
+}
+
+.delete-btn:hover {
+  background: rgba(186, 26, 26, 0.1);
+  color: #ba1a1a;
+}
+
+/* Empty Cell */
+.empty-cell {
+  padding: 40px !important;
+  text-align: center;
+  color: #737785;
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-top: 1px solid #f2f4f6;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: #424654;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f2f4f6;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.3;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-number {
+  min-width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #424654;
+  font-family: 'Manrope', sans-serif;
+}
+
+.pagination-number:hover {
+  background: #f2f4f6;
+}
+
+.pagination-number.active {
+  background: #0040a1;
+  color: white;
+}
+
+.pagination-ellipsis {
+  padding: 0 8px;
+  color: #737785;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .effectifs-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .stats-content {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 900px) {
+  .effectifs-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .employees-table {
+    min-width: 900px;
+  }
+}
+
+@media (max-width: 600px) {
+  .effectifs-container {
+    padding: 16px;
+  }
+
+  .effectifs-title {
+    font-size: 28px;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+}

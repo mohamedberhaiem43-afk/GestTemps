@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("paramsite")]
-public partial class Paramsite
+public partial class Paramsite : BaseEntity
 {
     [Column("soccod")]
     [StringLength(4)]

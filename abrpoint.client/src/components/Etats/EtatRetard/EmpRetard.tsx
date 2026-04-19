@@ -1,264 +1,464 @@
-import {  useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  MaterialReactTable,
-  useMaterialReactTable,
-  type MRT_ColumnDef,
-  MRT_GlobalFilterTextField,
-  MRT_ToggleFiltersButton,
-} from 'material-react-table';
-import {
+  Alert,
+  Avatar,
   Box,
   Button,
-  ListItemIcon,
-  MenuItem,
+  Chip,
+  Paper,
   Skeleton,
-  lighten,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField,
+  Typography,
 } from '@mui/material';
+import {
+  CalendarToday,
+  ChevronRight,
+  Print,
+  Search,
+  TrendingDown,
+  TrendingUp,
+} from '@mui/icons-material';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Delete } from '@mui/icons-material';
 import useGetPresence from '../../../hooks/presenceHooks/useGetPresence';
 import { useDateRange } from '../../Pointeuse/EtatPeriodique/FilterContext';
 
+const DASH = '\u2014';
+
+type DateRangeState = {
+  dateDebut: Date;
+  dateFin: Date;
+  selectedRegime: string;
+  empcods: string[] | null;
+  retmin: number;
+  retmat: boolean;
+  retapres: boolean;
+  compterAvance: boolean;
+};
+
+type RetardRow = {
+  empcod?: string;
+  empmat?: string;
+  emplib?: string;
+  regime?: string;
+  empreg?: string;
+  predat?: Date | string;
+  entree1?: string;
+  sortie1?: string;
+  entree2?: string;
+  sortie2?: string;
+  preretmateup?: string;
+  preretameup?: string;
+  preretmatsup?: string;
+  preretamsup?: string;
+  motif?: string;
+  totalRetard?: string;
+};
+
+const toMinutes = (value?: string | null): number => {
+  if (!value || value === '00:00' || value === DASH) return 0;
+  const [h, m] = value.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return 0;
+  return h * 60 + m;
+};
+
+const toHHMM = (minutes: number): string => {
+  const safe = Math.max(0, minutes);
+  const h = Math.floor(safe / 60).toString().padStart(2, '0');
+  const m = Math.floor(safe % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+};
+
+const formatDate = (value?: Date | string): string => {
+  if (!value) return DASH;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return DASH;
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatDateLong = (value?: Date | string): string => {
+  if (!value) return DASH;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return DASH;
+  return date.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+const initials = (name: string): string => {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return 'NA';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0]}${words[1][0]}`.toUpperCase();
+};
+
 const EmpRetard = () => {
-  const { dateRange } = useDateRange();
-  const { data = [], isLoading } = useGetPresence(dateRange.dateDebut, dateRange.dateFin,dateRange.selectedRegime,dateRange.empcods);
-  
+  const { dateRange } = useDateRange() as { dateRange: DateRangeState };
+  const [search, setSearch] = useState('');
 
-  const computeTotal = useMemo(() => {
-  return (row: any) => {
-    const toMin = (t: string) => {
-      if (!t) return 0;
-      const [h, m] = t.split(':').map(Number);
-      return h * 60 + m;
-    };
+  const { data = [], isLoading } = useGetPresence(
+    dateRange.dateDebut,
+    dateRange.dateFin,
+    dateRange.selectedRegime,
+    dateRange.empcods,
+  );
 
-    const minRetard = dateRange?.retmin || 0;
-    let total = 0;
+  const rows = useMemo(() => {
+    const minRetard = dateRange.retmin || 0;
 
-    // Retard Matin - seulement si la checkbox est cochée
-    if (dateRange?.retmat) {
-      const retardMatin = toMin(row.preretmateup);
-      if (retardMatin > minRetard) {
-        total += retardMatin;
-      }
-    }
+    return (data as RetardRow[]).map((row) => {
+      const retardMatin = toMinutes(row.preretmateup);
+      const retardAm = toMinutes(row.preretameup);
+      const avanceMatin = toMinutes(row.preretmatsup);
+      const avanceAm = toMinutes(row.preretamsup);
 
-    // Retard Après-midi - seulement si la checkbox est cochée
-    if (dateRange?.retapres) {
-      const retardApresMidi = toMin(row.preretameup);
-      if (retardApresMidi > minRetard) {
-        total += retardApresMidi;
-      }
-    }
+      const filteredRetardMatin = dateRange.retmat && retardMatin > minRetard ? retardMatin : 0;
+      const filteredRetardAm = dateRange.retapres && retardAm > minRetard ? retardAm : 0;
+      const filteredAvanceMatin = dateRange.compterAvance && avanceMatin > minRetard ? avanceMatin : 0;
+      const filteredAvanceAm = dateRange.compterAvance && avanceAm > minRetard ? avanceAm : 0;
 
-    // Avances (si activé)
-    if (dateRange?.compterAvance) {
-      const avanceMatin = toMin(row.preretmatsup);
-      if (avanceMatin > minRetard) {
-        total += avanceMatin;
-      }
+      const totalRetard = filteredRetardMatin + filteredRetardAm + filteredAvanceMatin + filteredAvanceAm;
 
-      const avanceApresMidi = toMin(row.preretamsup);
-      if (avanceApresMidi > minRetard) {
-        total += avanceApresMidi;
-      }
-    }
+      return {
+        ...row,
+        preretmateup: toHHMM(filteredRetardMatin),
+        preretameup: toHHMM(filteredRetardAm),
+        preretmatsup: toHHMM(filteredAvanceMatin),
+        preretamsup: toHHMM(filteredAvanceAm),
+        totalRetard: toHHMM(totalRetard),
+      };
+    });
+  }, [data, dateRange.compterAvance, dateRange.retapres, dateRange.retmat, dateRange.retmin]);
 
-    const h = Math.floor(total / 60).toString().padStart(2, '0');
-    const m = (total % 60).toString().padStart(2, '0');
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
 
-    return `${h}:${m}`;
-  };
-}, [dateRange?.compterAvance, dateRange?.retmin, dateRange?.retmat, dateRange?.retapres]);
+    return rows.filter((row) => {
+      const text = `${row.emplib ?? ''} ${row.empcod ?? ''} ${row.empmat ?? ''} ${formatDate(row.predat)}`.toLowerCase();
+      return text.includes(q);
+    });
+  }, [rows, search]);
 
+  const [selectedKey, setSelectedKey] = useState<string>('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
-const dataWithTotal = useMemo(() => {
-  const minRetard = dateRange?.retmin || 0;
-  
-  const toMin = (t: any) => {
-    if (!t) return 0;
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
+  const handleChangePage = (_: any, newPage: number) => {
+    setPage(newPage);
   };
 
-  return data.map(row => {
-    const retardMatin = toMin(row.preretmateup);
-    const retardApresMidi = toMin(row.preretameup);
-    const avanceMatin = toMin(row.preretmatsup);
-    const avanceApresMidi = toMin(row.preretamsup);
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  useEffect(() => {
+    if (!filteredRows.length) {
+      setSelectedKey('');
+      return;
+    }
+
+    const exists = filteredRows.some((row, idx) => `${row.empcod}-${row.predat}-${idx}` === selectedKey);
+    if (!exists) {
+      setSelectedKey(`${filteredRows[0].empcod}-${filteredRows[0].predat}-0`);
+    }
+  }, [filteredRows, selectedKey]);
+
+  const selectedRow = useMemo(() => {
+    if (!filteredRows.length) return null;
+    const found = filteredRows.find((row, idx) => `${row.empcod}-${row.predat}-${idx}` === selectedKey);
+    return found ?? filteredRows[0];
+  }, [filteredRows, selectedKey]);
+
+  const kpis = useMemo(() => {
+    const impactedMinutes = filteredRows.reduce((acc, row) => acc + toMinutes(row.totalRetard), 0);
+    const impactedRows = filteredRows.filter((row) => toMinutes(row.totalRetard) > 0);
+    const uniqueEmployees = new Set(filteredRows.map((row) => row.empcod).filter(Boolean)).size;
+    const impactedEmployees = new Set(impactedRows.map((row) => row.empcod).filter(Boolean)).size;
+    const rate = uniqueEmployees > 0 ? (impactedEmployees / uniqueEmployees) * 100 : 0;
+    const avg = impactedRows.length > 0 ? Math.round(impactedMinutes / impactedRows.length) : 0;
 
     return {
-      ...row,
-      // Afficher 00:00 si :
-      // 1. La checkbox n'est pas cochée OU
-      // 2. Le retard/avance ne dépasse pas le minimum
-      preretmateup: (dateRange?.retmat && retardMatin > minRetard) ? row.preretmateup : '00:00',
-      preretameup: (dateRange?.retapres && retardApresMidi > minRetard) ? row.preretameup : '00:00',
-      preretmatsup: (dateRange?.compterAvance && avanceMatin > minRetard) ? row.preretmatsup : '00:00',
-      preretamsup: (dateRange?.compterAvance && avanceApresMidi > minRetard) ? row.preretamsup : '00:00',
-      totalRetard: computeTotal(row),
+      rate: rate.toFixed(1),
+      totalRetard: toHHMM(impactedMinutes),
+      avgByDay: `${avg} min`,
+      impactedEmployees,
+      totalEmployees: uniqueEmployees,
     };
-  });
-}, [data, computeTotal, dateRange?.retmin, dateRange?.retmat, dateRange?.retapres, dateRange?.compterAvance]);
+  }, [filteredRows]);
 
-const columns = useMemo<MRT_ColumnDef<any>[]>(() => {
-  const baseColumns: MRT_ColumnDef<any>[] = [
-    { accessorKey: 'empcod', header: 'Badge', size: 60 },
-    { accessorKey: 'empmat', header: 'Matricule', size: 60 },
-    { accessorKey: 'emplib', header: 'Nom et Prénom', size: 180 },
-    { accessorKey: 'regime', header: 'Régime', size: 60 },
-    { accessorFn: (row) => new Date(row.predat).toISOString().split('T')[0], accessorKey: 'predat', header: 'Date', size: 60 },
+  const periodLabel = `${new Date(dateRange.dateDebut).toLocaleDateString('fr-FR')} - ${new Date(dateRange.dateFin).toLocaleDateString('fr-FR')}`;
 
-    { accessorKey: 'entree1', header: 'Entrée Matin', size: 60 },
-    { accessorKey: 'preretmateup', header: 'Retard Matin', size: 60 },
-    { accessorKey: 'sortie1', header: 'Sortie Matin', size: 60 },
+  const exportPdf = () => {
+    const doc = new jsPDF({ orientation: 'landscape' });
 
-    // ✅ Toujours affichée
-    { accessorKey: 'preretmatsup', header: 'Avance Matin', size: 60 },
+    autoTable(doc, {
+      head: [['Employe', 'Date', 'Horaire', 'Pointage', 'Retard', 'Statut']],
+      body: filteredRows.map((row) => {
+        const planned = `${row.entree1 || DASH} - ${row.sortie2 || DASH}`;
+        const pointage = row.entree1 || DASH;
+        const status = row.motif ? 'Justifie' : 'Non justifie';
 
-    { accessorKey: 'entree2', header: 'Entrée Après-midi', size: 60 },
-    { accessorKey: 'preretameup', header: 'Retard Après-midi', size: 60 },
-    { accessorKey: 'sortie2', header: 'Sortie Après-midi', size: 60 },
-
-    // ✅ Toujours affichée
-    { accessorKey: 'preretamsup', header: 'Avance Après-midi', size: 60 },
-
-    { accessorKey: 'totalRetard', header: 'Total Retard', size: 10 },
-  ];
-
-  return baseColumns;
-}, []);
-
-  const table = useMaterialReactTable({
-    columns,
-    data: dataWithTotal,
-    enableEditing: true,
-    enableColumnFilterModes: true,
-    enableColumnOrdering: true,
-    enableGrouping: true,
-    enableColumnPinning: true,
-    enableFacetedValues: true,
-    enableRowActions: true,
-    enableRowSelection: true,
-
-    initialState: {
-      showColumnFilters: false,
-      showGlobalFilter: true,
-      pagination: { pageIndex: 0, pageSize: 5 },
-      columnPinning: {
-        left: ['mrt-row-expand', 'mrt-row-select'],
-        right: ['mrt-row-actions'],
-      },
-    },
-    paginationDisplayMode: 'pages',
-    positionToolbarAlertBanner: 'bottom',
-    muiSearchTextFieldProps: {
-      size: 'small',
-      variant: 'outlined',
-    },
-    muiPaginationProps: {
-      color: 'secondary',
-      rowsPerPageOptions: [5, 10, 20],
-      shape: 'rounded',
-      variant: 'outlined',
-    },
-    muiTableBodyCellProps: ({ column }) => ({
-        sx: {
-          padding: '0px 0px',
-          ...(column.id === 'totalRetard' && {
-            backgroundColor: 'tomato', // Fond jaune pour toute la colonne
-            color: '#fff', // Texte en rouge
-            fontWeight: 'bold', // Optionnel : texte en gras pour le rendre plus visible
-          }),
-        },
+        return [
+          `${row.emplib || DASH} (${row.empcod || DASH})`,
+          formatDate(row.predat),
+          planned,
+          pointage,
+          row.totalRetard || '00:00',
+          status,
+        ];
       }),
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: '0.7rem',
-        padding: '0px 0px',
-      },
-    },
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [0, 64, 161] },
+      margin: { top: 18 },
+    });
 
-    renderRowActionMenuItems: ({ closeMenu }) => [
+    doc.save('suivi-retards.pdf');
+  };
 
-      <MenuItem
-        key={1}
-        onClick={() => {
-          closeMenu();
-        }}
-        sx={{ m: 0 }}
-      >
-        <ListItemIcon>
-          <Delete />
-        </ListItemIcon>
-        Supprimer
-      </MenuItem>,
-    ],
-    renderTopToolbar: ({ table }) => {
-      const handleExportRows = (rows: any[]) => {
-        const doc = new jsPDF();
-        const tableData = rows.map((row) => [
-          row.emplib, // Nom de l'employé
-          new Date(row.predat).toLocaleDateString(), // Date formatée
-          row.totalHeure, // Total Heures
-          row.tothnuit, // Heures Nuit
-        ]);
-        const tableHeaders = ['Employé', 'Date', 'Total Heures', 'Heures Nuit'];
+  if (isLoading) {
+    return (
+      <Stack spacing={1.5}>
+        <Skeleton variant="rounded" height={70} />
+        <Skeleton variant="rounded" height={110} />
+        <Skeleton variant="rounded" height={420} />
+      </Stack>
+    );
+  }
 
-        autoTable(doc, {
-          head: [tableHeaders],
-          body: tableData,
-        });
-
-        doc.save('pointeuses-pdf-export.pdf');
-      };
-
-      return (
-        <Box
-          sx={(theme) => ({
-            backgroundColor: lighten(theme.palette.background.default, 0.05),
-            display: 'flex',
-            gap: '0.5rem',
-            p: '8px',
-            justifyContent: 'space-between',
-          })}
-        >
-          <Box sx={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <MRT_GlobalFilterTextField table={table} />
-            <MRT_ToggleFiltersButton table={table} />
-          </Box>
-          <Box>
-            <Button
-              color="primary"
-              disabled={!table.getIsSomeRowsSelected()}
-              onClick={() => handleExportRows(table.getSelectedRowModel().flatRows.map((row) => row.original))}
-              variant="contained"
-            >
-              Export Selected
-            </Button>
-          </Box>
-        </Box>
-      );
-    },
-  });
+  if (!rows.length) {
+    return <Alert severity="info">Aucune donnee de retard pour la periode selectionnee.</Alert>;
+  }
 
   return (
-    <>
-      {isLoading ? (
-        <div>
-          <Skeleton variant="rectangular" height={40} />
-          <Skeleton variant="rectangular" height={40} style={{ marginTop: 10 }} />
-          <Skeleton variant="rectangular" height={40} style={{ marginTop: 10 }} />
-        </div>
-      ) : (
-        <div>
-          <MaterialReactTable table={table} />
-        </div>
-      )}
-    </>
+    <Box sx={{ display: 'flex', gap: 2 }}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Stack spacing={2.2}>
+          <Paper sx={{ p: 2.5, borderRadius: 2.5, border: '1px solid #e7eaf0', boxShadow: '0 20px 48px -20px rgba(15,23,42,0.16)' }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
+              <Box>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#64748b' }}>
+                  Analytique Presence
+                </Typography>
+                <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: { xs: '1.7rem', md: '2rem' }, color: '#0f172a' }}>
+                  Suivi des Retards
+                </Typography>
+              </Box>
+              <Chip label="Donnees a jour" sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 700, alignSelf: 'start' }} />
+            </Stack>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2,1fr)', xl: 'repeat(4,1fr)' }, gap: 1.4, mt: 2 }}>
+              <Paper variant="outlined" sx={{ p: 1.6, borderRadius: 2 }}>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Taux de retard global</Typography>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, fontFamily: 'Manrope' }}>{kpis.rate}%</Typography>
+                  <TrendingUp sx={{ fontSize: 16, color: '#dc2626' }} />
+                </Stack>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 1.6, borderRadius: 2 }}>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Temps de retard total</Typography>
+                <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, fontFamily: 'Manrope', color: '#0040a1' }}>{kpis.totalRetard}</Typography>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 1.6, borderRadius: 2 }}>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Moyenne par pointage</Typography>
+                <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, fontFamily: 'Manrope' }}>{kpis.avgByDay}</Typography>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 1.6, borderRadius: 2 }}>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Employes concernes</Typography>
+                <Stack direction="row" spacing={1} alignItems="baseline">
+                  <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, fontFamily: 'Manrope' }}>{kpis.impactedEmployees}</Typography>
+                  <Typography sx={{ fontSize: '0.74rem', color: '#64748b' }}>/ {kpis.totalEmployees}</Typography>
+                </Stack>
+              </Paper>
+            </Box>
+          </Paper>
+
+          <Paper sx={{ p: 2, borderRadius: 2.5, border: '1px solid #e7eaf0', bgcolor: '#f8fafc' }}>
+            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} alignItems={{ lg: 'end' }}>
+              <TextField
+                label="Periode"
+                size="small"
+                value={periodLabel}
+                InputProps={{ startAdornment: <CalendarToday sx={{ mr: 1, fontSize: 16, color: '#64748b' }} /> }}
+                fullWidth
+              />
+              <TextField label="Site" size="small" value={dateRange.selectedRegime ? `Regime ${dateRange.selectedRegime}` : 'Tous les regimes'} sx={{ minWidth: 180 }} />
+              <TextField
+                label="Recherche"
+                size="small"
+                placeholder="ID ou Nom"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                InputProps={{ startAdornment: <Search sx={{ mr: 1, fontSize: 16, color: '#64748b' }} /> }}
+                fullWidth
+              />
+              <Button variant="contained" onClick={() => undefined} sx={{ minWidth: 110, height: 40 }}>
+                Filtrer
+              </Button>
+            </Stack>
+          </Paper>
+
+          <Paper sx={{ borderRadius: 2.5, border: '1px solid #e7eaf0', overflow: 'hidden' }}>
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 1050 }}>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#eef2f7' }}>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Employe</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Date</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Horaire</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Pointage</TableCell>
+                    <TableCell align="center" sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Duree retard</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Statut</TableCell>
+                    <TableCell align="right" sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredRows
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((row, index) => {
+                      const absoluteIndex = page * rowsPerPage + index;
+                      const key = `${row.empcod}-${row.predat}-${absoluteIndex}`;
+                    const isActive = selectedKey === key;
+                    const employeeName = row.emplib || row.empcod || 'Employe';
+                    const planned = `${row.entree1 || DASH} - ${row.sortie2 || DASH}`;
+                    const pointage = row.entree1 || DASH;
+                    const justified = Boolean(row.motif && row.motif.trim() && row.motif !== DASH);
+
+                    return (
+                      <TableRow
+                        key={key}
+                        hover
+                        selected={isActive}
+                        onClick={() => setSelectedKey(key)}
+                        sx={{ cursor: 'pointer' }}
+                      >
+                        <TableCell>
+                          <Stack direction="row" spacing={1.2} alignItems="center">
+                            <Avatar sx={{ width: 34, height: 34, bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 800, fontSize: '0.75rem' }}>
+                              {initials(employeeName)}
+                            </Avatar>
+                            <Box>
+                              <Typography sx={{ fontSize: '0.82rem', fontWeight: 700 }}>{employeeName}</Typography>
+                              <Typography sx={{ fontSize: '0.68rem', color: '#64748b' }}>ID: {row.empcod || DASH}</Typography>
+                            </Box>
+                          </Stack>
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.79rem', fontWeight: 600 }}>{formatDate(row.predat)}</TableCell>
+                        <TableCell sx={{ fontSize: '0.79rem', color: '#64748b' }}>{planned}</TableCell>
+                        <TableCell sx={{ fontSize: '0.79rem', color: '#b91c1c', fontWeight: 800 }}>{pointage}</TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={row.totalRetard || '00:00'}
+                            size="small"
+                            sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={justified ? 'Justifie' : 'Non justifie'}
+                            size="small"
+                            sx={{
+                              bgcolor: justified ? '#064e3b' : '#e2e8f0',
+                              color: justified ? '#ecfdf5' : '#334155',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              fontSize: '0.6rem',
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button size="small" startIcon={<Print />} onClick={(event) => { event.stopPropagation(); window.print(); }}>
+                            Imprimer
+                          </Button>
+                          <Button size="small" onClick={(event) => { event.stopPropagation(); setSelectedKey(key); }}>
+                            <ChevronRight fontSize="small" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={filteredRows.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Lignes par page:"
+              sx={{ borderTop: '1px solid #eef2f7' }}
+            />
+            <Box sx={{ px: 2, py: 1.2, borderTop: '1px solid #eef2f7', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <Stack direction="row" spacing={1}>
+                <Button size="small" variant="outlined" onClick={exportPdf}>Exporter PDF</Button>
+                <Button size="small" variant="outlined" startIcon={<TrendingDown />}>Details</Button>
+              </Stack>
+            </Box>
+          </Paper>
+        </Stack>
+      </Box>
+
+      <Paper
+        sx={{
+          width: 340,
+          p: 2,
+          borderRadius: 2.5,
+          border: '1px solid #e7eaf0',
+          boxShadow: '0 20px 48px -24px rgba(15,23,42,0.25)',
+          height: 'fit-content',
+          display: { xs: 'none', xl: 'block' },
+        }}
+      >
+        <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '1.1rem', mb: 2 }}>Details du Retard</Typography>
+        {selectedRow ? (
+          <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1.2} alignItems="center">
+              <Avatar sx={{ width: 52, height: 52, bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 800 }}>
+                {initials(selectedRow.emplib || selectedRow.empcod || 'NA')}
+              </Avatar>
+              <Box>
+                <Typography sx={{ fontWeight: 700 }}>{selectedRow.emplib || DASH}</Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedRow.empmat || selectedRow.empcod || DASH}</Typography>
+              </Box>
+            </Stack>
+
+            <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2, bgcolor: '#f8fafc' }}>
+              <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Date</Typography>
+              <Typography sx={{ fontSize: '0.86rem', fontWeight: 700 }}>{formatDateLong(selectedRow.predat)}</Typography>
+            </Paper>
+
+            <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}>
+              <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, mb: 0.6 }}>Pointages enregistres</Typography>
+              <Stack spacing={0.8}>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree1 || DASH}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Retard matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#b91c1c' }}>{selectedRow.preretmateup || '00:00'}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree2 || DASH}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Retard apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#b91c1c' }}>{selectedRow.preretameup || '00:00'}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Total</Typography><Chip size="small" label={selectedRow.totalRetard || '00:00'} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }} /></Stack>
+              </Stack>
+            </Paper>
+
+            <Stack spacing={1}>
+              <Button variant="outlined" fullWidth>Justifier ce retard</Button>
+              <Button variant="outlined" fullWidth>Notifier l'employe</Button>
+            </Stack>
+          </Stack>
+        ) : (
+          <Alert severity="info">Aucune ligne selectionnee.</Alert>
+        )}
+      </Paper>
+    </Box>
   );
-  
 };
 
 export default EmpRetard;

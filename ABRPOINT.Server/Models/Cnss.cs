@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("cnss")]
-public partial class Cnss
+public partial class Cnss : BaseEntity
 {
     [Column("cnscod")]
     [StringLength(2)]

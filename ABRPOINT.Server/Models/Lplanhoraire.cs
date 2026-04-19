@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("lplanhoraire")]
-public partial class Lplanhoraire
+public partial class Lplanhoraire : BaseEntity
 {
     [Column("plandate", TypeName = "datetime")]
     public DateTime? Plandate { get; set; }

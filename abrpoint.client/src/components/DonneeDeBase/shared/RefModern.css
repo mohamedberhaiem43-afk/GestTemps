@@ -1,0 +1,356 @@
+/* ── Shared Modern Reference Data Component ── */
+.ref-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f0f3f8;
+  font-family: 'Manrope', 'Inter', sans-serif;
+}
+
+/* Header */
+.ref-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 28px;
+  background: #fff;
+  border-bottom: 1px solid #edf0f5;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ref-header-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0040a1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 2px;
+}
+
+.ref-header-heading {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0d1f3c;
+  line-height: 1.2;
+}
+
+.ref-header-sub {
+  font-size: 11px;
+  color: #8896a8;
+  margin-top: 2px;
+}
+
+.ref-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ref-save-btn {
+  background: linear-gradient(135deg, #0040a1 0%, #1a6eff 100%) !important;
+  color: #fff !important;
+  border-radius: 9px !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  box-shadow: 0 4px 14px rgba(0,64,161,0.3) !important;
+  padding: 8px 20px !important;
+}
+
+.ref-save-btn:hover {
+  background: linear-gradient(135deg, #003080 0%, #0040a1 100%) !important;
+  box-shadow: 0 4px 18px rgba(0,64,161,0.4) !important;
+}
+
+.ref-cancel-btn {
+  border-radius: 9px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border-color: #dde3ea !important;
+  color: #64748b !important;
+}
+
+.ref-cancel-btn:hover {
+  border-color: #0040a1 !important;
+  color: #0040a1 !important;
+  background: #f0f5ff !important;
+}
+
+/* Body */
+.ref-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Cards */
+.ref-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  border: 1px solid #f1f5f9;
+}
+
+.ref-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ref-card-icon {
+  background: rgba(0,64,161,0.08);
+  padding: 7px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0040a1;
+}
+
+.ref-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  color: #0d1f3c;
+}
+
+/* Form grid */
+.ref-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.ref-form-grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.ref-form-grid--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.ref-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ref-field label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: #8896a8;
+}
+
+.ref-field input,
+.ref-field select {
+  background: #f5f7fa;
+  border: 1.5px solid #e8ecf0;
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 9px 12px;
+  font-family: 'Inter', sans-serif;
+  color: #0d1f3c;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.ref-field input:hover,
+.ref-field select:hover {
+  border-color: #b8c4d0;
+  background: #fff;
+}
+
+.ref-field input:focus,
+.ref-field select:focus {
+  border-color: #0040a1;
+  border-width: 1.5px;
+  background: #fff;
+}
+
+.ref-field input::placeholder {
+  color: #b0bec5;
+}
+
+.ref-field input[readonly] {
+  background: #eef1f5;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* Table Section */
+.ref-table-section {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.ref-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ref-table-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0d1f3c;
+}
+
+.ref-table-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ref-table-search input {
+  background: #f5f7fa;
+  border: 1.5px solid #e8ecf0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  width: 220px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.ref-table-search input:focus {
+  border-color: #0040a1;
+}
+
+.ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ref-table thead th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #8896a8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: #fafbfc;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ref-table tbody tr {
+  transition: background 0.15s;
+}
+
+.ref-table tbody tr:hover {
+  background: #f0f5ff;
+}
+
+.ref-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f8fafc;
+  color: #334155;
+}
+
+.ref-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Action buttons */
+.ref-action-btn {
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.ref-action-btn:hover {
+  transform: scale(1.1);
+}
+
+.ref-action-btn--edit {
+  background: #e8f0fe;
+  color: #0040a1;
+}
+
+.ref-action-btn--edit:hover {
+  background: #d0e0ff;
+}
+
+.ref-action-btn--delete {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.ref-action-btn--delete:hover {
+  background: #fee2e2;
+}
+
+/* Table footer */
+.ref-table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
+  color: #8896a8;
+}
+
+/* Badge */
+.ref-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ref-badge--blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.ref-badge--green {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ref-badge--orange {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ref-badge--gray {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* Empty state */
+.ref-empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 32px;
+  font-size: 13px;
+}

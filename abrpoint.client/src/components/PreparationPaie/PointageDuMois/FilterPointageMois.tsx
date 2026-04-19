@@ -81,7 +81,11 @@ const buildDateRange = (monthValue: string, yearValue: string, paramMois: ParamM
 
 function FilterPointageMois() {
   const { soccod } = useAuth();
-  const { data: employeesLibs = [] } = useGetEmployeesLibs();
+  const [selectedFiliale, setSelectedFiliale] = useState(sessionStorage.getItem("sitcod") ?? "");
+  const [selectedService, setSelectedService] = useState("");
+  const [selectedRegime, setSelectedRegime] = useState("");
+
+  const { data: employeesLibs = [] } = useGetEmployeesLibs(selectedFiliale, selectedService, undefined, selectedRegime);
   const dateRangeContext = useDateMoisPointageRange();
   const setDateRange = dateRangeContext?.setDateRange;
 
@@ -108,9 +112,6 @@ function FilterPointageMois() {
   const [dateDebut, setStartDate] = useState("");
   const [dateFin, setEndDate] = useState("");
   const [annee, setAnnee] = useState(getCurrentYearValue());
-  const [selectedFiliale, setSelectedFiliale] = useState(sessionStorage.getItem("sitcod") ?? "");
-  const [selectedService, setSelectedService] = useState("");
-  const [selectedRegime, setSelectedRegime] = useState("");
   const [selectedSemaine, setSelectedSemaine] = useState("0");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");

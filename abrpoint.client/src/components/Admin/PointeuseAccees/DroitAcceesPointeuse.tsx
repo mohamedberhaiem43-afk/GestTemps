@@ -1,102 +1,72 @@
-import { Alert, Box, Grid, Snackbar, Typography } from "@mui/material";
-import SaisieUtilisateur from "./SaisieUtilisateur";
-import ListeUtilisateur from "./ListeUtilisateur.";
 import { QueryClientProvider, QueryClient } from "react-query";
 import UserProvider from "../../helper/UserProvider";
-import { useState } from "react";
-import { User } from "../../../models/Utilisateur";
-import PointeuseAccees from "./PointeuseAccees";
-import Poidroit, { UpdatePoidroit } from "../../../models/Poidroit";
-import useUpdatePointdroit from "../../../hooks/pointeuseHooks/useUpdatePointroits";
-import { useAuth } from "../../helper/AuthProvider";
+
+import ListeUtilisateurRoles from "../../DonneeDeBase/Utilisteur/ListeUtilisateur.";
+import DroitAcceesRoles from "../../DonneeDeBase/Utilisteur/DroitAccees";
+import RolePointeuseAccess from "../../DonneeDeBase/Utilisteur/RolePointeuseAccess";
+
+import { Shield, People, Fingerprint } from "@mui/icons-material";
+import "../PointeuseAccees/DroitAccees.css";
+
+const queryClient = new QueryClient();
+
+function DroitAccessContent() {
+  return (
+    <div className="da-page">
+      {/* Page Header */}
+      <div className="da-page-header">
+        <div className="da-header-left">
+          <Shield sx={{ fontSize: 28, color: '#0040a1' }} />
+          <div>
+            <h1 className="da-page-title">Gestion des Droits d'Accès</h1>
+            <p className="da-page-subtitle">Gérez les autorisations par rôle et les accès aux pointeuses</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Section 1: Autorisations par Rôle ─────────────────────── */}
+      <div className="da-section">
+        <div className="da-section-header">
+          <div className="da-section-title-group">
+            <People sx={{ fontSize: 20, color: '#0056d2' }} />
+            <h2 className="da-section-title">Autorisations par Rôle</h2>
+          </div>
+          <p className="da-section-desc">Définissez les permissions de chaque rôle pour les modules de l'application</p>
+        </div>
+        <div className="da-section-body">
+          <div className="da-roles-grid">
+            <ListeUtilisateurRoles />
+            <DroitAcceesRoles />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Section 2: Droit d'accès Pointeuses (par Rôle) ─────────── */}
+      <div className="da-section">
+        <div className="da-section-header">
+          <div className="da-section-title-group">
+            <Fingerprint sx={{ fontSize: 20, color: '#005236' }} />
+            <h2 className="da-section-title">Droit d'Accès Pointeuses</h2>
+          </div>
+          <p className="da-section-desc">Attribuez les accès de lecture, configuration et purge pour chaque pointeuse par rôle</p>
+        </div>
+        <div className="da-section-body">
+          <div className="da-roles-grid">
+            <ListeUtilisateurRoles />
+            <RolePointeuseAccess />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DroitAccessPointeuse() {
-  const queryClient = new QueryClient();
-  const [userData, setUserData] = useState<User | null>(null);
-  const [userPermissions, setUserPermissions] = useState<Poidroit[]>([]);
-  const updatePointdroitMutation = useUpdatePointdroit();
-
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error" | "info";
-  }>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
-const handleUpdate = () => {
-  if (userData && userPermissions.length > 0) {
-    const { soccod } = useAuth()
-
-    // Prepare the list of Pointdroits to send
-    const payload: UpdatePoidroit[] = userPermissions.map((perm) => ({
-      soccod:soccod|| "",
-      uticod: userData.uticod ?? "",
-      poicod: perm.poicod ?? "",
-      lire: perm.lire,
-      config: perm.config,
-      purger: perm.purger,
-    }));
-    updatePointdroitMutation.mutate(payload, {
-      onSuccess: (response: boolean) => {
-        setSnackbar({
-          open: true,
-          message: response
-            ? "Droits mis à jour avec succès !"
-            : "Aucune modification apportée.",
-          severity: response ? "success" : "info",
-        });
-      },
-      onError: () => {
-        setSnackbar({
-          open: true,
-          message: "Erreur lors de la mise à jour des droits.",
-          severity: "error",
-        });
-      },
-    });
-  }
-};
-
-
   return (
     <QueryClientProvider client={queryClient}>
-      <Box sx={{ flexGrow: 1 }} mt={-2} height={"85vh"} maxHeight={"90vh"} overflow={"auto"}>
-        <Typography fontWeight={"bold"} variant="h6" component="div" gutterBottom color={"primary"} mb={1}>
-          Droit d'accès pointeuse
-        </Typography>
-        <UserProvider>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <SaisieUtilisateur onDataChange={setUserData} state={true} onSave={handleUpdate} />
-            </Grid>
-            <Grid item xs={7}>
-              <PointeuseAccees onPermissionsChange={setUserPermissions} />
-            </Grid>
-            <Grid item xs={5}>
-              <ListeUtilisateur />
-            </Grid>
-          </Grid>
-        </UserProvider>
-
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={3000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
-            severity={snackbar.severity}
-            sx={{ width: "100%" }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Box>
+      <UserProvider>
+        <DroitAccessContent />
+      </UserProvider>
     </QueryClientProvider>
   );
 }

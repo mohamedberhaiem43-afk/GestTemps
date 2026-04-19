@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ABRPOINT.Server.Models;
 
 [Table("service")]
-public partial class Service
+public partial class Service : BaseEntity
 {
     [Column("sercod")]
     [StringLength(4)]

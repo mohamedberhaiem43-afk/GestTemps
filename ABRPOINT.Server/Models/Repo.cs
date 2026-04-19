@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("repos")]
-public partial class Repo
+public partial class Repo : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

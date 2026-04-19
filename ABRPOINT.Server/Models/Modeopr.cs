@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("modeopr")]
-public partial class Modeopr
+public partial class Modeopr : BaseEntity
 {
     [Column("artcod")]
     [StringLength(10)]

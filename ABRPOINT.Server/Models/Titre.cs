@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("titre")]
-public partial class Titre
+public partial class Titre : BaseEntity
 {
     [Column("titcod")]
     [StringLength(1)]

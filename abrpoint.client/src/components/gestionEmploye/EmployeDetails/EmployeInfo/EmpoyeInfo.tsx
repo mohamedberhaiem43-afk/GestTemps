@@ -9,6 +9,8 @@ import useGetFonctionsLibs from "../../../../hooks/fonctionHooks/useGetFonctions
 import useGetSectionsLibs from "../../../../hooks/sectionHooks/useGetSectionsLibs";
 import Employe from "../../../../models/Employe";
 import { useTranslation } from 'react-i18next';
+import apiInstance from "../../../API/apiInstance";
+import { useAuth } from "../../../helper/AuthProvider";
 interface EmployeDetailsProps {
   onChange: (data: any) => void;
   empData:Employe
@@ -40,9 +42,19 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
     };
     
     const { t } = useTranslation();
+    const { soccod } = useAuth();
     const {data:sections = []} = useGetSectionsLibs()
     const {data:qualifications = []} = useGetQualificationsLibs()
     const {data:fonctions = []} = useGetFonctionsLibs()
+    const [calendrier, setCalendrier] = useState<any[]>([]);
+
+    useEffect(() => {
+        apiInstance
+            .get(`/Calendriers`)
+            .then((res) => setCalendrier(res.data))
+            .catch((err) => console.error("Error fetching calendriers", err));
+    }, [soccod]);
+
     useEffect(() => {
         onChange(formData);
     }, [formData, onChange]);
@@ -186,6 +198,24 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
             </Grid>
             <Grid item xs={1}>
                 <InputComponent type='number' label={t('employe.fields.nbPosts') || 'Nb. Positions'} value={formData.empnbp} setValue={(value:any)=> handleChange ({target:{ name: 'empnbp', value }})} />
+            </Grid>
+            <Grid item xs={2}>
+                <FormControl variant="standard" fullWidth>
+                    <InputLabel shrink id="caltype-label">{t('employe.work.calendarType') || 'Type Calendrier'}</InputLabel>
+                    <Select
+                        size="small"
+                        name="caltype"
+                        value={formData.caltype || ''}
+                        onChange={handleChange}
+                    >
+                        <MenuItem value=""><em>{t('common.none') || 'Aucun'}</em></MenuItem>
+                        {calendrier.map(({ caltype, callib }) => (
+                            <MenuItem key={caltype} value={caltype} sx={{ fontSize: '0.85rem' }}>
+                                {callib}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
             </Grid>
         </Grid>
     );

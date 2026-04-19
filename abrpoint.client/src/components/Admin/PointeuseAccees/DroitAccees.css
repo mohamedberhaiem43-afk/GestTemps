@@ -1,0 +1,195 @@
+/* ── Droit d'Accès Page ─────────────────────────────────────────── */
+.da-page {
+  min-height: 100vh;
+  padding: 24px 32px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f7f9fb;
+}
+
+/* ── Page Header ──────────────────────────────────────────────── */
+.da-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.da-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.da-page-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.da-page-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 0 0;
+}
+
+/* ── Section ──────────────────────────────────────────────────── */
+.da-section {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+  overflow: hidden;
+  border: 1px solid transparent;
+}
+
+.da-section-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.da-section-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.da-section-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #191c1e;
+  margin: 0;
+}
+
+.da-section-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 4px 0 0 0;
+  padding-left: 30px;
+}
+
+.da-section-body {
+  padding: 0;
+}
+
+/* ── Roles Grid (reuses existing components) ──────────────────── */
+.da-roles-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 380px;
+}
+
+@media (max-width: 768px) {
+  .da-roles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Make the existing aut- styles fit inside sections */
+.da-roles-grid .aut-user-panel {
+  border-right: 1px solid #e6e8ea;
+  max-height: 420px;
+  border-radius: 0;
+}
+
+.da-roles-grid .aut-matrix-panel {
+  border-radius: 0;
+}
+
+/* ── User Form Bar ────────────────────────────────────────────── */
+.da-user-form-bar {
+  padding: 12px 20px;
+  border-bottom: 1px solid #e6e8ea;
+  background: #f8fafc;
+}
+
+.da-user-form-bar .MuiBox-root {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.da-user-form-bar .MuiGrid-item {
+  padding: 4px 6px;
+}
+
+/* ── Pointeuse Grid ───────────────────────────────────────────── */
+.da-pointeuse-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 300px;
+}
+
+@media (max-width: 768px) {
+  .da-pointeuse-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.da-pointeuse-users {
+  border-right: 1px solid #e6e8ea;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.da-pointeuse-matrix {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+/* Style the existing MUI table inside pointeuse matrix to match design */
+.da-pointeuse-matrix .MuiTableHead-root .MuiTableCell-head {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.da-pointeuse-matrix .MuiTableCell-root {
+  font-size: 13px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.da-pointeuse-matrix .MuiTableRow-root:hover {
+  background: #f8fafc;
+}
+
+/* Style the admin user list */
+.da-pointeuse-users .MuiTableHead-root .MuiTableCell-head {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.da-pointeuse-users .MuiTableCell-root {
+  font-size: 13px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.da-pointeuse-users .MuiTableRow-root:hover {
+  background: #f8fafc !important;
+}
+
+.da-pointeuse-users .MuiPaper-root {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.da-pointeuse-matrix .MuiPaper-root {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}

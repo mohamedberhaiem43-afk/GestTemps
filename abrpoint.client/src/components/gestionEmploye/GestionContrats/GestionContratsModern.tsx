@@ -1,0 +1,594 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Box, Typography, Paper, TextField, Select, MenuItem,
+  FormControl, Button, Avatar, Chip, IconButton, CircularProgress, Snackbar, Alert,
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ChecklistIcon from '@mui/icons-material/Checklist';
+import AddIcon from '@mui/icons-material/Add';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import SaveIcon from '@mui/icons-material/Save';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { Contrat } from '../../../models/Contrat';
+import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
+import useDeleteContrat from '../../../hooks/contratHooks/useDeleteContrat';
+import useGetEmployeesLibs from '../../../hooks/employeHooks/useGetEmployeesLibs';
+import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
+import useGetSocLibs from '../../../hooks/societeHooks/useGetSocLibs';
+import useGetSiteLibs from '../../../hooks/siteHooks/useGetSiteLibs';
+import { useAuth } from '../../helper/AuthProvider';
+import AlertModal from '../../AlertModal/AlertModal';
+import apiInstance from '../../API/apiInstance';
+import AccessDenied from '../../helper/AccessDenied';
+import { useQuery } from 'react-query';
+import dayjs from 'dayjs';
+import './GestionContratsModern.css';
+
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+const fmtDate = (d: any) => {
+  if (!d) return '—';
+  try { return dayjs(d).format('DD MMM YYYY'); } catch { return '—'; }
+};
+
+const fmtDateInput = (d: any) => {
+  if (!d) return '';
+  try { return dayjs(d).format('YYYY-MM-DD'); } catch { return ''; }
+};
+
+const TYPE_COLORS: Record<string, { bg: string; color: string }> = {
+  CDI:     { bg: '#d1fae5', color: '#047857' },
+  CDD:     { bg: '#dbeafe', color: '#1d4ed8' },
+  Stage:   { bg: '#fef3c7', color: '#b45309' },
+  CIVP:    { bg: '#ede9fe', color: '#6d28d9' },
+  Ouvrier: { bg: '#fce7f3', color: '#9d174d' },
+};
+const typeColor = (t: string) => TYPE_COLORS[t] ?? { bg: '#f1f5f9', color: '#475569' };
+
+const AVATAR_COLORS = ['#1d4ed8', '#047857', '#b45309', '#6d28d9', '#0040a1', '#065f46'];
+
+const fieldSx = {
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: '#f5f7fa', borderRadius: '8px', fontSize: '13px',
+    '& fieldset': { border: '1.5px solid #e8ecf2' },
+    '&:hover fieldset': { borderColor: '#b8c4d0' },
+    '&.Mui-focused fieldset': { borderColor: '#0040a1', borderWidth: '1.5px' },
+    '& input': { fontSize: '13px', padding: '9px 12px', color: '#1a2236' },
+    '& textarea': { fontSize: '13px', color: '#1a2236' },
+  },
+};
+const selectSx = {
+  backgroundColor: '#f5f7fa', borderRadius: '8px', fontSize: '13px',
+  '& .MuiOutlinedInput-notchedOutline': { border: '1.5px solid #e8ecf2' },
+  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#b8c4d0' },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#0040a1' },
+  '& .MuiSelect-select': { fontSize: '13px', padding: '9px 12px' },
+};
+const labelSx = {
+  fontSize: '10px', fontWeight: 700, color: '#8896a8',
+  textTransform: 'uppercase' as const, letterSpacing: '0.1em', mb: 0.6,
+};
+
+// ── KPI Card ──────────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, subColor, highlight }: {
+  label: string; value: string | number; sub?: string; subColor?: string; highlight?: boolean;
+}) {
+  return (
+    <Paper elevation={0} sx={{
+      p: 2.5, borderRadius: '14px', backgroundColor: '#fff',
+      border: '1px solid #edf0f5', boxShadow: '0 2px 8px rgba(15,23,42,0.05)',
+      borderLeft: highlight ? '4px solid #0040a1' : '1px solid #edf0f5',
+      '&:hover': { boxShadow: '0 4px 16px rgba(15,23,42,0.1)' }, transition: 'box-shadow 0.2s',
+    }}>
+      <Typography sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: highlight ? '#0040a1' : '#8896a8', mb: 1 }}>
+        {label}
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1.5 }}>
+        <Typography sx={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'Manrope, sans-serif', color: '#0040a1', lineHeight: 1 }}>
+          {value}
+        </Typography>
+        {sub && <Typography sx={{ fontSize: '12px', fontWeight: 700, color: subColor || '#10b981', mb: 0.6 }}>{sub}</Typography>}
+      </Box>
+    </Paper>
+  );
+}
+
+// ── Row menu ──────────────────────────────────────────────────────────────────
+function RowMenu({ onEdit, onDelete, canModify, canDelete }: { onEdit: () => void; onDelete: () => void; canModify: boolean; canDelete: boolean }) {
+  const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+  return (
+    <>
+      <IconButton size="small" onClick={e => setAnchor(e.currentTarget)}
+        sx={{ color: '#94a3b8', '&:hover': { backgroundColor: '#f0f5ff', color: '#0040a1' }, borderRadius: '6px' }}>
+        <MoreVertIcon fontSize="small" />
+      </IconButton>
+      {anchor && (
+        <Paper sx={{ position: 'fixed', zIndex: 1300, borderRadius: '10px', boxShadow: '0 8px 24px rgba(15,23,42,0.12)', minWidth: 160, border: '1px solid #edf0f5', mt: 0.5 }}
+          onClick={() => setAnchor(null)}>
+          {[
+            canModify && { label: 'Modifier', icon: <EditIcon fontSize="small" />, onClick: onEdit },
+            canDelete && { label: 'Supprimer', icon: <DeleteIcon fontSize="small" />, onClick: onDelete, color: '#ef4444' },
+          ].filter(Boolean).map((item: any) => (
+            <Box key={item.label} onClick={item.onClick}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.2, cursor: 'pointer', color: item.color || '#334155',
+                '&:hover': { backgroundColor: item.color ? '#fef2f2' : '#f8faff' } }}>
+              <Box sx={{ color: item.color || '#64748b', display: 'flex' }}>{item.icon}</Box>
+              <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>{item.label}</Typography>
+            </Box>
+          ))}
+        </Paper>
+      )}
+    </>
+  );
+}
+
+// ── Empty form ────────────────────────────────────────────────────────────────
+const emptyForm = (soccod: string): Contrat => ({
+  soccod, concod: '', empcod: '',
+  condat: undefined, contype: undefined,   // ← ne pas pré-remplir contype
+  empemb: undefined, empsort: undefined,
+  emppost: '', empadr: '', emptel: '',
+  empmotif: '', empcontrat: 'CDI',         // ← valeur par défaut ici seulement
+  empsbase: '', empsbrut: '',
+});
+// ── Main ──────────────────────────────────────────────────────────────────────
+const GestionContratsModernInner = () => {
+  const { soccod, uticod, hasPermission } = useAuth();
+  
+  const canAdd = hasPermission('Contrats et Avenants', 'add');
+  const canModify = hasPermission('Contrats et Avenants', 'modify');
+  const canDelete = hasPermission('Contrats et Avenants', 'delete');
+
+  if (!hasPermission('Contrats et Avenants', 'consult')) {
+    return <AccessDenied message="Vous n'avez pas le droit de consulter les contrats." />;
+  }
+
+  const { data: contratsRaw = [], isLoading, refetch } = useQuery(
+    ['contrats', soccod, uticod],
+    async () => {
+      const res = await apiInstance.get(`/Contrats/${soccod}/${uticod}`);
+      return res.data;
+    },
+    { enabled: !!soccod && !!uticod }
+  );
+  const { mutateAsync: updateContrat } = useUpdateContrat();
+  const { mutateAsync: deleteContrat } = useDeleteContrat();
+  const { data: empLibsRaw = {} } = useGetEmployeesLibs();
+  const { data: empLibsDirect } = useGetEmployee();
+  const { data: socLibs = {} } = useGetSocLibs();
+  const { data: sitLibs = {} } = useGetSiteLibs();
+
+  const contrats: Contrat[] = useMemo(() => {
+    if (Array.isArray(contratsRaw)) return contratsRaw;
+    if (Array.isArray((contratsRaw as any)?.$values)) return (contratsRaw as any).$values;
+    return [];
+  }, [contratsRaw]);
+
+  // Build empMap — useGetEmployee returns { empcod: emplib } plain object
+  const empMap: Record<string, string> = useMemo(() => {
+    const fromDirect = empLibsDirect;
+    if (fromDirect && typeof fromDirect === 'object' && !Array.isArray(fromDirect)) {
+      return fromDirect as Record<string, string>;
+    }
+    const raw = empLibsRaw;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      return raw as Record<string, string>;
+    }
+    return {};
+  }, [empLibsRaw, empLibsDirect]);
+
+  const [form, setForm] = useState<Contrat>(emptyForm(soccod || ''));
+  const [mode, setMode] = useState<'add' | 'edit'>('add');
+  const [filterType, setFilterType] = useState('all');
+  const [searchQ, setSearchQ] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Contrat | null>(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  const showSnack = (message: string, severity: 'success' | 'error') =>
+    setSnackbar({ open: true, message, severity });
+
+  // KPI stats
+  const today = dayjs();
+  const activeCount = contrats.filter(c => !c.empsort || dayjs(c.empsort).isAfter(today)).length;
+  const expiringCount = contrats.filter(c => {
+    if (!c.empsort) return false;
+    const d = dayjs(c.empsort);
+    return d.isAfter(today) && d.diff(today, 'day') <= 30;
+  }).length;
+  const newThisMonth = contrats.filter(c => c.empemb && dayjs(c.empemb).month() === today.month() && dayjs(c.empemb).year() === today.year()).length;
+
+  // Filter
+  const filtered = useMemo(() => {
+    return contrats.filter(c => {
+      const matchType = filterType === 'all' || c.empcontrat === filterType || c.contype === filterType;
+      const empName = c.emplib || empMap[c.empcod] || c.empcod || '';
+      const matchSearch = !searchQ || empName.toLowerCase().includes(searchQ.toLowerCase()) || c.concod.toLowerCase().includes(searchQ.toLowerCase());
+      return matchType && matchSearch;
+    });
+  }, [contrats, filterType, searchQ]);
+
+  const handleField = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  const handleSelect = (name: string) => (e: any) =>
+    setForm(p => ({ ...p, [name]: e.target.value }));
+
+  const handleEdit = (c: Contrat) => {
+    setForm({
+      ...c,
+      empcontrat: c.empcontrat || c.contype || 'CDI',  // ← fallback propre
+    });
+    setMode('edit');
+  };
+
+  const handleReset = () => {
+    setForm(emptyForm(soccod || ''));
+    setMode('add');
+  };
+
+  const handleSave = async () => {
+    if (!form.empcod) { showSnack('Veuillez sélectionner un employé', 'error'); return; }
+    if (!form.concod?.trim()) { showSnack('Le N° contrat est obligatoire', 'error'); return; }
+
+    const resolvedSoccod = soccod || form.soccod || '';
+    if (!resolvedSoccod) { showSnack('Session expirée, veuillez vous reconnecter', 'error'); return; }
+
+    // Parse date helper — returns ISO string or null
+    const parseDate = (val: any): string | null => {
+      if (!val) return null;
+      const d = dayjs(val);
+      return d.isValid() ? d.toISOString() : null;
+    };
+
+    const payload = {
+      soccod:     resolvedSoccod.slice(0, 4),
+      concod:     form.concod.trim().slice(0, 9),
+      empcod:     form.empcod.trim().slice(0, 12),
+      empcontrat: form.empcontrat || null,
+      emppost:    form.emppost   || null,
+      empadr:     form.empadr    || null,
+      emptel:     form.emptel    || null,
+      empmotif:   form.empmotif  || null,
+      empsbase:   form.empsbase  ?? null,
+      empsbrut:   form.empsbrut  ?? null,
+      condat:     parseDate(form.condat),
+      empemb:     parseDate(form.empemb),
+      empsort:    parseDate(form.empsort),
+    };
+
+    try {
+      if (mode === 'edit') {
+        await updateContrat(payload as any);
+        showSnack('Contrat modifié avec succès', 'success');
+      } else {
+        await apiInstance.post('/Contrats', payload);
+        showSnack('Contrat ajouté avec succès', 'success');
+      }
+      handleReset();
+      refetch();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data || err?.message || 'Erreur lors de la sauvegarde';
+      showSnack(String(msg), 'error');
+    }
+  };
+
+  const handleDelete = async (c: Contrat) => {
+    try {
+      await deleteContrat({ soccod: c.soccod, concod: c.concod });
+      showSnack('Contrat supprimé', 'success');
+      setDeleteTarget(null);
+      refetch();
+    } catch { showSnack('Erreur lors de la suppression', 'error'); }
+  };
+
+  const CONTRACT_TYPES = ['CDI', 'CDD', 'Stage', 'CIVP', 'Ouvrier'];
+
+  return (
+    <Box sx={{ width: '100%', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', pb: 6 }}>
+
+      {/* KPI Row */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, px: 3, pt: 3, pb: 2 }}>
+        <KpiCard label="Contrats Actifs"    value={activeCount}    sub={`/ ${contrats.length} total`} subColor="#10b981" />
+        <KpiCard label="Expirent bientôt"   value={expiringCount}  sub="30 prochains jours" subColor="#f59e0b" />
+        <KpiCard label="Nouveaux ce mois"   value={newThisMonth}   sub="Onboarding" subColor="#8896a8" />
+        <KpiCard label="Taux de conformité" value="99.2%" highlight />
+      </Box>
+
+      {/* Main grid */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 2.5, px: 3 }}>
+
+        {/* ── Form ── */}
+        <Paper elevation={0} sx={{ borderRadius: '16px', backgroundColor: '#fff', border: '1px solid #edf0f5', boxShadow: '0 2px 8px rgba(15,23,42,0.05)', overflow: 'hidden' }}>
+          <Box sx={{ px: 3, pt: 3, pb: 2.5, borderBottom: '1px solid #f1f5f9' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ backgroundColor: '#eff6ff', p: '8px', borderRadius: '9px', display: 'flex' }}>
+                  <CreditCardIcon sx={{ color: '#0040a1', fontSize: 20 }} />
+                </Box>
+                <Typography sx={{ fontSize: '17px', fontWeight: 800, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c' }}>
+                  {mode === 'edit' ? 'Modifier le Contrat' : 'Nouveau Contrat'}
+                </Typography>
+              </Box>
+              {mode === 'edit' && canModify && (
+                <IconButton size="small" onClick={handleReset} sx={{ color: '#94a3b8' }}>
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+              )}
+            </Box>
+          </Box>
+
+          <Box sx={{ px: 3, py: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Société + Filiale */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+              <Box>
+                <Typography sx={labelSx}>Société</Typography>
+                <FormControl fullWidth size="small">
+                  <Select value={form.soccod || soccod || ''} onChange={handleSelect('soccod')} sx={selectSx}>
+                    <MenuItem value=""><em>Sélectionner...</em></MenuItem>
+                    {Object.entries(socLibs).map(([k, v]) => (
+                      <MenuItem key={k} value={k} sx={{ fontSize: '13px' }}>{String(v)}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box>
+                <Typography sx={labelSx}>Filiale / Site</Typography>
+                <FormControl fullWidth size="small">
+                  <Select value={form.sitcod || ''} onChange={handleSelect('sitcod')} sx={selectSx}>
+                    <MenuItem value=""><em>Sélectionner...</em></MenuItem>
+                    {Object.entries(sitLibs).map(([k, v]) => (
+                      <MenuItem key={k} value={k} sx={{ fontSize: '13px' }}>{String(v)}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+
+            {/* Employé */}
+            <Box>
+              <Typography sx={labelSx}>Employé</Typography>
+              {mode === 'edit' ? (
+                <TextField
+                  size="small" fullWidth
+                  value={form.emplib || empMap[form.empcod] || form.empcod}
+                  InputProps={{ readOnly: true }} sx={fieldSx}
+                />
+              ) : (
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={form.empcod}
+                    onChange={handleSelect('empcod')}
+                    sx={selectSx}
+                    displayEmpty
+                    MenuProps={{ PaperProps: { sx: { maxHeight: 300, borderRadius: '10px' } } }}
+                  >
+                    <MenuItem value=""><em style={{ color: '#aaa' }}>Sélectionner un employé...</em></MenuItem>
+                    {Object.entries(empMap).map(([code, lib]) => (
+                      <MenuItem key={code} value={code} sx={{ fontSize: '13px', py: 1 }}>
+                        <Box>
+                          <Box sx={{ fontWeight: 600, fontSize: '13px' }}>{String(lib)}</Box>
+                          <Box sx={{ fontSize: '11px', color: '#8896a8' }}>{code}</Box>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+            </Box>
+
+            {/* N° Contrat + Type */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+              <Box>
+                <Typography sx={labelSx}>N° Contrat</Typography>
+                <TextField name="concod" value={form.concod} onChange={handleField}
+                  size="small" fullWidth sx={fieldSx} InputProps={{ readOnly: mode === 'edit' }} />
+              </Box>
+              <Box>
+                <Typography sx={labelSx}>Type</Typography>
+                <FormControl fullWidth size="small">
+                  <Select value={form.empcontrat || form.contype || 'CDI'} onChange={handleSelect('empcontrat')} sx={selectSx}>
+                    {CONTRACT_TYPES.map(t => <MenuItem key={t} value={t} sx={{ fontSize: '13px' }}>{t}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+
+            {/* Date début + Date fin */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+              <Box>
+                <Typography sx={labelSx}>Date Début</Typography>
+                <TextField name="empemb" type="date" value={fmtDateInput(form.empemb)} onChange={handleField}
+                  size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
+              </Box>
+              <Box>
+                <Typography sx={labelSx}>Date Fin</Typography>
+                <TextField name="empsort" type="date" value={fmtDateInput(form.empsort)} onChange={handleField}
+                  size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
+              </Box>
+            </Box>
+
+            {/* Poste + Salaire */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+              <Box>
+                <Typography sx={labelSx}>Poste</Typography>
+                <TextField name="emppost" value={form.emppost || ''} onChange={handleField} size="small" fullWidth sx={fieldSx} />
+              </Box>
+              <Box>
+                <Typography sx={labelSx}>Salaire Base</Typography>
+                <TextField name="empsbase" type="number" value={form.empsbase ?? ''} onChange={handleField} size="small" fullWidth sx={fieldSx} />
+              </Box>
+            </Box>
+
+            {/* Observations */}
+            <Box>
+              <Typography sx={labelSx}>Motif / Observations</Typography>
+              <TextField name="empmotif" value={form.empmotif || ''} onChange={handleField}
+                size="small" fullWidth multiline rows={3} placeholder="Notes complémentaires..." sx={fieldSx} />
+            </Box>
+
+            {/* Save */}
+              {((mode === 'edit' && canModify) || (mode === 'add' && canAdd)) && (
+                <Button variant="contained" fullWidth startIcon={<SaveIcon />} onClick={handleSave}
+                  sx={{
+                    mt: 0.5, borderRadius: '10px', textTransform: 'none', fontWeight: 800, fontSize: '14px', py: 1.5,
+                    background: 'linear-gradient(135deg, #0a2463 0%, #0040a1 50%, #1a6eff 100%)',
+                    boxShadow: '0 4px 14px rgba(0,64,161,0.3)',
+                    '&:hover': { background: 'linear-gradient(135deg, #071a47 0%, #003080 50%, #0040a1 100%)', transform: 'translateY(-1px)' },
+                    transition: 'all 0.2s',
+                  }}>
+                  {mode === 'edit' ? 'Modifier le Contrat' : 'Enregistrer le Contrat'}
+                </Button>
+              )}
+          </Box>
+          <Box sx={{ height: 4, background: 'linear-gradient(90deg, #0040a1, #1a6eff, #0040a1)', mt: 'auto' }} />
+        </Paper>
+
+        {/* ── Table ── */}
+        <Paper elevation={0} sx={{ borderRadius: '16px', backgroundColor: '#fff', border: '1px solid #edf0f5', boxShadow: '0 2px 8px rgba(15,23,42,0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+          {/* Filters bar */}
+          <Box sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+              {['all', ...CONTRACT_TYPES].map(f => (
+                <Box key={f} onClick={() => setFilterType(f)}
+                  sx={{
+                    px: 2, py: 0.7, borderRadius: '20px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, transition: 'all 0.15s',
+                    ...(filterType === f
+                      ? { backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1.5px solid #bfdbfe' }
+                      : { backgroundColor: 'transparent', color: '#64748b', border: '1.5px solid #e8ecf2', '&:hover': { backgroundColor: '#f8faff' } }),
+                  }}>
+                  {f === 'all' ? 'Tous' : f}
+                </Box>
+              ))}
+              <TextField size="small" placeholder="Rechercher..." value={searchQ} onChange={e => setSearchQ(e.target.value)}
+                sx={{ ml: 1, width: 180, '& .MuiOutlinedInput-root': { borderRadius: '20px', fontSize: '12px', height: 32 } }} />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {[{ label: 'Export PDF', icon: <PictureAsPdfIcon sx={{ fontSize: 15 }} /> }, { label: 'Sélection', icon: <ChecklistIcon sx={{ fontSize: 15 }} /> }].map(btn => (
+                <Button key={btn.label} startIcon={btn.icon} size="small"
+                  sx={{ borderRadius: '9px', textTransform: 'none', fontWeight: 600, fontSize: '12px', color: '#4a5568', border: '1.5px solid #e2e8f0', backgroundColor: '#fafbfc', px: 1.8, py: 0.7, '&:hover': { borderColor: '#0040a1', color: '#0040a1', backgroundColor: '#f0f5ff' } }}>
+                  {btn.label}
+                </Button>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Table header */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', px: 3, py: 1.5, borderBottom: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}>
+            {['N° Contrat', 'Employé', 'Période', 'Type', 'Poste', 'Actions'].map((h, i) => (
+              <Typography key={h} sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8896a8', textAlign: i === 5 ? 'right' : 'left' }}>
+                {h}
+              </Typography>
+            ))}
+          </Box>
+
+          {/* Rows */}
+          <Box sx={{ flex: 1, overflow: 'auto', maxHeight: 480, scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent', '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { background: '#e2e8f0', borderRadius: 99 } }}>
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress size={36} /></Box>
+            ) : filtered.length === 0 ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8 }}>
+                <Typography sx={{ color: '#94a3b8', fontSize: '13px' }}>Aucun contrat trouvé</Typography>
+              </Box>
+            ) : (
+              filtered.map((c, i) => {
+                const tc = typeColor(c.empcontrat || c.contype || '');
+                const empName = c.emplib || empMap[c.empcod] || c.empcod;
+                const initials = empName ? empName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() : '?';
+                const avatarColor = AVATAR_COLORS[i % AVATAR_COLORS.length];
+                const isExpired = c.empsort && dayjs(c.empsort).isBefore(today);
+                return (
+                  <Box key={`${c.soccod}-${c.concod}`}
+                    sx={{ display: 'grid', gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', alignItems: 'center', px: 3, py: 1.8, borderBottom: '1px solid #f8fafc', transition: 'background-color 0.15s', '&:hover': { backgroundColor: '#f8faff' }, '&:last-child': { borderBottom: 'none' } }}>
+
+                    {/* N° Contrat */}
+                    <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#0040a1', fontFamily: 'monospace' }}>
+                      {c.concod}
+                    </Typography>
+
+                    {/* Employé */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar sx={{ width: 36, height: 36, fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${avatarColor}cc, ${avatarColor})`, border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+                        {initials || '?'}
+                      </Avatar>
+                      <Box>
+                        <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0d1f3c', lineHeight: 1.3 }}>{empName}</Typography>
+                        <Typography sx={{ fontSize: '11px', color: '#8896a8', fontWeight: 500 }}>{c.empcod}</Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Période */}
+                    <Box>
+                      <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{fmtDate(c.empemb)}</Typography>
+                      <Typography sx={{ fontSize: '11px', color: isExpired ? '#ef4444' : c.empsort ? '#8896a8' : '#10b981', fontWeight: 500 }}>
+                        {c.empsort ? `→ ${fmtDate(c.empsort)}` : 'Indéterminé'}
+                      </Typography>
+                    </Box>
+
+                    {/* Type */}
+                    <Chip label={c.empcontrat || c.contype || '—'} size="small"
+                      sx={{ backgroundColor: tc.bg, color: tc.color, fontWeight: 800, fontSize: '11px', height: 24, borderRadius: '6px', '& .MuiChip-label': { px: 1.2 } }} />
+
+                    {/* Poste */}
+                    <Typography sx={{ fontSize: '12px', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.emppost || '—'}
+                    </Typography>
+
+                    {/* Actions */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      {(canModify || canDelete) ? (
+                        <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} canModify={canModify} canDelete={canDelete} />
+                      ) : (
+                        <Typography variant="caption">—</Typography>
+                      )}
+                    </Box>
+                  </Box>
+                );
+              })
+            )}
+          </Box>
+
+          {/* Footer */}
+          <Box sx={{ px: 3, py: 2, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafbfc' }}>
+            <Typography sx={{ fontSize: '12px', color: '#8896a8', fontWeight: 500 }}>
+              {filtered.length} contrat{filtered.length !== 1 ? 's' : ''} affiché{filtered.length !== 1 ? 's' : ''}
+            </Typography>
+          </Box>
+        </Paper>
+      </Box>
+
+      {/* FAB */}
+      {canAdd && (
+        <Box onClick={handleReset}
+          sx={{ position: 'fixed', bottom: 28, right: 28, width: 52, height: 52, background: 'linear-gradient(135deg, #0a2463 0%, #0040a1 100%)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,64,161,0.4)', cursor: 'pointer', zIndex: 100, transition: 'all 0.2s', '&:hover': { transform: 'scale(1.08)' } }}>
+          <AddIcon sx={{ color: '#fff', fontSize: 24 }} />
+        </Box>
+      )}
+
+      <AlertModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
+        message={`Voulez-vous vraiment supprimer le contrat "${deleteTarget?.concod}" de ${deleteTarget?.emplib || empMap[deleteTarget?.empcod || ''] || deleteTarget?.empcod} ?`}
+      />
+
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+const GestionContratsModern = () => (
+  <QueryClientProvider client={new QueryClient()}>
+    <GestionContratsModernInner />
+  </QueryClientProvider>
+);
+
+export default GestionContratsModern;

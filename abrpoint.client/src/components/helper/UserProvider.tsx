@@ -2,16 +2,19 @@ import { createContext, useContext, useState } from "react";
 
 type UserContextType = {
   selectedUser: string | null;
-  setSelectedUser: (uticod: string) => void;
+  setSelectedUser: (uticod: string | null) => void;
+  selectedRole: number | null;
+  setSelectedRole: (roleId: number | null) => void;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<number | null>(null);
 
   return (
-    <UserContext.Provider value={{ selectedUser, setSelectedUser }}>
+    <UserContext.Provider value={{ selectedUser, setSelectedUser, selectedRole, setSelectedRole }}>
       {children}
     </UserContext.Provider>
   );

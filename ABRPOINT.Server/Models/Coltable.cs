@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("coltable")]
-public partial class Coltable
+public partial class Coltable : BaseEntity
 {
     [Column("latable")]
     [StringLength(20)]

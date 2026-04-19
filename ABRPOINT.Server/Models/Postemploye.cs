@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("postemploye")]
-public partial class Postemploye
+public partial class Postemploye : BaseEntity
 {
     [Column("soccod")]
     [StringLength(6)]

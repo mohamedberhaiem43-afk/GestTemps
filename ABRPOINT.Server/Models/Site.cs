@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [PrimaryKey("Sitcod", "Soccod")]
 [Table("site")]
-public partial class Site
+public partial class Site : BaseEntity
 {
     [Column("sitcod")]
     [StringLength(2)]

@@ -7,7 +7,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("ferier")]
 [PrimaryKey("Soccod","Ferdate")]
-public partial class Ferier
+public partial class Ferier : BaseEntity
 {
     [Column("annee")]
     [StringLength(4)]

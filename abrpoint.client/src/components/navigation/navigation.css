@@ -1,75 +1,217 @@
-
-/* Default styles for larger screens */
+/* ═══ Default styles for larger screens ═══ */
 .css-1xot77b-MuiDrawer-docked .MuiDrawer-paper {
-    width: 250px !important;
+    width: 240px !important;
     box-sizing: border-box;
     background-image: none;
 }
 
 .css-10hburv-MuiTypography-root {
     margin: 0;
-    font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+    font-family: "Inter", "Helvetica", "Arial", sans-serif;
     font-weight: 400;
-    font-size: 0.9rem !important;
+    font-size: 0.75rem !important;
     line-height: 1.5;
     letter-spacing: 0.00938em;
     display: block;
 }
+
 #root > div.MuiBox-root.css-k008qs > header > div > div.MuiBox-root.css-d47f85{
     border: black solid 2px;
 }
+
 /* Styles for medium screens (tablets) */
 @media (max-width: 1024px) {
     .css-1xot77b-MuiDrawer-docked .MuiDrawer-paper {
-        width: 200px !important; /* Reduce drawer width */
+        width: 200px !important;
     }
 
     .css-10hburv-MuiTypography-root {
-        font-size: 0.8rem !important; /* Adjust font size for readability */
+        font-size: 0.7rem !important;
     }
 }
-
-
 
 /* Styles for small screens (mobile) */
 @media (max-width: 600px) {
     .css-1xot77b-MuiDrawer-docked .MuiDrawer-paper {
-        width: 150px !important; /* Further reduce drawer width for small screens */
+        width: 150px !important;
     }
 
     .css-10hburv-MuiTypography-root {
-        font-size: 0.7rem !important; /* Adjust font size for smaller screens */
-    }
-    .MuiTypography-root MuiTypography-h6 css-1oj6sux-MuiTypography-root{
-        /* Add your styles here */
-        width: 150px !important; 
+        font-size: 0.65rem !important;
     }
 
-.css-4t3x6l-MuiPaper-root-MuiDrawer-paper {
-    background-color: #fff;
-    color: rgba(0, 0, 0, 0);
-    -webkit-transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
-    transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
-    box-shadow: 0px 8px 10px -5px rgba(0, 0, 0, 0.2), 0px 16px 24px 2px rgba(0, 0, 0, 0.14), 0px 6px 30px 5px rgba(0, 0, 0, 0.12);
-    overflow-y: auto;
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: -ms-flexbox;
-    display: flex
-;
-    -webkit-flex-direction: column;
-    -ms-flex-direction: column;
-    flex-direction: column;
-    height: 100%;
-    -webkit-flex: 1 0 auto;
-    -ms-flex: 1 0 auto;
-    flex: 1 0 auto;
-    z-index: 1200;
-    -webkit-overflow-scrolling: touch;
-    position: fixed;
-    top: 0;
-    outline: 0;
-    left: 0;
+    .css-4t3x6l-MuiPaper-root-MuiDrawer-paper {
+        background-color: #fff;
+        color: rgba(0, 0, 0, 0);
+        -webkit-transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+        transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+        box-shadow: 0px 8px 10px -5px rgba(0, 0, 0, 0.2),
+                    0px 16px 24px 2px rgba(0, 0, 0, 0.14),
+                    0px 6px 30px 5px rgba(0, 0, 0, 0.12);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        flex: 1 0 auto;
+        z-index: 1200;
+        -webkit-overflow-scrolling: touch;
+        position: fixed;
+        top: 0;
+        outline: 0;
+        left: 0;
+    }
 }
-    
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LEDGER MODERN NAVIGATION THEME - Improved Sidebar & Navbar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar background ── */
+.MuiDrawer-paper {
+    background-color: #f8fafc !important;
+    border-right: 1px solid #e2e8f0 !important;
+    box-shadow: 2px 0 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* ── Sidebar nav items - SMALLER FONT ── */
+.MuiListItemButton-root {
+    border-radius: 8px !important;
+    margin: 1px 6px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    transition: all 0.15s ease !important;
+    padding: 6px 10px !important;
+    min-height: 34px !important;
+    letter-spacing: 0.02em !important;
+}
+
+.MuiListItemButton-root:hover {
+    background-color: #eef2ff !important;
+    color: #1d4ed8 !important;
+}
+
+/* ── Active nav item ── */
+.MuiListItemButton-root.Mui-selected,
+.MuiListItemButton-root[aria-current="page"] {
+    background-color: #ffffff !important;
+    color: #1d4ed8 !important;
+    font-weight: 700 !important;
+    border-right: 3px solid #1d4ed8 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+}
+
+.MuiListItemButton-root.Mui-selected:hover {
+    background-color: #f0f5ff !important;
+}
+
+/* ── Sidebar branding / logo area ── */
+.MuiToolbar-root .MuiTypography-root {
+    font-family: 'Manrope', sans-serif !important;
+    font-weight: 800 !important;
+    color: #1e3a5f !important;
+    font-size: 14px !important;
+    letter-spacing: -0.02em !important;
+}
+
+/* ── Top app bar - Enhanced ── */
+header.MuiAppBar-root {
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+    color: #0f172a !important;
+}
+
+/* ── Nav item icons - smaller ── */
+.MuiListItemIcon-root {
+    color: inherit !important;
+    min-width: 30px !important;
+}
+
+.MuiListItemIcon-root .MuiSvgIcon-root {
+    font-size: 18px !important;
+}
+
+/* ── Nested nav items - even smaller font ── */
+.MuiCollapse-root .MuiListItemButton-root {
+    padding-left: 40px !important;
+    font-size: 10.5px !important;
+    min-height: 30px !important;
+}
+
+.MuiCollapse-root .MuiListItemIcon-root {
+    min-width: 26px !important;
+}
+
+.MuiCollapse-root .MuiListItemIcon-root .MuiSvgIcon-root {
+    font-size: 15px !important;
+}
+
+/* ── Nested subgroup ── */
+.MuiCollapse-root .MuiCollapse-root .MuiListItemButton-root {
+    padding-left: 52px !important;
+    font-size: 10px !important;
+}
+
+/* ── Scrollbar in sidebar ── */
+.MuiDrawer-paper::-webkit-scrollbar {
+    width: 3px;
+}
+
+.MuiDrawer-paper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 99px;
+}
+
+.MuiDrawer-paper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ═══ Toolbar layout ═══ */
+header.MuiAppBar-root .MuiToolbar-root {
+    gap: 4px;
+    min-height: 52px !important;
+}
+
+/* Portal-injected actions */
+header.MuiAppBar-root .MuiToolbar-root > .topbar-actions-portal {
+    order: 1;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+/* Account profile avatar */
+header.MuiAppBar-root .MuiToolbar-root > .MuiIconButton-root[aria-label="Current User"] {
+    order: 2;
+}
+
+/* Sign In button */
+header.MuiAppBar-root .MuiToolbar-root > .MuiButton-root.MuiButton-containedSizeSmall {
+    order: 2;
+}
+
+/* ── Sidebar category headers (parent items with children) ── */
+.MuiListSubheader-root {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.12em !important;
+    color: #94a3b8 !important;
+    padding: 8px 14px 4px !important;
+}
+
+/* ── Sidebar divider ── */
+.MuiList-root > .MuiDivider-root {
+    margin: 6px 12px !important;
+    border-color: #e2e8f0 !important;
+}
+
+/* ── Sidebar user section at bottom ── */
+.MuiDrawer-paper .MuiBox-root:last-child {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 8px;
 }

@@ -36,7 +36,7 @@ function FilterEtatPeriodique() {
     const [selectedRegime, setSelectedRegime] = useState<string>('');
     const dateRangeContext = useDateRange();
     const setDateRange = dateRangeContext?.setDateRange;
-    const {data:emplibs=[]} = useGetEmployee();
+    const {data:emplibs=[]} = useGetEmployee(selectedFiliale, selectedService, undefined, selectedRegime);
     const {empEtatData,selectedEmpLib,} = useContext(EmployeeContext);
     const { mutateAsync: generatePdf } = useGenerateEtatDetaille();
     const { selectedEmpMat } = useContext(EmployeeContext);

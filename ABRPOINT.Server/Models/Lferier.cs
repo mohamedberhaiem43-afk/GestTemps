@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("lferier")]
-public partial class Lferier
+public partial class Lferier : BaseEntity
 {
     [Column("dircod")]
     [StringLength(4)]

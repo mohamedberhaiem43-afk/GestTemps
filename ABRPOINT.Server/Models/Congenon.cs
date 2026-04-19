@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("congenon")]
-public partial class Congenon
+public partial class Congenon : BaseEntity
 {
     [Column("concod")]
     [StringLength(10)]

@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("lpointjour")]
-public partial class Lpointjour
+public partial class Lpointjour : BaseEntity
 {
     [Column("soccod")]
     [StringLength(4)]

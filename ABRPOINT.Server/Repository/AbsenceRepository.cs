@@ -448,13 +448,12 @@ namespace ABRPOINT.Server.Repository
 
                     return includeByRadio;
                 });
-
+            
             return filteredResults
                 .OrderBy(r => r.Date)
                 .ThenBy(r => r.Empcod)
                 .ToList();
         }
-
         public void Delete(Absence absence)
         {
             try

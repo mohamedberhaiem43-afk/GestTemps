@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("emprnd")]
-public partial class Emprnd
+public partial class Emprnd : BaseEntity
 {
     [Column("soccod")]
     [StringLength(6)]

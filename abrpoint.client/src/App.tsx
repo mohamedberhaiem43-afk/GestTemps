@@ -1,380 +1,369 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { ThemeProvider } from "@emotion/react";
-import { createTheme } from "@mui/material/styles";
+import { Box, createTheme, CssBaseline } from "@mui/material";
 import DashboardLayoutBasic from "./components/navigation/Navigation";
-import { BrowserRouter as Router, useNavigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./components/helper/AuthProvider";
+import { BrowserRouter as Router, useLocation } from "react-router-dom";
+import { AuthProvider } from "./components/helper/AuthProvider";
 import LanguageSwitcher from "./components/LanguageSwitcher/LanguageSwitcher";
-import apiInstance from "./components/API/apiInstance";
-import { useTranslation } from "react-i18next";
-import {
-  Badge,
-  Box,
-  IconButton,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Tooltip,
-} from "@mui/material";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 
-const demoTheme = createTheme({
-  palette: {
-    mode: "light",
-    primary: {
-      main: "#f5f5f7", // Vibrant blue for Apple's interactive elements
+// ── Color tokens ──
+const lightTokens = {
+  primary: '#0040a1',
+  primaryLight: '#e0e7ff',
+  bg: '#f7f9fb',
+  paper: '#ffffff',
+  paperAlt: '#f8fafc',
+  text: '#1e293b',
+  textSecondary: '#64748b',
+  textMuted: '#94a3b8',
+  border: '#e2e8f0',
+  borderLight: '#f1f5f9',
+  appBar: 'rgba(255,255,255,0.85)',
+  drawer: '#f8fafc',
+};
+
+const darkTokens = {
+  primary: '#93c5fd',
+  primaryLight: 'rgba(147,197,253,0.12)',
+  bg: '#0f172a',
+  paper: '#1e293b',
+  paperAlt: '#1e293b',
+  text: '#f1f5f9',
+  textSecondary: '#94a3b8',
+  textMuted: '#64748b',
+  border: '#334155',
+  borderLight: '#1e293b',
+  appBar: 'rgba(15,23,42,0.9)',
+  drawer: '#0f172a',
+};
+
+function buildTheme(mode: 'light' | 'dark') {
+  const t = mode === 'dark' ? darkTokens : lightTokens;
+  return createTheme({
+    palette: {
+      mode,
+      primary: { main: mode === 'dark' ? '#93c5fd' : '#0040a1' },
+      secondary: { main: '#ff9500' },
+      background: {
+        default: t.bg,
+        paper: t.paper,
+      },
+      text: {
+        primary: t.text,
+        secondary: t.textSecondary,
+      },
     },
-    secondary: {
-      main: "#ff9500", // Accent orange
+    typography: {
+      fontFamily: "'Inter', 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif",
+      h1: { fontSize: "2.5rem", fontWeight: 600 },
+      h2: { fontSize: "2rem", fontWeight: 600 },
+      body1: { fontSize: "1rem", lineHeight: 1.5 },
+      button: { textTransform: "none", fontWeight: 500 },
     },
-    background: {
-      default: "linear-gradient(180deg, #f7f8fa, #eaeef3)", // Soft shiny gradient
-      paper: "#f5f5f7", // Pure white for card surfaces
-    },
-    text: {
-      primary: "#1d1d1f", // Dark gray for high contrast
-      secondary: "#6e6e73", // Subtle gray for less emphasis
-    },
-  },
-  typography: {
-    fontFamily: "'San Francisco', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif",
-    h1: {
-      fontSize: "2.5rem",
-      fontWeight: 600,
-    },
-    h2: {
-      fontSize: "2rem",
-      fontWeight: 600,
-    },
-    body1: {
-      fontSize: "1rem",
-      lineHeight: 1.5,
-    },
-    button: {
-      textTransform: "none", // No uppercase for a more natural look
-      fontWeight: 500,
-    },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: "8px",
-          padding: "10px 20px",
-          boxShadow: "none",
-          ":hover": {
-            backgroundColor: "#f5f5f7",
-            boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)",
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: "8px",
+            padding: "10px 20px",
+            boxShadow: "none",
+            ...(mode === 'light'
+              ? { ':hover': { backgroundColor: "#f5f5f7", boxShadow: "0px 1px 3px rgba(0,0,0,0.1)" } }
+              : { ':hover': { boxShadow: "0px 1px 3px rgba(0,0,0,0.3)" } }
+            ),
+          },
+        },
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            borderRadius: "12px",
+            padding: "12px",
+            backgroundImage: 'none',
+            ...(mode === 'light'
+              ? { boxShadow: "0px 4px 6px rgba(0,0,0,0.1)" }
+              : { boxShadow: "0px 4px 6px rgba(0,0,0,0.4)", border: `1px solid ${t.border}` }
+            ),
+          },
+        },
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: t.drawer,
+            borderRight: `1px solid ${t.border}`,
+            backgroundImage: 'none',
+            boxShadow: 'none',
+          },
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: '12px',
+            margin: '4px 12px',
+            fontFamily: "'Manrope', sans-serif",
+            fontSize: '13px',
+            fontWeight: 600,
+            color: t.textSecondary,
+            padding: '10px 16px',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              backgroundColor: mode === 'dark' ? 'rgba(147,197,253,0.08)' : '#f1f5f9',
+              color: t.text,
+            },
+            '&.Mui-selected': {
+              backgroundColor: mode === 'dark' ? 'rgba(147,197,253,0.12)' : '#ffffff',
+              color: mode === 'dark' ? '#93c5fd' : '#0040a1',
+              fontWeight: 800,
+              boxShadow: mode === 'dark' ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.05)',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                left: 0,
+                top: '20%',
+                bottom: '20%',
+                width: '4px',
+                backgroundColor: mode === 'dark' ? '#93c5fd' : '#0040a1',
+                borderRadius: '0 4px 4px 0',
+              },
+              '&:hover': { backgroundColor: mode === 'dark' ? 'rgba(147,197,253,0.15)' : '#ffffff' },
+            },
+          },
+        },
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: t.appBar,
+            backdropFilter: 'blur(20px)',
+            borderBottom: `1px solid ${t.borderLight}`,
+            boxShadow: 'none',
+            color: t.text,
+            backgroundImage: 'none',
+          },
+        },
+      },
+      MuiListItemIcon: {
+        styleOverrides: {
+          root: {
+            minWidth: '32px',
+            color: 'inherit',
+            '& .MuiSvgIcon-root': { fontSize: '20px' },
+          },
+        },
+      },
+      MuiToolbar: {
+        styleOverrides: { root: { minHeight: '64px !important' } },
+      },
+      MuiTextField: {
+        styleOverrides: {
+          root: mode === 'dark' ? {
+            '& .MuiOutlinedInput-root': {
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
+              '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+              '&.Mui-focused fieldset': { borderColor: '#93c5fd' },
+              '& input': { color: '#f1f5f9' },
+            },
+            '& .MuiInputLabel-root': { color: '#94a3b8' },
+          } : {},
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: mode === 'dark' ? {
+            '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
+            '& input': { color: '#f1f5f9' },
+            '& textarea': { color: '#f1f5f9' },
+          } : {},
+        },
+      },
+      MuiSelect: {
+        styleOverrides: {
+          root: mode === 'dark' ? {
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            color: '#f1f5f9',
+            '& .MuiSelect-select': { color: '#f1f5f9' },
+          } : {},
+        },
+      },
+      MuiMenuItem: {
+        styleOverrides: {
+          root: mode === 'dark' ? {
+            color: '#f1f5f9',
+            '&:hover': { backgroundColor: 'rgba(147,197,253,0.08)' },
+          } : {},
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: mode === 'dark' ? {
+            backgroundColor: '#1e293b',
+            border: '1px solid #334155',
+          } : {},
+        },
+      },
+      MuiSnackbar: {
+        styleOverrides: {
+          root: mode === 'dark' ? {} : {},
+        },
+      },
+      MuiAlert: {
+        styleOverrides: {
+          root: mode === 'dark' ? {} : {},
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: mode === 'dark' ? {
+            borderColor: 'rgba(255,255,255,0.15)',
+          } : {},
+        },
+      },
+      MuiTable: {
+        styleOverrides: {
+          root: mode === 'dark' ? {
+            '& th': { color: '#94a3b8', borderBottomColor: '#334155' },
+            '& td': { color: '#e2e8f0', borderBottomColor: '#334155' },
+          } : {},
+        },
+      },
+      MuiPopover: {
+        styleOverrides: {
+          paper: mode === 'dark' ? {
+            backgroundColor: '#1e293b',
+            border: '1px solid #334155',
+          } : {},
+        },
+      },
+      MuiDivider: {
+        styleOverrides: {
+          root: mode === 'dark' ? {
+            borderColor: 'rgba(255,255,255,0.08)',
+          } : {},
+        },
+      },
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: mode === 'dark' ? {
+            backgroundColor: '#334155',
+            color: '#f1f5f9',
+          } : {},
+        },
+      },
+      MuiCircularProgress: {
+        styleOverrides: {
+          root: {
+            color: mode === 'dark' ? '#93c5fd' : '#0040a1',
           },
         },
       },
     },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: "12px",
-          padding: "12px",
-          boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-        },
-      },
+    breakpoints: {
+      values: { xs: 200, sm: 600, md: 960, lg: 1280, xl: 1920 },
+    },
+  });
+}
+
+// ── Dark Mode Context ──
+import { createContext, useContext } from 'react';
+import { QueryClient, QueryClientProvider } from "react-query";
+import NotificationCenter from "./components/navigation/NotificationCenter";
+
+interface ThemeModeContextType {
+  mode: 'light' | 'dark';
+  toggleTheme: () => void;
+}
+
+const ThemeModeContext = createContext<ThemeModeContextType>({
+  mode: 'light',
+  toggleTheme: () => { },
+});
+
+export const useThemeMode = () => useContext(ThemeModeContext);
+
+
+function TopBarActions() {
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/";
+  const searchParams = new URLSearchParams(location.search);
+  const isFicheCollaborateur = location.pathname.includes('gestion-employe') &&
+    (searchParams.has('id') || searchParams.has('new'));
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (isLoginPage || !mounted || isFicheCollaborateur) {
+    return null;
+  }
+
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        right: 50,
+        top: 16,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <LanguageSwitcher />
+      <NotificationCenter />
+    </Box>
+  );
+}
+
+function AppContent() {
+  const [mode, setMode] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme-mode');
+    return (saved === 'dark' || saved === 'light') ? saved : 'light';
+  });
+
+  const toggleTheme = () => {
+    setMode(prev => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme-mode', next);
+      return next;
+    });
+  };
+
+  const theme = useMemo(() => buildTheme(mode), [mode]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', mode);
+  }, [mode]);
+
+  return (
+    <ThemeModeContext.Provider value={{ mode, toggleTheme }}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
+          <AuthProvider>
+            <TopBarActions />
+            <DashboardLayoutBasic />
+          </AuthProvider>
+        </Router>
+      </ThemeProvider>
+    </ThemeModeContext.Provider>
+  );
+}
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30_000,
     },
   },
 });
-
-function AdminNotifications() {
-  const { utiadm, soccod, uticod } = useAuth();
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const isAdmin = utiadm === "1";
-  const pendingCount = notifications.length;
-  const notificationsOpen = Boolean(anchorEl);
-
-  const isPendingLeaveRequest = (conge: any) => {
-    const normalizedEtat = conge.etat?.trim().toLowerCase() || "";
-    const isRefused = conge.conrefus === "1" || normalizedEtat.includes("refus") || normalizedEtat.includes("refused");
-    const isPending = normalizedEtat.includes("attente") || normalizedEtat.includes("pending") || (!normalizedEtat && conge.conrefus !== "1");
-    return !isRefused && isPending;
-  };
-
-  const fetchLeaveNotifications = async () => {
-    if (!isAdmin || !soccod || !uticod) {
-      setNotifications([]);
-      return;
-    }
-
-    setIsLoadingNotifications(true);
-    try {
-      const response = await apiInstance.get(`/DemConges/get-demconge/${soccod}/${uticod}`);
-      const data = Array.isArray(response.data) ? response.data : [];
-      const pendingRequests = data.filter(isPendingLeaveRequest);
-      setNotifications(pendingRequests);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des notifications de congé :", error);
-      setNotifications([]);
-    } finally {
-      setIsLoadingNotifications(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLeaveNotifications();
-    const intervalId = setInterval(fetchLeaveNotifications, 60000);
-    return () => clearInterval(intervalId);
-  }, [isAdmin, soccod, uticod]);
-
-  const handleNotificationClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleNotificationClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleViewLeaveRequests = () => {
-    setAnchorEl(null);
-    navigate("/dashboard/gestion-de-conge");
-  };
-
-  if (!isAdmin) {
-    return null;
-  }
-
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Tooltip
-        title={
-          pendingCount > 0
-            ? t("notifications.pendingTooltip", {
-                count: pendingCount,
-              }) || `${pendingCount} demande(s) de congé en attente`
-            : t("notifications.noPendingTooltip") || "Aucune nouvelle demande de congé"
-        }
-      >
-        <IconButton
-          onClick={handleNotificationClick}
-          size="large"
-          sx={{
-            bgcolor: pendingCount > 0 ? "rgba(244, 67, 54, 0.08)" : "transparent",
-            border: pendingCount > 0 ? "1px solid rgba(244, 67, 54, 0.3)" : "none",
-            color: pendingCount > 0 ? "#d32f2f" : "inherit",
-            '&:hover': {
-              bgcolor: pendingCount > 0 ? "rgba(244, 67, 54, 0.12)" : "rgba(0, 0, 0, 0.04)",
-            },
-          }}
-        >
-          <Badge badgeContent={pendingCount} color={pendingCount > 0 ? "error" : "default"}>
-            <NotificationsIcon sx={{ fontSize: 28 }} />
-          </Badge>
-        </IconButton>
-      </Tooltip>
-
-      {pendingCount > 0 && (
-        <Box
-          sx={{
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 2,
-            bgcolor: "rgba(244, 67, 54, 0.12)",
-            color: "#d32f2f",
-            fontSize: "0.85rem",
-            fontWeight: 600,
-          }}
-        >
-          {t("notifications.pendingRequests", {
-            count: pendingCount,
-          }) || `${pendingCount} demande(s) en attente`}
-        </Box>
-      )}
-
-      <Menu anchorEl={anchorEl} open={notificationsOpen} onClose={handleNotificationClose}>
-        <MenuItem disabled>
-          {isLoadingNotifications
-            ? t("notifications.loading") || "Chargement..."
-            : pendingCount > 0
-            ? t("notifications.newLeaveRequests", { count: pendingCount }) || `${pendingCount} nouvelles demandes de congé`
-            : t("notifications.noNewLeaveRequests") || "Aucune nouvelle demande de congé"}
-        </MenuItem>
-        {!isLoadingNotifications && pendingCount > 0 && notifications.slice(0, 3).map((conge) => (
-          <MenuItem key={`${conge.concod}-${conge.empcod}`}>
-            <ListItemText
-              primary={`${conge.empcod || ""} — ${conge.concod || ""}`}
-              secondary={conge.condat ? new Date(conge.condat).toLocaleDateString() : ""}
-            />
-          </MenuItem>
-        ))}
-        {!isLoadingNotifications && pendingCount > 0 && (
-          <MenuItem onClick={handleViewLeaveRequests}>
-            <ListItemText primary={t("notifications.viewLeaveRequests") || "Voir les demandes de congé"} />
-          </MenuItem>
-        )}
-        {!isLoadingNotifications && pendingCount === 0 && (
-          <MenuItem onClick={fetchLeaveNotifications}>
-            <ListItemText primary={t("notifications.refresh") || "Actualiser"} />
-          </MenuItem>
-        )}
-      </Menu>
-    </Box>
-  );
-}
-
-function EmployeeNotifications() {
-  const { utiadm, soccod, uticod } = useAuth();
-  const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const isEmployee = utiadm !== "1";
-  const approvedCount = notifications.length;
-  const notificationsOpen = Boolean(anchorEl);
-
-  const fetchApprovedNotifications = async () => {
-    if (!isEmployee || !soccod || !uticod) {
-      setNotifications([]);
-      return;
-    }
-
-    setIsLoadingNotifications(true);
-    try {
-      const response = await apiInstance.get(`/DemConges/get-emp-demconge/${soccod}/${uticod}`);
-      const data = Array.isArray(response.data) ? response.data : [];
-      const approvedRequests = data.filter((req: any) => req.etat === "Accepté");
-      setNotifications(approvedRequests);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des notifications d'approbation :", error);
-      setNotifications([]);
-    } finally {
-      setIsLoadingNotifications(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchApprovedNotifications();
-    const intervalId = setInterval(fetchApprovedNotifications, 60000);
-    return () => clearInterval(intervalId);
-  }, [isEmployee, soccod, uticod]);
-
-  const handleNotificationClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleNotificationClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleViewLeaveRequests = () => {
-    setAnchorEl(null);
-    navigate("/dashboard");
-  };
-
-  if (!isEmployee) {
-    return null;
-  }
-
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Tooltip
-        title={
-          approvedCount > 0
-            ? `${approvedCount} demande(s) de congé approuvée(s)`
-            : "Aucune demande approuvée récemment"
-        }
-      >
-        <IconButton
-          onClick={handleNotificationClick}
-          size="large"
-          sx={{
-            bgcolor: approvedCount > 0 ? "rgba(76, 175, 80, 0.08)" : "transparent",
-            border: approvedCount > 0 ? "1px solid rgba(76, 175, 80, 0.3)" : "none",
-            color: approvedCount > 0 ? "#2e7d32" : "inherit",
-            '&:hover': {
-              bgcolor: approvedCount > 0 ? "rgba(76, 175, 80, 0.12)" : "rgba(0, 0, 0, 0.04)",
-            },
-          }}
-        >
-          <Badge badgeContent={approvedCount} color={approvedCount > 0 ? "success" : "default"}>
-            <NotificationsIcon sx={{ fontSize: 28 }} />
-          </Badge>
-        </IconButton>
-      </Tooltip>
-
-      {approvedCount > 0 && (
-        <Box
-          sx={{
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 2,
-            bgcolor: "rgba(76, 175, 80, 0.12)",
-            color: "#2e7d32",
-            fontSize: "0.85rem",
-            fontWeight: 600,
-          }}
-        >
-          {`${approvedCount} approuvée(s)`}
-        </Box>
-      )}
-
-      <Menu anchorEl={anchorEl} open={notificationsOpen} onClose={handleNotificationClose}>
-        <MenuItem disabled>
-          {isLoadingNotifications
-            ? "Chargement..."
-            : approvedCount > 0
-            ? `${approvedCount} demande(s) approuvée(s)`
-            : "Aucune demande approuvée"}
-        </MenuItem>
-        {!isLoadingNotifications && approvedCount > 0 && notifications.slice(0, 3).map((req) => (
-          <MenuItem key={req.concod}>
-            <ListItemText
-              primary={`Demande ${req.concod}`}
-              secondary={req.condat ? new Date(req.condat).toLocaleDateString() : ""}
-            />
-          </MenuItem>
-        ))}
-        {!isLoadingNotifications && approvedCount > 0 && (
-          <MenuItem onClick={handleViewLeaveRequests}>
-            <ListItemText primary="Voir mes demandes de congé" />
-          </MenuItem>
-        )}
-        {!isLoadingNotifications && approvedCount === 0 && (
-          <MenuItem onClick={fetchApprovedNotifications}>
-            <ListItemText primary="Actualiser" />
-          </MenuItem>
-        )}
-      </Menu>
-    </Box>
-  );
-}
-
 function App() {
   return (
-
-    <ThemeProvider theme={demoTheme}>
-      <Router>
-        <AuthProvider>
-          <Box
-            sx={{
-              position: "fixed",
-              top: 10,
-              right: 70,
-              zIndex: 2000,
-              p: 2,
-              display: "flex",
-              gap: 1,
-              alignItems: "center",
-            }}
-          >
-            <AdminNotifications />
-            <EmployeeNotifications />
-            <LanguageSwitcher />
-          </Box>
-          <DashboardLayoutBasic />
-        </AuthProvider>
-      </Router>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
+    </QueryClientProvider>
   );
 }
 

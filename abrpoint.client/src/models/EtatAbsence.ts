@@ -16,7 +16,8 @@ export default interface EtatAbsence {
   absnj?: number | null;
   map?: number | null;
   autsp?: number | null;
+  autsnp?: number | null;
   css?: number | null;
-  absjourretard?: number | null;
+  absjourretard?: string | null;
   absence?: number | null;
 }

@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("lposte")]
 [PrimaryKey("Codposte","Soccod")]
-public partial class Lposte
+public partial class Lposte : BaseEntity
 {
 
     [Column("codposte")]

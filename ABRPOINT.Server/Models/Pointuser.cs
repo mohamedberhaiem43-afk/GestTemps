@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("pointuser")]
-public partial class Pointuser
+public partial class Pointuser : BaseEntity
 {
     [Column("TEMPLATEID")]
     public int Templateid { get; set; }

@@ -1,94 +1,119 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="02/03/2025 12:04:27" ReportInfo.Modified="03/08/2026 19:42:28" ReportInfo.CreatorVersion="2024.1.7.0">
-  <ScriptText>using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Windows.Forms;
-using System.Drawing;
-using System.Data;
-using FastReport;
-using FastReport.Data;
-using FastReport.Dialog;
-using FastReport.Barcode;
-using FastReport.Table;
-using FastReport.Utils;
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp">
 
-namespace FastReport
-{
-  public class ReportScript
-  {
-    
-  }
-}
-</ScriptText>
-  <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM3C28+N5w43x7FcfjEUsomm">
-      <TableDataSource Name="Table" Alias="empcongedata" DataType="System.Int32" Enabled="true" SelectCommand="SELECT  e.emplib,&#13;&#10;	e.empfonc,&#13;&#10;	e.empadr,&#13;&#10;	e.emptel,&#13;&#10;	e.empmob,&#13;&#10;	c.condat,&#13;&#10;	concod,&#13;&#10;	condep,&#13;&#10;	conret,&#13;&#10;	connbjour,&#13;&#10;	s.soccod,&#13;&#10;	s.soclib,&#13;&#10;	s.soctel,&#13;&#10;	s.socfax,&#13;&#10;	s.socadr,&#13;&#10;	a.abscng&#13;&#10;FROM EMPLOYE e,Conge c,Societe s,absence a&#13;&#10;WHERE concod = @Concod AND c.empcod = e.empcod AND s.soccod = c.soccod and a.soccod=s.soccod and a.abscod=c.abscod">
-        <Column Name="emplib" DataType="System.String"/>
-        <Column Name="empfonc" DataType="System.String"/>
-        <Column Name="empadr" DataType="System.String"/>
-        <Column Name="emptel" DataType="System.String"/>
-        <Column Name="empmob" DataType="System.String"/>
-        <Column Name="condat" DataType="System.DateTime"/>
-        <Column Name="concod" DataType="System.String"/>
-        <Column Name="condep" DataType="System.DateTime"/>
-        <Column Name="conret" DataType="System.DateTime"/>
-        <Column Name="connbjour" DataType="System.Single"/>
-        <Column Name="soccod" DataType="System.String"/>
-        <Column Name="soclib" DataType="System.String"/>
-        <Column Name="soctel" DataType="System.String"/>
-        <Column Name="socfax" DataType="System.String"/>
-        <Column Name="socadr" DataType="System.String"/>
-        <Column Name="abscng" DataType="System.String"/>
-        <CommandParameter Name="Concod" DataType="22" Expression="[Concod]"/>
-      </TableDataSource>
-    </MsSqlDataConnection>
-  </Dictionary>
-  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
-    <ReportTitleBand Name="ReportTitle1" Width="718.2"/>
-    <PageHeaderBand Name="PageHeader1" Top="3.2" Width="718.2" Height="75.6">
-      <TextObject Name="Text1" Left="302.4" Top="9.45" Width="179.55" Height="18.9" Text="ENREGISTREMENT" HorzAlign="Center" Font="Arial, 12pt, style=Bold"/>
-      <TextObject Name="Text2" Left="292.95" Top="28.35" Width="217.35" Height="18.9" Text="DEMANDE DE CONGE" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text4" Left="567" Top="28.35" Width="85.05" Height="18.9" Text="Révision" HorzAlign="Center" Font="Arial, 12pt"/>
-      <LineObject Name="Line2" Left="226.8" Top="75.6" Height="-75.6"/>
-      <ShapeObject Name="Shape1" Width="718.2" Height="75.6"/>
-      <TextObject Name="Text29" Left="340.2" Top="56.7" Width="179.55" Height="18.9" Text="[empcongedata.concod]" Font="Arial, 12pt"/>
-      <TextObject Name="Text3" Left="292.95" Top="56.7" Width="28.35" Height="18.9" Text="N°" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text28" Left="595.35" Top="47.25" Width="113.4" Height="18.9" Text="[empcongedata.condat]" Format="Date" Format.Format="d" Font="Arial, 12pt"/>
-      <TextObject Name="Text5" Left="557.55" Top="47.25" Width="37.8" Height="18.9" Text="Le" HorzAlign="Center" Font="Arial, 12pt"/>
-      <LineObject Name="Line1" Left="557.55" Top="75.6" Height="-75.6"/>
-      <TextObject Name="Text32" Left="9.45" Top="13.72" Width="207.9" Height="37.8" Text="[empcongedata.soclib]" HorzAlign="Center" VertAlign="Bottom" Font="Arial, 12pt, style=Bold"/>
-    </PageHeaderBand>
-    <DataBand Name="Data1" Top="82" Width="718.2" Height="689.85" DataSource="Table">
-      <TextObject Name="Text6" Top="127.12" Width="132.3" Height="18.9" Text="Nom et Prénom:" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text7" Top="164.92" Width="85.05" Height="18.9" Text="Fonction:" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text8" Top="202.72" Width="85.05" Height="18.9" Text="Adresse:" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text9" Left="548.1" Top="117.67" Width="151.2" Height="28.35" Text="Congé annuel" HorzAlign="Center" VertAlign="Bottom" Font="Arial, 12pt"/>
-      <TextObject Name="Text10" Left="548.1" Top="155.47" Width="170.1" Height="28.35" Text="Congé de Maladie" HorzAlign="Center" VertAlign="Bottom" Font="Arial, 12pt"/>
-      <TextObject Name="Text12" Left="548.1" Top="193.27" Width="170.1" Height="37.8" Text="Congé sans solde" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text13" Left="548.1" Top="240.52" Width="189" Height="28.35" Text="Congé exceptionnel" HorzAlign="Center" VertAlign="Bottom" Font="Arial, 12pt"/>
-      <TextObject Name="Text14" Top="268.87" Width="37.8" Height="18.9" Text="Tél:" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text15" Left="170.1" Top="268.87" Width="85.05" Height="18.9" Text="Mobile:" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text16" Top="325.57" Width="708.75" Height="75.6" Text="Monsieur le Directeur Général de la Société [empcongedata.soclib] priére de m'accorder un congé de [empcongedata.connbjour] jour(s) &#13;&#10;au titre de congé et ce pour la période allant du [FormatDateTime([empcongedata.condep],&quot;dd/MM/yyyy&quot;)] au [FormatDateTime([empcongedata.conret],&quot;dd/MM/yyyy&quot;)] inclus date de retour: [FormatDateTime([empcongedata.conret],&quot;dd/MM/yyyy&quot;)]&#13;&#10;" Font="Arial, 12pt"/>
-      <TextObject Name="Text17" Left="9.45" Top="410.62" Width="292.95" Height="18.9" Text="Solde de congé M-1 : ...jours" Font="Arial, 12pt, style=Bold"/>
-      <TextObject Name="Text18" Left="9.45" Top="448.42" Width="217.35" Height="18.9" Text="Signature de l'employé" Font="Arial, 12pt"/>
-      <TextObject Name="Text19" Left="453.6" Top="79.87" Width="160.65" Height="18.9" Text="[empcongedata.socadr] LE" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text20" Left="614.25" Top="79.87" Width="103.95" Height="18.9" Text="[empcongedata.condat]" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text23" Left="132.3" Top="127.12" Width="179.55" Height="18.9" Text="[empcongedata.emplib]" Font="Arial, 12pt"/>
-      <TextObject Name="Text24" Left="85.05" Top="164.92" Width="236.25" Height="18.9" Text="[empcongedata.empfonc]" Font="Arial, 12pt"/>
-      <TextObject Name="Text25" Left="85.05" Top="202.72" Width="189" Height="18.9" Text="[empcongedata.empadr]" Font="Arial, 12pt"/>
-      <TextObject Name="Text26" Left="245.7" Top="268.87" Width="189" Height="18.9" Text="[empcongedata.empmob]" Font="Arial, 12pt"/>
-      <TextObject Name="Text27" Left="37.8" Top="268.87" Width="122.85" Height="18.9" Text="[empcongedata.emptel]" Font="Arial, 12pt"/>
-      <CellularTextObject Name="CellularText1" Left="510.3" Top="117.67" Width="28.35" Height="28.35" Text="[[empcongedata.abscng] == &quot;0&quot; ? &quot;X&quot; : &quot;&quot;]" Font="Arial, 12pt, style=Bold"/>
-      <CellularTextObject Name="CellularText2" Left="510.3" Top="155.47" Width="28.35" Height="28.35" Text="[[empcongedata.abscng] == &quot;N&quot; ? &quot;X&quot; : &quot;&quot;]" Font="Arial, 12pt, style=Bold"/>
-      <CellularTextObject Name="CellularText3" Left="510.3" Top="202.72" Width="28.35" Height="28.35" Text="[[empcongedata.abscng] == &quot;5&quot; ? &quot;X&quot; : &quot;&quot;]" Font="Arial, 12pt, style=Bold"/>
-      <CellularTextObject Name="CellularText4" Left="510.3" Top="240.52" Width="28.35" Height="28.35" Text="[[empcongedata.abscng] != &quot;0&quot; &amp;&amp; [empcongedata.abscng] != &quot;N&quot; &amp;&amp; [empcongedata.abscng] != &quot;5&quot; ? &quot;X&quot; : &quot;&quot;]" Font="Arial, 12pt, style=Bold"/>
-      <TextObject Name="Text21" Left="302.4" Top="528.28" Width="37.8" Height="18.9" Text="Tél:" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text22" Left="434.7" Top="528.28" Width="37.8" Height="18.9" Text="Fax:" HorzAlign="Center" Font="Arial, 12pt"/>
-      <TextObject Name="Text30" Left="349.65" Top="528.28" Width="94.5" Height="18.9" Text="[empcongedata.soctel]" Font="Arial, 12pt"/>
-      <TextObject Name="Text31" Left="472.5" Top="528.28" Width="94.5" Height="18.9" Text="[empcongedata.socfax]" Font="Arial, 12pt"/>
-    </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="775.05" Width="718.2" Height="18.9"/>
-  </ReportPage>
+	<Dictionary>
+
+		<!-- PARAMETRE -->
+		<Parameter Name="Concod" DataType="System.String"/>
+
+		<MsSqlDataConnection Name="Connection" ConnectionString="YOUR_CONNECTION">
+
+			<TableDataSource Name="Table" Enabled="true"
+			  SelectCommand="
+SELECT  
+  e.emplib,
+  e.empfonc,
+  e.empadr,
+  e.emptel,
+  e.empmob,
+  c.condat,
+  c.concod,
+  c.condep,
+  c.conret,
+  c.connbjour,
+  s.soclib,
+  s.socadr,
+  a.abscng
+FROM EMPLOYE e
+JOIN Conge c ON c.empcod = e.empcod
+JOIN Societe s ON s.soccod = c.soccod
+JOIN absence a ON a.soccod = s.soccod AND a.abscod = c.abscod
+WHERE c.concod = @Concod">
+
+				<!-- COLUMNS -->
+				<Column Name="emplib" DataType="System.String"/>
+				<Column Name="empfonc" DataType="System.String"/>
+				<Column Name="empadr" DataType="System.String"/>
+				<Column Name="emptel" DataType="System.String"/>
+				<Column Name="empmob" DataType="System.String"/>
+				<Column Name="condat" DataType="System.DateTime"/>
+				<Column Name="condep" DataType="System.DateTime"/>
+				<Column Name="conret" DataType="System.DateTime"/>
+				<Column Name="connbjour" DataType="System.Double"/>
+				<Column Name="soclib" DataType="System.String"/>
+				<Column Name="socadr" DataType="System.String"/>
+				<Column Name="abscng" DataType="System.String"/>
+
+				<!-- PARAM -->
+				<CommandParameter Name="Concod" DataType="22" Expression="[Concod]" />
+
+			</TableDataSource>
+
+		</MsSqlDataConnection>
+	</Dictionary>
+
+	<ReportPage Name="Page1">
+
+		<!-- HEADER -->
+		<PageHeaderBand Height="80">
+
+			<TextObject Left="250" Top="10" Width="250"
+			  Text="DEMANDE DE CONGE"
+			  HorzAlign="Center"
+			  Font="Arial, 14pt, style=Bold"/>
+
+			<TextObject Left="10" Top="10"
+			  Text="[UpperCase([Table.soclib])]"/>
+
+			<TextObject Left="500" Top="10"
+			  Text="[FormatDateTime([Table.condat], &quot;dd/MM/yyyy&quot;)]"/>
+
+		</PageHeaderBand>
+
+		<!-- DATA -->
+		<DataBand Name="Data1" DataSource="Table" Height="600">
+
+			<TextObject Left="10" Top="20" Text="Nom:"/>
+			<TextObject Left="150" Top="20" Text="[Table.emplib]"/>
+
+			<TextObject Left="10" Top="50" Text="Fonction:"/>
+			<TextObject Left="150" Top="50" Text="[Table.empfonc]"/>
+
+			<TextObject Left="10" Top="80" Text="Adresse:"/>
+			<TextObject Left="150" Top="80" Text="[Table.empadr]"/>
+
+			<TextObject Left="10" Top="110" Text="Téléphone:"/>
+			<TextObject Left="150" Top="110" Text="[Table.emptel]"/>
+
+			<TextObject Left="10" Top="140" Text="Mobile:"/>
+			<TextObject Left="150" Top="140" Text="[Table.empmob]"/>
+
+			<!-- TEXTE -->
+			<TextObject Left="10" Top="200" Width="700"
+			  Text="Je demande un congé de [Table.connbjour] jour(s) du [FormatDateTime([Table.condep], &quot;dd/MM/yyyy&quot;)] au [FormatDateTime([Table.conret], &quot;dd/MM/yyyy&quot;)]"/>
+
+			<!-- TYPE -->
+			<TextObject Left="500" Top="20" Text="Congé annuel"/>
+			<TextObject Left="500" Top="50" Text="Maladie"/>
+			<TextObject Left="500" Top="80" Text="Sans solde"/>
+			<TextObject Left="500" Top="110" Text="Exceptionnel"/>
+
+			<!-- CHECK -->
+			<TextObject Left="460" Top="20"
+			  Text="[Table.abscng] == &quot;0&quot; ? &quot;X&quot; : &quot;&quot;"/>
+
+			<TextObject Left="460" Top="50"
+			  Text="[Table.abscng] == &quot;N&quot; ? &quot;X&quot; : &quot;&quot;"/>
+
+			<TextObject Left="460" Top="80"
+			  Text="[Table.abscng] == &quot;5&quot; ? &quot;X&quot; : &quot;&quot;"/>
+
+			<TextObject Left="460" Top="110"
+			  Text="[Table.abscng] != &quot;0&quot; &amp;&amp; [Table.abscng] != &quot;N&quot; &amp;&amp; [Table.abscng] != &quot;5&quot; ? &quot;X&quot; : &quot;&quot;"/>
+
+			<TextObject Left="10" Top="350" Text="Signature Employé"/>
+
+		</DataBand>
+
+	</ReportPage>
 </Report>

@@ -610,16 +610,11 @@ namespace ABRPOINT.Server.CalculService.DashboardService
             DateTime dateDebut,
             DateTime dateFin)
         {
-            var startDate = dateDebut.Date;
-            var endDate = dateFin.Date;
-
+            // Count ALL pending leave requests (not yet approved) for the company
+            // regardless of date range - a pending request has no matching Conge
             return await _context.Demconges
                 .Where(d =>
                     d.Soccod == soccod &&
-                    d.Condep.HasValue &&
-                    d.Conret.HasValue &&
-                    d.Condep.Value.Date >= startDate &&
-                    d.Conret.Value.Date <= endDate &&
                     empcodes.Contains(d.Empcod) &&
                     !_context.Conges.Any(c =>
                         c.Soccod == d.Soccod &&

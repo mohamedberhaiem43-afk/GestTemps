@@ -19,6 +19,23 @@ namespace ABRPOINT.Server.Controllers
             _autoriserRepository = autoriserRepository;
             _reportsGenerationService = reportsGenerationService;
         }
+        // GET: api/Autorisers/my-auths/{soccod}/{empcod} - Employee self-service (no special permission needed)
+        [HttpGet("my-auths/{soccod}/{empcod}")]
+        public async Task<IActionResult> GetMyAuthorizations(string soccod, string empcod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(empcod))
+                return BadRequest("Veuillez remplir les champs obligatoires");
+            try
+            {
+                List<AutoriserEmployeDto> result = await _autoriserRepository.GetAutoriserWithAbsenceAsync(soccod, empcod);
+                return Ok(result ?? new List<AutoriserEmployeDto>());
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+        }
+
         // GET: api/<DirectionsController>
         [HttpGet("{soccod}/{uticod}")]
         [CanGetAutSortie]
@@ -79,6 +96,23 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+
+        // POST api/Autorisers/my-auth - Employee self-service create (no special permission)
+        [HttpPost("my-auth")]
+        public IActionResult PostMyAuthorization([FromBody] Autoriser autoriser)
+        {
+            if (autoriser == null)
+                return BadRequest("Veuillez saisir les champs obligatoires");
+            try
+            {
+                _autoriserRepository.Add(autoriser);
+                return Ok(new { message = "Autorisation de sortie envoyée avec succès", concod = autoriser.Concod });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+        }
 
         // POST api/<DirectionsController>
         [HttpPost]

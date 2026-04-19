@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "ABRPOINT Mobile",
+    "slug": "abrpoint-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1a237e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.abrpoint.mobile"
+    },
+    "android": {
+      "package": "com.abrpoint.mobile"
+    },
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-camera",
+      "expo-image-picker"
+    ]
+  }
+}

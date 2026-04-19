@@ -57,9 +57,14 @@ const handleOpenSanctionDialog = (row: EmpEtat, value: string) => {
   }
 };
   const formatDateToLocalISO = (date: Date): string => {
-    const tzOffset = date.getTimezoneOffset() * 60000;
-    const localISODate = new Date(date.getTime() - tzOffset).toISOString().slice(0, -1);
-    return localISODate;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
   };
   const [fetchSanctionParams, setFetchSanctionParams] = useState<{
   date: string; empcod: string;

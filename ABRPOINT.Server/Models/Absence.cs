@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [Table("absence")]
 [PrimaryKey("Abscod", "Soccod")]
-public partial class Absence
+public partial class Absence : BaseEntity
 {
     [Required]
     [Column("abscod")]

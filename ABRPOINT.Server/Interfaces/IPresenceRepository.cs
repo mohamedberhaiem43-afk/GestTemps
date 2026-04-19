@@ -22,5 +22,7 @@ namespace ABRPOINT.Server.Interfaces
         Task<GlobalStatistics?> GetGlobalStatistics();
         Task<bool> UpdateTotcmp(string soccod, string empcod, DateTime date, float totcmp);
         Task<PresenceDto> GetAsync(string soccod, string empcod, DateTime predat);
+        Task<List<DailyPointageDto>> GetDailyPointageAsync(string soccod, DateTime date);
+        Task<EntryReminderDto> GetEntryReminderAsync(string soccod, string empcod);
     }
 }

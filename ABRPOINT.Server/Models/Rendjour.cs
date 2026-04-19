@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("rendjour")]
-public partial class Rendjour
+public partial class Rendjour : BaseEntity
 {
     [Column("empcod")]
     [StringLength(12)]

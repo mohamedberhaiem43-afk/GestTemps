@@ -1,7 +1,349 @@
-.login-page
- {
-    text-align: center;
-    position: relative;
-    padding: 20px;
-    left: 80%;
- }
+/* ── Hide app bar and toolbar elements when login is shown ─────────────── */
+body:has(.login-root) header.MuiAppBar-root,
+body:has(.login-root) .MuiToolbar-root,
+body:has(.login-root) .MuiAppBar-root {
+  display: none !important;
+}
+
+/* ── Root Layout ──────────────────────────────────────────────────────────── */
+.login-root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  background-color: #f7f9fb;
+}
+
+/* ── Left Side: Architectural Canvas ─────────────────────────────────────── */
+.login-left {
+  display: none;
+  width: 58.333%;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .login-left {
+    display: flex;
+  }
+}
+
+.login-left-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.login-left-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.login-left-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 64, 161, 0.1);
+  mix-blend-mode: multiply;
+}
+
+.login-left-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 64, 161, 0.4), transparent);
+}
+
+.login-left-content {
+  position: relative;
+  z-index: 1;
+  padding: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.login-left-text {
+  max-width: 560px;
+}
+
+.login-left-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 48px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-bottom: 24px;
+}
+
+.login-left-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  color: #ccd8ff;
+  opacity: 0.9;
+  max-width: 448px;
+  line-height: 1.6;
+}
+
+/* Logo overlay */
+.login-left-logo {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.login-logo-icon {
+  width: 40px;
+  height: 40px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.login-logo-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+}
+
+/* ── Right Side: Login Form ──────────────────────────────────────────────── */
+.login-right {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background-color: #f7f9fb;
+}
+
+@media (min-width: 1024px) {
+  .login-right {
+    width: 41.667%;
+    padding: 48px;
+  }
+}
+
+.login-form-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* ── Language Selector ───────────────────────────────────────────────────── */
+.login-lang-selector {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 32px;
+}
+
+.login-lang-wrap {
+  display: flex;
+  align-items: center;
+  background: #f2f4f6;
+  border-radius: 9999px;
+  padding: 4px;
+  border: 1px solid rgba(195, 198, 214, 0.15);
+}
+
+.login-lang-btn {
+  padding: 4px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #424654;
+  transition: all 0.2s ease;
+}
+
+.login-lang-btn:hover {
+  color: #191c1e;
+}
+
+.login-lang-active {
+  background: #ffffff;
+  color: #0040a1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Mobile Logo ─────────────────────────────────────────────────────────── */
+.login-mobile-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 48px;
+}
+
+@media (min-width: 1024px) {
+  .login-mobile-logo {
+    display: none;
+  }
+}
+
+.login-mobile-logo-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 30px;
+  font-weight: 900;
+  color: #0040a1;
+  letter-spacing: -0.03em;
+}
+
+/* ── Form Header ─────────────────────────────────────────────────────────── */
+.login-form-header {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .login-form-header {
+    text-align: left;
+  }
+}
+
+.login-form-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #191c1e;
+  margin-bottom: 8px;
+}
+
+.login-form-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #424654;
+  line-height: 1.5;
+}
+
+/* ── Form Fields ─────────────────────────────────────────────────────────── */
+.login-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-field-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: #424654;
+  margin-left: 4px;
+}
+
+.login-input .MuiOutlinedInput-root {
+  border-radius: 12px !important;
+  background-color: #f2f4f6;
+  transition: all 0.3s ease;
+}
+
+.login-input .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #c3c6d6;
+}
+
+.login-input .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #0040a1;
+  border-bottom-width: 2px;
+}
+
+.login-input .MuiOutlinedInput-root.Mui-focused {
+  background-color: #ffffff;
+}
+
+.login-input .MuiOutlinedInput-input {
+  font-size: 13px;
+  padding: 12px 14px;
+}
+
+.login-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── Submit Button ───────────────────────────────────────────────────────── */
+.login-submit-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
+  color: #ffffff !important;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  border-radius: 12px;
+  box-shadow: 0 12px 24px -4px rgba(0, 64, 161, 0.3);
+  text-transform: none;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.login-submit-btn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
+  box-shadow: 0 16px 32px -4px rgba(0, 64, 161, 0.4);
+  color: #ffffff !important;
+}
+
+.login-submit-btn:active {
+  transform: translateY(0);
+  color: #ffffff !important;
+}
+
+.login-submit-btn:disabled {
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.login-submit-btn .MuiButton-label {
+  color: #ffffff;
+}
+
+.login-submit-btn span {
+  color: #ffffff;
+}
+
+.login-submit-btn .MuiButton-endIcon .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.login-footer {
+  margin-top: 48px;
+  text-align: center;
+}
+
+.login-footer-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #424654;
+  opacity: 0.6;
+}
+
+.login-footer-link {
+  color: #0040a1;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-footer-link:hover {
+  text-decoration: underline;
+}

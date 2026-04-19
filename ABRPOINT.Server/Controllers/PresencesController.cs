@@ -118,6 +118,72 @@ namespace ABRPOINT.Server.Controllers
         {
             _presenceRepository.Add(presence);
         }
+
+        // GET: api/Presences/daily-pointage/{soccod}/{date}
+        [HttpGet("daily-pointage/{soccod}/{date}")]
+        public async Task<IActionResult> GetDailyPointage(string soccod, DateTime date)
+        {
+            try
+            {
+                var result = await _presenceRepository.GetDailyPointageAsync(soccod, date);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors du chargement du pointage", details = ex.Message });
+            }
+        }
+
+        // GET: api/Presences/my-history/{soccod}/{empcod}/{dateDebut}/{dateFin}
+        [HttpGet("my-history/{soccod}/{empcod}/{dateDebut}/{dateFin}")]
+        public async Task<IActionResult> GetMyPresenceHistory(string soccod, string empcod, DateTime dateDebut, DateTime dateFin)
+        {
+            try
+            {
+                IEnumerable<PresenceDto> result = await _presenceRepository.GetEmpEtatPeriodiqueAsync(soccod, empcod, dateDebut, dateFin);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors du chargement de l'historique", details = ex.Message });
+            }
+        }
+
+        // GET: api/Presences/entry-reminder/{soccod}/{empcod}
+        [HttpGet("entry-reminder/{soccod}/{empcod}")]
+        public async Task<IActionResult> GetEntryReminder(string soccod, string empcod)
+        {
+            try
+            {
+                var result = await _presenceRepository.GetEntryReminderAsync(soccod, empcod);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur", details = ex.Message });
+            }
+        }
+
+        // POST: api/Presences/mark-presence/{soccod}/{empcod}
+        [HttpPost("mark-presence/{soccod}/{empcod}")]
+        public async Task<IActionResult> MarkPresence(string soccod, string empcod, [FromQuery] string? poicod = null)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(empcod))
+                    return BadRequest(new { message = "soccod et empcod sont obligatoires" });
+
+                var result = await _presenceRepository.AddPresence(soccod, empcod, DateTime.Now, poicod ?? "");
+                if (result == null)
+                    return NotFound(new { message = "Employé introuvable" });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors du marquage de présence", details = ex.Message });
+            }
+        }
         
 
         // PUT api/<DirectionsController>/5

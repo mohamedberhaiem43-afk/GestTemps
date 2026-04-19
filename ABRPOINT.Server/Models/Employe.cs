@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Models;
 
 [PrimaryKey("Empcod", "Soccod", "Sitcod")]
 [Table("employe")]
-public partial class Employe
+public partial class Employe : BaseEntity
 {
     [Required]
     [Column("empcod")]
@@ -67,7 +67,7 @@ public partial class Employe
     public string? Empadr { get; set; }
 
     [Column("emptel")]
-    [StringLength(50)]
+    [StringLength(256)]
     [Unicode(false)]
     public string? Emptel { get; set; }
 
@@ -97,7 +97,7 @@ public partial class Employe
     public string? Emplnais { get; set; }
 
     [Column("empcin")]
-    [StringLength(15)]
+    [StringLength(256)]
     public string? Empcin { get; set; }
 
     [Column("empdcin", TypeName = "datetime")]
@@ -108,10 +108,12 @@ public partial class Employe
     public string? Empacin { get; set; }
 
     [Column("empsbase")]
-    public double? Empsbase { get; set; }
+    [StringLength(256)]
+    public string? Empsbase { get; set; }
 
     [Column("empsbrut")]
-    public double? Empsbrut { get; set; }
+    [StringLength(256)]
+    public string? Empsbrut { get; set; }
 
     [Column("empdir")]
     [StringLength(1)]
@@ -178,7 +180,8 @@ public partial class Employe
     public string? Empresp { get; set; }
 
     [Column("empsnet")]
-    public double? Empsnet { get; set; }
+    [StringLength(256)]
+    public string? Empsnet { get; set; }
 
     [Column("empcontrat")]
     [StringLength(50)]
@@ -228,6 +231,12 @@ public partial class Employe
     [Column("empcmp")]
     [StringLength(1)]
     public string? Empcmp { get; set; }
+
+    [NotMapped]
+    public string? Utirole { get; set; }
+
+    [NotMapped]
+    public string? _plainCin { get; set; }
 
 }
 

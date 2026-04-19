@@ -1,4 +1,6 @@
-﻿namespace ABRPOINT.Server.Dtaos
+﻿using System.Text.Json.Serialization;
+
+namespace ABRPOINT.Server.Dtaos
 {
     public class UtiProfile
     {
@@ -9,5 +11,8 @@
         public string? Utinom { get; set; }
         public string? Utiprn { get; set; }
         public string? Utimail { get; set; }
+
+        [JsonPropertyName("uti2fa_enabled")]
+        public string? UtiTwoFactorEnabled { get; set; }
     }
 }

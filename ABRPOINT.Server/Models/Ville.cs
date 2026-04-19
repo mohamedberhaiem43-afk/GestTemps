@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ABRPOINT.Server.Models;
 
 [Table("ville")]
-public partial class Ville
+public partial class Ville : BaseEntity
 {
     [Key]
     [Column("vilcod")]

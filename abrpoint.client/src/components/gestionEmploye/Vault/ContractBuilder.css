@@ -1,0 +1,112 @@
+/* ── Styles for the Modern Contract Builder ── */
+
+.cb-shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Hide Global App Sidebar ── */
+body.hide-app-sidebar aside[class*="MuiDrawer-root"],
+body.hide-app-sidebar nav[class*="MuiDrawer-root"] {
+  display: none !important;
+}
+
+/* ── Visual Editor Canvas (The Paper) ── */
+.cb-visual-editor-canvas {
+  min-height: 1100px;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #1e293b;
+  width: 100%;
+}
+
+.cb-visual-editor-canvas table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+}
+
+.cb-visual-editor-canvas td, 
+.cb-visual-editor-canvas th {
+    border: 1px solid #e2e8f0;
+    padding: 12px;
+}
+
+/* ── Better Horizontal Lines ── */
+.cb-visual-editor-canvas hr {
+    border: none;
+    border-top: 2px solid #e2e8f0;
+    margin: 2rem 0;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.cb-visual-editor-canvas hr:hover {
+    border-top-color: #3b82f6;
+}
+
+/* ── Variable Badge Styling ── */
+.cb-visual-editor-canvas span[data-tag] {
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  border: 1.5px solid transparent !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin: 0 4px;
+  user-select: none;
+  cursor: grab;
+}
+
+/* Signature Area Specifics */
+.cb-visual-editor-canvas span[data-tag*="Signature"] {
+    background-color: #fffbeb !important;
+    color: #92400e !important;
+    border-color: #fef3c7 !important;
+    min-width: 180px;
+    height: 80px;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 8px !important;
+}
+
+.cb-visual-editor-canvas span[data-tag*="Signature"]::before {
+    content: 'SIGNATURE AREA';
+    font-size: 8px;
+    opacity: 0.3;
+    letter-spacing: 2px;
+    margin-bottom: auto;
+    padding-top: 4px;
+}
+
+/* Normal Database Variables */
+.cb-visual-editor-canvas span[data-tag^="[Table"] {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #dbeafe !important;
+}
+
+/* ── Custom Scrollbars ── */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}

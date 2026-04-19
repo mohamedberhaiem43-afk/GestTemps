@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("~TMPCLP651021")]
-public partial class Tmpclp651021
+public partial class Tmpclp651021 : BaseEntity
 {
     [Column("uticod")]
     [StringLength(10)]

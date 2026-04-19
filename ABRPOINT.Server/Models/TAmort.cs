@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("t_amorts")]
-public partial class TAmort
+public partial class TAmort : BaseEntity
 {
     public int? IdAmortis { get; set; }
 

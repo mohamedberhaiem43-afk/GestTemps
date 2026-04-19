@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("cloture")]
-public partial class Cloture
+public partial class Cloture : BaseEntity
 {
     [Column("soccod")]
     [StringLength(4)]

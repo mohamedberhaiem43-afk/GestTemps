@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.AllaitementAttributes;
+using ABRPOINT.Server.Annotations.AllaitementAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -91,7 +91,21 @@ namespace ABRPOINT.Server.Controllers
             {
                 return StatusCode(500);
             }
-           
+        }
+
+        [HttpGet("get-report/{soccod}/{empcod}/{concod}")]
+        public IActionResult GetReport(string soccod, string empcod, string concod)
+        {
+            try
+            {
+                var repo = HttpContext.RequestServices.GetRequiredService<IReportsGenerationService>();
+                var pdf = repo.GenerateAllaitementReport(soccod, empcod, concod);
+                return File(pdf, "application/pdf", $"Allaitement_{empcod}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

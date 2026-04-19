@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("paquet")]
-public partial class Paquet
+public partial class Paquet : BaseEntity
 {
     [Column("num")]
     [StringLength(25)]

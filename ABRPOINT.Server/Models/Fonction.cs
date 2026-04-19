@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ABRPOINT.Server.Models;
 
 [Table("fonction")]
-public partial class Fonction
+public partial class Fonction : BaseEntity
 {
     [Column("foncod")]
     [StringLength(6)]

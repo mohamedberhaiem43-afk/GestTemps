@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("module")]
-public partial class Module
+public partial class Module : BaseEntity
 {
     [Column("modcod")]
     [StringLength(15)]

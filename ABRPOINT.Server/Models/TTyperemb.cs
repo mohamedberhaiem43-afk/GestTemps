@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("t_typeremb")]
-public partial class TTyperemb
+public partial class TTyperemb : BaseEntity
 {
     public int? No { get; set; }
 

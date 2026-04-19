@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [PrimaryKey("Empcod", "Soccod")]
 [Table("solde")]
-public partial class Solde
+public partial class Solde : BaseEntity
 {
     [Required]
     [Key]

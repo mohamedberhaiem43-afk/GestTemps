@@ -1,9 +1,10 @@
-﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Annotations.EmployeAttributes;
+using ABRPOINT.Server.Services;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -15,11 +16,13 @@ namespace ABRPOINT.Server.Controllers
         private readonly IEmployeRepository _employeRepository;
         private readonly IUtilisateurRepository _utilisateurRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
-        public EmployesController(IEmployeRepository employeRepository,IReportsGenerationService reportsGenerationService, IUtilisateurRepository utilisateurRepository)
+        private readonly EncryptionService _encryptionService;
+        public EmployesController(IEmployeRepository employeRepository, IReportsGenerationService reportsGenerationService, IUtilisateurRepository utilisateurRepository, EncryptionService encryptionService)
         {
             _employeRepository = employeRepository;
             _reportsGenerationService = reportsGenerationService;
             _utilisateurRepository = utilisateurRepository;
+            _encryptionService = encryptionService;
         }
 
         // GET: api/employes
@@ -30,6 +33,19 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 var employees = await _employeRepository.GetAllAsync(soccod, uticod);
+                return Ok(employees);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de la récupération des employés", details = ex.Message });
+            }
+        }
+        [HttpGet("get-my-kpis/{soccod}/{uticod}")]
+        public async Task<IActionResult> GetMyKPIs(string soccod, string uticod)
+        {
+            try
+            {
+                var employees = await _employeRepository.GetMyKPIs(soccod, uticod);
                 return Ok(employees);
             }
             catch (Exception ex)
@@ -138,6 +154,14 @@ namespace ABRPOINT.Server.Controllers
                     employe = await _employeRepository.GetByEmpcod(soccod, empcod);
                     if (employe == null)
                         return NotFound();
+                    // Decrypt sensitive fields for display
+                    employe.Empcin = _encryptionService.Decrypt(employe.Empcin);
+                    employe.Emptel = _encryptionService.Decrypt(employe.Emptel);
+                    employe.Empsbase = _encryptionService.Decrypt(employe.Empsbase);
+                    employe.Empsbrut = _encryptionService.Decrypt(employe.Empsbrut);
+                    employe.Empsnet = _encryptionService.Decrypt(employe.Empsnet);
+                    // Populate utirole from utilisateur table
+                    employe.Utirole = await _utilisateurRepository.GetRoleByUticodAsync(empcod);
                 }
                 return Ok(employe);
             }
@@ -150,11 +174,11 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-libs/{soccod}/{uticod}")]
         [CanGetEmploye]
-        public async Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod)
+        public async Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod, [FromQuery] string? sitcod = null, [FromQuery] string? sercod = null, [FromQuery] string? dircod = null, [FromQuery] string? empreg = null)
         {
             try
             {
-                var emps = await _employeRepository.GetEmpLibs(soccod,uticod);
+                var emps = await _employeRepository.GetEmpLibs(soccod, uticod, sitcod, sercod, dircod, empreg);
                 return emps;
             }
             catch (Exception)
@@ -193,6 +217,52 @@ namespace ABRPOINT.Server.Controllers
                 throw new Exception("Error generating the report", ex);
             }
         }
+
+        [HttpGet("get-attestation-travail/{soccod}/{empcod}")]
+        [CanGetEmploye]
+        public IActionResult GenerateAttestationTravailReport(string soccod, string empcod)
+        {
+            try
+            {
+                byte[] pdfBytes = _reportsGenerationService.GenerateAttestationTravailReport(soccod, empcod);
+                return File(pdfBytes, "application/pdf", $"Attestation_Travail_{empcod}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("get-certificat-travail/{soccod}/{empcod}")]
+        [CanGetEmploye]
+        public IActionResult GenerateCertificatTravailReport(string soccod, string empcod)
+        {
+            try
+            {
+                byte[] pdfBytes = _reportsGenerationService.GenerateCertificatTravailReport(soccod, empcod);
+                return File(pdfBytes, "application/pdf", $"Certificat_Travail_{empcod}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("get-attestation-salaire/{soccod}/{empcod}")]
+        [CanGetEmploye]
+        public IActionResult GenerateAttestationSalaireReport(string soccod, string empcod)
+        {
+            try
+            {
+                byte[] pdfBytes = _reportsGenerationService.GenerateAttestationSalaireReport(soccod, empcod);
+                return File(pdfBytes, "application/pdf", $"Attestation_Salaire_{empcod}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
         // POST api/employes
         [HttpPost]
         [CanAddEmploye]
@@ -202,9 +272,25 @@ namespace ABRPOINT.Server.Controllers
             {
                 if(employe != null && !string.IsNullOrEmpty(employe.Empcod))
                 {
+                    // Save plain CIN for user password before encrypting
+                    var plainCin = employe.Empcin;
+                    // Encrypt sensitive fields before saving
+                    employe.Empcin = _encryptionService.Encrypt(employe.Empcin);
+                    employe.Emptel = _encryptionService.Encrypt(employe.Emptel);
+                    employe.Empsbase = _encryptionService.Encrypt(employe.Empsbase);
+                    employe.Empsbrut = _encryptionService.Encrypt(employe.Empsbrut);
+                    employe.Empsnet = _encryptionService.Encrypt(employe.Empsnet);
                     await _employeRepository.AddAsync(employe);
-                    Utilisateur utilisateur = new Utilisateur(){ Utiactif = "1", Utiadm = "0",
-                        Uticod = employe.Empcod, Utinom = employe.Emplib,Utimps=employe.Empcin,Utimail=employe.Empemail };
+                    Utilisateur utilisateur = new Utilisateur()
+                    {
+                        Utiactif = "1",
+                        Utiadm = "0",
+                        Uticod = employe.Empcod,
+                        Utinom = employe.Emplib,
+                        Utimps = plainCin,
+                        Utimail = employe.Empemail,
+                        Utirole = employe.Utirole ?? "Utilisateur Standard"
+                    };
                     Socuser socuser = new Socuser()
                     {
                         Soccod = employe.Soccod,
@@ -227,6 +313,19 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                // Encrypt sensitive fields before saving
+                foreach (var emp in employe)
+                {
+                    if (emp != null && !string.IsNullOrEmpty(emp.Empcod))
+                    {
+                        emp._plainCin = emp.Empcin; // Save plain CIN for user creation
+                        emp.Empcin = _encryptionService.Encrypt(emp.Empcin);
+                        emp.Emptel = _encryptionService.Encrypt(emp.Emptel);
+                        emp.Empsbase = _encryptionService.Encrypt(emp.Empsbase);
+                        emp.Empsbrut = _encryptionService.Encrypt(emp.Empsbrut);
+                        emp.Empsnet = _encryptionService.Encrypt(emp.Empsnet);
+                    }
+                }
                 await _employeRepository.AddMultipleEmploye(employe);
                 
                 // Créer les comptes utilisateurs pour chaque employé
@@ -240,8 +339,9 @@ namespace ABRPOINT.Server.Controllers
                             Utiadm = "0",
                             Uticod = emp.Empcod,
                             Utinom = emp.Emplib,
-                            Utimps = emp.Empcin,
-                            Utimail = emp.Empemail
+                            Utimps = emp._plainCin ?? emp.Empcin,
+                            Utimail = emp.Empemail,
+                            Utirole = emp.Utirole ?? "Utilisateur Standard"
                         };
                         Socuser socuser = new Socuser()
                         {
@@ -278,7 +378,25 @@ namespace ABRPOINT.Server.Controllers
                 if (employe == null || employe.Empcod == null)
                     return BadRequest(new { message = "Employe object is null or does not match route parameters" });
 
+                // Sync role to utilisateur table if provided
+                if (!string.IsNullOrEmpty(employe.Utirole))
+                {
+                    await _utilisateurRepository.UpdateRoleAsync(employe.Empcod, employe.Utirole);
+                }
+
+                // Encrypt sensitive fields before updating
+                employe.Empcin = _encryptionService.Encrypt(employe.Empcin);
+                employe.Emptel = _encryptionService.Encrypt(employe.Emptel);
+                employe.Empsbase = _encryptionService.Encrypt(employe.Empsbase);
+                employe.Empsbrut = _encryptionService.Encrypt(employe.Empsbrut);
+                employe.Empsnet = _encryptionService.Encrypt(employe.Empsnet);
                 Employe addEmp = await _employeRepository.UpdateAsync(employe);
+                // Decrypt for response
+                addEmp.Empcin = _encryptionService.Decrypt(addEmp.Empcin);
+                addEmp.Emptel = _encryptionService.Decrypt(addEmp.Emptel);
+                addEmp.Empsbase = _encryptionService.Decrypt(addEmp.Empsbase);
+                addEmp.Empsbrut = _encryptionService.Decrypt(addEmp.Empsbrut);
+                addEmp.Empsnet = _encryptionService.Decrypt(addEmp.Empsnet);
                 return Ok(new { message = "employé modifié avec succées", addEmp });
             }
             catch (Exception)

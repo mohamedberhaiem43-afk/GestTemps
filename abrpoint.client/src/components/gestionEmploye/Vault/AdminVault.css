@@ -1,0 +1,634 @@
+/* ============================================================
+   AdminVault — Vue Globale Admin
+   ============================================================ */
+
+.avlt-container {
+  padding: 2rem 2.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Inter', 'Manrope', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── Header ── */
+.avlt-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: start;
+}
+
+.avlt-eyebrow {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #0040a1;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.5rem;
+}
+
+.avlt-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 2.25rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #191c1e;
+  margin: 0 0 0.75rem;
+}
+
+.avlt-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  max-width: 520px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Stats bento */
+.avlt-stats-bento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  min-width: 380px;
+}
+
+.avlt-stat {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avlt-stat--pending { background: #fff7ed; border-color: #fed7aa; }
+.avlt-stat--signed  { background: #f0fdf4; border-color: #bbf7d0; }
+.avlt-stat--emp     { background: #eff6ff; border-color: #bfdbfe; }
+
+.avlt-stat-icon {
+  font-size: 1.75rem;
+  color: #0040a1;
+}
+.avlt-stat--pending .avlt-stat-icon { color: #d97706; }
+.avlt-stat--signed  .avlt-stat-icon { color: #059669; }
+.avlt-stat--emp     .avlt-stat-icon { color: #6366f1; }
+
+.avlt-stat-value {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #191c1e;
+  line-height: 1;
+}
+
+.avlt-stat-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+/* ── Toolbar ── */
+.avlt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.avlt-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+}
+
+.avlt-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.avlt-search {
+  width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.avlt-search:focus {
+  border-color: #0040a1;
+  box-shadow: 0 0 0 3px rgba(0, 64, 161, 0.08);
+}
+
+.avlt-filter-chips {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.avlt-chip {
+  padding: 0.4rem 1rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.avlt-chip:hover { background: #e2e8f0; }
+
+.avlt-chip--active {
+  background: #0040a1;
+  border-color: #0040a1;
+  color: #fff;
+}
+
+.avlt-view-btns {
+  display: flex;
+  gap: 0.25rem;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.avlt-view-btn {
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: all 0.15s;
+}
+
+.avlt-view-btn.active {
+  background: #fff;
+  color: #0040a1;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+/* ── List Table ── */
+.avlt-table-wrap {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+.avlt-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.avlt-table thead tr {
+  background: #f8fafc;
+}
+
+.avlt-table th {
+  padding: 1rem 1.25rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.avlt-table tbody tr {
+  border-bottom: 1px solid #f8fafc;
+  transition: background 0.15s;
+}
+
+.avlt-table tbody tr:last-child { border-bottom: none; }
+.avlt-table tbody tr:hover { background: #fafbfc; }
+
+.avlt-table td {
+  padding: 1rem 1.25rem;
+  vertical-align: middle;
+}
+
+/* Doc cell */
+.avlt-doc-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.avlt-doc-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #eff6ff;
+  color: #0040a1;
+}
+
+.avlt-doc-icon.pdf { background: #fff1f2; color: #ba1a1a; }
+.avlt-doc-icon.other { background: #f0fdf4; color: #059669; }
+
+.avlt-doc-name {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #191c1e;
+}
+
+.avlt-doc-sub {
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.avlt-doc-sub.signed { color: #059669; }
+.avlt-doc-sub.pending { color: #d97706; }
+
+/* Employee cell */
+.avlt-emp-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.avlt-emp-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0040a1, #0056d2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.avlt-emp-code {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.avlt-date, .avlt-size { font-size: 0.8rem; color: #64748b; }
+
+/* Type chips */
+.avlt-type-chip {
+  display: inline-flex;
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.avlt-type-pay      { background: #dbeafe; color: #1e40af; }
+.avlt-type-contract { background: #d1fae5; color: #065f46; }
+.avlt-type-cert     { background: #f3f4f6; color: #374151; }
+
+/* Status badges */
+.avlt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.avlt-badge--signed    { background: #dcfce7; color: #166534; }
+.avlt-badge--pending   { background: #fef9c3; color: #854d0e; }
+.avlt-badge--validated { background: #eff6ff; color: #1d4ed8; }
+
+/* Actions */
+.avlt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.avlt-btn-sign {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.35rem 0.875rem;
+  background: #0040a1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.2s;
+}
+
+.avlt-btn-sign:hover { background: #003580; }
+
+.avlt-btn-dl { color: #0040a1 !important; }
+
+.avlt-table-footer {
+  padding: 0.875rem 1.25rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  background: #fafbfc;
+  border-top: 1px solid #f1f5f9;
+  font-weight: 600;
+}
+
+/* ── GRID VIEW ── */
+.avlt-employee-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.avlt-emp-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.avlt-emp-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.avlt-emp-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.avlt-emp-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0040a1, #6366f1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.avlt-emp-card-name {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.avlt-emp-card-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2px;
+}
+
+.avlt-emp-pending-tag {
+  background: #fef9c3;
+  color: #854d0e;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 100px;
+}
+
+.avlt-emp-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.avlt-emp-doc-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.avlt-emp-doc-row:hover { background: #f1f5f9; }
+
+.avlt-emp-doc-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #0040a1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avlt-emp-doc-icon.pdf { background: #fff1f2; color: #ba1a1a; }
+
+.avlt-emp-doc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.avlt-emp-doc-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.avlt-btn-sign-sm {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: #0040a1;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.avlt-btn-sign-sm:hover { background: #003580; }
+
+.avlt-emp-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avlt-emp-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.avlt-emp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0040a1, #059669);
+  border-radius: 100px;
+  transition: width 0.6s ease;
+}
+
+.avlt-emp-progress-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+/* ── Empty state ── */
+.avlt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 4rem;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ── Privacy Bar ── */
+.avlt-privacy-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  position: sticky;
+  bottom: 1.5rem;
+  z-index: 40;
+}
+
+.avlt-privacy-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avlt-privacy-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 64, 161, 0.1);
+  color: #0040a1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avlt-privacy-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #191c1e;
+  margin: 0;
+}
+
+.avlt-privacy-sub {
+  font-size: 0.6rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.avlt-privacy-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.avlt-privacy-btn-sec {
+  padding: 0.5rem 1rem;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.avlt-privacy-btn-sec:hover { background: #e2e8f0; }
+
+.avlt-privacy-btn-pri {
+  padding: 0.5rem 1rem;
+  background: #0040a1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 8px rgba(0,64,161,0.25);
+}
+
+.avlt-privacy-btn-pri:hover { background: #003580; transform: scale(1.03); }
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .avlt-header { grid-template-columns: 1fr; }
+  .avlt-stats-bento { min-width: unset; }
+}
+
+@media (max-width: 640px) {
+  .avlt-container { padding: 1rem; }
+  .avlt-title { font-size: 1.5rem; }
+  .avlt-filter-chips { flex-wrap: wrap; }
+  .avlt-stats-bento { grid-template-columns: 1fr 1fr; }
+}

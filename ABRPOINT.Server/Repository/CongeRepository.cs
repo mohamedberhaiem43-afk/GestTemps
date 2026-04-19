@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -321,7 +321,7 @@ namespace ABRPOINT.Server.Repository
             {
                 var conge = await _dbContext.Conges.Where(cng => cng.Soccod == soccod && cng.Empcod == empcod &&
                                                                             predat >= cng.Condep && predat < cng.Conret)
-                                                                            .SingleOrDefaultAsync();
+                                                                            .FirstOrDefaultAsync();
                 return conge;
             }
             catch (Exception)
@@ -566,7 +566,8 @@ namespace ABRPOINT.Server.Repository
                         .Select(s => s.Sitconge)
                         .FirstOrDefaultAsync();
 
-                    float saljou = result.CalTrav != 0 ? (float)(employe.Empsbrut / result.CalTrav) : 0;
+                    double empsbrutValue = double.TryParse(employe.Empsbrut, out var brut) ? brut : 0;
+                    float saljou = result.CalTrav != 0 ? (float)(empsbrutValue / result.CalTrav) : 0;
 
                     var conges = await _dbContext.Conges
                         .Where(c => c.Soccod == soccod &&
@@ -587,7 +588,7 @@ namespace ABRPOINT.Server.Repository
                         .ThenByDescending(g => g.MonthYear.Month)
                         .ToList();
 
-                    Dictionary<int, bool> registeredMonths = new Dictionary<int, bool>();
+                    Dictionary<string, bool> registeredMonths = new Dictionary<string, bool>();
 
                     foreach (var conge in conges)
                     {
@@ -598,14 +599,15 @@ namespace ABRPOINT.Server.Repository
                             .Select(c => c.TotalDays)
                             .FirstOrDefault();
 
-                        bool isMonthRegistered = registeredMonths.TryGetValue(conge.Condep.Value.Month, out _);
+                        string monthKey = $"{conge.Condep.Value.Year}_{conge.Condep.Value.Month}";
+                        bool isMonthRegistered = registeredMonths.TryGetValue(monthKey, out _);
 
                         var cahier = new CahierConge()
                         {
                             Empmat = employe.Empmat,
                             Emplib = employe.Emplib,
-                            Congedu = isMonthRegistered ? 0 : (nbjours - jouanc),
-                            Indemdu = isMonthRegistered ? 0 : (nbjours - jouanc) * saljou,
+                            Congedu = isMonthRegistered ? 0 : MathF.Max(0, (float)(nbjours - jouanc)),
+                            Indemdu = isMonthRegistered ? 0 : MathF.Max(0, (float)(nbjours - jouanc)) * saljou,
                             Empdnais = employe.Empdnais,
                             Empemb = employe.Empemb,
                             Empreg = employe.Empreg,
@@ -625,9 +627,9 @@ namespace ABRPOINT.Server.Repository
 
                         if (jouanc != 0 && !isMonthRegistered)
                         {
-                            jouanc = Math.Max(0, jouanc - (byte)conge.Connbjour);
+                            jouanc = Math.Max(0, jouanc - (conge.Connbjour ?? 0));
                         }
-                            registeredMonths[conge.Condep.Value.Month] = true;
+                        registeredMonths[monthKey] = true;
                     }
                 }
                 return cahierConges;
@@ -643,7 +645,7 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                var conge = await _dbContext.Conges.Where(c => c.Soccod == soccod && c.Empcod == empcod && c.Condat == date).SingleOrDefaultAsync();
+                var conge = await _dbContext.Conges.Where(c => c.Soccod == soccod && c.Empcod == empcod && c.Condat == date).FirstOrDefaultAsync();
                 return conge;
             }
             catch (Exception)

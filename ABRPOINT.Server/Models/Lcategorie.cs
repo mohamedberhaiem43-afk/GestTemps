@@ -5,7 +5,7 @@ namespace ABRPOINT.Server.Models;
 
 
 [Table("lcategorie")]
-public partial class Lcategorie
+public partial class Lcategorie : BaseEntity
 {
     [Key]
     [Column("ordre")]

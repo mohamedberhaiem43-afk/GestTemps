@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("probarre")]
-public partial class Probarre
+public partial class Probarre : BaseEntity
 {
     [Column("artcod")]
     [StringLength(20)]

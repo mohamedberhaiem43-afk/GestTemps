@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ABRPOINT.Server.Models;
 
 [Table("refresh_tokens")]
-public class RefreshToken
+public class RefreshToken : BaseEntity
 {
     [Key]
     [Column("id")]
@@ -23,10 +23,6 @@ public class RefreshToken
     [Required]
     [Column("expires_at")]
     public DateTime ExpiresAt { get; set; }
-
-    [Column("created_at")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
     [Column("revoked")]
     public bool Revoked { get; set; } = false;
 }

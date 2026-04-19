@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("operation")]
-public partial class Operation
+public partial class Operation : BaseEntity
 {
     [Column("opecod")]
     [StringLength(10)]

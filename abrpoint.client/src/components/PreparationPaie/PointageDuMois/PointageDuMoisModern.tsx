@@ -1,0 +1,676 @@
+import {
+  Box, Typography, Paper, Button, CircularProgress, Avatar,
+  IconButton, Tooltip, Dialog, DialogTitle, DialogContent,
+  Table, TableHead, TableRow, TableCell, TableBody,
+  TableContainer, Chip, Select, MenuItem, FormControl,
+  TextField, Snackbar, Alert,
+} from '@mui/material';
+import { useMemo, useState, useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import DownloadIcon from '@mui/icons-material/Download';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import WarningIcon from '@mui/icons-material/Warning';
+import ErrorIcon from '@mui/icons-material/Error';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import { toast } from 'react-toastify';
+import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './FilterPointageMoisContext';
+import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
+import useGetRubriquesPaire from '../../../hooks/rubriqueHooks/useGetRubriquePaire';
+import IntegrationPaieButton from '../../helper/IntegrationPaieButton';
+import { PointageMois } from '../../../models/PointageMois';
+import { useAuth } from '../../helper/AuthProvider';
+import { useTranslation } from 'react-i18next';
+import { formatDate } from '../../helper/TimeConverter/formatDateForApi';
+import apiInstance from '../../API/apiInstance';
+import useGetEmployeesLibs from '../../../hooks/employeHooks/useGetEmployeesLibs';
+import AccessDenied from '../../helper/AccessDenied';
+import './PointageDuMoisModern.css';
+
+// ── types ────────────────────────────────────────────────────────────────────
+interface EtatGlobalData {
+  empmat: string; emplib: string; empreg: string;
+  jourtrv: number; tothre: string; jferier: number; jftrv: number;
+  hftrv: string; hnuit: string; jconge: number;
+  hs50: string; hs25: string; csf: string;
+}
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+const fmtMin = (minutes: number) => {
+  const h = Math.floor(Math.round(minutes) / 60);
+  const m = Math.round(minutes) % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+const downloadPDF = (blob: Blob, filename: string) => {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  window.URL.revokeObjectURL(url); document.body.removeChild(a);
+};
+
+const generateEtatGlobal = async (request: any): Promise<Blob> => {
+  const res = await apiInstance.post('/Presences/etat-global', request, { responseType: 'blob' });
+  return res.data;
+};
+
+const getCurrentMonth = () => String(new Date().getMonth() + 1);
+const getCurrentYear  = () => new Date().getFullYear().toString();
+
+// ── Weekly detail columns ────────────────────────────────────────────────────
+const WEEK_COLS = [
+  { key: 'tothre',            label: 'Nb. Heures' },
+  { key: 'nbJours',           label: 'Nb. Jours' },
+  { key: 'retard',            label: 'Retard', fmt: (v: number) => fmtMin(v) },
+  { key: 'heuresSupTranche1', label: 'HS25' },
+  { key: 'heuresSupTranche2', label: 'HS50' },
+  { key: 'hreSupSemaine',     label: 'HS' },
+  { key: 'jourFerier',        label: 'J.Fériés' },
+  { key: 'heureFerier',       label: 'H.Fériés' },
+  { key: 'nbhFerierTrv',      label: 'H.Fér.Trv' },
+  { key: 'hreFerieTrv',       label: 'H.Fér.Trv1' },
+  { key: 'hreFerieTrv2',      label: 'H.Fér.Trv2' },
+  { key: 'nbJourFerier',      label: 'J.Fér.Trv' },
+  { key: 'hreAllaitement',    label: 'Allaitement' },
+  { key: 'absnp',             label: 'Abs N/Payé' },
+  { key: 'caltype',           label: 'Calend' },
+  { key: 'totalAbsence',      label: 'H.Absences' },
+  { key: 'nbJourPointer',     label: 'J.Pointés' },
+  { key: 'panier',            label: 'Panier' },
+  { key: 'nbNuits',           label: 'Nb.Nuits' },
+  { key: 'nbJourCngPaye',     label: 'Congé Payé' },
+  { key: 'nbHeureConge',      label: 'H.Congé' },
+  { key: 'hcsf',              label: 'H.Spéc.Fam' },
+  { key: 'heuresNormales',    label: 'H.Normales' },
+  { key: 'jourRepos',         label: 'J.Repos' },
+  { key: 'hreNuits',          label: 'H.Nuits' },
+  { key: 'heureRepos',        label: 'H.Repos' },
+  { key: 'deplacement',       label: 'Déplacement' },
+  { key: 'act',               label: 'ACT' },
+  { key: 'fm',                label: 'Formation' },
+  { key: 'absj',              label: 'Abs.Just' },
+  { key: 'ct',                label: 'Arrêt Tech.' },
+  { key: 'maladie',           label: 'Maladie' },
+  { key: 'absnj',             label: 'Abs.NJ' },
+  { key: 'csf',               label: 'C.Spéc.Fam' },
+  { key: 'css',               label: 'CSS' },
+  { key: 'map',               label: 'MAP' },
+  { key: 'jourSamediTrv',     label: 'Sam.Trv' },
+  { key: 'hreSamediTrv',      label: 'H.Sam.Trv' },
+];
+
+// ── Main inner component ─────────────────────────────────────────────────────
+function PointageDuMoisContent() {
+  const { soccod, hasPermission } = useAuth();
+  
+  const canModify = hasPermission('Paie et Rémunération', 'modify');
+
+  if (!hasPermission('Paie et Rémunération', 'consult')) {
+    return <AccessDenied message="Vous n'avez pas le droit de consulter le pointage du mois." />;
+  }
+  const { t } = useTranslation();
+  const context = useDateMoisPointageRange();
+  const dateRange = context?.dateRange;
+  const setDateRange = context?.setDateRange;
+
+  const [mois, setMois] = useState(getCurrentMonth());
+  const [annee, setAnnee] = useState(getCurrentYear());
+  const [selectedFiliale, setSelectedFiliale] = useState(sessionStorage.getItem('sitcod') ?? '');
+  const [selectedService, setSelectedService] = useState('');
+  const [selectedRegime, setSelectedRegime] = useState('');
+  const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
+  const [filiale, setFiliale] = useState<Record<string, string>>({});
+  const [services, setServices] = useState<Record<string, string>>({});
+  const [majorerHeures, setMajorerHeures] = useState(false);
+  const [selectedEmp, setSelectedEmp] = useState<PointageMois | null>(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [numSem, setNumSem] = useState(1);
+  const [selectedWeekDetails, setSelectedWeekDetails] = useState<Record<string, string> | null>(null);
+  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'info' as any });
+
+  const { data: employeesLibs = [] } = useGetEmployeesLibs();
+  const { data: rubriques = [] } = useGetRubriquesPaire();
+
+  const empcods = dateRange?.empcods ?? [];
+  const ctxMois = dateRange?.mois ?? mois;
+  const ctxAnnee = dateRange?.annee ?? annee;
+  const ctxSemaine = dateRange?.semaine ?? '0';
+
+  const { data: pointageMoisData = [], isLoading } = useGetPointageMois(empcods, ctxMois, ctxAnnee, ctxSemaine);
+
+  const pointageMois: PointageMois[] = useMemo(() =>
+    pointageMoisData.map((item: any) => ({
+      ...item,
+      heuresSupplementairesResultats: item.heuresSupplementairesResultats || [],
+    })), [pointageMoisData]);
+
+  useEffect(() => {
+    if (!soccod) return;
+    apiInstance.get(`/Sites/get-sitlibs/${soccod}`).then(r => setFiliale(r.data)).catch(console.error);
+    apiInstance.get(`/Services/get-servlibs/${soccod}`).then(r => setServices(r.data)).catch(console.error);
+  }, [soccod]);
+
+  const handleSearch = () => {
+    if (selectedEmpcods.length === 0) {
+      setSnack({ open: true, msg: 'Veuillez sélectionner au moins un employé.', sev: 'warning' });
+      return;
+    }
+    setDateRange?.((prev: any) => ({
+      ...prev, mois, annee,
+      selectedFiliale, selectedService, selectedRegime,
+      semaine: '0', empcods: selectedEmpcods,
+    }));
+  };
+
+  // Totals for selected employee
+  const totals = useMemo(() => {
+    if (!selectedEmp?.heuresSupplementairesResultats) return null;
+    return selectedEmp.heuresSupplementairesResultats.reduce((acc, r) => {
+      WEEK_COLS.forEach(({ key }) => {
+        if (key === 'caltype') { acc[key] = (acc[key] ?? '') + (r[key as keyof typeof r] ?? ''); }
+        else if (key === 'retard') { acc[key] = (acc[key] ?? 0) + (r.retard ?? 0); }
+        else { acc[key] = (acc[key] ?? 0) + (Number(r[key as keyof typeof r]) || 0); }
+      });
+      return acc;
+    }, {} as Record<string, any>);
+  }, [selectedEmp]);
+
+  // Global stats
+  const totalHours = useMemo(() =>
+    pointageMois.reduce((sum, emp) =>
+      sum + (emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.tothre ?? 0), 0) ?? 0), 0),
+    [pointageMois]);
+
+  const totalHS = useMemo(() =>
+    pointageMois.reduce((sum, emp) =>
+      sum + (emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.hreSupSemaine ?? 0), 0) ?? 0), 0),
+    [pointageMois]);
+
+  const totalAbsences = useMemo(() =>
+    pointageMois.reduce((sum, emp) =>
+      sum + (emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.totalAbsence ?? 0), 0) ?? 0), 0),
+    [pointageMois]);
+
+  // Service distribution
+  const serviceDistrib = useMemo(() => {
+    const map: Record<string, number> = {};
+    pointageMois.forEach(emp => {
+      const svc = services[emp.empSite] || emp.empSite || 'Autre';
+      const hrs = emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.tothre ?? 0), 0) ?? 0;
+      map[svc] = (map[svc] ?? 0) + hrs;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  }, [pointageMois, services]);
+
+  // Alert counts
+  const retardsCount = useMemo(() =>
+    pointageMois.filter(e => e.heuresSupplementairesResultats?.some(r => (r.retard ?? 0) > 30)).length,
+    [pointageMois]);
+
+  const absNJCount = useMemo(() =>
+    pointageMois.filter(e => e.heuresSupplementairesResultats?.some(r => (r.absnj ?? 0) > 0)).length,
+    [pointageMois]);
+
+  const handleExportOne = async () => {
+    if (!selectedEmp || !totals) { toast.error('Sélectionnez un employé'); return; }
+    try {
+      const year = parseInt(ctxAnnee), month = parseInt(ctxMois);
+      const blob = await generateEtatGlobal({
+        soccod, soclib: sessionStorage.getItem('soclib') || '',
+        datedebut: formatDate(new Date(year, month - 1, 1).toISOString()),
+        datefin: formatDate(new Date(year, month, 0).toISOString()),
+        data: [{
+          empmat: selectedEmp.empMat, emplib: selectedEmp.empLib, empreg: selectedEmp.empReg,
+          jourtrv: totals.nbJours ?? 0, tothre: (totals.tothre ?? 0).toFixed(2),
+          jferier: totals.jourFerier ?? 0, jftrv: totals.nbJourFerier ?? 0,
+          hftrv: (totals.nbhFerierTrv ?? 0).toFixed(2), hnuit: (totals.hreNuits ?? 0).toFixed(2),
+          jconge: totals.nbJourCngPaye ?? 0, hs50: (totals.heuresSupTranche2 ?? 0).toFixed(2),
+          hs25: (totals.heuresSupTranche1 ?? 0).toFixed(2), csf: (totals.csf ?? 0).toFixed(2),
+        }],
+      });
+      downloadPDF(blob, `EtatGlobal_${selectedEmp.empMat}_${ctxMois}_${ctxAnnee}.pdf`);
+    } catch { toast.error('Erreur génération rapport'); }
+  };
+
+  const handleExportAll = async () => {
+    if (!pointageMois.length) { toast.error('Aucune donnée'); return; }
+    try {
+      const year = parseInt(ctxAnnee), month = parseInt(ctxMois);
+      const data: EtatGlobalData[] = pointageMois.map(emp => {
+        const t2 = emp.heuresSupplementairesResultats?.reduce((a, r) => ({
+          nbJours: a.nbJours + (r.nbJours ?? 0), tothre: a.tothre + (r.tothre ?? 0),
+          jourFerier: a.jourFerier + (r.jourFerier ?? 0), nbJourFerier: a.nbJourFerier + (r.nbJourFerier ?? 0),
+          nbhFerierTrv: a.nbhFerierTrv + (r.nbhFerierTrv ?? 0), hreNuits: a.hreNuits + (r.hreNuits ?? 0),
+          nbJourCngPaye: a.nbJourCngPaye + (r.nbJourCngPaye ?? 0),
+          hs50: a.hs50 + (r.heuresSupTranche2 ?? 0), hs25: a.hs25 + (r.heuresSupTranche1 ?? 0),
+          csf: a.csf + (r.csf ?? 0),
+        }), { nbJours:0,tothre:0,jourFerier:0,nbJourFerier:0,nbhFerierTrv:0,hreNuits:0,nbJourCngPaye:0,hs50:0,hs25:0,csf:0 }) ?? { nbJours:0,tothre:0,jourFerier:0,nbJourFerier:0,nbhFerierTrv:0,hreNuits:0,nbJourCngPaye:0,hs50:0,hs25:0,csf:0 };
+        return { empmat: emp.empMat, emplib: emp.empLib, empreg: emp.empReg,
+          jourtrv: t2.nbJours, tothre: t2.tothre.toFixed(2), jferier: t2.jourFerier,
+          jftrv: t2.nbJourFerier, hftrv: t2.nbhFerierTrv.toFixed(2), hnuit: t2.hreNuits.toFixed(2),
+          jconge: t2.nbJourCngPaye, hs50: t2.hs50.toFixed(2), hs25: t2.hs25.toFixed(2), csf: t2.csf.toFixed(2) };
+      });
+      const blob = await generateEtatGlobal({
+        soccod, soclib: sessionStorage.getItem('soclib') || '',
+        datedebut: new Date(year, month - 1, 1).toISOString().split('T')[0],
+        datefin: new Date(year, month, 0).toISOString().split('T')[0],
+        data,
+      });
+      downloadPDF(blob, `EtatGlobal_Tous_${ctxMois}_${ctxAnnee}.pdf`);
+    } catch { toast.error('Erreur génération rapport'); }
+  };
+
+  const monthLabel = new Date(parseInt(ctxAnnee), parseInt(ctxMois) - 1, 1)
+    .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+  // Format total hours for display
+  const formatTotalHours = (minutes: number) => {
+    const h = Math.floor(minutes / 60);
+    const m = Math.round(minutes % 60);
+    if (h > 0 && m > 0) return `${h}h${String(m).padStart(2, '0')}`;
+    if (h > 0) return `${h}h`;
+    return `${m}min`;
+  };
+
+  return (
+    <Box className="pdm-container">
+      {/* ── Page Header ── */}
+      <Box className="pdm-header">
+        <Box>
+          <Typography className="pdm-title">Pointage du mois</Typography>
+          <Typography className="pdm-subtitle">Suivi architectural des heures de présence</Typography>
+        </Box>
+        <Box className="pdm-header-actions">
+          <Tooltip title="Rapport employé sélectionné">
+            <IconButton className="pdm-export-btn" onClick={handleExportOne} disabled={!selectedEmp}
+              sx={{ borderRadius: '12px', padding: '10px' }}>
+              <PictureAsPdfIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Rapport tous les employés">
+            <IconButton className="pdm-export-btn" onClick={handleExportAll} disabled={!pointageMois.length}
+              sx={{ borderRadius: '12px', padding: '10px' }}>
+              <PictureAsPdfIcon />
+            </IconButton>
+          </Tooltip>
+          {canModify && <IntegrationPaieButton pointageMoisData={pointageMois as any} rubriques={rubriques} mois={ctxMois} annee={ctxAnnee} />}
+          <Button className="pdm-export-btn" startIcon={<DownloadIcon />} onClick={handleExportAll}>
+            Exporter le ledger
+          </Button>
+        </Box>
+      </Box>
+
+      {/* ── Filter Bar ── */}
+      <Paper className="pdm-filter-bar" elevation={0}>
+        <Box className="pdm-filter-grid">
+          <Box className="pdm-filter-field">
+            <label>Employés</label>
+            <FormControl size="small" fullWidth>
+              <Select multiple value={selectedEmpcods} onChange={(e) => setSelectedEmpcods(e.target.value as string[])}
+                renderValue={(sel) => `${(sel as string[]).length} sélectionné(s)`}
+                sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
+                {Object.entries(employeesLibs).map(([k, v]) => (
+                  <MenuItem key={k} value={k}>{String(v)}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          <Box className="pdm-filter-field">
+            <label>Filiale</label>
+            <FormControl size="small" fullWidth>
+              <Select value={selectedFiliale} onChange={(e) => setSelectedFiliale(e.target.value)}
+                sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
+                <MenuItem value="">Toutes les filiales</MenuItem>
+                {Object.entries(filiale).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Box>
+          <Box className="pdm-filter-field">
+            <label>Service</label>
+            <FormControl size="small" fullWidth>
+              <Select value={selectedService} onChange={(e) => setSelectedService(e.target.value)}
+                sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
+                <MenuItem value="">Tous les services</MenuItem>
+                {Object.entries(services).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Box>
+          <Box className="pdm-filter-field">
+            <label>Régime</label>
+            <FormControl size="small" fullWidth>
+              <Select value={selectedRegime} onChange={(e) => setSelectedRegime(e.target.value)}
+                sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
+                <MenuItem value="">Tous les régimes</MenuItem>
+                <MenuItem value="M">35 Heures</MenuItem>
+                <MenuItem value="H">39 Heures</MenuItem>
+                <MenuItem value="F">Forfait Jours</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          <Box className="pdm-filter-field">
+            <label>Période</label>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, background: '#fff', borderRadius: '12px', px: 2, py: 0.5 }}>
+              <ScheduleIcon sx={{ color: '#0040a1', fontSize: 18 }} />
+              <TextField size="small" type="month" variant="standard"
+                value={`${ctxAnnee}-${String(ctxMois).padStart(2, '0')}`}
+                onChange={(e) => { const [y, m] = e.target.value.split('-'); setAnnee(y); setMois(String(parseInt(m))); }}
+                sx={{ '& .MuiInputBase-input': { fontSize: '13px', fontWeight: 500 } }}
+                InputProps={{ disableUnderline: true }}
+              />
+            </Box>
+          </Box>
+          <Box className="pdm-filter-field pdm-filter-field--action">
+            <Button className="pdm-search-btn" startIcon={<SearchIcon />} onClick={handleSearch}>
+              Rechercher
+            </Button>
+          </Box>
+        </Box>
+        <Box className="pdm-filter-option">
+          <input type="checkbox" id="majorer" checked={majorerHeures} onChange={(e) => setMajorerHeures(e.target.checked)}
+            style={{ accentColor: '#0040a1' }} />
+          <label htmlFor="majorer" style={{ fontSize: 12, color: '#64748b', cursor: 'pointer' }}>
+            Majorer heures fériées et congés
+          </label>
+        </Box>
+      </Paper>
+
+      {/* ── Loading ── */}
+      {isLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress size={48} sx={{ color: '#0040a1' }} />
+        </Box>
+      )}
+
+      {!isLoading && (
+        <>
+          {/* ── Ledger Table ── */}
+          <Paper className="pdm-table-card" elevation={0}>
+            <Box className="pdm-table-wrap">
+              <table className="pdm-table">
+                <thead>
+                  <tr>
+                    <th>Employé</th>
+                    <th>Matricule</th>
+                    {Array.from({ length: 6 }, (_, i) => <th key={i}>S{i + 1}</th>)}
+                    <th className="pdm-th-right">Cumul</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pointageMois.length === 0 ? (
+                    <tr><td colSpan={10} className="pdm-empty">Aucune donnée — sélectionnez des employés et cliquez Rechercher</td></tr>
+                  ) : (
+                    pointageMois.map((emp) => {
+                      const weeks = emp.heuresSupplementairesResultats ?? [];
+                      const cumul = weeks.reduce((s, r) => s + (r.tothre ?? 0), 0);
+                      const isSelected = selectedEmp?.empCod === emp.empCod;
+                      return (
+                        <tr key={emp.empCod} className={isSelected ? 'pdm-row--selected' : ''}
+                          onClick={() => setSelectedEmp(isSelected ? null : emp)}
+                          style={{ cursor: 'pointer' }}>
+                          <td>
+                            <Box className="pdm-emp-cell">
+                              <Avatar className="pdm-avatar">{emp.empLib?.charAt(0) ?? '?'}</Avatar>
+                              <Box>
+                                <Typography className="pdm-emp-name">{emp.empLib}</Typography>
+                                <Typography className="pdm-emp-reg">{emp.empReg}</Typography>
+                              </Box>
+                            </Box>
+                          </td>
+                          <td><Chip label={emp.empMat} size="small" className="pdm-mat-chip" /></td>
+                          {Array.from({ length: 6 }, (_, i) => {
+                            const w = weeks[i];
+                            if (!w) return (
+                              <td key={i}>
+                                <Typography className="pdm-week-hrs" sx={{ color: '#c3c6d6' }}>—</Typography>
+                              </td>
+                            );
+                            const hrs = (w.tothre ?? 0).toFixed(2);
+                            const hs = w.hreSupSemaine ?? 0;
+                            const abs = w.totalAbsence ?? 0;
+                            const conge = w.nbJourCngPaye ?? 0;
+                            const mal = w.maladie ?? 0;
+                            let label: string;
+                            let cls: string;
+                            if (mal > 0) { label = 'Maladie'; cls = 'pdm-week-neg'; }
+                            else if (conge > 0) { label = `CP (${conge.toFixed(0)}j)`; cls = 'pdm-week-pos'; }
+                            else if (hs > 0) { label = `+${hs.toFixed(2)}h`; cls = 'pdm-week-pos'; }
+                            else if (abs > 0) { label = `Abs ${abs.toFixed(1)}j`; cls = 'pdm-week-neg'; }
+                            else { label = 'Ok'; cls = 'pdm-week-ok'; }
+                            return (
+                              <td key={i}>
+                                <Box className="pdm-week-cell"
+                                  onDoubleClick={(e) => { e.stopPropagation(); setNumSem(i + 1); setSelectedWeekDetails(w.weekDetails as any); setOpenDialog(true); }}>
+                                  <Typography className="pdm-week-hrs">{hrs}</Typography>
+                                  <Typography className={`pdm-week-label ${cls}`}>{label}</Typography>
+                                </Box>
+                              </td>
+                            );
+                          })}
+                          <td className="pdm-td-right">
+                            <Typography className="pdm-cumul">{formatTotalHours(cumul)}</Typography>
+                            <Typography className="pdm-cumul-sub">Total mois</Typography>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </Box>
+          </Paper>
+
+          {/* ── Detail table for selected employee ── */}
+          {selectedEmp && (
+            <Paper className="pdm-detail-card" elevation={0}>
+              <Box className="pdm-detail-header">
+                <Typography className="pdm-detail-title">
+                  Détail semaines — {selectedEmp.empLib}
+                </Typography>
+                <Typography className="pdm-detail-hint">Double-clic sur une ligne pour voir le détail journalier</Typography>
+              </Box>
+              <TableContainer sx={{ maxHeight: 320 }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654' }}>Sem.</TableCell>
+                      {WEEK_COLS.map(c => (
+                        <TableCell key={c.key} sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654', whiteSpace: 'nowrap' }}>
+                          {c.label}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedEmp.heuresSupplementairesResultats?.map((r, idx) => (
+                      <TableRow key={idx} hover sx={{ cursor: 'pointer' }}
+                        onDoubleClick={() => { setNumSem(idx + 1); setSelectedWeekDetails(r.weekDetails as any); setOpenDialog(true); }}>
+                        <TableCell sx={{ fontWeight: 700 }}>{idx + 1}</TableCell>
+                        {WEEK_COLS.map(c => (
+                          <TableCell key={c.key} sx={{ fontSize: 12 }}>
+                            {c.key === 'retard'
+                              ? fmtMin(r.retard ?? 0)
+                              : c.key === 'caltype'
+                              ? (r.caltype ?? '0')
+                              : c.fmt
+                              ? c.fmt(Number(r[c.key as keyof typeof r]) || 0)
+                              : (Number(r[c.key as keyof typeof r]) || 0).toFixed(2)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                    {totals && (
+                      <TableRow sx={{ backgroundColor: '#eff6ff' }}>
+                        <TableCell sx={{ fontWeight: 800, color: '#0040a1' }}>Total</TableCell>
+                        {WEEK_COLS.map(c => (
+                          <TableCell key={c.key} sx={{ fontWeight: 700, color: '#0040a1', fontSize: 12 }}>
+                            {c.key === 'retard'
+                              ? fmtMin(totals.retard ?? 0)
+                              : c.key === 'caltype'
+                              ? String(totals.caltype ?? '').slice(-2)
+                              : (Number(totals[c.key]) || 0).toFixed(2)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          )}
+
+          {/* ── Summary Cards ── */}
+          <Box className="pdm-summary-grid">
+            {/* Total Heures Travaillées - Primary card */}
+            <Paper className="pdm-summary-card pdm-summary-card--primary" elevation={0}>
+              <Box className="pdm-summary-content">
+                <Typography className="pdm-summary-label">Total Heures Travaillées</Typography>
+                <Typography className="pdm-summary-value">{totalHours > 0 ? `${Math.floor(totalHours / 60)}h` : '0h'}</Typography>
+                <Box className="pdm-summary-trend">
+                  <TrendingUpIcon sx={{ fontSize: 16 }} />
+                  <span>{pointageMois.length} employé(s)</span>
+                </Box>
+              </Box>
+              <ScheduleIcon className="pdm-summary-deco" />
+            </Paper>
+
+            {/* Heures Supplémentaires - Light card */}
+            <Paper className="pdm-summary-card pdm-summary-card--light" elevation={0}>
+              <Box className="pdm-summary-content">
+                <Typography className="pdm-summary-label pdm-summary-label--dark">Heures Supplémentaires</Typography>
+                <Typography className="pdm-summary-value pdm-summary-value--dark">{totalHS > 0 ? `${Math.floor(totalHS / 60)}h` : '0h'}</Typography>
+                <Box className="pdm-summary-trend pdm-summary-trend--green">
+                  <CheckCircleIcon sx={{ fontSize: 16 }} />
+                  <span>Dans les quotas légaux</span>
+                </Box>
+              </Box>
+            </Paper>
+
+            {/* Jours Absences - Light card */}
+            <Paper className="pdm-summary-card pdm-summary-card--light" elevation={0}>
+              <Box className="pdm-summary-content">
+                <Typography className="pdm-summary-label pdm-summary-label--dark">Jours Fériés / Absences</Typography>
+                <Typography className="pdm-summary-value pdm-summary-value--dark">{totalAbsences.toFixed(0)}j</Typography>
+                <Box className="pdm-summary-trend pdm-summary-trend--muted">
+                  <EventNoteIcon sx={{ fontSize: 16 }} />
+                  <span>{monthLabel}</span>
+                </Box>
+              </Box>
+            </Paper>
+          </Box>
+
+          {/* ── Analysis Section ── */}
+          <Box className="pdm-analysis-grid">
+            {/* Service distribution */}
+            <Paper className="pdm-distrib-card" elevation={0}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                <Typography className="pdm-distrib-title" sx={{ mb: 0 }}>Répartition par Service</Typography>
+                <Button sx={{ fontSize: '13px', fontWeight: 700, color: '#0040a1', textTransform: 'none' }}>
+                  Voir détails
+                </Button>
+              </Box>
+              <Box className="pdm-distrib-bars">
+                {serviceDistrib.length === 0 ? (
+                  <Typography sx={{ color: '#94a3b8', fontSize: 13 }}>Aucune donnée</Typography>
+                ) : serviceDistrib.map(([svc, hrs]) => {
+                  const max = serviceDistrib[0][1];
+                  const pct = max > 0 ? (hrs / max) * 100 : 0;
+                  return (
+                    <Box key={svc} className="pdm-distrib-row">
+                      <Box className="pdm-distrib-info">
+                        <Typography className="pdm-distrib-name">{svc}</Typography>
+                        <Typography className="pdm-distrib-hrs">{hrs.toFixed(0)}h ({pct.toFixed(0)}%)</Typography>
+                      </Box>
+                      <Box className="pdm-distrib-bar-wrap">
+                        <Box className="pdm-distrib-bar" style={{ width: `${pct}%` }} />
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Paper>
+
+            {/* Alerts card */}
+            <Paper className="pdm-alerts-card" elevation={0}>
+              <Box>
+                <Typography className="pdm-alerts-title">Alertes Ledger</Typography>
+                <Typography className="pdm-alerts-sub">Écarts de pointage détectés ce mois-ci.</Typography>
+                <Box className="pdm-alert-item pdm-alert-item--warn">
+                  <Box className="pdm-alert-icon pdm-alert-icon--warn"><WarningIcon sx={{ color: '#f59e0b', fontSize: 20 }} /></Box>
+                  <Box>
+                    <Typography className="pdm-alert-title">{retardsCount} Retards récurrents</Typography>
+                    <Typography className="pdm-alert-sub">Employé(s) concerné(s)</Typography>
+                  </Box>
+                </Box>
+                <Box className="pdm-alert-item pdm-alert-item--err">
+                  <Box className="pdm-alert-icon pdm-alert-icon--err"><ErrorIcon sx={{ color: '#ef4444', fontSize: 20 }} /></Box>
+                  <Box>
+                    <Typography className="pdm-alert-title">{absNJCount} Oublis de sortie</Typography>
+                    <Typography className="pdm-alert-sub">Absences non justifiées</Typography>
+                  </Box>
+                </Box>
+              </Box>
+              <button className="pdm-alert-btn">Traiter les alertes</button>
+            </Paper>
+          </Box>
+        </>
+      )}
+
+      {/* ── Week detail dialog ── */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Manrope, sans-serif', fontWeight: 800 }}>
+          {t('pointageDuMois.weekDetails', { numSem })}
+          <IconButton onClick={() => setOpenDialog(false)}><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {selectedWeekDetails && (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    {Object.keys(selectedWeekDetails).map(k => (
+                      <TableCell key={k} sx={{ fontWeight: 700, backgroundColor: '#e6e8ea', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        {k.substring(0, 10)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <TableRow>
+                    {Object.values(selectedWeekDetails).map((v, i) => (
+                      <TableCell key={i} sx={{ fontSize: 12 }}>{v}</TableCell>
+                    ))}
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
+        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
+          {snack.msg}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+}
+
+const PointageDuMoisModern = () => {
+  const qc = new QueryClient();
+  return (
+    <QueryClientProvider client={qc}>
+      <DateMoisPointageRangeProvider>
+        <PointageDuMoisContent />
+      </DateMoisPointageRangeProvider>
+    </QueryClientProvider>
+  );
+};
+
+export default PointageDuMoisModern;

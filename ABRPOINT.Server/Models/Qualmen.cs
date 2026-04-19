@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("qualmens")]
-public partial class Qualmen
+public partial class Qualmen : BaseEntity
 {
     [Column("empcod")]
     [StringLength(10)]

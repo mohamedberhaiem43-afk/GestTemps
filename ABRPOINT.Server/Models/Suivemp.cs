@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 
 [Keyless]
 [Table("suivemp")]
-public partial class Suivemp
+public partial class Suivemp : BaseEntity
 {
     [Column("empcod")]
     [StringLength(20)]
