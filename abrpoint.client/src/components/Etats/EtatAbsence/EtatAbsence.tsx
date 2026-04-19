@@ -28,7 +28,7 @@ import type EtatAbsenceModel from '../../../models/EtatAbsence';
 import useGetEtatAbsence from '../../../hooks/absenceHooks/useGetEtatAbsence';
 import { useAbsenceContext, AbsParamsProvider } from '../../helper/AbsParamsContext';
 
-import './EtatAbsence.css';
+import './Etatabsence.css';
 
 const queryClient = new QueryClient();
 
@@ -42,11 +42,11 @@ const regimeOptions: Record<string, string> = {
 const getAbsBadgeClass = (abscod: string | null | undefined): string => {
   if (!abscod) return 'ea-abs-badge-gray';
   const code = abscod.toUpperCase();
-  if (['CNP', 'CP'].includes(code))   return 'ea-abs-badge-blue';
+  if (['CNP', 'CP'].includes(code)) return 'ea-abs-badge-blue';
   if (['MT', 'ML', 'AM'].includes(code)) return 'ea-abs-badge-amber';
-  if (['ANJ', 'ANP'].includes(code))  return 'ea-abs-badge-red';
-  if (['FM', 'MS'].includes(code))    return 'ea-abs-badge-purple';
-  if (['AT', 'ACC'].includes(code))   return 'ea-abs-badge-green';
+  if (['ANJ', 'ANP'].includes(code)) return 'ea-abs-badge-red';
+  if (['FM', 'MS'].includes(code)) return 'ea-abs-badge-purple';
+  if (['AT', 'ACC'].includes(code)) return 'ea-abs-badge-green';
   return 'ea-abs-badge-gray';
 };
 const parseRetardMinutes = (val: string | number | null | undefined) => {
@@ -86,8 +86,8 @@ function EtatAbsence() {
 
   // Dates
   const [dateDebut, setDateDebut] = useState(() => new Date().toISOString().slice(0, 10));
-  const [dateFin, setDateFin]   = useState(() => new Date().toISOString().slice(0, 10));
-  const [annee, setAnnee]       = useState(new Date().getFullYear().toString());
+  const [dateFin, setDateFin] = useState(() => new Date().toISOString().slice(0, 10));
+  const [annee, setAnnee] = useState(new Date().getFullYear().toString());
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   // Pagination
@@ -95,8 +95,8 @@ function EtatAbsence() {
   const pageSize = 10;
 
   // Drawer
-  const [selectedRow, setSelectedRow]   = useState<EtatAbsenceModel | null>(null);
-  const [drawerOpen, setDrawerOpen]     = useState(false);
+  const [selectedRow, setSelectedRow] = useState<EtatAbsenceModel | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ── Load default dates from backend
   useEffect(() => {
@@ -105,7 +105,7 @@ function EtatAbsence() {
       .get(`/Parametres/deb-mois/${soccod}`)
       .then((res) => {
         const { joudeb, joufin, moisdeb, moisfin } = res.data;
-        const now  = new Date();
+        const now = new Date();
         const year = now.getFullYear();
         let sm = moisdeb === 'P' ? now.getMonth() : now.getMonth() + 1;
         let em = moisfin === 'P' ? now.getMonth() : now.getMonth() + 1;
@@ -161,9 +161,9 @@ function EtatAbsence() {
         }
       );
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url  = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href  = url;
+      link.href = url;
       link.setAttribute('download', 'etat-absences.pdf');
       document.body.appendChild(link);
       link.click();
@@ -176,7 +176,7 @@ function EtatAbsence() {
   const handleExportExcel = () => {
     if (!absenceData.length) return;
 
-    const title   = [`État des Absences — ${formatDate(dateDebut)} au ${formatDate(dateFin)}`];
+    const title = [`État des Absences — ${formatDate(dateDebut)} au ${formatDate(dateFin)}`];
     const headers = [
       'Code', 'Matricule', 'Nom et Prénom', 'Régime', 'Date',
       'Code Abs', 'Motif', 'Congé Payé', 'Acc. Travail', 'C.S.F',
@@ -196,12 +196,12 @@ function EtatAbsence() {
 
     const ws = XLSX.utils.aoa_to_sheet([title, [], headers, ...rows]);
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 20 } }];
-    ws['!cols']   = Array(21).fill({ wch: 14 });
+    ws['!cols'] = Array(21).fill({ wch: 14 });
     ws['!cols'][2] = { wch: 26 };
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Etat Absences');
-    const buf  = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([buf], { type: 'application/octet-stream' });
     saveAs(blob, `etat-absences-${annee}.xlsx`);
   };
@@ -225,20 +225,20 @@ function EtatAbsence() {
   const filteredData = useMemo(
     () => absenceData.filter((r) => {
       const hasRealAbsence = Number(r.absence || 0) > 0
-        || Number(r.absjust   || 0) > 0
-        || Number(r.absnj     || 0) > 0
+        || Number(r.absjust || 0) > 0
+        || Number(r.absnj || 0) > 0
         || Number(r.congepaye || 0) > 0
-        || Number(r.acctrav   || 0) > 0
-        || Number(r.csf       || 0) > 0
-        || Number(r.absmal    || 0) > 0
-        || Number(r.fm        || 0) > 0
-        || Number(r.arrtech   || 0) > 0
-        || Number(r.map       || 0) > 0
-        || Number(r.autsp     || 0) > 0
-        || Number(r.autsnp    || 0) > 0
-        || Number(r.css       || 0) > 0;
+        || Number(r.acctrav || 0) > 0
+        || Number(r.csf || 0) > 0
+        || Number(r.absmal || 0) > 0
+        || Number(r.fm || 0) > 0
+        || Number(r.arrtech || 0) > 0
+        || Number(r.map || 0) > 0
+        || Number(r.autsp || 0) > 0
+        || Number(r.autsnp || 0) > 0
+        || Number(r.css || 0) > 0;
       // Exclure si seul absjourretard < 2h et aucune vraie absence
-     const retardMinutes = parseRetardMinutes(r.absjourretard || '0:00');
+      const retardMinutes = parseRetardMinutes(r.absjourretard || '0:00');
       const isAbsence = retardMinutes > 120 && hasRealAbsence;
 
       return isAbsence;
@@ -268,11 +268,11 @@ function EtatAbsence() {
   );
 
   // ── Pagination
-  const totalPages   = Math.ceil(filteredData.length / pageSize);
+  const totalPages = Math.ceil(filteredData.length / pageSize);
   const paginatedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // ── Drawer
-  const openDrawer  = (row: EtatAbsenceModel) => { setSelectedRow(row); setDrawerOpen(true); };
+  const openDrawer = (row: EtatAbsenceModel) => { setSelectedRow(row); setDrawerOpen(true); };
   const closeDrawer = () => { setDrawerOpen(false); setTimeout(() => setSelectedRow(null), 300); };
 
   // ──────────────────────────────────────────
@@ -298,7 +298,7 @@ function EtatAbsence() {
                 outline: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
               }}
             >
-              {['2026','2025','2024','2023'].map((y) => (
+              {['2026', '2025', '2024', '2023'].map((y) => (
                 <option key={y} value={y}>Année {y}</option>
               ))}
             </select>
@@ -712,11 +712,11 @@ function EtatAbsence() {
                 </h5>
                 {[
                   { label: 'Formation + Mission', value: selectedRow.fm },
-                  { label: 'Arrêt Technique',     value: selectedRow.arrtech },
-                  { label: 'MAP',                  value: selectedRow.map },
-                  { label: 'Aut. Spécial Payé',    value: selectedRow.autsp },
-                  { label: 'Aut. Spécial Non Payé',value: selectedRow.autsnp },
-                  { label: 'Congé Sans Solde',     value: selectedRow.css },
+                  { label: 'Arrêt Technique', value: selectedRow.arrtech },
+                  { label: 'MAP', value: selectedRow.map },
+                  { label: 'Aut. Spécial Payé', value: selectedRow.autsp },
+                  { label: 'Aut. Spécial Non Payé', value: selectedRow.autsnp },
+                  { label: 'Congé Sans Solde', value: selectedRow.css },
                 ].map(({ label, value }) => (
                   <div className="ea-drawer-row" key={label}>
                     <span className="ea-drawer-row-label">{label}</span>
@@ -748,7 +748,7 @@ function EtatAbsence() {
             </div>
 
             <div className="ea-drawer-footer">
-            <button
+              <button
                 className="ea-export-btn"
                 onClick={handleExportExcel}
                 style={{ width: '100%', justifyContent: 'center' }}
