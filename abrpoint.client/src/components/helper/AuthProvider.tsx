@@ -67,14 +67,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (requestId !== requestIdRef.current) return;
 
-      const isAdmin = response.data.utiadm === '1';
-      const hasRole = !!(response.data.permissions && response.data.permissions.length > 0);
       setAuthData((prev) => ({
         ...prev,
         uticod: response.data.uticod ?? null,
         utiadm: response.data.utiadm ?? null,
         isEmp: Boolean(response.data.isEmp),
-        isManager: !isAdmin && hasRole,
         sercod: response.data.sercod ?? null,
         userName: response.data.utilib ?? prev.userName ?? null,
         permissions: response.data.permissions ?? [],
@@ -139,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const hasPermission = useCallback((module: string, action: 'consult' | 'add' | 'modify' | 'delete') => {
-    if (authData.utiadm === '1') return true;
+    if (authData.utiadm === '1' || authData.isManager) return true;
     const perm = authData.permissions.find(p => p.rpModule === module);
     if (!perm) return false;
 
@@ -150,7 +147,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       case 'delete': return perm.rpDelete === '1';
       default: return false;
     }
-  }, [authData.permissions, authData.utiadm]);
+  }, [authData.permissions, authData.utiadm, authData.isManager]);
 
   return (
     <AuthContext.Provider value={{ ...authData, authReady, hasPermission, setAuthData: setAuth, refreshAuth, clearAuth }}>

@@ -82,7 +82,10 @@ namespace ABRPOINT.Server.Migrations
                     tothretrepas = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     preobs1 = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     optimise1 = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    totcmp1 = table.Column<double>(type: "float", nullable: true)
+                    totcmp1 = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -103,7 +106,10 @@ namespace ABRPOINT.Server.Migrations
                     absrepos = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     rubcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     absferier = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    absunite = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    absunite = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -116,7 +122,10 @@ namespace ABRPOINT.Server.Migrations
                 {
                     modcod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     modzone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    modhelp = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    modhelp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -139,7 +148,10 @@ namespace ABRPOINT.Server.Migrations
                     jeudi = table.Column<float>(type: "real", nullable: true),
                     vendredi = table.Column<float>(type: "real", nullable: true),
                     samedi = table.Column<float>(type: "real", nullable: true),
-                    dimanche = table.Column<float>(type: "real", nullable: true)
+                    dimanche = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -156,7 +168,10 @@ namespace ABRPOINT.Server.Migrations
                     anodat = table.Column<DateTime>(type: "datetime", nullable: true),
                     motif = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     modcod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -171,10 +186,32 @@ namespace ABRPOINT.Server.Migrations
                     artlib = table.Column<string>(type: "nvarchar(160)", maxLength: 160, nullable: true),
                     artimg = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     artean = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    artqemb = table.Column<float>(type: "real", nullable: true)
+                    artqemb = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AuditLog",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    Action = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    TableName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    DateAction = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RetentionDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AuditLog", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -195,7 +232,10 @@ namespace ABRPOINT.Server.Migrations
                     consanc = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     connbjour = table.Column<float>(type: "real", nullable: true),
                     conref = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    conaffecte = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true)
+                    conaffecte = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -211,7 +251,10 @@ namespace ABRPOINT.Server.Migrations
                     banadr = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
                     bantel = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     banfax = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    bancpt = table.Column<string>(type: "nvarchar(25)", maxLength: 25, nullable: true)
+                    bancpt = table.Column<string>(type: "nvarchar(25)", maxLength: 25, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -226,7 +269,10 @@ namespace ABRPOINT.Server.Migrations
                     predat = table.Column<DateTime>(type: "datetime", nullable: true),
                     ordre = table.Column<int>(type: "int", nullable: true),
                     empmat = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
-                    motif = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true)
+                    motif = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -236,20 +282,24 @@ namespace ABRPOINT.Server.Migrations
                 name: "calendsoc",
                 columns: table => new
                 {
-                    soccod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
+                    soccod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
+                    cal_an = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
+                    cal_mois = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
+                    cal_sem = table.Column<int>(type: "int", nullable: false),
                     caltype = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
-                    cal_an = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
-                    cal_mois = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
-                    cal_sem = table.Column<int>(type: "int", nullable: true),
                     cal_nbh = table.Column<float>(type: "real", nullable: true),
                     cal_trav = table.Column<float>(type: "real", nullable: true),
                     cal_hjour = table.Column<float>(type: "real", nullable: true),
                     cal_houv = table.Column<float>(type: "real", nullable: true),
                     callib = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    cal_hsem = table.Column<float>(type: "real", nullable: true)
+                    cal_hsem = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
+                    table.PrimaryKey("PK_calendsoc", x => new { x.soccod, x.cal_an, x.cal_mois, x.cal_sem });
                 });
 
             migrationBuilder.CreateTable(
@@ -271,7 +321,10 @@ namespace ABRPOINT.Server.Migrations
                     catsem9 = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
                     catsem10 = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
                     catsem11 = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
-                    catsem12 = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true)
+                    catsem12 = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -288,7 +341,10 @@ namespace ABRPOINT.Server.Migrations
                     mois = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
                     titcod = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     clodat = table.Column<DateTime>(type: "datetime", nullable: true),
-                    clousr = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    clousr = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -307,7 +363,10 @@ namespace ABRPOINT.Server.Migrations
                     accsoc = table.Column<float>(type: "real", nullable: true),
                     accemp = table.Column<float>(type: "real", nullable: true),
                     cnstype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    cnsexp = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true)
+                    cnsexp = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -325,7 +384,10 @@ namespace ABRPOINT.Server.Migrations
                     Description = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     tablelier = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     editer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    Abréviation = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
+                    Abréviation = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -350,7 +412,10 @@ namespace ABRPOINT.Server.Migrations
                     consanc = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     connbjour = table.Column<double>(type: "float", nullable: true),
                     conref = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    conaffecte = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true)
+                    conaffecte = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -377,7 +442,10 @@ namespace ABRPOINT.Server.Migrations
                     conrefus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     connbjour = table.Column<float>(type: "real", nullable: true),
                     conref = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    consolde = table.Column<float>(type: "real", nullable: true)
+                    consolde = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -390,7 +458,10 @@ namespace ABRPOINT.Server.Migrations
                 {
                     concod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     soccod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
-                    empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true)
+                    empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -430,7 +501,10 @@ namespace ABRPOINT.Server.Migrations
                     socresp = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: true),
                     dircod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     empcontrat = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    conmois = table.Column<float>(type: "real", nullable: true)
+                    conmois = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -471,7 +545,10 @@ namespace ABRPOINT.Server.Migrations
                     socresp = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     dircod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     empcontrat = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true),
-                    conmois = table.Column<float>(type: "real", nullable: true)
+                    conmois = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -482,10 +559,42 @@ namespace ABRPOINT.Server.Migrations
                 columns: table => new
                 {
                     defcod = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: true),
-                    deflib = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
+                    deflib = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
+                });
+
+            migrationBuilder.CreateTable(
+                name: "demande_autorisation",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    soccod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
+                    empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: false),
+                    concod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    condat = table.Column<DateTime>(type: "datetime", nullable: true),
+                    condep = table.Column<DateTime>(type: "datetime", nullable: true),
+                    conret = table.Column<DateTime>(type: "datetime", nullable: true),
+                    connbjour = table.Column<float>(type: "real", nullable: true),
+                    conmotif = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    statut = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    date_demande = table.Column<DateTime>(type: "datetime", nullable: true),
+                    traite_par = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
+                    date_traitement = table.Column<DateTime>(type: "datetime", nullable: true),
+                    commentaire = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    abscod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_demande_autorisation", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -508,7 +617,10 @@ namespace ABRPOINT.Server.Migrations
                     conrefus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     connbjour = table.Column<float>(type: "real", nullable: true),
                     conref = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    consolde = table.Column<float>(type: "real", nullable: true)
+                    consolde = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -526,7 +638,10 @@ namespace ABRPOINT.Server.Migrations
                     dirtitre = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     dirresp = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     dirrespar = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    diremail = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
+                    diremail = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -545,7 +660,10 @@ namespace ABRPOINT.Server.Migrations
                     dmhre = table.Column<DateTime>(type: "datetime", nullable: true),
                     dmsem = table.Column<int>(type: "int", nullable: true),
                     dmlue = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    dmtype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    dmtype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -564,10 +682,39 @@ namespace ABRPOINT.Server.Migrations
                     dmhre = table.Column<DateTime>(type: "datetime", nullable: true),
                     dmsem = table.Column<int>(type: "int", nullable: true),
                     dmlue = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    dmtype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    dmtype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
+                });
+
+            migrationBuilder.CreateTable(
+                name: "documentvault",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
+                    empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: false),
+                    docname = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    doctype = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    docpath = table.Column<string>(type: "nvarchar(1024)", maxLength: 1024, nullable: false),
+                    docsize = table.Column<long>(type: "bigint", nullable: false),
+                    docdate = table.Column<DateTime>(type: "datetime", nullable: false),
+                    issigned = table.Column<bool>(type: "bit", nullable: false),
+                    signaturedate = table.Column<DateTime>(type: "datetime", nullable: true),
+                    signaturepath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_documentvault", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -578,7 +725,10 @@ namespace ABRPOINT.Server.Migrations
                     doncle1 = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     doncle2 = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     doncle3 = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    doncle4 = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true)
+                    doncle4 = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -609,7 +759,10 @@ namespace ABRPOINT.Server.Migrations
                     griech18 = table.Column<float>(type: "real", nullable: true),
                     griech19 = table.Column<float>(type: "real", nullable: true),
                     griech20 = table.Column<float>(type: "real", nullable: true),
-                    griech21 = table.Column<float>(type: "real", nullable: true)
+                    griech21 = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -636,7 +789,7 @@ namespace ABRPOINT.Server.Migrations
                     empreg = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     catcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
                     socaff = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
-                    empnbp = table.Column<int>(type: "int", nullable: true),
+                    empnbp = table.Column<float>(type: "real", nullable: true),
                     sitaff = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
                     foncod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     natcod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
@@ -644,7 +797,10 @@ namespace ABRPOINT.Server.Migrations
                     vilcod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     empadr = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
                     emptel = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    empmob = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    empmob = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -658,7 +814,10 @@ namespace ABRPOINT.Server.Migrations
                     empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     catdeb = table.Column<DateTime>(type: "datetime", nullable: true),
                     catfin = table.Column<DateTime>(type: "datetime", nullable: true),
-                    catcod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true)
+                    catcod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -670,7 +829,10 @@ namespace ABRPOINT.Server.Migrations
                 {
                     empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     empref = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
-                    empdat = table.Column<DateTime>(type: "datetime", nullable: true)
+                    empdat = table.Column<DateTime>(type: "datetime", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -683,7 +845,10 @@ namespace ABRPOINT.Server.Migrations
                     empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: false),
                     soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
                     uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    emplib = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
+                    emplib = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -697,7 +862,10 @@ namespace ABRPOINT.Server.Migrations
                     empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     soccod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     emplib = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    soclib = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    soclib = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -710,18 +878,18 @@ namespace ABRPOINT.Server.Migrations
                     empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: false),
                     soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
                     sitcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
-                    emplib = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    emplib = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     empmat = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     empsexe = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     sercod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
-                    empfonc = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    empfonc = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
                     empreg = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     catcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
                     empnbp = table.Column<int>(type: "int", nullable: true),
                     natcod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     vilcod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
-                    empadr = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    emptel = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
+                    empadr = table.Column<string>(type: "varchar(100)", unicode: false, maxLength: 100, nullable: true),
+                    emptel = table.Column<string>(type: "varchar(256)", unicode: false, maxLength: 256, nullable: true),
                     empmob = table.Column<string>(type: "text", nullable: true),
                     empemb = table.Column<DateTime>(type: "datetime", nullable: true),
                     empsort = table.Column<DateTime>(type: "datetime", nullable: true),
@@ -729,11 +897,11 @@ namespace ABRPOINT.Server.Migrations
                     actif = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     empdnais = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     emplnais = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    empcin = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
+                    empcin = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     empdcin = table.Column<DateTime>(type: "datetime", nullable: true),
                     empacin = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    empsbase = table.Column<double>(type: "float", nullable: true),
-                    empsbrut = table.Column<double>(type: "float", nullable: true),
+                    empsbase = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    empsbrut = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     empdir = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     emptype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     empniv = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
@@ -751,7 +919,7 @@ namespace ABRPOINT.Server.Migrations
                     empretard = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     empemail = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
                     empresp = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
-                    empsnet = table.Column<double>(type: "float", nullable: true),
+                    empsnet = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     empcontrat = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     empsitfam = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     empech = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: true),
@@ -759,12 +927,15 @@ namespace ABRPOINT.Server.Migrations
                     empcat = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     empscat = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     empnuit = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    empminhjour = table.Column<int>(type: "int", nullable: true),
+                    empminhjour = table.Column<double>(type: "float", nullable: true),
                     emppanier = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     seccod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     poscod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     empferepos = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    empcmp = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    empcmp = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -785,7 +956,10 @@ namespace ABRPOINT.Server.Migrations
                     rndnote = table.Column<double>(type: "float", nullable: true),
                     rndvaleur = table.Column<double>(type: "float", nullable: true),
                     nbhprod = table.Column<double>(type: "float", nullable: true),
-                    nbhpre = table.Column<double>(type: "float", nullable: true)
+                    nbhpre = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -798,7 +972,10 @@ namespace ABRPOINT.Server.Migrations
                     ntable = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     nchamps = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     paie = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    point = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    point = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -816,7 +993,10 @@ namespace ABRPOINT.Server.Migrations
                     fertype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     ferheure = table.Column<float>(type: "real", nullable: true),
                     fernpaye = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    fertrv = table.Column<DateTime>(type: "datetime", nullable: true)
+                    fertrv = table.Column<DateTime>(type: "datetime", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -832,7 +1012,10 @@ namespace ABRPOINT.Server.Migrations
                     fonlib = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     fontype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     fonpqual = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    fonpchoix = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    fonpchoix = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -868,7 +1051,10 @@ namespace ABRPOINT.Server.Migrations
                     griech18 = table.Column<float>(type: "real", nullable: true),
                     griech19 = table.Column<float>(type: "real", nullable: true),
                     griech20 = table.Column<float>(type: "real", nullable: true),
-                    griech21 = table.Column<float>(type: "real", nullable: true)
+                    griech21 = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -925,7 +1111,10 @@ namespace ABRPOINT.Server.Migrations
                     saljreptrv = table.Column<float>(type: "real", nullable: true),
                     salhfer = table.Column<float>(type: "real", nullable: true),
                     salhabs = table.Column<float>(type: "real", nullable: true),
-                    salpanier = table.Column<float>(type: "real", nullable: true)
+                    salpanier = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -946,7 +1135,10 @@ namespace ABRPOINT.Server.Migrations
                     cal_col = table.Column<int>(type: "int", nullable: true),
                     cal_row = table.Column<int>(type: "int", nullable: true),
                     motif = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    payer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    payer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -984,7 +1176,10 @@ namespace ABRPOINT.Server.Migrations
                     cat100rde = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true),
                     cat100ra = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true),
                     cattauxr100 = table.Column<float>(type: "real", nullable: true),
-                    catjourr100 = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    catjourr100 = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1001,7 +1196,10 @@ namespace ABRPOINT.Server.Migrations
                     rubcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     rublib = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     rubmnt = table.Column<double>(type: "float", nullable: true),
-                    rubunite = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    rubunite = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1015,7 +1213,10 @@ namespace ABRPOINT.Server.Migrations
                     dircod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     ferdate = table.Column<DateTime>(type: "datetime", nullable: true),
-                    fertype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    fertype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1031,7 +1232,10 @@ namespace ABRPOINT.Server.Migrations
                     ordre = table.Column<int>(type: "int", nullable: true),
                     qte = table.Column<double>(type: "float", nullable: true),
                     motmnt = table.Column<double>(type: "float", nullable: true),
-                    mottotal = table.Column<double>(type: "float", nullable: true)
+                    mottotal = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1052,7 +1256,10 @@ namespace ABRPOINT.Server.Migrations
                     plancol = table.Column<int>(type: "int", nullable: true),
                     planrow = table.Column<int>(type: "int", nullable: true),
                     motif = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    payer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    payer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1098,7 +1305,10 @@ namespace ABRPOINT.Server.Migrations
                     saljreptrv = table.Column<float>(type: "real", nullable: true),
                     salhfer = table.Column<float>(type: "real", nullable: true),
                     salrepos = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    salrepas = table.Column<float>(type: "real", nullable: true)
+                    salrepas = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1119,7 +1329,10 @@ namespace ABRPOINT.Server.Migrations
                     rubregime = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     rubnbr = table.Column<double>(type: "float", nullable: true),
                     empmat = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
-                    sitcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true)
+                    sitcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1136,7 +1349,10 @@ namespace ABRPOINT.Server.Migrations
                     poshredeb = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     poshrefin = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     postaux = table.Column<float>(type: "real", nullable: true),
-                    postxrepos = table.Column<float>(type: "real", nullable: true)
+                    postxrepos = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1155,7 +1371,10 @@ namespace ABRPOINT.Server.Migrations
                     premnt = table.Column<float>(type: "real", nullable: true),
                     fchannee = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     fchmois = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
-                    fchtit = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    fchtit = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1171,7 +1390,10 @@ namespace ABRPOINT.Server.Migrations
                     chetype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     faccod = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
                     codsite = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    facreg = table.Column<double>(type: "float", nullable: true)
+                    facreg = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1194,7 +1416,10 @@ namespace ABRPOINT.Server.Migrations
                     empmat = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     sitcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
                     motif = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    rubtype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    rubtype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1224,7 +1449,10 @@ namespace ABRPOINT.Server.Migrations
                     conadrdep = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     condest = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     conresp = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
-                    condepense = table.Column<string>(type: "char(100)", unicode: false, fixedLength: true, maxLength: 100, nullable: true)
+                    condepense = table.Column<string>(type: "char(100)", unicode: false, fixedLength: true, maxLength: 100, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1240,7 +1468,10 @@ namespace ABRPOINT.Server.Migrations
                     opeordre = table.Column<int>(type: "int", nullable: true),
                     artqte = table.Column<double>(type: "float", nullable: true),
                     arttemps = table.Column<double>(type: "float", nullable: true),
-                    artmethode = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
+                    artmethode = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1257,7 +1488,10 @@ namespace ABRPOINT.Server.Migrations
                     modupd = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     modsupp = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     modconsult = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    description = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
+                    description = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1276,7 +1510,10 @@ namespace ABRPOINT.Server.Migrations
                     modupd = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     modsupp = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     modconsult = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    description = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
+                    description = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1291,7 +1528,10 @@ namespace ABRPOINT.Server.Migrations
                     soccod = table.Column<string>(type: "char(10)", unicode: false, fixedLength: true, maxLength: 10, nullable: true),
                     mottype = table.Column<string>(type: "char(1)", unicode: false, fixedLength: true, maxLength: 1, nullable: true),
                     motlib = table.Column<string>(type: "char(50)", unicode: false, fixedLength: true, maxLength: 50, nullable: true),
-                    motmnt = table.Column<double>(type: "float", nullable: true)
+                    motmnt = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1302,11 +1542,38 @@ namespace ABRPOINT.Server.Migrations
                 columns: table => new
                 {
                     natcod = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
-                    natlib = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    natlib = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_nation", x => x.natcod);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "notedefrais",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
+                    empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: false),
+                    titre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    categorie = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    montant = table.Column<double>(type: "float", nullable: false),
+                    projet = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    datedepense = table.Column<DateTime>(type: "datetime", nullable: false),
+                    justificatif = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    etat = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_notedefrais", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -1322,7 +1589,10 @@ namespace ABRPOINT.Server.Migrations
                     opduree = table.Column<string>(type: "nvarchar(25)", maxLength: 25, nullable: true),
                     unite = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     phtype = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    sitcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true)
+                    sitcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1338,7 +1608,10 @@ namespace ABRPOINT.Server.Migrations
                     opemethode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     opetemps = table.Column<double>(type: "float", nullable: true),
                     opepiece = table.Column<double>(type: "float", nullable: true),
-                    opetype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    opetype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1350,7 +1623,10 @@ namespace ABRPOINT.Server.Migrations
                 {
                     dircod = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
                     uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    exercice = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true)
+                    exercice = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1368,7 +1644,10 @@ namespace ABRPOINT.Server.Migrations
                     qtepaq = table.Column<int>(type: "int", nullable: true),
                     sitcod = table.Column<string>(type: "nvarchar(25)", maxLength: 25, nullable: true),
                     date = table.Column<DateTime>(type: "datetime", nullable: true),
-                    qteproj = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
+                    qteproj = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1384,12 +1663,12 @@ namespace ABRPOINT.Server.Migrations
                     separe = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     longbdg = table.Column<short>(type: "smallint", nullable: true),
                     ncom = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    vitesse = table.Column<int>(type: "int", nullable: true),
-                    parite = table.Column<int>(type: "int", nullable: true),
+                    vitesse = table.Column<float>(type: "real", nullable: true),
+                    parite = table.Column<float>(type: "real", nullable: true),
                     nbdigit = table.Column<int>(type: "int", nullable: true),
                     xonoff = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     arrondi = table.Column<int>(type: "int", nullable: true),
-                    nbhconge = table.Column<int>(type: "int", nullable: true),
+                    nbhconge = table.Column<float>(type: "real", nullable: true),
                     nbhrepos = table.Column<int>(type: "int", nullable: true),
                     nbhferier = table.Column<int>(type: "int", nullable: true),
                     fertrv = table.Column<int>(type: "int", nullable: true),
@@ -1476,7 +1755,10 @@ namespace ABRPOINT.Server.Migrations
                     parhnuitspec = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     nuitsdeb = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     nuitsfin = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
-                    parretabs = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    parretabs = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1586,7 +1868,10 @@ namespace ABRPOINT.Server.Migrations
                     parhnuitspec = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     nuitsdeb = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     nuitsfin = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
-                    parretabs = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    parretabs = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1600,7 +1885,10 @@ namespace ABRPOINT.Server.Migrations
                     parmois = table.Column<int>(type: "int", nullable: true),
                     partaux = table.Column<float>(type: "real", nullable: true),
                     parmnt = table.Column<double>(type: "float", nullable: true),
-                    parrub = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
+                    parrub = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1616,7 +1904,10 @@ namespace ABRPOINT.Server.Migrations
                     poshredeb = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     poshrefin = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     postaux = table.Column<float>(type: "real", nullable: true),
-                    postxrepos = table.Column<float>(type: "real", nullable: true)
+                    postxrepos = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1633,7 +1924,10 @@ namespace ABRPOINT.Server.Migrations
                     poshredeb = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     poshrefin = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     postaux = table.Column<float>(type: "real", nullable: true),
-                    postxrepos = table.Column<float>(type: "real", nullable: true)
+                    postxrepos = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1644,17 +1938,20 @@ namespace ABRPOINT.Server.Migrations
                 columns: table => new
                 {
                     soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
+                    caltype = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
                     empreg = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
                     ordre = table.Column<int>(type: "int", nullable: true),
-                    caltype = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     partranche1 = table.Column<float>(type: "real", nullable: true),
                     partaux1 = table.Column<float>(type: "real", nullable: true),
                     partranche2 = table.Column<float>(type: "real", nullable: true),
-                    partaux2 = table.Column<float>(type: "real", nullable: true)
+                    partaux2 = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_partranche", x => new { x.soccod, x.empreg });
+                    table.PrimaryKey("PK_partranche", x => new { x.soccod, x.caltype, x.empreg });
                 });
 
             migrationBuilder.CreateTable(
@@ -1669,7 +1966,10 @@ namespace ABRPOINT.Server.Migrations
                     partranche1 = table.Column<float>(type: "real", nullable: true),
                     partaux1 = table.Column<float>(type: "real", nullable: true),
                     partranche2 = table.Column<float>(type: "real", nullable: true),
-                    partaux2 = table.Column<float>(type: "real", nullable: true)
+                    partaux2 = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1684,7 +1984,10 @@ namespace ABRPOINT.Server.Migrations
                     plandate = table.Column<DateTime>(type: "datetime", nullable: true),
                     plancat = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     planposte = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    planrepos = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    planrepos = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1709,7 +2012,10 @@ namespace ABRPOINT.Server.Migrations
                     pntsortie = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     predatent = table.Column<DateTime>(type: "datetime", nullable: true),
                     predatsort = table.Column<DateTime>(type: "datetime", nullable: true),
-                    valider = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    valider = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1724,7 +2030,10 @@ namespace ABRPOINT.Server.Migrations
                     uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     purger = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     lire = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    config = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    config = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1745,7 +2054,10 @@ namespace ABRPOINT.Server.Migrations
                     poiport = table.Column<int>(type: "int", nullable: true),
                     poietat = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     poicom = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    Poipwd = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Poipwd = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1763,7 +2075,10 @@ namespace ABRPOINT.Server.Migrations
                     numheure = table.Column<int>(type: "int", nullable: true),
                     nbminute = table.Column<float>(type: "real", nullable: true),
                     foncod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
-                    quacod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true)
+                    quacod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1931,7 +2246,10 @@ namespace ABRPOINT.Server.Migrations
                     cathsup = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     empniv = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     tothart = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true),
-                    totjdouche = table.Column<double>(type: "float", nullable: true)
+                    totjdouche = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1967,7 +2285,10 @@ namespace ABRPOINT.Server.Migrations
                     semaine3n = table.Column<float>(type: "real", nullable: true),
                     semaine4n = table.Column<float>(type: "real", nullable: true),
                     semaine5n = table.Column<float>(type: "real", nullable: true),
-                    semaine6n = table.Column<float>(type: "real", nullable: true)
+                    semaine6n = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1992,7 +2313,10 @@ namespace ABRPOINT.Server.Migrations
                     TEMPLATE1 = table.Column<byte[]>(type: "image", nullable: true),
                     Flag = table.Column<short>(type: "smallint", nullable: true),
                     DivisionFP = table.Column<short>(type: "smallint", nullable: true),
-                    TEMPLATE4 = table.Column<byte[]>(type: "image", nullable: true)
+                    TEMPLATE4 = table.Column<byte[]>(type: "image", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2114,27 +2438,30 @@ namespace ABRPOINT.Server.Migrations
                     maxhreven = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     maxhresam = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     maxhredim = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
-                    minhjourlun = table.Column<float>(type: "real", nullable: true),
-                    minhdemijourlun = table.Column<float>(type: "real", nullable: true),
-                    minhjourmar = table.Column<float>(type: "real", nullable: true),
-                    minhdemijourmar = table.Column<float>(type: "real", nullable: true),
-                    minhjourmer = table.Column<float>(type: "real", nullable: true),
-                    minhdemijourmer = table.Column<float>(type: "real", nullable: true),
-                    minhjourjeu = table.Column<float>(type: "real", nullable: true),
-                    minhdemijourjeu = table.Column<float>(type: "real", nullable: true),
-                    minhjourven = table.Column<float>(type: "real", nullable: true),
-                    minhdemijourven = table.Column<float>(type: "real", nullable: true),
-                    minhjoursam = table.Column<float>(type: "real", nullable: true),
-                    minhdemijoursam = table.Column<float>(type: "real", nullable: true),
-                    minhjourdim = table.Column<float>(type: "real", nullable: true),
-                    minhdemijourdim = table.Column<float>(type: "real", nullable: true),
+                    minhjourlun = table.Column<int>(type: "int", nullable: true),
+                    minhdemijourlun = table.Column<int>(type: "int", nullable: true),
+                    minhjourmar = table.Column<int>(type: "int", nullable: true),
+                    minhdemijourmar = table.Column<int>(type: "int", nullable: true),
+                    minhjourmer = table.Column<int>(type: "int", nullable: true),
+                    minhdemijourmer = table.Column<int>(type: "int", nullable: true),
+                    minhjourjeu = table.Column<int>(type: "int", nullable: true),
+                    minhdemijourjeu = table.Column<int>(type: "int", nullable: true),
+                    minhjourven = table.Column<int>(type: "int", nullable: true),
+                    minhdemijourven = table.Column<int>(type: "int", nullable: true),
+                    minhjoursam = table.Column<int>(type: "int", nullable: true),
+                    minhdemijoursam = table.Column<int>(type: "int", nullable: true),
+                    minhjourdim = table.Column<int>(type: "int", nullable: true),
+                    minhdemijourdim = table.Column<int>(type: "int", nullable: true),
                     lundouche = table.Column<float>(type: "real", nullable: true),
                     mardouche = table.Column<float>(type: "real", nullable: true),
                     merdouche = table.Column<float>(type: "real", nullable: true),
                     jeudouche = table.Column<float>(type: "real", nullable: true),
                     vendouche = table.Column<float>(type: "real", nullable: true),
                     samdouche = table.Column<float>(type: "real", nullable: true),
-                    dimdouche = table.Column<float>(type: "real", nullable: true)
+                    dimdouche = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2191,7 +2518,10 @@ namespace ABRPOINT.Server.Migrations
                     minhjour = table.Column<int>(type: "int", nullable: true),
                     minhdemijour = table.Column<int>(type: "int", nullable: true),
                     minhjoursam = table.Column<int>(type: "int", nullable: true),
-                    minhdemijoursam = table.Column<int>(type: "int", nullable: true)
+                    minhdemijoursam = table.Column<int>(type: "int", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2204,7 +2534,10 @@ namespace ABRPOINT.Server.Migrations
                     code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     nature = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     soccod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    sitcod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true)
+                    sitcod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2236,9 +2569,9 @@ namespace ABRPOINT.Server.Migrations
                     presortsupup = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true),
                     preentasupup = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true),
                     presortasupup = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true),
-                    presem = table.Column<int>(type: "int", nullable: true),
+                    presem = table.Column<float>(type: "real", nullable: true),
                     prerepos = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    prerepas = table.Column<int>(type: "int", nullable: true),
+                    prerepas = table.Column<float>(type: "real", nullable: true),
                     preretmate = table.Column<DateTime>(type: "datetime", nullable: true),
                     preretmats = table.Column<DateTime>(type: "datetime", nullable: true),
                     preretame = table.Column<DateTime>(type: "datetime", nullable: true),
@@ -2247,10 +2580,10 @@ namespace ABRPOINT.Server.Migrations
                     preretmatsup = table.Column<DateTime>(type: "datetime", nullable: true),
                     preretameup = table.Column<DateTime>(type: "datetime", nullable: true),
                     preretamsup = table.Column<DateTime>(type: "datetime", nullable: true),
-                    preavantent = table.Column<int>(type: "int", nullable: true),
-                    preapresent = table.Column<int>(type: "int", nullable: true),
-                    preavantsort = table.Column<int>(type: "int", nullable: true),
-                    preapressort = table.Column<int>(type: "int", nullable: true),
+                    preavantent = table.Column<float>(type: "real", nullable: true),
+                    preapresent = table.Column<float>(type: "real", nullable: true),
+                    preavantsort = table.Column<float>(type: "real", nullable: true),
+                    preapressort = table.Column<float>(type: "real", nullable: true),
                     soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     sitcod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     empreg = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
@@ -2263,8 +2596,11 @@ namespace ABRPOINT.Server.Migrations
                     tothsup = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     tothnuit = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     optimise = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    totcmp = table.Column<int>(type: "int", nullable: true),
-                    predouche = table.Column<int>(type: "int", nullable: true)
+                    totcmp = table.Column<float>(type: "real", nullable: true),
+                    predouche = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2383,7 +2719,10 @@ namespace ABRPOINT.Server.Migrations
                     nbhabs = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true),
                     abscng = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     abspayer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    abssanc = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    abssanc = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2403,7 +2742,10 @@ namespace ABRPOINT.Server.Migrations
                     premnt = table.Column<float>(type: "real", nullable: true),
                     preret = table.Column<float>(type: "real", nullable: true),
                     condg = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    conrefus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    conrefus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2424,7 +2766,10 @@ namespace ABRPOINT.Server.Migrations
                     artlib = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
                     artprix = table.Column<double>(type: "float", nullable: true),
                     artcodac = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    gender = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true)
+                    gender = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2436,7 +2781,11 @@ namespace ABRPOINT.Server.Migrations
                 {
                     quacod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
                     soccod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
-                    qualib = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    qualib = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    catcod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2458,7 +2807,10 @@ namespace ABRPOINT.Server.Migrations
                     nombre = table.Column<float>(type: "real", nullable: true),
                     nbpcontrole = table.Column<float>(type: "real", nullable: true),
                     nbpaccepte = table.Column<float>(type: "real", nullable: true),
-                    quaobs = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true)
+                    quaobs = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2479,10 +2831,32 @@ namespace ABRPOINT.Server.Migrations
                     rubsigne = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     nbpcontrole = table.Column<float>(type: "real", nullable: true),
                     nbprefuse = table.Column<float>(type: "real", nullable: true),
-                    nbpaccepte = table.Column<float>(type: "real", nullable: true)
+                    nbpaccepte = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
+                });
+
+            migrationBuilder.CreateTable(
+                name: "refresh_tokens",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    token = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    expires_at = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    revoked = table.Column<bool>(type: "bit", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_refresh_tokens", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -2503,7 +2877,10 @@ namespace ABRPOINT.Server.Migrations
                     regref = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     regtype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     regtit = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    reglib = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    reglib = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2524,7 +2901,10 @@ namespace ABRPOINT.Server.Migrations
                     rndtemps = table.Column<double>(type: "float", nullable: true),
                     rndprod = table.Column<double>(type: "float", nullable: true),
                     rndpre = table.Column<double>(type: "float", nullable: true),
-                    artmethode = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
+                    artmethode = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2542,7 +2922,10 @@ namespace ABRPOINT.Server.Migrations
                     motif = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     hredeb = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     hrefin = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
-                    nbheure = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true)
+                    nbheure = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2560,10 +2943,33 @@ namespace ABRPOINT.Server.Migrations
                     barabs = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     barrub = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     barmnt = table.Column<double>(type: "float", nullable: true),
-                    barpabs = table.Column<double>(type: "float", nullable: true)
+                    barpabs = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
+                });
+
+            migrationBuilder.CreateTable(
+                name: "roles",
+                columns: table => new
+                {
+                    role_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    role_name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    role_description = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    role_color = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    role_is_system = table.Column<bool>(type: "bit", nullable: false),
+                    role_created_at = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_roles", x => x.role_id);
                 });
 
             migrationBuilder.CreateTable(
@@ -2572,12 +2978,15 @@ namespace ABRPOINT.Server.Migrations
                 {
                     rubcod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     soccod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
-                    rubtype = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    rubtype = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     rublib = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
                     rubregime = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    vartype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    vartype = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
                     rubunite = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    rubtaux = table.Column<float>(type: "real", nullable: true)
+                    rubtaux = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2589,7 +2998,10 @@ namespace ABRPOINT.Server.Migrations
                 columns: table => new
                 {
                     rubtype = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    rublib = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
+                    rublib = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2647,7 +3059,10 @@ namespace ABRPOINT.Server.Migrations
                     salhfer = table.Column<float>(type: "real", nullable: true),
                     salhabs = table.Column<float>(type: "real", nullable: true),
                     salpanier = table.Column<float>(type: "real", nullable: true),
-                    saldouche = table.Column<float>(type: "real", nullable: true)
+                    saldouche = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2670,7 +3085,10 @@ namespace ABRPOINT.Server.Migrations
                     conmotif = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     consanc = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     connbjour = table.Column<float>(type: "real", nullable: true),
-                    conref = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    conref = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2685,7 +3103,10 @@ namespace ABRPOINT.Server.Migrations
                     soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
                     seclib = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
                     sectype = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    effectif = table.Column<int>(type: "int", nullable: true)
+                    effectif = table.Column<int>(type: "int", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2711,7 +3132,10 @@ namespace ABRPOINT.Server.Migrations
                     semconge = table.Column<float>(type: "real", nullable: true),
                     semferie = table.Column<float>(type: "real", nullable: true),
                     semrepos = table.Column<float>(type: "real", nullable: true),
-                    semhjdemi = table.Column<float>(type: "real", nullable: true)
+                    semhjdemi = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2725,7 +3149,10 @@ namespace ABRPOINT.Server.Migrations
                     soccod = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
                     serlib = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
                     serloc = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    effectif = table.Column<int>(type: "int", nullable: true)
+                    effectif = table.Column<int>(type: "int", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2749,7 +3176,10 @@ namespace ABRPOINT.Server.Migrations
                     sitpaie = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: true),
                     sitcongem = table.Column<float>(type: "real", nullable: true),
                     sitsanch = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    sitsancm = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    sitsancm = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2773,8 +3203,8 @@ namespace ABRPOINT.Server.Migrations
                     soctva2 = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     soctva3 = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     soctva000 = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: true),
-                    socreg = table.Column<float>(type: "real", nullable: true),
-                    socmois = table.Column<float>(type: "real", nullable: true),
+                    socreg = table.Column<int>(type: "int", nullable: true),
+                    socmois = table.Column<int>(type: "int", nullable: true),
                     soctype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     socpresence = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     sochsup = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
@@ -2783,7 +3213,10 @@ namespace ABRPOINT.Server.Migrations
                     soclibar = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     socadrar = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     socrespar = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    socimg = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                    socimg = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2796,7 +3229,10 @@ namespace ABRPOINT.Server.Migrations
                 {
                     SOC_COD = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     SOC_LIB = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    BASESQL = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    BASESQL = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2809,7 +3245,10 @@ namespace ABRPOINT.Server.Migrations
                     soccod = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
                     uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     sitcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
-                    exercice = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true)
+                    exercice = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2824,7 +3263,10 @@ namespace ABRPOINT.Server.Migrations
                     soccod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
                     annee = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     conge = table.Column<float>(type: "real", nullable: true),
-                    empconge = table.Column<float>(type: "real", nullable: true)
+                    empconge = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2837,7 +3279,10 @@ namespace ABRPOINT.Server.Migrations
                 {
                     empcod = table.Column<string>(type: "nvarchar(12)", maxLength: 12, nullable: true),
                     soccod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
-                    heure = table.Column<double>(type: "float", nullable: true)
+                    heure = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2856,7 +3301,10 @@ namespace ABRPOINT.Server.Migrations
                     temprod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     rend = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     mois = table.Column<int>(type: "int", nullable: true),
-                    annee = table.Column<int>(type: "int", nullable: true)
+                    annee = table.Column<int>(type: "int", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2875,7 +3323,10 @@ namespace ABRPOINT.Server.Migrations
                     cal_col = table.Column<int>(type: "int", nullable: true),
                     cal_row = table.Column<int>(type: "int", nullable: true),
                     motif = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    payer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    payer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2897,7 +3348,10 @@ namespace ABRPOINT.Server.Migrations
                     NombreDeReports = table.Column<int>(type: "int", nullable: true),
                     DateEcheancePrevue = table.Column<DateTime>(type: "datetime", nullable: true),
                     FlagagePret = table.Column<int>(type: "int", nullable: true),
-                    EcartArrondiSurEcheance = table.Column<double>(type: "float", nullable: true)
+                    EcartArrondiSurEcheance = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2943,7 +3397,10 @@ namespace ABRPOINT.Server.Migrations
                     RubriqueRemboursement = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     TypeDeTable = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     FlagInfosGenerales = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    CalculAutomatique = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    CalculAutomatique = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2968,7 +3425,10 @@ namespace ABRPOINT.Server.Migrations
                     EcartArrondiSurEcheance = table.Column<double>(type: "float", nullable: true),
                     TypeRemboursement = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     DateRemboursement = table.Column<DateTime>(type: "datetime", nullable: true),
-                    NoQuittnce = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true)
+                    NoQuittnce = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2984,7 +3444,10 @@ namespace ABRPOINT.Server.Migrations
                     Nom = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true),
                     NomJeuneFille = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true),
                     Prenom = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true),
-                    Prenom2 = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true)
+                    Prenom2 = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2997,7 +3460,10 @@ namespace ABRPOINT.Server.Migrations
                     No = table.Column<int>(type: "int", nullable: true),
                     NoPret = table.Column<int>(type: "int", nullable: true),
                     MontantEspece = table.Column<double>(type: "float", nullable: true),
-                    MontantBultin = table.Column<double>(type: "float", nullable: true)
+                    MontantBultin = table.Column<double>(type: "float", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3012,7 +3478,10 @@ namespace ABRPOINT.Server.Migrations
                     titlib = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
                     titsens = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     titarrondi = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    tittype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true)
+                    tittype = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3029,7 +3498,15 @@ namespace ABRPOINT.Server.Migrations
                     utiactif = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     utiadm = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
                     Utimail = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Utiimg = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                    utiimg = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    utirole = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    uti2fa_enabled = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    uti2fa_secret = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    UtiResetCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UtiResetCodeExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3041,28 +3518,14 @@ namespace ABRPOINT.Server.Migrations
                 columns: table => new
                 {
                     vilcod = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
-                    villib = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    villib = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ville", x => x.vilcod);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "refresh_tokens",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    uticod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    token = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    expires_at = table.Column<DateTime>(type: "datetime", nullable: false),
-                    created_at = table.Column<DateTime>(type: "datetime", nullable: false),
-                    revoked = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_refresh_tokens", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -3076,7 +3539,10 @@ namespace ABRPOINT.Server.Migrations
                     mois = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: true),
                     niveau = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
                     titcod = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    montant = table.Column<float>(type: "real", nullable: true)
+                    montant = table.Column<float>(type: "real", nullable: true),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3087,10 +3553,74 @@ namespace ABRPOINT.Server.Migrations
                         principalColumns: new[] { "empcod", "soccod", "sitcod" });
                 });
 
+            migrationBuilder.CreateTable(
+                name: "role_permissions",
+                columns: table => new
+                {
+                    rp_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    rp_role_id = table.Column<int>(type: "int", nullable: false),
+                    rp_module = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    rp_consult = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    rp_add = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    rp_modify = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    rp_delete = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_role_permissions", x => x.rp_id);
+                    table.ForeignKey(
+                        name: "FK_role_permissions_roles_rp_role_id",
+                        column: x => x.rp_role_id,
+                        principalTable: "roles",
+                        principalColumn: "role_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "role_pointdroit",
+                columns: table => new
+                {
+                    rpd_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    rpd_role_id = table.Column<int>(type: "int", nullable: false),
+                    rpd_poicod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    rpd_soccod = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    rpd_lire = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
+                    rpd_purger = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
+                    rpd_config = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "datetime", nullable: true),
+                    retention_date = table.Column<DateTime>(type: "datetime", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_role_pointdroit", x => x.rpd_id);
+                    table.ForeignKey(
+                        name: "FK_role_pointdroit_roles_rpd_role_id",
+                        column: x => x.rpd_role_id,
+                        principalTable: "roles",
+                        principalColumn: "role_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_avance_empcod_soccod_sitcod",
                 table: "avance",
                 columns: new[] { "empcod", "soccod", "sitcod" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_role_permissions_rp_role_id",
+                table: "role_permissions",
+                column: "rp_role_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_role_pointdroit_rpd_role_id",
+                table: "role_pointdroit",
+                column: "rpd_role_id");
         }
 
         /// <inheritdoc />
@@ -3113,6 +3643,9 @@ namespace ABRPOINT.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "article");
+
+            migrationBuilder.DropTable(
+                name: "AuditLog");
 
             migrationBuilder.DropTable(
                 name: "autoriser");
@@ -3160,6 +3693,9 @@ namespace ABRPOINT.Server.Migrations
                 name: "defaut");
 
             migrationBuilder.DropTable(
+                name: "demande_autorisation");
+
+            migrationBuilder.DropTable(
                 name: "demconge");
 
             migrationBuilder.DropTable(
@@ -3170,6 +3706,9 @@ namespace ABRPOINT.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "dmpresence");
+
+            migrationBuilder.DropTable(
+                name: "documentvault");
 
             migrationBuilder.DropTable(
                 name: "donne");
@@ -3265,6 +3804,9 @@ namespace ABRPOINT.Server.Migrations
                 name: "nation");
 
             migrationBuilder.DropTable(
+                name: "notedefrais");
+
+            migrationBuilder.DropTable(
                 name: "opbarre");
 
             migrationBuilder.DropTable(
@@ -3352,6 +3894,9 @@ namespace ABRPOINT.Server.Migrations
                 name: "qualmens");
 
             migrationBuilder.DropTable(
+                name: "refresh_tokens");
+
+            migrationBuilder.DropTable(
                 name: "regleremp");
 
             migrationBuilder.DropTable(
@@ -3362,6 +3907,12 @@ namespace ABRPOINT.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "rndbareme");
+
+            migrationBuilder.DropTable(
+                name: "role_permissions");
+
+            migrationBuilder.DropTable(
+                name: "role_pointdroit");
 
             migrationBuilder.DropTable(
                 name: "rubrique");
@@ -3433,10 +3984,10 @@ namespace ABRPOINT.Server.Migrations
                 name: "ville");
 
             migrationBuilder.DropTable(
-                name: "refresh_tokens");
+                name: "employe");
 
             migrationBuilder.DropTable(
-                name: "employe");
+                name: "roles");
         }
     }
 }

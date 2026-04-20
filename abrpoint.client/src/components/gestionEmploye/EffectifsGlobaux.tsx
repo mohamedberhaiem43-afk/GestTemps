@@ -32,7 +32,7 @@ interface Statistics {
 }
 
 const EffectifsGlobaux = () => {
-  const { soccod, uticod, hasPermission } = useAuth();
+  const { soccod, uticod, isManager, sercod, hasPermission } = useAuth();
   const canAdd = hasPermission('Gestion Employés', 'add');
   const canModify = hasPermission('Gestion Employés', 'modify');
   const canDelete = hasPermission('Gestion Employés', 'delete');
@@ -59,6 +59,13 @@ const EffectifsGlobaux = () => {
     newThisMonth: 0,
     inactiveEmployees: 0,
   });
+  const isManagerScoped = Boolean(isManager && sercod);
+
+  useEffect(() => {
+    if (isManagerScoped) {
+      setSelectedDepartment(sercod || "");
+    }
+  }, [isManagerScoped, sercod]);
 
   // Fetch employees
   useEffect(() => {
@@ -69,22 +76,25 @@ const EffectifsGlobaux = () => {
       .get(`/Employes/${soccod}/${uticod}`)
       .then((res) => {
         const empData = res.data ?? [];
-        setEmployees(empData);
-        setFilteredEmployees(empData);
+        const scopedData = isManagerScoped
+          ? empData.filter((e: Employe) => e.sercod === sercod)
+          : empData;
+        setEmployees(scopedData);
+        setFilteredEmployees(scopedData);
 
         // Calculate stats
-        const active = empData.filter((e: Employe) => e.actif === "A").length;
-        const inactive = empData.filter((e: Employe) => e.actif !== "A").length;
+        const active = scopedData.filter((e: Employe) => e.actif === "A").length;
+        const inactive = scopedData.filter((e: Employe) => e.actif !== "A").length;
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
-        const newThisMonth = empData.filter((e: Employe) => {
+        const newThisMonth = scopedData.filter((e: Employe) => {
           if (!e.empemb) return false;
           const hireDate = new Date(e.empemb);
           return hireDate.getMonth() === currentMonth && hireDate.getFullYear() === currentYear;
         }).length;
 
         setStats({
-          totalEmployees: empData.length,
+          totalEmployees: scopedData.length,
           activeEmployees: active,
           newThisMonth,
           inactiveEmployees: inactive,
@@ -92,16 +102,27 @@ const EffectifsGlobaux = () => {
       })
       .catch((err) => console.error(err))
       .finally(() => setIsLoading(false));
-  }, [soccod, uticod]);
+  }, [soccod, uticod, isManagerScoped, sercod]);
 
   // Fetch departments (services)
   useEffect(() => {
     if (!soccod) return;
     apiInstance
       .get(`/Services/get-servlibs/${soccod}`)
-      .then((res) => setDepartments(res.data ?? {}))
+      .then((res) => {
+        const allDepartments = res.data ?? {};
+        if (isManagerScoped && sercod) {
+          setDepartments(
+            allDepartments[sercod]
+              ? { [sercod]: allDepartments[sercod] }
+              : {}
+          );
+          return;
+        }
+        setDepartments(allDepartments);
+      })
       .catch((err) => console.error(err));
-  }, [soccod]);
+  }, [soccod, isManagerScoped, sercod]);
 
   // Fetch sites
   useEffect(() => {
@@ -257,11 +278,12 @@ const EffectifsGlobaux = () => {
                 value={selectedDepartment}
                 onChange={(e) => setSelectedDepartment(e.target.value)}
                 className="filter-select"
+                disabled={isManagerScoped}
                 SelectProps={{
                   displayEmpty: true,
                 }}
               >
-                <MenuItem value="">Tous les départements</MenuItem>
+                <MenuItem value="">{isManagerScoped ? "Mon département" : "Tous les départements"}</MenuItem>
                 {Object.entries(departments).map(([code, label]) => (
                   <MenuItem key={code} value={code}>
                     {label}

@@ -108,28 +108,30 @@ function QualificationModernContent() {
               <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
             </Box>
           </Box>
-          <table className="ref-table">
-            <thead><tr><th style={{ width: 80 }}>Actions</th><th>Code</th><th>Libellé</th></tr></thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={3} className="ref-empty">Aucune qualification trouvée.</td></tr>
-              ) : filtered.map(q => (
-                <tr key={q.quacod}>
-                  <td><Box sx={{ display: 'flex', gap: '4px' }}>
-                    {canModify && (
-                      <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(q)}><EditIcon sx={{ fontSize: 16 }} /></button>
-                    )}
-                    {canDelete && (
-                      <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(q)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
-                    )}
-                    {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
-                  </Box></td>
-                  <td style={{ fontWeight: 700, color: '#0f172a' }}>{q.quacod}</td>
-                  <td>{q.qualib}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Box className="ref-table-container">
+            <table className="ref-table">
+              <thead><tr><th style={{ width: 80 }}>Actions</th><th>Code</th><th>Libellé</th></tr></thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={3} className="ref-empty">Aucune qualification trouvée.</td></tr>
+                ) : filtered.map(q => (
+                  <tr key={q.quacod}>
+                    <td><Box sx={{ display: 'flex', gap: '4px' }}>
+                      {canModify && (
+                        <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(q)}><EditIcon sx={{ fontSize: 16 }} /></button>
+                      )}
+                      {canDelete && (
+                        <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(q)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
+                      )}
+                      {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
+                    </Box></td>
+                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{q.quacod}</td>
+                    <td>{q.qualib}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
           <Box className="ref-table-footer"><span>Affichage de {filtered.length} qualifications</span></Box>
         </Box>
       </Box>

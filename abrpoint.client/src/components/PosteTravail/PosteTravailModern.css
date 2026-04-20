@@ -254,7 +254,9 @@
 }
 
 .schedule-table-container {
+  width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .schedule-table {
@@ -442,40 +444,63 @@
   }
 
   .poste-settings-row {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
-  .tolerance-card,
+  .tolerance-card {
+    flex: 1 1 200px;
+  }
+
   .pauses-card {
-    width: 100%;
+    flex: 1 1 300px;
   }
 }
 
 @media (max-width: 768px) {
+  .poste-travail-container {
+    padding: 12px;
+  }
+
   .poste-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+    padding-bottom: 12px;
   }
 
   .poste-header-actions {
     width: 100%;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
-  .poste-info-row {
-    flex-direction: column;
-  }
+  @media (max-width: 768px) {
+    .poste-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
 
-  .poste-field-large {
-    width: 100%;
-  }
+    .poste-header-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
 
-  .schedule-table {
-    font-size: 10px;
-  }
+    .poste-info-row {
+      flex-direction: column;
+    }
 
-  .schedule-table .MuiTextField-root {
-    width: 50px;
+    .poste-field-large {
+      width: 100%;
+    }
+
+    .schedule-table {
+      font-size: 10px;
+    }
+
+    .schedule-table .MuiTextField-root {
+      width: 50px;
+    }
   }
 }

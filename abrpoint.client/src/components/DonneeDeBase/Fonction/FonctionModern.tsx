@@ -116,29 +116,31 @@ function FonctionModernContent() {
               <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
             </Box>
           </Box>
-          <table className="ref-table">
-            <thead><tr><th style={{ width: 80 }}>Actions</th><th>Code</th><th>Libellé</th><th>Type</th></tr></thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={4} className="ref-empty">Aucune fonction trouvée.</td></tr>
-              ) : filtered.map(f => (
-                <tr key={f.foncod}>
-                  <td><Box sx={{ display: 'flex', gap: '4px' }}>
-                    {canModify && (
-                      <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(f)}><EditIcon sx={{ fontSize: 16 }} /></button>
-                    )}
-                    {canDelete && (
-                      <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(f)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
-                    )}
-                    {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
-                  </Box></td>
-                  <td style={{ fontWeight: 700, color: '#0f172a' }}>{f.foncod}</td>
-                  <td>{f.fonlib}</td>
-                  <td><span className="ref-badge ref-badge--blue">{f.fontype || '—'}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Box className="ref-table-container">
+            <table className="ref-table">
+              <thead><tr><th style={{ width: 80 }}>Actions</th><th>Code</th><th>Libellé</th><th>Type</th></tr></thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={4} className="ref-empty">Aucune fonction trouvée.</td></tr>
+                ) : filtered.map(f => (
+                  <tr key={f.foncod}>
+                    <td><Box sx={{ display: 'flex', gap: '4px' }}>
+                      {canModify && (
+                        <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(f)}><EditIcon sx={{ fontSize: 16 }} /></button>
+                      )}
+                      {canDelete && (
+                        <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(f)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
+                      )}
+                      {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
+                    </Box></td>
+                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{f.foncod}</td>
+                    <td>{f.fonlib}</td>
+                    <td><span className="ref-badge ref-badge--blue">{f.fontype || '—'}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
           <Box className="ref-table-footer"><span>Affichage de {filtered.length} fonctions</span></Box>
         </Box>
       </Box>

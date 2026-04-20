@@ -336,19 +336,67 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
 
 // ── Main Component ────────────────────────────────────────────────────────────
 function DemCongeModernInner() {
-  const { isEmp, uticod, hasPermission } = useAuth();
+  const { soccod, isEmp, isManager, sercod, uticod, hasPermission } = useAuth();
   const { setSelectedConge } = useCongeContext();
   const { data = [], isLoading, refetch } = useGetDemConges();
   const { mutate: acceptConge } = useAcceptDemConge();
+  const [managerEmployeeCodes, setManagerEmployeeCodes] = useState<Set<string> | null>(null);
+  const [isManagerScopeLoading, setIsManagerScopeLoading] = useState(false);
 
   const canAdd = hasPermission('Gestion des Congés', 'add');
   const canModify = hasPermission('Gestion des Congés', 'modify');
   const canDelete = hasPermission('Gestion des Congés', 'delete');
   const canConsult = hasPermission('Gestion des Congés', 'consult');
 
-  const displayData: Conge[] = isEmp && uticod
-    ? data.filter((c: Conge) => c.empcod === uticod)
-    : data;
+  useEffect(() => {
+    if (!isManager || !soccod || !uticod || !sercod) {
+      setManagerEmployeeCodes(null);
+      setIsManagerScopeLoading(false);
+      return;
+    }
+
+    let active = true;
+    setIsManagerScopeLoading(true);
+
+    apiInstance.get(`/Employes/${soccod}/${uticod}`)
+      .then((res) => {
+        if (!active) return;
+        const scopedCodes = new Set<string>(
+          (res.data ?? [])
+            .filter((e: any) => e.sercod === sercod)
+            .map((e: any) => e.empcod)
+        );
+        if (uticod) scopedCodes.add(uticod);
+        setManagerEmployeeCodes(scopedCodes);
+      })
+      .catch(() => {
+        if (!active) return;
+        setManagerEmployeeCodes(new Set<string>(uticod ? [uticod] : []));
+      })
+      .finally(() => {
+        if (!active) return;
+        setIsManagerScopeLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isManager, soccod, uticod, sercod]);
+
+  const displayData: Conge[] = useMemo(() => {
+    if (isEmp && uticod) {
+      return data.filter((c: Conge) => c.empcod === uticod);
+    }
+
+    if (isManager && sercod) {
+      if (!managerEmployeeCodes) return [];
+      return data.filter((c: Conge) => managerEmployeeCodes.has(c.empcod));
+    }
+
+    return data;
+  }, [data, isEmp, uticod, isManager, sercod, managerEmployeeCodes]);
+
+  const isDataLoading = isLoading || (isManager && !!sercod && isManagerScopeLoading);
 
   const pending = displayData.filter((c: Conge) => getStatus(c) === 'En attente');
   const accepted = displayData.filter((c: Conge) => getStatus(c) === 'Accepté');
@@ -453,7 +501,7 @@ function DemCongeModernInner() {
           </Box>
 
           {/* Rows */}
-          {isLoading ? (
+          {isDataLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
           ) : !canConsult ? (
             <Box sx={{ textAlign: 'center', py: 6, color: '#ba1a1a' }}>

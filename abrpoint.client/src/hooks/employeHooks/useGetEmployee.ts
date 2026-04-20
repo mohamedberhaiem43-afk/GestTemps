@@ -3,14 +3,15 @@ import { useQuery } from "react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetEmployee = (sitcod?: string, sercod?: string, dircod?: string, empreg?: string) => {
-    const { soccod, uticod, isEmp } = useAuth();
+    const { soccod, uticod, isEmp, isManager, sercod: managerSercod } = useAuth();
+    const effectiveSercod = isManager && managerSercod ? managerSercod : sercod;
 
     return useQuery({
-        queryKey: ["employes_libs", soccod, uticod, sitcod, sercod, dircod, empreg],
+        queryKey: ["employes_libs", soccod, uticod, sitcod, effectiveSercod, dircod, empreg],
         queryFn: async () => {
             const response = await apiInstance.get(
                 `/Employes/get-libs/${soccod}/${uticod}`, {
-                    params: { sitcod, sercod, dircod, empreg }
+                    params: { sitcod, sercod: effectiveSercod, dircod, empreg }
                 }
             );
             return response.data;

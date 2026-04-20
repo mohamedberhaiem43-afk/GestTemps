@@ -19,17 +19,21 @@ interface UseEmployeeFilterReturn {
     hasEffectiveEmployees: boolean;
     effectiveEmployeesLabel: string;
     handleEmployeeSelection: (selected: string[]) => void;
+    isServiceLocked: boolean;
+    lockedServiceCode: string;
 }
 
 export function useEmployeeFilter(): UseEmployeeFilterReturn {
-    const { soccod, uticod } = useAuth();
+    const { soccod, uticod, isManager, sercod: managerSercod } = useAuth();
+    const isServiceLocked = Boolean(isManager && managerSercod);
+    const lockedServiceCode = managerSercod ?? '';
 
     const [selectedEmpCodes, setSelectedEmpCodes] = useState<string[]>([]);
     const [accessibleEmployees, setAccessibleEmployees] = useState<Employe[]>([]);
     const [filiale, setFiliale] = useState<Record<string, string>>({});
     const [services, setServices] = useState<Record<string, string>>({});
     const [selectedFiliale, setSelectedFiliale] = useState<string>(sessionStorage.getItem('sitcod') ?? '');
-    const [selectedService, setSelectedService] = useState<string>('');
+    const [selectedService, setSelectedServiceState] = useState<string>(isServiceLocked ? lockedServiceCode : '');
     const [selectedRegime, setSelectedRegime] = useState<string>('');
 
     const effectiveEmpcods = useMemo(() => {
@@ -54,9 +58,15 @@ export function useEmployeeFilter(): UseEmployeeFilterReturn {
         if (!soccod || !uticod) return;
 
         apiInstance.get(`/Employes/${soccod}/${uticod}`)
-            .then((res) => setAccessibleEmployees(res.data ?? []))
+            .then((res) => {
+                const data = res.data ?? [];
+                const scoped = isServiceLocked
+                    ? data.filter((employee: Employe) => employee.sercod === lockedServiceCode)
+                    : data;
+                setAccessibleEmployees(scoped);
+            })
             .catch((err) => console.error(err));
-    }, [soccod, uticod]);
+    }, [soccod, uticod, isServiceLocked, lockedServiceCode]);
 
     useEffect(() => {
         if (!soccod) return;
@@ -70,12 +80,37 @@ export function useEmployeeFilter(): UseEmployeeFilterReturn {
         if (!soccod) return;
 
         apiInstance.get(`/Services/get-servlibs/${soccod}`)
-            .then((res) => setServices(res.data))
+            .then((res) => {
+                const allServices = res.data ?? {};
+                if (isServiceLocked && lockedServiceCode) {
+                    setServices(
+                        allServices[lockedServiceCode]
+                            ? { [lockedServiceCode]: allServices[lockedServiceCode] }
+                            : {}
+                    );
+                    return;
+                }
+                setServices(allServices);
+            })
             .catch((err) => console.error(err));
-    }, [soccod]);
+    }, [soccod, isServiceLocked, lockedServiceCode]);
+
+    useEffect(() => {
+        if (isServiceLocked && lockedServiceCode) {
+            setSelectedServiceState(lockedServiceCode);
+        }
+    }, [isServiceLocked, lockedServiceCode]);
 
     const handleEmployeeSelection = (selected: string[]) => {
         setSelectedEmpCodes(selected);
+    };
+
+    const setSelectedService = (service: string) => {
+        if (isServiceLocked) {
+            setSelectedServiceState(lockedServiceCode);
+            return;
+        }
+        setSelectedServiceState(service);
     };
 
     return {
@@ -94,5 +129,7 @@ export function useEmployeeFilter(): UseEmployeeFilterReturn {
         hasEffectiveEmployees,
         effectiveEmployeesLabel,
         handleEmployeeSelection,
+        isServiceLocked,
+        lockedServiceCode,
     };
 }

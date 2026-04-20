@@ -605,13 +605,16 @@
   }
 }
 @media (max-width: 768px) {
-  .rmb-container { padding: 16px; }
+  .rmb-container { padding: 12px; }
   .rmb-header { flex-direction: column; align-items: flex-start; gap: 12px; }
   .rmb-stats-grid { grid-template-columns: 1fr; }
+  .rmb-stat-value { font-size: 22px; }
   .rmb-table th:nth-child(3),
   .rmb-table td:nth-child(3),
   .rmb-table th:nth-child(6),
   .rmb-table td:nth-child(6) {
     display: none;
   }
+  .rmb-desc-title { font-size: 12px; }
+  .rmb-form-card { padding: 20px; }
 }

@@ -70,8 +70,9 @@ function SocieteModernContent() {
 
   // ── Filtered data ────────────────────────────────────────────────────────
   const filteredSocietes = useMemo(() => {
-    if (!filterType) return societes;
-    return societes.filter(s => {
+    const list = Array.isArray(societes) ? societes : [];
+    if (!filterType) return list;
+    return list.filter(s => {
       const t = (s.soctype || '').toLowerCase();
       if (filterType === 'filiales') return t.includes('filiale') || t === 'f';
       if (filterType === 'groupes') return t.includes('groupe') || t === 'g';
@@ -166,7 +167,7 @@ function SocieteModernContent() {
               <label>Société Mère</label>
               <select value={form.socmere || ''} onChange={set('socmere')}>
                 <option value="">Aucune</option>
-                {societes.filter(s => s.soccod !== form.soccod).map(s => (
+                {(Array.isArray(societes) ? societes : []).filter(s => s.soccod !== form.soccod).map(s => (
                   <option key={s.soccod} value={s.soccod}>{s.soclib}</option>
                 ))}
               </select>
@@ -179,6 +180,35 @@ function SocieteModernContent() {
                 <option value="G">Groupe</option>
                 <option value="F">Filiale</option>
               </select>
+            </Box>
+            <Box className="soc-field soc-field--full" sx={{ mt: 1 }}>
+              <label>Logo de la Société</label>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                 {localStorage.getItem('societeImage') && (
+                    <img 
+                       src={`${import.meta.env.VITE_REACT_APP_API_URL}${localStorage.getItem('societeImage')}`} 
+                       alt="Logo" 
+                       style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '8px', border: '1px solid #eee' }} 
+                    />
+                 )}
+                 <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                       const file = e.target.files?.[0];
+                       if (file) {
+                          // In a real app, you'd upload this via API. 
+                          // The previous version likely used a specific endpoint or local storage path.
+                          // For now, we simulate the path setting.
+                          const fileName = `/${file.name}`;
+                          localStorage.setItem('societeImage', fileName);
+                          window.dispatchEvent(new Event('imageUpdated'));
+                          setSnack({ open: true, msg: 'Logo mis à jour (Aperçu local).', sev: 'info' });
+                       }
+                    }} 
+                    style={{ fontSize: '12px' }}
+                 />
+              </Box>
             </Box>
           </Box>
         </Box>

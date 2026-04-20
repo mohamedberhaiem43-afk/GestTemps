@@ -1,10 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { ThemeProvider } from "@emotion/react";
-import { Box, createTheme, CssBaseline } from "@mui/material";
+import { createTheme, CssBaseline } from "@mui/material";
 import DashboardLayoutBasic from "./components/navigation/Navigation";
-import { BrowserRouter as Router, useLocation } from "react-router-dom";
+import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./components/helper/AuthProvider";
-import LanguageSwitcher from "./components/LanguageSwitcher/LanguageSwitcher";
 
 // ── Color tokens ──
 const lightTokens = {
@@ -269,7 +268,6 @@ function buildTheme(mode: 'light' | 'dark') {
 // ── Dark Mode Context ──
 import { createContext, useContext } from 'react';
 import { QueryClient, QueryClientProvider } from "react-query";
-import NotificationCenter from "./components/navigation/NotificationCenter";
 
 interface ThemeModeContextType {
   mode: 'light' | 'dark';
@@ -283,39 +281,6 @@ const ThemeModeContext = createContext<ThemeModeContextType>({
 
 export const useThemeMode = () => useContext(ThemeModeContext);
 
-
-function TopBarActions() {
-  const location = useLocation();
-  const isLoginPage = location.pathname === "/";
-  const searchParams = new URLSearchParams(location.search);
-  const isFicheCollaborateur = location.pathname.includes('gestion-employe') &&
-    (searchParams.has('id') || searchParams.has('new'));
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (isLoginPage || !mounted || isFicheCollaborateur) {
-    return null;
-  }
-
-  return (
-    <Box
-      sx={{
-        position: 'fixed',
-        right: 50,
-        top: 16,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      <LanguageSwitcher />
-      <NotificationCenter />
-    </Box>
-  );
-}
 
 function AppContent() {
   const [mode, setMode] = useState<'light' | 'dark'>(() => {
@@ -343,7 +308,6 @@ function AppContent() {
         <CssBaseline />
         <Router>
           <AuthProvider>
-            <TopBarActions />
             <DashboardLayoutBasic />
           </AuthProvider>
         </Router>
@@ -351,6 +315,7 @@ function AppContent() {
     </ThemeModeContext.Provider>
   );
 }
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

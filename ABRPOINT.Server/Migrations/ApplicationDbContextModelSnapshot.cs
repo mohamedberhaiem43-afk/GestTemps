@@ -78,6 +78,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("absunite");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Rubcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -90,6 +102,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Aide", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Modcod")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
@@ -103,6 +123,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("modzone");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.ToTable("aide");
                 });
@@ -136,6 +160,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("conret");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<float?>("Dimanche")
                         .HasColumnType("real")
                         .HasColumnName("dimanche");
@@ -161,6 +193,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("mercredi");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<float?>("Samedi")
                         .HasColumnType("real")
                         .HasColumnName("samedi");
@@ -180,6 +216,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("anodat");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -194,6 +238,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("motif");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(10)
@@ -239,12 +287,61 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("artqemb");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("soccod");
 
                     b.ToTable("article");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.AuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateAction")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TableName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Uticod")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AuditLog");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Autoriser", b =>
@@ -311,10 +408,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("consanc");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .IsRequired()
@@ -334,6 +443,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("annee");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -352,6 +469,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("niveau");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
@@ -405,11 +526,31 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("bantel");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.ToTable("banque");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Billet", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
@@ -432,6 +573,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<DateTime?>("Predat")
                         .HasColumnType("datetime")
                         .HasColumnName("predat");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
@@ -491,6 +636,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("caltype");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "CalAn", "CalMois", "CalSem");
 
@@ -579,6 +736,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("catsem9");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Catcod", "Soccod");
 
                     b.ToTable("categorie");
@@ -600,10 +769,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("clousr");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("mois");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
@@ -666,6 +847,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("cnstype");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -685,6 +878,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("champs");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Description")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -702,6 +903,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Ordre")
                         .HasColumnType("int")
                         .HasColumnName("ordre");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Tablelier")
                         .HasMaxLength(20)
@@ -793,10 +998,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("consanc");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Concod", "Soccod");
 
@@ -880,10 +1097,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("contel");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Concod");
 
@@ -897,10 +1126,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("concod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
@@ -949,6 +1190,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("contype");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Dircod")
                         .HasMaxLength(10)
@@ -1041,6 +1290,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("quacod");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -1100,6 +1353,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("contype");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Dircod")
                         .HasMaxLength(10)
@@ -1191,6 +1452,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("quacod");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -1221,6 +1486,10 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Defaut", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
                     b.Property<string>("Defcod")
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)")
@@ -1231,7 +1500,108 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("deflib");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.ToTable("defaut");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.DemandeAutorisation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Abscod")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)")
+                        .HasColumnName("abscod");
+
+                    b.Property<string>("Commentaire")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("commentaire");
+
+                    b.Property<string>("Concod")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("concod");
+
+                    b.Property<DateTime?>("Condat")
+                        .HasColumnType("datetime")
+                        .HasColumnName("condat");
+
+                    b.Property<DateTime?>("Condep")
+                        .HasColumnType("datetime")
+                        .HasColumnName("condep");
+
+                    b.Property<string>("Conmotif")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("conmotif");
+
+                    b.Property<float?>("Connbjour")
+                        .HasColumnType("real")
+                        .HasColumnName("connbjour");
+
+                    b.Property<DateTime?>("Conret")
+                        .HasColumnType("datetime")
+                        .HasColumnName("conret");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DateDemande")
+                        .HasColumnType("datetime")
+                        .HasColumnName("date_demande");
+
+                    b.Property<DateTime?>("DateTraitement")
+                        .HasColumnType("datetime")
+                        .HasColumnName("date_traitement");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Empcod")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)")
+                        .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("Soccod")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Statut")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("statut");
+
+                    b.Property<string>("TraitePar")
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)")
+                        .HasColumnName("traite_par");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("demande_autorisation");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Demconge", b =>
@@ -1311,10 +1681,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("contel");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Concod");
 
@@ -1332,6 +1714,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Diremail")
                         .HasMaxLength(30)
@@ -1363,6 +1753,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("dirtitre");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Dircod", "Soccod");
 
                     b.ToTable("direction");
@@ -1384,6 +1778,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("dmdat");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<DateTime?>("Dmhre")
                         .HasColumnType("datetime")
                         .HasColumnName("dmhre");
@@ -1411,6 +1813,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ordre");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Empcod", "Soccod", "Dmdat");
 
                     b.ToTable("dmpoint");
@@ -1418,6 +1824,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Dmpresence", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<DateTime?>("Dmdat")
                         .HasColumnType("datetime")
                         .HasColumnName("dmdat");
@@ -1454,6 +1868,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ordre");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
@@ -1462,8 +1880,99 @@ namespace ABRPOINT.Server.Migrations
                     b.ToTable("dmpresence");
                 });
 
+            modelBuilder.Entity("ABRPOINT.Server.Models.DocumentVault", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime>("DocDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("docdate");
+
+                    b.Property<string>("DocName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("docname");
+
+                    b.Property<string>("DocPath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)")
+                        .HasColumnName("docpath");
+
+                    b.Property<long>("DocSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("docsize");
+
+                    b.Property<string>("DocType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("doctype");
+
+                    b.Property<string>("Empcod")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)")
+                        .HasColumnName("empcod");
+
+                    b.Property<bool>("IsSigned")
+                        .HasColumnType("bit")
+                        .HasColumnName("issigned");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<DateTime?>("SignatureDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("signaturedate");
+
+                    b.Property<string>("SignaturePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("signaturepath");
+
+                    b.Property<string>("Soccod")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("documentvault");
+                });
+
             modelBuilder.Entity("ABRPOINT.Server.Models.Donne", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Doncle1")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
@@ -1489,11 +1998,23 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("doncod");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.ToTable("donne");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Echelle", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<float?>("Griech01")
                         .HasColumnType("real")
                         .HasColumnName("griech01");
@@ -1578,6 +2099,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("griech21");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(4)
@@ -1597,6 +2122,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("catcod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Empadr")
                         .HasMaxLength(40)
@@ -1682,6 +2215,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("quacod");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -1730,10 +2267,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("catfin");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
@@ -1745,6 +2294,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empchg", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -1758,6 +2315,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empref");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.ToTable("empchg");
                 });
@@ -1774,10 +2335,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Emplib")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)")
                         .HasColumnName("emplib");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
@@ -1791,6 +2364,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empgrh", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -1800,6 +2381,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("emplib");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(12)
@@ -1846,6 +2431,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("catcod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Dircod")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
@@ -1873,8 +2466,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("empcat");
 
                     b.Property<string>("Empcin")
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("empcin");
 
                     b.Property<string>("Empcmp")
@@ -2018,12 +2611,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("empretraite");
 
-                    b.Property<double?>("Empsbase")
-                        .HasColumnType("float")
+                    b.Property<string>("Empsbase")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("empsbase");
 
-                    b.Property<double?>("Empsbrut")
-                        .HasColumnType("float")
+                    b.Property<string>("Empsbrut")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("empsbrut");
 
                     b.Property<string>("Empscat")
@@ -2041,8 +2636,9 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("empsitfam");
 
-                    b.Property<double?>("Empsnet")
-                        .HasColumnType("float")
+                    b.Property<string>("Empsnet")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("empsnet");
 
                     b.Property<DateTime?>("Empsort")
@@ -2050,9 +2646,9 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("empsort");
 
                     b.Property<string>("Emptel")
-                        .HasMaxLength(50)
+                        .HasMaxLength(256)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("varchar(256)")
                         .HasColumnName("emptel");
 
                     b.Property<string>("Emptype")
@@ -2079,6 +2675,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("quacod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Seccod")
                         .HasMaxLength(10)
@@ -2107,6 +2707,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("annee");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -2124,6 +2732,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<double?>("Nbhprod")
                         .HasColumnType("float")
                         .HasColumnName("nbhprod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Rnddate")
                         .HasMaxLength(50)
@@ -2158,6 +2770,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empuser", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Nchamps")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
@@ -2178,6 +2798,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("point");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.ToTable("empuser");
                 });
 
@@ -2196,6 +2820,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("annee");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Ferfixe")
                         .HasMaxLength(1)
@@ -2225,6 +2857,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("fertype");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Soccod", "Ferdate");
 
                     b.ToTable("ferier");
@@ -2241,6 +2877,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("foncod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Fonlib")
                         .HasMaxLength(100)
@@ -2262,6 +2906,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("fontype");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Soccod", "Foncod");
 
                     b.ToTable("fonction");
@@ -2273,6 +2921,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("catcod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Grideb")
                         .HasColumnType("datetime")
@@ -2371,6 +3027,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("grireg");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(4)
@@ -2382,6 +3042,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Hsalaire", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -2394,6 +3062,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<DateTime?>("Joufin")
                         .HasColumnType("datetime")
                         .HasColumnName("joufin");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<float?>("Salabs")
                         .HasColumnType("real")
@@ -2632,6 +3304,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("cal_trav");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Motif")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
@@ -2641,6 +3321,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("payer");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Caltype", "CalDate");
 
@@ -2774,6 +3458,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("codposte");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
@@ -2801,6 +3497,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Rubcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -2827,6 +3535,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lferier", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Dircod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -2840,6 +3556,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("fertype");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
@@ -2857,6 +3577,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("char(10)")
                         .HasColumnName("concod")
                         .IsFixedLength();
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Motcod")
                         .HasMaxLength(12)
@@ -2881,6 +3609,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("float")
                         .HasColumnName("qte");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
                         .IsUnicode(false)
@@ -2893,6 +3625,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lplanhoraire", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Motif")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
@@ -2943,6 +3683,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("plantrav");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -2953,10 +3697,22 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lpointjour", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<float?>("Salabs")
                         .HasColumnType("real")
@@ -3115,6 +3871,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("annee");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -3129,6 +3893,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("mois");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
@@ -3184,6 +3952,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<int?>("Ordre")
                         .HasColumnType("int")
                         .HasColumnName("ordre");
@@ -3211,6 +3987,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("postxrepos");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Codposte", "Soccod");
 
                     b.ToTable("lposte");
@@ -3218,6 +3998,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lpret", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Fchannee")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -3252,6 +4040,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("premois");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -3282,6 +4074,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("codsite");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Faccod")
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)")
@@ -3294,6 +4094,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Ligne")
                         .HasColumnType("int")
                         .HasColumnName("ligne");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
@@ -3309,6 +4113,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("annee");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
@@ -3338,6 +4150,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("nbhjour");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
@@ -3470,10 +4286,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("contransp");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
@@ -3503,6 +4331,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("float")
                         .HasColumnName("arttemps");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Opecod")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
@@ -3511,6 +4347,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Opeordre")
                         .HasColumnType("int")
                         .HasColumnName("opeordre");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
@@ -3526,6 +4366,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)")
                         .HasColumnName("appcod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
                         .HasMaxLength(50)
@@ -3562,6 +4410,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("modupd");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.ToTable("module");
                 });
 
@@ -3578,6 +4430,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)")
                         .HasColumnName("appcod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
                         .HasMaxLength(50)
@@ -3609,6 +4469,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("modupd");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
@@ -3621,6 +4485,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Motifpoint", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Motcod")
                         .HasMaxLength(12)
                         .IsUnicode(false)
@@ -3646,6 +4518,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("mottype")
                         .IsFixedLength();
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
                         .IsUnicode(false)
@@ -3663,14 +4539,100 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(3)")
                         .HasColumnName("natcod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Natlib")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("natlib");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Natcod");
 
                     b.ToTable("nation");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.NoteDeFrais", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Categorie")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("categorie");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("DateDepense")
+                        .HasColumnType("datetime")
+                        .HasColumnName("datedepense");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Empcod")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)")
+                        .HasColumnName("empcod");
+
+                    b.Property<string>("Etat")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("etat");
+
+                    b.Property<string>("Justificatif")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("justificatif");
+
+                    b.Property<double>("Montant")
+                        .HasColumnType("float")
+                        .HasColumnName("montant");
+
+                    b.Property<string>("Projet")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("projet");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("Soccod")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Titre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("titre");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("notedefrais");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Opbarre", b =>
@@ -3679,6 +4641,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("codbarre");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Numpaq")
                         .HasMaxLength(25)
@@ -3710,6 +4680,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(25)")
                         .HasColumnName("proj");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
@@ -3730,6 +4704,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Operation", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Opecod")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
@@ -3758,6 +4740,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("opetype");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
@@ -3768,6 +4754,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Paieuser", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Dircod")
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)")
@@ -3777,6 +4771,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("exercice");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
@@ -3798,9 +4796,17 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(25)")
                         .HasColumnName("artcod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
                     b.Property<DateTime?>("Date")
                         .HasColumnType("datetime")
                         .HasColumnName("date");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Num")
                         .HasMaxLength(25)
@@ -3820,6 +4826,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("qteproj");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(25)
@@ -3880,6 +4890,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("billet");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Dtepres")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
@@ -3941,8 +4959,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("nbdigit");
 
-                    b.Property<int?>("Nbhconge")
-                        .HasColumnType("int")
+                    b.Property<float?>("Nbhconge")
+                        .HasColumnType("real")
                         .HasColumnName("nbhconge");
 
                     b.Property<double?>("Nbhdemij")
@@ -4096,8 +5114,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("parhnuitspec");
 
-                    b.Property<int?>("Parite")
-                        .HasColumnType("int")
+                    b.Property<float?>("Parite")
+                        .HasColumnType("real")
                         .HasColumnName("parite");
 
                     b.Property<float?>("Parjhnfixe")
@@ -4210,6 +5228,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("repasnuit");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sansferie")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
@@ -4268,8 +5290,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("tauxtr4M");
 
-                    b.Property<int?>("Vitesse")
-                        .HasColumnType("int")
+                    b.Property<float?>("Vitesse")
+                        .HasColumnType("real")
                         .HasColumnName("vitesse");
 
                     b.Property<string>("Xonoff")
@@ -4322,6 +5344,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("billet");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Dtepres")
                         .HasMaxLength(1)
@@ -4652,6 +5682,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("repasnuit");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sansferie")
                         .HasMaxLength(1)
@@ -4736,6 +5770,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parapprent", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<double?>("Parmnt")
                         .HasColumnType("float")
                         .HasColumnName("parmnt");
@@ -4753,6 +5795,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("partaux");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -4768,6 +5814,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("codposte");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<int?>("Ordre")
                         .HasColumnType("int")
                         .HasColumnName("ordre");
@@ -4794,6 +5848,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<float?>("Postxrepos")
                         .HasColumnType("real")
                         .HasColumnName("postxrepos");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.ToTable("parposte");
                 });
@@ -4805,6 +5863,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("codposte");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<int?>("Ordre")
                         .HasColumnType("int")
                         .HasColumnName("ordre");
@@ -4831,6 +5897,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<float?>("Postxrepos")
                         .HasColumnType("real")
                         .HasColumnName("postxrepos");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
@@ -4857,6 +5927,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("empreg");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<int?>("Ordre")
                         .HasColumnType("int")
                         .HasColumnName("ordre");
@@ -4877,6 +5955,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("partranche2");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Soccod", "Caltype", "Empreg");
 
                     b.ToTable("partranche");
@@ -4888,6 +5970,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("caltype");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
@@ -4914,6 +6004,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("partranche2");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
@@ -4929,6 +6023,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Planhoraire", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -4953,6 +6055,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("planrepos");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -4963,6 +6069,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointacce", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Duree")
                         .HasMaxLength(8)
                         .HasColumnType("nvarchar(8)")
@@ -5017,6 +6131,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("predatsort");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
@@ -5062,6 +6180,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("config");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Lire")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
@@ -5071,6 +6197,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("purger");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Poicod", "Soccod", "Uticod");
 
@@ -5088,6 +6218,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<int?>("Poiadrip1")
                         .HasColumnType("int")
@@ -5127,6 +6265,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<string>("Poipwd")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.HasKey("Poicod", "Soccod");
 
                     b.ToTable("pointeuse");
@@ -5134,6 +6276,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointheure", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -5160,6 +6310,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("quacod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(4)
@@ -5420,6 +6574,14 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Chantier")
                         .HasColumnType("int")
                         .HasColumnName("chantier");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
@@ -5745,6 +6907,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(7)")
                         .HasColumnName("rephret");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Semaine1")
                         .HasMaxLength(8)
                         .HasColumnType("nvarchar(8)")
@@ -5955,6 +7121,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("caltype");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<float?>("Jours")
                         .HasColumnType("real")
                         .HasColumnName("jours");
@@ -5968,6 +7142,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("mois");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Semaine1")
                         .HasMaxLength(8)
@@ -6087,6 +7265,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("image")
                         .HasColumnName("BITMAPPICTURE4");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<short?>("DivisionFp")
                         .HasColumnType("smallint")
                         .HasColumnName("DivisionFP");
@@ -6102,6 +7288,10 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<short?>("Flag")
                         .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<byte[]>("Template")
                         .IsRequired()
@@ -6206,6 +7396,14 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Avantsort")
                         .HasColumnType("int")
                         .HasColumnName("avantsort");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<float?>("Dimdouche")
                         .HasColumnType("real")
@@ -6618,6 +7816,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("minhjourven");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<int?>("Retmin")
                         .HasColumnType("int")
                         .HasColumnName("retmin");
@@ -6812,6 +8014,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("codposte");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -6901,6 +8111,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Minhjoursam")
                         .HasColumnType("int")
                         .HasColumnName("minhjoursam");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<int?>("Retmin")
                         .HasColumnType("int")
@@ -6992,10 +8206,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("code");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Nature")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("nature");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(10)
@@ -7030,6 +8256,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("codposte");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Dmdate")
                         .HasColumnType("datetime")
@@ -7209,6 +8443,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(8)")
                         .HasColumnName("presortsupup");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -7299,6 +8537,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("codposte");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Dmdate")
                         .HasColumnType("datetime")
@@ -7673,6 +8919,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("repas");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<float?>("Retmin")
                         .HasColumnType("real")
                         .HasColumnName("retmin");
@@ -7788,6 +9038,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("conrefus");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)")
@@ -7817,6 +9075,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<float?>("Preret")
                         .HasColumnType("real")
                         .HasColumnName("preret");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
@@ -7877,6 +9139,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("clicod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Gender")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
@@ -7885,6 +9155,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Qte")
                         .HasColumnType("int")
                         .HasColumnName("qte");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
@@ -7911,10 +9185,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("catcod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Qualib")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("qualib");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Quacod", "Soccod");
 
@@ -7928,10 +9214,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("artcod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
                     b.Property<string>("Defcod")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("defcod");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(10)
@@ -7968,6 +9262,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(60)")
                         .HasColumnName("quaobs");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
@@ -7987,6 +9285,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("annee");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(10)
@@ -8013,6 +9319,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<float?>("Nbprefuse")
                         .HasColumnType("real")
                         .HasColumnName("nbprefuse");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
@@ -8051,13 +9361,21 @@ namespace ABRPOINT.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
                         .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("expires_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<bool>("Revoked")
                         .HasColumnType("bit")
@@ -8082,9 +9400,17 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Regleremp", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
                     b.Property<DateTime?>("Datecheance")
                         .HasColumnType("datetime")
                         .HasColumnName("datecheance");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
@@ -8140,6 +9466,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("regtype");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Sitcod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -8169,6 +9499,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("float")
                         .HasColumnName("artqte");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -8182,6 +9520,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Opeordre")
                         .HasColumnType("int")
                         .HasColumnName("opeordre");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<DateTime?>("Rnddate")
                         .HasColumnType("datetime")
@@ -8213,6 +9555,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Repo", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -8250,6 +9600,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("prerepos");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
@@ -8292,9 +9646,21 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("bartype");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<int?>("Ordre")
                         .HasColumnType("int")
                         .HasColumnName("ordre");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
@@ -8302,6 +9668,176 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("soccod");
 
                     b.ToTable("rndbareme");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.Role", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("role_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("RoleColor")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("role_color");
+
+                    b.Property<DateTime>("RoleCreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("role_created_at");
+
+                    b.Property<string>("RoleDescription")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("role_description");
+
+                    b.Property<bool>("RoleIsSystem")
+                        .HasColumnType("bit")
+                        .HasColumnName("role_is_system");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("role_name");
+
+                    b.HasKey("RoleId");
+
+                    b.ToTable("roles");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RolePermission", b =>
+                {
+                    b.Property<int>("RpId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("rp_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RpId"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("RpAdd")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("rp_add");
+
+                    b.Property<string>("RpConsult")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("rp_consult");
+
+                    b.Property<string>("RpDelete")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("rp_delete");
+
+                    b.Property<string>("RpModify")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("rp_modify");
+
+                    b.Property<string>("RpModule")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("rp_module");
+
+                    b.Property<int>("RpRoleId")
+                        .HasColumnType("int")
+                        .HasColumnName("rp_role_id");
+
+                    b.HasKey("RpId");
+
+                    b.HasIndex("RpRoleId");
+
+                    b.ToTable("role_permissions");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RolePointdroit", b =>
+                {
+                    b.Property<int>("RpdId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("rpd_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RpdId"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("RpdConfig")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("rpd_config");
+
+                    b.Property<string>("RpdLire")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("rpd_lire");
+
+                    b.Property<string>("RpdPoicod")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("rpd_poicod");
+
+                    b.Property<string>("RpdPurger")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("rpd_purger");
+
+                    b.Property<int>("RpdRoleId")
+                        .HasColumnType("int")
+                        .HasColumnName("rpd_role_id");
+
+                    b.Property<string>("RpdSoccod")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("rpd_soccod");
+
+                    b.HasKey("RpdId");
+
+                    b.HasIndex("RpdRoleId");
+
+                    b.ToTable("role_pointdroit");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rubrique", b =>
@@ -8315,6 +9851,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Rublib")
                         .HasMaxLength(30)
@@ -8352,6 +9900,18 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rubtype", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Rublib")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
@@ -8367,6 +9927,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Salaire", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -8379,6 +9947,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<DateTime?>("Joufin")
                         .HasColumnType("datetime")
                         .HasColumnName("joufin");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<float?>("Salabs")
                         .HasColumnType("real")
@@ -8638,10 +10210,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("consanc");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Concod");
 
@@ -8660,9 +10244,21 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<int?>("Effectif")
                         .HasColumnType("int")
                         .HasColumnName("effectif");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Seclib")
                         .HasMaxLength(30)
@@ -8685,6 +10281,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("annee");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<int?>("Semcod")
                         .HasColumnType("int")
@@ -8763,9 +10371,21 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<int?>("Effectif")
                         .HasColumnType("int")
                         .HasColumnName("effectif");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Serlib")
                         .HasMaxLength(30)
@@ -8793,6 +10413,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Sitadr")
                         .HasMaxLength(30)
@@ -8862,6 +10494,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("soccod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Socadr")
                         .HasMaxLength(40)
@@ -8987,6 +10631,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(200)")
                         .HasColumnName("BASESQL");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("SocCod")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
@@ -9017,10 +10673,22 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("sitcod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Exercice")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("exercice");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Uticod", "Sitcod");
 
@@ -9048,9 +10716,21 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("real")
                         .HasColumnName("conge");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<float?>("Empconge")
                         .HasColumnType("real")
                         .HasColumnName("empconge");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.HasKey("Empcod", "Soccod");
 
@@ -9059,6 +10739,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Soldecmp", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
@@ -9067,6 +10755,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<double?>("Heure")
                         .HasColumnType("float")
                         .HasColumnName("heure");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
@@ -9082,9 +10774,17 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("annee");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
                     b.Property<DateTime?>("Date")
                         .HasColumnType("datetime")
                         .HasColumnName("date");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(20)
@@ -9112,6 +10812,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("rend");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(20)
@@ -9162,6 +10866,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("cal_trav");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Motif")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
@@ -9171,6 +10883,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("payer");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.ToTable("suv_calend");
                 });
@@ -9183,11 +10899,19 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<double?>("CapitalAmorti")
                         .HasColumnType("float");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
                     b.Property<DateTime?>("DateEcheance")
                         .HasColumnType("datetime");
 
                     b.Property<DateTime?>("DateEcheancePrevue")
                         .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<double?>("EcartArrondiSurEcheance")
                         .HasColumnType("float");
@@ -9216,6 +10940,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("NombreDeReports")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.ToTable("t_amorts");
                 });
 
@@ -9227,6 +10955,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<string>("CalculAutomatique")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DateDeblocage")
                         .HasColumnType("datetime");
@@ -9242,6 +10974,10 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<DateTime?>("DateRemboursementAnticipe")
                         .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<double?>("DifferentielMontant")
                         .HasColumnType("float");
@@ -9325,6 +11061,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<double?>("PretSolde")
                         .HasColumnType("float");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("RubriqueRemboursement")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
@@ -9354,6 +11094,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<double?>("CapitalAmorti")
                         .HasColumnType("float");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
                     b.Property<DateTime?>("DateEcheance")
                         .HasColumnType("datetime");
 
@@ -9362,6 +11106,10 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<DateTime?>("DateRemboursement")
                         .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<double?>("EcartArrondiSurEcheance")
                         .HasColumnType("float");
@@ -9394,6 +11142,10 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("NombreDeReports")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("TypeRemboursement")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)");
@@ -9406,6 +11158,14 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<string>("Civilite")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<int?>("MatriculeSalarie")
                         .HasColumnType("int");
@@ -9426,6 +11186,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<int?>("SaCompteurNumero")
                         .HasColumnType("int")
                         .HasColumnName("SA_CompteurNumero");
@@ -9435,6 +11199,14 @@ namespace ABRPOINT.Server.Migrations
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TTyperemb", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
                     b.Property<double?>("MontantBultin")
                         .HasColumnType("float");
 
@@ -9447,11 +11219,27 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("NoPret")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.ToTable("t_typeremb");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Titre", b =>
                 {
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
@@ -9501,6 +11289,14 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("codposte");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Dmdate")
                         .HasColumnType("datetime")
@@ -9715,6 +11511,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(8)")
                         .HasColumnName("presortsupup");
 
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
                     b.Property<string>("Rubtype")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
@@ -9818,6 +11618,34 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("UtiResetCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UtiResetCodeExpiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UtiTwoFactorEnabled")
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("uti2fa_enabled");
+
+                    b.Property<string>("UtiTwoFactorSecret")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("uti2fa_secret");
+
                     b.Property<string>("Utiactif")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
@@ -9852,6 +11680,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("utiprn");
 
+                    b.Property<string>("Utirole")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("utirole");
+
                     b.HasKey("Uticod");
 
                     b.ToTable("utilisateur");
@@ -9863,6 +11696,18 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("vilcod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
 
                     b.Property<string>("Villib")
                         .HasMaxLength(20)
@@ -9881,6 +11726,35 @@ namespace ABRPOINT.Server.Migrations
                         .HasForeignKey("Empcod", "Soccod", "Sitcod");
 
                     b.Navigation("Employe");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RolePermission", b =>
+                {
+                    b.HasOne("ABRPOINT.Server.Models.Role", "Role")
+                        .WithMany("Permissions")
+                        .HasForeignKey("RpRoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RolePointdroit", b =>
+                {
+                    b.HasOne("ABRPOINT.Server.Models.Role", "Role")
+                        .WithMany("Pointdroits")
+                        .HasForeignKey("RpdRoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.Role", b =>
+                {
+                    b.Navigation("Permissions");
+
+                    b.Navigation("Pointdroits");
                 });
 #pragma warning restore 612, 618
         }

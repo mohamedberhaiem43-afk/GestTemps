@@ -114,7 +114,8 @@ function EmpSidebarRow({ row, active, onClick, index }: {
 
 // ── Main inner ────────────────────────────────────────────────────────────────
 function EtatPeriodiqueModernInner() {
-  const { soccod, uticod } = useAuth();
+  const { soccod, uticod, isManager, sercod: managerSercod } = useAuth();
+  const isManagerScoped = Boolean(isManager && managerSercod);
   const { setSelectedEmpMat, setSelectedEmpLib, selectedEmpMat, selectedEmpLib, empEtatData,
     setSelectedEmpPoste, setDate, setSelectedEmp, setArrondi, setArrondiSup } = useContext(EmployeeContext);
   const { setDateRange } = useDateRange();
@@ -123,7 +124,7 @@ function EtatPeriodiqueModernInner() {
   const [services, setServices] = useState<Record<string, string>>({});
   const [paramMois, setParamMois] = useState({ joudeb: '01', joufin: '28', moisdeb: 'P', moisfin: 'P' });
   const [selectedFiliale, setSelectedFiliale] = useState(sessionStorage.getItem('sitcod') ?? '');
-  const [selectedService, setSelectedService] = useState('');
+  const [selectedService, setSelectedService] = useState(isManagerScoped ? (managerSercod ?? '') : '');
   const [selectedRegime, setSelectedRegime] = useState('');
   const [mois, setMois] = useState(String(new Date().getMonth() + 1));
   const [annee, setAnnee] = useState(new Date().getFullYear().toString());
@@ -169,7 +170,14 @@ function EtatPeriodiqueModernInner() {
   useEffect(() => {
     if (!soccod) return;
     apiInstance.get(`/Sites/get-sitlibs/${soccod}`).then(r => setFiliale(r.data)).catch(console.error);
-    apiInstance.get(`/Services/get-servlibs/${soccod}`).then(r => setServices(r.data)).catch(console.error);
+    apiInstance.get(`/Services/get-servlibs/${soccod}`).then(r => {
+      const allServices = r.data ?? {};
+      if (isManagerScoped && managerSercod) {
+        setServices(allServices[managerSercod] ? { [managerSercod]: allServices[managerSercod] } : {});
+        return;
+      }
+      setServices(allServices);
+    }).catch(console.error);
     apiInstance.get(`/Parametres/deb-mois/${soccod}`).then(r => {
       const { joudeb, joufin, moisdeb, moisfin } = r.data;
       setParamMois({ joudeb, joufin, moisdeb, moisfin });
@@ -180,7 +188,13 @@ function EtatPeriodiqueModernInner() {
       setDateDebut(`${sy}-${String(sm).padStart(2,'0')}-${joudeb}`);
       setDateFin(`${ey}-${String(em).padStart(2,'0')}-${joufin}`);
     }).catch(console.error);
-  }, [soccod]);
+  }, [soccod, isManagerScoped, managerSercod]);
+
+  useEffect(() => {
+    if (isManagerScoped && managerSercod) {
+      setSelectedService(managerSercod);
+    }
+  }, [isManagerScoped, managerSercod]);
 
   useEffect(() => {
     if (!annee || !mois) return;
@@ -308,8 +322,8 @@ function EtatPeriodiqueModernInner() {
           </Box>
           <Box className="ep-filter-field">
             <span className="ep-filter-label">Service</span>
-            <select className="ep-select" value={selectedService} onChange={e => setSelectedService(e.target.value)}>
-              <option value="">Tous</option>
+            <select className="ep-select" value={selectedService} onChange={e => setSelectedService(e.target.value)} disabled={isManagerScoped}>
+              <option value="">{isManagerScoped ? 'Mon service' : 'Tous'}</option>
               {Object.entries(services).map(([k, v]) => <option key={k} value={k}>{String(v)}</option>)}
             </select>
           </Box>

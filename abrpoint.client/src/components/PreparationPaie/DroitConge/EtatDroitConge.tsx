@@ -4,7 +4,7 @@ import {
   Typography,
 } from "@mui/material";
 import { DroitConge } from "../../../models/DroitConge";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import DroitCongeService from "../../../services/CongeService/DroitCongeService";
 import SearchIcon from '@mui/icons-material/Search';
@@ -22,20 +22,27 @@ import AccessDenied from "../../helper/AccessDenied";
 import './EtatDroitConge.css';
 
 function EtatDroitConge() {
-  const { hasPermission } = useAuth();
+  const { isManager, sercod: managerSercod, hasPermission } = useAuth();
+  const isManagerScoped = Boolean(isManager && managerSercod);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!hasPermission('Paie et Rémunération', 'consult')) {
     return <AccessDenied message="Vous n'avez pas le droit de consulter les droits de congés." />;
   }
   const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
-  const { data: employeesLibs = {} } = useGetEmployeesLibs();
+  const { data: employeesLibs = {} } = useGetEmployeesLibs(undefined, isManagerScoped ? managerSercod ?? '' : undefined);
   const [datedebut, setDatedebut] = useState("2023-01-01");
   const [datefin, setDatefin] = useState("2023-12-31");
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
+  const effectiveEmpcods = useMemo(() => {
+    if (selectedEmpcods.length > 0) return selectedEmpcods;
+    if (isManagerScoped) return Object.keys(employeesLibs as Record<string, string>);
+    return [];
+  }, [selectedEmpcods, isManagerScoped, employeesLibs]);
+
   const queryParams = new URLSearchParams();
-  selectedEmpcods.forEach((code: string) => queryParams.append("empcods", code));
+  effectiveEmpcods.forEach((code: string) => queryParams.append("empcods", code));
   const queryString = queryParams.toString();
   const [droitConges, setDroitConges] = useState<DroitConge[]>([]);
 
@@ -151,8 +158,9 @@ function EtatDroitConge() {
                 const val = e.target.value;
                 setSelectedEmpcods(val ? [val] : []);
               }}
+              disabled={isManagerScoped}
             >
-              <option value="">Tous les employés</option>
+              <option value="">{isManagerScoped ? "Mon service" : "Tous les employés"}</option>
               {Object.entries(employeesLibs as Record<string, string>).map(([code, name]) => (
                 <option key={code} value={code}>
                   {String(name)}

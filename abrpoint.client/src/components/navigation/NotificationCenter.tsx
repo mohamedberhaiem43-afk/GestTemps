@@ -14,6 +14,13 @@ import {
   useTheme,
   Tooltip,
   Fade,
+  Dialog,
+  DialogContent,
+  DialogActions,
+  Zoom,
+  Avatar,
+  Stack,
+  Chip,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -24,6 +31,13 @@ import {
   AccessTime as AutorisationIcon,
   DoneAll as DoneAllIcon,
   NotificationsNone as NoNotifIcon,
+  CheckCircle as ValidIcon,
+  Cancel as CancelIcon,
+  Person as PersonIcon,
+  EventNote as CalendarIcon,
+  AttachMoney as MoneyIcon,
+  ArrowForward as ArrowIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../helper/AuthProvider';
 import useGetDemConges from '../../hooks/congeHooks/useGetDemConges';
@@ -33,6 +47,7 @@ import useGetDemandeAutorisations from '../../hooks/demandeAutorisationHooks/use
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/fr';
+import apiInstance from '../API/apiInstance';
 
 dayjs.extend(relativeTime);
 dayjs.locale('fr');
@@ -50,6 +65,7 @@ interface AppNotification {
   date: string;
   isRead: boolean;
   status: string;
+  rawData?: any; // To store original object for treatement
 }
 
 /* ══════════════════════════════════════════════════════ */
@@ -89,17 +105,18 @@ export default function NotificationCenter() {
 function NotificationCenterInner() {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [selectedNotif, setSelectedNotif] = useState<AppNotification | null>(null);
+  const [isTreating, setIsTreating] = useState(false);
   const { isEmp, utiadm } = useAuth();
   const isAdmin = utiadm === '1';
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  if (!utiadm && !isEmp) return null;  // ← ajoute cette ligne
 
   /* ── Data hooks ── */
-  const { data: leaveRequests } = useGetDemConges();
-  const { data: myExpenses } = useGetNotesDeFrais();
-  const { data: allExpenses } = useGetAllNotesDeFrais();
-  const { data: demandeAutorisations } = useGetDemandeAutorisations();
+  const { data: leaveRequests, refetch: refetchLeaves } = useGetDemConges();
+  const { data: myExpenses, refetch: refetchMyExpenses } = useGetNotesDeFrais();
+  const { data: allExpenses, refetch: refetchAllExpenses } = useGetAllNotesDeFrais();
+  const { data: demandeAutorisations, refetch: refetchAuts } = useGetDemandeAutorisations();
 
   /* ── Load read status ── */
   useEffect(() => {
@@ -137,7 +154,8 @@ function NotificationCenterInner() {
             subtitle: isEmp ? `Votre demande ${dateRange} a été validée.` : `La demande ${dateRange} a été approuvée.`,
             date,
             isRead: readIds.has(`leave-accepted-${req.concod}`),
-            status: 'Accepté'
+            status: 'Accepté',
+            rawData: req
           });
         } else if (status === 'Refusé') {
           list.push({
@@ -147,7 +165,8 @@ function NotificationCenterInner() {
             subtitle: isEmp ? `Votre demande ${dateRange} a été refusée.` : `La demande de ${empName} ${dateRange} a été refusée.`,
             date,
             isRead: readIds.has(`leave-rejected-${req.concod}`),
-            status: 'Refusé'
+            status: 'Refusé',
+            rawData: req
           });
         } else if (isAdmin && status === 'En attente') {
           list.push({
@@ -157,7 +176,8 @@ function NotificationCenterInner() {
             subtitle: `${empName} a déposé une demande ${dateRange}.`,
             date,
             isRead: readIds.has(`leave-pending-${req.concod}`),
-            status: 'En attente'
+            status: 'En attente',
+            rawData: req
           });
         }
       });
@@ -178,7 +198,8 @@ function NotificationCenterInner() {
           subtitle: isEmp ? `Votre note "${req.titre}" (${req.montant} DT) est approuvée.` : `La note "${req.titre}" de ${empName} a été validée.`,
           date,
           isRead: readIds.has(`expense-validated-${req.id}`),
-          status: 'Validé'
+          status: 'Validé',
+          rawData: req
         });
       } else if (status === 'Rejected') {
         list.push({
@@ -188,7 +209,8 @@ function NotificationCenterInner() {
           subtitle: isEmp ? `Votre note "${req.titre}" a été refusée.` : `La note "${req.titre}" de ${empName} a été refusée.`,
           date,
           isRead: readIds.has(`expense-rejected-${req.id}`),
-          status: 'Rejected'
+          status: 'Rejected',
+          rawData: req
         });
       } else if (isAdmin && status === 'En attente') {
         list.push({
@@ -198,7 +220,8 @@ function NotificationCenterInner() {
           subtitle: `${empName} a soumis "${req.titre}" (${req.montant} DT).`,
           date,
           isRead: readIds.has(`expense-pending-${req.id}`),
-          status: 'En attente'
+          status: 'En attente',
+          rawData: req
         });
       }
     });
@@ -221,7 +244,8 @@ function NotificationCenterInner() {
             subtitle: isEmp ? `Votre demande ${timeRange} a été approuvée.` : `La demande de ${empName} ${timeRange} a été approuvée.`,
             date,
             isRead: readIds.has(`aut-approved-${req.id}`),
-            status: 'Approuvé'
+            status: 'Approuvé',
+            rawData: req
           });
         } else if (status === 'Refusé') {
           list.push({
@@ -231,7 +255,8 @@ function NotificationCenterInner() {
             subtitle: isEmp ? `Votre demande ${timeRange} a été refusée.` : `La demande de ${empName} ${timeRange} a été refusée.`,
             date,
             isRead: readIds.has(`aut-rejected-${req.id}`),
-            status: 'Refusé'
+            status: 'Refusé',
+            rawData: req
           });
         } else if (isAdmin && status === 'En attente') {
           list.push({
@@ -241,13 +266,14 @@ function NotificationCenterInner() {
             subtitle: `${empName} demande une sortie ${timeRange}.`,
             date,
             isRead: readIds.has(`aut-pending-${req.id}`),
-            status: 'En attente'
+            status: 'En attente',
+            rawData: req
           });
         }
       });
     }
 
-    return list.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
+    return list.sort((a, b) => dayjs(b.date).diff(dayjs(a.date))).slice(0, 100);
   }, [leaveRequests, myExpenses, allExpenses, demandeAutorisations, readIds, isEmp, isAdmin]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -258,6 +284,46 @@ function NotificationCenterInner() {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleNotifClick = (n: AppNotification) => {
+    setSelectedNotif(n);
+    if (!n.isRead) {
+      const newReadIds = new Set(readIds);
+      newReadIds.add(n.id);
+      setReadIds(newReadIds);
+      localStorage.setItem('seen_notifications', JSON.stringify(Array.from(newReadIds)));
+    }
+    handleClose();
+  };
+
+  const handleTreat = async (status: 'Accepté' | 'Refusé' | 'Validé' | 'Rejected') => {
+    if (!selectedNotif?.rawData) return;
+    setIsTreating(true);
+    try {
+      const { type, rawData } = selectedNotif;
+      if (type === 'leave') {
+        const payload = { ...rawData, etat: status === 'Accepté' ? 'Accepté' : 'Refusé' };
+        await apiInstance.put('/DemConges', payload);
+      } else if (type === 'expense') {
+        const payload = { ...rawData, etat: status === 'Validé' ? 'Validée' : 'Refusée' };
+        await apiInstance.put('/NoteDeFrais', payload);
+      } else if (type === 'autorisation') {
+        const payload = { ...rawData, statut: status === 'Accepté' ? 'Approuvé' : 'Refusé' };
+        await apiInstance.put('/DemandeAutorisations', payload);
+      }
+      setSelectedNotif(null);
+      // Wait a bit for fresh data
+      setTimeout(() => {
+        if (type === 'leave') refetchLeaves();
+        if (type === 'expense') { refetchMyExpenses(); refetchAllExpenses(); }
+        if (type === 'autorisation') refetchAuts();
+      }, 500);
+    } catch (err) {
+      console.error('Treatment error:', err);
+    } finally {
+      setIsTreating(false);
+    }
   };
 
   const getTypeConfig = (type: NotifType) => {
@@ -362,9 +428,10 @@ function NotificationCenterInner() {
                       px: 3,
                       bgcolor: n.isRead ? 'transparent' : isDark ? 'rgba(0, 64, 161, 0.08)' : 'rgba(0, 64, 161, 0.03)',
                       transition: 'background-color 0.2s',
-                      '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8f9fa' },
+                      '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8f9fa', cursor: 'pointer' },
                       borderLeft: n.isRead ? '4px solid transparent' : '4px solid #0040a1',
                     }}
+                    onClick={() => handleNotifClick(n)}
                   >
                     <ListItemIcon sx={{ minWidth: 48 }}>
                       <Box sx={{
@@ -433,6 +500,171 @@ function NotificationCenterInner() {
           </Button>
         </Box>
       </Popover>
+
+      {/* Detail Dialog */}
+      <Dialog
+        open={!!selectedNotif}
+        onClose={() => setSelectedNotif(null)}
+        TransitionComponent={Zoom}
+        PaperProps={{
+          sx: {
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: 450,
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }
+        }}
+      >
+        {selectedNotif && (
+          <>
+            <Box sx={{ p: 3, background: 'linear-gradient(135deg, #0040a1 0%, #1a6eff 100%)', color: '#fff', position: 'relative' }}>
+              <IconButton
+                onClick={() => setSelectedNotif(null)}
+                sx={{ position: 'absolute', right: 16, top: 16, color: 'rgba(255,255,255,0.8)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}
+              >
+                <CloseIcon />
+              </IconButton>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Box sx={{ p: 1.5, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', display: 'flex' }}>
+                  {getTypeConfig(selectedNotif.type).icon}
+                </Box>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.1rem', lineHeight: 1.2 }}>
+                    Détails de la Notification
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8, fontWeight: 500 }}>
+                    {dayjs(selectedNotif.date).format('DD MMMM YYYY [à] HH:mm')}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+
+            <DialogContent sx={{ p: 4 }}>
+              <Stack spacing={3}>
+                {/* Status Badge */}
+                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <Chip
+                    label={selectedNotif.status}
+                    color={selectedNotif.status === 'Refusé' || selectedNotif.status === 'Rejected' ? 'error' : selectedNotif.status === 'En attente' ? 'warning' : 'success'}
+                    size="small"
+                    sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '8px' }}
+                  />
+                </Box>
+
+                {/* Main Content */}
+                <Box sx={{ textAlign: 'center', mb: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1e293b', mb: 1 }}>
+                    {selectedNotif.title}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#64748b', lineHeight: 1.6 }}>
+                    {selectedNotif.subtitle}
+                  </Typography>
+                </Box>
+
+                <Divider />
+
+                {/* Additional Details based on type */}
+                <Box sx={{ bgcolor: '#f8fafc', p: 2, borderRadius: '16px', border: '1px solid #edf2f7' }}>
+                  <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Avatar sx={{ width: 32, height: 32, bgcolor: '#fff', color: '#0040a1', border: '1px solid #e2e8f0' }}>
+                        <PersonIcon sx={{ fontSize: 18 }} />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="caption" display="block" sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '9px' }}>Employé</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#334155' }}>{selectedNotif.rawData?.emplib || selectedNotif.rawData?.empcod || '—'}</Typography>
+                      </Box>
+                    </Box>
+
+                    {selectedNotif.type === 'leave' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ width: 32, height: 32, bgcolor: '#fff', color: '#6366f1', border: '1px solid #e2e8f0' }}>
+                          <CalendarIcon sx={{ fontSize: 18 }} />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="caption" display="block" sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '9px' }}>Période</Typography>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{dayjs(selectedNotif.rawData?.condep).format('DD/MM/YY')}</Typography>
+                            <ArrowIcon sx={{ fontSize: 14, color: '#cbd5e1' }} />
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{dayjs(selectedNotif.rawData?.conret).format('DD/MM/YY')}</Typography>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {selectedNotif.type === 'expense' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ width: 32, height: 32, bgcolor: '#fff', color: '#10b981', border: '1px solid #e2e8f0' }}>
+                          <MoneyIcon sx={{ fontSize: 18 }} />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="caption" display="block" sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '9px' }}>Montant</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 800, color: '#059669', fontSize: '1.1rem' }}>
+                            {selectedNotif.rawData?.montant} <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>DT</span>
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {selectedNotif.type === 'autorisation' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ width: 32, height: 32, bgcolor: '#fff', color: '#f59e0b', border: '1px solid #e2e8f0' }}>
+                          <AutorisationIcon sx={{ fontSize: 18 }} />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="caption" display="block" sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '9px' }}>Horaire</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {dayjs(selectedNotif.rawData?.condep).format('HH:mm')} → {dayjs(selectedNotif.rawData?.conret).format('HH:mm')}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                  </Stack>
+                </Box>
+              </Stack>
+            </DialogContent>
+
+            {isAdmin && selectedNotif.status === 'En attente' ? (
+              <DialogActions sx={{ p: 3, pt: 0, gap: 2 }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="error"
+                  onClick={() => handleTreat(selectedNotif.type === 'expense' ? 'Rejected' : 'Refusé')}
+                  disabled={isTreating}
+                  startIcon={<CancelIcon />}
+                  sx={{ borderRadius: '12px', fontWeight: 700, textTransform: 'none', py: 1.2 }}
+                >
+                  Refuser
+                </Button>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="success"
+                  onClick={() => handleTreat(selectedNotif.type === 'expense' ? 'Validé' : 'Accepté')}
+                  disabled={isTreating}
+                  startIcon={<ValidIcon />}
+                  sx={{ borderRadius: '12px', fontWeight: 800, textTransform: 'none', py: 1.2, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+                >
+                  Approuver
+                </Button>
+              </DialogActions>
+            ) : (
+              <DialogActions sx={{ p: 3, pt: 0 }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={() => setSelectedNotif(null)}
+                  sx={{ borderRadius: '12px', fontWeight: 700, py: 1.2, bgcolor: '#0040a1' }}
+                >
+                  Fermer
+                </Button>
+              </DialogActions>
+            )}
+          </>
+        )}
+      </Dialog>
     </>
   );
 }

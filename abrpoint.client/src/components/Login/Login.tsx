@@ -71,7 +71,6 @@ export default function CredentialsSignInPage() {
 
     if (socimg) localStorage.setItem('societeImage', socimg);
     else localStorage.removeItem('societeImage');
-
     setAuthData({
       soccod: societe.soccod,
       sitcod: societe.sitcod,
@@ -79,6 +78,7 @@ export default function CredentialsSignInPage() {
       soclib: data.soclib,
       uticod: data.Uticod ?? null,
       utiadm: data.Utiadm ?? null,
+      isManager: data.isManager,
       isEmp: Boolean(data.isEmp),
     });
     await refreshAuth();

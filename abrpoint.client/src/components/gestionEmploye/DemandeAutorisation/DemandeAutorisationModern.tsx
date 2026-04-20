@@ -80,40 +80,40 @@ function DemandeFormDialog({ open, onClose, editDemande }: { open: boolean; onCl
   const [loading, setLoading] = useState(false);
 
   // Fetch absences for the dropdown
-const fetchAbsences = useCallback(async () => {
-  if (!soccod) return;
-  try {
-    const res = await apiInstance.get(`/Absences/get-libs/${soccod}`);
-    
-    // Convert key-value object to AbsenceOption array
-    const rawData = res.data;
-    let absData: AbsenceOption[] = [];
+  const fetchAbsences = useCallback(async () => {
+    if (!soccod) return;
+    try {
+      const res = await apiInstance.get(`/Absences/get-libs/${soccod}`);
 
-    if (Array.isArray(rawData)) {
-      absData = rawData;
-    } else if (rawData && typeof rawData === 'object') {
-      absData = Object.entries(rawData).map(([key, value]) => ({
-        abscod: key,
-        soccod: soccod,
-        abslib: value as string,
-        abscng: '',
-      }));
-    }
+      // Convert key-value object to AbsenceOption array
+      const rawData = res.data;
+      let absData: AbsenceOption[] = [];
 
-    setAbsences(absData);
-
-    if (!editDemande) {
-      const defaultAbs = absData.find((a) => a.abslib.toLowerCase().includes('autorisation') || a.abscng === 'B');
-      if (defaultAbs) {
-        setAbscod(defaultAbs.abscod);
-      } else if (absData.length > 0) {
-        setAbscod(absData[0].abscod);
+      if (Array.isArray(rawData)) {
+        absData = rawData;
+      } else if (rawData && typeof rawData === 'object') {
+        absData = Object.entries(rawData).map(([key, value]) => ({
+          abscod: key,
+          soccod: soccod,
+          abslib: value as string,
+          abscng: '',
+        }));
       }
+
+      setAbsences(absData);
+
+      if (!editDemande) {
+        const defaultAbs = absData.find((a) => a.abslib.toLowerCase().includes('autorisation') || a.abscng === 'B');
+        if (defaultAbs) {
+          setAbscod(defaultAbs.abscod);
+        } else if (absData.length > 0) {
+          setAbscod(absData[0].abscod);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching absences:', err);
     }
-  } catch (err) {
-    console.error('Error fetching absences:', err);
-  }
-}, [soccod, editDemande]);
+  }, [soccod, editDemande]);
 
   useEffect(() => {
     if (open) {
@@ -410,7 +410,7 @@ function DemandeAutorisationModern() {
             Vous avez <strong style={{ color: '#0040a1' }}>{pending.length} demande{pending.length !== 1 ? 's' : ''}</strong> en attente de validation.
           </Typography>
         </Box>
-        <Button className="da-new-btn" startIcon={<AddIcon />} onClick={handleNewRequest}>
+        <Button className="da-new-btn" startIcon={<AddIcon />} sx={{ color: '#fff' }} onClick={handleNewRequest}>
           Nouvelle demande
         </Button>
       </Box>

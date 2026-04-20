@@ -1,0 +1,293 @@
+:root {
+    --primary: #0040a1;
+    --primary-container: #0056d2;
+    --on-primary: #ffffff;
+    --surface: #f7f9fb;
+    --surface-container-lowest: #ffffff;
+    --surface-container-low: #f2f4f6;
+    --surface-container-high: #e6e8ea;
+    --on-surface: #191c1e;
+    --on-surface-variant: #424654;
+    --outline: #737785;
+    --tertiary-container: #006c49;
+    --on-tertiary-container: #63f1b4;
+    --error-container: #ffdad6;
+    --on-error-container: #93000a;
+}
+
+.ps-modern-container {
+    background-color: var(--surface);
+    color: var(--on-surface);
+    min-height: 100vh;
+    padding: 2rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.ps-modern-header {
+    margin-bottom: 2.5rem;
+}
+
+.ps-modern-title {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: 2.25rem;
+    letter-spacing: -0.025em;
+    color: var(--on-surface);
+}
+
+.ps-modern-subtitle {
+    color: var(--on-surface-variant);
+    max-width: 40rem;
+    line-height: 1.6;
+    margin-top: 0.5rem;
+}
+
+.ps-modern-tabs {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.ps-modern-tab {
+    padding-bottom: 1rem;
+    font-weight: 600;
+    color: #64748b;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.ps-modern-tab--active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.ps-modern-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+}
+
+.ps-modern-card {
+    background: var(--surface-container-lowest);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.ps-modern-card--large {
+    grid-column: span 8;
+}
+
+.ps-modern-card--medium {
+    grid-column: span 7;
+}
+
+.ps-modern-card--small {
+    grid-column: span 4;
+}
+
+.ps-modern-card--vsmall {
+    grid-column: span 5;
+}
+
+@media (max-width: 1024px) {
+
+    .ps-modern-card--large,
+    .ps-modern-card--medium,
+    .ps-modern-card--small,
+    .ps-modern-card--vsmall {
+        grid-column: span 12;
+    }
+}
+
+.ps-modern-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+}
+
+.ps-modern-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.ps-modern-card-sub {
+    font-size: 0.875rem;
+    color: #94a3b8;
+}
+
+.ps-modern-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.ps-modern-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+}
+
+.ps-modern-input-wrapper {
+    position: relative;
+}
+
+.ps-modern-input {
+    width: 100%;
+    background: var(--surface-container-low);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.ps-modern-input:focus {
+    outline: none;
+    background: #ffffff;
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.ps-modern-unit {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.875rem;
+    color: #94a3b8;
+}
+
+.ps-modern-btn-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ps-modern-btn-toggle {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.ps-modern-btn-toggle--active {
+    background: var(--primary);
+    color: #fff;
+}
+
+.ps-modern-btn-toggle--inactive {
+    background: var(--surface-container-low);
+    color: #64748b;
+}
+
+.ps-modern-chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.ps-modern-chip {
+    padding: 0.5rem 1rem;
+    background: rgba(0, 64, 161, 0.1);
+    color: var(--primary);
+    border: 1px solid rgba(0, 64, 161, 0.2);
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ps-modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ps-modern-table th {
+    background: var(--surface-container-high);
+    padding: 1rem 2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #64748b;
+    text-align: left;
+}
+
+.ps-modern-table td {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.ps-modern-switch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--surface-container-low);
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.ps-modern-time-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.ps-modern-badge-green {
+    padding: 0.25rem 0.75rem;
+    background: #006c49;
+    color: white;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.ps-modern-badge-red {
+    padding: 0.25rem 0.75rem;
+    background: #ffdad6;
+    color: #93000a;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.ps-modern-save-fab {
+    position: fixed;
+    bottom: 6rem;
+    right: 1.6rem;
+    width: 3.6rem;
+    height: 3.6rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+    z-index: 100;
+}
+
+.ps-modern-save-fab:hover {
+    transform: scale(1.05);
+}

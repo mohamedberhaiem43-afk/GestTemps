@@ -23,6 +23,7 @@ function FilterPresence() {
     setSelectedService,
     selectedRegime,
     setSelectedRegime,
+    isServiceLocked,
     effectiveEmpcods,
     hasEffectiveEmployees,
     handleEmployeeSelection: baseHandleEmployeeSelection,
@@ -159,8 +160,8 @@ function FilterPresence() {
 
         <div className="cc-filter-field-narrow">
           <label className="cc-filter-label">Service</label>
-          <select className="cc-filter-select" value={selectedService} onChange={(e) => setSelectedService(e.target.value)}>
-            <option value="">Tous</option>
+          <select className="cc-filter-select" value={selectedService} onChange={(e) => setSelectedService(e.target.value)} disabled={isServiceLocked}>
+            <option value="">{isServiceLocked ? 'Mon service' : 'Tous'}</option>
             {Object.entries(services).map(([cod, lib]) => (
               <option key={cod} value={cod}>{lib}</option>
             ))}

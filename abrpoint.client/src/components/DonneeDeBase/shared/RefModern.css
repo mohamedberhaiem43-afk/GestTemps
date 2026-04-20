@@ -21,6 +21,15 @@
   z-index: 10;
 }
 
+@media (max-width: 600px) {
+  .ref-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+}
+
 .ref-header-title {
   font-size: 11px;
   font-weight: 700;
@@ -92,6 +101,12 @@
   box-sizing: border-box;
 }
 
+@media (max-width: 600px) {
+  .ref-body {
+    padding: 16px;
+  }
+}
+
 /* Cards */
 .ref-card {
   background: #fff;
@@ -141,6 +156,17 @@
 
 .ref-form-grid--3 {
   grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 600px) {
+  .ref-form-grid--2,
+  .ref-form-grid--3 {
+    grid-template-columns: 1fr;
+  }
+  
+  .ref-field[style*="grid-column: span 2"] {
+    grid-column: span 1 !important;
+  }
 }
 
 .ref-field {
@@ -237,10 +263,28 @@
   border-color: #0040a1;
 }
 
+@media (max-width: 600px) {
+  .ref-table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .ref-table-search, .ref-table-search input {
+    width: 100%;
+  }
+}
+
 .ref-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+}
+
+.ref-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ref-table thead th {

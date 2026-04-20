@@ -1,48 +1,28 @@
-import * as React from 'react';
-import { createPortal } from 'react-dom';
-import apiInstance from '../API/apiInstance';
-import { AppProvider, Router, Session } from '@toolpad/core/AppProvider';
-import { DashboardLayout } from '@toolpad/core';
-import {
-  Accessible, AccessTime, AccountBalance, AccountCircle, AdminPanelSettings,
-  Assessment, AttachMoney, Autorenew, Chat, DevicesOther, Domain, EventNote,
-  HolidayVillageRounded, Power, Settings, WorkOutline, LocalAtm,
-  Schedule, Brightness4, Brightness7,
-} from '@mui/icons-material';
-import { Box, IconButton, Tooltip, useTheme as useMuiTheme } from '@mui/material';
+import { Box, IconButton, Tooltip, useTheme as useMuiTheme, Autocomplete, TextField, InputAdornment, Typography, type PaletteMode, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import { Brightness4, Brightness7 } from '@mui/icons-material';
+import { Search as SearchIcon, X as CloseIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+
+/* ── Page components (Synchronous for maximum compatibility) ── */
 import FilialeModern from '../DonneeDeBase/Filiale/FilialeModern';
 import FonctionModern from '../DonneeDeBase/Fonction/FonctionModern';
-import MapIcon from '@mui/icons-material/Map';
-import FlagIcon from '@mui/icons-material/Flag';
-import PersonIcon from '@mui/icons-material/People';
-import PeopleIcon from '@mui/icons-material/Person';
-import StorageIcon from '@mui/icons-material/Storage';
-import LocationCityIcon from '@mui/icons-material/LocationCity';
-import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 import BasicTabs from '../ParamSoc/ParamSoc';
-import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
-import AssignmentIcon from '@mui/icons-material/Assignment';
 import AllaitementModern from '../gestionEmploye/Allaitement/AllaitementModern';
 import GestionContratsModern from '../gestionEmploye/GestionContrats/GestionContratsModern';
 import ClasseHoraireModern from '../ClasseHoraire/ClasseHoraireModern';
 import CredentialsSignInPage from '../Login/Login';
 import IntituleDesAbsencesModern from '../ClasseHoraire/IntituleDesAbsences/IntituleDesAbsencesModern';
-import EventBusyIcon from '@mui/icons-material/EventBusy';
 import ReposModern from '../ClasseHoraire/Repos/ReposModern';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import JourDeCompensation from '../gestionEmploye/gestionAbsence/jourCompensation/JourCompensation';
 import AutSortieModern from '../gestionEmploye/gestionAbsence/jourCompensation/AutSortie/AutSortieModern';
 import AbsenceSanctionModern from '../gestionEmploye/gestionAbsence/jourCompensation/AbsenceSanction/AbsenceSanctionModern';
-import { Gavel } from '@mui/icons-material';
 import OrgStructureModern from '../DonneeDeBase/OrgStructure/OrgStructureModern';
 import PaysModern from '../DonneeDeBase/Pays/PaysModern';
 import VilleModern from '../DonneeDeBase/Ville/VilleModern';
 import Pointeuse from '../Pointeuse/Pointeuse';
 import AutSortieGenerale from '../gestionEmploye/gestionAbsence/jourCompensation/AutSortieGenerale/AutSortieGenerale';
-import DashboardModern from '../Dashboard/DashboardModern';
+import DashboardModernSync from '../Dashboard/DashboardModern';
 import EtatPeriodiqueModern from '../Pointeuse/EtatPeriodique/EtatPeriodiqueModern';
-import './navigation.css';
 import RenouvellementContrat from '../gestionEmploye/GestionContrats/Renouvellement/RenouvellementContrat';
 import Utilisateur from '../DonneeDeBase/Utilisteur/Utilisateur';
 import DemCongeModern from '../gestionEmploye/gestionConge/DemConge/DemCongeModern';
@@ -51,10 +31,9 @@ import SoldeCongeModern from '../gestionEmploye/gestionConge/SoldeConge/SoldeCon
 import TitreConge from '../gestionEmploye/gestionConge/TitreConge/TitreConge';
 import CongeGneral from '../gestionEmploye/gestionConge/TitreCongeGeneral/CongeGeneral';
 import SocieteModern from '../DonneeDeBase/Societe/SocieteModern';
-import { CalendarIcon } from '@mui/x-date-pickers';
 import Calendrier from '../ParamSoc/Calendrier/Calendrier';
 import RubriqueModern from '../DonneeDeBase/Rubrique/RubriqueModern';
-import Accompte from '../PreparationPaie/Accompte/Accompte';
+// import Accompte from '../PreparationPaie/Accompte/Accompte';
 import PointageDuMoisModern from '../PreparationPaie/PointageDuMois/PointageDuMoisModern';
 import EtatDroitConge from '../PreparationPaie/DroitConge/EtatDroitConge';
 import EcheanceContrat from '../Etats/EchanceContrat/EcheanceContrat';
@@ -68,10 +47,6 @@ import RemboursementModern from '../gestionEmploye/Remboursement/RemboursementMo
 import MainModern from '../PosteTravail/MainModern';
 import DroitAccessPointeuse from '../Admin/PointeuseAccees/DroitAcceesPointeuse';
 import Profile from '../ParamSoc/Profile/Profile';
-// import Optimisation from '../Pointeuse/Optimisation/Optimisation';
-import { useAuth } from '../helper/AuthProvider';
-import GeminiChat from '../helper/Chatbot/GeminiChat';
-import { useTranslation } from 'react-i18next';
 import QualificationModern from '../DonneeDeBase/Qualification/QualificationModern';
 import CoffreFortModern from '../gestionEmploye/CoffreFortModern';
 import AdminVaultModern from '../gestionEmploye/Vault/AdminVaultModern';
@@ -79,7 +54,60 @@ import ContractBuilderModern from '../gestionEmploye/Vault/ContractBuilderModern
 import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
 import NotificationCenter from './NotificationCenter';
 import { useThemeMode } from '../../App';
+import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './SidebarNavigationDualTier';
+import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 
+/* ── Lucide icons ── */
+import {
+  LayoutGrid,
+  Database,
+  Building2,
+  Network,
+  Flag,
+  Map,
+  MapPin,
+  Globe,
+  Briefcase,
+  Award,
+  BookOpen,
+  Fingerprint,
+  MonitorDot,
+  Activity,
+  FileText,
+  RefreshCw,
+  Baby,
+  CalendarDays,
+  CalendarX,
+  Timer,
+  Gavel,
+  Shield,
+  Eye,
+  Wallet,
+  CalendarCheck,
+  Banknote,
+  Receipt,
+  Clock3,
+  ClipboardList,
+  CalendarMinus,
+  Notebook,
+  CircleUser,
+  KeyRound,
+  MessageSquare,
+  SlidersHorizontal,
+  Users,
+  Settings,
+  LifeBuoy,
+  AlarmClock,
+  User,
+  BarChart2,
+  Home,
+  DollarSign,
+  LogOut,
+} from 'lucide-react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../helper/AuthProvider';
+import GeminiChat from '../helper/Chatbot/GeminiChat';
 /* ══════════════════════════════════════════════════════ */
 /*  Types                                                 */
 /* ══════════════════════════════════════════════════════ */
@@ -87,17 +115,21 @@ interface DemoProps {
   window?: () => Window;
 }
 
-interface DemoPageContentProps {
-  pathname: string;
+interface OpenedTab {
+  label: string;
+  href: string;
+  icon: any;
 }
 
 /* ══════════════════════════════════════════════════════ */
 /*  useNavigationItems Hook                               */
 /* ══════════════════════════════════════════════════════ */
-const useNavigationItems = () => {
+const useNavigationItems = (): NavGroup[] => {
   const { t } = useTranslation();
-  const { utiadm, isEmp, hasPermission } = useAuth();
+  const { authReady, utiadm, isEmp, isManager, hasPermission } = useAuth();
   const isAdmin = utiadm === '1';
+
+  if (!authReady) return [];
 
   const segmentToModule: Record<string, string> = {
     'gestion-societe': 'Données de Base',
@@ -110,7 +142,6 @@ const useNavigationItems = () => {
     'rubrique': 'Données de Base',
     'lecture-pointeuse': 'Pointage et Temps',
     'liste-pointeuse': 'Pointage et Temps',
-    // 'optimisation-pointage': 'Pointage et Temps',
     'etat-periodique': 'Pointage et Temps',
     'gestion-employe': 'Gestion Employés',
     'profil-employe': 'Gestion Employés',
@@ -130,7 +161,7 @@ const useNavigationItems = () => {
     'saisie-poste-de-travail': 'Paramètres de Temps',
     'intitule-des-absences': 'Paramètres de Temps',
     'Repos': 'Paramètres de Temps',
-    'accompte-salaire': 'Paie et Rémunération',
+    // 'accompte-salaire': 'Paie et Rémunération',
     'pointage-du-mois': 'Paie et Rémunération',
     'droit-de-conge': 'Paie et Rémunération',
     'remboursement': 'Paie et Rémunération',
@@ -150,228 +181,187 @@ const useNavigationItems = () => {
     'template-builder': 'Administration',
   };
 
-  const filterNavigationTree = (items: any[]) => {
-    return items.reduce<any[]>((acc, item) => {
-      const filteredChildren = item.children
-        ? filterNavigationTree(item.children)
-        : undefined;
-
-      let isAllowedItem = false;
-      const moduleName = segmentToModule[item.segment];
-
-      if (isAdmin) {
-        isAllowedItem = true;
-      } else if (!moduleName) {
-        isAllowedItem = true;
-      } else {
-        isAllowedItem = hasPermission(moduleName, 'consult');
-      }
-
-      const hasAllowedChildren = Boolean(filteredChildren?.length);
-
-      if (isAllowedItem || hasAllowedChildren) {
-        acc.push({
-          ...item,
-          ...(filteredChildren ? { children: filteredChildren } : {}),
-        });
-      }
-
-      return acc;
-    }, []);
+  const canSee = (segment: string) => {
+    if (isAdmin) return true;
+    const mod = segmentToModule[segment];
+    if (!mod) return true;
+    return hasPermission(mod, 'consult');
   };
 
-  const baseNavigation = [
-    {
-      segment: 'dashboard',
-      title: t('navigation.dashboard'),
-      icon: <span className="material-symbols-outlined">dashboard</span>,
-    },
-    {
-      segment: 'dashboard',
-      title: t('navigation.dataBase'),
-      style: { fontSize: '1px' },
-      icon: <StorageIcon />,
-      children: [
-        { segment: 'gestion-societe', title: t('navigation.society'), icon: <Domain /> },
-        { segment: 'structure-organisationnelle', title: 'Structure Org.', icon: <AccountBalance /> },
-        { segment: 'filiale', title: t('navigation.branch'), icon: <FlagIcon /> },
-        { segment: 'pays', title: t('navigation.country'), icon: <MapIcon /> },
-        { segment: 'ville', title: t('navigation.city'), icon: <LocationCityIcon /> },
-        { segment: 'fonction', title: t('navigation.function'), icon: <PeopleIcon /> },
-        { segment: 'qualification', title: t('navigation.qualification'), icon: <Power /> },
-        { segment: 'rubrique', title: t('navigation.rubric'), icon: <AttachMoney /> },
-      ],
-    },
-    {
-      segment: 'dashboard',
-      title: t('navigation.clockingMachine'),
-      icon: <span className="material-symbols-outlined">fingerprint</span>,
-      children: [
-        // { segment: 'lecture-pointeuse', title: t('navigation.clockingReading'), icon: <SyncAlt /> },
-        { segment: 'liste-pointeuse', title: t('navigation.clockingList'), icon: <DevicesOther /> },
-        // { segment: 'optimisation-pointage', title: t('navigation.clockingOptimization'), icon: <DevicesOther /> },
-        { segment: 'etat-periodique', title: t('navigation.periodicReport'), icon: <Assessment /> },
-      ],
-    },
-    {
-      segment: 'dashboard',
-      title: t('navigation.employee'),
-      icon: <span className="material-symbols-outlined">badge</span>,
-      children: [
-        { segment: 'gestion-employe', title: t('navigation.employeeManagement'), icon: <PeopleIcon /> },
-        { segment: 'profil-employe', title: 'Profil Employé', icon: <PeopleIcon /> },
-        {
-          segment: 'contrat',
-          title: t('navigation.contract'),
-          icon: <AssignmentIcon />,
-          children: [
-            { segment: 'contrat', title: t('navigation.contractManagement'), icon: <AssignmentIcon /> },
-            { segment: 'renouvellement-contrat', title: t('navigation.renewal'), icon: <Autorenew /> },
-          ],
-        },
-        { segment: 'allaitement', title: t('navigation.breastfeeding'), icon: <FamilyRestroomIcon /> },
-        {
-          segment: '',
-          title: t('navigation.leave'),
-          icon: <PersonIcon />,
-          children: [
-            { segment: 'gestion-de-conge', title: t('navigation.leaveRequest'), icon: <FamilyRestroomIcon /> },
-            { segment: 'gestion-de-solde', title: t('navigation.leaveBalance'), icon: <CalendarTodayIcon /> },
-            { segment: 'titre-de-conge', title: t('navigation.leaveTitle'), icon: <CalendarTodayIcon /> },
-            { segment: 'titre-de-conge-general', title: t('navigation.generalLeave'), icon: <CalendarTodayIcon /> },
-          ],
-        },
-        {
-          segment: '',
-          title: t('navigation.absences'),
-          icon: <PersonIcon />,
-          children: [
-            { segment: 'jour-de-compensation', title: t('navigation.compensationDay'), icon: <FamilyRestroomIcon /> },
-            { segment: 'autorisation-de-sortie', title: t('navigation.exitAuthorization'), icon: <WorkOutline /> },
-            { segment: 'autorisation-de-sortie-generale', title: t('navigation.generalExit'), icon: <WorkOutline /> },
-            { segment: 'demande-autorisation', title: "Demande d'Autorisation", icon: <AccessTime /> },
-            { segment: 'absence-et-sanction', title: t('navigation.absenceAndSanction'), icon: <Gavel /> },
-          ],
-        },
-        { segment: 'coffre-fort', title: 'Coffre-fort', icon: <span className="material-symbols-outlined">shield</span> },
-        { segment: 'admin-vault', title: 'Vue Globale Vault', icon: <span className="material-symbols-outlined">admin_panel_settings</span> },
-      ],
-    },
-    {
-      segment: 'dashboard',
-      title: t('navigation.timeClass'),
-      icon: <span className="material-symbols-outlined">schedule</span>,
-      children: [
-        { segment: 'saisie-classe-horaire', title: t('navigation.workSchedule'), icon: <CorporateFareIcon /> },
-        { segment: 'saisie-poste-de-travail', title: t('navigation.workStation'), icon: <CorporateFareIcon /> },
-        { segment: 'intitule-des-absences', title: t('navigation.absenceTypes'), icon: <EventBusyIcon /> },
-        { segment: 'Repos', title: t('navigation.publicHolidays'), icon: <HolidayVillageRounded /> },
-      ],
-    },
-    {
-      segment: 'dashboard',
-      title: t('navigation.payrollPreparation'),
-      icon: <span className="material-symbols-outlined">payments</span>,
-      children: [
-        { segment: 'accompte-salaire', title: t('navigation.salaryAdvance'), icon: <LocalAtm /> },
-        { segment: 'pointage-du-mois', title: t('navigation.monthlyClocking'), icon: <Schedule /> },
-        { segment: 'droit-de-conge', title: t('navigation.leaveRights'), icon: <HolidayVillageRounded /> },
-        { segment: 'remboursement', title: 'Notes de Frais', icon: <AttachMoney /> },
-      ],
-    },
-    {
-      segment: 'dashboard',
-      title: t('navigation.reports'),
-      icon: <span className="material-symbols-outlined">analytics</span>,
-      children: [
-        { segment: 'etat-de-presence', title: t('navigation.attendanceReport'), icon: <PeopleIcon /> },
-        { segment: 'etat-de-retard', title: t('navigation.lateReport'), icon: <AccessTime /> },
-        { segment: 'etat-des-absences', title: t('navigation.absenceReport'), icon: <AccessTime /> },
-        { segment: 'echeance-contrat', title: t('navigation.contractExpiry'), icon: <EventNote /> },
-        { segment: 'cahier-conge', title: t('navigation.leaveBook'), icon: <EventNote /> },
-      ],
-    },
-  ];
-
-  const adminNavigation = {
-    segment: 'dashboard',
-    title: t('navigation.administrator'),
-    style: { fontSize: '1px' },
-    icon: <AdminPanelSettings />,
-    children: [
-      { segment: 'gestion-utilisateur', title: t('navigation.users'), icon: <AccountCircle /> },
-      { segment: 'droit-accees', title: t('navigation.accessRights'), icon: <Accessible /> },
-      { segment: 'template-builder', title: 'Modèles de Contrats', icon: <span className="material-symbols-outlined">description</span> },
-    ],
-  };
-
-  const companySettingsNavigation = {
-    segment: 'dashboard',
-    title: t('navigation.companySettings'),
-    icon: <Settings />,
-    children: [
-      { segment: 'profile', title: t('navigation.profile'), icon: <AccountBalance /> },
-      ...(isAdmin ? [
-        { segment: 'societe', title: t('navigation.companyParameter'), icon: <CorporateFareIcon /> },
-        { segment: 'calendrier-societe', title: t('navigation.companyCalendar'), icon: <CalendarIcon /> },
-        { segment: 'chat-bot', title: t('navigation.chatBot'), icon: <Chat /> },
-      ] : []),
-    ],
-  };
-
-  if (isEmp) {
+  /* ── Employee (minimal) navigation ── */
+  if (isEmp && !isManager && !isAdmin) {
     return [
       {
-        segment: 'dashboard',
-        title: t('navigation.dashboard'),
-        icon: <span className="material-symbols-outlined">dashboard</span>,
+        label: t('navigation.dashboard'),
+        href: '/dashboard',
+        icon: Home,
+        items: [],
       },
       {
-        segment: 'dashboard',
-        title: 'Mon Espace',
-        icon: <AccountCircle />,
-        children: [
-          { segment: 'gestion-de-conge', title: t('navigation.leaveRequest'), icon: <span className="material-symbols-outlined">event_busy</span> },
-          { segment: 'gestion-de-solde', title: t('navigation.leaveBalance'), icon: <span className="material-symbols-outlined">calendar_today</span> },
-          { segment: 'remboursement', title: 'Notes de Frais', icon: <AttachMoney /> },
-          { segment: 'demande-autorisation', title: "Demande d'Autorisation", icon: <AccessTime /> },
-          { segment: 'profile', title: t('navigation.profile'), icon: <AccountCircle /> },
-          { segment: 'coffre-fort', title: 'Mon Coffre-fort', icon: <span className="material-symbols-outlined">shield</span> },
+        label: 'Mon Espace',
+        href: '/dashboard/mon-espace',
+        icon: User,
+        items: [
+          { label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX },
+          { label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck },
+          { label: "Notes de Frais", href: '/dashboard/remboursement', icon: Receipt },
+          { label: "Demande d'Autorisation", href: '/dashboard/demande-autorisation', icon: Timer },
+          { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
+          { label: 'Mon Coffre-fort', href: '/dashboard/coffre-fort', icon: Shield },
         ],
       },
     ];
   }
 
-  return filterNavigationTree([
-    ...baseNavigation,
-    adminNavigation,
-    companySettingsNavigation,
-  ]);
+  /* ── Full navigation ── */
+  const allGroups: NavGroup[] = [
+    {
+      label: t('navigation.dashboard'),
+      href: '/dashboard',
+      icon: Home,
+      items: [],
+    },
+    ...(canSee('gestion-societe') || canSee('structure-organisationnelle') ? [{
+      label: t('navigation.dataBase'),
+      href: '/dashboard/donnees-de-base',
+      icon: Database,
+      items: [
+        ...(canSee('gestion-societe') ? [{ label: t('navigation.society'), href: '/dashboard/gestion-societe', icon: Building2 }] : []),
+        ...(canSee('structure-organisationnelle') ? [{ label: 'Structure Org.', href: '/dashboard/structure-organisationnelle', icon: Network }] : []),
+        ...(canSee('filiale') ? [{ label: t('navigation.branch'), href: '/dashboard/filiale', icon: Flag }] : []),
+        ...(canSee('pays') ? [{ label: t('navigation.country'), href: '/dashboard/pays', icon: Globe }] : []),
+        ...(canSee('ville') ? [{ label: t('navigation.city'), href: '/dashboard/ville', icon: MapPin }] : []),
+        ...(canSee('fonction') ? [{ label: t('navigation.function'), href: '/dashboard/fonction', icon: Briefcase }] : []),
+        ...(canSee('qualification') ? [{ label: t('navigation.qualification'), href: '/dashboard/qualification', icon: Award }] : []),
+        ...(canSee('rubrique') ? [{ label: t('navigation.rubric'), href: '/dashboard/rubrique', icon: DollarSign }] : []),
+      ],
+    }] : []),
+    ...(canSee('liste-pointeuse') ? [{
+      label: t('navigation.clockingMachine'),
+      href: '/dashboard/pointage',
+      icon: Fingerprint,
+      items: [
+        ...(canSee('liste-pointeuse') ? [{ label: t('navigation.clockingList'), href: '/dashboard/liste-pointeuse', icon: MonitorDot }] : []),
+        ...(canSee('etat-periodique') ? [{ label: t('navigation.periodicReport'), href: '/dashboard/etat-periodique', icon: Activity }] : []),
+      ],
+    }] : []),
+    {
+      label: t('navigation.employee'),
+      href: '/dashboard/employe',
+      icon: Users,
+      items: [
+        ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
+        ...(canSee('profil-employe') ? [{ label: 'Profil Employé', href: '/dashboard/profil-employe', icon: User }] : []),
+        ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat/contrat', icon: FileText }] : []),
+        ...(canSee('renouvellement-contrat') ? [{ label: t('navigation.renewal'), href: '/dashboard/contrat/renouvellement-contrat', icon: RefreshCw }] : []),
+        ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
+        ...(canSee('coffre-fort') ? [{ label: 'Coffre-fort', href: '/dashboard/coffre-fort', icon: Shield }] : []),
+        ...(canSee('admin-vault') ? [{ label: 'Vue Globale Vault', href: '/dashboard/admin-vault', icon: Eye }] : []),
+      ],
+    },
+    {
+      label: t('navigation.leave'),
+      href: '/dashboard/conges',
+      icon: CalendarDays,
+      items: [
+        ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
+        ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
+        ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
+        ...(canSee('titre-de-conge-general') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
+      ],
+    },
+    {
+      label: t('navigation.absences'),
+      href: '/dashboard/absences',
+      icon: AlarmClock,
+      items: [
+        ...(canSee('jour-de-compensation') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
+        ...(canSee('autorisation-de-sortie') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
+        ...(canSee('autorisation-de-sortie-generale') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
+        ...(canSee('demande-autorisation') ? [{ label: "Demande d'Autorisation", href: '/dashboard/demande-autorisation', icon: Timer }] : []),
+        ...(canSee('absence-et-sanction') ? [{ label: t('navigation.absenceAndSanction'), href: '/dashboard/absence-et-sanction', icon: Gavel }] : []),
+      ],
+    },
+    {
+      label: t('navigation.timeClass'),
+      href: '/dashboard/temps',
+      icon: SlidersHorizontal,
+      items: [
+        ...(canSee('saisie-classe-horaire') ? [{ label: t('navigation.workSchedule'), href: '/dashboard/saisie-classe-horaire', icon: Clock3 }] : []),
+        ...(canSee('saisie-poste-de-travail') ? [{ label: t('navigation.workStation'), href: '/dashboard/saisie-poste-de-travail', icon: Briefcase }] : []),
+        ...(canSee('intitule-des-absences') ? [{ label: t('navigation.absenceTypes'), href: '/dashboard/intitule-des-absences', icon: ClipboardList }] : []),
+        ...(canSee('Repos') ? [{ label: t('navigation.publicHolidays'), href: '/dashboard/Repos', icon: CalendarCheck }] : []),
+      ],
+    },
+    {
+      label: t('navigation.payrollPreparation'),
+      href: '/dashboard/paie',
+      icon: Banknote,
+      items: [
+        // ...(canSee('accompte-salaire') ? [{ label: t('navigation.salaryAdvance'), href: '/dashboard/accompte-salaire', icon: Wallet }] : []),
+        ...(canSee('pointage-du-mois') ? [{ label: t('navigation.monthlyClocking'), href: '/dashboard/pointage-du-mois', icon: Clock3 }] : []),
+        ...(canSee('droit-de-conge') ? [{ label: t('navigation.leaveRights'), href: '/dashboard/droit-de-conge', icon: CalendarCheck }] : []),
+        ...(canSee('remboursement') ? [{ label: 'Notes de Frais', href: '/dashboard/remboursement', icon: Receipt }] : []),
+      ],
+    },
+    {
+      label: t('navigation.reports'),
+      href: '/dashboard/rapports',
+      icon: BarChart2,
+      items: [
+        ...(canSee('etat-de-presence') ? [{ label: t('navigation.attendanceReport'), href: '/dashboard/etat-de-presence', icon: Users }] : []),
+        ...(canSee('etat-de-retard') ? [{ label: t('navigation.lateReport'), href: '/dashboard/etat-de-retard', icon: Clock3 }] : []),
+        ...(canSee('etat-des-absences') ? [{ label: t('navigation.absenceReport'), href: '/dashboard/etat-des-absences', icon: AlarmClock }] : []),
+        ...(canSee('echeance-contrat') ? [{ label: t('navigation.contractExpiry'), href: '/dashboard/echeance-contrat', icon: FileText }] : []),
+        ...(canSee('cahier-conge') ? [{ label: t('navigation.leaveBook'), href: '/dashboard/cahier-conge', icon: BookOpen }] : []),
+      ],
+    },
+    ...(isAdmin ? [{
+      label: t('navigation.administrator'),
+      href: '/dashboard/admin',
+      icon: KeyRound,
+      items: [
+        { label: t('navigation.users'), href: '/dashboard/gestion-utilisateur', icon: Users },
+        { label: t('navigation.accessRights'), href: '/dashboard/droit-accees', icon: Shield },
+        { label: 'Modèles de Contrats', href: '/dashboard/template-builder', icon: FileText },
+        { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
+        { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
+        { label: t('navigation.chatBot'), href: '/dashboard/chat-bot', icon: MessageSquare },
+      ],
+    }] : []),
+  ];
+
+  // Filtre les groupes vides
+  return allGroups.filter(
+    (g) => g.items === undefined || g.items.length > 0 || g.href === '/dashboard'
+  );
 };
 
 /* ══════════════════════════════════════════════════════ */
 /*  DemoPageContent                                       */
 /* ══════════════════════════════════════════════════════ */
+interface DemoPageContentProps {
+  pathname: string;
+}
+
 function DemoPageContent({ pathname }: DemoPageContentProps) {
-  let content;
+  let content: React.ReactNode;
 
   switch (pathname) {
     case '/': content = <CredentialsSignInPage />; break;
-    case '/dashboard': content = <DashboardModern />; break;
+    case '/dashboard': content = <DashboardModernSync />; break;
     case '/dashboard/structure-organisationnelle': content = <OrgStructureModern />; break;
     case '/dashboard/ville': content = <VilleModern />; break;
     case '/dashboard/filiale': content = <FilialeModern />; break;
     case '/dashboard/rubrique': content = <RubriqueModern />; break;
-    // case '/dashboard/lecture-pointeuse': content = <Lecture />; break;
     case '/dashboard/liste-pointeuse': content = <Pointeuse />; break;
-    // case '/dashboard/optimisation-pointage': content = <Optimisation />; break;
     case '/dashboard/etat-periodique': content = <EtatPeriodiqueModern />; break;
     case '/dashboard/etat-de-presence': content = <EtatPresence />; break;
     case '/dashboard/etat-de-retard': content = <EtatRetard />; break;
     case '/dashboard/etat-des-absences': content = <EtatAbsence />; break;
     case '/dashboard/echeance-contrat': content = <EcheanceContrat />; break;
     case '/dashboard/cahier-conge': content = <CahierConge />; break;
-    case '/dashboard/accompte-salaire': content = <Accompte />; break;
+    // case '/dashboard/accompte-salaire': content = <Accompte />; break;
     case '/dashboard/pointage-du-mois': content = <PointageDuMoisModern />; break;
     case '/dashboard/droit-de-conge': content = <EtatDroitConge />; break;
     case '/dashboard/pays': content = <PaysModern />; break;
@@ -385,6 +375,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/gestion-societe': content = <SocieteModern />; break;
     case '/dashboard/profile': content = <Profile />; break;
     case '/dashboard/societe': content = <BasicTabs />; break;
+    case '/dashboard/parametres': content = <BasicTabs />; break;
     case '/dashboard/allaitement': content = <AllaitementModern />; break;
     case '/dashboard/contrat/contrat': content = <GestionContratsModern />; break;
     case '/dashboard/contrat/renouvellement-contrat': content = <RenouvellementContrat />; break;
@@ -407,14 +398,16 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/chat-bot': content = <Box p={3}>Utilisez le bouton flottant de l'assistant en bas à droite.</Box>; break;
     case '/dashboard/template-builder': content = <ContractBuilderModern />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
+    default: content = <DashboardModernSync />;
   }
 
   return (
     <Box sx={{
       py: 0, px: 0,
       display: 'flex', flexDirection: 'column',
-      width: '100%', height: '100%',
-      minHeight: 'calc(100vh - 64px)',
+      flexGrow: 1,
+      minHeight: 0,
+      bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#f8fafc',
     }}>
       {content}
     </Box>
@@ -422,151 +415,254 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
 }
 
 /* ══════════════════════════════════════════════════════ */
-/*  makeToolbarActions — factory sans hooks React         */
-/*  Toutes les valeurs viennent de la closure             */
+/*  Recent Items & Tab Helpers                            */
+/* ══════════════════════════════════════════════════════ */
+
+const iconMap: Record<string, any> = {
+  Home, LayoutGrid, Database, Building2, Network, Flag, Map, MapPin, Globe, Briefcase,
+  Award, BookOpen, Fingerprint, MonitorDot, Activity, FileText, RefreshCw, Baby,
+  CalendarDays, CalendarX, Timer, Gavel, Shield, Eye, Wallet, CalendarCheck,
+  Banknote, Receipt, Clock3, ClipboardList, CalendarMinus, Notebook, CircleUser,
+  KeyRound, MessageSquare, SlidersHorizontal, Users, Settings, LifeBuoy, AlarmClock,
+  User, BarChart2, DollarSign, LogOut
+};
+
+function DynamicIcon({ name, size = 16, color }: { name: string, size?: number, color?: string }) {
+  const Icon = iconMap[name] || LayoutGrid;
+  return <Icon size={size} color={color} />;
+}
+
+interface RecentItem {
+  label: string;
+  href: string;
+}
+
+function RecentItemsBar({ items, onNavigate }: { items: RecentItem[], onNavigate: (h: string) => void }) {
+  if (items.length === 0) return null;
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 2, overflow: 'hidden' }}>
+      {items.slice(0, 3).map((item, i) => (
+        <Typography
+          key={i}
+          onClick={() => onNavigate(item.href)}
+          sx={{
+            fontSize: '12px',
+            color: '#64748b',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            '&:hover': { color: '#0040a1', textDecoration: 'underline' }
+          }}
+        >
+          Recent: {item.label}
+        </Typography>
+      ))}
+    </Box>
+  );
+}
+
+/* ══════════════════════════════════════════════════════ */
+/*  Toolbar Actions                                        */
 /* ══════════════════════════════════════════════════════ */
 function makeToolbarActions(
   isDark: boolean,
-  mode: 'light' | 'dark',
+  mode: PaletteMode,
   toggleTheme: () => void,
+  navigation: NavGroup[],
+  onNavigate: (href: string) => void,
+  clearAuth: () => void,
+  userName?: string | null
 ) {
-  return function ToolbarActions() {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
+  // Flatten navigation for search
+  const searchItems = navigation.flatMap((group) => {
+    const parent = { label: group.label, href: group.href };
+    const children = (group.items ?? []).map((item) => ({
+      label: `${group.label} > ${item.label}`,
+      href: item.href,
+      shortLabel: item.label
+    }));
+    // Return group if it's a direct link, plus its children
+    const list = group.href && group.href !== '#' ? [parent, ...children] : children;
+    // Remove duplicates by href
+    return list;
+  }).filter((v, i, a) => v.href && v.href !== '#' && a.findIndex(t => t.href === v.href) === i);
 
-        {/* ── Recherche ── */}
-        <Box sx={{ position: 'relative', display: { xs: 'none', md: 'block' } }}>
-          <input
-            placeholder="Rechercher un document..."
-            style={{
-              outline: 'none',
-              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#f2f4f6',
-              color: isDark ? '#f1f5f9' : '#1e293b',
-              border: isDark ? '1px solid rgba(255,255,255,0.1)' : 'none',
+  function UserProfileMenu({ userName, isDark, clearAuth, onNavigate }: { userName?: string | null, isDark: boolean, clearAuth: () => void, onNavigate: (h: string) => void }) {
+    const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+    const open = Boolean(anchorEl);
+    const handleClick = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
+    const handleClose = () => setAnchorEl(null);
+
+    const handleProfile = () => { handleClose(); onNavigate('/dashboard/profile'); };
+    const handleLogout = () => { handleClose(); clearAuth(); onNavigate('/'); };
+
+    return (
+      <>
+        <Tooltip title={userName || 'Compte'}>
+          <Avatar
+            onClick={handleClick}
+            sx={{
+              width: 34, height: 34,
+              bgcolor: isDark ? 'rgba(147,197,253,0.1)' : 'rgba(0,64,161,0.06)',
+              color: isDark ? '#93c5fd' : '#0040a1',
+              fontSize: '14px', fontWeight: 800,
+              border: '1px solid',
+              borderColor: isDark ? 'rgba(147,197,253,0.2)' : 'rgba(0,64,161,0.1)',
+              cursor: 'pointer'
+            }}
+          >
+            {userName?.charAt(0).toUpperCase() || 'A'}
+          </Avatar>
+        </Tooltip>
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleClose}
+          onClick={handleClose}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          PaperProps={{
+            elevation: 0,
+            sx: {
+              overflow: 'visible',
+              filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+              mt: 1.5,
               borderRadius: '12px',
-              padding: '8px 16px 8px 36px',
-              fontSize: '12px',
-              fontWeight: 500,
-              width: '256px',
-              transition: 'all 0.2s',
-            }}
-          />
-          <span
-            className="material-symbols-outlined"
-            style={{
-              position: 'absolute', left: '10px', top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '18px',
-              color: isDark ? '#64748b' : '#94a3b8',
-              pointerEvents: 'none',
-            }}
-          >search</span>
+              minWidth: '180px',
+              '& .MuiAvatar-root': { width: 32, height: 32, ml: -0.5, mr: 1 },
+              '&:before': {
+                content: '""', display: 'block', position: 'absolute', top: 0, right: 14, width: 10, height: 10,
+                bgcolor: 'background.paper', transform: 'translateY(-50%) rotate(45deg)', zIndex: 0,
+              },
+            },
+          }}
+        >
+          <MenuItem onClick={handleProfile}>
+            <ListItemIcon><User size={18} /></ListItemIcon>
+            <ListItemText primary="Mon Profil" primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleLogout} sx={{ color: '#ba1a1a' }}>
+            <ListItemIcon><LogOut size={18} color="#ba1a1a" /></ListItemIcon>
+            <ListItemText primary="Déconnexion" primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
+          </MenuItem>
+        </Menu>
+      </>
+    );
+  }
+
+  return function ToolbarActions() {
+    const [recentPages, _setRecentPages] = React.useState<RecentItem[]>(() => {
+      const saved = localStorage.getItem('recentPages');
+      return saved ? JSON.parse(saved) : [];
+    });
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0, flexWrap: 'nowrap', width: '100%', justifyContent: 'flex-end' }}>
+        {/* Recent Items - Left aligned in the actions area if space permits */}
+        <Box sx={{ display: { xs: 'none', lg: 'flex' }, flex: 1, justifyContent: 'flex-start' }}>
+          <RecentItemsBar items={recentPages} onNavigate={onNavigate} />
         </Box>
 
-        {/* ── Slot DOM pour NotificationCenter (injecté via portail) ── */}
-        <div
-          id="toolbar-notifications-slot"
-          style={{ display: 'flex', alignItems: 'center' }}
+        {/* Functional Search Box */}
+        <Autocomplete
+          size="small"
+          options={searchItems}
+          getOptionLabel={(option) => option.label}
+          onChange={(_, value) => {
+            if (value) onNavigate(value.href);
+          }}
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            width: '280px',
+            '& .MuiOutlinedInput-root': {
+              bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f2f4f6',
+              borderRadius: '12px',
+              fontSize: '13px',
+              '& fieldset': { border: 'none' },
+              '&:hover fieldset': { border: 'none' },
+              '&.Mui-focused fieldset': { border: 'none' },
+            }
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              placeholder="Rechercher une page..."
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon size={16} color={isDark ? '#94a3b8' : '#64748b'} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
         />
 
-        {/* ── Theme switcher ── */}
+        {/* Language Switcher */}
+        <Box sx={{ flexShrink: 0, '& .MuiFormControl-root': { minWidth: 'auto' }, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '12px', fontWeight: 700 } }}>
+          <LanguageSwitcher />
+        </Box>
+
+        {/* Notification Center */}
+        <Box sx={{ flexShrink: 0 }}>
+          <NotificationCenter />
+        </Box>
+
+        {/* Theme switcher */}
         <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
           <IconButton
             onClick={toggleTheme}
+            size="small"
             sx={{
               color: isDark ? '#94a3b8' : '#64748b',
-              borderRadius: '12px',
-              p: 1.2,
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              '&:hover': { color: '#0040a1', bgcolor: 'rgba(0, 64, 161, 0.05)' },
+              borderRadius: '10px',
+              p: 0.75,
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              '&:hover': { color: '#0040a1', bgcolor: 'rgba(0,64,161,0.07)' },
             }}
           >
             {mode === 'dark'
-              ? <Brightness7 sx={{ fontSize: 22 }} />
-              : <Brightness4 sx={{ fontSize: 22 }} />}
+              ? <Brightness7 sx={{ fontSize: 20 }} />
+              : <Brightness4 sx={{ fontSize: 20 }} />}
           </IconButton>
         </Tooltip>
 
-        {/* ── Aide ── */}
-        <Tooltip title="Aide">
-          <IconButton
-            sx={{
-              color: isDark ? '#94a3b8' : '#64748b',
-              borderRadius: '12px',
-              p: 1.2,
-              '&:hover': { color: '#0040a1', bgcolor: 'rgba(0, 64, 161, 0.05)' },
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
-              help_outline
-            </span>
-          </IconButton>
-        </Tooltip>
-
+        {/* User Profile instead of Help */}
+        <Box sx={{ flexShrink: 0, ml: 1, display: 'flex', alignItems: 'center' }}>
+          <UserProfileMenu userName={userName} isDark={isDark} clearAuth={clearAuth} onNavigate={onNavigate} />
+        </Box>
       </Box>
     );
   };
 }
 
 /* ══════════════════════════════════════════════════════ */
-/*  NotificationPortal                                    */
-/*  Monté dans l'arbre React complet → accès à tous les  */
-/*  contextes (Auth, QueryClient, Theme)                  */
-/*  Rendu visuellement dans #toolbar-notifications-slot   */
-/* ══════════════════════════════════════════════════════ */
-function NotificationPortal() {
-  const [container, setContainer] = React.useState<HTMLElement | null>(null);
-
-  React.useEffect(() => {
-    let attempts = 0;
-    const interval = setInterval(() => {
-      const el = document.getElementById('toolbar-notifications-slot');
-      if (el) {
-        setContainer(el);
-        clearInterval(interval);
-      }
-      if (++attempts > 50) clearInterval(interval); // 5s max
-    }, 100);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!container) return null;
-  return createPortal(<NotificationCenter />, container);
-}
-
-/* ══════════════════════════════════════════════════════ */
-/*  DashboardLayoutAccount                                */
+/*  Main Layout                                           */
 /* ══════════════════════════════════════════════════════ */
 const BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
 
-function DashboardLayoutAccount(props: DemoProps) {
-  const { window: windowProp } = props;
+function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { userName, soclib, clearAuth } = useAuth();
+  const { authReady, clearAuth, userName } = useAuth();
   const { i18n } = useTranslation();
   const NAVIGATION = useNavigationItems();
   const outerTheme = useMuiTheme();
   const { mode, toggleTheme } = useThemeMode();
   const isDark = outerTheme.palette.mode === 'dark';
+  const pathname = location.pathname;
 
-  const [profileImage, setProfileImage] = React.useState<string>(
-    localStorage.getItem('profileImage')
-      ? `${BASE_URL}${localStorage.getItem('profileImage')}`
-      : '/default-profile.png'
-  );
   const [societeImage, setSocieteImage] = React.useState<string>(
     localStorage.getItem('societeImage')
       ? `${BASE_URL}${localStorage.getItem('societeImage')}`
       : '/default-logo.png'
   );
-  const [session, setSession] = React.useState<Session | null>(null);
 
   React.useEffect(() => {
     const handleStorageChange = () => {
-      const profile = localStorage.getItem('profileImage');
       const societe = localStorage.getItem('societeImage');
-      if (profile) setProfileImage(`${BASE_URL}${profile}`);
       if (societe) setSocieteImage(`${BASE_URL}${societe}`);
     };
     globalThis.window.addEventListener('storage', handleStorageChange);
@@ -578,91 +674,230 @@ function DashboardLayoutAccount(props: DemoProps) {
   }, []);
 
   React.useEffect(() => {
-    if (userName || soclib) {
-      setSession({ user: { name: userName || 'Employé', image: profileImage } });
-    } else {
-      setSession(null);
-    }
-  }, [userName, profileImage, soclib]);
-
-  React.useEffect(() => {
     document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
 
-  const authentication = React.useMemo(() => ({
-    signIn: () => navigate('/dashboard'),
-    signOut: () => {
-      apiInstance.post('/Utilisateurs/logout', {})
-        .then(() => { localStorage.clear(); clearAuth(); setSession(null); navigate('/'); })
-        .catch(() => { localStorage.clear(); clearAuth(); setSession(null); navigate('/'); });
-    },
-  }), [navigate]);
+  // ── Tab Management State ──
+  const [openedTabs, setOpenedTabs] = React.useState<OpenedTab[]>(() => {
+    const saved = localStorage.getItem('openedTabs');
+    return saved ? JSON.parse(saved) : [{ label: 'Tableau de bord', href: '/dashboard', icon: 'Home' }];
+  });
 
-  const pathname = location.pathname;
+  // Track navigation to add tabs
+  React.useEffect(() => {
+    if (pathname === '/' || pathname === '/login') return;
 
-  const router = React.useMemo<Router>(() => ({
-    pathname,
-    searchParams: new URLSearchParams(),
-    navigate: (to) => {
-      if (typeof to === 'number') (navigate as any)(to);
-      else navigate(to, {});
-    },
-  }), [pathname, navigate]);
+    // Find the item in flattened navigation to get title and icon
+    const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
+    const navItems = flatten(NAVIGATION);
+    const matched = navItems.find(n => n.href === pathname);
 
-  // Recrée le slot à chaque changement de thème pour que la closure soit fraîche
+    if (matched) {
+      setOpenedTabs(prev => {
+        if (prev.some(t => t.href === pathname)) return prev;
+        const newTabs = [...prev, { label: matched.label, href: matched.href, icon: matched.icon?.name || 'LayoutGrid' }];
+        localStorage.setItem('openedTabs', JSON.stringify(newTabs));
+        return newTabs;
+      });
+    }
+  }, [pathname, NAVIGATION]);
+
+  // ── Recent Pages Tracking ──
+  React.useEffect(() => {
+    if (pathname === '/' || pathname === '/login' || pathname === '/dashboard') return;
+
+    const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
+    const navItems = flatten(NAVIGATION);
+    const matched = navItems.find(n => n.href === pathname);
+
+    if (matched) {
+      const saved = localStorage.getItem('recentPages');
+      let recent: RecentItem[] = saved ? JSON.parse(saved) : [];
+      // Remove if exists and put at start
+      recent = recent.filter(r => r.href !== pathname);
+      recent.unshift({ label: matched.label, href: matched.href });
+      recent = recent.slice(0, 5);
+      localStorage.setItem('recentPages', JSON.stringify(recent));
+    }
+  }, [pathname, NAVIGATION]);
+
+
+  const handleCloseTab = (e: React.MouseEvent, href: string) => {
+    e.stopPropagation();
+    const newTabs = openedTabs.filter(t => t.href !== href);
+    setOpenedTabs(newTabs);
+    localStorage.setItem('openedTabs', JSON.stringify(newTabs));
+
+    if (pathname === href && newTabs.length > 0) {
+      navigate(newTabs[newTabs.length - 1].href);
+    } else if (newTabs.length === 0) {
+      navigate('/dashboard');
+    }
+  };
+
+
   const ToolbarActions = React.useMemo(
-    () => makeToolbarActions(isDark, mode, toggleTheme),
-    [isDark, mode, toggleTheme]
+    () => makeToolbarActions(isDark, mode, toggleTheme, NAVIGATION, (h) => navigate(h), clearAuth, userName),
+    [isDark, mode, toggleTheme, NAVIGATION, navigate, clearAuth, userName]
   );
 
-  const isHiddenPage =
-    pathname === '/' ||
-    pathname === '/dashboard/profil-employe';
+  const footerItems: FooterItem[] = [
+    { label: 'Support', href: '/dashboard/support', icon: LifeBuoy },
+    { label: 'Paramètres', href: '/dashboard/parametres', icon: Settings },
+    { label: 'Déconnexion', href: '#', icon: LogOut, onClick: () => { clearAuth(); navigate('/'); } },
+  ];
 
-  const demoWindow = windowProp !== undefined ? windowProp() : undefined;
+  const isLoginPage = pathname === '/';
+  const isProfilePage = pathname === '/dashboard/profil-employe';
+
+  if (!authReady) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 28, color: '#64748b' }}>
+          progress_activity
+        </span>
+      </Box>
+    );
+  }
+
+  if (isLoginPage || isProfilePage) {
+    return <DemoPageContent pathname={pathname} />;
+  }
+
+  const title = sessionStorage.getItem('soclib') || 'Ledger.';
+  const logo = (
+    <img
+      src={societeImage}
+      alt="Societe"
+      style={{ borderRadius: '8px', width: 32, height: 32, objectFit: 'cover' }}
+    />
+  );
 
   return (
-    <AppProvider
-      session={session}
-      authentication={authentication}
-      navigation={NAVIGATION}
-      router={router}
-      theme={outerTheme}
-      window={demoWindow}
-      branding={{
-        title: sessionStorage.getItem('soclib') || 'Ledger.',
-        logo: <img src={societeImage} alt="Societe" style={{ borderRadius: '8px' }} />,
-      }}
-    >
-      {isHiddenPage ? (
-        <DemoPageContent pathname={pathname} />
-      ) : (
-        <DashboardLayout
-          navigation={NAVIGATION}
-          defaultSidebarCollapsed={false}
-          slots={{ toolbarActions: ToolbarActions }}
-        >
-          <DemoPageContent pathname={pathname} />
-        </DashboardLayout>
-      )}
+    <>
+      <SidebarNavigationDualTier
+        items={NAVIGATION}
+        footerItems={footerItems}
+        pathname={pathname}
+        onNavigate={(to) => navigate(to)}
+        title={title}
+        logo={logo}
+        toolbarActions={<ToolbarActions />}
+      >
+        {/* Dynamic Tab Bar */}
+        <Box sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          borderBottom: '1px solid',
+          borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+          bgcolor: isDark ? '#1e293b' : '#f8f9fa',
+          px: 1.5,
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 0.25,
+          overflowX: 'auto',
+          minHeight: '40px',
+          '&::-webkit-scrollbar': { display: 'none' }
+        }}>
+          {openedTabs.map((tab) => {
+            const active = pathname === tab.href;
+            return (
+              <Box
+                key={tab.href}
+                onClick={() => navigate(tab.href)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.25,
+                  px: 2,
+                  py: 0.75,
+                  cursor: 'pointer',
+                  position: 'relative',
+                  borderTopRightRadius: '6px',
+                  borderTopLeftRadius: '6px',
+                  border: active ? '1px solid' : '1px solid transparent',
+                  borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
+                  borderBottom: active ? (isDark ? '1px solid #0f172a' : '1px solid white') : 'none',
+                  mb: '-1px',
+                  bgcolor: active ? (isDark ? '#0f172a' : 'white') : 'transparent',
+                  color: active ? (isDark ? '#93c5fd' : '#0040a1') : (isDark ? '#64748b' : '#94a3b8'),
+                  boxShadow: active ? '0 -4px 12px rgba(0,0,0,0.04)' : 'none',
+                  zIndex: active ? 2 : 1,
+                  transition: 'all 0.15s ease',
+                  '&:before': active ? {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '2.5px',
+                    bgcolor: (theme) => theme.palette.primary.main,
+                    borderTopRightRadius: '6px',
+                    borderTopLeftRadius: '6px',
+                  } : {},
+                  '&:after': !active && openedTabs.indexOf(tab) < openedTabs.length - 1 ? {
+                    content: '""',
+                    position: 'absolute',
+                    right: 0,
+                    top: '25%',
+                    bottom: '25%',
+                    width: '1px',
+                    bgcolor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                  } : {},
+                  '&:hover': !active ? {
+                    bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9',
+                    color: isDark ? '#f1f5f9' : '#1e293b'
+                  } : {},
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', opacity: active ? 1 : 0.7 }}>
+                  <DynamicIcon name={tab.icon} size={14} />
+                </Box>
+                <Typography sx={{
+                  fontSize: '12px',
+                  fontWeight: active ? 700 : 600,
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '0.01em'
+                }}>
+                  {tab.label}
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleCloseTab(e, tab.href)}
+                  sx={{
+                    p: 0.1,
+                    ml: 0.25,
+                    opacity: active ? 0.6 : 0,
+                    transform: 'scale(0.8)',
+                    color: 'inherit',
+                    transition: 'opacity 0.2s, background 0.2s',
+                    '&:hover': { opacity: 1, bgcolor: 'rgba(0,0,0,0.06)' }
+                  }}
+                  className="tab-close-btn"
+                >
+                  <CloseIcon size={12} />
+                </IconButton>
+                <style>{`
+                  .MuiBox-root:hover .tab-close-btn { opacity: 0.6; }
+                `}</style>
+              </Box>
+            );
+          })}
+        </Box>
 
-      {/*
-        NotificationPortal est monté ICI — dans l'arbre React complet.
-        Il a accès à AuthProvider, QueryClientProvider, ThemeModeContext.
-        Il se rend visuellement dans la div#toolbar-notifications-slot
-        créée par makeToolbarActions via createPortal.
-      */}
-      {!isHiddenPage && <NotificationPortal />}
+        <DemoPageContent pathname={pathname} />
+      </SidebarNavigationDualTier>
 
       {pathname !== '/' && <GeminiChat />}
-    </AppProvider>
+    </>
   );
 }
 
 /* ══════════════════════════════════════════════════════ */
 /*  Export                                                */
 /* ══════════════════════════════════════════════════════ */
-export default function DashboardLayoutAccountWrapper(props: DemoProps) {
+export default function DashboardLayoutBasic(props: DemoProps) {
   return <DashboardLayoutAccount {...props} />;
 }

@@ -106,7 +106,8 @@ const WEEK_COLS = [
 
 // ── Main inner component ─────────────────────────────────────────────────────
 function PointageDuMoisContent() {
-  const { soccod, hasPermission } = useAuth();
+  const { soccod, isManager, sercod: managerSercod, hasPermission } = useAuth();
+  const isManagerScoped = Boolean(isManager && managerSercod);
   
   const canModify = hasPermission('Paie et Rémunération', 'modify');
 
@@ -121,7 +122,7 @@ function PointageDuMoisContent() {
   const [mois, setMois] = useState(getCurrentMonth());
   const [annee, setAnnee] = useState(getCurrentYear());
   const [selectedFiliale, setSelectedFiliale] = useState(sessionStorage.getItem('sitcod') ?? '');
-  const [selectedService, setSelectedService] = useState('');
+  const [selectedService, setSelectedService] = useState(isManagerScoped ? (managerSercod ?? '') : '');
   const [selectedRegime, setSelectedRegime] = useState('');
   const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
   const [filiale, setFiliale] = useState<Record<string, string>>({});
@@ -133,7 +134,7 @@ function PointageDuMoisContent() {
   const [selectedWeekDetails, setSelectedWeekDetails] = useState<Record<string, string> | null>(null);
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'info' as any });
 
-  const { data: employeesLibs = [] } = useGetEmployeesLibs();
+  const { data: employeesLibs = [] } = useGetEmployeesLibs(selectedFiliale, selectedService, undefined, selectedRegime);
   const { data: rubriques = [] } = useGetRubriquesPaire();
 
   const empcods = dateRange?.empcods ?? [];
@@ -152,8 +153,21 @@ function PointageDuMoisContent() {
   useEffect(() => {
     if (!soccod) return;
     apiInstance.get(`/Sites/get-sitlibs/${soccod}`).then(r => setFiliale(r.data)).catch(console.error);
-    apiInstance.get(`/Services/get-servlibs/${soccod}`).then(r => setServices(r.data)).catch(console.error);
-  }, [soccod]);
+    apiInstance.get(`/Services/get-servlibs/${soccod}`).then(r => {
+      const allServices = r.data ?? {};
+      if (isManagerScoped && managerSercod) {
+        setServices(allServices[managerSercod] ? { [managerSercod]: allServices[managerSercod] } : {});
+        return;
+      }
+      setServices(allServices);
+    }).catch(console.error);
+  }, [soccod, isManagerScoped, managerSercod]);
+
+  useEffect(() => {
+    if (isManagerScoped && managerSercod) {
+      setSelectedService(managerSercod);
+    }
+  }, [isManagerScoped, managerSercod]);
 
   const handleSearch = () => {
     if (selectedEmpcods.length === 0) {
@@ -334,8 +348,9 @@ function PointageDuMoisContent() {
             <label>Service</label>
             <FormControl size="small" fullWidth>
               <Select value={selectedService} onChange={(e) => setSelectedService(e.target.value)}
+                disabled={isManagerScoped}
                 sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
-                <MenuItem value="">Tous les services</MenuItem>
+                <MenuItem value="">{isManagerScoped ? 'Mon service' : 'Tous les services'}</MenuItem>
                 {Object.entries(services).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
               </Select>
             </FormControl>

@@ -173,42 +173,44 @@ function FilialeModernContent() {
               <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
             </Box>
           </Box>
-          <table className="ref-table">
-            <thead>
-              <tr>
-                <th style={{ width: 80 }}>Actions</th>
-                <th>Code</th>
-                <th>Nom</th>
-                <th>Tél</th>
-                <th>Email</th>
-                <th>Hrs/Mois</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="ref-empty">Aucune filiale trouvée.</td></tr>
-              ) : filtered.map(s => (
-                <tr key={s.sitcod}>
-                  <td>
-                    <Box sx={{ display: 'flex', gap: '4px' }}>
-                      {canModify && (
-                        <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(s)}><EditIcon sx={{ fontSize: 16 }} /></button>
-                      )}
-                      {canDelete && (
-                        <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(s)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
-                      )}
-                      {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
-                    </Box>
-                  </td>
-                  <td style={{ fontWeight: 700, color: '#0f172a' }}>{s.sitcod}</td>
-                  <td>{s.sitlib}</td>
-                  <td>{s.sittel || '—'}</td>
-                  <td style={{ color: '#64748b' }}>{s.sitemail || '—'}</td>
-                  <td><span className="ref-badge ref-badge--blue">{s.sitmois || '—'}</span></td>
+          <Box className="ref-table-container">
+            <table className="ref-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 80 }}>Actions</th>
+                  <th>Code</th>
+                  <th>Nom</th>
+                  <th>Tél</th>
+                  <th>Email</th>
+                  <th>Hrs/Mois</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={6} className="ref-empty">Aucune filiale trouvée.</td></tr>
+                ) : filtered.map(s => (
+                  <tr key={s.sitcod}>
+                    <td>
+                      <Box sx={{ display: 'flex', gap: '4px' }}>
+                        {canModify && (
+                          <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(s)}><EditIcon sx={{ fontSize: 16 }} /></button>
+                        )}
+                        {canDelete && (
+                          <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(s)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
+                        )}
+                        {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
+                      </Box>
+                    </td>
+                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{s.sitcod}</td>
+                    <td>{s.sitlib}</td>
+                    <td>{s.sittel || '—'}</td>
+                    <td style={{ color: '#64748b' }}>{s.sitemail || '—'}</td>
+                    <td><span className="ref-badge ref-badge--blue">{s.sitmois || '—'}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
           <Box className="ref-table-footer"><span>Affichage de {filtered.length} filiales</span></Box>
         </Box>
       </Box>

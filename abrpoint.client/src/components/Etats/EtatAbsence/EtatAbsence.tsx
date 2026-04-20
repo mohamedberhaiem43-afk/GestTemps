@@ -74,6 +74,7 @@ function EtatAbsence() {
     setSelectedService,
     selectedRegime,
     setSelectedRegime,
+    isServiceLocked,
     effectiveEmpcods,
     hasEffectiveEmployees,
     effectiveEmployeesLabel,
@@ -331,8 +332,9 @@ function EtatAbsence() {
                 className="ea-filter-select"
                 value={selectedService}
                 onChange={(e) => setSelectedService(e.target.value)}
+                disabled={isServiceLocked}
               >
-                <option value="">Tous</option>
+                <option value="">{isServiceLocked ? 'Mon service' : 'Tous'}</option>
                 {Object.entries(services).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}

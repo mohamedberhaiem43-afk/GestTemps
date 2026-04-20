@@ -188,7 +188,7 @@ namespace GestionDesTickets.Server.Controllers
                     return Unauthorized("Invalid credentials.");
                 }
                 var isEmp = await _dbContext.Employes.Where(e => e.Empcod == dbUser.Uticod).AnyAsync();
-
+                var isManager = dbUser.Utirole?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false;
                 Socuser? societe = null;
                 if (!string.IsNullOrEmpty(user.Usersit))
                 {
@@ -201,7 +201,7 @@ namespace GestionDesTickets.Server.Controllers
                         if (dbUser.UtiTwoFactorEnabled == "1")
                         {
                             // Stop before issuing cookies
-                            return Ok(new { requires2fa = true, uticod = dbUser.Uticod, societe,societe.Sitcod });
+                            return Ok(new { requires2fa = true, uticod = dbUser.Uticod, societe,societe.Sitcod,isManager });
                         }
 
                         return await CompleteLoginSequence(dbUser, user.Company ?? "", societe);
@@ -265,7 +265,8 @@ namespace GestionDesTickets.Server.Controllers
                     .ToListAsync();
 
                 var isEmp = await _dbContext.Employes.Where(e => e.Empcod == dbUser.Uticod).AnyAsync();
-
+                var roleName = dbUser.Utirole ?? string.Empty;
+                var isManager = roleName.Contains("manager", StringComparison.OrdinalIgnoreCase);
                 var accessToken = GenerateJwtToken(dbUser.Uticod);
                 var refreshToken = GenerateRefreshToken();
 
@@ -303,7 +304,7 @@ namespace GestionDesTickets.Server.Controllers
                     }
                 }
 
-                return Ok(new { dbUser.Uticod, dbUser.Utiimg, socimg, utilib, societe, sitcods, soclib, dbUser.Utiadm, isEmp, permissions });
+                return Ok(new { dbUser.Uticod, dbUser.Utiimg, socimg, utilib, societe, sitcods, soclib, dbUser.Utiadm, isEmp, permissions,isManager });
             }
             catch (Exception)
             {
@@ -478,6 +479,7 @@ namespace GestionDesTickets.Server.Controllers
                 uticod = user.Uticod,
                 utiadm = user.Utiadm,
                 isEmp,
+                isManager = user.Role?.RoleName?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false,
                 utilib,
                 sercod,
                 permissions = user.Role?.Permissions ?? new List<RolePermission>()
