@@ -29,7 +29,8 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return Ok(await _societeRepository.GetSoclibs());
+                var societes = await _societeRepository.GetSoclibs();
+                return Ok(societes);
             }
             catch (Exception ex)
             {

@@ -153,8 +153,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors("AllowAll");
-
+app.UseCors("AllowReactApp");
 //app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
