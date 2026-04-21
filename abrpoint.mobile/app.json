@@ -5,21 +5,46 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1a237e"
+    },
+    "android": {
+      "package": "com.abrpoint.mobile",
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a237e"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.abrpoint.mobile"
     },
-    "android": {
-      "package": "com.abrpoint.mobile"
-    },
     "newArchEnabled": true,
     "plugins": [
       "expo-camera",
-      "expo-image-picker"
-    ]
+      "expo-image-picker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25",
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5a33d832-4ea8-45a8-8d03-69639df6e080"
+      }
+    }
   }
 }
