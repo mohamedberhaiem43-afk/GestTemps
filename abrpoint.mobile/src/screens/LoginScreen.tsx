@@ -43,6 +43,16 @@ export default function LoginScreen() {
     try {
       await login(email, password, company || undefined);
     } catch (error: any) {
+      console.log('Login error catch:', error);
+      if (error.response) {
+        console.log('Error Response Data:', error.response.data);
+        console.log('Error Response Status:', error.response.status);
+      } else if (error.request) {
+        console.log('Error Request:', error.request);
+      } else {
+        console.log('Error Message:', error.message);
+      }
+      
       const msg = error?.response?.data?.message || 'Erreur de connexion. Vérifiez vos identifiants.';
       Alert.alert('Erreur', msg);
     } finally {

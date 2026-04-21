@@ -39,7 +39,7 @@ class ApiService {
           try {
             const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
             if (refreshToken) {
-              const response = await axios.post(`${API_BASE_URL}/MobileAuth/refresh`, {
+              const response = await this.client.post('/MobileAuth/refresh', {
                 refreshToken,
               });
               const { token, refreshToken: newRefreshToken } = response.data;
@@ -74,15 +74,23 @@ class ApiService {
 
   // Auth endpoints
   async login(email: string, password: string, company?: string) {
-    const response = await axios.post(`${API_BASE_URL}/MobileAuth/login`, {
-      email,
-      password,
-      company,
-    });
-    if (response.data.token) {
-      await this.saveTokens(response.data.token, response.data.refreshToken);
+    try {
+      const response = await this.client.post('/MobileAuth/login', {
+        email,
+        password,
+        company,
+      });
+      if (response.data.token) {
+        await this.saveTokens(response.data.token, response.data.refreshToken);
+      }
+      return response.data;
+    } catch (error: any) {
+      console.log('ApiService Login Error:', error.message);
+      if (error.response) {
+        console.log('ApiService Error Response:', error.response.status, error.response.data);
+      }
+      throw error;
     }
-    return response.data;
   }
 
   async logout() {

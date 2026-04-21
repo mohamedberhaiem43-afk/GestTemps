@@ -27,7 +27,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.abrpoint.mobile"
     },
-    "newArchEnabled": true,
+
     "plugins": [
       "expo-camera",
       "expo-image-picker",
