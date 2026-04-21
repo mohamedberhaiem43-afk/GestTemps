@@ -61,6 +61,8 @@ services:
   abrpoint.client:
     container_name: abrpoint.client
     image: mohamedbenrhaiem2003/abrpoint-client:latest
+    expose:
+      - "80"
     depends_on:
       - abrpoint.server
     networks:
