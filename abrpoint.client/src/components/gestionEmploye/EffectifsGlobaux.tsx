@@ -46,6 +46,7 @@ const EffectifsGlobaux = () => {
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [selectedContract, setSelectedContract] = useState("");
+  const [selectedLevel, setSelectedLevel] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
   const [deleteTarget, setDeleteTarget] = useState<Employe | null>(null);
@@ -143,6 +144,7 @@ const EffectifsGlobaux = () => {
         (e) =>
           e.emplib?.toLowerCase().includes(query) ||
           e.empmat?.toLowerCase().includes(query) ||
+          e.empcod?.toLowerCase().includes(query) ||
           e.empemail?.toLowerCase().includes(query)
       );
     }
@@ -159,9 +161,13 @@ const EffectifsGlobaux = () => {
       result = result.filter((e) => e.empcontrat === selectedContract);
     }
 
+    if (selectedLevel) {
+      result = result.filter((e) => e.empniv === selectedLevel);
+    }
+
     setFilteredEmployees(result);
     setPage(0);
-  }, [searchQuery, selectedDepartment, selectedSite, selectedContract, employees]);
+  }, [searchQuery, selectedDepartment, selectedSite, selectedContract, selectedLevel, employees]);
 
   const paginatedEmployees = useMemo(() => {
     const start = page * rowsPerPage;
@@ -330,6 +336,24 @@ const EffectifsGlobaux = () => {
                 <MenuItem value="FREELANCE">Freelance</MenuItem>
               </TextField>
             </Box>
+            <Box className="filter-field">
+              <label>Niveau</label>
+              <TextField
+                select
+                size="small"
+                value={selectedLevel}
+                onChange={(e) => setSelectedLevel(e.target.value)}
+                className="filter-select"
+                SelectProps={{
+                  displayEmpty: true,
+                }}
+              >
+                <MenuItem value="">Tous les niveaux</MenuItem>
+                <MenuItem value="0">Exécutant</MenuItem>
+                <MenuItem value="1">Maitrise</MenuItem>
+                <MenuItem value="2">Cadre</MenuItem>
+              </TextField>
+            </Box>
           </Box>
         </Paper>
 
@@ -406,7 +430,7 @@ const EffectifsGlobaux = () => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Chip label={employee.empmat || "N/A"} className="matricule-chip" size="small" />
+                      <Chip label={employee.empcod || employee.empmat || "N/A"} className="matricule-chip" size="small" />
                     </TableCell>
                     <TableCell>
                       <Typography className="position-text">

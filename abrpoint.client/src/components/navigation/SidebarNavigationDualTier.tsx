@@ -265,7 +265,6 @@ export default function SidebarNavigationDualTier({
                 <IconButton 
                   size="small" 
                   onClick={() => setMobileSecondaryOpen(true)}
-                  disabled={!hasSecondary}
                   sx={{ color: '#0040a1' }}
                 >
                   <Menu size={20} />
@@ -635,8 +634,8 @@ const styles = `
 }
 
 @media (max-width: 768px) {
-  .sndt-main {
-    margin-left: 72px;
+  .sndt-main, .sndt-root:not(:has(.sndt-secondary)) .sndt-main {
+    margin-left: 0 !important;
   }
 }
 

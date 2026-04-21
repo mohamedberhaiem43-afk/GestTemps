@@ -1,5 +1,5 @@
-import { Box, Button, IconButton, TextField, Typography, Switch, FormControlLabel, Chip, Paper } from "@mui/material";
-import { useContext, useState, useEffect } from "react";
+import { Box, Typography, Switch, Paper } from "@mui/material";
+import { useContext, useState, useEffect, useMemo } from "react";
 import { PosteContext } from "../helper/PostProvider/PostContext";
 import { Poste } from "../../models/Poste";
 import useGetAllPostes from "../../hooks/posteHooks/useGetAllPostes";
@@ -10,24 +10,19 @@ import useDeletePoste from "../../hooks/posteHooks/useDeletePoste";
 import useGetLPoste from "../../hooks/posteHooks/useGetLPoste";
 import { useAuth } from "../helper/AuthProvider";
 import AccessDenied from "../helper/AccessDenied";
-import SaveIcon from "@mui/icons-material/Save";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+
 import CustomizedSnackbars from "../Snackbar/Snackbar";
 import AlertModal from "../AlertModal/AlertModal";
 import "./PosteTravailModern.css";
 
 const emptySchedule = [
-  { jour: 'Lundi', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", repasBonus: "0", repos: "0", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", maxhre: "", minhjour: "", minhdemijour: "", Douche: "" },
-  { jour: 'Mardi', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", repasBonus: "0", repos: "0", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", maxhre: "", minhjour: "", minhdemijour: "", Douche: "" },
-  { jour: 'Mercredi', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", repasBonus: "0", repos: "0", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", maxhre: "", minhjour: "", minhdemijour: "", Douche: "" },
-  { jour: 'Jeudi', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", repasBonus: "0", repos: "0", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", maxhre: "", minhjour: "", minhdemijour: "", Douche: "" },
-  { jour: 'Vendredi', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", repasBonus: "0", repos: "0", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", maxhre: "", minhjour: "", minhdemijour: "", Douche: "" },
-  { jour: 'Samedi', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", repasBonus: "0", repos: "0", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", maxhre: "", minhjour: "", minhdemijour: "", Douche: "" },
-  { jour: 'Dimanche', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", repasBonus: "0", repos: "0", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", maxhre: "", minhjour: "", minhdemijour: "", Douche: "" },
+  { jour: 'Lundi', prefix: 'lun', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
+  { jour: 'Mardi', prefix: 'mar', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
+  { jour: 'Mercredi', prefix: 'mer', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
+  { jour: 'Jeudi', prefix: 'jeu', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
+  { jour: 'Vendredi', prefix: 'ven', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
+  { jour: 'Samedi', prefix: 'sam', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "1" },
+  { jour: 'Dimanche', prefix: 'dim', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "1" },
 ];
 
 export default function PosteTravailModern() {
@@ -44,7 +39,8 @@ export default function PosteTravailModern() {
   const [toleranceExit, setToleranceExit] = useState({ avant: 0, apres: 0 });
   const [pausesEnabled, setPausesEnabled] = useState(true);
   const [repasEnabled, setRepasEnabled] = useState(true);
-  const [overtimeEnabled, setOvertimeEnabled] = useState(false);
+  const [sanctionRetard, setSanctionRetard] = useState(true);
+  const [bonusPresence, setBonusPresence] = useState(false);
 
   const { soccod, hasPermission } = useAuth();
   const context = useContext(PosteContext);
@@ -59,47 +55,41 @@ export default function PosteTravailModern() {
     return <AccessDenied message="Vous n'avez pas le droit de consulter les postes de travail." />;
   }
 
-  const { data: poste = {} } = useGetAllPostes(selectedPoste?.codposte);
+  const { data: poste } = useGetAllPostes(selectedPoste?.codposte);
   const { data: lposte } = useGetLPoste(selectedPoste?.codposte);
   const { data: postesList = [] } = useGetPoste();
   const { mutate: updatePoste } = useUpdatePoste();
   const { mutate: addPoste } = useAddPoste();
   const { mutate: deletePoste } = useDeletePoste();
 
-  // Update schedule data when poste changes
   useEffect(() => {
     if (poste) {
+      // Ensure libposte is preserved if missing from the detailed response
+      setSaisieData(prev => ({
+        ...prev,
+        ...poste,
+        libposte: poste.libposte || selectedPoste?.libposte || prev.libposte
+      }));
+      
       setScheduleData([
-        { jour: 'Lundi', DebEntree: poste?.lunhdematin, Entrée: poste?.lunhdmat, FinEntree: poste?.lunhfematin, Sortie: poste?.lunhfmat, repasBonus: poste?.lunrepas, repos: poste?.lunrepos, DebEntree2: poste?.lunhdeamidi, Entree2: poste?.lunhdam, Sortie2: poste?.lunhfam, FinEntree2: poste?.lunhfeamidi, maxhre: poste?.maxhrelun, minhjour: poste?.minhjourlun, minhdemijour: poste?.minhdemijourlun, Douche: poste?.lundouche },
-        { jour: 'Mardi', DebEntree: poste?.marhdematin, Entrée: poste?.marhdmat, FinEntree: poste?.marhfematin, Sortie: poste?.marhfmat, repasBonus: poste?.marrepas, repos: poste?.marrepos, DebEntree2: poste?.marhdeamidi, Entree2: poste?.marhdam, Sortie2: poste?.marhfam, FinEntree2: poste?.marhfeamidi, maxhre: poste?.maxhremar, minhjour: poste?.minhjourmar, minhdemijour: poste?.minhdemijourmar, Douche: poste?.mardouche },
-        { jour: 'Mercredi', DebEntree: poste?.merhdematin, Entrée: poste?.merhdmat, FinEntree: poste?.merhfematin, Sortie: poste?.merhfmat, repasBonus: poste?.merrepas, repos: poste?.merrepos, DebEntree2: poste?.merhdeamidi, Entree2: poste?.merhdam, Sortie2: poste?.merhfam, FinEntree2: poste?.merhfeamidi, maxhre: poste?.maxhremer, minhjour: poste?.minhjourmer, minhdemijour: poste?.minhdemijourmer, Douche: poste?.merdouche },
-        { jour: 'Jeudi', DebEntree: poste?.jeuhdematin, Entrée: poste?.jeuhdmat, FinEntree: poste?.jeuhfematin, Sortie: poste?.jeuhfmat, repasBonus: poste?.jeurepas, repos: poste?.jeurepos, DebEntree2: poste?.jeuhdeamidi, Entree2: poste?.jeuhdam, Sortie2: poste?.jeuhfam, FinEntree2: poste?.jeuhfeamidi, maxhre: poste?.maxhrejeu, minhjour: poste?.minhjourjeu, minhdemijour: poste?.minhdemijourjeu, Douche: poste?.jeudouche },
-        { jour: 'Vendredi', DebEntree: poste?.venhdematin, Entrée: poste?.venhdmat, FinEntree: poste?.venhfematin, Sortie: poste?.venhfmat, repasBonus: poste?.venrepas, repos: poste?.venrepos, DebEntree2: poste?.venhdeamidi, Entree2: poste?.venhdam, Sortie2: poste?.venhfam, FinEntree2: poste?.venhfeamidi, maxhre: poste?.maxhreven, minhjour: poste?.minhjourven, minhdemijour: poste?.minhdemijourven, Douche: poste?.vendouche },
-        { jour: 'Samedi', DebEntree: poste?.samhdematin, Entrée: poste?.samhdmat, FinEntree: poste?.samhfematin, Sortie: poste?.samhfmat, repasBonus: poste?.samrepas, repos: poste?.samrepos, DebEntree2: poste?.samhdeamidi, Entree2: poste?.samhdam, Sortie2: poste?.samhfam, FinEntree2: poste?.samhfeamidi, maxhre: poste?.maxhresam, minhjour: poste?.minhjoursam, minhdemijour: poste?.minhdemijoursam, Douche: poste?.samdouche },
-        { jour: 'Dimanche', DebEntree: poste?.dimhdematin, Entrée: poste?.dimhdmat, FinEntree: poste?.dimhfematin, Sortie: poste?.dimhfmat, repasBonus: poste?.dimrepas, repos: poste?.dimrepos, DebEntree2: poste?.dimhdeamidi, Entree2: poste?.dimhdam, Sortie2: poste?.dimhfam, FinEntree2: poste?.dimhfeamidi, maxhre: poste?.maxhredim, minhjour: poste?.minhjourdim, minhdemijour: poste?.minhdemijourdim, Douche: poste?.dimdouche },
+        { jour: 'Lundi', prefix: 'lun', DebEntree: poste.lunhdematin, Entrée: poste.lunhdmat, FinEntree: poste.lunhfematin, Sortie: poste.lunhfmat, DebEntree2: poste.lunhdeamidi, Entree2: poste.lunhdam, Sortie2: poste.lunhfam, FinEntree2: poste.lunhfeamidi, repasBonus: poste.lunrepas, repos: poste.lunrepos },
+        { jour: 'Mardi', prefix: 'mar', DebEntree: poste.marhdematin, Entrée: poste.marhdmat, FinEntree: poste.marhfematin, Sortie: poste.marhfmat, DebEntree2: poste.marhdeamidi, Entree2: poste.marhdam, Sortie2: poste.marhfam, FinEntree2: poste.marhfeamidi, repasBonus: poste.marrepas, repos: poste.marrepos },
+        { jour: 'Mercredi', prefix: 'mer', DebEntree: poste.merhdematin, Entrée: poste.merhdmat, FinEntree: poste.merhfematin, Sortie: poste.merhfmat, DebEntree2: poste.merhdeamidi, Entree2: poste.merhdam, Sortie2: poste.merhfam, FinEntree2: poste.merhfeamidi, repasBonus: poste.merrepas, repos: poste.merrepos },
+        { jour: 'Jeudi', prefix: 'jeu', DebEntree: poste.jeuhdematin, Entrée: poste.jeuhdmat, FinEntree: poste.jeuhfematin, Sortie: poste.jeuhfmat, DebEntree2: poste.jeuhdeamidi, Entree2: poste.jeuhdam, Sortie2: poste.jeuhfam, FinEntree2: poste.jeuhfeamidi, repasBonus: poste.jeurepas, repos: poste.jeurepos },
+        { jour: 'Vendredi', prefix: 'ven', DebEntree: poste.venhdematin, Entrée: poste.venhdmat, FinEntree: poste.venhfematin, Sortie: poste.venhfmat, DebEntree2: poste.venhdeamidi, Entree2: poste.venhdam, Sortie2: poste.venhfam, FinEntree2: poste.venhfeamidi, repasBonus: poste.venrepas, repos: poste.venrepos },
+        { jour: 'Samedi', prefix: 'sam', DebEntree: poste.samhdematin, Entrée: poste.samhdmat, FinEntree: poste.samhfematin, Sortie: poste.samhfmat, DebEntree2: poste.samhdeamidi, Entree2: poste.samhdam, Sortie2: poste.samhfam, FinEntree2: poste.samhfeamidi, repasBonus: poste.samrepas, repos: poste.samrepos },
+        { jour: 'Dimanche', prefix: 'dim', DebEntree: poste.dimhdematin, Entrée: poste.dimhdmat, FinEntree: poste.dimhfematin, Sortie: poste.dimhfmat, DebEntree2: poste.dimhdeamidi, Entree2: poste.dimhdam, Sortie2: poste.dimhfam, FinEntree2: poste.dimhfeamidi, repasBonus: poste.dimrepas, repos: poste.dimrepos },
       ]);
+      setMode("update");
     }
-  }, [poste]);
+  }, [poste, selectedPoste]);
 
-  // Update tolerance from lposte
   useEffect(() => {
     if (lposte) {
       setToleranceEntry({ avant: lposte.avantent || 0, apres: lposte.apresent || 0 });
       setToleranceExit({ avant: lposte.avantsort || 0, apres: lposte.apressort || 0 });
     }
   }, [lposte]);
-
-  // Update saisieData when selectedPoste changes
-  useEffect(() => {
-    if (selectedPoste) {
-      setSaisieData({
-        ...saisieData,
-        codposte: selectedPoste.codposte || '',
-        libposte: selectedPoste.libposte || ''
-      });
-      setMode("update");
-    }
-  }, [selectedPoste]);
 
   const showSnackbar = (message: string, severity: "success" | "error" | "warning" | "info") => {
     setSnackbar({ open: true, message, severity });
@@ -112,18 +102,8 @@ export default function PosteTravailModern() {
   };
 
   const handleSave = () => {
-    const scheduleMap: any = {
-      0: ["lunhdematin", "lunhdmat", "lunhfematin", "lunhfmat", "lunrepas", "lunrepos", "lunhdeamidi", "lunhdam", "lunhfam", "lunhfeamidi", "maxhrelun", "minhjourlun", "minhdemijourlun", "lundouche"],
-      1: ["marhdematin", "marhdmat", "marhfematin", "marhfmat", "marrepas", "marrepos", "marhdeamidi", "marhdam", "marhfam", "marhfeamidi", "maxhremar", "minhjourmar", "minhdemijourmar", "mardouche"],
-      2: ["merhdematin", "merhdmat", "merhfematin", "merhfmat", "merrepas", "merrepos", "merhdeamidi", "merhdam", "merhfam", "merhfeamidi", "maxhremer", "minhjourmer", "minhdemijourmer", "merdouche"],
-      3: ["jeuhdematin", "jeuhdmat", "jeuhfematin", "jeuhfmat", "jeurepas", "jeurepos", "jeuhdeamidi", "jeuhdam", "jeuhfam", "jeuhfeamidi", "maxhrejeu", "minhjourjeu", "minhdemijourjeu", "jeudouche"],
-      4: ["venhdematin", "venhdmat", "venhfematin", "venhfmat", "venrepas", "venrepos", "venhdeamidi", "venhdam", "venhfam", "venhfeamidi", "maxhreven", "minhjourven", "minhdemijourven", "vendouche"],
-      5: ["samhdematin", "samhdmat", "samhfematin", "samhfmat", "samrepas", "samrepos", "samhdeamidi", "samhdam", "samhfam", "samhfeamidi", "maxhresam", "minhjoursam", "minhdemijoursam", "samdouche"],
-      6: ["dimhdematin", "dimhdmat", "dimhfematin", "dimhfmat", "dimrepas", "dimrepos", "dimhdeamidi", "dimhdam", "dimhfam", "dimhfeamidi", "maxhredim", "minhjourdim", "minhdemijourdim", "dimdouche"]
-    };
-
-    const mergedData: any = { 
-      ...saisieData, 
+    const mergedData: any = {
+      ...saisieData,
       soccod,
       avantent: toleranceEntry.avant,
       apresent: toleranceEntry.apres,
@@ -131,22 +111,18 @@ export default function PosteTravailModern() {
       apressort: toleranceExit.apres
     };
 
-    scheduleData.forEach((row, i) => {
-      const [debMatin, entreeMatin, finMatin, sortieMatin, repas, repos, debAprem, entreeAprem, sortieAprem, finAprem, maxh, minhjour, minhdemijour, douche] = scheduleMap[i];
-      mergedData[debMatin] = row.DebEntree;
-      mergedData[entreeMatin] = row.Entrée;
-      mergedData[finMatin] = row.FinEntree;
-      mergedData[sortieMatin] = row.Sortie;
-      mergedData[repas] = row.repasBonus;
-      mergedData[repos] = row.repos;
-      mergedData[debAprem] = row.DebEntree2;
-      mergedData[entreeAprem] = row.Entree2;
-      mergedData[sortieAprem] = row.Sortie2;
-      mergedData[finAprem] = row.FinEntree2;
-      mergedData[maxh] = row.maxhre;
-      mergedData[minhjour] = row.minhjour;
-      mergedData[minhdemijour] = row.minhdemijour;
-      mergedData[douche] = row.Douche;
+    scheduleData.forEach((row) => {
+      const p = row.prefix;
+      mergedData[`${p}hdematin`] = row.DebEntree;
+      mergedData[`${p}hdmat`] = row.Entrée;
+      mergedData[`${p}hfematin`] = row.FinEntree;
+      mergedData[`${p}hfmat`] = row.Sortie;
+      mergedData[`${p}hdeamidi`] = row.DebEntree2;
+      mergedData[`${p}hdam`] = row.Entree2;
+      mergedData[`${p}hfeamidi`] = row.FinEntree2;
+      mergedData[`${p}hfam`] = row.Sortie2;
+      mergedData[`${p}repas`] = row.repasBonus;
+      mergedData[`${p}repos`] = row.repos;
     });
 
     if (mode === "update") {
@@ -179,225 +155,236 @@ export default function PosteTravailModern() {
 
   const resetForm = () => {
     setSelectedPoste(undefined);
-    setSaisieData({} as Poste);
+    setSaisieData({ codposte: '', libposte: '', soccod: soccod || '' } as Poste);
     setScheduleData(emptySchedule);
     setToleranceEntry({ avant: 0, apres: 0 });
     setToleranceExit({ avant: 0, apres: 0 });
     setMode("add");
   };
 
-  const postesArray: any[] = postesList
-    ? Object.entries(postesList).map(([codposte, libposte]) => ({
-        codposte,
-        libposte: String(libposte),
-      }))
-    : [];
+  const handleApplyAll = () => {
+    const monday = scheduleData[0];
+    if (!monday) return;
+    const updated = scheduleData.map((row, idx) => {
+      if (idx === 0) return row;
+      return {
+        ...row,
+        DebEntree: monday.DebEntree,
+        Entrée: monday.Entrée,
+        FinEntree: monday.FinEntree,
+        Sortie: monday.Sortie,
+        DebEntree2: monday.DebEntree2,
+        Entree2: monday.Entree2,
+        FinEntree2: monday.FinEntree2,
+        Sortie2: monday.Sortie2,
+        repasBonus: monday.repasBonus
+      };
+    });
+    setScheduleData(updated);
+    showSnackbar("Horaires appliqués à tous les jours", "info");
+  };
 
-  const activeCount = postesArray.length;
-  const workingDays = scheduleData.filter(s => s.repos !== '1').length;
+  const postesArray = useMemo(() => {
+    if (!postesList) return [];
+    return Object.entries(postesList).map(([codposte, libposte]) => ({
+      codposte,
+      libposte: String(libposte),
+    }));
+  }, [postesList]);
 
   return (
-    <Box className="poste-travail-container">
-      {/* Header */}
-      <Box className="poste-header">
-        <Box className="poste-header-left">
-          <Typography className="poste-title">Gestion poste de travail</Typography>
-          {selectedPoste && (
-            <Chip 
-              label={`Shift ID: ${selectedPoste.codposte}`} 
-              className="poste-chip"
-              icon={<AccessTimeIcon />}
-            />
-          )}
+    <Box className="poste-travail-modern-container">
+      {/* Header Section */}
+      <Box className="poste-modern-header">
+        <Box>
+          <Box className="shift-id-badge">
+            <span className="id-tag">{saisieData.codposte || 'NEW'}</span>
+            <span className="id-label">Shift ID</span>
+          </Box>
+          <Typography className="shift-title">{saisieData.libposte || 'Nouveau Poste'}</Typography>
+          <Typography className="shift-subtitle">Configuration détaillée du planning de travail</Typography>
         </Box>
-        <Box className="poste-header-actions">
-          {((mode === "update" && canModify) || (mode === "add" && canAdd)) && (
-            <IconButton className="action-btn save" onClick={handleSave}>
-              <SaveIcon />
-            </IconButton>
-          )}
-          {canAdd && (
-            <Button className="action-btn new" startIcon={<AddIcon />} onClick={resetForm}>
-              Nouveau
-            </Button>
-          )}
-          {canDelete && (
-            <Button 
-              className="action-btn delete" 
-              startIcon={<DeleteIcon />}
-              disabled={!selectedPoste}
-              onClick={() => setModalOpen(true)}
-            >
+        <Box className="header-actions">
+          {mode === 'update' && canDelete && (
+            <button className="btn-cancel" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fee2e2' }} onClick={() => setModalOpen(true)}>
               Supprimer
-            </Button>
+            </button>
+          )}
+          <button className="btn-cancel" onClick={resetForm}>Annuler</button>
+          {((mode === 'add' && canAdd) || (mode === 'update' && canModify)) && (
+            <button className="btn-save" onClick={handleSave}>Enregistrer</button>
           )}
         </Box>
       </Box>
 
-      {/* Main Content */}
-      <Box className="poste-content">
-        {/* Left Column - 9 cols */}
-        <Box className="poste-left-column">
-          {/* Code and Label */}
-          <Box className="poste-info-row">
-            <Box className="poste-field">
-              <label>Code</label>
-              <TextField
-                size="small"
-                value={saisieData.codposte || ''}
-                onChange={(e) => setSaisieData({ ...saisieData, codposte: e.target.value })}
-                variant="outlined"
-                className="poste-input"
-              />
-            </Box>
-            <Box className="poste-field poste-field-large">
-              <label>Libellé</label>
-              <TextField
-                size="small"
-                value={saisieData.libposte || ''}
-                onChange={(e) => setSaisieData({ ...saisieData, libposte: e.target.value })}
-                variant="outlined"
-                className="poste-input"
-                fullWidth
-              />
-            </Box>
-          </Box>
+      {/* Dashboard Grid */}
+      <Box className="modern-grid">
+        {/* Left Column: Settings */}
+        <Box className="main-column" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-          {/* Tolerance and Pauses Row */}
-          <Box className="poste-settings-row">
-            {/* Tolerance Entry */}
-            <Paper className="poste-card tolerance-card">
-              <Typography className="card-title error">Tolérance Entrée</Typography>
-              <Box className="tolerance-fields">
-                <Box className="tolerance-field">
-                  <label>Avant</label>
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={toleranceEntry.avant}
-                    onChange={(e) => setToleranceEntry({ ...toleranceEntry, avant: Number(e.target.value) })}
-                    className="tolerance-input"
-                  />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+            {/* Poste Info */}
+            <Paper className="modern-card">
+              <Box className="card-header">
+                <span className="material-symbols-outlined">edit</span>
+                <Typography className="card-title">Identification</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
+                <Box>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>CODE POSTE</Typography>
+                  <input className="modern-input" value={saisieData.codposte || ''} onChange={e => setSaisieData({ ...saisieData, codposte: e.target.value })} disabled={mode === 'update' || (mode === 'add' && !canAdd)} />
                 </Box>
-                <Box className="tolerance-field">
-                  <label>Après</label>
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={toleranceEntry.apres}
-                    onChange={(e) => setToleranceEntry({ ...toleranceEntry, apres: Number(e.target.value) })}
-                    className="tolerance-input"
-                  />
+                <Box>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>LIBELLÉ DU POSTE</Typography>
+                  <input className="modern-input" value={saisieData.libposte || ''} onChange={e => setSaisieData({ ...saisieData, libposte: e.target.value })} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
                 </Box>
               </Box>
             </Paper>
 
-            {/* Tolerance Exit */}
-            <Paper className="poste-card tolerance-card">
-              <Typography className="card-title error">Tolérance Sortie</Typography>
-              <Box className="tolerance-fields">
-                <Box className="tolerance-field">
-                  <label>Avant</label>
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={toleranceExit.avant}
-                    onChange={(e) => setToleranceExit({ ...toleranceExit, avant: Number(e.target.value) })}
-                    className="tolerance-input"
-                  />
-                </Box>
-                <Box className="tolerance-field">
-                  <label>Après</label>
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={toleranceExit.apres}
-                    onChange={(e) => setToleranceExit({ ...toleranceExit, apres: Number(e.target.value) })}
-                    className="tolerance-input"
-                  />
-                </Box>
+            {/* Tolerance Settings */}
+            <Paper className="modern-card">
+              <Box className="card-header">
+                <span className="material-symbols-outlined">timer</span>
+                <Typography className="card-title">Tolérances (min)</Typography>
               </Box>
-            </Paper>
-
-            {/* Pauses & Rules */}
-            <Paper className="poste-card pauses-card">
-              <Typography className="card-title">Pauses & Règles</Typography>
-              <Box className="pauses-options">
-                <FormControlLabel
-                  control={<Switch checked={pausesEnabled} onChange={(e) => setPausesEnabled(e.target.checked)} />}
-                  label="Pauses automatiques"
-                />
-                <FormControlLabel
-                  control={<Switch checked={repasEnabled} onChange={(e) => setRepasEnabled(e.target.checked)} />}
-                  label="Temps repas"
-                />
-                <FormControlLabel
-                  control={<Switch checked={overtimeEnabled} onChange={(e) => setOvertimeEnabled(e.target.checked)} />}
-                  label="Heures supplémentaires"
-                />
+              <Box className="tolerance-grid">
+                <Box>
+                  <span className="tolerance-col-title">Entrée</span>
+                  <Box className="tolerance-input-group">
+                    <span>AVANT</span>
+                    <input className="modern-input" type="number" 
+                      value={toleranceEntry.avant} 
+                      onChange={e => setToleranceEntry({ ...toleranceEntry, avant: Number(e.target.value) })} 
+                      disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
+                    />
+                  </Box>
+                  <Box className="tolerance-input-group">
+                    <span>APRÈS</span>
+                    <input className="modern-input" type="number" 
+                      value={toleranceEntry.apres} 
+                      onChange={e => setToleranceEntry({ ...toleranceEntry, apres: Number(e.target.value) })} 
+                      disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
+                    />
+                  </Box>
+                </Box>
+                <Box>
+                  <span className="tolerance-col-title">Sortie</span>
+                  <Box className="tolerance-input-group">
+                    <span>AVANT</span>
+                    <input className="modern-input" type="number" 
+                      value={toleranceExit.avant} 
+                      onChange={e => setToleranceExit({ ...toleranceExit, avant: Number(e.target.value) })} 
+                      disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
+                    />
+                  </Box>
+                  <Box className="tolerance-input-group">
+                    <span>APRÈS</span>
+                    <input className="modern-input" type="number" 
+                      value={toleranceExit.apres} 
+                      onChange={e => setToleranceExit({ ...toleranceExit, apres: Number(e.target.value) })} 
+                      disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
+                    />
+                  </Box>
+                </Box>
               </Box>
             </Paper>
           </Box>
+
+          {/* Rules & Pauses */}
+          <Paper className="modern-card">
+            <Box>
+              <Box className="card-header">
+                <span className="material-symbols-outlined">coffee</span>
+                <Typography className="card-title">Pauses & Règles</Typography>
+              </Box>
+              <Box className="rules-container" sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
+                  <Box className="rule-label">
+                    <Switch checked={pausesEnabled} onChange={e => setPausesEnabled(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
+                    <span>Pause Auto Avant Travail</span>
+                  </Box>
+                  <select className="modern-select" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}>
+                    <option>15 min</option>
+                    <option>30 min</option>
+                  </select>
+                </Box>
+                <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
+                  <Box className="rule-label">
+                    <Switch checked={repasEnabled} onChange={e => setRepasEnabled(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
+                    <span>Pause Auto Après Travail</span>
+                  </Box>
+                  <select className="modern-select" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}>
+                    <option>15 min</option>
+                    <option>30 min</option>
+                  </select>
+                </Box>
+                <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
+                  <Box className="rule-label">
+                    <Switch checked={sanctionRetard} onChange={e => setSanctionRetard(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
+                    <span>Sanction Retard</span>
+                  </Box>
+                </Box>
+                <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
+                  <Box className="rule-label">
+                    <Switch checked={bonusPresence} onChange={e => setBonusPresence(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
+                    <span>Bonus Présence</span>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          </Paper>
 
           {/* Weekly Schedule Table */}
-          <Paper className="poste-card schedule-card">
-            <Box className="schedule-header">
-              <Typography className="card-title">Horaires Hebdomadaires</Typography>
-              <Box className="schedule-legend">
-                <span className="legend-item"><Box className="legend-dot work" /> Travail</span>
-                <span className="legend-item"><Box className="legend-dot rest" /> Repos</span>
-              </Box>
+          <Paper className="modern-card table-card">
+            <Box className="table-header-row">
+              <Typography className="card-title">Planning Hebdomadaire</Typography>
+              {((mode === 'add' && canAdd) || (mode === 'update' && canModify)) && (
+                <button className="btn-apply-all" onClick={handleApplyAll}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>
+                  Appliquer à tous les jours (basé sur Lundi)
+                </button>
+              )}
             </Box>
-            <Box className="schedule-table-container">
-              <table className="schedule-table">
+            <Box className="modern-table-container">
+              <table className="modern-table">
                 <thead>
                   <tr>
                     <th>Journée</th>
-                    <th colSpan={4}>Matin</th>
-                    <th colSpan={4}>Après-midi</th>
-                    <th>Repas</th>
+                    <th>Début Matin</th>
+                    <th>Entrée M.</th>
+                    <th>Fin M.</th>
+                    <th>Sortie M.</th>
+                    <th>Début Midi</th>
+                    <th>Entrée Midi</th>
+                    <th>Sortie PM</th>
+                    <th>Fin PM</th>
+                    <th>Bonus</th>
                     <th>Repos</th>
-                    <th>Actions</th>
-                  </tr>
-                  <tr className="sub-header">
-                    <th></th>
-                    <th>Début</th>
-                    <th>Entrée</th>
-                    <th>Fin</th>
-                    <th>Sortie</th>
-                    <th>Début</th>
-                    <th>Entrée</th>
-                    <th>Fin</th>
-                    <th>Sortie</th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {scheduleData.map((row, index) => (
-                    <tr key={index} className={row.repos === '1' ? 'rest-day' : ''}>
-                      <td className="day-cell">{row.jour}</td>
-                      <td><TextField size="small" value={row.DebEntree || ''} onChange={(e) => handleScheduleChange(index, 'DebEntree', e.target.value)} /></td>
-                      <td><TextField size="small" value={row.Entrée || ''} onChange={(e) => handleScheduleChange(index, 'Entrée', e.target.value)} /></td>
-                      <td><TextField size="small" value={row.FinEntree || ''} onChange={(e) => handleScheduleChange(index, 'FinEntree', e.target.value)} /></td>
-                      <td><TextField size="small" value={row.Sortie || ''} onChange={(e) => handleScheduleChange(index, 'Sortie', e.target.value)} /></td>
-                      <td><TextField size="small" value={row.DebEntree2 || ''} onChange={(e) => handleScheduleChange(index, 'DebEntree2', e.target.value)} /></td>
-                      <td><TextField size="small" value={row.Entree2 || ''} onChange={(e) => handleScheduleChange(index, 'Entree2', e.target.value)} /></td>
-                      <td><TextField size="small" value={row.Sortie2 || ''} onChange={(e) => handleScheduleChange(index, 'Sortie2', e.target.value)} /></td>
-                      <td><TextField size="small" value={row.FinEntree2 || ''} onChange={(e) => handleScheduleChange(index, 'FinEntree2', e.target.value)} /></td>
-                      <td><TextField size="small" value={row.repasBonus || '0'} onChange={(e) => handleScheduleChange(index, 'repasBonus', e.target.value)} /></td>
+                  {scheduleData.map((row, idx) => (
+                    <tr key={idx} className={row.repos === '1' ? 'row-weekend' : ''}>
+                      <td className="row-day">{row.jour}</td>
+                      {row.repos === '1' ? (
+                        <td colSpan={9} className="weekend-text">Repos hebdomadaire</td>
+                      ) : (
+                        <>
+                          <td><input className="modern-input" style={{ width: 65 }} value={row.DebEntree || ''} onChange={e => handleScheduleChange(idx, 'DebEntree', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input className="modern-input" style={{ width: 65 }} value={row.Entrée || ''} onChange={e => handleScheduleChange(idx, 'Entrée', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input className="modern-input" style={{ width: 65 }} value={row.FinEntree || ''} onChange={e => handleScheduleChange(idx, 'FinEntree', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input className="modern-input" style={{ width: 65 }} value={row.Sortie || ''} onChange={e => handleScheduleChange(idx, 'Sortie', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+
+                          <td><input className="modern-input" style={{ width: 65 }} value={row.DebEntree2 || ''} onChange={e => handleScheduleChange(idx, 'DebEntree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input className="modern-input" style={{ width: 65 }} value={row.Entree2 || ''} onChange={e => handleScheduleChange(idx, 'Entree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input className="modern-input" style={{ width: 65 }} value={row.Sortie2 || ''} onChange={e => handleScheduleChange(idx, 'Sortie2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input className="modern-input" style={{ width: 65 }} value={row.FinEntree2 || ''} onChange={e => handleScheduleChange(idx, 'FinEntree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+
+                          <td><input className="modern-input" style={{ width: 45 }} value={row.repasBonus || '0'} onChange={e => handleScheduleChange(idx, 'repasBonus', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                        </>
+                      )}
                       <td>
-                        <Switch
-                          size="small"
-                          checked={row.repos === '1'}
-                          onChange={(e) => handleScheduleChange(index, 'repos', e.target.checked ? '1' : '0')}
-                        />
-                      </td>
-                      <td>
-                        <IconButton size="small" className="edit-btn">
-                          <EditIcon fontSize="small" />
-                        </IconButton>
+                        <Switch checked={row.repos === '1'} onChange={e => handleScheduleChange(idx, 'repos', e.target.checked ? '1' : '0')} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
                       </td>
                     </tr>
                   ))}
@@ -407,53 +394,50 @@ export default function PosteTravailModern() {
           </Paper>
         </Box>
 
-        {/* Right Column - 3 cols */}
-        <Box className="poste-right-column">
-          {/* List of Postes */}
-          <Paper className="poste-card list-card">
-            <Typography className="card-title">Liste des Postes</Typography>
-            <Box className="postes-list">
-              {postesArray.map((poste) => (
+        {/* Right Column: Sidebar Shifts */}
+        <Box className="side-column" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Paper className="modern-card">
+            <Box className="list-header">
+              <Typography className="card-title">Liste des Postes</Typography>
+              {canAdd && (
+                <button className="btn-add-poste" onClick={resetForm}>
+                  <span className="material-symbols-outlined">add</span>
+                </button>
+              )}
+            </Box>
+            <Box className="poste-items-list">
+              {postesArray.map((p: any) => (
                 <Box
-                  key={poste.codposte}
-                  className={`poste-item ${selectedPoste?.codposte === poste.codposte ? 'active' : ''}`}
-                  onClick={() => setSelectedPoste(poste)}
+                  key={p.codposte}
+                  className={`poste-item-card ${selectedPoste?.codposte === p.codposte ? 'poste-item-active' : 'poste-item-inactive'}`}
+                  onClick={() => setSelectedPoste(p)}
                 >
-                  <Box className="poste-item-indicator" />
-                  <Box className="poste-item-content">
-                    <Typography className="poste-item-code">{poste.codposte}</Typography>
-                    <Typography className="poste-item-label">{poste.libposte}</Typography>
+                  <Box className="poste-item-header">
+                    <span className="poste-id-text">ID {p.codposte}</span>
+                    {selectedPoste?.codposte === p.codposte && <span className="material-symbols-outlined" style={{ fontSize: 14 }}>lock</span>}
                   </Box>
-                  {selectedPoste?.codposte === poste.codposte && (
-                    <CheckCircleIcon className="poste-item-check" />
-                  )}
+                  <Typography className="poste-name-text">{p.libposte}</Typography>
+                  <Typography className="poste-desc-text">Poste Actif</Typography>
                 </Box>
               ))}
             </Box>
           </Paper>
 
           {/* Stats Card */}
-          <Paper className="poste-card stats-card">
-            <Typography className="stats-title">Statistiques</Typography>
-            <Box className="stats-grid">
-              <Box className="stat-item">
-                <Typography className="stat-value">{activeCount}</Typography>
-                <Typography className="stat-label">Postes Actifs</Typography>
-              </Box>
-              <Box className="stat-item">
-                <Typography className="stat-value">{workingDays}</Typography>
-                <Typography className="stat-label">Jours Travaillés</Typography>
-              </Box>
-              <Box className="stat-item">
-                <Typography className="stat-value">{toleranceEntry.avant + toleranceEntry.apres}</Typography>
-                <Typography className="stat-label">Tol. Entrée (min)</Typography>
-              </Box>
-              <Box className="stat-item">
-                <Typography className="stat-value">{toleranceExit.avant + toleranceExit.apres}</Typography>
-                <Typography className="stat-label">Tol. Sortie (min)</Typography>
-              </Box>
+          <Box className="stats-card-modern">
+            <Box className="stats-card-header">
+              <span className="material-symbols-outlined">analytics</span>
+              <span className="stats-card-label">Aperçu Impact</span>
             </Box>
-          </Paper>
+            <Box>
+              <Typography className="stats-value-lg">{postesArray.length * 12}</Typography>
+              <Typography className="stats-subtext">Estimations employés assignés</Typography>
+            </Box>
+            <Box className="progress-bar-bg">
+              <Box className="progress-bar-fill" sx={{ width: '78%' }} />
+            </Box>
+            <Typography className="progress-footer-text">78% de la capacité totale estimée</Typography>
+          </Box>
         </Box>
       </Box>
 
@@ -465,7 +449,6 @@ export default function PosteTravailModern() {
         message={`Voulez-vous vraiment supprimer le poste "${selectedPoste?.libposte}" ?`}
       />
 
-      {/* Snackbar */}
       <CustomizedSnackbars
         open={snackbar.open}
         message={snackbar.message}

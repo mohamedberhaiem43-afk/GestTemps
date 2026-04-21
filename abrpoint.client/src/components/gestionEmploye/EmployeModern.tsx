@@ -3,7 +3,7 @@ import {
     Box, Typography, Paper, Button, Snackbar, Alert,
     TextField, Select, MenuItem, FormControl, CircularProgress,
     IconButton, Menu, ListItemIcon, ListItemText, Divider, Chip,
-    Dialog, DialogTitle, DialogContent, DialogActions,
+    Dialog, DialogTitle, DialogContent, DialogActions, Avatar,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -28,6 +28,8 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import GroupsIcon from '@mui/icons-material/Groups';
+import SearchIcon from '@mui/icons-material/Search';
 import dayjs from 'dayjs';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
@@ -42,12 +44,14 @@ import useGetFonctionsLibs from '../../hooks/fonctionHooks/useGetFonctionsLibs';
 import useGetSectionsLibs from '../../hooks/sectionHooks/useGetSectionsLibs';
 import useGetQualificationsLibs from '../../hooks/QualificationHooks/useGetQualificationsLibs';
 import useGetSiteLibs from '../../hooks/siteHooks/useGetSiteLibs';
+import useGetPaysLibs from '../../hooks/paysHooks/useGetPaysLibs';
 import DocumentScanEmploye from './DocumentScanEmploye/DocumentScanEmploye';
 import RolesService from '../../services/RolesService/RolesService';
 import { SxProps, Theme } from '@mui/material';
 import { Role } from '../../models/Role';
 import './EmployeModern.css';
 import { useQuery } from 'react-query';
+import useGetVillesLibs from '../../hooks/villeHooks/useGetVillesLibs';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const fieldStyle = {
@@ -200,7 +204,7 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
 
 // ── Inner component ───────────────────────────────────────────────────────────
 const EmployeModernInner = () => {
-    const { soccod, sitcod, hasPermission } = useAuth();
+    const { soccod, sitcod, uticod, hasPermission } = useAuth();
 
     const canAdd = hasPermission('Gestion Employés', 'add');
     const canModify = hasPermission('Gestion Employés', 'modify');
@@ -223,6 +227,11 @@ const EmployeModernInner = () => {
     const [scanOpen, setScanOpen] = useState(false);
     const [empHoraires, setEmpHoraires] = useState<any[]>([]);
 
+    // Master-Detail support
+    const [employeesList, setEmployeesList] = useState<Employe[]>([]);
+    const [empSearchQuery, setEmpSearchQuery] = useState("");
+    const [isListLoading, setIsListLoading] = useState(false);
+
     const { mutate: addEmploye } = useAddEmploye();
     const { mutate: updateEmploye } = useUpdateEmploye();
     const queryClient = useQueryClient();
@@ -233,6 +242,8 @@ const EmployeModernInner = () => {
     const { data: sectionLibsRaw } = useGetSectionsLibs();
     const { data: qualifLibsRaw } = useGetQualificationsLibs();
     const { data: siteLibsRaw = {} } = useGetSiteLibs();
+    const { data: villeLibsRaw } = useGetVillesLibs();
+    const { data: paysLibsRaw } = useGetPaysLibs();
     const { data: roles = [] } = useQuery<Role[]>({ queryKey: ['roles'], queryFn: RolesService.getAll });
 
     const [classeHoraireLibs, setClasseHoraireLibs] = useState<Record<string, string>>({});
@@ -264,6 +275,8 @@ const EmployeModernInner = () => {
     const secMap = useMemo(() => toMap(sectionLibsRaw), [sectionLibsRaw]);
     const quaMap = useMemo(() => toMap(qualifLibsRaw), [qualifLibsRaw]);
     const sitMap = useMemo(() => toMap(siteLibsRaw), [siteLibsRaw]);
+    const vilMap = useMemo(() => toMap(villeLibsRaw), [villeLibsRaw]);
+    const payMap = useMemo(() => toMap(paysLibsRaw), [paysLibsRaw]);
 
     // Quick-add handlers
     const handleAddDirection = async (code: string, lib: string) => {
@@ -294,6 +307,14 @@ const EmployeModernInner = () => {
         await apiInstance.post('/Sites', { soccod, sitcod: code, sitlib: lib });
         queryClient.invalidateQueries('sitlibs');
     };
+    const handleAddVille = async (code: string, lib: string) => {
+        await apiInstance.post('/Villes', { soccod, vilcod: code, villib: lib });
+        queryClient.invalidateQueries('villes');
+    };
+    const handleAddPays = async (code: string, lib: string) => {
+        await apiInstance.post('/Pays', { soccod, paycod: code, paylib: lib });
+        queryClient.invalidateQueries('pays');
+    };
 
     useEffect(() => {
         if (isNewEmployee) {
@@ -311,6 +332,25 @@ const EmployeModernInner = () => {
         }
         if (selectedEmp?.empcod) { setFormData(selectedEmp); setMode('update'); }
     }, [empIdFromUrl, isNewEmployee, soccod, sitcod]);
+
+    useEffect(() => {
+        if (!soccod) return;
+        setIsListLoading(true);
+        apiInstance.get(`/Employes/${soccod}/${uticod || 'admin'}`)
+            .then(res => setEmployeesList(res.data ?? []))
+            .finally(() => setIsListLoading(false));
+    }, [soccod, uticod]);
+
+    const filteredEmployees = useMemo(() => {
+        if (!empSearchQuery) return employeesList;
+        const q = empSearchQuery.toLowerCase();
+        return employeesList.filter(e =>
+            e.emplib?.toLowerCase().includes(q) ||
+            e.empmat?.toLowerCase().includes(q) ||
+            e.empcod?.toLowerCase().includes(q) ||
+            e.empfonc?.toLowerCase().includes(q)
+        );
+    }, [employeesList, empSearchQuery]);
 
     useEffect(() => {
         if (formData.empcod && soccod && mode === 'update') {
@@ -430,9 +470,9 @@ const EmployeModernInner = () => {
     }
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', width: '100vw' }}>
+        <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', width: '100vw', overflowX: 'hidden' }}>
 
-            {/* ── Main content ── */}
+            {/* ── Main content area ── */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
                 {/* Top bar */}
@@ -615,6 +655,29 @@ const EmployeModernInner = () => {
                                             <TextField name="empemail" type="email" value={formData.empemail || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
                                                 InputProps={{ startAdornment: <EmailIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }}
                                                 placeholder="jean.dupont@entreprise.com" />
+                                        </Box>
+                                        <Box>
+                                            <Typography sx={labelStyle}>Niveau employé</Typography>
+                                            <FormControl fullWidth size="small">
+                                                <Select value={formData.empniv || ''} onChange={handleSelect('empniv')} sx={selectStyle} displayEmpty>
+                                                    <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>
+                                                    <MenuItem value="0">Exécutant</MenuItem>
+                                                    <MenuItem value="1">Maitrise</MenuItem>
+                                                    <MenuItem value="2">Cadre</MenuItem>
+                                                </Select>
+                                            </FormControl>
+                                        </Box>
+                                        <Box>
+                                            <Typography sx={labelStyle}>Ville</Typography>
+                                            <SelectWithAdd value={formData.vilcod || ''}
+                                                onChange={v => setFormData(p => ({ ...p, vilcod: v }))}
+                                                options={vilMap} onAdd={handleAddVille} addTitle="Nouvelle Ville" />
+                                        </Box>
+                                        <Box>
+                                            <Typography sx={labelStyle}>Pays</Typography>
+                                            <SelectWithAdd value={formData.natcod || ''}
+                                                onChange={v => setFormData(p => ({ ...p, natcod: v }))}
+                                                options={payMap} onAdd={handleAddPays} addTitle="Nouveau Pays" />
                                         </Box>
                                     </Box>
                                 </Paper>
@@ -923,6 +986,72 @@ const EmployeModernInner = () => {
                                         </Box>
                                     )}
                                 </Paper>
+                            </Box>
+                        </Box>
+
+                        {/* ── Right Sidebar (Employees List) ── */}
+                        <Box sx={{
+                            width: 320,
+                            backgroundColor: '#fff',
+                            borderLeft: '1px solid #edf0f5',
+                            display: { xs: 'none', lg: 'flex' },
+                            flexDirection: 'column',
+                            height: 'calc(100vh - 64px)',
+                            position: 'sticky',
+                            top: 64,
+                        }}>
+                            <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9' }}>
+                                <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#0d1f3c', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <GroupsIcon sx={{ fontSize: 18, color: '#0040a1' }} />
+                                    Annuaire Collaborateurs
+                                </Typography>
+                                <TextField
+                                    size="small"
+                                    fullWidth
+                                    placeholder="Rechercher nom, matricule, position..."
+                                    value={empSearchQuery}
+                                    onChange={e => setEmpSearchQuery(e.target.value)}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': { borderRadius: '10px', backgroundColor: '#f8fafc' },
+                                        '& .MuiInputBase-input': { fontSize: '13px' }
+                                    }}
+                                    InputProps={{
+                                        startAdornment: <SearchIcon sx={{ fontSize: 18, color: '#94a3b8', mr: 1 }} />
+                                    }}
+                                />
+                            </Box>
+                            <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {isListLoading ? (
+                                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} /></Box>
+                                ) : filteredEmployees.map(emp => (
+                                    <Box
+                                        key={emp.empcod}
+                                        onClick={() => navigate(`/dashboard/profil-employe?id=${emp.empcod}`)}
+                                        sx={{
+                                            p: 1.5,
+                                            borderRadius: '12px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : 'transparent',
+                                            border: formData.empcod === emp.empcod ? '1px solid #cce0ff' : '1px solid transparent',
+                                            '&:hover': { backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : '#f8fafc' }
+                                        }}
+                                    >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                            <Avatar sx={{ width: 32, height: 32, fontSize: '14px', bgcolor: formData.empcod === emp.empcod ? '#0040a1' : '#e2e8f0', color: formData.empcod === emp.empcod ? '#fff' : '#475569' }}>
+                                                {emp.emplib?.charAt(0)}
+                                            </Avatar>
+                                            <Box sx={{ minWidth: 0 }}>
+                                                <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {emp.emplib}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                    <BadgeIcon sx={{ fontSize: 12 }} /> {emp.empcod} • {emp.empfonc || 'Sans poste'}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    </Box>
+                                ))}
                             </Box>
                         </Box>
                     </>
