@@ -2,6 +2,7 @@
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -22,9 +23,9 @@ namespace ABRPOINT.Server.Controllers
             return _IcalendrierRepository.GetAll();
         }
         [HttpGet("get-callibs")]
-        public Dictionary<string, string> GetCalLibs()
+        public async Task<Dictionary<string, string>> GetCalLibs()
         {
-            return _IcalendrierRepository.GetCalLibs();
+            return await _IcalendrierRepository.GetCalLibs();
         }
 
         // GET api/<DirectionsController>/5

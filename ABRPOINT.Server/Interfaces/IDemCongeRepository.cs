@@ -12,5 +12,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<List<DemcongeDto>> GetAllByPeriod(string soccod, string uticod, DateTime datedebut, DateTime datefin);
         Task<List<DemcongeDto>> GetEmpDemconge(string soccod, string empcod);
         Task<List<Demconge>> GetAllEnAttenteByPeriod(string soccod, string uticod, DateTime datedebut, DateTime datefin);
+        Task AddAsync(Demconge demconge);
     }
 }

@@ -10,24 +10,31 @@ namespace ABRPOINT.Server.Repository
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IUtilisateurRepository _utilisateurRepository;
-        public DemCongeRepository(ApplicationDbContext dbContext, IUtilisateurRepository utilisateurRepository)
+        private readonly IEmailService _emailService;
+        public DemCongeRepository(ApplicationDbContext dbContext, IUtilisateurRepository utilisateurRepository, IEmailService emailService)
         {
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
+            _emailService = emailService;
         }
-        public void Add(Demconge demconge)
+        public async Task AddAsync(Demconge demconge)
         {
             try
             {
-                _dbContext.Demconges.Add(demconge);
-                _dbContext.SaveChanges();
+                await _dbContext.Demconges.AddAsync(demconge);
+                await _dbContext.SaveChangesAsync();
+                        var admins = await _utilisateurRepository.GetAdminsEmailsAsync();
+                        foreach (var email in admins)
+                        {
+                            await _emailService.SendEmailAsync(email, "Nouvelle Demande de Congé",
+                                $"Une nouvelle demande de congé a été déposée par l'employé {demconge.Empcod}.<br/>" +
+                                $"Période : du {demconge.Condep:dd/MM/yyyy} au {demconge.Conret:dd/MM/yyyy}.");
+                        }  
             }
             catch (Exception ex)
             {
-
                 throw new Exception("",ex);
             }
-            
         }
 
         public void Delete(Demconge demconge)
@@ -291,7 +298,7 @@ namespace ABRPOINT.Server.Repository
                     // Find the DemConge by concod
                     var demConge = await _dbContext.Demconges.FindAsync(soccod, concod);
                     if (demConge == null)
-                        return (false, $"Demande de cong� avec le code {concod} introuvable.");
+                        return (false, $"Demande de cong avec le code {concod} introuvable.");
 
                     // Check if Conge already exists
                     bool congeExist = await _dbContext.Conges
@@ -299,7 +306,7 @@ namespace ABRPOINT.Server.Repository
                         .AnyAsync();
 
                     if (congeExist)
-                        return (false, $"Le cong� {concod} a d�j� �t� accept�.");
+                        return (false, $"Le cong {concod} a dj t accept.");
                     // Create a new Conge entity based on the DemConge
                     var conge = new Conge
                         {
@@ -326,7 +333,22 @@ namespace ABRPOINT.Server.Repository
                     // Save changes in a single transaction
                     await _dbContext.SaveChangesAsync();
 
-                    return (true, $"Demande de cong� {concod} accept�e avec succ�s.");
+                    // Notify Employee
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var user = await _dbContext.Utilisateurs.FindAsync(demConge.Empcod);
+                            if (user != null && !string.IsNullOrEmpty(user.Utimail))
+                            {
+                                await _emailService.SendEmailAsync(user.Utimail, "Demande de Congé Acceptée",
+                                    $"Votre demande de congé pour la période du {demConge.Condep:dd/MM/yyyy} au {demConge.Conret:dd/MM/yyyy} a été <b>acceptée</b>.");
+                            }
+                        }
+                        catch { /* ignore */ }
+                    });
+
+                    return (true, $"Demande de cong {concod} accepte avec succs.");
                 }
                 catch (Exception ex)
                 {
@@ -377,6 +399,16 @@ namespace ABRPOINT.Server.Repository
                     await _dbContext.Conges.AddAsync(conge);
                     // Save changes in a single transaction
                     await _dbContext.SaveChangesAsync();
+
+                    // Notify Employee
+                    
+                            var user = await _dbContext.Utilisateurs.FindAsync(demConge.Empcod);
+                            if (user != null && !string.IsNullOrEmpty(user.Utimail))
+                            {
+                                await _emailService.SendEmailAsync(user.Utimail, "Demande de Congé Refusée",
+                                    $"Votre demande de congé pour la période du {demConge.Condep:dd/MM/yyyy} au {demConge.Conret:dd/MM/yyyy} a été <b>refusée</b>.");
+                            }
+                        
 
                     return (true, $"Demande de congé {concod} refusée avec succès.");
                 }
@@ -453,6 +485,11 @@ namespace ABRPOINT.Server.Repository
                 }
             }
             return null;
+        }
+
+        public void Add(Demconge entity)
+        {
+            throw new NotImplementedException();
         }
     }
 }

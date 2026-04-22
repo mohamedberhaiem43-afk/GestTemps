@@ -4,6 +4,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -148,21 +149,19 @@ namespace ABRPOINT.Server.Controllers
         // POST api/<DirectionsController>
         [HttpPost]
         [CanAddDemConge]
-        public IActionResult Post([FromBody] Demconge conge)
+        public async Task<IActionResult> Post([FromBody] Demconge conge)
         {
             if (conge == null)
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                _demandecongeRepository.Add(conge);
+                await _demandecongeRepository.AddAsync(conge);
                 return Ok("Demande ajouté avec succées");
             }
             catch (Exception)
             {
-
                 return StatusCode(500);
             }
-            
         }
 
         // PUT api/<DirectionsController>/5

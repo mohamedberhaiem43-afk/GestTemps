@@ -19,5 +19,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<bool> ToggleStatusAsync(string uticod);
         Task<string?> GetRoleByUticodAsync(string uticod);
         Task UpdateRoleAsync(string uticod, string newRole);
+        Task<List<string>> GetAdminsEmailsAsync();
     }
 }

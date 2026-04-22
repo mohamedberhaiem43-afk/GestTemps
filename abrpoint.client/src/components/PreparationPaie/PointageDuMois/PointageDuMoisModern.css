@@ -125,9 +125,9 @@
 .pdm-table-wrap {
   overflow-x: auto;
 }
-table.pdm-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
 }
 .pdm-table thead tr {
@@ -146,10 +146,28 @@ table.pdm-table {
 .pdm-th-right {
   text-align: right !important;
 }
-.pdm-table td {
   padding: 16px;
   border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
+}
+.pdm-table th:first-child,
+.pdm-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: inherit;
+  border-right: 1px solid #e2e8f0;
+}
+.pdm-table th:first-child {
+  background: #e6e8ea;
+  z-index: 3;
+}
+.pdm-table tr.pdm-row--selected td:first-child {
+  background: #f0f5ff;
+}
+.pdm-table tbody tr:hover td:first-child {
+  background: #f7f9fb;
 }
 .pdm-table tbody tr {
   transition: background-color 0.15s;
@@ -485,12 +503,31 @@ table.pdm-table {
 @media (max-width: 768px) {
   .pdm-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    text-align: center;
+  }
+  .pdm-header-actions {
+    justify-content: center;
   }
   .pdm-title {
     font-size: 28px;
   }
   .pdm-filter-field {
-    min-width: 100%;
+    flex: 1 1 100%;
+  }
+  .pdm-filter-field--action {
+    margin-top: 8px;
+  }
+  
+  /* Prevent sticky column from taking too much space on very small screens */
+  .pdm-table th:first-child,
+  .pdm-table td:first-child {
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdm-summary-value {
+    font-size: 32px !important;
   }
 }

@@ -40,7 +40,6 @@ const fmtDate = (d: Date | string | null | undefined) => {
   catch { return '—'; }
 };
 
-
 const getStatus = (c: Conge): 'Accepté' | 'Refusé' | 'En attente' => {
   const n = c.etat?.trim().toLowerCase() ?? '';
   if (n.includes('refus') || c.conrefus === '1') return 'Refusé';
@@ -209,15 +208,15 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
   const fieldSx = { '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#f8fafc', '& fieldset': { borderColor: '#e2e8f0' } } };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '16px' } }}
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '16px' } }}
          sx={{
         '& .MuiDialog-container': {
           alignItems: 'center',
         },
         '& .MuiDialog-paper': {
-          margin: { xs: 0, sm: '32px' },
-          width: { xs: '50%', sm: 'auto' },
-          maxWidth: { xs: '60%', sm: '600px' },
+          margin: { xs: '16px', sm: '32px' },
+          width: { xs: 'calc(100% - 32px)', sm: '100%' },
+          maxWidth: { xs: '100%', sm: '800px' },
         },
       }}>
       <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', pb: 1 }}>
@@ -225,7 +224,7 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
       </DialogTitle>
       <Divider />
       <DialogContent sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>N° Ordre</Typography>
             <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} InputProps={{ readOnly: !!editConge }} sx={fieldSx} />
@@ -256,7 +255,7 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
           </FormControl>
         </Box>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto auto', gap: 1.5, alignItems: 'end' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr auto 1fr auto auto' }, gap: 1.5, alignItems: 'end' }}>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Date départ</Typography>
             <TextField size="small" fullWidth type="date" value={condep} onChange={(e) => setCondep(e.target.value)} sx={fieldSx} />
@@ -273,9 +272,9 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
             <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>AM</Typography>
             <input type="checkbox" checked={conamret} onChange={(e) => setConamret(e.target.checked)} style={{ width: 16, height: 16 }} />
           </Box>
-          <Box>
+          <Box sx={{ gridColumn: { xs: 'span 2', sm: 'auto' } }}>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Jours</Typography>
-            <TextField size="small" value={connbjour} InputProps={{ readOnly: true }} sx={{ width: 64, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#eff6ff', '& fieldset': { borderColor: '#bfdbfe' }, '& input': { color: '#0040a1', fontWeight: 700, textAlign: 'center' } } }} />
+            <TextField size="small" fullWidth value={connbjour} InputProps={{ readOnly: true }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#eff6ff', '& fieldset': { borderColor: '#bfdbfe' }, '& input': { color: '#0040a1', fontWeight: 700, textAlign: 'center' } } }} />
           </Box>
         </Box>
 
@@ -285,7 +284,7 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
             <Typography sx={{ fontSize: '12px', fontWeight: 800, color: '#0040a1', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               📊 Solde de Congé
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
               <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>Solde Antérieur</Typography>
                 <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#0040a1' }}>{soldeAnterieur}</Typography>
@@ -310,7 +309,7 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
           </Box>
         )}
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Adresse pendant congé</Typography>
             <TextField size="small" fullWidth value={conadr} onChange={(e) => setConadr(e.target.value)} sx={fieldSx} />
@@ -401,7 +400,6 @@ function DemCongeModernInner() {
   const pending = displayData.filter((c: Conge) => getStatus(c) === 'En attente');
   const accepted = displayData.filter((c: Conge) => getStatus(c) === 'Accepté');
   const refused = displayData.filter((c: Conge) => getStatus(c) === 'Refusé');
-
   const [formOpen, setFormOpen] = useState(false);
   const [editConge, setEditConge] = useState<Conge | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });

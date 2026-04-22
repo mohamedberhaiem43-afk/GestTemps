@@ -29,6 +29,26 @@
   color: #424654;
   margin-top: 4px;
 }
+.rmb-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,64,161,0.25);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.rmb-new-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,64,161,0.3);
+}
 
 /* ── Body Layout ── */
 .rmb-body {
@@ -606,7 +626,8 @@
 }
 @media (max-width: 768px) {
   .rmb-container { padding: 12px; }
-  .rmb-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .rmb-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .rmb-new-btn { width: 100%; justify-content: center; }
   .rmb-stats-grid { grid-template-columns: 1fr; }
   .rmb-stat-value { font-size: 22px; }
   .rmb-table th:nth-child(3),

@@ -179,7 +179,7 @@ function JourDeCompensationContent() {
                            </Select>
                         </FormControl>
                      </Box>
-                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                         <Box className="jc-field">
                            <label>N° Ordre</label>
                            <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} sx={fieldSx} InputProps={{ readOnly: mode === 'edit' }} />
@@ -245,7 +245,8 @@ function JourDeCompensationContent() {
                   </Box>
                </Box>
 
-               <table className="jc-table">
+               <Box sx={{ overflowX: 'auto', width: '100%' }}>
+                  <table className="jc-table">
                   <thead>
                      <tr>
                         <th>Employé</th>
@@ -289,6 +290,7 @@ function JourDeCompensationContent() {
                      ))}
                   </tbody>
                </table>
+            </Box>
 
                <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
                   <TablePagination

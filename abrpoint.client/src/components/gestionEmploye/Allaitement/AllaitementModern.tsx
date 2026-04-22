@@ -30,29 +30,6 @@ export const AllaitementModern: React.FC = () => {
             {/* LEFT */}
             <Box className="allaitement-left">
               <AllaitementSaisieModern />
-
-              {/* HEURES */}
-              <Box className="allaitement-card allaitement-fade-in">
-                <Typography className="section-title">
-                  Heures d'Allaitement
-                </Typography>
-
-                <Box className="allaitement-hours">
-                  <Box>
-                    <Typography className="label">Matin</Typography>
-                    <Typography>10:00 - 10:30</Typography>
-                  </Box>
-
-                  <Box>
-                    <Typography className="label">Après-midi</Typography>
-                    <Typography>15:30 - 16:00</Typography>
-                  </Box>
-                </Box>
-
-                <button className="allaitement-button-primary">
-                  Enregistrer la période
-                </button>
-              </Box>
             </Box>
 
             {/* RIGHT */}

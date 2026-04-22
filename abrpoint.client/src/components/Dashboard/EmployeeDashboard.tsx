@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import dayjs from 'dayjs';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell
@@ -9,11 +9,20 @@ import useGetMyKPIs from '../../hooks/useGetMyKPIs';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
 import './DashboardModern.css';
+import EmployeeDashboardMobile from './EmployeeDashboardMobile';
 
 export default function EmployeeDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('week');
   const { userName, soccod, uticod } = useAuth();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Responsive check
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Data fetching
   const { data: profile, isLoading: loadingProfile } = useGetProfile();
@@ -70,6 +79,10 @@ export default function EmployeeDashboard() {
         <div className="animate-pulse text-xl font-['Manrope'] font-bold text-[#0040a1]">Chargement...</div>
       </div>
     );
+  }
+
+  if (isMobile) {
+    return <EmployeeDashboardMobile />;
   }
 
   return (
@@ -249,7 +262,10 @@ export default function EmployeeDashboard() {
 
           {/* Fast Actions */}
           <div className="grid grid-cols-1 gap-4">
-            <button className="flex items-center gap-4 p-4 bg-blue-50 text-[#0040a1] rounded-xl hover:bg-blue-100 transition-all group">
+            <button 
+              onClick={() => navigate('/dashboard/pointage-du-mois')}
+              className="flex items-center gap-4 p-4 bg-blue-50 text-[#0040a1] rounded-xl hover:bg-blue-100 transition-all group"
+            >
               <div className="p-2 bg-white rounded-lg shadow-sm">
                 <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">request_quote</span>
               </div>
@@ -258,13 +274,28 @@ export default function EmployeeDashboard() {
                 <p className="text-xs opacity-70">Consulter mes derniers bulletins</p>
               </div>
             </button>
-            <button className="flex items-center gap-4 p-4 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all group">
+            <button 
+              onClick={() => navigate('/dashboard/coffre-fort')}
+              className="flex items-center gap-4 p-4 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all group"
+            >
+              <div className="p-2 bg-white rounded-lg shadow-sm">
+                <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">shield</span>
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold">Coffre-fort Numérique</p>
+                <p className="text-xs text-slate-500">Documents et signatures</p>
+              </div>
+            </button>
+            <button 
+              onClick={() => navigate('/dashboard/support')}
+              className="flex items-center gap-4 p-4 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-all group"
+            >
               <div className="p-2 bg-white rounded-lg shadow-sm">
                 <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">contact_support</span>
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold">Support Interne</p>
-                <p className="text-xs text-slate-500">Besoin d'aide administrative ?</p>
+                <p className="text-xs text-emerald-600/70">Besoin d'aide administrative ?</p>
               </div>
             </button>
           </div>

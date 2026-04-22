@@ -282,7 +282,6 @@ public partial class ApplicationDbContext : DbContext
                 Action = entry.State.ToString(),
                 TableName = entry.Metadata.GetTableName(),
                 DateAction = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
             };
 
             // Try to extract Uticod from the entity if it has a Uticod property

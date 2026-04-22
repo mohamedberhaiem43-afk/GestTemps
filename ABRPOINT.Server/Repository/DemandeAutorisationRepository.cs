@@ -10,11 +10,13 @@ namespace ABRPOINT.Server.Repository
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IUtilisateurRepository _utilisateurRepository;
+        private readonly IEmailService _emailService;
 
-        public DemandeAutorisationRepository(ApplicationDbContext dbContext, IUtilisateurRepository utilisateurRepository)
+        public DemandeAutorisationRepository(ApplicationDbContext dbContext, IUtilisateurRepository utilisateurRepository, IEmailService emailService)
         {
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
+            _emailService = emailService;
         }
 
         public async Task<List<DemandeAutorisationDto>> GetAllBySocieteAsync(string soccod, string uticod)
@@ -132,6 +134,24 @@ namespace ABRPOINT.Server.Repository
 
                 _dbContext.DemandeAutorisations.Add(demande);
                 await _dbContext.SaveChangesAsync();
+
+                // Notify admins
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var admins = await _utilisateurRepository.GetAdminsEmailsAsync();
+                        foreach (var email in admins)
+                        {
+                            await _emailService.SendEmailAsync(email, "Nouvelle Demande d'Autorisation",
+                                $"Une nouvelle demande d'autorisation a été déposée par l'employé {demande.Empcod}.<br/>" +
+                                $"Date : {demande.Condat:dd/MM/yyyy}<br/>" +
+                                $"Horaire : {demande.Condep:HH:mm} à {demande.Conret:HH:mm}.");
+                        }
+                    }
+                    catch { /* ignore */ }
+                });
+
                 return demande;
             }
             catch (Exception)
@@ -226,6 +246,21 @@ namespace ABRPOINT.Server.Repository
                 await _dbContext.Autorisers.AddAsync(autoriser);
                 await _dbContext.SaveChangesAsync();
 
+                // Notify Employee
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var user = await _dbContext.Utilisateurs.FindAsync(demande.Empcod);
+                        if (user != null && !string.IsNullOrEmpty(user.Utimail))
+                        {
+                            await _emailService.SendEmailAsync(user.Utimail, "Demande d'Autorisation Approuvée",
+                                $"Votre demande d'autorisation pour le {demande.Condat:dd/MM/yyyy} ({demande.Condep:HH:mm} à {demande.Conret:HH:mm}) a été <b>approuvée</b>.");
+                        }
+                    }
+                    catch { /* ignore */ }
+                });
+
                 return (true, $"Demande d'autorisation approuvée avec succès.");
             }
             catch (Exception ex)
@@ -251,6 +286,21 @@ namespace ABRPOINT.Server.Repository
                 demande.Commentaire = commentaire;
 
                 await _dbContext.SaveChangesAsync();
+
+                // Notify Employee
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var user = await _dbContext.Utilisateurs.FindAsync(demande.Empcod);
+                        if (user != null && !string.IsNullOrEmpty(user.Utimail))
+                        {
+                            await _emailService.SendEmailAsync(user.Utimail, "Demande d'Autorisation Refusée",
+                                $"Votre demande d'autorisation pour le {demande.Condat:dd/MM/yyyy} ({demande.Condep:HH:mm} à {demande.Conret:HH:mm}) a été <b>refusée</b>.");
+                        }
+                    }
+                    catch { /* ignore */ }
+                });
 
                 return (true, $"Demande d'autorisation refusée avec succès.");
             }

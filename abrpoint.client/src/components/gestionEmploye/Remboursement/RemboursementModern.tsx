@@ -112,7 +112,8 @@ function RemboursementModernContent() {
     const [statusDialogOpen, setStatusDialogOpen] = useState(false);
     const [statusAction, setStatusAction] = useState<{ expense: NoteDeFrais; newStatus: string } | null>(null);
 
-    // Detail dialog
+    // Form dialog
+    const [isFormOpen, setIsFormOpen] = useState(false);
     const [detailDialogOpen, setDetailDialogOpen] = useState(false);
     const [selectedExpense, setSelectedExpense] = useState<NoteDeFrais | null>(null);
 
@@ -160,6 +161,7 @@ function RemboursementModernContent() {
             setDateDepense(dayjs().format('YYYY-MM-DD'));
             setFormSuccess(true);
             setTimeout(() => setFormSuccess(false), 600);
+            setIsFormOpen(false);
             showSnack('Dépense soumise avec succès !', 'success');
         } catch {
             showSnack('Erreur lors de la soumission.', 'error');
@@ -279,117 +281,15 @@ function RemboursementModernContent() {
                         }
                     </p>
                 </div>
+                {(isEmp || canAdd) && (
+                    <button className="rmb-new-btn" onClick={() => setIsFormOpen(true)}>
+                        <UploadCloud size={18} />
+                        Nouvelle Dépense
+                    </button>
+                )}
             </div>
 
-            <div className={`rmb-body ${(isEmp || canAdd) ? 'rmb-body--has-form' : 'rmb-body--no-form'}`}>
-                {/* ─── Left Column: Form (Employee only, or admin with add perm) ─── */}
-                {(isEmp || canAdd) && (
-                    <div>
-                        <div className={`rmb-form-card ${formSuccess ? 'success' : ''}`}>
-                            <div className="rmb-form-header">
-                                <span className="rmb-form-title">Nouvelle Dépense</span>
-                                <span className="rmb-form-badge">Saisie</span>
-                            </div>
-                            <form onSubmit={handleSubmit}>
-                                <div className="rmb-form-group">
-                                    <label className="rmb-form-label">Motif / Titre</label>
-                                    <input
-                                        className="rmb-form-input"
-                                        placeholder="Ex: Déplacement Client"
-                                        type="text"
-                                        value={titre}
-                                        onChange={e => setTitre(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="rmb-form-group">
-                                    <label className="rmb-form-label">Date de la dépense</label>
-                                    <input
-                                        className="rmb-form-input"
-                                        type="date"
-                                        value={dateDepense}
-                                        onChange={e => setDateDepense(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="rmb-form-row rmb-form-group">
-                                    <div>
-                                        <label className="rmb-form-label">Catégorie</label>
-                                        <select
-                                            className="rmb-form-select"
-                                            value={categorie}
-                                            onChange={e => setCategorie(e.target.value)}
-                                        >
-                                            {CATEGORIES.map(c => (
-                                                <option key={c} value={c}>{c === 'Equipement' ? 'Équipement' : c}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="rmb-form-label">Montant (TND)</label>
-                                        <input
-                                            className="rmb-form-input"
-                                            placeholder="0.000"
-                                            type="number"
-                                            step="0.001"
-                                            value={montant}
-                                            onChange={e => setMontant(e.target.value ? Number(e.target.value) : '')}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                <div className="rmb-form-group">
-                                    <label className="rmb-form-label">Projet / Mission</label>
-                                    <input
-                                        className="rmb-form-input"
-                                        placeholder="Nom du projet (Optionnel)"
-                                        type="text"
-                                        value={projet}
-                                        onChange={e => setProjet(e.target.value)}
-                                    />
-                                </div>
-                                <div className="rmb-form-group">
-                                    <label className="rmb-form-label">Justificatif</label>
-                                    <div className={`rmb-upload-zone ${file ? 'has-file' : ''}`}>
-                                        <input
-                                            type="file"
-                                            className="rmb-upload-input"
-                                            onChange={handleFileChange}
-                                            accept="image/*,.pdf"
-                                        />
-                                        <UploadCloud className="rmb-upload-icon" size={28} />
-                                        <span className="rmb-upload-text">
-                                            {file ? '' : 'Cliquez ou glissez le fichier'}
-                                        </span>
-                                        {file && <span className="rmb-file-name">{file.name}</span>}
-                                        <span className="rmb-upload-hint">PDF, PNG, JPG (Max 10MB)</span>
-                                    </div>
-                                </div>
-                                <button
-                                    className="rmb-submit-btn"
-                                    type="submit"
-                                    disabled={addMutation.isPending}
-                                >
-                                    {addMutation.isPending ? (
-                                        <CircularProgress size={18} style={{ color: 'white' }} />
-                                    ) : (
-                                        <Send size={16} />
-                                    )}
-                                    {addMutation.isPending ? 'ENVOI EN COURS...' : 'SOUMETTRE'}
-                                </button>
-                            </form>
-                        </div>
-
-                        {/* Tip Card */}
-                        <div className="rmb-tip-card">
-                            <Info className="rmb-tip-icon" size={20} />
-                            <p className="rmb-tip-text">
-                                Les équipements de plus de 500 TND nécessitent une pré-autorisation.
-                                Veuillez attacher l'email d'approbation si nécessaire.
-                            </p>
-                        </div>
-                    </div>
-                )}
+            <div className="rmb-body rmb-body--no-form">
 
                 {/* ─── Right Column ─── */}
                 <div className="rmb-right">
@@ -872,6 +772,123 @@ function RemboursementModernContent() {
                         sx={{ color: '#64748b', textTransform: 'none', borderRadius: '8px' }}
                     >
                         Fermer
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* ─── Form Dialog (Employee) ─── */}
+            <Dialog 
+                open={isFormOpen} 
+                onClose={() => setIsFormOpen(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: '20px' } }}
+            >
+                <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '20px', pt: 3 }}>
+                    Nouvelle Dépense
+                </DialogTitle>
+                <DialogContent>
+                    <div className={`rmb-form-card ${formSuccess ? 'success' : ''}`} style={{ boxShadow: 'none', border: 'none', padding: 0, marginTop: '16px' }}>
+                        <form onSubmit={handleSubmit}>
+                            <div className="rmb-form-group">
+                                <label className="rmb-form-label">Motif / Titre</label>
+                                <input
+                                    className="rmb-form-input"
+                                    placeholder="Ex: Déplacement Client"
+                                    type="text"
+                                    value={titre}
+                                    onChange={e => setTitre(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="rmb-form-group">
+                                <label className="rmb-form-label">Date de la dépense</label>
+                                <input
+                                    className="rmb-form-input"
+                                    type="date"
+                                    value={dateDepense}
+                                    onChange={e => setDateDepense(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="rmb-form-row rmb-form-group">
+                                <div>
+                                    <label className="rmb-form-label">Catégorie</label>
+                                    <select
+                                        className="rmb-form-select"
+                                        value={categorie}
+                                        onChange={e => setCategorie(e.target.value)}
+                                    >
+                                        {CATEGORIES.map(c => (
+                                            <option key={c} value={c}>{c === 'Equipement' ? 'Équipement' : c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="rmb-form-label">Montant (TND)</label>
+                                    <input
+                                        className="rmb-form-input"
+                                        placeholder="0.000"
+                                        type="number"
+                                        step="0.001"
+                                        value={montant}
+                                        onChange={e => setMontant(e.target.value ? Number(e.target.value) : '')}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="rmb-form-group">
+                                <label className="rmb-form-label">Projet / Mission</label>
+                                <input
+                                    className="rmb-form-input"
+                                    placeholder="Nom du projet (Optionnel)"
+                                    type="text"
+                                    value={projet}
+                                    onChange={e => setProjet(e.target.value)}
+                                />
+                            </div>
+                            <div className="rmb-form-group">
+                                <label className="rmb-form-label">Justificatif</label>
+                                <div className={`rmb-upload-zone ${file ? 'has-file' : ''}`}>
+                                    <input
+                                        type="file"
+                                        className="rmb-upload-input"
+                                        onChange={handleFileChange}
+                                        accept="image/*,.pdf"
+                                    />
+                                    <UploadCloud className="rmb-upload-icon" size={28} />
+                                    <span className="rmb-upload-text">
+                                        {file ? '' : 'Cliquez ou glissez le fichier'}
+                                    </span>
+                                    {file && <span className="rmb-file-name">{file.name}</span>}
+                                    <span className="rmb-upload-hint">PDF, PNG, JPG (Max 10MB)</span>
+                                </div>
+                            </div>
+                            <button
+                                className="rmb-submit-btn"
+                                type="submit"
+                                disabled={addMutation.isPending}
+                            >
+                                {addMutation.isPending ? (
+                                    <CircularProgress size={18} style={{ color: 'white' }} />
+                                ) : (
+                                    <Send size={16} />
+                                )}
+                                {addMutation.isPending ? 'ENVOI EN COURS...' : 'SOUMETTRE'}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="rmb-tip-card" style={{ marginTop: '24px' }}>
+                        <Info className="rmb-tip-icon" size={20} />
+                        <p className="rmb-tip-text">
+                            Les équipements de plus de 500 TND nécessitent une pré-autorisation.
+                        </p>
+                    </div>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 3 }}>
+                    <Button onClick={() => setIsFormOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
+                        Annuler
                     </Button>
                 </DialogActions>
             </Dialog>

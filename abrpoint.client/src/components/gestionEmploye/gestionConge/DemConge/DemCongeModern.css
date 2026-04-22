@@ -4,9 +4,13 @@
   width: 100%;
   min-height: 100vh;
   background: #f7f9fb;
-  padding: 32px;
+  padding: 24px;
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 768px) {
+  .dcm-container { padding: 0px !important; }
 }
 
 /* Header */
@@ -118,14 +122,21 @@
   font-weight: 700;
 }
 
-/* Actions */
 .dcm-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 6px;
-  opacity: 0;
+  gap: 8px;
   transition: opacity 0.15s;
+}
+
+@media (hover: hover) {
+  .dcm-actions { opacity: 0; }
+  .dcm-row:hover .dcm-actions { opacity: 1; }
+}
+
+@media (hover: none) {
+  .dcm-actions { opacity: 1; }
 }
 .dcm-action-edit {
   color: #64748b !important;
@@ -228,10 +239,43 @@
   .dcm-stats-grid { flex: 1; min-width: 200px; }
 }
 @media (max-width: 768px) {
-  .dcm-container { padding: 16px; }
-  .dcm-header { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .dcm-table-head, .dcm-row { grid-template-columns: 1fr 1fr; }
-  .dcm-col-period, .dcm-col-status { display: none; }
+  .dcm-header { 
+    flex-direction: column; 
+    align-items: stretch; 
+    gap: 12px; 
+    text-align: left; 
+    padding: 16px;
+  }
+  .dcm-title { font-size: 24px; }
+  .dcm-new-btn { width: 100%; justify-content: center; }
+  .dcm-body { padding: 0 !important; gap: 0 !important; }
+  .dcm-left { width: 100% !important; padding: 0 !important; }
+  .dcm-row { border-radius: 0 !important; margin: 0 0 1px 0 !important; width: 100% !important; }
+  
+  .dcm-table-head { display: none; }
+  .dcm-row { 
+    grid-template-columns: 1fr; 
+    gap: 12px; 
+    padding: 20px; 
+    border-radius: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .dcm-row:last-child { border-radius: 12px; }
+  
+  .dcm-col-emp { border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; }
+  .dcm-col-type { justify-self: start; }
+  .dcm-col-period { display: block; }
+  .dcm-col-status { display: block; }
+  .dcm-actions { 
+    justify-content: flex-start; 
+    margin-top: 8px; 
+    padding-top: 12px; 
+    border-top: 1px solid #f1f5f9; 
+    width: 100%;
+    opacity: 1 !important;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════ */

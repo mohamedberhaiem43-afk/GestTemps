@@ -294,12 +294,12 @@ function PointageDuMoisContent() {
   return (
     <Box className="pdm-container">
       {/* ── Page Header ── */}
-      <Box className="pdm-header">
+      <Box className="pdm-header" sx={{ flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
         <Box>
-          <Typography className="pdm-title">Pointage du mois</Typography>
+          <Typography className="pdm-title" sx={{ fontSize: { xs: '28px', md: '36px' } }}>Pointage du mois</Typography>
           <Typography className="pdm-subtitle">Suivi architectural des heures de présence</Typography>
         </Box>
-        <Box className="pdm-header-actions">
+        <Box className="pdm-header-actions" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' }, flexWrap: 'wrap' }}>
           <Tooltip title="Rapport employé sélectionné">
             <IconButton className="pdm-export-btn" onClick={handleExportOne} disabled={!selectedEmp}
               sx={{ borderRadius: '12px', padding: '10px' }}>
@@ -313,7 +313,7 @@ function PointageDuMoisContent() {
             </IconButton>
           </Tooltip>
           {canModify && <IntegrationPaieButton pointageMoisData={pointageMois as any} rubriques={rubriques} mois={ctxMois} annee={ctxAnnee} />}
-          <Button className="pdm-export-btn" startIcon={<DownloadIcon />} onClick={handleExportAll}>
+          <Button className="pdm-export-btn" startIcon={<DownloadIcon />} onClick={handleExportAll} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             Exporter le ledger
           </Button>
         </Box>
@@ -539,12 +539,12 @@ function PointageDuMoisContent() {
           )}
 
           {/* ── Summary Cards ── */}
-          <Box className="pdm-summary-grid">
+          <Box className="pdm-summary-grid" sx={{ gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: { xs: 2, md: 4 } }}>
             {/* Total Heures Travaillées - Primary card */}
             <Paper className="pdm-summary-card pdm-summary-card--primary" elevation={0}>
               <Box className="pdm-summary-content">
                 <Typography className="pdm-summary-label">Total Heures Travaillées</Typography>
-                <Typography className="pdm-summary-value">{totalHours > 0 ? `${Math.floor(totalHours / 60)}h` : '0h'}</Typography>
+                <Typography className="pdm-summary-value" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHours > 0 ? `${Math.floor(totalHours / 60)}h` : '0h'}</Typography>
                 <Box className="pdm-summary-trend">
                   <TrendingUpIcon sx={{ fontSize: 16 }} />
                   <span>{pointageMois.length} employé(s)</span>
@@ -557,7 +557,7 @@ function PointageDuMoisContent() {
             <Paper className="pdm-summary-card pdm-summary-card--light" elevation={0}>
               <Box className="pdm-summary-content">
                 <Typography className="pdm-summary-label pdm-summary-label--dark">Heures Supplémentaires</Typography>
-                <Typography className="pdm-summary-value pdm-summary-value--dark">{totalHS > 0 ? `${Math.floor(totalHS / 60)}h` : '0h'}</Typography>
+                <Typography className="pdm-summary-value pdm-summary-value--dark" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHS > 0 ? `${Math.floor(totalHS / 60)}h` : '0h'}</Typography>
                 <Box className="pdm-summary-trend pdm-summary-trend--green">
                   <CheckCircleIcon sx={{ fontSize: 16 }} />
                   <span>Dans les quotas légaux</span>
@@ -569,7 +569,7 @@ function PointageDuMoisContent() {
             <Paper className="pdm-summary-card pdm-summary-card--light" elevation={0}>
               <Box className="pdm-summary-content">
                 <Typography className="pdm-summary-label pdm-summary-label--dark">Jours Fériés / Absences</Typography>
-                <Typography className="pdm-summary-value pdm-summary-value--dark">{totalAbsences.toFixed(0)}j</Typography>
+                <Typography className="pdm-summary-value pdm-summary-value--dark" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalAbsences.toFixed(0)}j</Typography>
                 <Box className="pdm-summary-trend pdm-summary-trend--muted">
                   <EventNoteIcon sx={{ fontSize: 16 }} />
                   <span>{monthLabel}</span>
@@ -579,10 +579,10 @@ function PointageDuMoisContent() {
           </Box>
 
           {/* ── Analysis Section ── */}
-          <Box className="pdm-analysis-grid">
+          <Box className="pdm-analysis-grid" sx={{ gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 4 }}>
             {/* Service distribution */}
             <Paper className="pdm-distrib-card" elevation={0}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                 <Typography className="pdm-distrib-title" sx={{ mb: 0 }}>Répartition par Service</Typography>
                 <Button sx={{ fontSize: '13px', fontWeight: 700, color: '#0040a1', textTransform: 'none' }}>
                   Voir détails

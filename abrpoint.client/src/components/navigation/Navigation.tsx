@@ -537,12 +537,12 @@ function makeToolbarActions(
           }}
         >
           <MenuItem onClick={handleProfile}>
-            <ListItemIcon><User size={18} /></ListItemIcon>
+            <ListItemIcon><User size={22} /></ListItemIcon>
             <ListItemText primary="Mon Profil" primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
           </MenuItem>
           <Divider />
           <MenuItem onClick={handleLogout} sx={{ color: '#ba1a1a' }}>
-            <ListItemIcon><LogOut size={18} color="#ba1a1a" /></ListItemIcon>
+            <ListItemIcon><LogOut size={22} color="#ba1a1a" /></ListItemIcon>
             <ListItemText primary="Déconnexion" primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
           </MenuItem>
         </Menu>
@@ -591,7 +591,7 @@ function makeToolbarActions(
                 ...params.InputProps,
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon size={16} color={isDark ? '#94a3b8' : '#64748b'} />
+                    <SearchIcon size={20} color={isDark ? '#94a3b8' : '#64748b'} />
                   </InputAdornment>
                 ),
               }}
@@ -890,7 +890,11 @@ function DashboardLayoutAccount(_props: DemoProps) {
         <DemoPageContent pathname={pathname} />
       </SidebarNavigationDualTier>
 
-      {pathname !== '/' && <GeminiChat />}
+      {pathname !== '/' && (
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+          <GeminiChat />
+        </Box>
+      )}
     </>
   );
 }

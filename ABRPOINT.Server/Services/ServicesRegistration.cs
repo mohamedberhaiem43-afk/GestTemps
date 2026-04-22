@@ -98,6 +98,7 @@ namespace ABRPOINT.Server.Services
                 return kernelBuilder.Build();
             });
 
+            builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddLogging();
 
         }

@@ -5,6 +5,7 @@ using ABRPOINT.Server.Models;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -41,10 +42,10 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public Dictionary<string, string> GetCalLibs()
+        public async Task<Dictionary<string, string>> GetCalLibs()
         {
-            return _dbContext.Calendsocs
-                                .ToDictionary(abs => abs.Caltype, abs => abs.Callib);
+            return await _dbContext.Calendsocs
+                                .ToDictionaryAsync(abs => abs.Caltype, abs => abs.Callib);
         }
 
         public IEnumerable<Calendsoc> GetAll()

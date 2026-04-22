@@ -20,8 +20,4 @@ public class AuditLog
     public string? TableName { get; set; }
 
     public DateTime DateAction { get; set; } = DateTime.UtcNow;
-
-    public DateTime? CreatedAt { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public DateTime? RetentionDate { get; set; }
 }

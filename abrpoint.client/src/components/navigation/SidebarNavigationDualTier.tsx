@@ -135,7 +135,7 @@ function SecondaryPanel({
                 className={`sndt-sec-item${active ? ' sndt-sec-item--active' : ''}`}
                 onClick={() => onNavigate(item.href)}
               >
-                <Icon size={16} />
+                <Icon size={24} />
                 <span className="sndt-sec-label">{item.label}</span>
                 {!!item.badge && (
                   <span className="sndt-badge">{item.badge}</span>
@@ -168,11 +168,11 @@ export default function SidebarNavigationDualTier({
     const matched = items.find((node) => hasDescendant(node, pathname));
     return matched?.href ?? items[0]?.href ?? '/dashboard';
   });
-  const [mobileSecondaryOpen, setMobileSecondaryOpen] = React.useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
 
   React.useEffect(() => {
     // Auto-close mobile drawer on route change
-    setMobileSecondaryOpen(false);
+    setMobileDrawerOpen(false);
   }, [pathname]);
 
   React.useEffect(() => {
@@ -208,10 +208,12 @@ export default function SidebarNavigationDualTier({
                   className={`sndt-rail-item${active ? ' sndt-rail-item--active' : ''}`}
                   onClick={() => {
                     setActivePrimaryHref(node.href);
-                    if (!node.items?.length) onNavigate(node.href);
+                    if (!node.items?.length) {
+                      onNavigate(node.href);
+                    }
                   }}
                 >
-                  <Icon size={20} />
+                  <Icon size={30} />
                   {!!node.badge && (
                     <span className="sndt-rail-badge">{node.badge}</span>
                   )}
@@ -237,7 +239,7 @@ export default function SidebarNavigationDualTier({
                       else onNavigate(item.href);
                     }}
                   >
-                    <Icon size={20} />
+                    <Icon size={28} />
                     <span className="sndt-rail-label">{item.label}</span>
                   </button>
                 );
@@ -262,12 +264,12 @@ export default function SidebarNavigationDualTier({
           <header className="sndt-topbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div className="sndt-mobile-menu-trigger">
-                <IconButton 
-                  size="small" 
-                  onClick={() => setMobileSecondaryOpen(true)}
+                <IconButton
+                  size="small"
+                  onClick={() => setMobileDrawerOpen(true)}
                   sx={{ color: '#0040a1' }}
                 >
-                  <Menu size={20} />
+                  <Menu size={24} />
                 </IconButton>
               </div>
               <span className="sndt-topbar-title">{title}</span>
@@ -276,60 +278,101 @@ export default function SidebarNavigationDualTier({
           </header>
           {/* Page content */}
           <main className="sndt-content">{children}</main>
+
+          {/* Mobile Bottom Navigation */}
+          <nav className="sndt-mobile-bottom-nav">
+            <button
+              onClick={() => onNavigate('/dashboard')}
+              className={`sndt-nav-btn${pathname === '/dashboard' ? ' sndt-nav-btn--active' : ''}`}
+            >
+              <Home size={20} />
+              <span>Tableau de bord</span>
+            </button>
+            <button
+              onClick={() => onNavigate('/dashboard/demande-autorisation')}
+              className={`sndt-nav-btn${pathname === '/dashboard/demande-autorisation' ? ' sndt-nav-btn--active' : ''}`}
+            >
+              <Timer size={20} />
+              <span>Autorisation</span>
+            </button>
+            <button
+              onClick={() => onNavigate('/dashboard/gestion-de-conge')}
+              className={`sndt-nav-btn${pathname === '/dashboard/gestion-de-conge' ? ' sndt-nav-btn--active' : ''}`}
+            >
+              <CalendarX size={20} />
+              <span>Demandes</span>
+            </button>
+            <button
+              onClick={() => onNavigate('/dashboard/gestion-de-solde')}
+              className={`sndt-nav-btn${pathname === '/dashboard/gestion-de-solde' ? ' sndt-nav-btn--active' : ''}`}
+            >
+              <PieChart size={20} />
+              <span>Solde</span>
+            </button>
+          </nav>
         </div>
 
-        {/* ── Mobile Drawer ── */}
+        {/* ── Unified Mobile Dual-Tier Drawer ── */}
         <Drawer
           anchor="left"
-          open={mobileSecondaryOpen}
-          onClose={() => setMobileSecondaryOpen(false)}
+          open={mobileDrawerOpen}
+          onClose={() => setMobileDrawerOpen(false)}
           PaperProps={{
             sx: {
-              width: 280,
+              width: '100%',
+              maxWidth: 320,
               display: 'flex',
               flexDirection: 'row',
               overflow: 'hidden',
               borderRight: 'none',
+              background: '#fff'
             }
           }}
         >
-          <div style={{ width: 72, background: '#fff', borderRight: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0' }}>
-             <IconButton size="small" onClick={() => setMobileSecondaryOpen(false)} sx={{ mb: 2 }}>
-               <X size={20} />
-             </IconButton>
-             {items.map(node => (
-               <IconButton 
-                 key={node.href}
-                 onClick={() => {
-                   setActivePrimaryHref(node.href);
-                   if (!node.items?.length) {
-                     onNavigate(node.href);
-                     setMobileSecondaryOpen(false);
-                   }
-                 }}
-                 sx={{ 
-                   color: activePrimaryHref === node.href ? '#0040a1' : '#64748b',
-                   bgcolor: activePrimaryHref === node.href ? '#eff6ff' : 'transparent',
-                   borderRadius: '10px',
-                   mb: 1
-                 }}
-               >
-                 <node.icon size={20} />
-               </IconButton>
-             ))}
+          {/* Left Rail Part */}
+          <div className="sndt-mobile-drawer-rail">
+            <IconButton
+              size="small"
+              onClick={() => setMobileDrawerOpen(false)}
+              sx={{ mb: 4, mt: 1, color: '#64748b' }}
+            >
+              <X size={24} />
+            </IconButton>
+
+            {items.map((node) => {
+              const Icon = node.icon;
+              const active = activePrimaryHref === node.href;
+              return (
+                <button
+                  key={node.href}
+                  className={`sndt-mobile-rail-btn${active ? ' sndt-mobile-rail-btn--active' : ''}`}
+                  onClick={() => {
+                    setActivePrimaryHref(node.href);
+                    if (!node.items?.length) {
+                      onNavigate(node.href);
+                      setMobileDrawerOpen(false);
+                    }
+                  }}
+                >
+                  <Icon size={32} />
+                </button>
+              );
+            })}
           </div>
-          <div style={{ flex: 1, background: '#fff' }}>
-             {activePrimary && (
-               <SecondaryPanel
-                 activePrimary={activePrimary}
-                 pathname={pathname}
-                 onNavigate={(h) => {
-                   onNavigate(h);
-                   setMobileSecondaryOpen(false);
-                 }}
-                 featureCard={featureCard}
-               />
-             )}
+
+          {/* Right Secondary Part */}
+          <div className="sndt-mobile-drawer-content">
+            {activePrimary && (
+              <SecondaryPanel
+                activePrimary={activePrimary}
+                pathname={pathname}
+                onNavigate={(h) => {
+                  onNavigate(h);
+                  setMobileDrawerOpen(false);
+                }}
+                featureCard={featureCard}
+              />
+            )}
           </div>
         </Drawer>
       </div>
@@ -454,15 +497,21 @@ const styles = `
   border-top: 1px solid #f1f5f9;
 }
 
+@media (max-width: 768px) {
+  .sndt-rail-footer {
+    padding-bottom: 72px;
+  }
+}
+
 .sndt-rail-item {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  width: 52px;
-  min-height: 52px;
+  gap: 2px;
+  width: 60px;
+  min-height: 50px;
   border-radius: 12px;
   border: none;
   background: transparent;
@@ -483,11 +532,11 @@ const styles = `
 }
 
 .sndt-rail-label {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
-  max-width: 56px;
+  max-width: 58px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -532,7 +581,6 @@ const styles = `
 
 @media (max-width: 768px) {
   .sndt-root > .sndt-secondary { display: none; }
-  .sndt-root > .sndt-rail { display: none; }
 }
 
 .sndt-secondary-header {
@@ -570,14 +618,14 @@ const styles = `
 .sndt-sec-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
   border: none;
   background: transparent;
   color: #475569;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
@@ -637,6 +685,46 @@ const styles = `
   .sndt-main, .sndt-root:not(:has(.sndt-secondary)) .sndt-main {
     margin-left: 0 !important;
   }
+  .sndt-root > .sndt-rail {
+    display: none;
+  }
+}
+
+.sndt-mobile-drawer-rail {
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  background: #fff;
+  border-right: 1px solid #f1f5f9;
+}
+
+.sndt-mobile-rail-btn {
+  width: 58px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: #64748b;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sndt-mobile-rail-btn--active {
+  border-color: #000;
+  color: #0040a1;
+  background: #fff;
+}
+
+.sndt-mobile-drawer-content {
+  flex: 1;
+  background: #fff;
+  overflow-y: auto;
 }
 
 /* ── Top bar ── */
@@ -655,6 +743,59 @@ const styles = `
   top: 0;
   z-index: 30;
   flex-shrink: 0;
+}
+
+/* ── Mobile Bottom Nav ── */
+.sndt-mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 62px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid #e2e8f0;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 12px 12px;
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 768px) {
+  .sndt-mobile-bottom-nav {
+    display: flex;
+  }
+  .sndt-content {
+    padding-bottom: 64px;
+  }
+}
+
+.sndt-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+.sndt-nav-btn--active {
+  color: #0040a1;
+  background: rgba(0, 64, 161, 0.05);
+}
+
+.sndt-nav-btn--active svg {
+  fill: rgba(0, 64, 161, 0.1);
 }
 
 .sndt-mobile-menu-trigger {
@@ -693,4 +834,4 @@ const styles = `
   overflow-y: auto;
   overflow-x: hidden;
 }
-`;
+`

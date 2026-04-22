@@ -419,5 +419,13 @@ namespace ABRPOINT.Server.Repository
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(u => u.Utirole, newRole));
         }
+
+        public async Task<List<string>> GetAdminsEmailsAsync()
+        {
+            return await _dbContext.Utilisateurs
+                .Where(u => u.Utiadm == "1" && !string.IsNullOrEmpty(u.Utimail))
+                .Select(u => u.Utimail!)
+                .ToListAsync();
+        }
     }
 }

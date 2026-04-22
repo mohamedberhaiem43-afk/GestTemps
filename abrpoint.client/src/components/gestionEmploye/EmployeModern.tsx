@@ -477,11 +477,13 @@ const EmployeModernInner = () => {
 
                 {/* Top bar */}
                 <Box sx={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    px: 4, py: 2, backgroundColor: '#fff',
+                    display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' },
+                    px: { xs: 2, sm: 4 }, py: 2, backgroundColor: '#fff',
                     borderBottom: '1px solid #edf0f5',
                     boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
                     position: 'sticky', top: 0, zIndex: 10,
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 2, sm: 0 }
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <IconButton
@@ -507,7 +509,7 @@ const EmployeModernInner = () => {
                         </Box>
                     </Box>
 
-                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'center', sm: 'flex-end' } }}>
                         {mode === 'update' && (
                             <>
                                 <Button
@@ -587,10 +589,10 @@ const EmployeModernInner = () => {
                     </Box>
                 ) : (
                     <>
-                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 3, maxWidth: 1200, mx: 'auto', width: '100%' }}>
+                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: { xs: 1.5, sm: 3 }, maxWidth: 1200, mx: 'auto', width: '100%' }}>
 
                             {/* ── Main column ── */}
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 0 }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 0, width: '100%' }}>
 
                                 {/* Informations de base */}
                                 <Paper elevation={0} sx={sectionCard}>
@@ -602,7 +604,7 @@ const EmployeModernInner = () => {
                                             Informations de base
                                         </Typography>
                                     </Box>
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 2 }}>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' }, gap: 2 }}>
                                         <Box>
                                             <Typography sx={labelStyle}>Matricule</Typography>
                                             <TextField name="empcod" value={formData.empcod} onChange={handleField} size="small" fullWidth
@@ -692,7 +694,7 @@ const EmployeModernInner = () => {
                                             Coordonnées
                                         </Typography>
                                     </Box>
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2 }}>
                                         <Box>
                                             <Typography sx={labelStyle}>Adresse</Typography>
                                             <TextField name="empadr" value={formData.empadr || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
@@ -715,7 +717,7 @@ const EmployeModernInner = () => {
                                 </Paper>
 
                                 {/* Informations de travail + Détails Employé */}
-                                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2.5 }}>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
 
                                     {/* Travail */}
                                     <Paper elevation={0} sx={sectionCard}>

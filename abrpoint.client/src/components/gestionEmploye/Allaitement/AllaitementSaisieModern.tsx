@@ -109,6 +109,15 @@ export default function AllaitementSaisieModern() {
     const payload: AllaitementModel = {
       ...data,
       soccod: soccod || '',
+      // If hourMode is fixe, apply the standard 1 hour (30 min morning + 30 min afternoon)
+      ...(hourMode === 'fixe' ? {
+        lundi: 1,
+        mardi: 1,
+        mercredi: 1,
+        jeudi: 1,
+        vendredi: 1,
+        samedi: 1,
+      } : {})
     };
 
     if (!isEditMode) {

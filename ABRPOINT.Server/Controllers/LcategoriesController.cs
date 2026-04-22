@@ -2,6 +2,7 @@
 using ABRPOINT.Server.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -31,11 +32,12 @@ namespace ABRPOINT.Server.Controllers
             
         }
         [HttpGet("get-horlibs/{soccod}")]
-        public IActionResult  GetHorLibs(string soccod)
+        public async Task<IActionResult>  GetHorLibs(string soccod)
         {
             try
             {
-                return Ok(_lcategorieRepository.GetHorLibs(soccod));
+                var cats = await _lcategorieRepository.GetHorLibs(soccod);
+                return Ok(cats);
             }
             catch (Exception ex)
             {
