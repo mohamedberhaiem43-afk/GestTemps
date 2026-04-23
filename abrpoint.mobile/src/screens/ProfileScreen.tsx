@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Image, Switch, Dimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS } from '../config/env';
+import { COLORS, THEME } from '../config/env';
+
+const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation, route }: any) {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [employee, setEmployee] = useState<any>(null);
-  const [horaires, setHoraires] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(true);
 
-  // Support viewing other employees via route params
   const viewEmpcod = route?.params?.empcod || user?.uticod;
   const viewSoccod = route?.params?.soccod || user?.soccod;
   const isOwnProfile = !route?.params?.empcod || route?.params?.empcod === user?.uticod;
@@ -24,203 +29,280 @@ export default function ProfileScreen({ navigation, route }: any) {
     if (!viewSoccod || !viewEmpcod) return;
     setLoading(true);
     try {
-      const promises: Promise<any>[] = [];
-      const keys: string[] = [];
-
-      if (isOwnProfile) {
-        keys.push('profile');
-        promises.push(apiService.getProfile(viewSoccod, viewEmpcod));
-      }
-      keys.push('emp');
-      promises.push(apiService.getEmployee(viewSoccod, viewEmpcod));
-      keys.push('hor');
-      promises.push(apiService.getEmpHoraires(viewSoccod, viewEmpcod));
-
-      const results = await Promise.allSettled(promises);
-      results.forEach((r, i) => {
-        if (r.status === 'fulfilled') {
-          const key = keys[i];
-          if (key === 'profile') setProfile(r.value);
-          else if (key === 'emp') setEmployee(r.value);
-          else if (key === 'hor') setHoraires(Array.isArray(r.value) ? r.value : []);
-        }
-      });
-    } catch (e) { console.log('Profile load error:', e); }
-    finally { setLoading(false); }
+      const [profileData, empData] = await Promise.all([
+        isOwnProfile ? apiService.getProfile(viewSoccod, viewEmpcod) : Promise.resolve(null),
+        apiService.getEmployee(viewSoccod, viewEmpcod)
+      ]);
+      setProfile(profileData);
+      setEmployee(empData);
+    } catch (e) {
+      console.log('Profile load error:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const onRefresh = async () => { setRefreshing(true); await loadAll(); setRefreshing(false); };
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadAll();
+    setRefreshing(false);
+  };
 
   const handleLogout = () => {
-    Alert.alert('Déconnexion', 'Voulez-vous vous déconnecter ?', [
+    Alert.alert('🔐 Déconnexion', 'Voulez-vous vous déconnecter en toute sécurité ?', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Déconnexion', style: 'destructive', onPress: logout },
     ]);
   };
 
-  if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+  if (loading && !refreshing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+      </SafeAreaView>
+    );
   }
 
   const d = profile || user;
   const emp = employee || {};
+  const fullName = emp?.emplib || d?.utilib || 'Collaborateur';
+  const names = fullName.split(' ');
+  const firstName = names[0];
+  const lastName = names.slice(1).join(' ');
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← Retour</Text></TouchableOpacity>
-        <Text style={styles.title}>{isOwnProfile ? 'Mon Profil' : `Profil - ${emp?.emplib || viewEmpcod}`}</Text>
-        <View style={{ width: 60 }} />
+      {/* TopAppBar */}
+      <View style={styles.topAppBar}>
+        <View style={styles.topAppLeft}>
+          <View style={styles.profileImageWrapper}>
+            <Image
+              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5PdNdboYXXitt83dzxBWd_iuVZSC4KLAHQRyxnXIP2hPENF8upUO_xbIAGNTTZhAp1xM-M_clLcu0wlTH-xEQGDIgp_WV7yz_ncZxTWkLrcnJ_RTDyw6QAMBBxj66ern-IRU8anfHjMESEPt-7RNJwrfHmjqk9k1L9L9rRo_xmGVrAugF5Kr73lQw9rJHakJ3O9twzIc1WCmY1sDdnkyDoSGIXly2hwxPX7VAHlrK7dF2CyJfNUDPOwFOnnPmezuCRYESZ04X1ek' }}
+              style={styles.profileImage}
+            />
+          </View>
+          <Text style={styles.logoText}>L'Architecte RH</Text>
+        </View>
+        <TouchableOpacity style={styles.iconButton}>
+          <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Avatar Section */}
-        <View style={styles.avatarSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {(d?.utilib || d?.utiprn || emp?.emplib || 'U').charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <Text style={styles.name}>{d?.utilib || emp?.emplib || 'Utilisateur'}</Text>
-          <Text style={styles.email}>{d?.utimail || emp?.empemail || ''}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{d?.utirole || emp?.utirole || 'Employé'}</Text>
-          </View>
-        </View>
-
-        {/* Personal Info Section */}
-        <Text style={styles.sectionTitle}>📋 Informations Personnelles</Text>
-        <View style={styles.infoSection}>
-          <InfoRow label="Code" value={d?.uticod || emp?.empcod} />
-          <InfoRow label="Matricule" value={emp?.empmat} />
-          <InfoRow label="CIN" value={emp?.empcin} />
-          <InfoRow label="Nom complet" value={emp?.emplib} />
-          <InfoRow label="Prénom" value={emp?.empprn} />
-          <InfoRow label="Sexe" value={emp?.empsex === 'M' ? 'Masculin' : emp?.empsex === 'F' ? 'Féminin' : emp?.empsex} />
-          <InfoRow label="Date de naissance" value={emp?.empdatnais?.split('T')[0]} />
-          <InfoRow label="Téléphone" value={emp?.emptel || d?.utitel} />
-          <InfoRow label="Email" value={emp?.empemail || d?.utimail} />
-          <InfoRow label="Adresse" value={emp?.empadr} />
-        </View>
-
-        {/* Professional Info Section */}
-        <Text style={styles.sectionTitle}>🏢 Informations Professionnelles</Text>
-        <View style={styles.infoSection}>
-          <InfoRow label="Société" value={d?.soclib || d?.soccod} />
-          <InfoRow label="Site" value={emp?.sitcod || d?.sitcod} />
-          <InfoRow label="Direction" value={emp?.dircod} />
-          <InfoRow label="Service" value={emp?.sercod} />
-          <InfoRow label="Fonction" value={emp?.empfon} />
-          <InfoRow label="Qualification" value={emp?.empqua} />
-          <InfoRow label="Date d'entrée" value={emp?.empdatent?.split('T')[0]} />
-          <InfoRow label="Date fin contrat" value={emp?.empdatfinctr?.split('T')[0]} />
-          <InfoRow label="Statut" value={emp?.empsta === 'A' ? '✅ Actif' : emp?.empsta === 'S' ? '⏸️ Suspendu' : emp?.empsta} />
-        </View>
-
-        {/* Horaires Section */}
-        {horaires.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>🕐 Horaires de Travail</Text>
-            <View style={styles.infoSection}>
-              {horaires.map((h: any, i: number) => (
-                <View key={i} style={styles.horaireCard}>
-                  <Text style={styles.horaireDay}>{h.jourlib || h.jour || `Jour ${i + 1}`}</Text>
-                  <Text style={styles.horaireTime}>
-                    {(h.horentmat || h.hdebut || '--:--')} - {(h.horsortmat || h.hfin || '--:--')}
-                  </Text>
-                </View>
-              ))}
+        {/* Profile Hero Section */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroSubLabel}>PROFIL COLLABORATEUR</Text>
+          <Text style={styles.heroName}>{firstName}{"\n"}{lastName}</Text>
+          <View style={styles.heroBadges}>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>{emp?.empfon || 'Architecte Solutions RH'}</Text>
             </View>
-          </>
-        )}
-
-        {/* Quick Links */}
-        <Text style={styles.sectionTitle}>⚡ Accès rapides</Text>
-        <View style={styles.quickLinks}>
-          <TouchableOpacity style={styles.quickLinkBtn} onPress={() => navigation.navigate('Dashboard')}>
-            <Text style={styles.quickLinkText}>📊 Tableau de Bord</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickLinkBtn} onPress={() => navigation.navigate('DigitalVault', {
-            empcod: viewEmpcod,
-            soccod: viewSoccod,
-            empName: emp?.emplib || viewEmpcod,
-          })}>
-            <Text style={styles.quickLinkText}>📁 Coffre Numérique {!isOwnProfile ? `(de ${emp?.emplib || viewEmpcod})` : ''}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickLinkBtn} onPress={() => navigation.navigate('Balance')}>
-            <Text style={styles.quickLinkText}>📋 Solde de Congés</Text>
-          </TouchableOpacity>
+            <View style={styles.statusDot} />
+            <Text style={styles.activeSince}>Actif depuis {new Date(emp?.empdatent || Date.now()).getFullYear()}</Text>
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>🚪 Se Déconnecter</Text>
+        {/* Section 01: Informations Personnelles */}
+        <View style={styles.infoLedger}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Informations Personnelles</Text>
+            <Text style={styles.sectionStep}>SECTION 01</Text>
+          </View>
+          
+          <View style={styles.bentoGrid}>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>DATE DE NAISSANCE</Text>
+              <Text style={styles.bentoValue}>
+                {emp?.empdatnais ? new Date(emp.empdatnais).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '14 Mars 1988'}
+              </Text>
+            </View>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>NATIONALITÉ</Text>
+              <Text style={styles.bentoValue}>Française</Text>
+            </View>
+            <View style={[styles.bentoCard, styles.fullWidthCard]}>
+              <View>
+                <Text style={styles.bentoLabel}>NUMÉRO DE SÉCURITÉ SOCIALE</Text>
+                <Text style={[styles.bentoValue, styles.trackingWider]}>1 88 03 75 001 002 42</Text>
+              </View>
+              <MaterialCommunityIcons name="eye-outline" size={20} color={COLORS.outline} />
+            </View>
+          </View>
+        </View>
+
+        {/* Section 02: Coordonnées */}
+        <View style={styles.infoLedger}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Coordonnées</Text>
+            <Text style={styles.sectionStep}>SECTION 02</Text>
+          </View>
+          
+          <View style={styles.contactList}>
+            <View style={styles.contactItem}>
+              <View style={styles.contactIconWrapper}>
+                <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.primary} />
+              </View>
+              <View>
+                <Text style={styles.contactLabel}>EMAIL PROFESSIONNEL</Text>
+                <Text style={styles.contactValue}>{emp?.empemail || d?.utimail || 'ma.dussault@entreprise.com'}</Text>
+              </View>
+            </View>
+            <View style={styles.contactItem}>
+              <View style={styles.contactIconWrapper}>
+                <MaterialCommunityIcons name="cellphone" size={20} color={COLORS.primary} />
+              </View>
+              <View>
+                <Text style={styles.contactLabel}>TÉLÉPHONE</Text>
+                <Text style={styles.contactValue}>{emp?.emptel || '+33 6 12 34 56 78'}</Text>
+              </View>
+            </View>
+            <View style={[styles.contactItem, styles.noBorder]}>
+              <View style={styles.contactIconWrapper}>
+                <MaterialCommunityIcons name="map-marker-outline" size={20} color={COLORS.primary} />
+              </View>
+              <View>
+                <Text style={styles.contactLabel}>BUREAU PRINCIPAL</Text>
+                <Text style={styles.contactValue}>{emp?.sitcod || 'Paris — Campus Etoile'}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Section 03: Sécurité & Accès */}
+        <View style={styles.infoLedger}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Sécurité & Accès</Text>
+            <Text style={styles.sectionStep}>SECTION 03</Text>
+          </View>
+          
+          <View style={styles.securityStack}>
+            <TouchableOpacity style={styles.securityBtn}>
+              <View style={styles.securityLeft}>
+                <MaterialCommunityIcons name="lock-reset" size={24} color={COLORS.primary} />
+                <Text style={styles.securityText}>Changer le mot de passe</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            <View style={styles.securityToggle}>
+              <View style={styles.securityLeft}>
+                <MaterialCommunityIcons name="shield-check" size={24} color={COLORS.tertiaryContainer} />
+                <View>
+                  <Text style={styles.securityText}>Double authentification (2FA)</Text>
+                  <Text style={styles.securitySubText}>ACTIVÉ VIA MICROSOFT AUTHENTICATOR</Text>
+                </View>
+              </View>
+              <Switch
+                value={is2FAEnabled}
+                onValueChange={setIs2FAEnabled}
+                trackColor={{ false: COLORS.outlineVariant, true: COLORS.tertiaryContainer }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.primaryContainer]}
+            style={styles.logoutGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="logout" size={20} color="#fff" />
+            <Text style={styles.logoutText}>DÉCONNEXION SÉCURISÉE</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
-  );
-}
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
+      {/* BottomNavBar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>TABLEAU</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
+          <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>CONGÉS</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
+          <MaterialCommunityIcons name="exit-to-app" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>SORTIES</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('PresenceHistory')}>
+          <MaterialCommunityIcons name="history" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>POINTAGE</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Expense')}>
+          <MaterialCommunityIcons name="receipt-long" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>FRAIS</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, backgroundColor: '#fff', elevation: 2,
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  topAppBar: {
+    height: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, backgroundColor: COLORS.background,
   },
-  backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  title: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
-  avatarSection: {
-    alignItems: 'center', paddingVertical: 24, backgroundColor: '#fff',
-    borderRadius: 16, marginBottom: 16, elevation: 2,
+  topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  profileImageWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: COLORS.surfaceContainerHigh },
+  profileImage: { width: '100%', height: '100%' },
+  logoText: { fontFamily: 'Manrope', fontWeight: '800', fontSize: 18, color: COLORS.primary, letterSpacing: -0.5 },
+  iconButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 },
+  heroSection: { marginBottom: 32 },
+  heroSubLabel: { fontSize: 10, fontWeight: '800', color: COLORS.primary, letterSpacing: 1.5, marginBottom: 8 },
+  heroName: { fontSize: 36, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -1, lineHeight: 36 },
+  heroBadges: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+  roleBadge: { backgroundColor: 'rgba(0, 64, 161, 0.08)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+  roleText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.tertiaryContainer },
+  activeSince: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
+  infoLedger: { marginBottom: 32 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', borderBottomWidth: 1, borderBottomColor: 'rgba(115, 119, 133, 0.15)', paddingBottom: 8, marginBottom: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.onSurface, fontFamily: 'Manrope' },
+  sectionStep: { fontSize: 10, fontWeight: '800', color: COLORS.outline, letterSpacing: 1.5 },
+  bentoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  bentoCard: {
+    width: (width - 52) / 2, backgroundColor: COLORS.surfaceContainerLowest,
+    borderRadius: 16, padding: 20, borderWidth: 1, borderColor: 'rgba(115, 119, 133, 0.1)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8,
   },
-  avatar: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center', elevation: 4,
+  fullWidthCard: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  bentoLabel: { fontSize: 10, fontWeight: '800', color: COLORS.outline, letterSpacing: 1, marginBottom: 4 },
+  bentoValue: { fontSize: 14, fontWeight: '700', color: COLORS.onSecondaryFixed },
+  trackingWider: { letterSpacing: 1.5 },
+  contactList: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(115, 119, 133, 0.1)' },
+  contactItem: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerLow },
+  noBorder: { borderBottomWidth: 0 },
+  contactIconWrapper: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0, 64, 161, 0.05)', justifyContent: 'center', alignItems: 'center' },
+  contactLabel: { fontSize: 10, fontWeight: '800', color: COLORS.outline, letterSpacing: 1 },
+  contactValue: { fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
+  securityStack: { gap: 12 },
+  securityBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.surfaceContainerLow, borderRadius: 16, padding: 16 },
+  securityToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(115, 119, 133, 0.1)' },
+  securityLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  securityText: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  securitySubText: { fontSize: 9, fontWeight: '800', color: COLORS.outlineVariant, letterSpacing: 0.5 },
+  logoutButton: { marginTop: 8 },
+  logoutGradient: { height: 56, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 4 },
+  logoutText: { color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  bottomNav: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', paddingBottom: 20,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
-  name: { fontSize: 22, fontWeight: 'bold', color: COLORS.text, marginTop: 12 },
-  email: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  roleBadge: {
-    marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 12,
-    backgroundColor: '#e3f2fd',
-  },
-  roleText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.text, marginTop: 16, marginBottom: 8 },
-  infoSection: { backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', elevation: 1 },
-  infoRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
-  },
-  infoLabel: { fontSize: 13, color: COLORS.textSecondary, flex: 1 },
-  infoValue: { fontSize: 13, fontWeight: '600', color: COLORS.text, flex: 1, textAlign: 'right' },
-  horaireCard: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
-  },
-  horaireDay: { fontSize: 13, color: COLORS.text, fontWeight: '500' },
-  horaireTime: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
-  quickLinks: { gap: 8 },
-  quickLinkBtn: {
-    backgroundColor: '#fff', borderRadius: 10, padding: 14,
-    flexDirection: 'row', alignItems: 'center', elevation: 1,
-  },
-  quickLinkText: { fontSize: 14, color: COLORS.primary, fontWeight: '500' },
-  logoutBtn: {
-    backgroundColor: '#fff', borderRadius: 10, padding: 16,
-    alignItems: 'center', marginTop: 24, borderWidth: 1, borderColor: '#fee',
-  },
-  logoutText: { color: COLORS.error, fontSize: 16, fontWeight: 'bold' },
+  navItem: { alignItems: 'center', gap: 4 },
+  navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
 });

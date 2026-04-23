@@ -2,7 +2,7 @@ import { useQuery } from "react-query";
 import CalendriersService from "../../services/CalendrierService/CalendriersService";
 
 const useGetCalendrier = () => {
-  const soccod = sessionStorage.getItem('soccod');
+  const soccod = localStorage.getItem('soccod') || "01";
 
   return useQuery({
     queryKey: ["calendriers", soccod],

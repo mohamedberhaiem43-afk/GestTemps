@@ -10,7 +10,7 @@ const useUpdateCalendrier = (
   tousMois: 0 | 1,
   jourRepos: string
 ) => {
-  const soccod = sessionStorage.getItem("soccod");
+  const soccod = localStorage.getItem("soccod") || "01";
 
   return useMutation(() =>
     CalendrierService.putWithParams(

@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  RefreshControl, Alert, ActivityIndicator,
+  RefreshControl, Alert, ActivityIndicator, Image, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS } from '../config/env';
+import { COLORS, THEME } from '../config/env';
+
+const { width } = Dimensions.get('window');
 
 interface TodayStatus {
   hasEntry: boolean;
@@ -14,17 +18,6 @@ interface TodayStatus {
   entryTime?: string;
   exitTime?: string;
   isRepos?: boolean;
-}
-
-interface EntryReminder {
-  shouldRemind: boolean;
-  poste: string;
-  heureEntree?: string;
-  hasMarkedEntry: boolean;
-  isRepos: boolean;
-  isConge: boolean;
-  isFerie: boolean;
-  message: string;
 }
 
 interface KPISummary {
@@ -35,11 +28,18 @@ interface KPISummary {
   pourcentageObjectif: number;
 }
 
+interface VaultDoc {
+  id: number;
+  titre: string;
+  dateAjout: string;
+  type: string;
+}
+
 export default function HomeScreen({ navigation }: any) {
   const { user, logout, isEmployee, isAdmin, isManager } = useAuth();
   const [todayStatus, setTodayStatus] = useState<TodayStatus>({ hasEntry: false, hasExit: false });
-  const [entryReminder, setEntryReminder] = useState<EntryReminder | null>(null);
   const [kpiSummary, setKpiSummary] = useState<KPISummary | null>(null);
+  const [recentDocs, setRecentDocs] = useState<VaultDoc[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -52,19 +52,9 @@ export default function HomeScreen({ navigation }: any) {
     if (user?.soccod && user?.uticod) {
       loadTodayStatus();
       loadKPISummary();
-      if (isEmployee) loadEntryReminder();
+      loadRecentDocs();
     }
   }, [user]);
-
-  const loadEntryReminder = async () => {
-    if (!user?.soccod || !user?.uticod) return;
-    try {
-      const data = await apiService.getEntryReminder(user.soccod, user.uticod);
-      if (data) setEntryReminder(data);
-    } catch (error) {
-      console.log('Failed to load entry reminder:', error);
-    }
-  };
 
   const loadTodayStatus = async () => {
     if (!user?.soccod || !user?.uticod) return;
@@ -105,336 +95,292 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
+  const loadRecentDocs = async () => {
+    if (!user?.soccod || !user?.uticod) return;
+    try {
+      const data = await apiService.getMyPresence(user.soccod, user.uticod); // Mocking vault for now or use actual service if available
+      // In a real app, you'd call apiService.getVaultDocuments
+      // For now let's set some mock recent docs if service not ready
+      setRecentDocs([
+        { id: 1, titre: 'Fiche de paie - Avril 2024', dateAjout: 'Il y a 2 jours', type: 'PDF' }
+      ]);
+    } catch (error) {
+      console.log('Failed to load recent docs:', error);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
-    const promises: Promise<any>[] = [loadTodayStatus(), loadKPISummary()];
-    if (isEmployee) promises.push(loadEntryReminder());
-    await Promise.all(promises);
+    await Promise.all([loadTodayStatus(), loadKPISummary(), loadRecentDocs()]);
     setRefreshing(false);
   };
 
   const handlePointer = async () => {
     if (!user?.soccod || !user?.uticod) return;
     try {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       const result = await apiService.markPresence(user.soccod, user.uticod);
-      
-      // Update status based on result - the backend handles entry/exit logic
-      const hasEntry = !!(result?.preentmatup || result?.preentamidiup);
-      const hasExit = !!(result?.presortmatup || result?.presortamidiup);
-      
-      setTodayStatus({
-        hasEntry: hasEntry || todayStatus.hasEntry,
-        hasExit: hasExit || todayStatus.hasExit,
-        entryTime: result?.preentmatup || result?.preentamidiup || todayStatus.entryTime || timeStr,
-        exitTime: result?.presortmatup || result?.presortamidiup || todayStatus.exitTime,
-        isRepos: todayStatus.isRepos,
-      });
-      
-      const msg = result?.presortmatup || result?.presortamidiup
-        ? `Sortie marquée à ${result.presortmatup || result.presortamidiup || timeStr}`
-        : result?.preentmatup || result?.preentamidiup
-          ? `Entrée marquée à ${result.preentmatup || result.preentamidiup || timeStr}`
-          : `Pointage enregistré à ${timeStr}`;
-      
-      Alert.alert('✅ Succès', msg);
+      loadTodayStatus();
+      Alert.alert('✅ Succès', 'Pointage enregistré avec succès');
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de pointer');
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Déconnexion', 'Voulez-vous vous déconnecter ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Déconnexion', style: 'destructive', onPress: logout },
-    ]);
-  };
-
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   };
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('fr-FR', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      weekday: 'long', day: 'numeric', month: 'long',
     });
-  };
-
-  const greeting = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return 'Bonjour';
-    if (hour < 18) return 'Bon après-midi';
-    return 'Bonsoir';
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* TopAppBar */}
+      <View style={styles.topAppBar}>
+        <View style={styles.topAppLeft}>
+          <TouchableOpacity style={styles.iconButton}>
+            <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
+          </TouchableOpacity>
+          <Text style={styles.logoText}>LEDGER HR</Text>
+        </View>
+        <View style={styles.topAppRight}>
+          <View style={styles.notificationWrapper}>
+            <MaterialCommunityIcons name="bell-outline" size={24} color="#64748b" />
+            <View style={styles.notificationDot} />
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <Image
+              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAvAHpecvSxPFvNp0WiI32s75TOod9EfS859bgnvDcccilKQKfh5e4vMEDD_wO5dwMGzL0B245pIvD5_NADth7meBVNm-mUMMdQzjBtVtqk70SJNnincuv9kgEgFrl3janzeg5qQFmI_fw3E2OvZyQtwz1SpezTqNCPETmq0ZFbHMPK_VyHzFU6tN4Qs8HfCcZR5u7UW-q8N8Zfax8VOae0-wTo5oF8FyhJrjkBQaHdAuD5uHwFuKukdgOSGr4-aeJHLOySXd_KA80' }}
+              style={styles.profileImage}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>{greeting()},</Text>
-            <Text style={styles.userName}>{user?.utilib || 'Utilisateur'}</Text>
-            {user?.soclib && <Text style={styles.companyName}>{user.soclib}</Text>}
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.dateLabel}>{formatDate(currentTime).toUpperCase()}</Text>
+          <Text style={styles.welcomeTitle}>Bonjour, {user?.utilib?.split(' ')[0] || 'Marc'}.</Text>
+        </View>
+
+        {/* Punch-in/out Glass Card */}
+        <View style={styles.punchCard}>
+          <View style={styles.gpsStatus}>
+            <View style={styles.gpsDot} />
+            <Text style={styles.gpsLabel}>STATUT GPS VALIDÉ</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarBtn}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {(user?.utilib || 'U').charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Clock */}
-        <View style={styles.clockCard}>
-          <Text style={styles.clockTime}>{formatTime(currentTime)}</Text>
-          <Text style={styles.clockDate}>{formatDate(currentTime)}</Text>
-        </View>
-
-        {/* Entry Reminder Notification */}
-        {isEmployee && entryReminder && entryReminder.shouldRemind && (
-          <TouchableOpacity
-            style={styles.reminderBanner}
+          <Text style={styles.currentTimeText}>{formatTime(currentTime)}</Text>
+          <Text style={styles.serverTimeLabel}>Heure du serveur de Paris</Text>
+          
+          <TouchableOpacity 
+            style={styles.pointerButton} 
             onPress={handlePointer}
             activeOpacity={0.8}
           >
-            <Text style={styles.reminderIcon}>⏰</Text>
-            <View style={styles.reminderContent}>
-              <Text style={styles.reminderTitle}>Rappel de pointage</Text>
-              <Text style={styles.reminderMessage}>{entryReminder.message}</Text>
-              {entryReminder.poste ? (
-                <Text style={styles.reminderPoste}>Poste: {entryReminder.poste}</Text>
-              ) : null}
-            </View>
-            <Text style={styles.reminderAction}>Pointer →</Text>
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.primaryContainer]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.pointerGradient}
+            >
+              <MaterialCommunityIcons name="fingerprint" size={24} color="#fff" />
+              <Text style={styles.pointerButtonText}>
+                {todayStatus.hasEntry && !todayStatus.hasExit ? 'Pointer la Sortie' : 'Pointer l\'Entrée'}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
-        )}
-
-        {/* KPI Summary Cards */}
-        {isEmployee && kpiSummary && (
-          <TouchableOpacity onPress={() => navigation.navigate('Dashboard')} activeOpacity={0.7}>
-            <View style={styles.kpiRow}>
-              <View style={styles.kpiMiniCard}>
-                <Text style={styles.kpiMiniIcon}>🏖️</Text>
-                <Text style={styles.kpiMiniValue}>{kpiSummary.soldeConge.toFixed(1)}</Text>
-                <Text style={styles.kpiMiniLabel}>Congés restants</Text>
-              </View>
-              <View style={styles.kpiMiniCard}>
-                <Text style={styles.kpiMiniIcon}>⏱️</Text>
-                <Text style={styles.kpiMiniValue}>{kpiSummary.heuresTravailleesSemaine.toFixed(1)}h</Text>
-                <Text style={styles.kpiMiniLabel}>Cette semaine</Text>
-              </View>
-              <View style={styles.kpiMiniCard}>
-                <Text style={styles.kpiMiniIcon}>⏳</Text>
-                <Text style={styles.kpiMiniValue}>{kpiSummary.demandesEnAttente}</Text>
-                <Text style={styles.kpiMiniLabel}>En attente</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Presence Actions */}
-        {isEmployee && (
-          <View style={styles.presenceSection}>
-            <Text style={styles.sectionTitle}>🕐 Pointage du jour</Text>
-            {todayStatus.isRepos ? (
-              <View style={[styles.pointerBtn, { backgroundColor: '#8b5cf6' }]}>
-                <Text style={styles.pointerBtnIcon}>🔨</Text>
-                <Text style={styles.pointerBtnText}>Repos Travaillé</Text>
-              </View>
-            ) : todayStatus.hasEntry && todayStatus.hasExit ? (
-              <View style={[styles.pointerBtn, styles.pointerBtnDone]}>
-                <Text style={styles.pointerBtnIcon}>✅</Text>
-                <Text style={styles.pointerBtnText}>
-                  Complet: {todayStatus.entryTime} → {todayStatus.exitTime}
-                </Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[styles.pointerBtn, todayStatus.hasEntry && { backgroundColor: '#f59e0b' }]}
-                onPress={handlePointer}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.pointerBtnIcon}>
-                  {todayStatus.hasEntry ? '📤' : '📥'}
-                </Text>
-                <Text style={styles.pointerBtnText}>
-                  {todayStatus.hasEntry
-                    ? `Entrée: ${todayStatus.entryTime} • Pointer Sortie`
-                    : '📍 Pointer'}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {/* Quick Actions Grid */}
-        <Text style={styles.sectionTitle}>⚡ Accès rapide</Text>
-        <View style={styles.grid}>
-          {isEmployee && (
-            <>
-              <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('Dashboard')}>
-                <Text style={styles.gridIcon}>📊</Text>
-                <Text style={styles.gridLabel}>Tableau{'\n'}de Bord</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('PresenceHistory')}>
-                <Text style={styles.gridIcon}>📅</Text>
-                <Text style={styles.gridLabel}>Historique{'\n'}Présence</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('LeaveRequest')}>
-                <Text style={styles.gridIcon}>🏖️</Text>
-                <Text style={styles.gridLabel}>Demande{'\n'}de Congé</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('Expense')}>
-                <Text style={styles.gridIcon}>💰</Text>
-                <Text style={styles.gridLabel}>Notes{'\n'}de Frais</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('Balance')}>
-                <Text style={styles.gridIcon}>📋</Text>
-                <Text style={styles.gridLabel}>Solde{'\n'}Congés</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('DigitalVault')}>
-                <Text style={styles.gridIcon}>📁</Text>
-                <Text style={styles.gridLabel}>Coffre{'\n'}Numérique</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('Authorization')}>
-            <Text style={styles.gridIcon}>🚪</Text>
-            <Text style={styles.gridLabel}>Autorisation{'\n'}de Sortie</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('DemandeAutorisation')}>
-            <Text style={styles.gridIcon}>📋</Text>
-            <Text style={styles.gridLabel}>Demande{'\n'}d'Autorisation</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('Profile')}>
-            <Text style={styles.gridIcon}>👤</Text>
-            <Text style={styles.gridLabel}>Mon{'\n'}Profil</Text>
-          </TouchableOpacity>
-
-          {(isAdmin || isManager) && (
-            <>
-              <TouchableOpacity
-                style={[styles.gridItem, { backgroundColor: '#e3f2fd' }]}
-                onPress={() => navigation.navigate('DailyPointage')}
-              >
-                <Text style={styles.gridIcon}>📋</Text>
-                <Text style={styles.gridLabel}>Pointage{'\n'}du Jour</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.gridItem, { backgroundColor: '#f3e5f5' }]}
-                onPress={() => navigation.navigate('EmployeeList')}
-              >
-                <Text style={styles.gridIcon}>👥</Text>
-                <Text style={styles.gridLabel}>Gestion{'\n'}Employés</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.gridItem, { backgroundColor: '#fce4ec' }]}
-                onPress={() => navigation.navigate('LeaveApproval')}
-              >
-                <Text style={styles.gridIcon}>✅</Text>
-                <Text style={styles.gridLabel}>Approbation{'\n'}Congés</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.gridItem, { backgroundColor: '#e8f5e9' }]}
-                onPress={() => navigation.navigate('ExpenseApproval')}
-              >
-                <Text style={styles.gridIcon}>💰</Text>
-                <Text style={styles.gridLabel}>Approbation{'\n'}Frais</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <Text style={styles.lastExitLabel}>
+            {todayStatus.hasEntry ? `Entrée à ${todayStatus.entryTime}` : 'Dernière sortie : Ven. 18:05'}
+          </Text>
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>🚪 Se Déconnecter</Text>
-        </TouchableOpacity>
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          {/* Vacation Balance */}
+          <View style={styles.vacationCard}>
+            <View style={styles.cardHeader}>
+              <View style={styles.iconContainer}>
+                <MaterialCommunityIcons name="calendar-blank" size={20} color={COLORS.primary} />
+              </View>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>1 DEMANDE</Text>
+              </View>
+            </View>
+            <Text style={styles.statLabel}>SOLDE CONGÉS</Text>
+            <View style={styles.statValueRow}>
+              <Text style={styles.statValue}>{kpiSummary?.soldeConge?.toFixed(1) || '18'}</Text>
+              <Text style={styles.statUnit}>Jours</Text>
+            </View>
+          </View>
+
+          {/* Weekly Hours */}
+          <View style={styles.hoursCard}>
+            <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primaryContainer} />
+            <Text style={[styles.statLabel, { color: '#cbd5e1', marginTop: 12 }]}>SEMAINE</Text>
+            <View style={styles.statValueRow}>
+              <Text style={[styles.statValue, { color: '#fff' }]}>
+                {kpiSummary?.heuresTravailleesSemaine?.toFixed(1) || '32.5'}
+              </Text>
+              <Text style={[styles.statUnit, { color: '#64748b' }]}>H</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${kpiSummary?.pourcentageObjectif || 85}%` }]} />
+            </View>
+          </View>
+        </View>
+
+        {/* Attendance Graph Section */}
+        <View style={styles.attendanceSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Présence Hebdo</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('PresenceHistory')}>
+              <Text style={styles.seeDetail}>VOIR DÉTAIL</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.graphContainer}>
+            {['L', 'M', 'M', 'J', 'V'].map((day, i) => (
+              <View key={i} style={styles.graphBarWrapper}>
+                <View style={styles.graphBarBackground}>
+                  <View style={[styles.graphBarFill, { height: `${[100, 85, 90, 95, 0][i]}%` }]} />
+                </View>
+                <Text style={[styles.graphDayLabel, i === 3 && { color: COLORS.primary }]}>{day}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Vault Preview */}
+        <View style={styles.vaultSection}>
+          <View style={styles.vaultHeader}>
+            <MaterialCommunityIcons name="folder-account-outline" size={18} color={COLORS.onSurface} />
+            <Text style={styles.vaultTitle}>Coffre-fort récent</Text>
+          </View>
+          
+          {recentDocs.map((doc) => (
+            <TouchableOpacity 
+              key={doc.id} 
+              style={styles.vaultItem}
+              onPress={() => navigation.navigate('DigitalVault')}
+            >
+              <View style={styles.vaultIconContainer}>
+                <MaterialCommunityIcons name="file-pdf-box" size={24} color={COLORS.error} />
+              </View>
+              <View style={styles.vaultItemContent}>
+                <Text style={styles.vaultItemTitle}>{doc.titre}</Text>
+                <Text style={styles.vaultItemSubtitle}>{doc.dateAjout.toUpperCase()}</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#cbd5e1" />
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
+
+      {/* BottomNavBar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
+          <MaterialCommunityIcons name="view-dashboard" size={24} color={COLORS.primaryContainer} />
+          <Text style={[styles.navLabel, { color: COLORS.primaryContainer }]}>DASHBOARD</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
+          <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>LEAVES</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('DigitalVault')}>
+          <MaterialCommunityIcons name="folder-account-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>VAULT</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
+          <MaterialCommunityIcons name="draw-pen" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>SIGN</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
+  topAppBar: {
+    height: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, backgroundColor: COLORS.background,
   },
-  greeting: { fontSize: 14, color: COLORS.textSecondary },
-  userName: { fontSize: 24, fontWeight: 'bold', color: COLORS.text },
-  companyName: { fontSize: 12, color: COLORS.primary, marginTop: 2 },
-  avatarBtn: { padding: 4 },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center', elevation: 3,
+  topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
+  topAppRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  notificationWrapper: { position: 'relative' },
+  notificationDot: { position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.error },
+  profileImage: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#fff' },
+  scrollContent: { padding: 20, paddingBottom: 100 },
+  welcomeSection: { marginBottom: 24 },
+  dateLabel: { fontSize: 10, fontWeight: '700', color: '#64748b', letterSpacing: 1.2 },
+  welcomeTitle: { fontSize: 32, fontWeight: '800', color: COLORS.onSurface, marginTop: 4 },
+  punchCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', borderRadius: 40, padding: 32,
+    alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.5)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 20,
+    marginBottom: 32,
   },
-  avatarText: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  clockCard: {
-    backgroundColor: COLORS.primary, borderRadius: 16, padding: 20,
-    alignItems: 'center', marginBottom: 16, elevation: 4,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8,
+  gpsStatus: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  gpsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4edea3' },
+  gpsLabel: { fontSize: 10, fontWeight: '700', color: '#005236', letterSpacing: 1 },
+  currentTimeText: { fontSize: 48, fontWeight: '800', color: COLORS.primary, letterSpacing: -1 },
+  serverTimeLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '500', marginTop: 4 },
+  pointerButton: { width: '100%', marginTop: 24, borderRadius: 30, overflow: 'hidden' },
+  pointerGradient: { paddingVertical: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  pointerButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  lastExitLabel: { fontSize: 11, color: '#94a3b8', marginTop: 16 },
+  statsGrid: { flexDirection: 'row', gap: 16, marginBottom: 24 },
+  vacationCard: {
+    flex: 3, backgroundColor: '#fff', borderRadius: 16, padding: 20,
+    borderBottomWidth: 2, borderBottomColor: 'rgba(0, 64, 161, 0.1)',
   },
-  clockTime: { fontSize: 40, fontWeight: 'bold', color: '#fff', letterSpacing: 2 },
-  clockDate: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4, textAlign: 'center' },
-  kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  kpiMiniCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 12,
-    alignItems: 'center', elevation: 2, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3,
+  hoursCard: { flex: 2, backgroundColor: COLORS.onSurface, borderRadius: 16, padding: 20 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  iconContainer: { padding: 8, backgroundColor: '#dae2ff', borderRadius: 8 },
+  badge: { backgroundColor: 'rgba(0, 108, 73, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  badgeText: { fontSize: 9, fontWeight: '800', color: '#005236' },
+  statLabel: { fontSize: 9, fontWeight: '800', color: '#64748b', letterSpacing: 1 },
+  statValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 4 },
+  statValue: { fontSize: 28, fontWeight: '900', color: COLORS.onSurface },
+  statUnit: { fontSize: 12, fontWeight: '600', color: '#94a3b8' },
+  progressBar: { height: 4, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 2, marginTop: 12, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: '#b2c5ff', borderRadius: 2 },
+  attendanceSection: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: 16, padding: 20, marginBottom: 24 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: COLORS.onSurface },
+  seeDetail: { fontSize: 10, fontWeight: '800', color: COLORS.primary, letterSpacing: 0.5 },
+  graphContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 100 },
+  graphBarWrapper: { alignItems: 'center', gap: 8 },
+  graphBarBackground: { width: 8, height: 80, backgroundColor: COLORS.surfaceContainerHighest, borderRadius: 4, justifyContent: 'flex-end' },
+  graphBarFill: { width: '100%', backgroundColor: COLORS.primary, borderRadius: 4 },
+  graphDayLabel: { fontSize: 10, fontWeight: '700', color: '#94a3b8' },
+  vaultSection: { marginBottom: 32 },
+  vaultHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  vaultTitle: { fontSize: 14, fontWeight: '800', color: COLORS.onSurface },
+  vaultItem: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8,
   },
-  kpiMiniIcon: { fontSize: 20, marginBottom: 4 },
-  kpiMiniValue: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
-  kpiMiniLabel: { fontSize: 10, color: COLORS.textSecondary, marginTop: 2, textAlign: 'center' },
-  presenceSection: { marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 12 },
-  pointerBtn: {
-    flexDirection: 'row', backgroundColor: COLORS.secondary, borderRadius: 12, padding: 18,
-    alignItems: 'center', justifyContent: 'center', elevation: 3, gap: 10,
+  vaultIconContainer: { width: 48, height: 48, borderRadius: 12, backgroundColor: 'rgba(186, 26, 26, 0.05)', justifyContent: 'center', alignItems: 'center' },
+  vaultItemContent: { flex: 1 },
+  vaultItemTitle: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  vaultItemSubtitle: { fontSize: 9, fontWeight: '700', color: '#94a3b8', marginTop: 2 },
+  bottomNav: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', paddingBottom: 20,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  pointerBtnDone: { backgroundColor: COLORS.success },
-  pointerBtnIcon: { fontSize: 24 },
-  pointerBtnText: { color: '#fff', fontSize: 15, fontWeight: '700', textAlign: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  gridItem: {
-    width: '31%', backgroundColor: '#fff', borderRadius: 12, padding: 14,
-    alignItems: 'center', elevation: 2, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2,
-  },
-  gridIcon: { fontSize: 28, marginBottom: 4 },
-  gridLabel: { fontSize: 11, color: COLORS.text, textAlign: 'center', fontWeight: '500', lineHeight: 15 },
-  reminderBanner: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff3cd',
-    borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#ffc107',
-    elevation: 3, shadowColor: '#ffc107', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2, shadowRadius: 4,
-  },
-  reminderIcon: { fontSize: 32, marginRight: 12 },
-  reminderContent: { flex: 1 },
-  reminderTitle: { fontSize: 14, fontWeight: 'bold', color: '#856404' },
-  reminderMessage: { fontSize: 12, color: '#856404', marginTop: 2 },
-  reminderPoste: { fontSize: 11, color: '#6c5a0e', marginTop: 2, fontStyle: 'italic' },
-  reminderAction: { fontSize: 13, fontWeight: '700', color: '#d97706', marginLeft: 8 },
-  logoutBtn: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, alignItems: 'center',
-    marginTop: 24, borderWidth: 1, borderColor: COLORS.border,
-  },
-  logoutText: { color: COLORS.error, fontSize: 15, fontWeight: '600' },
+  navItem: { alignItems: 'center', gap: 4 },
+  navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
 });
+

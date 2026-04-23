@@ -657,7 +657,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   const [societeImage, setSocieteImage] = React.useState<string>(
     localStorage.getItem('societeImage')
       ? `${BASE_URL}${localStorage.getItem('societeImage')}`
-      : '/default-logo.png'
+      : '/Concorde.png'
   );
 
   React.useEffect(() => {
@@ -677,6 +677,23 @@ function DashboardLayoutAccount(_props: DemoProps) {
     document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
+
+  // ── Browser Tab Title Management ──
+  React.useEffect(() => {
+    const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
+    const navItems = flatten(NAVIGATION);
+    const matched = navItems.find(n => n.href === pathname);
+
+    if (matched) {
+      document.title = `${matched.label} | Concorde Workforce`;
+    } else if (pathname === '/dashboard') {
+      document.title = `Tableau de bord | Concorde Workforce`;
+    } else if (pathname === '/login' || pathname === '/') {
+      document.title = `Connexion | Concorde Workforce`;
+    } else {
+      document.title = `Concorde Workforce`;
+    }
+  }, [pathname, NAVIGATION]);
 
   // ── Tab Management State ──
   const [openedTabs, setOpenedTabs] = React.useState<OpenedTab[]>(() => {
@@ -765,12 +782,12 @@ function DashboardLayoutAccount(_props: DemoProps) {
     return <DemoPageContent pathname={pathname} />;
   }
 
-  const title = sessionStorage.getItem('soclib') || 'Ledger.';
+  const title = sessionStorage.getItem('soclib') || 'Concorde';
   const logo = (
     <img
       src={societeImage}
       alt="Societe"
-      style={{ borderRadius: '8px', width: 32, height: 32, objectFit: 'cover' }}
+      style={{ borderRadius: '8px', width: 32, height: 32, objectFit: 'contain' }}
     />
   );
 

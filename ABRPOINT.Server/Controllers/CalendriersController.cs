@@ -2,7 +2,6 @@
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -39,7 +38,14 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost]
         public void Post([FromBody] Calendsoc calendrier)
         {
-            _IcalendrierRepository.Add(calendrier);
+            try
+            {
+                _IcalendrierRepository.Add(calendrier);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
         [HttpPost("clone/{soccod}/{annee}")]
         public async Task CloneCalendrier(string soccod,int annee)

@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Helper;
+using ABRPOINT.Helper;
 using ABRPOINT.Server.Annotations.PosteAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Exceptions;
@@ -6,6 +6,8 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ABRPOINT.Server.Data;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -16,11 +18,13 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IPosteRepository _posteRepository;
         private readonly ILcategorieRepository _lcategorieRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public PostesController(IPosteRepository posteRepository, ILcategorieRepository lcategorieRepository)
+        public PostesController(IPosteRepository posteRepository, ILcategorieRepository lcategorieRepository, ApplicationDbContext dbContext)
         {
             _posteRepository = posteRepository;
             _lcategorieRepository = lcategorieRepository;
+            _dbContext = dbContext;
         }
 
         // GET: api/Poste
@@ -42,11 +46,11 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-poste/{soccod}/{codposte}")]
         [CanGetPostes]
-        public async Task<ActionResult<Poste>> GetPoste(string soccod,string codposte)
+        public async Task<ActionResult<Poste>> GetPoste(string soccod, string codposte)
         {
             try
             {
-                Poste? postes = await _posteRepository.GetPoste(soccod,codposte);
+                Poste? postes = await _posteRepository.GetPoste(soccod, codposte);
                 return Ok(postes);
             }
             catch (Exception ex)
@@ -155,17 +159,43 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
-        
+
         [HttpGet("get-employe-poste-by-date/{soccod}/{empcod}/{date}/{day}")]
-        public async Task<PosteDto> GetEmployePoste(string soccod, string empcod, DateTime? date,string day)
+        public async Task<PosteDto> GetEmployePoste(string soccod, string empcod, DateTime? date, string day)
         {
             try
             {
-                string? catcod = await _lcategorieRepository.GetCatcodByEmp(soccod, empcod,date);   
-                string? codpost = await _posteRepository.GetEmpPoste(soccod,empcod,date,catcod);
+                // 1️⃣ Essayer de récupérer le poste depuis la présence (si elle existe)
+                string? codpost = await _dbContext.Presences
+                    .Where(p => p.Soccod == soccod && p.Empcod == empcod && p.Predat.Value.Date == date.Value.Date)
+                    .Select(p => p.Codposte)
+                    .FirstOrDefaultAsync();
+
+                string? catcod = null;
+
+                // 2️⃣ Si pas de poste en présence, essayer la logique Lcategories
+                if (string.IsNullOrEmpty(codpost))
+                {
+                    catcod = await _lcategorieRepository.GetCatcodByEmp(soccod, empcod, date);
+                    codpost = await _posteRepository.GetEmpPoste(soccod, empcod, date, catcod);
+                }
+
+                // 3️⃣ Si toujours rien, fallback vers le poste par défaut de l'employé
+                if (string.IsNullOrEmpty(codpost))
+                {
+                    var emp = await _dbContext.Employes
+                        .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                        .Select(e => new { e.Poscod, e.Catcod })
+                        .FirstOrDefaultAsync();
+
+                    codpost = emp?.Poscod;
+                    catcod ??= emp?.Catcod;
+                }
+
                 Poste? poste = await _posteRepository.GetPoste(soccod, codpost);
                 if (poste == null)
                     return null;
+
                 string prefix = day.ToLowerInvariant(); // e.g. "lun", "mar", etc.
 
                 PosteDto dto = new PosteDto
@@ -203,7 +233,7 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
-        
+
         // POST: api/Poste
         [HttpPost]
         [CanAddPoste]
@@ -215,10 +245,15 @@ namespace ABRPOINT.Server.Controllers
                 {
                     bool isExisting = await _posteRepository.isExisting(poste.Soccod, poste.Codposte);
                     if (isExisting)
-                        await UpdatePoste(poste);
+                    {
+                        await _posteRepository.UpdateAsync(poste);
+                        return Ok(new { success = true, message = "Poste mis à jour avec succès" });
+                    }
                     else
+                    {
                         await _posteRepository.AddAsync(poste); // Add poste to repository
-                    return Ok(new { success=true, message = "Poste ajouté avec succés" });
+                        return Ok(new { success = true, message = "Poste ajouté avec succès" });
+                    }
                 }
                 return BadRequest(ModelState);
             }
@@ -302,6 +337,5 @@ namespace ABRPOINT.Server.Controllers
                 });
             }
         }
-
     }
 }

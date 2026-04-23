@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator, TextInput, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS } from '../config/env';
+import { COLORS, THEME } from '../config/env';
+
+const { width } = Dimensions.get('window');
 
 interface VaultDocument {
   id?: number;
@@ -22,12 +26,11 @@ interface VaultDocument {
   empcod?: string;
 }
 
-const DOC_ICONS: Record<string, string> = {
-  contrat: '📄', attestation: '📋', medical: '🏥', identite: '🪪',
-  formation: '🎓', bulletin: '💵', lettre: '✉️', other: '📎',
-};
-
-const DOC_TYPES = ['Contrat', 'Attestation', 'Visite Médicale', 'Identité', 'Formation', 'Bulletin de paie', 'Autre'];
+const CATEGORIES = [
+  { id: 'all', label: 'Tous', icon: 'infinity' },
+  { id: 'bulletin', label: 'Bulletins', icon: 'cash-multiple' },
+  { id: 'contrat', label: 'Contrats', icon: 'file-document-outline' },
+];
 
 export default function DigitalVaultScreen({ navigation, route }: any) {
   const { user, isAdmin, isManager } = useAuth();
@@ -35,8 +38,9 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
 
-  // Admin can view employee documents via route params
   const targetEmpcod = route?.params?.empcod || user?.uticod;
   const targetSoccod = route?.params?.soccod || user?.soccod;
   const targetEmpName = route?.params?.empName || '';
@@ -50,11 +54,8 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
       const data = await apiService.getVaultDocuments(targetSoccod, targetEmpcod);
       setDocuments(Array.isArray(data) ? data : data ? [data] : []);
     } catch (e) {
-      // Fallback to contracts endpoint
-      try {
-        const data = await apiService.getMyContracts(user!.soccod!, user!.uticod!);
-        setDocuments(Array.isArray(data) ? data : data ? [data] : []);
-      } catch (e2) { console.log('Documents load error:', e2); }
+      console.log('Documents load error:', e);
+      setDocuments([]);
     } finally { setLoading(false); }
   };
 
@@ -71,8 +72,8 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
       const file = result.assets[0];
       Alert.alert('Type de document', 'Sélectionnez le type:', [
         { text: 'Contrat', onPress: () => doUpload(file.uri, 'Contrat') },
+        { text: 'Bulletin de paie', onPress: () => doUpload(file.uri, 'Bulletin de paie') },
         { text: 'Attestation', onPress: () => doUpload(file.uri, 'Attestation') },
-        { text: 'Visite Médicale', onPress: () => doUpload(file.uri, 'Visite Médicale') },
         { text: 'Autre', onPress: () => doUpload(file.uri, 'Autre') },
         { text: 'Annuler', style: 'cancel' },
       ]);
@@ -86,7 +87,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
     setUploading(true);
     try {
       await apiService.uploadVaultDocument(fileUri, targetSoccod, targetEmpcod, docType);
-      Alert.alert('✅ Succès', 'Document uploaded avec succès');
+      Alert.alert('✅ Succès', 'Document uploadé avec succès');
       loadDocuments();
     } catch (e) {
       Alert.alert('Erreur', 'Impossible d\'uploader le document');
@@ -96,48 +97,18 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   const handleSign = (doc: VaultDocument) => {
     if (!doc.id) return;
     const signerName = user?.utilib || 'Admin';
-    const confirmMsg = isAdminView
-      ? `Signer le document de ${targetEmpName || targetEmpcod} en tant que ${signerName} ?`
-      : 'Voulez-vous signer ce document électroniquement ?';
-    Alert.alert('✍️ Signature électronique', confirmMsg, [
+    Alert.alert('✍️ Signature électronique', 'Voulez-vous signer ce document électroniquement ?', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: '✍️ Signer', onPress: async () => {
           try {
-            await apiService.signVaultDocument(doc.id!, `admin_signature_${user?.uticod || 'unknown'}`, signerName);
-            Alert.alert('✅ Succès', 'Document signé électroniquement');
+            await apiService.signVaultDocument(doc.id!, `sig_${user?.uticod}`, signerName);
+            Alert.alert('✅ Succès', 'Document signé');
             loadDocuments();
-          } catch { Alert.alert('Erreur', 'Impossible de signer le document'); }
+          } catch { Alert.alert('Erreur', 'Impossible de signer'); }
         }
       },
     ]);
-  };
-
-  const handleDelete = (doc: VaultDocument) => {
-    if (!doc.id) return;
-    Alert.alert('Supprimer', `Supprimer "${doc.docName}" ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer', style: 'destructive', onPress: async () => {
-          try {
-            await apiService.deleteVaultDocument(doc.id!);
-            loadDocuments();
-          } catch { Alert.alert('Erreur', 'Impossible de supprimer'); }
-        }
-      },
-    ]);
-  };
-
-  const getDocIcon = (doc: VaultDocument) => {
-    const type = (doc.docType || doc.docName || '').toLowerCase();
-    if (type.includes('contrat')) return DOC_ICONS.contrat;
-    if (type.includes('attestation')) return DOC_ICONS.attestation;
-    if (type.includes('medical') || type.includes('visite')) return DOC_ICONS.medical;
-    if (type.includes('ident') || type.includes('cin')) return DOC_ICONS.identite;
-    if (type.includes('formation')) return DOC_ICONS.formation;
-    if (type.includes('bulletin') || type.includes('paie')) return DOC_ICONS.bulletin;
-    if (type.includes('lettre')) return DOC_ICONS.lettre;
-    return DOC_ICONS.other;
   };
 
   const formatFileSize = (bytes?: number) => {
@@ -147,6 +118,30 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
     return `${(bytes / 1048576).toFixed(1)} Mo`;
   };
 
+  const filteredDocuments = useMemo(() => {
+    return documents.filter(doc => {
+      const nameMatch = (doc.docName || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const categoryMatch = activeCategory === 'all' || 
+                           (activeCategory === 'bulletin' && (doc.docType?.toLowerCase().includes('bulletin') || doc.docType?.toLowerCase().includes('paie'))) ||
+                           (activeCategory === 'contrat' && doc.docType?.toLowerCase().includes('contrat'));
+      return nameMatch && categoryMatch;
+    });
+  }, [documents, searchQuery, activeCategory]);
+
+  const groupedDocuments = useMemo(() => {
+    const groups: Record<string, VaultDocument[]> = {};
+    filteredDocuments.forEach(doc => {
+      const date = doc.docDate ? new Date(doc.docDate) : new Date();
+      const monthYear = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const key = monthYear.charAt(0).toUpperCase() + monthYear.slice(1);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(doc);
+    });
+    return Object.entries(groups).sort((a, b) => {
+      return b[0].localeCompare(a[0]);
+    });
+  }, [filteredDocuments]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -155,86 +150,165 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
     );
   }
 
-  const signedCount = documents.filter(d => d.isSigned).length;
-
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>← Retour</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>{isAdminView ? `Coffre - ${targetEmpName || targetEmpcod}` : 'Coffre Numérique'}</Text>
-        <TouchableOpacity onPress={handleUpload} disabled={uploading || isAdminView}>
-          <Text style={styles.addBtn}>{uploading ? '⏳' : isAdminView ? '👁️ Lecture' : '+ Upload'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statChip}>
-          <Text style={styles.statChipText}>📁 {documents.length} documents</Text>
+      {/* TopAppBar */}
+      <View style={styles.topAppBar}>
+        <View style={styles.topAppLeft}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+            <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
+          </TouchableOpacity>
+          <Text style={styles.logoText}>LEDGER HR</Text>
         </View>
-        <View style={[styles.statChip, { backgroundColor: '#e8f5e9' }]}>
-          <Text style={[styles.statChipText, { color: COLORS.success }]}>✅ {signedCount} signés</Text>
+        <View style={styles.profileWrapper}>
+          <MaterialCommunityIcons name="account-circle-outline" size={32} color="#cbd5e1" />
         </View>
       </View>
 
-      {uploading && (
-        <View style={styles.uploadBanner}>
-          <ActivityIndicator size="small" color="#fff" />
-          <Text style={styles.uploadBannerText}>Upload en cours...</Text>
-        </View>
-      )}
-
-      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16 }}>
-        {documents.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🔒</Text>
-            <Text style={styles.emptyText}>Aucun document dans votre coffre</Text>
-            <Text style={styles.emptySubText}>Appuyez sur "+ Upload" pour ajouter un document</Text>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Editorial Header */}
+        <View style={styles.editorialHeader}>
+          <Text style={styles.mainTitle}>Vault</Text>
+          <Text style={styles.subTitle}>DIGITAL SECURE STORAGE</Text>
+          
+          <View style={styles.searchContainer}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Rechercher un document..."
+              placeholderTextColor="#94a3b8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
           </View>
-        ) : (
-          documents.map((doc: VaultDocument, i: number) => (
-            <View key={i} style={styles.docCard}>
-              <View style={styles.docLeft}>
-                <View style={styles.docIconContainer}>
-                  <Text style={styles.docIcon}>{getDocIcon(doc)}</Text>
-                </View>
-                <View style={styles.docInfo}>
-                  <Text style={styles.docTitle}>{doc.docName || `Document ${i + 1}`}</Text>
-                  <Text style={styles.docType}>{doc.docType || 'Document'}</Text>
-                  <View style={styles.docMeta}>
-                    {doc.docDate && (
-                      <Text style={styles.docDate}>{doc.docDate?.split('T')[0]}</Text>
-                    )}
-                    {doc.docSize ? (
-                      <Text style={styles.docSize}>{formatFileSize(doc.docSize)}</Text>
-                    ) : null}
-                  </View>
-                </View>
+        </View>
+
+        {/* Categories */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={styles.categoryContent}>
+          {CATEGORIES.map(cat => (
+            <TouchableOpacity
+              key={cat.id}
+              style={[styles.categoryBtn, activeCategory === cat.id && styles.categoryBtnActive]}
+              onPress={() => setActiveCategory(cat.id)}
+            >
+              <MaterialCommunityIcons name={cat.icon as any} size={16} color={activeCategory === cat.id ? '#fff' : '#424654'} />
+              <Text style={[styles.categoryLabel, activeCategory === cat.id && styles.categoryLabelActive]}>
+                {cat.label.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Document Groups */}
+        <View style={styles.documentList}>
+          {groupedDocuments.map(([month, docs]) => (
+            <View key={month} style={styles.monthGroup}>
+              <View style={styles.monthHeader}>
+                <Text style={styles.monthTitle}>{month}</Text>
+                <View style={styles.monthLine} />
               </View>
-              <View style={styles.docActions}>
-                {doc.isSigned ? (
-                  <View style={styles.signedBadge}>
-                    <Text style={styles.signedText}>✓ Signé</Text>
-                  </View>
-                ) : doc.id ? (
-                  <TouchableOpacity style={styles.signBtn} onPress={() => handleSign(doc)}>
-                    <Text style={styles.signBtnText}>✍️</Text>
-                  </TouchableOpacity>
-                ) : null}
-                {doc.id ? (
-                  <TouchableOpacity onPress={() => handleDelete(doc)} style={styles.deleteSmallBtn}>
-                    <Text style={styles.deleteSmallText}>🗑️</Text>
-                  </TouchableOpacity>
-                ) : null}
-                <Text style={styles.docArrow}>›</Text>
+              
+              <View style={styles.docStack}>
+                {docs.map((doc, idx) => {
+                  const isBulletin = doc.docType?.toLowerCase().includes('bulletin') || doc.docType?.toLowerCase().includes('paie');
+                  const isPending = !doc.isSigned && doc.docType?.toLowerCase().includes('contrat');
+                  
+                  return (
+                    <TouchableOpacity
+                      key={doc.id || idx}
+                      style={[styles.docCard, isPending && styles.docCardPending]}
+                      onPress={() => {}}
+                    >
+                      <View style={styles.docLeft}>
+                        <View style={[
+                          styles.docIconContainer,
+                          isBulletin ? styles.iconBulletins : isPending ? styles.iconPending : styles.iconDefault
+                        ]}>
+                          <MaterialCommunityIcons
+                            name={isBulletin ? 'file-pdf-box' : isPending ? 'clock-alert-outline' : 'file-document-outline'}
+                            size={24}
+                            color={isBulletin ? COLORS.error : isPending ? '#b45309' : COLORS.primary}
+                          />
+                        </View>
+                        <View style={styles.docInfo}>
+                          <Text style={styles.docTitle}>{doc.docName}</Text>
+                          <View style={styles.docMeta}>
+                            <Text style={styles.docSubMeta}>
+                              {doc.docDate ? new Date(doc.docDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                              {doc.docSize ? ` • ${formatFileSize(doc.docSize)}` : ''}
+                            </Text>
+                            {doc.isSigned && (
+                              <View style={styles.signedBadge}>
+                                <Text style={styles.signedText}>SIGNÉ</Text>
+                              </View>
+                            )}
+                            {isPending && (
+                              <View style={styles.pendingBadge}>
+                                <Text style={styles.pendingText}>EN ATTENTE</Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                      
+                      {isPending ? (
+                        <TouchableOpacity style={styles.signButton} onPress={() => handleSign(doc)}>
+                          <Text style={styles.signButtonText}>SIGNER</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity style={styles.actionButton}>
+                          <MaterialCommunityIcons name={doc.isSigned ? 'eye-outline' : 'download'} size={20} color={COLORS.primary} />
+                        </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
-          ))
-        )}
+          ))}
+          
+          {filteredDocuments.length === 0 && (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="folder-open-outline" size={64} color="#e2e8f0" />
+              <Text style={styles.emptyText}>Aucun document trouvé</Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      {/* FAB */}
+      <TouchableOpacity style={styles.fab} onPress={handleUpload}>
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.primaryContainer]}
+          style={styles.fabGradient}
+        >
+          <MaterialCommunityIcons name="plus" size={32} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* BottomNavBar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>DASHBOARD</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
+          <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>LEAVES</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
+          <MaterialCommunityIcons name="folder-account" size={24} color={COLORS.primaryContainer} />
+          <Text style={[styles.navLabel, { color: COLORS.primaryContainer }]}>VAULT</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
+          <MaterialCommunityIcons name="draw-pen" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>SIGN</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -242,60 +316,71 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, backgroundColor: '#fff', elevation: 2,
+  topAppBar: {
+    height: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, backgroundColor: COLORS.background,
   },
-  backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, flex: 1, marginLeft: 12 },
-  addBtn: { fontSize: 14, color: COLORS.primary, fontWeight: 'bold' },
-  statsRow: { flexDirection: 'row', padding: 12, gap: 8, backgroundColor: '#fff', paddingBottom: 8 },
-  statChip: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#e3f2fd',
+  topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
+  profileWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.surfaceContainerHigh },
+  scrollContent: { padding: 20, paddingBottom: 120 },
+  editorialHeader: { marginBottom: 32 },
+  mainTitle: { fontSize: 32, fontWeight: '800', color: COLORS.primary, letterSpacing: -0.5 },
+  subTitle: { fontSize: 10, fontWeight: '700', color: COLORS.outline, letterSpacing: 1.2, marginTop: 4, marginBottom: 24 },
+  searchContainer: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 16, paddingHorizontal: 16, height: 56,
   },
-  statChipText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
-  uploadBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.primary, padding: 8, gap: 8,
+  searchIcon: { marginRight: 12 },
+  searchInput: { flex: 1, fontSize: 14, color: COLORS.onSurface, fontFamily: 'Inter' },
+  categoryScroll: { marginHorizontal: -20, marginBottom: 24 },
+  categoryContent: { paddingHorizontal: 20, gap: 12 },
+  categoryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12,
+    borderRadius: 30, backgroundColor: COLORS.surfaceContainerLowest,
   },
-  uploadBannerText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: COLORS.textSecondary },
-  emptySubText: { fontSize: 13, color: COLORS.disabled, marginTop: 4, textAlign: 'center' },
+  categoryBtnActive: { backgroundColor: COLORS.primaryContainer, elevation: 8, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+  categoryLabel: { fontSize: 10, fontWeight: '800', color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  categoryLabelActive: { color: '#fff' },
+  documentList: { gap: 32 },
+  monthGroup: { gap: 16 },
+  monthHeader: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  monthTitle: { fontSize: 18, fontWeight: '800', color: COLORS.onSurface },
+  monthLine: { flex: 1, height: 2, backgroundColor: COLORS.surfaceContainerHigh },
+  docStack: { gap: 12 },
   docCard: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10,
-    elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 2,
+    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8,
   },
-  docLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  docIconContainer: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#f0f4ff',
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  docCardPending: { borderWidth: 2, borderColor: 'rgba(0, 86, 210, 0.1)', borderStyle: 'dashed' },
+  docLeft: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
+  docIconContainer: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  iconBulletins: { backgroundColor: 'rgba(186, 26, 26, 0.05)' },
+  iconPending: { backgroundColor: 'rgba(180, 83, 9, 0.1)' },
+  iconDefault: { backgroundColor: 'rgba(0, 64, 161, 0.05)' },
+  docInfo: { flex: 1, gap: 4 },
+  docTitle: { fontSize: 15, fontWeight: '700', color: COLORS.onSurface },
+  docMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  docSubMeta: { fontSize: 11, color: COLORS.outline, fontWeight: '500' },
+  signedBadge: { backgroundColor: COLORS.tertiaryContainer, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  signedText: { fontSize: 9, fontWeight: '800', color: '#fff' },
+  pendingBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  pendingText: { fontSize: 9, fontWeight: '800', color: '#92400e' },
+  actionButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' },
+  signButton: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+  signButtonText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  emptyState: { alignItems: 'center', gap: 12, paddingVertical: 60 },
+  emptyText: { fontSize: 14, color: COLORS.outline, fontWeight: '600' },
+  fab: { position: 'absolute', bottom: 100, right: 24, zIndex: 100 },
+  fabGradient: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12 },
+  bottomNav: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', paddingBottom: 20,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  docIcon: { fontSize: 22 },
-  docInfo: { flex: 1 },
-  docTitle: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  docType: { fontSize: 11, color: COLORS.primary, marginTop: 2 },
-  docMeta: { flexDirection: 'row', gap: 8, marginTop: 3 },
-  docDate: { fontSize: 10, color: COLORS.textSecondary },
-  docSize: { fontSize: 10, color: COLORS.textSecondary },
-  docActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  signedBadge: {
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
-    backgroundColor: '#e8f5e9',
-  },
-  signedText: { fontSize: 10, fontWeight: '600', color: COLORS.success },
-  signBtn: {
-    width: 30, height: 30, borderRadius: 15, backgroundColor: '#fff3e0',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  signBtnText: { fontSize: 14 },
-  deleteSmallBtn: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#ffebee',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  deleteSmallText: { fontSize: 12 },
-  docArrow: { fontSize: 20, color: COLORS.disabled, marginLeft: 4 },
+  navItem: { alignItems: 'center', gap: 4 },
+  navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
 });

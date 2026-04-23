@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -285,7 +285,7 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                var catcod = await _dbContext.Presences.Where(p => p.Soccod == soccod && p.Dmdate == date && p.Empcod == empcod)
+                var catcod = await _dbContext.Presences.Where(p => p.Soccod == soccod && p.Predat.Value.Date == date.Value.Date && p.Empcod == empcod)
                    .Select(p => p.Catcod)
                    .FirstOrDefaultAsync();
                 if (string.IsNullOrEmpty(catcod))

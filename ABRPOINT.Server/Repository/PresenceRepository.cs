@@ -89,11 +89,8 @@ namespace ABRPOINT.Server.Repository
                 var emp = await _employeRepository.GetByEmpcod(soccod, empcod);
                 if (emp == null)
                     return null;
-
-                if (string.IsNullOrEmpty(emp.Poscod))
-                {
+                if(emp.Poscod == null)
                     emp.Poscod = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date,emp.Catcod);
-                }
 
                 var poste = await _posteRepository.GetPoste(soccod, emp.Poscod);
                 var dbpresence = await _dbContext.Presences

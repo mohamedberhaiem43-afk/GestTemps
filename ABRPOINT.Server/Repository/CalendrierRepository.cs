@@ -416,7 +416,7 @@ namespace ABRPOINT.Server.Repository
                 string anneeSource = (annee - 1).ToString();
                 string anneeCible = annee.ToString();
 
-                // 1️⃣ Lire calendrier de l’année précédente
+                // 1️⃣ Lire calendrier source
                 var calendrierSource = await _dbContext.Calendsocs
                     .Where(c => c.Soccod == soccod && c.CalAn == anneeSource)
                     .AsNoTracking()
@@ -425,8 +425,22 @@ namespace ABRPOINT.Server.Repository
                 if (!calendrierSource.Any())
                     return false;
 
-                // 2️⃣ Cloner
-                var calendrierClone = calendrierSource.Select(c => new Calendsoc
+                // 2️⃣ Supprimer les doublons de la source (même PK)
+                var sourceDistincte = calendrierSource
+                    .GroupBy(c => new { c.Soccod, c.CalAn, c.CalMois, c.CalSem })
+                    .Select(g => g.First())
+                    .ToList();
+
+                // 3️⃣ Supprimer les enregistrements cibles existants
+                var existants = await _dbContext.Calendsocs
+                    .Where(c => c.Soccod == soccod && c.CalAn == anneeCible)
+                    .ToListAsync();
+
+                if (existants.Any())
+                    _dbContext.Calendsocs.RemoveRange(existants);
+
+                // 4️⃣ Cloner
+                var calendrierClone = sourceDistincte.Select(c => new Calendsoc
                 {
                     Soccod = c.Soccod,
                     Caltype = c.Caltype,
@@ -443,7 +457,7 @@ namespace ABRPOINT.Server.Repository
 
                 await _dbContext.Calendsocs.AddRangeAsync(calendrierClone);
                 await _dbContext.SaveChangesAsync();
-                
+
                 return true;
             }
             catch (Exception)

@@ -1,24 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  Alert, RefreshControl, Dimensions, ActivityIndicator, Image,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS } from '../config/env';
+import { COLORS, THEME } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 import TimePickerModal from '../components/TimePickerModal';
 
+const { width } = Dimensions.get('window');
+
+const REASONS = [
+  { id: 'Personnel', label: 'Personnel', icon: 'account' },
+  { id: 'Professionnel', label: 'Pro', icon: 'briefcase' },
+  { id: 'Médical', label: 'Médical', icon: 'medical-bag' },
+];
+
 export default function AuthorizationScreen({ navigation }: any) {
-  const { user, isEmployee, isAdmin, isManager } = useAuth();
+  const { user, isAdmin, isManager, isEmployee } = useAuth();
   const [auths, setAuths] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Form state
   const [form, setForm] = useState({
     condep: new Date(),
-    condepTime: new Date(),
-    conretTime: new Date(),
-    conmotif: '',
-    connbjour: '1',
+    condepTime: new Date(new Date().setHours(14, 0, 0, 0)),
+    conretTime: new Date(new Date().setHours(16, 30, 0, 0)),
+    conmotif: 'Personnel',
   });
+
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDepTimePicker, setShowDepTimePicker] = useState(false);
   const [showRetTimePicker, setShowRetTimePicker] = useState(false);
@@ -28,37 +43,35 @@ export default function AuthorizationScreen({ navigation }: any) {
   const loadAuths = async () => {
     if (!user?.soccod || !user?.uticod) return;
     try {
-      if (isAdmin) {
-        // Admin sees all authorizations
-        const data = await apiService.getAuthorizations(user.soccod, user.uticod);
-        setAuths(Array.isArray(data) ? data : []);
-      } else if (isManager) {
-        // Manager sees authorizations from their service
-        const data = await apiService.getAuthorizations(user.soccod, user.uticod);
-        const allAuths = Array.isArray(data) ? data : [];
-        // Filter by manager's service code
-        setAuths(user.sercod ? allAuths.filter((a: any) => !a.sercod || a.sercod === user.sercod) : allAuths);
+      let data: any[] = [];
+      if (isAdmin || isManager) {
+        data = await apiService.getAuthorizations(user.soccod, user.uticod);
       } else {
-        // Employee sees only their own
-        const data = await apiService.getMyAuthorizations(user.soccod, user.uticod);
-        setAuths(Array.isArray(data) ? data : []);
+        data = await apiService.getMyAuthorizations(user.soccod, user.uticod);
       }
+      setAuths(Array.isArray(data) ? data : []);
     } catch (e) {
-      // Fallback to self endpoint
-      try {
-        const data = await apiService.getMyAuthorizations(user.soccod, user.uticod);
-        setAuths(Array.isArray(data) ? data : []);
-      } catch (e2) { console.log('Auth load error:', e2); }
+      console.log('Auth load error:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const onRefresh = async () => { setRefreshing(true); await loadAuths(); setRefreshing(false); };
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadAuths();
+    setRefreshing(false);
+  };
+
+  const totalDuration = useMemo(() => {
+    const diff = form.conretTime.getTime() - form.condepTime.getTime();
+    if (diff <= 0) return '00h 00m';
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+  }, [form.condepTime, form.conretTime]);
 
   const handleSubmit = async () => {
-    if (!form.conmotif) {
-      Alert.alert('Erreur', 'Veuillez remplir le motif');
-      return;
-    }
     if (!user?.soccod || !user?.uticod) return;
     try {
       const depDate = new Date(form.condep);
@@ -69,6 +82,8 @@ export default function AuthorizationScreen({ navigation }: any) {
       const retDateTime = new Date(depDate.getFullYear(), depDate.getMonth(), depDate.getDate(),
         retTime.getHours(), retTime.getMinutes());
 
+      const hoursDiff = (retDateTime.getTime() - depDateTime.getTime()) / (1000 * 60 * 60);
+
       await apiService.createMyAuthorization({
         soccod: user.soccod,
         empcod: user.uticod,
@@ -77,140 +92,188 @@ export default function AuthorizationScreen({ navigation }: any) {
         conret: retDateTime.toISOString(),
         condat: new Date().toISOString().split('T')[0],
         conmotif: form.conmotif,
-        connbjour: parseFloat(form.connbjour) || 1,
+        connbjour: parseFloat(hoursDiff.toFixed(2)) || 1,
         conamdep: depTime.getHours() < 12 ? '1' : '0',
         conamret: retTime.getHours() < 12 ? '1' : '0',
       });
       Alert.alert('✅ Succès', 'Autorisation de sortie envoyée');
-      setShowForm(false);
-      setForm({ condep: new Date(), condepTime: new Date(), conretTime: new Date(), conmotif: '', connbjour: '1' });
       loadAuths();
     } catch (e) { Alert.alert('Erreur', 'Impossible d\'envoyer la demande'); }
   };
 
-  const handleDelete = (item: any) => {
-    Alert.alert('Supprimer', 'Voulez-vous supprimer cette autorisation ?', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer', style: 'destructive', onPress: async () => {
-          try {
-            await apiService.deleteAuthorization(user!.soccod!, item.concod);
-            loadAuths();
-          } catch { Alert.alert('Erreur', 'Impossible de supprimer'); }
-        }
-      },
-    ]);
+  const getStatusInfo = (consanc: string) => {
+    switch (consanc) {
+      case 'A': return { label: 'VALIDÉ', color: COLORS.tertiary, bgColor: COLORS.tertiaryFixed };
+      case 'R': return { label: 'REFUSÉ', color: COLORS.error, bgColor: COLORS.errorContainer };
+      default: return { label: 'EN ATTENTE', color: '#b45309', bgColor: '#fff4e5' };
+    }
   };
 
-  const handleApprove = (item: any) => {
-    Alert.alert('Approuver', `Approuver l'autorisation de ${item.emplib || item.empcod} ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Approuver', onPress: async () => {
-          try {
-            await apiService.updateAuthorization({
-              ...item,
-              soccod: user!.soccod!,
-              conaffecte: user!.uticod!,
-              consanc: 'A',
-            });
-            Alert.alert('✅ Succès', 'Autorisation approuvée');
-            loadAuths();
-          } catch { Alert.alert('Erreur', 'Impossible d\'approuver'); }
-        }
-      },
-    ]);
-  };
-
-  const handleRefuse = (item: any) => {
-    Alert.alert('Refuser', `Refuser l'autorisation de ${item.emplib || item.empcod} ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Refuser', style: 'destructive', onPress: async () => {
-          try {
-            await apiService.updateAuthorization({
-              ...item,
-              soccod: user!.soccod!,
-              conaffecte: user!.uticod!,
-              consanc: 'R',
-            });
-            Alert.alert('Succès', 'Autorisation refusée');
-            loadAuths();
-          } catch { Alert.alert('Erreur', 'Impossible de refuser'); }
-        }
-      },
-    ]);
-  };
-
-  const fmtDisplay = (dateStr: string | null | undefined) => {
-    if (!dateStr) return '-';
-    try {
-      return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch { return dateStr; }
-  };
-
-  const fmtTime = (dateStr: string | null | undefined) => {
-    if (!dateStr) return '';
-    try {
-      return new Date(dateStr).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    } catch { return ''; }
-  };
-
-  const getApprovalStatus = (item: any) => {
-    if (item.consanc === 'A') return { label: 'Approuvé', color: '#22c55e', bg: '#dcfce7' };
-    if (item.consanc === 'R') return { label: 'Refusé', color: '#ef4444', bg: '#fee2e2' };
-    return { label: 'En attente', color: '#f59e0b', bg: '#fef9c3' };
-  };
-
-  const fmtTimeFromDate = (d: Date) =>
-    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (loading && !refreshing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>← Retour</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Autorisation de Sortie</Text>
-        <TouchableOpacity onPress={() => setShowForm(!showForm)}>
-          <Text style={styles.addBtn}>{showForm ? '✕' : '+ Nouveau'}</Text>
+      {/* TopAppBar */}
+      <View style={styles.topAppBar}>
+        <View style={styles.topAppLeft}>
+          <View style={styles.profileWrapper}>
+            <Image
+              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCpH0P-TIviIZgyzpcdr5V5OvD8tIpoJXxC_ijCe9YSBChJbivkajx6JaBUlFUC7rEZzv94VlWr_mZPHhjztnDXNx7pOylmEsePRzKcCE2H8ojiIpV-ItcWLCdUhbzpo_TC6h5b3YkH-XAwXeJWdrFJFe2ccROcmG8uGwqBq4qpTTx3AhaQpBkpElU1yUcwBj01Rr07fOXj2EDv-c-whqUOePQ6R5XHWO6gqmcMx6v1CE-RnFdYZaKNbC9M7hyi9tDS5oXzdly7DpI' }}
+              style={styles.profileImage}
+            />
+          </View>
+          <Text style={styles.logoText}>L'Architecte RH</Text>
+        </View>
+        <TouchableOpacity style={styles.iconButton}>
+          <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
-      {showForm && (
-        <View style={styles.form}>
-          <Text style={styles.formTitle}>🚪 Nouvelle Autorisation</Text>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.headerSection}>
+          <Text style={styles.subTitle}>NOUVELLE REQUÊTE</Text>
+          <Text style={styles.mainTitle}>Autorisation de Sortie</Text>
+        </View>
 
-          <Text style={styles.label}>Date de sortie *</Text>
-          <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.dateBtnText}>📅 {fmtDisplay(form.condep.toISOString().split('T')[0])}</Text>
+        {/* Reason Selector */}
+        <View style={styles.reasonContainer}>
+          <TouchableOpacity
+            style={[styles.mainReasonCard, form.conmotif === 'Personnel' && styles.reasonCardActive]}
+            onPress={() => setForm({ ...form, conmotif: 'Personnel' })}
+          >
+            <MaterialCommunityIcons name="account" size={32} color={form.conmotif === 'Personnel' ? COLORS.primary : COLORS.onSurfaceVariant} />
+            <Text style={[styles.reasonLabel, form.conmotif === 'Personnel' && styles.reasonLabelActive]}>PERSONNEL</Text>
+            {form.conmotif === 'Personnel' && (
+              <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} style={styles.checkIcon} />
+            )}
           </TouchableOpacity>
+          
+          <View style={styles.sideReasons}>
+            <TouchableOpacity
+              style={[styles.smallReasonCard, form.conmotif === 'Professionnel' && styles.reasonCardActive]}
+              onPress={() => setForm({ ...form, conmotif: 'Professionnel' })}
+            >
+              <MaterialCommunityIcons name="briefcase" size={20} color={form.conmotif === 'Professionnel' ? COLORS.primary : COLORS.onSurfaceVariant} />
+              <Text style={[styles.reasonLabelSmall, form.conmotif === 'Professionnel' && styles.reasonLabelActive]}>PRO</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.smallReasonCard, form.conmotif === 'Médical' && styles.reasonCardActive]}
+              onPress={() => setForm({ ...form, conmotif: 'Médical' })}
+            >
+              <MaterialCommunityIcons name="medical-bag" size={20} color={form.conmotif === 'Médical' ? COLORS.primary : COLORS.onSurfaceVariant} />
+              <Text style={[styles.reasonLabelSmall, form.conmotif === 'Médical' && styles.reasonLabelActive]}>MÉDICAL</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-          <View style={styles.timeRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Heure départ *</Text>
-              <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDepTimePicker(true)}>
-                <Text style={styles.dateBtnText}>🕐 {fmtTimeFromDate(form.condepTime)}</Text>
+        {/* Date & Time Card */}
+        <View style={styles.formCard}>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>DATE DE LA SORTIE</Text>
+            <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
+              <MaterialCommunityIcons name="calendar-today" size={20} color={COLORS.primary} />
+              <Text style={styles.dateValue}>{form.condep.toLocaleDateString('fr-FR')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.timeGrid}>
+            <View style={styles.timeField}>
+              <Text style={styles.fieldLabel}>HEURE DÉBUT</Text>
+              <TouchableOpacity style={styles.timeInput} onPress={() => setShowDepTimePicker(true)}>
+                <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.timeValue}>{form.condepTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Heure retour *</Text>
-              <TouchableOpacity style={styles.dateBtn} onPress={() => setShowRetTimePicker(true)}>
-                <Text style={styles.dateBtnText}>🕐 {fmtTimeFromDate(form.conretTime)}</Text>
+            <View style={styles.timeField}>
+              <Text style={styles.fieldLabel}>HEURE FIN</Text>
+              <TouchableOpacity style={styles.timeInput} onPress={() => setShowRetTimePicker(true)}>
+                <MaterialCommunityIcons name="history" size={20} color={COLORS.primary} />
+                <Text style={styles.timeValue}>{form.conretTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <Text style={styles.label}>Motif *</Text>
-          <TextInput style={[styles.input, { height: 70 }]} value={form.conmotif} multiline
-            onChangeText={(t: string) => setForm({ ...form, conmotif: t })} placeholder="Raison de la sortie" />
-
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-            <Text style={styles.submitBtnText}>📤 Envoyer la Demande</Text>
-          </TouchableOpacity>
+          {/* Duration Indicator */}
+          <View style={styles.durationCard}>
+            <View style={styles.durationLeft}>
+              <View style={styles.durationIconWrapper}>
+                <MaterialCommunityIcons name="timelapse" size={24} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.durationLabel}>DURÉE TOTALE</Text>
+                <Text style={styles.durationValue}>{totalDuration}</Text>
+              </View>
+            </View>
+            <View style={styles.autoBadge}>
+              <Text style={styles.autoBadgeText}>AUTOMATIQUE</Text>
+            </View>
+          </View>
         </View>
-      )}
 
+        {/* Submit Button */}
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.primaryContainer]}
+            style={styles.submitGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.submitText}>SOUMETTRE LA DEMANDE</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* History Section */}
+        <View style={styles.historySection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Historique Récent</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllText}>VOIR TOUT</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.historyList}>
+            {auths.slice(0, 5).map((item, idx) => {
+              const status = getStatusInfo(item.consanc);
+              const icon = REASONS.find(r => r.id === item.conmotif) || REASONS[0];
+              return (
+                <View key={item.concod || idx} style={[styles.historyItem, { borderLeftColor: status.color }]}>
+                  <View style={styles.historyIconWrapper}>
+                    <MaterialCommunityIcons name={icon.icon as any} size={24} color={COLORS.primary} />
+                  </View>
+                  <View style={styles.historyContent}>
+                    <View style={styles.historyTop}>
+                      <Text style={styles.historyReason}>Démarche {item.conmotif}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
+                        <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyMeta}>
+                      {new Date(item.condep).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} • {item.connbjour}h
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+            {auths.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Aucun historique récent</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Modals */}
       <DatePickerModal visible={showDatePicker} value={form.condep}
         onChange={(d) => { setForm({ ...form, condep: d }); setShowDatePicker(false); }}
         onClose={() => setShowDatePicker(false)} title="Date de sortie" />
@@ -221,128 +284,110 @@ export default function AuthorizationScreen({ navigation }: any) {
         onChange={(d) => { setForm({ ...form, conretTime: d }); }}
         onClose={() => setShowRetTimePicker(false)} title="Heure de retour" />
 
-      {/* Stats for admin/manager */}
-      {(isAdmin || isManager) && (
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderLeftColor: '#22c55e' }]}>
-            <Text style={[styles.statValue, { color: '#22c55e' }]}>
-              {auths.filter(a => a.consanc === 'A').length}
-            </Text>
-            <Text style={styles.statLabel}>Approuvées</Text>
-          </View>
-          <View style={[styles.statCard, { borderLeftColor: '#f59e0b' }]}>
-            <Text style={[styles.statValue, { color: '#f59e0b' }]}>
-              {auths.filter(a => !a.consanc || a.consanc === 'E').length}
-            </Text>
-            <Text style={styles.statLabel}>En attente</Text>
-          </View>
-          <View style={[styles.statCard, { borderLeftColor: '#ef4444' }]}>
-            <Text style={[styles.statValue, { color: '#ef4444' }]}>
-              {auths.filter(a => a.consanc === 'R').length}
-            </Text>
-            <Text style={styles.statLabel}>Refusées</Text>
-          </View>
-        </View>
-      )}
-
-      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 12 }}>
-        {auths.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🚪</Text>
-            <Text style={styles.emptyText}>Aucune autorisation de sortie</Text>
-          </View>
-        ) : (
-          auths.map((item: any, i: number) => {
-            const approval = getApprovalStatus(item);
-            const isPending = !item.consanc || item.consanc === 'E';
-            return (
-              <View key={item.concod || i} style={styles.authCard}>
-                <View style={styles.authHeader}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.authDate}>📅 {fmtDisplay(item.condep)}</Text>
-                    {fmtTime(item.condep) && (
-                      <Text style={styles.authTime}>
-                        🕐 {fmtTime(item.condep)} → {fmtTime(item.conret) || '--:--'}
-                      </Text>
-                    )}
-                    {item.emplib ? <Text style={styles.authEmp}>👤 {item.emplib}</Text> : null}
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: approval.bg }]}>
-                    <Text style={[styles.statusBadgeText, { color: approval.color }]}>{approval.label}</Text>
-                  </View>
-                </View>
-                <Text style={styles.authMotif}>{item.conmotif || '-'}</Text>
-                <View style={styles.authFooter}>
-                  <Text style={styles.authDuree}>⏱️ {item.connbjour || '-'}h</Text>
-                  <View style={styles.authActions}>
-                    {isEmployee && isPending && (
-                      <TouchableOpacity onPress={() => handleDelete(item)}>
-                        <Text style={styles.deleteBtn}>🗑️</Text>
-                      </TouchableOpacity>
-                    )}
-                    {!isEmployee && isPending && (
-                      <>
-                        <TouchableOpacity style={styles.refuseBtn} onPress={() => handleRefuse(item)}>
-                          <Text style={styles.refuseBtnText}>✗ Refuser</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(item)}>
-                          <Text style={styles.approveBtnText}>✓ Approuver</Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
-                    {!isEmployee && !isPending && (
-                      <TouchableOpacity onPress={() => handleDelete(item)}>
-                        <Text style={styles.deleteBtn}>🗑️</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              </View>
-            );
-          })
-        )}
-      </ScrollView>
+      {/* BottomNavBar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>TABLEAU</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
+          <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>CONGÉS</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
+          <MaterialCommunityIcons name="exit-to-app" size={24} color={COLORS.primary} />
+          <Text style={[styles.navLabel, { color: COLORS.primary }]}>SORTIES</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('PresenceHistory')}>
+          <MaterialCommunityIcons name="history" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>POINTAGE</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Expense')}>
+          <MaterialCommunityIcons name="receipt-long" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>FRAIS</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', elevation: 2 },
-  backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, flex: 1, marginLeft: 12 },
-  addBtn: { fontSize: 14, color: COLORS.primary, fontWeight: 'bold' },
-  statsRow: { flexDirection: 'row', gap: 8, padding: 12 },
-  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 12, borderLeftWidth: 4, elevation: 1 },
-  statValue: { fontSize: 22, fontWeight: 'bold' },
-  statLabel: { fontSize: 10, color: COLORS.textSecondary, marginTop: 2 },
-  form: { backgroundColor: '#fff', margin: 12, borderRadius: 12, padding: 16, elevation: 2 },
-  formTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary, marginBottom: 12 },
-  label: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 4, marginTop: 8 },
-  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 10, fontSize: 14, backgroundColor: '#fafafa', color: COLORS.text },
-  dateBtn: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 10, backgroundColor: '#fafafa', alignItems: 'center', marginTop: 2 },
-  dateBtnText: { fontSize: 13, color: COLORS.text, fontWeight: '500' },
-  timeRow: { flexDirection: 'row', gap: 8 },
-  submitBtn: { backgroundColor: COLORS.primary, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
-  submitBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  authCard: { backgroundColor: '#fff', marginHorizontal: 4, marginTop: 8, borderRadius: 12, padding: 14, elevation: 1 },
-  authHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  authDate: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  authTime: { fontSize: 12, color: COLORS.primary, marginTop: 2 },
-  authEmp: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusBadgeText: { fontSize: 10, fontWeight: '600' },
-  authMotif: { fontSize: 13, color: COLORS.textSecondary, marginTop: 8, lineHeight: 18 },
-  authFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f5f5f5' },
-  authDuree: { fontSize: 12, color: COLORS.primary, fontWeight: '500' },
-  authActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  deleteBtn: { fontSize: 16, color: COLORS.error },
-  approveBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: '#dcfce7' },
-  approveBtnText: { fontSize: 11, color: '#166534', fontWeight: '600' },
-  refuseBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: '#fee2e2' },
-  refuseBtnText: { fontSize: 11, color: '#991b1b', fontWeight: '600' },
-  emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: COLORS.textSecondary },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  topAppBar: {
+    height: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, backgroundColor: COLORS.background,
+  },
+  topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  profileWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: COLORS.surfaceContainerHigh },
+  profileImage: { width: '100%', height: '100%' },
+  logoText: { fontFamily: 'Manrope', fontWeight: '800', fontSize: 18, color: COLORS.primary, letterSpacing: -0.5 },
+  iconButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 },
+  headerSection: { marginBottom: 32 },
+  subTitle: { fontSize: 12, fontWeight: '700', color: COLORS.secondary, letterSpacing: 2, marginBottom: 4 },
+  mainTitle: { fontSize: 32, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -1 },
+  reasonContainer: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  mainReasonCard: {
+    flex: 1, height: 128, backgroundColor: COLORS.surfaceContainerLowest,
+    borderRadius: 24, padding: 20, justifyContent: 'space-between',
+    borderWidth: 2, borderColor: 'transparent',
+  },
+  reasonCardActive: { borderColor: COLORS.primary, backgroundColor: 'rgba(0, 86, 210, 0.02)' },
+  reasonLabel: { fontSize: 12, fontWeight: '800', color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  reasonLabelActive: { color: COLORS.primary },
+  checkIcon: { position: 'absolute', bottom: 16, right: 16 },
+  sideReasons: { flex: 1, gap: 12 },
+  smallReasonCard: {
+    flex: 1, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16,
+    borderWidth: 2, borderColor: 'transparent',
+  },
+  reasonLabelSmall: { fontSize: 10, fontWeight: '800', color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  formCard: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 24, padding: 24, marginBottom: 24 },
+  fieldGroup: { marginBottom: 24 },
+  fieldLabel: { fontSize: 10, fontWeight: '800', color: COLORS.secondary, letterSpacing: 1.5, marginBottom: 12 },
+  dateInput: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: COLORS.surfaceContainerLow, borderRadius: 16, padding: 16 },
+  dateValue: { fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
+  timeGrid: { flexDirection: 'row', gap: 16, marginBottom: 24 },
+  timeField: { flex: 1 },
+  timeInput: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.surfaceContainerLow, borderRadius: 16, padding: 16 },
+  timeValue: { fontSize: 18, fontWeight: '800', color: COLORS.onSurface },
+  durationCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(0, 86, 210, 0.05)', borderRadius: 20, padding: 16 },
+  durationLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  durationIconWrapper: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
+  durationLabel: { fontSize: 9, fontWeight: '800', color: COLORS.primary, letterSpacing: 1 },
+  durationValue: { fontSize: 20, fontWeight: '800', color: COLORS.primary, letterSpacing: -0.5 },
+  autoBadge: { backgroundColor: 'rgba(0, 86, 210, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  autoBadgeText: { fontSize: 9, fontWeight: '800', color: COLORS.primary },
+  submitButton: { marginBottom: 48 },
+  submitGradient: { height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
+  submitText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 1 },
+  historySection: { marginBottom: 32 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -0.5 },
+  seeAllText: { fontSize: 10, fontWeight: '800', color: COLORS.primary },
+  historyList: { gap: 12 },
+  historyItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16,
+    borderLeftWidth: 4, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8,
+  },
+  historyIconWrapper: { width: 48, height: 48, borderRadius: 12, backgroundColor: COLORS.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' },
+  historyContent: { flex: 1 },
+  historyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  historyReason: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 12 },
+  statusText: { fontSize: 9, fontWeight: '800' },
+  historyMeta: { fontSize: 11, fontWeight: '600', color: COLORS.onSurfaceVariant },
+  emptyState: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 14, color: COLORS.outline, fontWeight: '500' },
+  bottomNav: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', paddingBottom: 20,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  navItem: { alignItems: 'center', gap: 4 },
+  navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
 });

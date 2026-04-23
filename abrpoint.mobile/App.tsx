@@ -19,6 +19,7 @@ import DigitalVaultScreen from './src/screens/DigitalVaultScreen';
 import AuthorizationScreen from './src/screens/AuthorizationScreen';
 import DemandeAutorisationScreen from './src/screens/DemandeAutorisationScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import SignatureScreen from './src/screens/SignatureScreen';
 
 // Manager Screens
 import EmployeeListScreen from './src/screens/manager/EmployeeListScreen';
@@ -55,6 +56,7 @@ function AppStack() {
       <Stack.Screen name="Authorization" component={AuthorizationScreen} />
       <Stack.Screen name="DemandeAutorisation" component={DemandeAutorisationScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Signature" component={SignatureScreen} />
       {/* Manager Screens - always registered, access controlled by UI */}
       <Stack.Screen name="EmployeeList" component={EmployeeListScreen} />
       <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />

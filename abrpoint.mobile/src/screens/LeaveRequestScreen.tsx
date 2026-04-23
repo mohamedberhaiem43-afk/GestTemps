@@ -1,38 +1,36 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Alert, RefreshControl,
+  Alert, RefreshControl, Dimensions, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS } from '../config/env';
+import { COLORS, THEME } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 
-// Backend returns Etat as: "En attente", "Accepté", "Refusé"
-// Backend fields: Concod, Soccod, Empcod, Condat, Conjour,
-// Condep, Conamdep, Conret, Conamret, Abscod, Conadr, Contel, Condg,
-// Conrefus, Connbjour, Conref, Consolde, Etat
+const { width } = Dimensions.get('window');
 
-type StatusFilter = 'all' | 'pending' | 'accepted' | 'refused';
+interface KPISummary {
+  soldeConge: number;
+  congeAcquis: number;
+  demandesEnAttente: number;
+  rttAcquis?: number; // Added for the new UI
+}
 
 export default function LeaveRequestScreen({ navigation }: any) {
   const { user } = useAuth();
   const [requests, setRequests] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [kpiSummary, setKpiSummary] = useState<KPISummary | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [absences, setAbsences] = useState<any[]>([]);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [editingRequest, setEditingRequest] = useState<any>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Period filter - default to current year
-  const now = new Date();
-  const [filterDebut, setFilterDebut] = useState(new Date(now.getFullYear(), 0, 1));
-  const [filterFin, setFilterFin] = useState(new Date(now.getFullYear(), 11, 31));
-  const [showFilterDebut, setShowFilterDebut] = useState(false);
-  const [showFilterFin, setShowFilterFin] = useState(false);
-
-  // Form state - using real backend field names
+  // Form state
   const defaultForm = {
     concod: '',
     condep: new Date(),
@@ -46,8 +44,32 @@ export default function LeaveRequestScreen({ navigation }: any) {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
 
-  useEffect(() => { loadAbsences(); }, []);
-  useEffect(() => { loadRequests(); }, [user, filterDebut, filterFin]);
+  useEffect(() => {
+    loadInitialData();
+  }, [user]);
+
+  const loadInitialData = async () => {
+    setLoading(true);
+    await Promise.all([loadRequests(), loadAbsences(), loadKPISummary()]);
+    setLoading(false);
+  };
+
+  const loadKPISummary = async () => {
+    if (!user?.soccod || !user?.uticod) return;
+    try {
+      const data = await apiService.getMyKPIs(user.soccod, user.uticod);
+      if (data) {
+        setKpiSummary({
+          soldeConge: data.soldeConge || 0,
+          congeAcquis: data.congeAcquis || 0,
+          demandesEnAttente: data.demandesEnAttente || 0,
+          rttAcquis: 8.0, // Static for now as per template or fetch if available
+        });
+      }
+    } catch (error) {
+      console.log('Failed to load KPI summary:', error);
+    }
+  };
 
   const loadAbsences = async () => {
     try {
@@ -59,46 +81,15 @@ export default function LeaveRequestScreen({ navigation }: any) {
   const loadRequests = async () => {
     if (!user?.soccod || !user?.uticod) return;
     try {
-      const dd = fmt(filterDebut);
-      const df = fmt(filterFin);
-      let data: any[];
-      try {
-        data = await apiService.getMyLeaveRequestsByPeriod(user.soccod, user.uticod, dd, df);
-      } catch {
-        data = await apiService.getMyLeaveRequests(user.soccod, user.uticod);
-      }
+      const data = await apiService.getMyLeaveRequests(user.soccod, user.uticod);
       setRequests(Array.isArray(data) ? data : []);
     } catch (error) { console.log('Failed to load requests:', error); }
   };
 
-  const onRefresh = async () => { setRefreshing(true); await loadRequests(); setRefreshing(false); };
-
-  const handleDelete = (req: any) => {
-    Alert.alert('Supprimer', 'Voulez-vous supprimer cette demande ?', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer', style: 'destructive', onPress: async () => {
-          try {
-            await apiService.deleteLeaveRequest(user!.soccod!, req.concod);
-            loadRequests();
-          } catch { Alert.alert('Erreur', 'Impossible de supprimer'); }
-        }
-      },
-    ]);
-  };
-
-  const handleEdit = (req: any) => {
-    setEditingRequest(req);
-    setForm({
-      concod: req.concod || '',
-      condep: req.condep ? new Date(req.condep) : new Date(),
-      conamdep: req.conamdep || '1',
-      conret: req.conret ? new Date(req.conret) : new Date(),
-      conamret: req.conamret || '1',
-      abscod: req.abscod || '',
-      conadr: req.conadr || '',
-    });
-    setShowForm(true);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadRequests(), loadKPISummary()]);
+    setRefreshing(false);
   };
 
   const handleSubmit = async () => {
@@ -113,79 +104,28 @@ export default function LeaveRequestScreen({ navigation }: any) {
     if (!user?.soccod || !user?.uticod) return;
 
     try {
-      if (editingRequest) {
-        await apiService.updateLeaveRequest({
-          soccod: user.soccod,
-          empcod: user.uticod,
-          concod: editingRequest.concod,
-          condat: editingRequest.condat,
-          condep: fmt(form.condep),
-          conamdep: form.conamdep,
-          conret: fmt(form.conret),
-          conamret: form.conamret,
-          abscod: form.abscod,
-          conadr: form.conadr || null,
-          connbjour: calcDays(),
-          conjour: editingRequest.conjour,
-        });
-        Alert.alert('✅ Succès', 'Demande de congé modifiée');
-      } else {
-        await apiService.createLeaveRequest({
-          soccod: user.soccod,
-          empcod: user.uticod,
-          concod: `DEM${Date.now()}`,
-          condat: fmt(new Date()),
-          condep: fmt(form.condep),
-          conamdep: form.conamdep,
-          conret: fmt(form.conret),
-          conamret: form.conamret,
-          abscod: form.abscod || null,
-          conadr: form.conadr || null,
-          connbjour: calcDays(),
-        });
-        Alert.alert('✅ Succès', 'Demande de congé envoyée');
-      }
+      await apiService.createLeaveRequest({
+        soccod: user.soccod,
+        empcod: user.uticod,
+        concod: `DEM${Date.now()}`,
+        condat: fmt(new Date()),
+        condep: fmt(form.condep),
+        conamdep: form.conamdep,
+        conret: fmt(form.conret),
+        conamret: form.conamret,
+        abscod: form.abscod || null,
+        conadr: form.conadr || null,
+        connbjour: calcDays(),
+      });
+      Alert.alert('✅ Succès', 'Demande de congé envoyée');
       setShowForm(false);
-      setEditingRequest(null);
       setForm(defaultForm);
       loadRequests();
     } catch (error) { Alert.alert('Erreur', 'Impossible d\'envoyer la demande'); }
   };
 
-  const cancelForm = () => {
-    setShowForm(false);
-    setEditingRequest(null);
-    setForm(defaultForm);
-  };
-
-  // Status helpers - backend returns exact French values
-  const isPending = (etat: string) => !etat || etat === 'En attente';
-  const isAccepted = (etat: string) => etat === 'Accepté';
-  const isRefused = (etat: string) => etat === 'Refusé';
-
-  const getStatusColor = (etat: string) => {
-    if (isPending(etat)) return COLORS.warning;
-    if (isAccepted(etat)) return COLORS.success;
-    if (isRefused(etat)) return COLORS.error;
-    return COLORS.warning;
-  };
-
-  const getStatusLabel = (etat: string) => {
-    if (isPending(etat)) return '⏳ En attente';
-    if (isAccepted(etat)) return '✅ Accepté';
-    if (isRefused(etat)) return '❌ Refusé';
-    return '⏳ En attente';
-  };
-
   const fmt = (d: Date) => d.toISOString().split('T')[0];
-
-  const fmtDisplay = (dateStr: string | null | undefined) => {
-    if (!dateStr) return '-';
-    try {
-      return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch { return dateStr; }
-  };
-
+  
   const calcDays = () => {
     const diff = form.conret.getTime() - form.condep.getTime();
     return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
@@ -196,131 +136,232 @@ export default function LeaveRequestScreen({ navigation }: any) {
     return abs?.abslib || abscod || '-';
   };
 
-  // Filtering
-  const filteredRequests = requests.filter((r: any) => {
-    if (statusFilter === 'pending') return isPending(r.etat);
-    if (statusFilter === 'accepted') return isAccepted(r.etat);
-    if (statusFilter === 'refused') return isRefused(r.etat);
-    return true;
-  });
+  const getStatusInfo = (etat: string) => {
+    switch (etat) {
+      case 'Accepté': return { label: 'Validé', color: COLORS.tertiary, bgColor: 'rgba(0, 81, 54, 0.1)' };
+      case 'Refusé': return { label: 'Refusé', color: COLORS.error, bgColor: 'rgba(186, 26, 26, 0.1)' };
+      default: return { label: 'En attente', color: '#a14a00', bgColor: '#ffe0cc' };
+    }
+  };
 
-  const pendingCount = requests.filter(r => isPending(r.etat)).length;
-  const acceptedCount = requests.filter(r => isAccepted(r.etat)).length;
-  const refusedCount = requests.filter(r => isRefused(r.etat)).length;
+  const getIconForType = (type: string) => {
+    const t = type.toLowerCase();
+    if (t.includes('annuel')) return { name: 'flight', color: COLORS.primary, bgColor: COLORS.primaryFixed };
+    if (t.includes('rtt')) return { name: 'work-history', color: COLORS.secondary, bgColor: COLORS.secondaryFixed };
+    if (t.includes('parent')) return { name: 'stroller', color: COLORS.error, bgColor: COLORS.errorContainer };
+    return { name: 'beach-access', color: COLORS.primary, bgColor: '#dae2ff' };
+  };
+
+  // Calendar logic
+  const daysInMonth = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const date = new Date(year, month, 1);
+    const days = [];
+    const firstDay = (date.getDay() + 6) % 7; // Mon is 0
+
+    // Prev month padding
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = firstDay - 1; i >= 0; i--) {
+      days.push({ day: prevMonthLastDay - i, isCurrent: false });
+    }
+
+    // Current month
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    for (let i = 1; i <= lastDay; i++) {
+      days.push({ day: i, isCurrent: true });
+    }
+
+    return days;
+  }, [currentMonth]);
+
+  const monthLabel = currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+  if (loading && !refreshing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>← Retour</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Demandes de Congé</Text>
-        <TouchableOpacity onPress={() => { setEditingRequest(null); setForm(defaultForm); setShowForm(!showForm); }}>
-          <Text style={styles.addBtn}>{showForm ? '✕' : '+ Nouveau'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Period Filter */}
-      <View style={styles.filterSection}>
-        <Text style={styles.filterLabel}>📆 Filtrer par période</Text>
-        <View style={styles.filterRow}>
-          <TouchableOpacity style={styles.filterDateBtn} onPress={() => setShowFilterDebut(true)}>
-            <Text style={styles.filterDateText}>Du: {fmtDisplay(fmt(filterDebut))}</Text>
+      {/* TopAppBar */}
+      <View style={styles.topAppBar}>
+        <View style={styles.topAppLeft}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+            <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.filterDateBtn} onPress={() => setShowFilterFin(true)}>
-            <Text style={styles.filterDateText}>Au: {fmtDisplay(fmt(filterFin))}</Text>
-          </TouchableOpacity>
+          <Text style={styles.logoText}>LEDGER HR</Text>
+        </View>
+        <View style={styles.profileImageWrapper}>
+          <MaterialCommunityIcons name="account-circle-outline" size={32} color="#cbd5e1" />
         </View>
       </View>
 
-      {/* Status Filter */}
-      <View style={styles.statusFilterRow}>
-        {([
-          { key: 'all' as StatusFilter, label: `📋 Toutes (${requests.length})` },
-          { key: 'pending' as StatusFilter, label: `⏳ Attente (${pendingCount})` },
-          { key: 'accepted' as StatusFilter, label: `✅ Acceptées (${acceptedCount})` },
-          { key: 'refused' as StatusFilter, label: `❌ Refusées (${refusedCount})` },
-        ]).map((f) => (
-          <TouchableOpacity key={f.key}
-            style={[styles.filterBtn, statusFilter === f.key && styles.filterBtnActive]}
-            onPress={() => setStatusFilter(f.key)}>
-            <Text style={[styles.filterText, statusFilter === f.key && styles.filterTextActive]}>
-              {f.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Form */}
-      {showForm && (
-        <ScrollView style={styles.formScroll} nestedScrollEnabled>
-          <View style={styles.form}>
-            <Text style={styles.formTitle}>{editingRequest ? '✏️ Modifier Demande' : '📝 Nouvelle Demande'}</Text>
-
-            <Text style={styles.label}>Type de congé *</Text>
-            <View style={styles.typeRow}>
-              {absences.map((abs: any) => (
-                <TouchableOpacity key={abs.abscod}
-                  style={[styles.typeBtn, form.abscod === abs.abscod && styles.typeBtnActive]}
-                  onPress={() => setForm({ ...form, abscod: abs.abscod })}>
-                  <Text style={[styles.typeText, form.abscod === abs.abscod && styles.typeTextActive]}>
-                    {abs.abslib || abs.abscod}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Balances Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>SOLDES ACTUELS</Text>
+          <View style={styles.balanceGrid}>
+            <View style={styles.balanceCard}>
+              <MaterialCommunityIcons name="beach-access" size={24} color={COLORS.primary} />
+              <View style={styles.balanceContent}>
+                <Text style={styles.balanceValue}>{kpiSummary?.soldeConge?.toFixed(1) || '24.5'}</Text>
+                <Text style={styles.balanceName}>Congés Payés</Text>
+              </View>
             </View>
-            {absences.length === 0 && (
-              <Text style={styles.noDataText}>Chargement des types...</Text>
-            )}
-
-            <Text style={styles.label}>Date départ</Text>
-            <TouchableOpacity style={styles.dateBtn} onPress={() => setShowStartPicker(true)}>
-              <Text style={styles.dateBtnText}>📅 {fmtDisplay(fmt(form.condep))}</Text>
-            </TouchableOpacity>
-            <View style={styles.amRow}>
-              <TouchableOpacity style={[styles.amBtn, form.conamdep === '1' && styles.amBtnActive]} onPress={() => setForm({ ...form, conamdep: '1' })}>
-                <Text style={[styles.amText, form.conamdep === '1' && styles.amTextActive]}>Matin</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.amBtn, form.conamdep === '0' && styles.amBtnActive]} onPress={() => setForm({ ...form, conamdep: '0' })}>
-                <Text style={[styles.amText, form.conamdep === '0' && styles.amTextActive]}>Après-midi</Text>
-              </TouchableOpacity>
+            <View style={styles.balanceCard}>
+              <MaterialCommunityIcons name="event-repeat" size={24} color={COLORS.tertiary} />
+              <View style={styles.balanceContent}>
+                <Text style={[styles.balanceValue, { color: COLORS.tertiary }]}>{kpiSummary?.rttAcquis?.toFixed(1) || '8.0'}</Text>
+                <Text style={styles.balanceName}>RTT acquis</Text>
+              </View>
             </View>
+          </View>
+        </View>
 
-            <Text style={styles.label}>Date retour</Text>
-            <TouchableOpacity style={styles.dateBtn} onPress={() => setShowEndPicker(true)}>
-              <Text style={styles.dateBtnText}>📅 {fmtDisplay(fmt(form.conret))}</Text>
-            </TouchableOpacity>
-            <View style={styles.amRow}>
-              <TouchableOpacity style={[styles.amBtn, form.conamret === '1' && styles.amBtnActive]} onPress={() => setForm({ ...form, conamret: '1' })}>
-                <Text style={[styles.amText, form.conamret === '1' && styles.amTextActive]}>Matin</Text>
+        {/* Calendar Section */}
+        <View style={styles.calendarCard}>
+          <View style={styles.calendarHeader}>
+            <Text style={styles.monthTitle}>{monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}</Text>
+            <View style={styles.calendarNav}>
+              <TouchableOpacity onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}>
+                <MaterialCommunityIcons name="chevron-left" size={24} color="#64748b" />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.amBtn, form.conamret === '0' && styles.amBtnActive]} onPress={() => setForm({ ...form, conamret: '0' })}>
-                <Text style={[styles.amText, form.conamret === '0' && styles.amTextActive]}>Après-midi</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.durationBadge}>
-              <Text style={styles.durationText}>📆 Durée: {calcDays()} jour(s)</Text>
-            </View>
-
-            <Text style={styles.label}>Adresse pendant le congé</Text>
-            <TextInput style={styles.input} value={form.conadr}
-              onChangeText={(t) => setForm({ ...form, conadr: t })}
-              placeholder="Adresse (optionnel)" placeholderTextColor={COLORS.textSecondary} />
-
-            <View style={styles.formBtnRow}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={cancelForm}>
-                <Text style={styles.cancelBtnText}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                <Text style={styles.submitBtnText}>
-                  {editingRequest ? '✏️ Modifier' : '📤 Envoyer'}
-                </Text>
+              <TouchableOpacity onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
+          
+          <View style={styles.calendarGrid}>
+            {['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'].map(day => (
+              <Text key={day} style={styles.dayHeader}>{day}</Text>
+            ))}
+            {daysInMonth.map((d, i) => {
+              const isToday = d.isCurrent && d.day === new Date().getDate() && currentMonth.getMonth() === new Date().getMonth();
+              const hasLeave = d.isCurrent && [4, 5, 13, 16].includes(d.day); // Mock indicators
+              return (
+                <View key={i} style={styles.dayCell}>
+                  <View style={[styles.dayInner, isToday && styles.todayInner]}>
+                    <Text style={[styles.dayText, !d.isCurrent && styles.dayTextOther, isToday && styles.todayText]}>
+                      {d.day}
+                    </Text>
+                    {hasLeave && !isToday && <View style={[styles.dayDot, { backgroundColor: d.day === 16 ? COLORS.tertiary : COLORS.primary }]} />}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Recent Requests */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Demandes récentes</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllText}>VOIR TOUT</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.requestList}>
+            {requests.slice(0, 3).map((req, idx) => {
+              const status = getStatusInfo(req.etat);
+              const typeLib = getAbsLib(req.abscod);
+              const icon = getIconForType(typeLib);
+              return (
+                <View key={req.concod || idx} style={styles.requestItem}>
+                  <View style={styles.requestLeft}>
+                    <View style={[styles.typeIconWrapper, { backgroundColor: icon.bgColor }]}>
+                      <MaterialCommunityIcons name={icon.name as any} size={20} color={icon.color} />
+                    </View>
+                    <View style={styles.requestInfo}>
+                      <Text style={styles.requestType}>{typeLib}</Text>
+                      <Text style={styles.requestPeriod}>
+                        {new Date(req.condep).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} - {new Date(req.conret).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} ({req.connbjour} jrs)
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
+                    <Text style={[styles.statusText, { color: status.color }]}>{status.label.toUpperCase()}</Text>
+                  </View>
+                </View>
+              );
+            })}
+            {requests.length === 0 && (
+              <View style={styles.emptyRequests}>
+                <Text style={styles.emptyRequestsText}>Aucune demande récente</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* FAB */}
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={() => setShowForm(true)}
+        activeOpacity={0.9}
+      >
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.primaryContainer]}
+          style={styles.fabGradient}
+        >
+          <MaterialCommunityIcons name="plus" size={32} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Form Overlay - Simple Modal logic integrated */}
+      {showForm && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.formCard}>
+            <View style={styles.formHeader}>
+              <Text style={styles.formHeaderTitle}>Nouvelle Demande</Text>
+              <TouchableOpacity onPress={() => setShowForm(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.formScroll}>
+              <Text style={styles.label}>Type de congé</Text>
+              <View style={styles.typeRow}>
+                {absences.map((abs: any) => (
+                  <TouchableOpacity key={abs.abscod}
+                    style={[styles.typeBtn, form.abscod === abs.abscod && styles.typeBtnActive]}
+                    onPress={() => setForm({ ...form, abscod: abs.abscod })}>
+                    <Text style={[styles.typeText, form.abscod === abs.abscod && styles.typeTextActive]}>
+                      {abs.abslib || abs.abscod}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.label}>Date départ</Text>
+              <TouchableOpacity style={styles.dateInput} onPress={() => setShowStartPicker(true)}>
+                <Text style={styles.dateInputText}>{form.condep.toLocaleDateString('fr-FR')}</Text>
+                <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+
+              <Text style={styles.label}>Date retour</Text>
+              <TouchableOpacity style={styles.dateInput} onPress={() => setShowEndPicker(true)}>
+                <Text style={styles.dateInputText}>{form.conret.toLocaleDateString('fr-FR')}</Text>
+                <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+
+              <View style={styles.formFooter}>
+                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+                  <Text style={styles.submitBtnText}>ENVOYER LA DEMANDE</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
       )}
 
       {/* Date Pickers */}
@@ -330,122 +371,109 @@ export default function LeaveRequestScreen({ navigation }: any) {
       <DatePickerModal visible={showEndPicker} value={form.conret}
         onChange={(d) => { setForm({ ...form, conret: d }); setShowEndPicker(false); }}
         onClose={() => setShowEndPicker(false)} title="Date de retour" />
-      <DatePickerModal visible={showFilterDebut} value={filterDebut}
-        onChange={(d) => { setFilterDebut(d); setShowFilterDebut(false); }}
-        onClose={() => setShowFilterDebut(false)} title="Début période" />
-      <DatePickerModal visible={showFilterFin} value={filterFin}
-        onChange={(d) => { setFilterFin(d); setShowFilterFin(false); }}
-        onClose={() => setShowFilterFin(false)} title="Fin période" />
 
-      {/* Request List */}
-      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16 }}>
-        {filteredRequests.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🏖️</Text>
-            <Text style={styles.emptyText}>Aucune demande pour cette période</Text>
-          </View>
-        ) : (
-          filteredRequests.map((req: any, i: number) => (
-            <View key={req.concod || i} style={styles.requestCard}>
-              <View style={styles.requestHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.requestTypeBadge}>{getAbsLib(req.abscod)}</Text>
-                  <Text style={styles.requestDate}>
-                    🛫 {fmtDisplay(req.condep)} → 🛬 {fmtDisplay(req.conret)}
-                  </Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(req.etat) }]}>
-                  <Text style={styles.statusText}>{getStatusLabel(req.etat)}</Text>
-                </View>
-              </View>
-              <View style={styles.requestDetails}>
-                {req.connbjour ? <Text style={styles.detailText}>📅 {req.connbjour} jour(s)</Text> : null}
-                <Text style={styles.detailText}>
-                  Départ: {req.conamdep === '1' ? 'Matin' : req.conamdep === '0' ? 'Après-midi' : '-'}
-                  {' | '}Retour: {req.conamret === '1' ? 'Matin' : req.conamret === '0' ? 'Après-midi' : '-'}
-                </Text>
-                {req.conadr ? <Text style={styles.detailText}>📍 {req.conadr}</Text> : null}
-              </View>
-              <View style={styles.requestFooter}>
-                <Text style={styles.requestSysDate}>Créée le: {fmtDisplay(req.condat)}</Text>
-                <View style={styles.actionRow}>
-                  {isPending(req.etat) && req.concod && (
-                    <>
-                      <TouchableOpacity onPress={() => handleEdit(req)} style={styles.editBtn}>
-                        <Text style={styles.editBtnText}>✏️ Modifier</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDelete(req)}>
-                        <Text style={styles.deleteBtn}>🗑️ Supprimer</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-                </View>
-              </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
+      {/* BottomNavBar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>DASHBOARD</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
+          <MaterialCommunityIcons name="calendar-month" size={24} color={COLORS.primaryContainer} />
+          <Text style={[styles.navLabel, { color: COLORS.primaryContainer }]}>LEAVES</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('DigitalVault')}>
+          <MaterialCommunityIcons name="folder-account-outline" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>VAULT</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
+          <MaterialCommunityIcons name="draw-pen" size={24} color="#94a3b8" />
+          <Text style={styles.navLabel}>SIGN</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', elevation: 2 },
-  backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, flex: 1, marginLeft: 12 },
-  addBtn: { fontSize: 14, color: COLORS.primary, fontWeight: 'bold' },
-  filterSection: { backgroundColor: '#fff', padding: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  filterLabel: { fontSize: 13, fontWeight: '600', color: COLORS.text, marginBottom: 6 },
-  filterRow: { flexDirection: 'row', gap: 8 },
-  filterDateBtn: { flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 8, backgroundColor: '#fafafa', alignItems: 'center' },
-  filterDateText: { fontSize: 12, color: COLORS.text, fontWeight: '500' },
-  statusFilterRow: { flexDirection: 'row', padding: 12, gap: 6, backgroundColor: '#fff', flexWrap: 'wrap', paddingBottom: 8 },
-  filterBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, backgroundColor: COLORS.background },
-  filterBtnActive: { backgroundColor: COLORS.primary },
-  filterText: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '500' },
-  filterTextActive: { color: '#fff' },
-  formScroll: { maxHeight: 400 },
-  form: { backgroundColor: '#fff', margin: 12, borderRadius: 12, padding: 16, elevation: 3 },
-  formTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary, marginBottom: 12 },
-  label: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 4, marginTop: 8 },
-  noDataText: { fontSize: 12, color: COLORS.textSecondary, fontStyle: 'italic', marginTop: 4 },
-  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 10, fontSize: 14, backgroundColor: '#fafafa', color: COLORS.text },
-  dateBtn: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 10, backgroundColor: '#fafafa', alignItems: 'center', marginTop: 2 },
-  dateBtnText: { fontSize: 13, color: COLORS.text, fontWeight: '500' },
-  amRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  amBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: COLORS.border },
-  amBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  amText: { fontSize: 11, color: COLORS.textSecondary },
-  amTextActive: { color: '#fff', fontWeight: '600' },
-  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  typeBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: COLORS.border },
-  typeBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  typeText: { fontSize: 11, color: COLORS.textSecondary },
-  typeTextActive: { color: '#fff', fontWeight: '600' },
-  durationBadge: { backgroundColor: '#e3f2fd', borderRadius: 8, padding: 8, alignItems: 'center', marginTop: 8 },
-  durationText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
-  formBtnRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  cancelBtn: { flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 14, alignItems: 'center' },
-  cancelBtnText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 14 },
-  submitBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: 8, padding: 14, alignItems: 'center' },
-  submitBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: COLORS.textSecondary },
-  requestCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, elevation: 1 },
-  requestHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  requestTypeBadge: { fontSize: 12, color: COLORS.primary, fontWeight: '600', marginBottom: 2 },
-  requestDate: { fontSize: 13, fontWeight: '500', color: COLORS.text },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { color: '#fff', fontSize: 10, fontWeight: '600' },
-  requestDetails: { marginTop: 6 },
-  detailText: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-  requestFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f5f5f5' },
-  requestSysDate: { fontSize: 10, color: COLORS.textSecondary },
-  actionRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  editBtn: { paddingHorizontal: 6, paddingVertical: 2 },
-  editBtnText: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
-  deleteBtn: { fontSize: 12, color: COLORS.error, fontWeight: '600' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  topAppBar: {
+    height: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, backgroundColor: COLORS.background,
+  },
+  topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
+  profileImageWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.surfaceContainerHigh },
+  scrollContent: { padding: 20, paddingBottom: 100 },
+  section: { marginBottom: 24 },
+  sectionLabel: { fontSize: 10, fontWeight: '700', color: COLORS.outline, letterSpacing: 1.2, marginBottom: 12 },
+  balanceGrid: { flexDirection: 'row', gap: 16 },
+  balanceCard: {
+    flex: 1, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 20,
+    flexDirection: 'column', gap: 16,
+  },
+  balanceContent: { gap: 4 },
+  balanceValue: { fontSize: 32, fontWeight: '800', color: COLORS.primary, letterSpacing: -1 },
+  balanceName: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
+  calendarCard: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: 24, padding: 24, marginBottom: 32 },
+  calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  monthTitle: { fontSize: 18, fontWeight: '800', color: COLORS.onSurface },
+  calendarNav: { flexDirection: 'row', gap: 12 },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  dayHeader: { width: (width - 88) / 7, textAlign: 'center', fontSize: 10, fontWeight: '800', color: COLORS.outline, marginBottom: 16, textTransform: 'uppercase' },
+  dayCell: { width: (width - 88) / 7, height: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  dayInner: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center', borderRadius: 16 },
+  todayInner: { backgroundColor: COLORS.primary },
+  dayText: { fontSize: 13, fontWeight: '600', color: COLORS.onSurface },
+  dayTextOther: { color: COLORS.outlineVariant },
+  todayText: { color: '#fff' },
+  dayDot: { position: 'absolute', bottom: -2, width: 4, height: 4, borderRadius: 2 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -0.5 },
+  seeAllText: { fontSize: 10, fontWeight: '800', color: COLORS.primary, letterSpacing: 1 },
+  requestList: { gap: 12 },
+  requestItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16,
+  },
+  requestLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  typeIconWrapper: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  requestInfo: { gap: 2 },
+  requestType: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  requestPeriod: { fontSize: 11, color: COLORS.outline, fontWeight: '500' },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  statusText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  emptyRequests: { padding: 40, alignItems: 'center' },
+  emptyRequestsText: { fontSize: 14, color: COLORS.outline, fontWeight: '500' },
+  fab: { position: 'absolute', bottom: 100, right: 24, zIndex: 100 },
+  fabGradient: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12 },
+  bottomNav: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', paddingBottom: 20,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  navItem: { alignItems: 'center', gap: 4 },
+  navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 1000 },
+  formCard: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '80%' },
+  formHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  formHeaderTitle: { fontSize: 20, fontWeight: '800', color: COLORS.onSurface },
+  formScroll: { flexGrow: 0 },
+  label: { fontSize: 12, fontWeight: '700', color: COLORS.outline, marginBottom: 8, marginTop: 16 },
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  typeBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surfaceContainerLow },
+  typeBtnActive: { backgroundColor: COLORS.primary },
+  typeText: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
+  typeTextActive: { color: '#fff' },
+  dateInput: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 16,
+  },
+  dateInputText: { fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
+  formFooter: { marginTop: 32, marginBottom: 24 },
+  submitBtn: { backgroundColor: COLORS.primary, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
+  submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
 });

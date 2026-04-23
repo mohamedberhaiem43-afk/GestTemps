@@ -94,9 +94,7 @@ if (jourRepos) {
     tousLesMois ? 1 : 0,
     jourRepos
   );
-  const cloneCalendrier = useCloneCalendrier(
-  Number(selectedCalendrier)
-);
+  const cloneCalendrier = useCloneCalendrier();
 const addCalendrier = useAddCalendrier();
 
 const handleAdd = () => {
@@ -128,7 +126,7 @@ const handleClone = () => {
   )
     return;
 
-  cloneCalendrier.mutate(undefined, {
+  cloneCalendrier.mutate(Number(selectedCalendrier), {
     onSuccess: () => {
       refetch();
     },

@@ -11,7 +11,6 @@ import LockIcon from '@mui/icons-material/Lock';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import './Login.css';
 
 interface UserLoginModel {
@@ -208,16 +207,16 @@ export default function CredentialsSignInPage() {
               L'excellence structurelle au service de votre capital humain.
             </Typography>
             <Typography className="login-left-subtitle">
-              Pilotez votre organisation avec la précision d'un architecte. Structure HR centralise et sublime vos données RH.
+              Pilotez votre organisation avec la précision d'un architecte. Concorde Workforce centralise et sublime vos données RH.
             </Typography>
           </Box>
         </Box>
         {/* Logo */}
         <Box className="login-left-logo">
-          <Box className="login-logo-icon">
-            <AccountTreeIcon sx={{ color: '#0040a1', fontSize: 22 }} />
+          <Box className="login-logo-icon" sx={{ p: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src="/Concorde.png" alt="Concorde Logo" style={{ width: 28, height: 28, objectFit: 'contain' }} />
           </Box>
-          <Typography className="login-logo-text">Structure HR</Typography>
+          <Typography className="login-logo-text">Concorde Workforce</Typography>
         </Box>
       </Box>
 
@@ -226,8 +225,8 @@ export default function CredentialsSignInPage() {
         <Box className="login-form-container">
           {/* Mobile Logo */}
           <Box className="login-mobile-logo">
-            <AccountTreeIcon sx={{ color: '#0040a1', fontSize: 48, mb: 1 }} />
-            <Typography className="login-mobile-logo-text">Structure HR</Typography>
+            <img src="/Concorde.png" alt="Concorde Logo" style={{ width: 80, height: 80, marginBottom: 8, objectFit: 'contain' }} />
+            <Typography className="login-mobile-logo-text">Concorde Workforce</Typography>
           </Box>
 
           {/* Header */}
@@ -385,7 +384,7 @@ export default function CredentialsSignInPage() {
                 {loading ? 'Connexion...' : (requires2FA ? 'VÉRIFIER LE CODE' : 'CONNECTER')}
               </span>
             </Button>
-            
+
             {requires2FA && (
               <Button
                 fullWidth

@@ -180,8 +180,22 @@ export default function ParamSocModern() {
                 <input type="number" className="ps-modern-input" value={formData.joudeb || ''} onChange={(e) => handleInputChange('joudeb', e.target.value)} placeholder="01" />
               </div>
               <div className="ps-modern-form-group">
+                <label className="ps-modern-label">Mois Début</label>
+                <Select fullWidth variant="standard" value={formData.moisdeb || 'C'} onChange={(e) => handleInputChange('moisdeb', e.target.value)}>
+                  <MenuItem value="C">Courant</MenuItem>
+                  <MenuItem value="P">Précédent</MenuItem>
+                </Select>
+              </div>
+              <div className="ps-modern-form-group">
                 <label className="ps-modern-label">Fin de Mois</label>
                 <input type="number" className="ps-modern-input" value={formData.joufin || ''} onChange={(e) => handleInputChange('joufin', e.target.value)} placeholder="31" />
+              </div>
+              <div className="ps-modern-form-group">
+                <label className="ps-modern-label">Mois Fin</label>
+                <Select fullWidth variant="standard" value={formData.moisfin || 'C'} onChange={(e) => handleInputChange('moisfin', e.target.value)}>
+                  <MenuItem value="C">Courant</MenuItem>
+                  <MenuItem value="P">Précédent</MenuItem>
+                </Select>
               </div>
 
 
@@ -202,12 +216,76 @@ export default function ParamSocModern() {
           </div>
 
           <div className="ps-modern-card ps-modern-card--small">
-            <h3 className="ps-modern-card-title">Pointage</h3>
+            <h3 className="ps-modern-card-title">Congés & Jours Fériés</h3>
+            <div className="ps-modern-form-group">
+              <label className="ps-modern-label">Heures Congé</label>
+              <div className="ps-modern-input-wrapper">
+                <input type="number" step="0.5" className="ps-modern-input" value={formData.nbhconge ?? ''} onChange={(e) => handleInputChange('nbhconge', parseFloat(e.target.value) || 0)} />
+                <span className="ps-modern-unit">h</span>
+              </div>
+            </div>
+            <div className="ps-modern-form-group">
+              <label className="ps-modern-label">Heures Repos</label>
+              <div className="ps-modern-input-wrapper">
+                <input type="number" className="ps-modern-input" value={formData.nbhrepos ?? ''} onChange={(e) => handleInputChange('nbhrepos', parseInt(e.target.value) || 0)} />
+                <span className="ps-modern-unit">h</span>
+              </div>
+            </div>
+            <div className="ps-modern-form-group">
+              <label className="ps-modern-label">Heures Jour Férié</label>
+              <div className="ps-modern-input-wrapper">
+                <input type="number" className="ps-modern-input" value={formData.nbhferier ?? ''} onChange={(e) => handleInputChange('nbhferier', parseInt(e.target.value) || 0)} />
+                <span className="ps-modern-unit">h</span>
+              </div>
+            </div>
+            <div className="ps-modern-switch-row"><span>Travail jours fériés</span><Switch checked={formData.fertrv === 1} onChange={(e) => handleInputChange('fertrv', e.target.checked ? 1 : 0)} /></div>
+          </div>
+
+          <div className="ps-modern-card ps-modern-card--small">
+            <h3 className="ps-modern-card-title">Pointage & Calcul</h3>
             <div className="ps-modern-form-group">
               <label className="ps-modern-label">Écart minimum (min)</label>
               <input type="number" className="ps-modern-input" value={formData.parecart || 0} onChange={(e) => handleInputChange('parecart', parseInt(e.target.value) || 0)} />
             </div>
-            <div className="ps-modern-switch-row"><span>Majorations fériés</span><Switch checked={formData.fertrv === 1} onChange={(e) => handleInputChange('fertrv', e.target.checked ? 1 : 0)} /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="ps-modern-form-group">
+                <label className="ps-modern-label">Min heures/jour</label>
+                <div className="ps-modern-input-wrapper">
+                  <input type="number" className="ps-modern-input" value={formData.parminhjour ?? 0} onChange={(e) => handleInputChange('parminhjour', Number(e.target.value))} />
+                  <span className="ps-modern-unit">h</span>
+                </div>
+              </div>
+              <div className="ps-modern-form-group">
+                <label className="ps-modern-label">Max heures/jour</label>
+                <div className="ps-modern-input-wrapper">
+                  <input type="number" className="ps-modern-input" value={formData.parmaxhjour ?? 0} onChange={(e) => handleInputChange('parmaxhjour', Number(e.target.value))} />
+                  <span className="ps-modern-unit">h</span>
+                </div>
+              </div>
+            </div>
+            <div className="ps-modern-form-group">
+              <label className="ps-modern-label">Max fériés majorés</label>
+              <div className="ps-modern-input-wrapper">
+                <input type="number" className="ps-modern-input" value={formData.parmaxfer ?? 0} onChange={(e) => handleInputChange('parmaxfer', Number(e.target.value))} />
+                <span className="ps-modern-unit">h</span>
+              </div>
+            </div>
+            <div className="ps-modern-form-group">
+              <label className="ps-modern-label">Éliminer fériés du calcul H.Sup</label>
+              <Select fullWidth variant="standard" value={formData.parelimftrv || '0'} onChange={(e) => handleInputChange('parelimftrv', e.target.value)}>
+                <MenuItem value="0">Non</MenuItem>
+                <MenuItem value="1">Oui - Soustraire avant calcul</MenuItem>
+                <MenuItem value="2">Oui - Soustraire après calcul</MenuItem>
+              </Select>
+            </div>
+            <div className="ps-modern-form-group">
+              <label className="ps-modern-label">Mode déduction repos (Mensuel)</label>
+              <Select fullWidth variant="standard" value={formData.parreptrv || '0'} onChange={(e) => handleInputChange('parreptrv', e.target.value)}>
+                <MenuItem value="0">Déduire heures repos</MenuItem>
+                <MenuItem value="2">Déduire heures dimanche</MenuItem>
+                <MenuItem value="3">Déduire samedi + dimanche</MenuItem>
+              </Select>
+            </div>
             <div className="ps-modern-switch-row"><span>Arrondi auto</span><Switch checked={formData.arrondi === 1} onChange={(e) => handleInputChange('arrondi', e.target.checked ? 1 : 0)} /></div>
             <Button fullWidth variant="contained" startIcon={<SaveIcon />} onClick={handleUpdate} sx={{ mt: 2, borderRadius: '12px', bgcolor: 'var(--primary)', fontWeight: 800 }}>Enregistrer</Button>
           </div>
