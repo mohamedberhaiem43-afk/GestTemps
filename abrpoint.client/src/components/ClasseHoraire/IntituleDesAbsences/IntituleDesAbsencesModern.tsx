@@ -227,7 +227,7 @@ function IntituleDesAbsencesModernInner() {
                   <button className={`ia-unit-btn ${absunite === 'H' ? 'ia-unit-active' : ''}`} onClick={() => setAbsunite('H')}>Heures</button>
                 </Box>
               </Box>
-              <Box>
+              {/* <Box>
                 <Typography className="ia-field-label">Périodicité</Typography>
                 <FormControl fullWidth size="small">
                   <Select value={abspar} onChange={e => setAbspar(e.target.value)} className="ia-select">
@@ -237,7 +237,7 @@ function IntituleDesAbsencesModernInner() {
                     <MenuItem value="T">Trimestre</MenuItem>
                   </Select>
                 </FormControl>
-              </Box>
+              </Box> */}
               <Box>
                 <Typography className="ia-field-label">Type Sanction</Typography>
                 <FormControl fullWidth size="small">

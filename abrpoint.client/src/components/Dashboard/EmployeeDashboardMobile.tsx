@@ -181,26 +181,39 @@ export default function EmployeeDashboardMobile() {
         {/* Weekly Chart */}
         <section className="mb-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="font-['Manrope'] font-bold text-md">Suivi Semainier</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-['Manrope'] font-bold text-md">Suivi de Pointage</h2>
               <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[9px] font-bold uppercase rounded-full">
                 {kpis.workedPercent >= 100 ? 'Objectif Atteint' : 'En progression'}
               </span>
             </div>
-            <div className="flex items-end justify-between h-32 gap-3">
-              {chartData.map((day, idx) => (
-                <div key={idx} className="flex flex-col items-center flex-1 gap-3 group">
-                  <div className="relative w-full h-full flex flex-end">
-                    <div
-                      className={`w-full rounded-t-full transition-all duration-500 ${idx === dayjs().day() - 1 ? 'bg-[#0040a1]' : 'bg-[#0040a1]/20'}`}
-                      style={{ height: `${Math.min((day.hours / 8) * 100, 100)}%` }}
-                    ></div>
+            {/* Bar chart area */}
+            <div className="flex items-end justify-between h-36 gap-2">
+              {chartData.map((day, idx) => {
+                const todayIdx = (dayjs().day() + 6) % 7; // Mon=0 … Sun=6
+                const isToday = idx === todayIdx;
+                const pct = Math.max(Math.min((day.hours / 8) * 100, 100), day.hours > 0 ? 6 : 2);
+                return (
+                  <div key={idx} className="flex flex-col items-center flex-1 gap-2 min-w-0">
+                    {/* Bar wrapper – grows to fill space, aligns bar to bottom */}
+                    <div className="relative w-full flex-1 flex items-end">
+                      <div
+                        className={`w-full rounded-t-lg transition-all duration-500 ${isToday ? 'bg-[#0040a1]' : 'bg-[#0040a1]/20'}`}
+                        style={{ height: `${pct}%`, minHeight: 3 }}
+                      ></div>
+                    </div>
+                    {/* Day label */}
+                    <span className={`text-[10px] font-bold font-['Inter'] truncate ${isToday ? 'text-[#0040a1]' : 'text-slate-400'}`}>
+                      {day.name}
+                    </span>
                   </div>
-                  <span className={`text-[10px] font-bold font-['Inter'] ${idx === dayjs().day() - 1 ? 'text-[#0040a1]' : 'text-slate-400'}`}>
-                    {day.name}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+            {/* Hours legend */}
+            <div className="flex justify-between mt-3 px-1">
+              <span className="text-[9px] text-slate-400 font-['Inter']">0h</span>
+              <span className="text-[9px] text-slate-400 font-['Inter']">Objectif : 8h/jour</span>
             </div>
           </div>
         </section>

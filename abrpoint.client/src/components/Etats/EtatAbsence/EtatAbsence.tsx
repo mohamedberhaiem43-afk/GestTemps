@@ -238,11 +238,9 @@ function EtatAbsence() {
         || Number(r.autsp || 0) > 0
         || Number(r.autsnp || 0) > 0
         || Number(r.css || 0) > 0;
-      // Exclure si seul absjourretard < 2h et aucune vraie absence
+      // Exclure seulement si retard < 2h ET aucune vraie absence
       const retardMinutes = parseRetardMinutes(r.absjourretard || '0:00');
-      const isAbsence = retardMinutes > 120 && hasRealAbsence;
-
-      return isAbsence;
+      return hasRealAbsence || retardMinutes > 120;
     }),
     [absenceData]
   );

@@ -20,8 +20,6 @@ import {
 } from '@mui/material';
 import {
   CalendarToday,
-  ChevronRight,
-  Print,
   Search,
   TrendingDown,
   TrendingUp,
@@ -316,7 +314,6 @@ const EmpRetard = () => {
                     <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Pointage</TableCell>
                     <TableCell align="center" sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Duree retard</TableCell>
                     <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Statut</TableCell>
-                    <TableCell align="right" sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -372,14 +369,6 @@ const EmpRetard = () => {
                               fontSize: '0.6rem',
                             }}
                           />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Button size="small" startIcon={<Print />} onClick={(event) => { event.stopPropagation(); window.print(); }}>
-                            Imprimer
-                          </Button>
-                          <Button size="small" onClick={(event) => { event.stopPropagation(); setSelectedKey(key); }}>
-                            <ChevronRight fontSize="small" />
-                          </Button>
                         </TableCell>
                       </TableRow>
                     );

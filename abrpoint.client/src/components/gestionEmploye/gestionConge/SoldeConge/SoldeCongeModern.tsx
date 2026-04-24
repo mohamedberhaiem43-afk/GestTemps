@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
 import { Box, Typography, Paper, Button, CircularProgress, Chip } from '@mui/material';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
-import TimerIcon from '@mui/icons-material/Timer';
-import RestoreIcon from '@mui/icons-material/Restore';
-import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
+import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import DownloadIcon from '@mui/icons-material/Download';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EventIcon from '@mui/icons-material/Event';
@@ -114,7 +113,7 @@ function SoldeCongeModernInner() {
   
   // Categorize taken leaves
   const takenStats = useMemo(() => {
-    const stats = { paye: 0, maladie: 0, rtt: 0, recup: 0 };
+    const stats = { paye: 0, csf: 0, css: 0 };
     
     accepted.forEach((c) => {
       const abs = absencesMap[c.abscod];
@@ -122,15 +121,13 @@ function SoldeCongeModernInner() {
       
       if (abs) {
         if (abs.abscng === '0') stats.paye += days;
-        else if (abs.abscng === '9' || abs.abslib?.toLowerCase().includes('mal')) stats.maladie += days;
-        else if (c.abscod?.toLowerCase().includes('rtt')) stats.rtt += days;
-        else if (c.abscod?.toLowerCase().includes('recup')) stats.recup += days;
-        else if (abs.abspayer === 'O') stats.paye += days; // Fallback to paid flag if not '0'
+        else if (abs.abscng === '1') stats.csf += days;       // Congé Spéciale Familiale
+        else if (abs.abscng === '5') stats.css += days;       // Congé Sans Solde
+        else if (abs.abspayer === 'O') stats.paye += days;    // Fallback to paid flag
       } else {
         // Fallback for codes if map not ready
-        if (c.abscod?.toLowerCase().includes('mal')) stats.maladie += days;
-        else if (c.abscod?.toLowerCase().includes('rtt')) stats.rtt += days;
-        else if (c.abscod?.toLowerCase().includes('recup')) stats.recup += days;
+        if (c.abscod?.toLowerCase().includes('csf')) stats.csf += days;
+        else if (c.abscod?.toLowerCase().includes('css')) stats.css += days;
         else stats.paye += days;
       }
     });
@@ -212,32 +209,24 @@ function SoldeCongeModernInner() {
           barColor="#0040a1"
         />
         <BalanceCard
-          icon={<TimerIcon sx={{ color: '#005136' }} />}
+          icon={<FamilyRestroomIcon sx={{ color: '#005136' }} />}
           iconBg="rgba(0,81,54,0.12)"
-          label="RTT"
-          balance={Math.max(0, 10 - takenStats.rtt)}
-          acquired={10}
-          taken={takenStats.rtt}
+          label="Congé Spéciale Familiale"
+          balance={takenStats.csf}
+          acquired={takenStats.csf}
+          taken={takenStats.csf}
           barColor="#005136"
+          emptyMsg="Aucun congé spéciale familiale pris cette année."
         />
         <BalanceCard
-          icon={<RestoreIcon sx={{ color: '#515f74' }} />}
-          iconBg="rgba(81,95,116,0.12)"
-          label="Récupération"
-          balance={Math.max(0, 3 - takenStats.recup)}
-          acquired={3}
-          taken={takenStats.recup}
-          barColor="#515f74"
-        />
-        <BalanceCard
-          icon={<MedicalServicesIcon sx={{ color: '#ba1a1a' }} />}
+          icon={<MoneyOffIcon sx={{ color: '#ba1a1a' }} />}
           iconBg="rgba(186,26,26,0.1)"
-          label="Congés Maladie"
-          balance={takenStats.maladie}
-          acquired={takenStats.maladie}
-          taken={takenStats.maladie}
+          label="Congé Sans Solde"
+          balance={takenStats.css}
+          acquired={takenStats.css}
+          taken={takenStats.css}
           barColor="#ba1a1a"
-          emptyMsg="Aucune absence maladie déclarée cette année."
+          emptyMsg="Aucun congé sans solde pris cette année."
         />
       </Box>
 
