@@ -26,7 +26,7 @@ interface ApiError {
 }
 
 export interface SaisieUtilisateurHandle {
-    handleSave: () => Promise<void>;
+    handleSave: () => Promise<boolean>;
 }
 
 const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurProps>(
@@ -114,9 +114,9 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
         const handleSave = async () => {
             if (!uticod || !utiprn || !utinom || !societe || !site) {
                 handleSnackbarOpen("Veuillez remplir tous les champs obligatoires.", 'error');
-                return;
+                return false;
             }
-
+        
             const payload = {
                 user: {
                     uticod,
@@ -130,20 +130,20 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                 soccod: societe,
                 sitcod: site
             };
-
+        
             try {
                 if (selectedUser) {
                     await updateUser(payload);
-                    handleSnackbarOpen("Utilisateur mis à jour avec succès.", 'success');
                 } else {
                     await addUser(payload);
-                    handleSnackbarOpen("Utilisateur enregistré avec succès.", 'success');
                 }
+                return true;
             } catch (err) {
-                handleSnackbarOpen("Erreur lors de l'enregistrement de l'utilisateur.", 'error');
+                // Error handling is already done in useEffect [error]
+                return false;
             }
         };
-
+        
         useImperativeHandle(ref, () => ({
             handleSave
         }));

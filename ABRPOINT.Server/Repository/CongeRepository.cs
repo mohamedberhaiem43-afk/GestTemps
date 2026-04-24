@@ -30,12 +30,12 @@ namespace ABRPOINT.Server.Repository
             _utilisateurRepository = utilisateurRepository;
 
         }
-        public void Add(Conge conge)
+        public async Task AddAsync(Conge conge)
         {
-            _dbContext.Conges.Add(conge);
-            _dbContext.SaveChanges();
+            await _dbContext.Conges.AddAsync(conge);
+            await _dbContext.SaveChangesAsync();
         }
-        public async Task<List<CongeDto>> GetCongesByPeriod(string soccod,string empcod,DateTime startDate,DateTime endDate)
+        public async Task<List<CongeDto>> GetCongesByPeriodAsync(string soccod,string empcod,DateTime startDate,DateTime endDate)
         {
             try
             {
@@ -69,7 +69,7 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date), (string? Abslib, float? Connbjour)>> GetCongeLibBatch(List<(string Soccod, string Empcod, DateTime Date)> demandes)
+        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date), (string? Abslib, float? Connbjour)>> GetCongeLibBatchAsync(List<(string Soccod, string Empcod, DateTime Date)> demandes)
         {
             if (demandes == null || !demandes.Any())
                 return new Dictionary<(string, string, DateTime), (string?, float?)>();
@@ -134,18 +134,18 @@ namespace ABRPOINT.Server.Repository
             return result;
         }
 
-        public void Delete(Conge conge)
+        public async Task DeleteAsync(Conge conge)
         {
             if (conge != null)
             {
                 _dbContext.Conges.Remove(conge);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
         
-        public IEnumerable<Conge> GetAll()
+        public async Task<IEnumerable<Conge>> GetAllAsync()
         {
-            return _dbContext.Conges.ToList();
+            return await _dbContext.Conges.ToListAsync();
         }
         public async Task<List<CongeAbsenceDto>> GetCongeWithAbsenceAsync(string soccod, string uticod)
         {
@@ -185,11 +185,11 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public Conge GetByConcod(string soccod, string concod)
+        public async Task<Conge?> GetByConcodAsync(string soccod, string concod)
         {
             try
             {
-                return _dbContext.Conges.Find(soccod, concod);
+                return await _dbContext.Conges.FindAsync(soccod, concod);
             }
             catch (Exception ex)
             {
@@ -197,7 +197,7 @@ namespace ABRPOINT.Server.Repository
                 throw new Exception("Erreur innatendu: " +ex);
             }
         }
-        public async Task<NombreConge> GetNbJourEtHreEmpConge(string soccod, string empcod, DateTime? predat,string codpost)
+        public async Task<NombreConge> GetNbJourEtHreEmpCongeAsync(string soccod, string empcod, DateTime? predat,string codpost)
         {
             try
             {
@@ -233,8 +233,8 @@ namespace ABRPOINT.Server.Repository
                 if (result != null && result.Abspayer == "O")
                 {
                     bool isFerier = await _ferierRepository.IsFerier(soccod, predat);
-                    var (isRepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, predat, codpost, empcod);
-                    var repos = await _parametreRepository.IsRepos(soccod, predat, codpost);
+                    var (isRepos, emprepos) = await _parametreRepository.IsEmpcodReposAsync(soccod, predat, codpost, empcod);
+                    var repos = await _parametreRepository.IsReposAsync(soccod, predat, codpost);
                     if ((result.Absrepos == "N" && isRepos && dayRepos) || (result.Absferier == "0" && isFerier)|| (result.Absrepos == "N" && repos))
                         return new NombreConge { nbHeureConge = 0, nbJourConge = 0 };
 
@@ -331,11 +331,11 @@ namespace ABRPOINT.Server.Repository
         }
 
 
-        public void Update(Conge conge)
+        public async Task UpdateAsync(Conge conge)
         {
             if (conge != null)
             {
-                Conge dbConge = GetByConcod(conge.Soccod, conge.Concod);
+                Conge? dbConge = await GetByConcodAsync(conge.Soccod, conge.Concod);
                 if (dbConge != null)
                 {
                     // Detach the existing entity to avoid tracking conflicts
@@ -355,11 +355,11 @@ namespace ABRPOINT.Server.Repository
                     dbConge.Connbjour = conge.Connbjour;
                 }
                 _dbContext.Conges.Update(conge);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
         // Add multiple conges at once
-        public async Task AddMultiple(List<Conge> conges)
+        public async Task AddMultipleAsync(List<Conge> conges)
         {
             if (conges != null && conges.Any())
             {
@@ -368,7 +368,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<string> GetCongeLib(string? soccod, string empcod, DateTime dmdate)
+        public async Task<string> GetCongeLibAsync(string? soccod, string empcod, DateTime dmdate)
         {
             try
             {
@@ -389,7 +389,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<DroitCongeDto> GetDroitConge(string soccod, string empcod, DateTime? datedebut, DateTime? datefin)
+        public async Task<DroitCongeDto> GetDroitCongeAsync(string soccod, string empcod, DateTime? datedebut, DateTime? datefin)
         {
             try
             {
@@ -499,7 +499,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<float> GetNbCongeRecue(string soccod, string empcod, string annee, string currentMonth)
+        public async Task<float> GetNbCongeRecueAsync(string soccod, string empcod, string annee, string currentMonth)
         {
             try
             {
@@ -529,7 +529,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<List<CahierConge>> GetCahierConge(string soccod, DateTime datedebut, DateTime datefin, List<string> empcods)
+        public async Task<List<CahierConge>> GetCahierCongeAsync(string soccod, DateTime datedebut, DateTime datefin, List<string> empcods)
         {
             try
             {
@@ -641,7 +641,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Conge> GetEmpCongeByDate(string soccod, string empcod, DateTime date)
+        public async Task<Conge?> GetEmpCongeByDateAsync(string soccod, string empcod, DateTime date)
         {
             try
             {
@@ -654,7 +654,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date, float? connbjour), string?>> GetCongeEmployeLibBatch(
+        public async Task<Dictionary<(string Soccod, string Empcod, DateTime Date, float? connbjour), string?>> GetCongeEmployeLibBatchAsync(
         string soccod,
         string empcod,
         DateTime debut,

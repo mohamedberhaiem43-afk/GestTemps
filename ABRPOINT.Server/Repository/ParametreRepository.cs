@@ -20,16 +20,21 @@ namespace ABRPOINT.Server.Repository
             _posteRepository = posteRepository;
             _mapper = mapper;
         }
-        public void Add(Parametre entity)
+        public async Task AddAsync(Parametre entity)
         {
-            throw new NotImplementedException();
+            await _dbContext.Parametres.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Parametre entity)
+        public async Task DeleteAsync(Parametre entity)
         {
-            throw new NotImplementedException();
+            if (entity != null)
+            {
+                _dbContext.Parametres.Remove(entity);
+                await _dbContext.SaveChangesAsync();
+            }
         }
-        public async Task<Dictionary<DateTime, bool>> GetReposDaysByPeriod(string soccod, string empcod, List<DateTime> dates)
+        public async Task<Dictionary<DateTime, bool>> GetReposDaysByPeriodAsync(string soccod, string empcod, List<DateTime> dates)
         {
             try
             {
@@ -176,12 +181,12 @@ namespace ABRPOINT.Server.Repository
             return result;
         }
 
-        public Parametre GetAll(string soccod)
+        public async Task<Parametre?> GetAllAsync(string soccod)
         {
             try
             {
-                var parametres = _dbContext.Parametres
-                                    .Where(p => p.Soccod == soccod).SingleOrDefault();
+                var parametres = await _dbContext.Parametres
+                                    .Where(p => p.Soccod == soccod).SingleOrDefaultAsync();
                 return parametres;
             }
             catch (Exception ex)
@@ -212,16 +217,16 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-                throw new Exception("Erreur lors de la récupération des paramètres de nuit: " + ex.Message, ex);
+                throw new Exception("Erreur lors de la rÃ©cupÃ©ration des paramÃ¨tres de nuit: " + ex.Message, ex);
             }
         }
 
 
-        public IEnumerable<Parametre> GetAll()
+        public async Task<IEnumerable<Parametre>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _dbContext.Parametres.ToListAsync();
         }
-        public async Task<int> GetParancemp(string soccod)
+        public async Task<int> GetParancempAsync(string soccod)
         {
              
             string? parancemp = await _dbContext.Parametres
@@ -233,7 +238,7 @@ namespace ABRPOINT.Server.Repository
             return 0;
         }
 
-        public async Task<ParametreMoisPointageDto?> GetParametreMoisPointage(string soccod)
+        public async Task<ParametreMoisPointageDto?> GetParametreMoisPointageAsync(string soccod)
         {
             try
             {
@@ -258,11 +263,11 @@ namespace ABRPOINT.Server.Repository
 
                 // --- DebutReel ---
                 if (!int.TryParse(result.Joudeb, out int jourDebReel))
-                    jourDebReel = 1; // valeur par défaut si parse échoue
+                    jourDebReel = 1; // valeur par dÃ©faut si parse Ã©choue
 
                 result.DebutReel = jourDebReel;
 
-                // --- DebutCalc (ajusté si Sochsup = "L") ---
+                // --- DebutCalc (ajustÃ© si Sochsup = "L") ---
                 DateTime tempDate = new DateTime(2000, 1, jourDebReel);
 
                 if (result.Sochsup == "L")
@@ -280,7 +285,7 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public async Task<ParametrePresenceCalculDto?> GetParametresPresenceCalcul(string soccod)
+        public async Task<ParametrePresenceCalculDto?> GetParametresPresenceCalculAsync(string soccod)
         {
             try
             {
@@ -311,7 +316,7 @@ namespace ABRPOINT.Server.Repository
 
                 result.DebutReel = jourDebReel;
 
-                // --- DebutCalc (ajusté si Sochsup = "L") ---
+                // --- DebutCalc (ajustÃ© si Sochsup = "L") ---
                 DateTime tempDate = new DateTime(2000, 1, jourDebReel);
 
                 if (result.Sochsup == "L")
@@ -333,12 +338,16 @@ namespace ABRPOINT.Server.Repository
 
 
 
-        public void Update(Parametre entity)
+        public async Task UpdateAsync(Parametre entity)
         {
-            throw new NotImplementedException();
+            if (entity != null)
+            {
+                _dbContext.Parametres.Update(entity);
+                await _dbContext.SaveChangesAsync();
+            }
         }
 
-        public async Task<bool> DroitHeureSupp(string soccod,string empniv)
+        public async Task<bool> DroitHeureSuppAsync(string soccod,string empniv)
         {
             try
             {
@@ -354,7 +363,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<string> GetJourRepos(string soccod)
+        public async Task<string> GetJourReposAsync(string soccod)
         {
             try
             {
@@ -367,7 +376,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<SuppAndFerierParam> GetSuppAndFerierParam(string soccod, string empniveau)
+        public async Task<SuppAndFerierParam> GetSuppAndFerierParamAsync(string soccod, string empniveau)
         {
             try
             {
@@ -403,14 +412,14 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<bool> IsEmpfeRepos(string soccod, DateTime? predat, string codpost, string empferepos)
+        public async Task<bool> IsEmpfeReposAsync(string soccod, DateTime? predat, string codpost, string empferepos)
         {
             try
             {
                 if (predat == null)
                     return false;
 
-                // Si "Sans Compter" (0), aucun jour n'est considéré comme repos
+                // Si "Sans Compter" (0), aucun jour n'est considÃ©rÃ© comme repos
                 if (empferepos == "0")
                     return false;
 
@@ -420,7 +429,7 @@ namespace ABRPOINT.Server.Repository
                 string dayName = predat.Value.ToString("dddd", new System.Globalization.CultureInfo("fr-FR"));
                 dayName = char.ToUpper(dayName[0]) + dayName.Substring(1); // Capitalize
 
-                // Option 1: Tout Repos - vérifier tous les jours selon le poste
+                // Option 1: Tout Repos - vÃ©rifier tous les jours selon le poste
                 if (empferepos == "1")
                 {
                     if ((dayName == "Lundi" && poste?.Lunrepos == "1") ||
@@ -459,7 +468,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
         
-        public async Task<(bool,string)> IsEmpcodRepos(string soccod, DateTime? predat, string codpost, string empcod)
+        public async Task<(bool,string)> IsEmpcodReposAsync(string soccod, DateTime? predat, string codpost, string empcod)
         {
             try
             {
@@ -469,7 +478,7 @@ namespace ABRPOINT.Server.Repository
                     .Where(e => e.Soccod == soccod && e.Empcod == empcod)
                     .Select(e => e.Empferepos)
                     .SingleOrDefaultAsync();
-                // Si "Sans Compter" (0), aucun jour n'est considéré comme repos
+                // Si "Sans Compter" (0), aucun jour n'est considÃ©rÃ© comme repos
                 if (empferepos == "0")
                     return (false, empferepos);
 
@@ -479,7 +488,7 @@ namespace ABRPOINT.Server.Repository
                 string dayName = predat.Value.ToString("dddd", new System.Globalization.CultureInfo("fr-FR"));
                 dayName = char.ToUpper(dayName[0]) + dayName.Substring(1); // Capitalize
 
-                // Option 1: Tout Repos - vérifier tous les jours selon le poste
+                // Option 1: Tout Repos - vÃ©rifier tous les jours selon le poste
                 if (empferepos == "1")
                 {
                     if ((dayName == "Lundi" && poste?.Lunrepos == "1") ||
@@ -518,7 +527,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
         
-        public async Task<bool> IsRepos(string soccod, DateTime? predat, string codpost)
+        public async Task<bool> IsReposAsync(string soccod, DateTime? predat, string codpost)
         {
             try
             {
@@ -550,12 +559,12 @@ namespace ABRPOINT.Server.Repository
             }
         }
         
-        public async Task<bool> UpdateParametres(Parametre updatedParam)
+        public async Task<bool> UpdateParametresAsync(Parametre updatedParam)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(updatedParam.Soccod))
-                    throw new ArgumentException("Le code société est obligatoire.", nameof(updatedParam));
+                    throw new ArgumentException("Le code sociÃ©tÃ© est obligatoire.", nameof(updatedParam));
 
                 var param = await _dbContext.Parametres
                     .FirstOrDefaultAsync(p => p.Soccod == updatedParam.Soccod);
@@ -579,7 +588,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<EtatPresenceParametreDto> GetEtatPresenceParametres(string soccod)
+        public async Task<EtatPresenceParametreDto> GetEtatPresenceParametresAsync(string soccod)
         {
             try
             {
@@ -594,7 +603,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<short?> GetLongbdg(string soccod)
+        public async Task<short?> GetLongbdgAsync(string soccod)
         {
             try
             {
@@ -610,7 +619,7 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                // Récupération du paramètre pour la société
+                // RÃ©cupÃ©ration du paramÃ¨tre pour la sociÃ©tÃ©
                 var param = await _dbContext.Parametres
                     .Where(p => p.Soccod == soccod)
                     .Select(p => new ArrondiParam
@@ -629,7 +638,7 @@ namespace ABRPOINT.Server.Repository
         }
 
 
-        public async Task<string> GetPaie(string soccod)
+        public async Task<string> GetPaieAsync(string soccod)
         {
             try
             {
@@ -642,7 +651,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<float?> GetNbhConge(string soccod)
+        public async Task<float?> GetNbhCongeAsync(string soccod)
         {
             try
             {
@@ -654,7 +663,7 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public Task<int?> GetNbhFerier(string soccod)
+        public Task<int?> GetNbhFerierAsync(string soccod)
         {
             try
             {
@@ -667,13 +676,13 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Dictionary<string, float>> GetTotheureCongeParPeriode(string soccod, List<string> empcods, DateTime? debut, DateTime? fin)
+        public async Task<Dictionary<string, float>> GetTotheureCongeParPeriodeAsync(string soccod, List<string> empcods, DateTime? debut, DateTime? fin)
         {
-            float? nbhconge = await GetNbhConge(soccod);
+            float? nbhconge = await GetNbhCongeAsync(soccod);
             if (!nbhconge.HasValue)
                 return new Dictionary<string, float>();
 
-            // 1?? Récupérer les données brutes depuis la base
+            // 1?? RÃ©cupÃ©rer les donnÃ©es brutes depuis la base
             var congesData = await _dbContext.Conges
                 .Where(c =>
                     c.Soccod == soccod &&
@@ -683,11 +692,11 @@ namespace ABRPOINT.Server.Repository
                 .Select(c => new
                 {
                     c.Empcod,
-                    c.Conjour  // ? Récupérer la valeur string brute
+                    c.Conjour  // ? RÃ©cupÃ©rer la valeur string brute
                 })
                 .ToListAsync();
 
-            // 2?? Parser en mémoire (côté client)
+            // 2?? Parser en mÃ©moire (cÃ´tÃ© client)
             var conges = congesData
                 .Select(c => new
                 {

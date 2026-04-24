@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,11 +12,12 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Dmpoint entity)
+        public async Task AddAsync(Dmpoint entity)
         {
-            throw new NotImplementedException();
+            await _dbContext.Dmpoints.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
         }
-        public async Task AddAsync(Presence presence, DateTime date, string poicod)
+        public async Task AddPointageAsync(Presence presence, DateTime date, string poicod)
         {
             try
             {
@@ -72,17 +73,21 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public void Delete(Dmpoint entity)
+        public async Task DeleteAsync(Dmpoint entity)
         {
-            throw new NotImplementedException();
+            if (entity != null)
+            {
+                _dbContext.Dmpoints.Remove(entity);
+                await _dbContext.SaveChangesAsync();
+            }
         }
 
-        public IEnumerable<Dmpoint> GetAll()
+        public async Task<IEnumerable<Dmpoint>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _dbContext.Dmpoints.ToListAsync();
         }
 
-        public async Task<string?> GetPoicod(string soccod, string empcod, DateTime? dmdate)
+        public async Task<string?> GetPoicodAsync(string soccod, string empcod, DateTime? dmdate)
         {
             try
             {
@@ -99,7 +104,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Dictionary<(string Empcod, DateTime Date), string?>> GetPoicodBatch(string soccod, string empcod, DateTime dateDeb, DateTime dateFin)
+        public async Task<Dictionary<(string Empcod, DateTime Date), string?>> GetPoicodBatchAsync(string soccod, string empcod, DateTime dateDeb, DateTime dateFin)
         {
             var points = await _dbContext.Dmpoints
                 .Where(d => d.Soccod == soccod
@@ -113,9 +118,13 @@ namespace ABRPOINT.Server.Repository
                 .ToDictionary(g => g.Key, g => g.First().Dmpnt);
         }
 
-        public void Update(Dmpoint entity)
+        public async Task UpdateAsync(Dmpoint entity)
         {
-            throw new NotImplementedException();
+            if (entity != null)
+            {
+                _dbContext.Dmpoints.Update(entity);
+                await _dbContext.SaveChangesAsync();
+            }
         }
     }
 }

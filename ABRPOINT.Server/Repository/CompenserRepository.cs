@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,14 +12,14 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Compenser compenser)
+        public async Task AddAsync(Compenser compenser)
         {
             if (compenser == null)
                 throw new ArgumentNullException("compenser doit pas etre null");
             try
             {
-                _dbContext.Compensers.Add(compenser);
-                _dbContext.SaveChanges();
+                await _dbContext.Compensers.AddAsync(compenser);
+                await _dbContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -29,14 +29,14 @@ namespace ABRPOINT.Server.Repository
            
         }
 
-        public void Delete(Compenser compenser)
+        public async Task DeleteAsync(Compenser compenser)
         {
             if (compenser == null)
                 throw new ArgumentNullException("Veuillez saisir les champs obligatoires");
             try
             {
                     _dbContext.Compensers.Remove(compenser);
-                    _dbContext.SaveChanges();
+                    await _dbContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -48,19 +48,19 @@ namespace ABRPOINT.Server.Repository
       
 
 
-        public Compenser GetByNumOrdre(string soccod, string ordre)
+        public async Task<Compenser?> GetByNumOrdreAsync(string soccod, string ordre)
         {
-            return _dbContext.Compensers
+            return await _dbContext.Compensers
                 .Where(c=>c.Soccod == soccod)
-                .FirstOrDefault(s => s.Concod == ordre);
+                .FirstOrDefaultAsync(s => s.Concod == ordre);
         }
 
-        public void Update(Compenser compenser)
+        public async Task UpdateAsync(Compenser compenser)
         {
             if (compenser != null)
             {
                 _dbContext.Compensers.Update(compenser);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
         public async Task<List<Compenser>> GetCompenserWithAbsenceAsync(string soccod)
@@ -77,9 +77,9 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
-        public IEnumerable<Compenser> GetAll()
+        public async Task<IEnumerable<Compenser>> GetAllAsync()
         {
-            return _dbContext.Compensers.ToList();
+            return await _dbContext.Compensers.ToListAsync();
         }
 
         

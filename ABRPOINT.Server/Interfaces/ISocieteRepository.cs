@@ -1,15 +1,15 @@
-﻿using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Models;
 
 namespace ABRPOINT.Server.Interfaces
 {
     public interface ISocieteRepository : IRepository<Societe>
     {
-        Societe GetBySoccod(string soccod);
-        Task<SocHeures> GetSocHeures(string soccod);
-        Task<Dictionary<string, string>> GetSoclibs();
-        Task<bool> UpdateAsync(Societe societe);
-        Task<bool> UpdateSocHeures(string soccod,string socpresence,string sochsup);
-        Task UpdateSocieteImage(string? soccod, string filePath);
+        Task<Societe?> GetBySoccodAsync(string soccod);
+        Task<SocHeures> GetSocHeuresAsync(string soccod);
+        Task<Dictionary<string, string>> GetSoclibsAsync();
+        Task<bool> UpdateSocieteAsync(Societe societe);
+        Task<bool> UpdateSocHeuresAsync(string soccod,string socpresence,string sochsup);
+        Task UpdateSocieteImageAsync(string? soccod, string filePath);
     }
 }

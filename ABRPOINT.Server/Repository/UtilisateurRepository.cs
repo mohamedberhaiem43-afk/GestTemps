@@ -18,12 +18,12 @@ namespace ABRPOINT.Server.Repository
         }
   
 
-        public void Delete(Utilisateur utilisateur)
+        public async Task DeleteAsync(Utilisateur utilisateur)
         {
             if (utilisateur != null)
             {
                 _dbContext.Utilisateurs.Remove(utilisateur);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
@@ -63,7 +63,7 @@ namespace ABRPOINT.Server.Repository
             });
         }
 
-        public async Task<List<string>> GetSitcodsAccess(string soccod, string uticod)
+        public async Task<List<string>> GetSitcodsAccessAsync(string soccod, string uticod)
         {
             try
             {
@@ -78,9 +78,9 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public IEnumerable<Utilisateur> GetAll()
+        public async Task<IEnumerable<Utilisateur>> GetAllAsync()
         {
-            return _dbContext.Utilisateurs.ToList();
+            return await _dbContext.Utilisateurs.ToListAsync();
         }
 
         public Utilisateur Get(int id)
@@ -90,12 +90,12 @@ namespace ABRPOINT.Server.Repository
 
 
 
-        public async Task<List<Utilisateur>> GetAllUsers(string soccod, string uticod)
+        public async Task<List<Utilisateur>> GetAllUsersAsync(string soccod, string uticod)
         {
             try
             {
                 // 1. Get accessible sitcods for the current user
-                var sitcods = await GetSitcodsAccess(soccod, uticod);
+                var sitcods = await GetSitcodsAccessAsync(soccod, uticod);
 
                 // 2. Get all socusers that match the accessible sitcods
                 var socuserUticods = await _dbContext.Socusers
@@ -117,16 +117,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Add(Utilisateur utilisateur,Socuser socuser)
-        {
-            if (utilisateur != null)
-            {
-                utilisateur.Utimps = BCrypt.Net.BCrypt.HashPassword(utilisateur.Utimps);
-                _dbContext.Utilisateurs.Add(utilisateur);
-                _dbContext.Socusers.Add(socuser);
-                _dbContext.SaveChanges();
-            }
-        }
+
         public async Task AddAsync(Utilisateur utilisateur, Socuser socuser)
         {
             try
@@ -216,16 +207,16 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(Utilisateur utilisateur)
+        public async Task UpdateAsync(Utilisateur utilisateur)
         {
             if (utilisateur != null)
             {
                 _dbContext.Utilisateurs.Update(utilisateur);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
 
         }
-        public async Task<UtilisateurDto> GetUtilisateur(string uticod)
+        public async Task<UtilisateurDto> GetUtilisateurAsync(string uticod)
         {
             if (string.IsNullOrWhiteSpace(uticod))
                 throw new ArgumentException("User code cannot be empty", nameof(uticod));
@@ -251,16 +242,16 @@ namespace ABRPOINT.Server.Repository
             return utilisateur;
         }
 
-        public void Add(Utilisateur entity)
+        public async Task AddAsync(Utilisateur entity)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<bool> UpdateUser(UtilisateurUpdate utilisateur)
+        public async Task<bool> UpdateUserAsync(UtilisateurUpdate utilisateur)
         {
             try
             {
-                // 1. Update Utilisateur
+                // 1. Update base properties (always)
                 await _dbContext.Utilisateurs
                     .Where(u => u.Uticod == utilisateur.Utilisateur.Uticod)
                     .ExecuteUpdateAsync(setters => setters
@@ -268,55 +259,71 @@ namespace ABRPOINT.Server.Repository
                         .SetProperty(u => u.Utiprn, utilisateur.Utilisateur.Utiprn)
                         .SetProperty(u => u.Utimail, utilisateur.Utilisateur.Utimail)
                         .SetProperty(u => u.Utiactif, utilisateur.Utilisateur.Utiactif)
+                        .SetProperty(u => u.Utirole, utilisateur.Utilisateur.Utirole)
                         .SetProperty(u => u.Utiadm, utilisateur.Utilisateur.Utiadm)
                     );
 
-                // 2. Upsert Moduser records
-                foreach (var mod in utilisateur.Moduser)
+                // 2. Update password separately only if provided
+                if (!string.IsNullOrEmpty(utilisateur.Utilisateur.Utimps))
                 {
-                    var existing = await _dbContext.Modusers
-                        .FirstOrDefaultAsync(m => m.Uticod == utilisateur.Utilisateur.Uticod && m.Modcod == mod.Modcod);
+                    var hashedPassword = BCrypt.Net.BCrypt.HashPassword(utilisateur.Utilisateur.Utimps);
 
-                    if (existing != null)
-                    {
-                        // Update existing
-                        await _dbContext.Modusers
-                            .Where(m => m.Uticod == utilisateur.Utilisateur.Uticod && m.Modcod == mod.Modcod)
-                            .ExecuteUpdateAsync(setters => setters
-                                .SetProperty(m => m.Appcod, mod.Appcod)
-                                .SetProperty(m => m.Modupd, mod.Modupd)
-                                .SetProperty(m => m.Modconsult, mod.Modconsult)
-                                .SetProperty(m => m.Modsupp, mod.Modsupp)
-                                .SetProperty(m => m.Modsais, mod.Modsais)
-                            );
-                    }
-                    else
-                    {
-                        // Insert new
-                        await _dbContext.Modusers.AddAsync(new Moduser
-                        {
-                            Uticod = utilisateur.Utilisateur.Uticod,
-                            Modcod = mod.Modcod,
-                            Appcod = mod.Appcod,
-                            Modupd = mod.Modupd,
-                            Modconsult = mod.Modconsult,
-                            Modsupp = mod.Modsupp,
-                            Modsais = mod.Modsais
-                        });
-                        await _dbContext.SaveChangesAsync();
-                    }
+                    await _dbContext.Utilisateurs
+                        .Where(u => u.Uticod == utilisateur.Utilisateur.Uticod)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(u => u.Utimps, hashedPassword)
+                        );
                 }
 
-                return true;
+                // 3. Upsert Moduser records
+                if (utilisateur.Moduser != null)
+                {
+                    foreach (var mod in utilisateur.Moduser)
+                    {
+                        var existing = await _dbContext.Modusers
+                            .FirstOrDefaultAsync(m => m.Uticod == utilisateur.Utilisateur.Uticod
+                                                   && m.Modcod == mod.Modcod);
+                        if (existing != null)
+                        {
+                            await _dbContext.Modusers
+                                .Where(m => m.Uticod == utilisateur.Utilisateur.Uticod
+                                         && m.Modcod == mod.Modcod)
+                                .ExecuteUpdateAsync(setters => setters
+                                    .SetProperty(m => m.Appcod, mod.Appcod)
+                                    .SetProperty(m => m.Modupd, mod.Modupd)
+                                    .SetProperty(m => m.Modconsult, mod.Modconsult)
+                                    .SetProperty(m => m.Modsupp, mod.Modsupp)
+                                    .SetProperty(m => m.Modsais, mod.Modsais)
+                                );
+                        }
+                        else
+                        {
+                            _dbContext.Modusers.Add(new Moduser
+                            {
+                                Uticod = utilisateur.Utilisateur.Uticod,
+                                Modcod = mod.Modcod,
+                                Appcod = mod.Appcod,
+                                Modupd = mod.Modupd,
+                                Modconsult = mod.Modconsult,
+                                Modsupp = mod.Modsupp,
+                                Modsais = mod.Modsais
+                            });
+                        }
+                    }
+
+                    await _dbContext.SaveChangesAsync();
+                    return true;
+                }
+
+                return false;
             }
-            catch (Exception ex)
+            catch
             {
-                // Optionally log ex here
                 throw;
             }
         }
 
-        public async Task<UtiProfile?> GetProfile(string soccod, string uticod)
+        public async Task<UtiProfile?> GetProfileAsync(string soccod, string uticod)
         {
             var utilisateur = await _dbContext.Utilisateurs
                 .Where(u => u.Uticod == uticod)
@@ -336,7 +343,7 @@ namespace ABRPOINT.Server.Repository
             return profile;
         }
 
-        public async Task<bool> ChangePassword(UpdatePassword pwd)
+        public async Task<bool> ChangePasswordAsync(UpdatePassword pwd)
         {
             try
             {
@@ -365,7 +372,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task UpdateProfileImage(string? userId, string filePath)
+        public async Task UpdateProfileImageAsync(string? userId, string filePath)
         {
             try
             {

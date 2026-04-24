@@ -5,6 +5,7 @@ using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -114,9 +115,9 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/<DirectionsController>
         [HttpPost]
-        public void Post([FromBody] Presence presence)
+        public async Task Post([FromBody] Presence presence)
         {
-            _presenceRepository.Add(presence);
+            await _presenceRepository.AddAsync(presence);
         }
 
         // GET: api/Presences/daily-pointage/{soccod}/{date}
@@ -173,7 +174,7 @@ namespace ABRPOINT.Server.Controllers
                 if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(empcod))
                     return BadRequest(new { message = "soccod et empcod sont obligatoires" });
 
-                var result = await _presenceRepository.AddPresence(soccod, empcod, DateTime.Now, poicod ?? "");
+                var result = await _presenceRepository.AddPresenceAsync(soccod, empcod, DateTime.Now, poicod ?? "");
                 if (result == null)
                     return NotFound(new { message = "Employé introuvable" });
 
@@ -198,7 +199,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 PresenceDto dbpresence = await _presenceRepository.GetAsync(soccod,empcod,predat);
                 if(dbpresence == null)
-                    dbpresence = await _presenceRepository.AddPresence(soccod, empcod, predat,"");
+                    dbpresence = await _presenceRepository.AddPresenceAsync(soccod, empcod, predat,"");
                 dbpresence.Preentamidiup = presence.preentamidiup;
                 dbpresence.Preentsupup = presence.preentsupup;
                 dbpresence.Preentmatup = presence.preentmatup;
@@ -222,7 +223,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                bool result = await _presenceRepository.UpdateTotcmp(soccod, empcod, date, totcmp);
+                bool result = await _presenceRepository.UpdateTotcmpAsync(soccod, empcod, date, totcmp);
                 if (result)
                     return Ok("componsation ajoutée avec succées");
                 return StatusCode(500,"probléme d'ajout de componsation");
@@ -235,14 +236,14 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{concod}")]
-        public IActionResult Delete(string soccod, string concod)
+        public async Task<IActionResult> Delete(string soccod, string concod)
         {
             Presence presence = null;
             if (presence == null)
             {
                 return NotFound();
             }
-            _presenceRepository.Delete(presence);
+            await _presenceRepository.DeleteAsync(presence);
             return NoContent();
         }
     }

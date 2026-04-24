@@ -2,6 +2,7 @@
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -36,13 +37,13 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/<DirectionsController>
         [HttpPost]
-        public IActionResult Post([FromBody] Compenser compenser)
+        public async Task<IActionResult> Post([FromBody] Compenser compenser)
         {
             if (compenser == null)
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                _compenserRepository.Add(compenser);
+                await _compenserRepository.AddAsync(compenser);
                 return Ok("ajout avec sucées");
             }
             catch (Exception)
@@ -55,13 +56,13 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/<DirectionsController>/5
         [HttpPut]
-        public IActionResult Put([FromBody] Compenser compenser)
+        public async Task<IActionResult> Put([FromBody] Compenser compenser)
         {
             if (compenser == null || string.IsNullOrEmpty(compenser.Concod))
                 return BadRequest("Veuillez saisir les champs obligatoires");
             try
             {
-                _compenserRepository.Update(compenser);
+                await _compenserRepository.UpdateAsync(compenser);
                 return Ok("Compensation modifiée avec succées");
             }
             catch (Exception ex)
@@ -74,14 +75,14 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{concod}")]
-        public IActionResult Delete(string soccod,string concod)
+        public async Task<IActionResult> Delete(string soccod,string concod)
         {
-            Compenser compenser = _compenserRepository.GetByNumOrdre(soccod,concod);
+            Compenser compenser = await _compenserRepository.GetByNumOrdreAsync(soccod,concod);
             if (compenser == null)
             {
                 return NotFound();
             }
-            _compenserRepository.Delete(compenser);
+            await _compenserRepository.DeleteAsync(compenser);
             return NoContent();
         }
     }

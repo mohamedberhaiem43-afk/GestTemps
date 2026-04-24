@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 
@@ -14,26 +14,31 @@ namespace ABRPOINT.Server.Repository
             _dbContext = dbContext;
         }
 
-        public void Add(Lposte entity)
+        public async Task AddAsync(Lposte entity)
         {
-            throw new NotImplementedException();
+            await _dbContext.Lpostes.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Lposte entity)
+        public async Task DeleteAsync(Lposte entity)
         {
-            throw new NotImplementedException();
+            if (entity != null)
+            {
+                _dbContext.Lpostes.Remove(entity);
+                await _dbContext.SaveChangesAsync();
+            }
         }
         
-        public IEnumerable<Lposte> GetAll()
+        public async Task<IEnumerable<Lposte>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(_dbContext.Lpostes);
         }
-         public IEnumerable<Lposte> GetLposte(string soccod,string codposte)
+         public async Task<IEnumerable<Lposte>> GetLposteAsync(string soccod,string codposte)
         {
             try
             {
-                IEnumerable<Lposte> lposte = _dbContext.Lpostes
-                    .Where(lp => lp.Soccod == soccod && lp.Codposte == codposte);
+                IEnumerable<Lposte> lposte = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(_dbContext.Lpostes
+                    .Where(lp => lp.Soccod == soccod && lp.Codposte == codposte));
                 
                 return lposte;
             }
@@ -44,9 +49,13 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(Lposte entity)
+        public async Task UpdateAsync(Lposte entity)
         {
-            throw new NotImplementedException();
+            if (entity != null)
+            {
+                _dbContext.Lpostes.Update(entity);
+                await _dbContext.SaveChangesAsync();
+            }
         }
     }
 }

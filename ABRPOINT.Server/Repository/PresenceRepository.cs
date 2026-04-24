@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Helper;
+using ABRPOINT.Helper;
 using ABRPOINT.Server.CalculService.Conge;
 using ABRPOINT.Server.CalculService.HeureAbsences;
 using ABRPOINT.Server.CalculService.HeureNuit;
@@ -13,7 +13,6 @@ using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -63,25 +62,25 @@ namespace ABRPOINT.Server.Repository
             _dmpointRepository = dmpointService;
             _mapper = mapper;
         }
-        public void Add(Presence presence)
+        public async Task AddAsync(Presence presence)
         {
-            _dbContext.Presences.Add(presence);
-            _dbContext.SaveChanges();
+            await _dbContext.Presences.AddAsync(presence);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Presence presence)
+        public async Task DeleteAsync(Presence presence)
         {
             if (presence != null)
             {
                 _dbContext.Presences.Remove(presence);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
         // Add this as a class-level cache dictionary
         private static readonly Dictionary<string, int> _longbdgCache = new Dictionary<string, int>();
 
-        public async Task<PresenceDto?> AddPresence(string soccod, string empcod, DateTime date, string poicod)
+        public async Task<PresenceDto?> AddPresenceAsync(string soccod, string empcod, DateTime date, string poicod)
         {
             try
             {
@@ -89,8 +88,16 @@ namespace ABRPOINT.Server.Repository
                 var emp = await _employeRepository.GetByEmpcod(soccod, empcod);
                 if (emp == null)
                     return null;
-                if(emp.Poscod == null)
-                    emp.Poscod = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date,emp.Catcod);
+                var effectivePoste = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date, emp.Catcod);
+                if (!string.IsNullOrEmpty(effectivePoste))
+                {
+                    emp.Poscod = effectivePoste;
+                }
+                else if (emp.Poscod == null)
+                {
+                    // Fallback to GetEmpPoste if Poscod is null (legacy logic)
+                    emp.Poscod = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date, emp.Catcod);
+                }
 
                 var poste = await _posteRepository.GetPoste(soccod, emp.Poscod);
                 var dbpresence = await _dbContext.Presences
@@ -107,11 +114,12 @@ namespace ABRPOINT.Server.Repository
                 }
                 else
                 {
+                    dbpresence.Codposte = emp.Poscod; // Update existing presence with current effective poste
                     await UpdateExistingPresence(dbpresence, date,poste);
                 }
                 // ✅ VALIDATION DE TOUTES LES DATES
                 ValidatePresenceDates(dbpresence);
-                await _dmpointRepository.AddAsync(dbpresence, date, poicod);
+                await _dmpointRepository.AddPointageAsync(dbpresence, date, poicod);
                 await _dbContext.SaveChangesAsync();
                 return _mapper.Map<PresenceDto>(dbpresence);
             }
@@ -170,7 +178,7 @@ namespace ABRPOINT.Server.Repository
                 }
 
                 // Get from database and cache it
-                short? longbdg = await _parametreRepository.GetLongbdg(soccod);
+                short? longbdg = await _parametreRepository.GetLongbdgAsync(soccod);
                 // Extract numeric part and format
                 string numericPart = new string(empcod.Where(char.IsDigit).ToArray());
 
@@ -399,24 +407,7 @@ namespace ABRPOINT.Server.Repository
             return timeSpan.ToString(@"hh\:mm");
         }
 
-        public PresenceDto Get(string soccod, string empcod, DateTime predat)
-        {
-            try
-            {
-                PresenceDto? presence = _dbContext.Presences
-                    .ProjectTo<PresenceDto>(_mapper.ConfigurationProvider)
-                    .Where(p => p.Soccod == soccod
-                            && p.Empcod == empcod && p.Predat == predat)
-                        .FirstOrDefault();
 
-                return presence;
-            }
-            catch (Exception ex)
-            {
-
-                throw new Exception("",ex);
-            }
-        }
         public async Task<PresenceDto> GetAsync(string soccod, string empcod, DateTime predat)
         {
             try
@@ -435,7 +426,7 @@ namespace ABRPOINT.Server.Repository
                 throw new Exception("", ex);
             }
         }
-        public async Task<float?> GetNbJours(string empcod, DateTime? dateDeb, DateTime? dateFin)
+        public async Task<float?> GetNbJoursAsync(string empcod, DateTime? dateDeb, DateTime? dateFin)
         {
             try
             {
@@ -446,7 +437,7 @@ namespace ABRPOINT.Server.Repository
 
                 foreach (var p in presences)
                 {
-                    var conge = await _congeRepository.GetCongeLib(p.Soccod, p.Empcod, (DateTime)p.Dmdate);
+                    var conge = await _congeRepository.GetCongeLibAsync(p.Soccod, p.Empcod, (DateTime)p.Dmdate);
                     if (GenericMethodes.IsValid(p) && string.IsNullOrEmpty(conge) )
                         nbJours++;
                 }
@@ -459,9 +450,9 @@ namespace ABRPOINT.Server.Repository
             }
         }
         
-        public IEnumerable<Presence> GetAll()
+        public async Task<IEnumerable<Presence>> GetAllAsync()
         {
-            return _dbContext.Presences.ToList();
+            return await _dbContext.Presences.ToListAsync();
         }
 
         public async Task<IEnumerable<EtatEmpPresence>> GetAllAsync(string soccod,DateTime dateDebut,DateTime dateFin,string regime,List<string> empcods)
@@ -519,7 +510,7 @@ namespace ABRPOINT.Server.Repository
                 // 4️⃣ Absences / sanctions (batch)
                 // =========================
                 var sanctions = await _sanctionRepository
-                    .GetAbsenceLibBatch(soccod, null, dateDebut, dateFin);
+                    .GetAbsenceLibBatchAsync(soccod, null, dateDebut, dateFin);
 
                 // =========================
                 // 5️⃣ Construction mémoire
@@ -622,11 +613,11 @@ namespace ABRPOINT.Server.Repository
                 var employePostes = await _posteRepository.GetEmployePosteBatch(soccod, empcod, dateDeb, dateFin);
 
                 // 3️⃣ Batch des sanctions, autorisations, congés, feriés, poicod
-                var sanctions = await _sanctionRepository.GetAbsenceLibBatch(soccod, empcod, dateDeb, dateFin);
+                var sanctions = await _sanctionRepository.GetAbsenceLibBatchAsync(soccod, empcod, dateDeb, dateFin);
                 var autorisations = await _autorisationRepository.GetAutLibBatch(soccod, empcod, dateDeb, dateFin);
-                var conges = await _congeRepository.GetCongeEmployeLibBatch(soccod, empcod, dateDeb, dateFin);
+                var conges = await _congeRepository.GetCongeEmployeLibBatchAsync(soccod, empcod, dateDeb, dateFin);
                 var feriers = await _jourFerierRepository.GetByFerdateBatch(soccod, dateDeb, dateFin);
-                var poicods = await _dmpointRepository.GetPoicodBatch(soccod, empcod, dateDeb, dateFin);
+                var poicods = await _dmpointRepository.GetPoicodBatchAsync(soccod, empcod, dateDeb, dateFin);
 
                 // 4️⃣ Construire un dictionnaire pour lookup rapide
                 var presenceDict = presenceList.ToDictionary(p => p.Predat.Value.Date);
@@ -646,7 +637,7 @@ namespace ABRPOINT.Server.Repository
                         return true;
                     }
 
-                    // 5️⃣ Créer présence si absente
+                    var effectivePoste = employePostes.GetValueOrDefault((Empcod: empcod, Date: date));
                     presenceDict.TryGetValue(date.Date, out var presence);
                     if (presence == null)
                     {
@@ -656,8 +647,12 @@ namespace ABRPOINT.Server.Repository
                             Empcod = empcod,
                             Dmdate = date,
                             Predat = date,
-                            Codposte = employePostes.GetValueOrDefault((Empcod: empcod, Date: date))
+                            Codposte = effectivePoste
                         };
+                    }
+                    else if (!string.IsNullOrEmpty(effectivePoste))
+                    {
+                        presence.Codposte = effectivePoste;
                     }
                     presence.Tothabs = "00:00";
                     // 6?? Lookup batch - ?? with employment period validation
@@ -735,9 +730,9 @@ namespace ABRPOINT.Server.Repository
                     if (!string.IsNullOrEmpty(presence.Codposte))
                     {
                         bool isRepos = false;
-                        var (isPreRepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, presence.Codposte, empcod);
+                        var (isPreRepos, emprepos) = await _parametreRepository.IsEmpcodReposAsync(soccod, date, presence.Codposte, empcod);
                         if (presence.Empmat == null)
-                            isRepos = await _parametreRepository.IsRepos(soccod, date, presence.Codposte);
+                            isRepos = await _parametreRepository.IsReposAsync(soccod, date, presence.Codposte);
 
                         ArrondiParam? arrondiparams = await _parametreRepository.GetEtatPeriodiqueParamAsync(soccod);
                         presence.Arrondi = arrondiparams.Arrondi;
@@ -764,7 +759,7 @@ namespace ABRPOINT.Server.Repository
                         // 🔴 CAS JOUR FÉRIÉ : forcer les heures et ignorer le calcul normal
                         if (ferier != null)
                         {
-                            presence.Etat = ferier.Fermotif;
+                            presence.Etat = $"Férié ({ferier.Fermotif})";
                             var ferHeure = await _jourFerierRepository.GetFerheure(soccod, presence.Dmdate);
 
                             if (ferHeure.HasValue)
@@ -796,7 +791,7 @@ namespace ABRPOINT.Server.Repository
                         // ✅ CAS CONGÉ avec gestion de Connbjour
                         if (!string.IsNullOrEmpty(conge))
                         {
-                            var nbhconge = await _parametreRepository.GetNbhConge(soccod);
+                            var nbhconge = await _parametreRepository.GetNbhCongeAsync(soccod);
 
                             float heuresConge = (connbjour.HasValue && connbjour.Value == 0.5f)
                                 ? (nbhconge ?? 0) * 0.5f
@@ -849,6 +844,15 @@ namespace ABRPOINT.Server.Repository
                         // Calcul du retard - 🆕 pass null if autorisation is outside employment period
                         int retard = (await _retardService.CalculateHeureRetard(presence, poste, autorisation)).Item1;
                         presence.Totret = $"{retard / 60:D2}:{retard % 60:D2}";
+
+                        // 🔴 GESTION DES ABSENCES : si pas de pointage, pas de repos, pas de congé/férier/autorisation
+                        if (string.IsNullOrEmpty(presence.Etat) && 
+                            presence.Prerepos != "1" && 
+                            (string.IsNullOrEmpty(presence.Tothre) || presence.Tothre == "00:00") &&
+                            !string.IsNullOrEmpty(presence.Codposte))
+                        {
+                            presence.Etat = "Absence";
+                        }
                     }
 
                     allDates.Add(presence);
@@ -868,7 +872,7 @@ namespace ABRPOINT.Server.Repository
             {
                 if (presence != null)
                 {
-                    await CalculatePresence(presence);
+                    await CalculatePresenceAsync(presence);
                     _dbContext.Presences.Update(presence);
                     _dbContext.SaveChanges();
                 }
@@ -880,7 +884,7 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
-        public async Task CalculatePresence(Presence presence)
+        public async Task CalculatePresenceAsync(Presence presence)
         {
             var transaction = await _dbContext.Database.BeginTransactionAsync();
 
@@ -938,9 +942,9 @@ namespace ABRPOINT.Server.Repository
                 {
                     return (0, 0);
                 }
-                string codpost = presence.Codposte;
-                if(string.IsNullOrEmpty(presence.Codposte))
-                    codpost = await _posteRepository.GetEmpPoste(presence.Soccod,presence.Empcod, presence.Predat,presence.Catcod);
+                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat, presence.Catcod);
+                if (string.IsNullOrEmpty(codpost))
+                    codpost = presence.Codposte;
                 var poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
 
                 if (poste == null) return (0, 0);
@@ -961,7 +965,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<double?> GetPreRepas(string empcod, DateTime? predate)
+        public async Task<double?> GetPreRepasAsync(string empcod, DateTime? predate)
         {
             try
             {
@@ -976,6 +980,12 @@ namespace ABRPOINT.Server.Repository
         }
 
 
+        public async Task UpdateAsync(Presence entity)
+        {
+            _dbContext.Presences.Update(entity);
+            await _dbContext.SaveChangesAsync();
+        }
+
         public async Task UpdateAsync(PresenceDto presence)
         {
             try
@@ -983,13 +993,12 @@ namespace ABRPOINT.Server.Repository
                 if (presence != null)
                 {
                     var empparam = await _employeRepository.GetEmpparam(presence.Soccod, presence.Empcod,(DateTime)presence.Predat,presence.Codposte);
-                    Poste? poste = null;
-                    if(string.IsNullOrEmpty(presence.Codposte))
+                    string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat, presence.Catcod);
+                    if (!string.IsNullOrEmpty(codpost))
                     {
-                        string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat, presence.Catcod);
-                        poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
                         presence.Codposte = codpost;
                     }
+                    var poste = await _posteRepository.GetPoste(presence.Soccod, presence.Codposte);
                     // Calculs
                     var (nbHeurSupp, nbRetard) = await CalculateDayWorkMetrics(presence);
                     float? heuresNuit = await _heureNuitService.CalculateHeureNuit(presence);
@@ -1121,7 +1130,7 @@ namespace ABRPOINT.Server.Repository
                     presence.Tothre = $"{totalHeureTimeSpan.Hours:D2}:{totalHeureTimeSpan.Minutes:D2}";
 
                     // Étape 4 : Contrôle des plafonds
-                    EtatPresenceParametreDto param = await _parametreRepository.GetEtatPresenceParametres(presence.Soccod);
+                    EtatPresenceParametreDto param = await _parametreRepository.GetEtatPresenceParametresAsync(presence.Soccod);
 
                 if (!string.IsNullOrEmpty(presence.Tothre) &&
                     TimeSpan.TryParse(presence.Tothre, out TimeSpan tothreTime) &&
@@ -1221,7 +1230,7 @@ namespace ABRPOINT.Server.Repository
                 presence.Tothre = $"{totalHeureTimeSpan.Hours:D2}:{totalHeureTimeSpan.Minutes:D2}";
 
                 // Étape 4 : Contrôle des plafonds
-                EtatPresenceParametreDto param = await _parametreRepository.GetEtatPresenceParametres(presence.Soccod);
+                EtatPresenceParametreDto param = await _parametreRepository.GetEtatPresenceParametresAsync(presence.Soccod);
 
                 if (!string.IsNullOrEmpty(presence.Tothre) &&
                     TimeSpan.TryParse(presence.Tothre, out TimeSpan tothreTime) &&
@@ -1299,7 +1308,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
        // PresenceRepository.cs implementation example
-        public async Task<Presence> GetPresenceByEmployeeAndTime(string soccod, string empcode, DateTime time)
+        public async Task<Presence?> GetPresenceByEmployeeAndTimeAsync(string soccod, string empcode, DateTime time)
         {
             // Check if a presence record exists within a 1-minute window to avoid duplicates
             var timeWindow = TimeSpan.FromMinutes(1);
@@ -1313,7 +1322,7 @@ namespace ABRPOINT.Server.Repository
                     p.Predat >= startTime &&
                     p.Predat <= endTime);
         }
-        public async Task<PresenceSemaineData> GetPresenceSemaineData(string soccod, string empcod, string mois, string annee, string semaine,string emppanier)
+        public async Task<PresenceSemaineData> GetPresenceSemaineDataAsync(string soccod, string empcod, string mois, string annee, string semaine,string emppanier)
         {
             try
             {
@@ -1364,7 +1373,7 @@ namespace ABRPOINT.Server.Repository
                 }
 
                 // Get the company's month configuration
-                ParametreMoisPointageDto parametreMoisPointage = await _parametreRepository.GetParametreMoisPointage(soccod);
+                ParametreMoisPointageDto parametreMoisPointage = await _parametreRepository.GetParametreMoisPointageAsync(soccod);
                 if (parametreMoisPointage == null)
                 {
                     return null;
@@ -1498,7 +1507,7 @@ namespace ABRPOINT.Server.Repository
                         weekDetails.Add(date.ToString(), GetWeekDetails(presence, date));
                         // Do all your processing, even if `presence` is null
                         // For example, check sanctions:
-                        SanctionDto? sanction = await _sanctionRepository.GetAbsence(soccod, empcod, date);
+                        SanctionDto? sanction = await _sanctionRepository.GetAbsenceAsync(soccod, empcod, date);
                         if (sanction != null)
                         {
                             if (sanction.Abspaye == "N")
@@ -1547,8 +1556,8 @@ namespace ABRPOINT.Server.Repository
                         if (((GenericMethodes.NotPresent(presence) || !GenericMethodes.IsValid(presence)) && sanction == null))
                         {
                             string? poste = await _employeRepository.GetEmpPoste(soccod, empcod, date);
-                            var (isRepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, poste, empcod);
-                            string conge = await _congeRepository.GetCongeLib(soccod, empcod, date);
+                            var (isRepos, emprepos) = await _parametreRepository.IsEmpcodReposAsync(soccod, date, poste, empcod);
+                            string conge = await _congeRepository.GetCongeLibAsync(soccod, empcod, date);
                             if (!isRepos && string.IsNullOrEmpty(conge))
                             {
                                 var res = await _absenceService.CalculateHeureAbsences(presence, soccod, poste, date,autorisation,GenericMethodes.ConvertHHmmToDouble(presence.Tothre));
@@ -1597,7 +1606,7 @@ namespace ABRPOINT.Server.Repository
                                 // ... ton code existant pour les sanctions, congés, fériés, etc. ...
 
                                 bool isFerier = await _jourFerierRepository.IsFerier(soccod, date);
-                                string? conge = await _congeRepository.GetCongeLib(soccod, empcod, date);
+                                string? conge = await _congeRepository.GetCongeLibAsync(soccod, empcod, date);
 
                                 // Calcul du panier uniquement si ce n'est ni congé ni férié
                                 if (!isFerier && string.IsNullOrEmpty(conge))
@@ -1619,7 +1628,7 @@ namespace ABRPOINT.Server.Repository
                                              if (emppanier == "2" && nbHeuresJour >= 6) panier++;
                                         }
                                         var codpost = await _posteRepository.GetEmpPoste(soccod, empcod, date, presence.Catcod);
-                                        var (isrepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, codpost, empcod); 
+                                        var (isrepos, emprepos) = await _parametreRepository.IsEmpcodReposAsync(soccod, date, codpost, empcod); 
                                         if(presence.Predat.Value.DayOfWeek == DayOfWeek.Saturday && GenericMethodes.ConvertHHmmToDouble(presence.Tothre)>0 && isrepos)
                                             {
                                               joursameditrv++;
@@ -1688,7 +1697,7 @@ namespace ABRPOINT.Server.Repository
 
                             if (sanction?.Connbjour != 0 && nombreConge?.nbJourConge != 0 && !string.IsNullOrEmpty(presence?.Tothre) || presence?.Tothre == "00:00")
                                 nbJours++;
-                            nbhAllaitement += await _allaitementRepository.GetNbhAllaitement(soccod, empcod, date);
+                            nbhAllaitement += await _allaitementRepository.GetNbhAllaitementAsync(soccod, empcod, date);
                             if (!string.IsNullOrEmpty(presence.Tothre) && TimeSpan.TryParseExact(presence.Tothre, "hh\\:mm", null, out TimeSpan hours))
                             {
                                 var hreFerierTrav = await _jourFerierRepository.GetHeureFerieTrav(soccod, presence.Predat, presence.Tothre);
@@ -1705,9 +1714,10 @@ namespace ABRPOINT.Server.Repository
                                 totalHours += (float)hours.TotalHours;
                                 if (presence.Prerepos == "1")
                                 {
-                                    if (string.IsNullOrEmpty(presence.Codposte))
-                                        presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, date,presence.Catcod);
-                                    var (isrepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod,date,presence.Codposte,empcod);
+                                    var effectivePoste = await _posteRepository.GetEmpPoste(soccod, empcod, date, presence.Catcod);
+                                    if (!string.IsNullOrEmpty(effectivePoste))
+                                        presence.Codposte = effectivePoste;
+                                    var (isrepos, emprepos) = await _parametreRepository.IsEmpcodReposAsync(soccod,date,presence.Codposte,empcod);
                                     if (isrepos)
                                     {
                                         hreRepos += (float)hours.TotalHours;
@@ -1756,7 +1766,7 @@ namespace ABRPOINT.Server.Repository
             return date.Day > daysInMonth ? new DateTime(date.Year, date.Month, daysInMonth) : date;
         }
 
-        public async Task<PresenceStatistics> GetStatistics(DateTime startDate, DateTime endDate)
+        public async Task<PresenceStatistics> GetStatisticsAsync(DateTime startDate, DateTime endDate)
         {
             var presences = await _dbContext.Presences
                 .Where(p => p.Predat >= startDate && p.Predat <= endDate)
@@ -1778,7 +1788,7 @@ namespace ABRPOINT.Server.Repository
             };
         }
 
-        public async Task<List<AbsenceInfo>> GetRecentAbsences(DateTime startDate, DateTime endDate, int limit)
+        public async Task<List<AbsenceInfo>> GetRecentAbsencesAsync(DateTime startDate, DateTime endDate, int limit)
         {
             return await _dbContext.Presences
                 .Where(p => p.Predat >= startDate && p.Predat <= endDate && p.Preentmatup == null)
@@ -1793,7 +1803,7 @@ namespace ABRPOINT.Server.Repository
                 .ToListAsync();
         }
 
-        public async Task<GlobalStatistics> GetGlobalStatistics()
+        public async Task<GlobalStatistics> GetGlobalStatisticsAsync()
         {
             var totalEmployees = await _dbContext.Employes.CountAsync();
             var thisMonth = DateTime.Today.Month;
@@ -1819,7 +1829,7 @@ namespace ABRPOINT.Server.Repository
             };
         }
 
-        public async Task<bool> UpdateTotcmp(string soccod, string empcod, DateTime date, float totcmp)
+        public async Task<bool> UpdateTotcmpAsync(string soccod, string empcod, DateTime date, float totcmp)
         {
             try
             {
@@ -1884,11 +1894,11 @@ namespace ABRPOINT.Server.Repository
 
                 foreach (var emp in employees)
                 {
-                    string codposte = emp.Poscod;
+                    string? codposte = await _posteRepository.GetEmpPoste(soccod, emp.Empcod, date, emp.Catcod);
+                    if (string.IsNullOrEmpty(codposte))
+                        codposte = emp.Poscod;
                     if (string.IsNullOrEmpty(codposte) && plans.TryGetValue(emp.Empcod, out var plan))
                         codposte = plan.Planposte;
-                    if (string.IsNullOrEmpty(codposte))
-                        codposte = await _posteRepository.GetEmpPoste(soccod, emp.Empcod, date, emp.Catcod);
 
                     postes.TryGetValue(codposte ?? "", out var poste);
                     string poslib = poste?.Libposte ?? codposte ?? "";
@@ -1896,9 +1906,9 @@ namespace ABRPOINT.Server.Repository
                     bool isRepos = false;
                     if (!string.IsNullOrEmpty(codposte))
                     {
-                        var (isPreRepos, emprepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, codposte, emp.Empcod);
+                        var (isPreRepos, emprepos) = await _parametreRepository.IsEmpcodReposAsync(soccod, date, codposte, emp.Empcod);
                         if (!isPreRepos)
-                            isRepos = await _parametreRepository.IsRepos(soccod, date, codposte);
+                            isRepos = await _parametreRepository.IsReposAsync(soccod, date, codposte);
                         else
                             isRepos = isPreRepos;
                     }
@@ -1978,9 +1988,9 @@ namespace ABRPOINT.Server.Repository
                 if (emp == null)
                     return new EntryReminderDto { ShouldRemind = false, Message = "Employé introuvable", Poste = "", HasMarkedEntry = false, IsConge = false, IsFerie = false, IsRepos = false };
 
-                string codposte = emp.Poscod;
+                string? codposte = await _posteRepository.GetEmpPoste(soccod, formattedEmpcod, today, emp.Catcod);
                 if (string.IsNullOrEmpty(codposte))
-                    codposte = await _posteRepository.GetEmpPoste(soccod, formattedEmpcod, today, emp.Catcod);
+                    codposte = emp.Poscod;
 
                 var poste = await _posteRepository.GetPoste(soccod, codposte);
                 string poslib = poste?.Libposte ?? codposte ?? "";
@@ -1989,9 +1999,9 @@ namespace ABRPOINT.Server.Repository
                 bool isRepos = false;
                 if (!string.IsNullOrEmpty(codposte))
                 {
-                    var (isPreRepos, _) = await _parametreRepository.IsEmpcodRepos(soccod, today, codposte, formattedEmpcod);
+                    var (isPreRepos, _) = await _parametreRepository.IsEmpcodReposAsync(soccod, today, codposte, formattedEmpcod);
                     if (!isPreRepos)
-                        isRepos = await _parametreRepository.IsRepos(soccod, today, codposte);
+                        isRepos = await _parametreRepository.IsReposAsync(soccod, today, codposte);
                     else
                         isRepos = isPreRepos;
                 }

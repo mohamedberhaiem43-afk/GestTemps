@@ -49,11 +49,7 @@ namespace ABRPOINT.Server.Repository
             _logger = logger;
         }
 
-        public void Add(Employe employe)
-        {
-            _dbContext.Employes.Add(employe);
-            _dbContext.SaveChanges();
-        }
+
 
         public async Task AddAsync(Employe employe)
         {
@@ -69,13 +65,13 @@ namespace ABRPOINT.Server.Repository
                         throw new InvalidOperationException($"Employe {employe.Empcod}-{employe.Soccod}-{employe.Sitcod} existe déjà.");
                     }
 
-                    short? longbdg = await _parametreRepository.GetLongbdg(employe.Soccod);
+                    //short? longbdg = await _parametreRepository.GetLongbdg(employe.Soccod);
 
                     // Parse longbdg to get the required number of digits
-                    if (longbdg > 0)
-                    {
-                        employe.Empmat = GenericMethodes.FormatEmpmat(employe.Empmat, longbdg);
-                    }
+                    //if (longbdg > 0)
+                    //{
+                    //    employe.Empmat = GenericMethodes.FormatEmpmat(employe.Empmat, longbdg);
+                    //}
 
                     await _dbContext.Employes.AddAsync(employe);
                     await _dbContext.SaveChangesAsync();
@@ -163,18 +159,9 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Delete(Employe employe)
+        public async Task<IEnumerable<Employe>> GetAllAsync()
         {
-            if (employe != null)
-            {
-                _dbContext.Employes.Remove(employe);
-                _dbContext.SaveChanges();
-            }
-        }
-
-        public IEnumerable<Employe> GetAll()
-        {
-            return _dbContext.Employes.ToList();
+            return await _dbContext.Employes.ToListAsync();
         }
 
         public async Task<(TimeSpan? Debut, TimeSpan? Fin)> GetEmpNuitIntervalle(string soccod, string empcod)
@@ -225,7 +212,7 @@ namespace ABRPOINT.Server.Repository
 
                 foreach (var p in presences)
                 {
-                    string codpost = await _posteRepository.GetEmpPoste(p.Soccod, p.Empcod, p.Predat, p.Catcod);
+                    string? codpost = await _posteRepository.GetEmpPoste(p.Soccod, p.Empcod, p.Predat, p.Catcod);
                     var poste = await _posteRepository.GetPoste(p.Soccod, codpost);
 
                     PresenceDto presence = _mapper.Map<Presence, PresenceDto>(p);
@@ -236,7 +223,7 @@ namespace ABRPOINT.Server.Repository
                         continue;
                     }
 
-                    AutDto autorisation = await _autorisationRepository.GetAutLib(
+                    AutDto? autorisation = await _autorisationRepository.GetAutLib(
                         presence.Soccod,
                         presence.Empcod,
                         presence.Dmdate.Value
@@ -300,7 +287,7 @@ namespace ABRPOINT.Server.Repository
                 .ToList();
 
             Dictionary<(string Soccod, string Empcod, DateTime Date), (string? Abslib, float? Connbjour)> conges =
-                await _congeRepository.GetCongeLibBatch(demandesConge);
+                await _congeRepository.GetCongeLibBatchAsync(demandesConge);
 
             // =====================================
             // 3?? Charger les postes (batch)
@@ -313,11 +300,11 @@ namespace ABRPOINT.Server.Repository
             var postesEmp = new Dictionary<(string soc, string Empcod, DateTime Date), string?>();
             foreach (var (soc, empcod, date, codposte, catcod) in empdates)
             {
-                string? posteCode = codposte;
+                string? posteCode = await _posteRepository.GetEmpPoste(soc, empcod, date, catcod);
 
                 if (string.IsNullOrEmpty(posteCode))
                 {
-                    posteCode = await _posteRepository.GetEmpPoste(soc, empcod, date, catcod);
+                    posteCode = codposte;
                 }
 
                 postesEmp[(soc, empcod, date)] = posteCode;
@@ -443,25 +430,25 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public IEnumerable<Employe> GetAll(string soccod, string uticod)
+        public async Task<IEnumerable<Employe>> GetAllEmployesAsync(string soccod, string uticod)
         {
             // Check if soccod and uticod have values
             if (!string.IsNullOrEmpty(soccod) && !string.IsNullOrEmpty(uticod))
             {
                 // Retrieve the list of sitcods associated with the provided soccod and uticod
-                List<string> sitcods = _dbContext.Socusers
+                List<string> sitcods = await _dbContext.Socusers
                    .Where(s => s.Soccod == soccod && s.Uticod == uticod)
                    .Select(s => s.Sitcod)
-                   .ToList();
+                   .ToListAsync();
 
                 // Filter Employes based on soccod and sitcods list
-                return _dbContext.Employes
+                return await _dbContext.Employes
                     .Where(e => e.Soccod == soccod && sitcods.Contains(e.Sitcod))
-                    .ToList();
+                    .ToListAsync();
             }
 
             // If soccod or uticod is null/empty, return all Employes
-            return GetAll();
+            return await GetAllAsync();
         }
 
         public async Task<Employe> GetByEmpcod(string soccod, string empcod)
@@ -550,12 +537,12 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(Employe employe)
+        public async Task UpdateAsync(Employe employe)
         {
             if (employe != null)
             {
                 _dbContext.Employes.Update(employe);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
@@ -754,8 +741,8 @@ namespace ABRPOINT.Server.Repository
                 }
 
                 // ? Récupérer tous les congés pour toutes les dates (déjà filtrées)
-                var conges = await _congeRepository.GetCongeLibBatch(allDatesInPeriod);
-                var nbhconge = await _parametreRepository.GetNbhConge(soccod) ?? 0;
+                var conges = await _congeRepository.GetCongeLibBatchAsync(allDatesInPeriod);
+                var nbhconge = await _parametreRepository.GetNbhCongeAsync(soccod) ?? 0;
 
                 // ================================
                 // 5?? Calcul des heures de congés par employé
@@ -859,7 +846,7 @@ namespace ABRPOINT.Server.Repository
 
                 foreach (var p in presences)
                 {
-                    var conge = await _congeRepository.GetCongeLib(p.Soccod, p.Empcod, (DateTime)p.Dmdate);
+                    var conge = await _congeRepository.GetCongeLibAsync(p.Soccod, p.Empcod, (DateTime)p.Dmdate);
                     if (GenericMethodes.IsValid1(p) && string.IsNullOrEmpty(conge) && !GenericMethodes.NotPresent(p))
                         nbJours++;
                 }
@@ -934,7 +921,7 @@ namespace ABRPOINT.Server.Repository
                 })
                 .ToList();
 
-            var conges = await _congeRepository.GetCongeLibBatch(demandesConge);
+            var conges = await _congeRepository.GetCongeLibBatchAsync(demandesConge);
 
             // =====================================
             // 4?? Pré-charger les emparam pour tous les employés
@@ -1268,7 +1255,7 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                var sitcods = await _utilisateurRepository.GetSitcodsAccess(soccod, uticod);
+                var sitcods = await _utilisateurRepository.GetSitcodsAccessAsync(soccod, uticod);
                 DateTime yesterday = DateTime.Today.AddDays(-1);
                 DateTime today = DateTime.Today;
 
@@ -1303,7 +1290,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Employe> UpdateAsync(Employe employe)
+        public async Task<Employe> UpdateEmployeAsync(Employe employe)
         {
             try
             {
@@ -1410,7 +1397,16 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<(bool Success, string Message)> DeleteAsync(Employe employe)
+        public async Task DeleteAsync(Employe employe)
+        {
+            if (employe != null)
+            {
+                _dbContext.Employes.Remove(employe);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
+
+        public async Task<(bool Success, string Message)> DeleteEmployeAsync(Employe employe)
         {
             try
             {

@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,9 +16,9 @@ namespace ABRPOINT.Server.Controllers
             _siteRepository = siteRepository;
         }
 
-        // GET: api/Sites
+        // GET: api/Sites/SOC01
         [HttpGet("{soccod}")]
-        public IActionResult Get(string soccod)
+        public async Task<IActionResult> Get(string soccod)
         {
             try
             {
@@ -26,7 +26,7 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest(new { message = "Le code société (soccod) est obligatoire" });
                 }
-                var sites = _siteRepository.GetAll(soccod);
+                var sites = await _siteRepository.GetAllAsync(soccod);
                 return Ok(sites);
             }
             catch (Exception ex)
@@ -34,12 +34,13 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = ex.Message });
             }
         }
+
         [HttpGet("get-sitlibs")]
         public async Task<IActionResult> GetSitLibs()
         {
             try
             {
-                var sitLibs = await _siteRepository.GetSitLibs();
+                var sitLibs = await _siteRepository.GetSitLibsAsync();
                 return Ok(sitLibs);
             }
             catch (Exception ex)
@@ -47,7 +48,7 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = ex.Message });
             }
         }
-        
+
         [HttpGet("get-sitlibs/{soccod}")]
         public async Task<IActionResult> GetSitLibsBySociety(string soccod)
         {
@@ -57,8 +58,8 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest(new { message = "Le code société est obligatoire" });
                 }
-                
-                var sitLibs = await _siteRepository.GetSitLibs(soccod);
+
+                var sitLibs = await _siteRepository.GetSitLibsAsync(soccod);
                 return Ok(sitLibs);
             }
             catch (InvalidOperationException ex)
@@ -70,6 +71,7 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = ex.Message });
             }
         }
+
         [HttpGet("get-sitlibs/{soccod}/{uticod}")]
         public async Task<IActionResult> GetSitLibsByUser(string soccod, string uticod)
         {
@@ -79,7 +81,7 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest(new { message = "Le code société et utilisateur sont obligatoires" });
                 }
-                var sitLibs = await _siteRepository.GetSitLibs(soccod, uticod);
+                var sitLibs = await _siteRepository.GetSitLibsAsync(soccod, uticod);
                 return Ok(sitLibs);
             }
             catch (Exception ex)
@@ -88,13 +90,13 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        // GET api/Services/5
+        // GET api/Sites/SOC01/SITE01
         [HttpGet("{soccod}/{sitcod}")]
-        public ActionResult<Site> Get(string soccod, string sitcod)
+        public async Task<ActionResult<Site>> Get(string soccod, string sitcod)
         {
             try
             {
-                var site = _siteRepository.GetBySitcod(soccod, sitcod);
+                var site = await _siteRepository.GetBySitcodAsync(soccod, sitcod);
                 if (site == null)
                 {
                     return NotFound();
@@ -107,10 +109,10 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        // POST api/Services
+        // POST api/Sites
         [Authorize]
         [HttpPost]
-        public IActionResult Post([FromBody] Site site)
+        public async Task<IActionResult> Post([FromBody] Site site)
         {
             try
             {
@@ -118,13 +120,13 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest(new { isValid = false, message = "Les données du site sont obligatoires" });
                 }
-                
+
                 if (string.IsNullOrEmpty(site.Sitcod) || string.IsNullOrEmpty(site.Soccod))
                 {
                     return BadRequest(new { isValid = false, message = "Le code site et le code société sont obligatoires" });
                 }
-                
-                _siteRepository.Add(site);
+
+                await _siteRepository.AddAsync(site);
                 return Ok(new { isValid = true, message = "Site ajouté avec succès" });
             }
             catch (Exception ex)
@@ -133,7 +135,7 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        // PUT api/Services/5
+        // PUT api/Sites
         [Authorize]
         [HttpPut]
         public async Task<IActionResult> Put([FromBody] Site site)
@@ -144,17 +146,13 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest(new { message = "Les données du site sont obligatoires" });
                 }
-                
+
                 if (string.IsNullOrEmpty(site.Sitcod) || string.IsNullOrEmpty(site.Soccod))
                 {
                     return BadRequest(new { message = "Le code site et le code société sont obligatoires" });
                 }
-                
-                bool result = await _siteRepository.UpdateAsync(site);
-                if (!result)
-                {
-                    return NotFound(new { message = "Site non trouvé" });
-                }
+
+                await _siteRepository.UpdateAsync(site);
                 return Ok(new { message = "Site modifié avec succès" });
             }
             catch (Exception ex)
@@ -163,10 +161,10 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        // DELETE api/Services/{soccod}/{sitcod}
+        // DELETE api/Sites/SOC01/SITE01
         [Authorize]
         [HttpDelete("{soccod}/{sitcod}")]
-        public IActionResult Delete(string soccod, string sitcod)
+        public async Task<IActionResult> Delete(string soccod, string sitcod)
         {
             try
             {
@@ -174,14 +172,14 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest(new { message = "Le code société et le code site sont obligatoires" });
                 }
-                
-                Site site = _siteRepository.GetBySitcod(soccod, sitcod);
+
+                var site = await _siteRepository.GetBySitcodAsync(soccod, sitcod);
                 if (site == null)
                 {
                     return NotFound(new { message = "Site non trouvé" });
                 }
-                
-                _siteRepository.Delete(site);
+
+                await _siteRepository.DeleteAsync(site);
                 return Ok(new { message = "Site supprimé avec succès" });
             }
             catch (Exception ex)
@@ -189,6 +187,5 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de la suppression du site", details = ex.Message });
             }
         }
-
     }
 }

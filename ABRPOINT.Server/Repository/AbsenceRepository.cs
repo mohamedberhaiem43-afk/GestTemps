@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Exceptions;
 using ABRPOINT.Helper;
@@ -23,12 +23,12 @@ namespace ABRPOINT.Server.Repository
             _parametreRepository = parametreRepository;
 
         }
-        public void Add(Absence absence)
+        public async Task AddAsync(Absence absence)
         {
             try
             {
-                _dbContext.Absences.Add(absence);
-                _dbContext.SaveChanges();
+                await _dbContext.Absences.AddAsync(absence);
+                await _dbContext.SaveChangesAsync();
             }
             catch (DbUpdateException dbEx)
             {
@@ -41,7 +41,7 @@ namespace ABRPOINT.Server.Repository
             }
             
         }
-        public async Task<List<EtatAbsence>> GetEtatAbsence(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,bool presNonOpt,bool sansPointageInvalide,string radioValue, List<string>? empcods)
+        public async Task<List<EtatAbsence>> GetEtatAbsenceAsync(string soccod,DateTime datedebut,DateTime datefin,bool absaut,bool absret,bool presNonOpt,bool sansPointageInvalide,string radioValue, List<string>? empcods)
         {
             if (empcods == null || empcods.Count == 0)
                 return new List<EtatAbsence>();
@@ -74,7 +74,7 @@ namespace ABRPOINT.Server.Repository
 
                 if (!string.IsNullOrWhiteSpace(codpost))
                 {
-                    (isRepos, _) = await _parametreRepository.IsEmpcodRepos(soccod, date, codpost, presence.Empcod);
+                    (isRepos, _) = await _parametreRepository.IsEmpcodReposAsync(soccod, date, codpost, presence.Empcod);
                 }
 
                 if (actions == 0 && (presence?.Prerepos == "0" || !isRepos))
@@ -299,7 +299,7 @@ namespace ABRPOINT.Server.Repository
                     if (allDates.Count == 0)
                         continue;
 
-                    var reposDays = await _parametreRepository.GetReposDaysByPeriod(soccod, employe.Empcod, allDates);
+                    var reposDays = await _parametreRepository.GetReposDaysByPeriodAsync(soccod, employe.Empcod, allDates);
 
                     foreach (var date in allDates)
                     {
@@ -454,7 +454,7 @@ namespace ABRPOINT.Server.Repository
                 .ThenBy(r => r.Empcod)
                 .ToList();
         }
-        public void Delete(Absence absence)
+        public async Task DeleteAsync(Absence absence)
         {
             try
             {
@@ -462,7 +462,7 @@ namespace ABRPOINT.Server.Repository
                     throw new ArgumentNullException("Invalid ID specified for deletion.", nameof(absence));
                 
                     _dbContext.Absences.Remove(absence);
-                    _dbContext.SaveChanges();
+                    await _dbContext.SaveChangesAsync();
             }
             catch (DbUpdateException dbEx)
             {
@@ -477,7 +477,7 @@ namespace ABRPOINT.Server.Repository
             
         }
 
-        public async Task<Dictionary<string, string>> GetAbsLibs(string soccod)
+        public async Task<Dictionary<string, string>> GetAbsLibsAsync(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
             {
@@ -500,12 +500,11 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-            public IEnumerable<Absence> GetAll()
+            public async Task<IEnumerable<Absence>> GetAllAsync()
             {
             try
             {
-                IEnumerable<Absence> absences = _dbContext.Absences.ToList();
-                return _dbContext.Absences.ToList();
+                return await _dbContext.Absences.ToListAsync();
             }
             catch (Exception ex)
             {
@@ -513,17 +512,17 @@ namespace ABRPOINT.Server.Repository
             }
                 
             }
-        public IEnumerable<Absence> GetAll(string soccod)
+        public async Task<IEnumerable<Absence>> GetAllAsync(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
                 throw new ArgumentException("code sociÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© est null",nameof(soccod));
             try
             {
-                IEnumerable<Absence> absences = _dbContext.Absences
+                IEnumerable<Absence> absences = await _dbContext.Absences
                     .Where(a => a.Soccod == soccod)
                     .GroupBy(a =>new { a.Abscod, a.Soccod })
                     .Select(g=>g.First())
-                    .ToList();
+                    .ToListAsync();
                 if (absences == null)
                     throw new ArgumentNullException("Aucune absences trouvÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e");
 
@@ -538,7 +537,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public Absence GetByAbscod(string soccod, string abscod)
+        public async Task<Absence?> GetByAbscodAsync(string soccod, string abscod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
                 throw new ArgumentException("code societe est null ",nameof(soccod));
@@ -546,8 +545,8 @@ namespace ABRPOINT.Server.Repository
                 throw new ArgumentException("code absence est null ",nameof(abscod));
             try
             {
-                 Absence absence = _dbContext.Absences
-                    .FirstOrDefault(s => s.Soccod == soccod && s.Abscod == abscod);
+                 Absence absence = await _dbContext.Absences
+                    .FirstOrDefaultAsync(s => s.Soccod == soccod && s.Abscod == abscod);
 
                 if (absence == null)
                     throw new ArgumentNullException($"Aucun absence trouvÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e avec code societe '{soccod}'" +
@@ -560,13 +559,13 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-         public void Update(Absence absence)
+         public async Task UpdateAsync(Absence absence)
         {
             if (absence == null) throw new ArgumentNullException("objet absence est null");
             try
             {
                 _dbContext.Absences.Update(absence);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
             catch (DbUpdateException dbEx)
             {

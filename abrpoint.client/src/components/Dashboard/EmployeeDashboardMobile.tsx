@@ -13,7 +13,8 @@ dayjs.locale('fr');
 
 export default function EmployeeDashboardMobile() {
   const navigate = useNavigate();
-  const { userName, soccod, uticod } = useAuth();
+  const { userName, soccod, uticod, utiadm } = useAuth();
+  const isAdmin = utiadm === '1';
   const [serverTime, setServerTime] = useState(dayjs().format('HH:mm'));
 
   // Data fetching
@@ -208,6 +209,20 @@ export default function EmployeeDashboardMobile() {
         <section className="mb-10">
           <h2 className="font-['Manrope'] font-bold text-lg mb-4">Accès Rapide</h2>
           <div className="grid grid-cols-1 gap-4">
+            {isAdmin && (
+              <button
+                onClick={() => navigate('/dashboard/etat-periodique')}
+                className="flex items-center gap-4 p-4 bg-purple-50 text-purple-700 rounded-2xl hover:bg-purple-100 transition-all active:scale-[0.98]"
+              >
+                <div className="p-2 bg-white rounded-xl shadow-sm">
+                  <span className="material-symbols-outlined text-2xl">analytics</span>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold">État Périodique</p>
+                  <p className="text-xs text-purple-600/70">Rapports et analyses RH</p>
+                </div>
+              </button>
+            )}
             <button
               onClick={() => navigate('/dashboard/pointage-du-mois')}
               className="flex items-center gap-4 p-4 bg-blue-50 text-[#0040a1] rounded-2xl hover:bg-blue-100 transition-all active:scale-[0.98]"

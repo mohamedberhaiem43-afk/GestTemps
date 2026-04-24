@@ -151,6 +151,10 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
             await onAdd(newCode.trim(), newLib.trim());
             onChange(newCode.trim());
             setOpen(false); setNewCode(''); setNewLib('');
+        } catch (err: any) {
+            console.error("Erreur lors de l'ajout:", err);
+            // On pourrait lever l'erreur pour que le parent l'affiche via snackbar
+            throw err;
         } finally { setSaving(false); }
     };
 
@@ -280,40 +284,94 @@ const EmployeModernInner = () => {
 
     // Quick-add handlers
     const handleAddDirection = async (code: string, lib: string) => {
-        await apiInstance.post('/Directions', { soccod, dircod: code, dirlib: lib });
-        queryClient.invalidateQueries('directions');
+        try {
+            await apiInstance.post('/Directions', { soccod, dircod: code, dirlib: lib });
+            queryClient.invalidateQueries('directions');
+            showSnackbar("Direction ajoutée avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout de la direction", 'error');
+            throw err;
+        }
     };
     const handleAddFonction = async (code: string, lib: string) => {
-        await apiInstance.post('/Fonctions', { soccod, foncod: code, fonlib: lib });
-        queryClient.invalidateQueries('fonlibs');
+        try {
+            await apiInstance.post('/Fonctions', { soccod, foncod: code, fonlib: lib });
+            queryClient.invalidateQueries('fonlibs');
+            showSnackbar("Fonction ajoutée avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout de la fonction", 'error');
+            throw err;
+        }
     };
     const handleAddSection = async (code: string, lib: string) => {
-        await apiInstance.post('/Sections', { soccod, seccod: code, seclib: lib });
-        queryClient.invalidateQueries('sec-libs');
+        try {
+            await apiInstance.post('/Sections', { soccod, seccod: code, seclib: lib });
+            queryClient.invalidateQueries('sec-libs');
+            showSnackbar("Section ajoutée avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout de la section", 'error');
+            throw err;
+        }
     };
     const handleAddQualification = async (code: string, lib: string) => {
-        await apiInstance.post('/Qualifications', { soccod, quacod: code, qualib: lib });
-        queryClient.invalidateQueries('qualifs');
+        try {
+            await apiInstance.post('/Qualifs', { soccod, quacod: code, qualib: lib });
+            queryClient.invalidateQueries('qualifs');
+            showSnackbar("Qualification ajoutée avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout de la qualification", 'error');
+            throw err;
+        }
     };
     const handleAddService = async (code: string, lib: string) => {
-        await apiInstance.post('/Services', { soccod, sercod: code, serlib: lib });
-        setServiceLibs(prev => ({ ...prev, [code]: lib }));
+        try {
+            await apiInstance.post('/Services', { soccod, sercod: code, serlib: lib });
+            setServiceLibs(prev => ({ ...prev, [code]: lib }));
+            showSnackbar("Service ajouté avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout du service", 'error');
+            throw err;
+        }
     };
     const handleAddClasseHoraire = async (code: string, lib: string) => {
-        await apiInstance.post('/Lcategories', { soccod, catcod: code, catlib: lib, catperiode: 'N', catfixe: '0' });
-        setClasseHoraireLibs(prev => ({ ...prev, [code]: lib }));
+        try {
+            await apiInstance.post('/Lcategories', { soccod, catcod: code, catlib: lib, catperiode: 'N', catfixe: '0' });
+            setClasseHoraireLibs(prev => ({ ...prev, [code]: lib }));
+            showSnackbar("Classe horaire ajoutée avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout de la classe horaire", 'error');
+            throw err;
+        }
     };
     const handleAddSite = async (code: string, lib: string) => {
-        await apiInstance.post('/Sites', { soccod, sitcod: code, sitlib: lib });
-        queryClient.invalidateQueries('sitlibs');
+        try {
+            await apiInstance.post('/Sites', { soccod, sitcod: code, sitlib: lib });
+            queryClient.invalidateQueries('sitlibs');
+            showSnackbar("Filiale ajoutée avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout de la filiale", 'error');
+            throw err;
+        }
     };
     const handleAddVille = async (code: string, lib: string) => {
-        await apiInstance.post('/Villes', { soccod, vilcod: code, villib: lib });
-        queryClient.invalidateQueries('villes');
+        try {
+            await apiInstance.post('/Villes', { soccod, vilcod: code, villib: lib });
+            queryClient.invalidateQueries('villibs');
+            showSnackbar("Ville ajoutée avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout de la ville", 'error');
+            throw err;
+        }
     };
     const handleAddPays = async (code: string, lib: string) => {
-        await apiInstance.post('/Pays', { soccod, paycod: code, paylib: lib });
-        queryClient.invalidateQueries('pays');
+        try {
+            await apiInstance.post('/Pays', { natcod: code, natlib: lib });
+            queryClient.invalidateQueries('pays-libs');
+            showSnackbar("Pays ajouté avec succès", 'success');
+        } catch (err) {
+            showSnackbar("Erreur lors de l'ajout du pays. Vérifiez si le code existe déjà.", 'error');
+            throw err;
+        }
     };
 
     useEffect(() => {

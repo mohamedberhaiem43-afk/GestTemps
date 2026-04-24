@@ -5,7 +5,7 @@ const useUpdateUser = () => {
     return useMutation(({ user, soccod, sitcod }: { user: any; soccod: string; sitcod: string }) =>
         apiInstance.put(
             `/Utilisateurs/update-user/${soccod}/${sitcod}`,
-            user
+            { utilisateur: user }
         ).then(res => res.data)
     );
 };

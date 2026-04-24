@@ -1,8 +1,7 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -20,7 +19,7 @@ namespace ABRPOINT.Server.Controllers
             _qualifRepository = qualifRepository;
         }
 
-        // GET: api/Services
+        // GET: api/Qualifs/SOC01
         [HttpGet("{soccod}")]
         public async Task<IEnumerable<Qualif>> GetAll(string soccod)
         {
@@ -28,7 +27,7 @@ namespace ABRPOINT.Server.Controllers
         }
 
         [HttpGet("get-qualibs/{soccod}")]
-        public IActionResult GetQualibs(string soccod)
+        public async Task<IActionResult> GetQualibs(string soccod)
         {
             try
             {
@@ -36,8 +35,8 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest(new { message = "Le code société (soccod) est obligatoire" });
                 }
-                
-                var qualibs = _qualifRepository.GetQuaLibs(soccod);
+
+                var qualibs = await _qualifRepository.GetQuaLibsAsync(soccod);
                 return Ok(qualibs);
             }
             catch (InvalidOperationException ex)
@@ -50,32 +49,37 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-
-        // GET api/Services/5
+        // GET api/Qualifs/SOC01/Q01
         [HttpGet("{soccod}/{quacod}")]
-        public ActionResult<Qualif> Get(string quacod)
+        public async Task<ActionResult<Qualif>> Get(string soccod, string quacod)
         {
-            var ville = _qualifRepository.GetByQuafcod(quacod);
-            if (ville == null)
+            var qualif = await _qualifRepository.GetByQuafcodAsync(soccod, quacod);
+            if (qualif == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Qualification introuvable" });
             }
-            return Ok(ville);
+            return Ok(qualif);
         }
 
-        // POST api/Services
+        // POST api/Qualifs
         [HttpPost]
-        public IActionResult Post([FromBody] Qualif qualif)
+        public async Task<IActionResult> Post([FromBody] Qualif qualif)
         {
-            if (qualif != null)
+            try
             {
-                _qualifRepository.Add(qualif);
-                return CreatedAtAction(nameof(Get), new { vilcod = qualif.Quacod }, qualif);
+                if (qualif == null)
+                    return BadRequest(new { message = "Données invalides" });
+
+                await _qualifRepository.AddAsync(qualif);
+                return CreatedAtAction(nameof(Get), new { soccod = qualif.Soccod, quacod = qualif.Quacod }, qualif);
             }
-            return BadRequest();
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de l'ajout de la qualification", details = ex.Message });
+            }
         }
 
-        // PUT api/Services/5
+        // PUT api/Qualifs/SOC01/Q01
         [HttpPut("{soccod}/{quacod}")]
         public async Task<IActionResult> Put(string soccod, string quacod, [FromBody] Qualif qualif)
         {
@@ -84,22 +88,28 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest();
             }
 
-            var result = await _qualifRepository.UpdateAsync(qualif);
+            await _qualifRepository.UpdateAsync(qualif);
             return NoContent();
         }
 
-        // DELETE api/Services/{seccod}
+        // DELETE api/Qualifs/SOC01/Q01
         [HttpDelete("{soccod}/{quacod}")]
-        public IActionResult Delete(string quacod)
+        public async Task<IActionResult> Delete(string soccod, string quacod)
         {
-            Qualif qualif = _qualifRepository.GetByQuafcod(quacod);
-            if (qualif == null)
+            try
             {
-                return NotFound();
+                var qualif = await _qualifRepository.GetByQuafcodAsync(soccod, quacod);
+                if (qualif == null)
+                {
+                    return NotFound(new { message = "Qualification introuvable" });
+                }
+                await _qualifRepository.DeleteAsync(qualif);
+                return Ok(new { message = "Qualification supprimée avec succès" });
             }
-            _qualifRepository.Delete(qualif);
-            return NoContent();
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de la suppression de la qualification", details = ex.Message });
+            }
         }
-
     }
 }

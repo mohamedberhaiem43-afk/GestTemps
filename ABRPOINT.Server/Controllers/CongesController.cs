@@ -41,11 +41,11 @@ namespace ABRPOINT.Server.Controllers
         // GET api/<DirectionsController>/5
         [HttpGet("{soccod}/{concod}")]
         [CanGetConge]
-        public Conge Get(string soccod,string concod)
+        public async Task<Conge> Get(string soccod,string concod)
         {
             try
             {
-                return _congeRepository.GetByConcod(soccod, concod);
+                return await _congeRepository.GetByConcodAsync(soccod, concod);
             }
             catch (Exception ex)
             {
@@ -60,7 +60,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return await _congeRepository.GetEmpCongeByDate(soccod, empcod,date);
+                return await _congeRepository.GetEmpCongeByDateAsync(soccod, empcod,date);
             }
             catch (Exception ex)
             {
@@ -73,7 +73,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                List<CahierConge> cahierConge = await _congeRepository.GetCahierConge(soccod, datedebut, datefin,empcods);
+                List<CahierConge> cahierConge = await _congeRepository.GetCahierCongeAsync(soccod, datedebut, datefin,empcods);
                 return cahierConge;
             }
             catch (Exception ex)
@@ -149,7 +149,7 @@ namespace ABRPOINT.Server.Controllers
                 List<DroitCongeDto> result = new List<DroitCongeDto>();
                 foreach (var empcod in empcods)
                 {
-                    var droitConge = await _congeRepository.GetDroitConge(soccod, empcod, parsedDateDebut, parsedDateFin);
+                    var droitConge = await _congeRepository.GetDroitCongeAsync(soccod, empcod, parsedDateDebut, parsedDateFin);
                     result.Add(droitConge);
                 }
                     return Ok(result);
@@ -164,7 +164,7 @@ namespace ABRPOINT.Server.Controllers
         // POST api/<DirectionsController>
         [HttpPost]
         [CanAddConge]
-        public IActionResult Post([FromBody] Conge conge)
+        public async Task<IActionResult> Post([FromBody] Conge conge)
         {
             try
             {
@@ -174,7 +174,7 @@ namespace ABRPOINT.Server.Controllers
                     conge.Condat = conge.Condat.Value.Date;
                     conge.Condep = conge.Condep.Value.Date;
                     conge.Conret = conge.Conret.Value.Date;
-                    _congeRepository.Add(conge);
+                    await _congeRepository.AddAsync(conge);
                     return Ok(conge);
                 }
                 return BadRequest("numéro d'ordre est obligatoire");
@@ -189,13 +189,13 @@ namespace ABRPOINT.Server.Controllers
         // PUT api/<DirectionsController>/5
         [HttpPut]
         [CanUpdateConge]
-        public IActionResult Put([FromBody] Conge conge)
+        public async Task<IActionResult> Put([FromBody] Conge conge)
         {
             if (conge == null)
                 return BadRequest("Veuillez remplir les champs obligatoiress");
             try
             {
-                _congeRepository.Update(conge);
+                await _congeRepository.UpdateAsync(conge);
                 return Ok("congé modifié avec succées");
             }
             catch (Exception)
@@ -214,21 +214,21 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest("No conge records provided.");
             }
 
-            await _congeRepository.AddMultiple(conges);
+            await _congeRepository.AddMultipleAsync(conges);
             return Ok("Conges added successfully.");
         }
 
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{concod}")]
         [CanDeleteConge]
-        public IActionResult Delete(string soccod, string concod)
+        public async Task<IActionResult> Delete(string soccod, string concod)
         {
-            Conge employe = _congeRepository.GetByConcod(soccod, concod);
+            Conge? employe = await _congeRepository.GetByConcodAsync(soccod, concod);
             if (employe == null)
             {
                 return NotFound();
             }
-            _congeRepository.Delete(employe);
+            await _congeRepository.DeleteAsync(employe);
             return NoContent();
         }
     }

@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -13,12 +13,12 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Pointeuse entity)
+        public async Task AddAsync(Pointeuse entity)
         {
             try
             {
-                _dbContext.Pointeuses.Add(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.Pointeuses.AddAsync(entity);
+                await _dbContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -28,27 +28,27 @@ namespace ABRPOINT.Server.Repository
             
         }
 
-        public void Delete(Pointeuse entity)
+        public async Task DeleteAsync(Pointeuse entity)
         {
-            var existingEntity = _dbContext.Pointeuses
-                .FirstOrDefault(p => p.Poicod == entity.Poicod && p.Soccod == entity.Soccod);
+            var existingEntity = await _dbContext.Pointeuses
+                .FirstOrDefaultAsync(p => p.Poicod == entity.Poicod && p.Soccod == entity.Soccod);
 
             if (existingEntity != null)
             {
                 _dbContext.Pointeuses.Remove(existingEntity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Pointeuse> GetAll()
+        public async Task<IEnumerable<Pointeuse>> GetAllAsync()
         {
-            return _dbContext.Pointeuses.ToList();
+            return await _dbContext.Pointeuses.ToListAsync();
         }
 
-        public void Update(Pointeuse entity)
+        public async Task UpdateAsync(Pointeuse entity)
         {
-            var existingEntity = _dbContext.Pointeuses
-                .FirstOrDefault(p => p.Poicod == entity.Poicod && p.Soccod == entity.Soccod);
+            var existingEntity = await _dbContext.Pointeuses
+                .FirstOrDefaultAsync(p => p.Poicod == entity.Poicod && p.Soccod == entity.Soccod);
 
             if (existingEntity != null)
             {
@@ -63,7 +63,7 @@ namespace ABRPOINT.Server.Repository
                 existingEntity.Poicom = entity.Poicom;
 
                 _dbContext.Pointeuses.Update(existingEntity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
     
@@ -105,18 +105,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task AddAsync(Pointeuse? pointeuse)
-        {
-            try
-            {
-                await _dbContext.Pointeuses.AddAsync(pointeuse);
-                await _dbContext.SaveChangesAsync();
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
+
 
         public async Task<Pointeuse> GetById(string poicod, string soccod)
         {

@@ -17,14 +17,14 @@ namespace ABRPOINT.Server.Controllers
         }
         // GET: api/<DirectionsController>
         [HttpGet]
-        public IEnumerable<Calendsoc> Get()
+        public async Task<IEnumerable<Calendsoc>> Get()
         {
-            return _IcalendrierRepository.GetAll();
+            return await _IcalendrierRepository.GetAllAsync();
         }
         [HttpGet("get-callibs")]
         public async Task<Dictionary<string, string>> GetCalLibs()
         {
-            return await _IcalendrierRepository.GetCalLibs();
+            return await _IcalendrierRepository.GetCalLibsAsync();
         }
 
         // GET api/<DirectionsController>/5
@@ -36,11 +36,11 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/<DirectionsController>
         [HttpPost]
-        public void Post([FromBody] Calendsoc calendrier)
+        public async Task Post([FromBody] Calendsoc calendrier)
         {
             try
             {
-                _IcalendrierRepository.Add(calendrier);
+                await _IcalendrierRepository.AddAsync(calendrier);
             }
             catch (Exception)
             {
@@ -52,8 +52,8 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                await _IcalendrierRepository.CloneCalendrier(soccod, annee);
-                await _IcalendrierRepository.CloneLCalendrier(soccod, annee);
+                await _IcalendrierRepository.CloneCalendrierAsync(soccod, annee);
+                await _IcalendrierRepository.CloneLCalendrierAsync(soccod, annee);
             }
             catch (Exception)
             {
@@ -70,7 +70,7 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest();
             }
 
-            _IcalendrierRepository.Update(calendrier);
+            _IcalendrierRepository.UpdateAsync(calendrier);
             return NoContent();
         }
 

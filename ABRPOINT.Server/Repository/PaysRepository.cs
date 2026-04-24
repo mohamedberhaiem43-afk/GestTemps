@@ -1,6 +1,7 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -11,44 +12,50 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Nation entity)
+
+        public async Task AddAsync(Nation entity)
         {
-            _dbContext.Nations.Add(entity);
-            _dbContext.SaveChanges();
+            try
+            {
+                await _dbContext.Nations.AddAsync(entity);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
-        public void Delete(Nation entity)
+        public async Task DeleteAsync(Nation entity)
         {
             if (entity != null)
             {
                 _dbContext.Nations.Remove(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Nation> GetAll()
+        public async Task<IEnumerable<Nation>> GetAllAsync()
         {
-            return _dbContext.Nations.ToList();
+            return await _dbContext.Nations.ToListAsync();
         }
 
-        
-
-        public Nation GetByNatcod(string natcod)
+        public async Task<Nation?> GetByNatcodAsync(string natcod)
         {
-            return _dbContext.Nations.Find(natcod);
+            return await _dbContext.Nations.FindAsync(natcod);
         }
 
-        public Dictionary<string, string> GetNatlibs()
+        public async Task<Dictionary<string, string>> GetNatlibsAsync()
         {
-            return _dbContext.Nations.ToDictionary(n=>n.Natcod,n=>n.Natlib);
+            return await _dbContext.Nations.ToDictionaryAsync(n => n.Natcod ?? "", n => n.Natlib ?? "");
         }
 
-        public void Update(Nation entity)
+        public async Task UpdateAsync(Nation entity)
         {
             if (entity != null)
             {
                 _dbContext.Nations.Update(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 

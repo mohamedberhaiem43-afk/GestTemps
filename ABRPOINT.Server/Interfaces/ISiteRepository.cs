@@ -1,14 +1,13 @@
-﻿using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Models;
 
 namespace ABRPOINT.Server.Interfaces
 {
     public interface ISiteRepository : IRepository<Site>
     {
-        Site GetBySitcod(string soccod, string sitcod);
-        IEnumerable<Site> GetAll(string soccod);
-        Task<Dictionary<string, string>> GetSitLibs();
-        Task<Dictionary<string, string>> GetSitLibs(string soccod);
-        Task<Dictionary<string, string>> GetSitLibs(string soccod, string uticod);
-        Task<bool> UpdateAsync(Site site);
+        Task<Site?> GetBySitcodAsync(string soccod, string sitcod);
+        Task<IEnumerable<Site>> GetAllAsync(string soccod);
+        Task<Dictionary<string, string>> GetSitLibsAsync();
+        Task<Dictionary<string, string>> GetSitLibsAsync(string soccod);
+        Task<Dictionary<string, string>> GetSitLibsAsync(string soccod, string uticod);
     }
 }

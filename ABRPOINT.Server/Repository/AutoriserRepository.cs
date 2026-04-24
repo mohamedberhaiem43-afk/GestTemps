@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Autoriser autoriser)
+        public async Task AddAsync(Autoriser autoriser)
         {
             try
             {
@@ -47,8 +47,8 @@ namespace ABRPOINT.Server.Repository
                     autoriser.Connbjour = 0; // Default if dates are null
                 }
 
-                _dbContext.Autorisers.Add(autoriser);
-                _dbContext.SaveChanges();
+                await _dbContext.Autorisers.AddAsync(autoriser);
+                await _dbContext.SaveChangesAsync();
             }
             catch (Exception)
             {
@@ -93,14 +93,14 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Delete(Autoriser autoriser)
+        public async Task DeleteAsync(Autoriser autoriser)
         {
             try
             {
                 if (autoriser != null)
                 {
                     _dbContext.Autorisers.Remove(autoriser);
-                    _dbContext.SaveChanges();
+                    await _dbContext.SaveChangesAsync();
                 }
             }
             catch (Exception)
@@ -159,12 +159,12 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public Autoriser GetByConcod(string soccod, string concod)
+        public async Task<Autoriser?> GetByConcodAsync(string soccod, string concod)
         {
             try
             {
-                return _dbContext.Autorisers
-                    .FirstOrDefault(a => a.Soccod == soccod && a.Concod == concod);
+                return await _dbContext.Autorisers
+                    .FirstOrDefaultAsync(a => a.Soccod == soccod && a.Concod == concod);
             }
             catch (Exception ex)
             {
@@ -172,7 +172,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(Autoriser autoriser)
+        public async Task UpdateAsync(Autoriser autoriser)
         {
             if (autoriser != null)
             {
@@ -192,7 +192,7 @@ namespace ABRPOINT.Server.Repository
                 TimeSpan duration = autoriser.Conret.Value - autoriser.Condep.Value;
                 autoriser.Connbjour = (float)Math.Round(duration.TotalHours, 2); // Rounded to 2 decimal places
                 _dbContext.Autorisers.Update(autoriser);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
@@ -267,9 +267,9 @@ namespace ABRPOINT.Server.Repository
                 });
         }
 
-        public IEnumerable<Autoriser> GetAll()
+        public async Task<IEnumerable<Autoriser>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _dbContext.Autorisers.ToListAsync();
         }
 
         public async Task<Dictionary<(string Empcod, DateTime Date), AutDto>> GetAutLibBatch(string soccod,List<(string Empcod, DateTime Date)> demandes)

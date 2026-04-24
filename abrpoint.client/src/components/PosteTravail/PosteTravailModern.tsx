@@ -297,7 +297,7 @@ export default function PosteTravailModern() {
                 <span className="material-symbols-outlined">coffee</span>
                 <Typography className="card-title">Pauses & Règles</Typography>
               </Box>
-              <Box className="rules-container" sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <Box className="rules-container" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                 <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
                   <Box className="rule-label">
                     <Switch checked={pausesEnabled} onChange={e => setPausesEnabled(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />

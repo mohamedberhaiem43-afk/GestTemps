@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -19,12 +19,12 @@ namespace ABRPOINT.Server.Repository
             _logger = logger;
             _mapper = mapper;
         }
-        public void Add(RubriqueDto entity)
+        public async Task AddAsync(RubriqueDto entity)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<bool> AddRubrique(Rubrique rubrique)
+        public async Task<bool> AddRubriqueAsync(Rubrique rubrique)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Delete(RubriqueDto entity)
+        public async Task DeleteAsync(RubriqueDto entity)
         {
             throw new NotImplementedException();
         }
@@ -61,7 +61,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<IEnumerable<RubriqueDto>> GetAll(string soccod)
+        public async Task<IEnumerable<RubriqueDto>> GetAllAsync(string soccod)
         {
             try
             {
@@ -78,12 +78,12 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public IEnumerable<RubriqueDto> GetAll()
+        public async Task<IEnumerable<RubriqueDto>> GetAllAsync()
         {
             throw new NotImplementedException();
         }
 
-        public async Task<IEnumerable<RubriquePaireDto>> GetPaires(string soccod)
+        public async Task<IEnumerable<RubriquePaireDto>> GetPairesAsync(string soccod)
         {
             try
             {
@@ -99,7 +99,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Rubrique> GetRubrique(string soccod, string rubcod)
+        public async Task<Rubrique?> GetRubriqueAsync(string soccod, string rubcod)
         {
             try
             {
@@ -112,12 +112,12 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(RubriqueDto entity)
+        public async Task UpdateAsync(RubriqueDto entity)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<bool> UpdateRubrique(Rubrique rubrique)
+        public async Task<bool> UpdateRubriqueAsync(Rubrique rubrique)
         {
             try
             {

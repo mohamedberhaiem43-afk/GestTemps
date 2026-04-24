@@ -1,6 +1,7 @@
 ﻿using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -24,13 +25,13 @@ namespace ABRPOINT.Server.Controllers
 
         // GET api/<LpostesController>/id
         [HttpGet("get-lposte/{soccod}/{codposte}")]
-        public IActionResult Get(string soccod,string codposte)
+        public async Task<IActionResult> Get(string soccod,string codposte)
         {
             if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(codposte))
                 return BadRequest("code société et code poste sont obligatoires");
             try
             {
-                IEnumerable<Lposte> lposte = _lposteRepository.GetLposte(soccod, codposte);
+                IEnumerable<Lposte> lposte = await _lposteRepository.GetLposteAsync(soccod, codposte);
                 return Ok(lposte);
             }
             catch (Exception)

@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -6,32 +6,32 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
 {
-    public class AllaitementRepository:IAllaitementRepository
+    public class AllaitementRepository : IAllaitementRepository
     {
-
         private readonly ApplicationDbContext _dbContext;
         private readonly IUtilisateurRepository _utilisateurRepository;
         public AllaitementRepository(ApplicationDbContext dbContext, IUtilisateurRepository utilisateurRepository)
         {
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
-
         }
-        public void Add(Allaitement allaitement)
+
+        public async Task AddAsync(Allaitement allaitement)
         {
-            _dbContext.Allaitements.Add(allaitement);
-            _dbContext.SaveChanges();
+            await _dbContext.Allaitements.AddAsync(allaitement);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Allaitement allaitement)
+        public async Task DeleteAsync(Allaitement allaitement)
         {
             if (allaitement != null)
             {
                 _dbContext.Allaitements.Remove(allaitement);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
-        public async Task<Dictionary<DateTime, float>> GetAllaitementsByPeriod(
+
+        public async Task<Dictionary<DateTime, float>> GetAllaitementsByPeriodAsync(
             string soccod,
             string empcod,
             DateTime startDate,
@@ -87,11 +87,10 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<IEnumerable<AllaitementDto>> GetAll(string soccod, string uticod)
+        public async Task<IEnumerable<AllaitementDto>> GetAllAsync(string soccod, string uticod)
         {
             try
             {
-                // Utiliser une jointure avec Socusers au lieu de Contains
                 var result = from a in _dbContext.Allaitements
                              join e in _dbContext.Employes on a.Empcod equals e.Empcod
                              join su in _dbContext.Socusers
@@ -119,13 +118,13 @@ namespace ABRPOINT.Server.Repository
 
                 return await result.ToListAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
         }
 
-        public async Task<Allaitement> Get(string soccod, string concod)
+        public async Task<Allaitement?> GetAsync(string soccod, string concod)
         {
             try
             {
@@ -139,8 +138,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-
-        public async Task<Allaitement> GetByEmpcod(string soccod, string concod)
+        public async Task<Allaitement?> GetByEmpcodAsync(string soccod, string concod)
         {
             try
             {
@@ -149,54 +147,44 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-
-                throw new Exception("",ex);
+                throw new Exception("Error retrieving breastfeeding data", ex);
             }
-            
         }
 
-        public void Update(Allaitement allaitement)
+        public async Task UpdateAsync(Allaitement allaitement)
         {
             if (allaitement != null)
             {
                 _dbContext.Allaitements.Update(allaitement);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Allaitement> GetAll()
+        public async Task<IEnumerable<Allaitement>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _dbContext.Allaitements.ToListAsync();
         }
 
-
-        public async Task<float?> GetNbhAllaitement(string soccod,string empcod,DateTime? predat)
+        public async Task<float?> GetNbhAllaitementAsync(string soccod, string empcod, DateTime? predat)
         {
             try
             {
-                Allaitement? allaitement = await _dbContext.Allaitements.Where(alt => alt.Soccod == soccod &&
-                                                                            alt.Empcod == empcod &&
-                                                                            predat >= alt.Condep && predat <= alt.Conret)
-                                                                            .SingleOrDefaultAsync();
-                switch (predat.Value.DayOfWeek)
+                if (!predat.HasValue) return 0;
+                var allaitement = await _dbContext.Allaitements.Where(alt => alt.Soccod == soccod &&
+                                                                             alt.Empcod == empcod &&
+                                                                             predat >= alt.Condep && predat <= alt.Conret)
+                                                                             .SingleOrDefaultAsync();
+                return predat.Value.DayOfWeek switch
                 {
-                    case DayOfWeek.Sunday:
-                        return allaitement?.Dimanche;
-                    case DayOfWeek.Monday:
-                        return allaitement?.Lundi;
-                    case DayOfWeek.Tuesday:
-                        return allaitement?.Mardi;
-                    case DayOfWeek.Wednesday:
-                        return allaitement?.Mercredi;
-                    case DayOfWeek.Thursday:
-                        return allaitement?.Jeudi;
-                    case DayOfWeek.Friday:
-                        return allaitement?.Vendredi;
-                    case DayOfWeek.Saturday:
-                        return allaitement?.Samedi;
-                    default:
-                        return 0;
-                }
+                    DayOfWeek.Sunday => allaitement?.Dimanche,
+                    DayOfWeek.Monday => allaitement?.Lundi,
+                    DayOfWeek.Tuesday => allaitement?.Mardi,
+                    DayOfWeek.Wednesday => allaitement?.Mercredi,
+                    DayOfWeek.Thursday => allaitement?.Jeudi,
+                    DayOfWeek.Friday => allaitement?.Vendredi,
+                    DayOfWeek.Saturday => allaitement?.Samedi,
+                    _ => 0
+                };
             }
             catch (Exception)
             {

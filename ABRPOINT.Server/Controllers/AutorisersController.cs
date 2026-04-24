@@ -4,6 +4,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -64,13 +65,13 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-autorisation/{soccod}/{concod}")]
         [CanGetAutSortie]
-        public IActionResult GetAutoriser(string soccod,string concod)
+        public async Task<IActionResult> GetAutoriser(string soccod,string concod)
         {
             if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(concod))
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                Autoriser autoriser = _autoriserRepository.GetByConcod(soccod, concod);
+                Autoriser autoriser = await _autoriserRepository.GetByConcodAsync(soccod, concod);
                 return Ok(autoriser);
             }
             catch (Exception)
@@ -99,13 +100,13 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/Autorisers/my-auth - Employee self-service create (no special permission)
         [HttpPost("my-auth")]
-        public IActionResult PostMyAuthorization([FromBody] Autoriser autoriser)
+        public async Task<IActionResult> PostMyAuthorization([FromBody] Autoriser autoriser)
         {
             if (autoriser == null)
                 return BadRequest("Veuillez saisir les champs obligatoires");
             try
             {
-                _autoriserRepository.Add(autoriser);
+                await _autoriserRepository.AddAsync(autoriser);
                 return Ok(new { message = "Autorisation de sortie envoyée avec succès", concod = autoriser.Concod });
             }
             catch (Exception)
@@ -117,11 +118,11 @@ namespace ABRPOINT.Server.Controllers
         // POST api/<DirectionsController>
         [HttpPost]
         [CanAddAutSortie]
-        public void Post([FromBody] Autoriser autoriser)
+        public async Task Post([FromBody] Autoriser autoriser)
         {
             try
             {
-                _autoriserRepository.Add(autoriser);
+                await _autoriserRepository.AddAsync(autoriser);
             }
             catch (Exception)
             {
@@ -145,13 +146,13 @@ namespace ABRPOINT.Server.Controllers
         // PUT api/<DirectionsController>/5
         [HttpPut]
         [CanUpdateAutSortie]
-        public IActionResult Put([FromBody] Autoriser autoriser)
+        public async Task<IActionResult> Put([FromBody] Autoriser autoriser)
         {
             if (autoriser == null)
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                _autoriserRepository.Update(autoriser);
+                await _autoriserRepository.UpdateAsync(autoriser);
                 return Ok("Autorisation de sortie modifiée avec succées");
             }
             catch (Exception)
@@ -165,14 +166,14 @@ namespace ABRPOINT.Server.Controllers
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{concod}")]
         [CanDeleteAutSortie]
-        public IActionResult Delete(string soccod,string concod)
+        public async Task<IActionResult> Delete(string soccod,string concod)
         {
-            Autoriser autoriser = _autoriserRepository.GetByConcod(soccod,concod);
+            Autoriser autoriser = await _autoriserRepository.GetByConcodAsync(soccod,concod);
             if (autoriser == null)
             {
                 return NotFound();
             }
-            _autoriserRepository.Delete(autoriser);
+            await _autoriserRepository.DeleteAsync(autoriser);
             return NoContent();
         }
     }

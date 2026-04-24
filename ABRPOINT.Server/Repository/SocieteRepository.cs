@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -13,26 +13,26 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Societe entity)
+        public async Task AddAsync(Societe entity)
         {
-            _dbContext.Societes.Add(entity);
-            _dbContext.SaveChanges();
+            await _dbContext.Societes.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Societe entity)
+        public async Task DeleteAsync(Societe entity)
         {
             if (entity != null)
             {
                 _dbContext.Societes.Remove(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Societe> GetAll()
+        public async Task<IEnumerable<Societe>> GetAllAsync()
         {
-            return _dbContext.Societes.ToList();
+            return await _dbContext.Societes.ToListAsync();
         }
-        public async Task<Dictionary<string,string>> GetSoclibs()
+        public async Task<Dictionary<string,string>> GetSoclibsAsync()
         {
             try
             {
@@ -46,21 +46,21 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public Societe GetBySoccod(string soccod)
+        public async Task<Societe?> GetBySoccodAsync(string soccod)
         {
-            return _dbContext.Societes.Find(soccod);
+            return await _dbContext.Societes.FindAsync(soccod);
         }
 
-        public void Update(Societe entity)
+        public async Task UpdateAsync(Societe entity)
         {
             if (entity != null)
             {
                 _dbContext.Societes.Update(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public async Task<SocHeures?> GetSocHeures(string soccod)
+        public async Task<SocHeures?> GetSocHeuresAsync(string soccod)
         {
             try
             {
@@ -79,7 +79,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<bool> UpdateSocHeures(string soccod,string socpresence,string sochsup)
+        public async Task<bool> UpdateSocHeuresAsync(string soccod,string socpresence,string sochsup)
         {
             try
             {
@@ -98,7 +98,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<bool> UpdateAsync(Societe societe)
+        public async Task<bool> UpdateSocieteAsync(Societe societe)
         {
             try
             {
@@ -136,7 +136,7 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public async Task UpdateSocieteImage(string? soccod, string filePath)
+        public async Task UpdateSocieteImageAsync(string? soccod, string filePath)
         {
             try
             {

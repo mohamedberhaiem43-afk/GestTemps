@@ -232,9 +232,9 @@ function PeriodFormDialog({
       sx={{
         '& .MuiDialog-container': { alignItems: 'center' },
         '& .MuiDialog-paper': {
-          margin: { xs: 0, sm: '32px' },
-          width: { xs: '30%', sm: 'auto' },
-          maxWidth: { xs: '50%', sm: '500px' },
+          margin: { xs: '16px', sm: '32px' },
+          width: { xs: 'calc(100% - 32px)', sm: 'auto' },
+          maxWidth: { xs: '100%', sm: '500px' },
         },
       }}
       PaperProps={{ sx: { borderRadius: '16px' } }}
@@ -252,7 +252,7 @@ function PeriodFormDialog({
 
         {/* Code + Libellé — masqués quand on ajoute à une classe existante */}
         {!isNewWithInherit && (
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' }, gap: 2 }}>
             <Box>
               <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
                 Code Classe
@@ -269,7 +269,7 @@ function PeriodFormDialog({
         )}
 
         {/* Plage de dates */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box>
             <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
               Du

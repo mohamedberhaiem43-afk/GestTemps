@@ -233,7 +233,7 @@ export default function CredentialsSignInPage() {
           <Box className="login-form-header">
             <Typography className="login-form-title">Bon retour.</Typography>
             <Typography className="login-form-subtitle">
-              Veuillez renseigner vos identifiants pour accéder au registre architectural.
+              Veuillez renseigner vos identifiants pour accéder au tableau de bord.
             </Typography>
           </Box>
 

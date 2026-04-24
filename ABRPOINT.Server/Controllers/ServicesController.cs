@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,31 +15,33 @@ public class ServicesController : ControllerBase
         _servicesRepository = serviceRepository;
     }
 
-    // GET: api/Services
+    // GET: api/Services/get-services/SOC01
     [HttpGet("get-services/{soccod}")]
-    public IEnumerable<Service> Get(string soccod)
+    public async Task<ActionResult<IEnumerable<Service>>> Get(string soccod)
     {
-        return _servicesRepository.GetAll(soccod);
+        var services = await _servicesRepository.GetAllAsync(soccod);
+        return Ok(services);
     }
+
     [HttpGet("get-servlibs/{soccod}")]
-    public async Task<Dictionary<string, string>> GetServLibs(string soccod)
+    public async Task<ActionResult<Dictionary<string, string>>> GetServLibs(string soccod)
     {
         try
         {
-            var services = await _servicesRepository.GetServLibs(soccod);
-            return services;
+            var services = await _servicesRepository.GetServLibsAsync(soccod);
+            return Ok(services);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            throw;
+            return StatusCode(500, ex.Message);
         }
     }
 
-    // GET api/Services/5
+    // GET api/Services/SOC01/SER01
     [HttpGet("{soccod}/{sercod}")]
-    public ActionResult<Service> Get(string sercod,string soccod)
+    public async Task<ActionResult<Service>> Get(string soccod, string sercod)
     {
-        var service = _servicesRepository.GetBySercod(sercod, soccod);
+        var service = await _servicesRepository.GetBySercodAsync(sercod, soccod);
         if (service == null)
         {
             return NotFound();
@@ -49,47 +51,43 @@ public class ServicesController : ControllerBase
 
     // POST api/Services
     [HttpPost]
-    public IActionResult Post([FromBody] Service service)
+    public async Task<IActionResult> Post([FromBody] Service service)
     {
         try
         {
-
-            _servicesRepository.Add(service);
+            if (service == null) return BadRequest();
+            await _servicesRepository.AddAsync(service);
             return Ok("Service added successfully.");
-
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
         }
     }
 
-    // PUT api/Services/5
+    // PUT api/Services/SOC01/SER01
     [HttpPut("{soccod}/{sercod}")]
-    public IActionResult Put(string sercod, [FromBody] Service service)
+    public async Task<IActionResult> Put(string soccod, string sercod, [FromBody] Service service)
     {
         if (service == null || sercod != service.Sercod)
         {
             return BadRequest();
         }
-        
-        _servicesRepository.Update(service);
+
+        await _servicesRepository.UpdateAsync(service);
         return NoContent();
     }
 
-    // DELETE api/Services/5
-    // DELETE api/Services/{sercod}
+    // DELETE api/Services/SOC01/SER01
     [HttpDelete("{soccod}/{sercod}")]
-
-    public async Task<IActionResult> Delete(string sercod,string soccod)
+    public async Task<IActionResult> Delete(string soccod, string sercod)
     {
-        var service = await _servicesRepository.GetBySercod(sercod, soccod);
+        var service = await _servicesRepository.GetBySercodAsync(sercod, soccod);
         if (service == null)
         {
             return NotFound();
         }
-        _servicesRepository.Delete(service);
+        await _servicesRepository.DeleteAsync(service);
         return NoContent();
     }
-
 }

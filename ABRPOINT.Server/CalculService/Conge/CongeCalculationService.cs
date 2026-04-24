@@ -32,7 +32,7 @@ namespace ABRPOINT.Server.CalculService.Conge
         {
             try
             {
-                var nbjourCng = await _congeRepository.GetNbJourEtHreEmpConge(soccod,empcod,predat,codpost);
+                var nbjourCng = await _congeRepository.GetNbJourEtHreEmpCongeAsync(soccod,empcod,predat,codpost);
                 return nbjourCng;
             }
             catch (Exception)
@@ -85,7 +85,7 @@ namespace ABRPOINT.Server.CalculService.Conge
                 throw new ArgumentNullException("Données employé ou date d'embauche manquantes");
 
             string caltype = employe.Caltype;
-            var site = _siteRepository.GetBySitcod(soccod, employe.Sitcod);
+            var site = await _siteRepository.GetBySitcodAsync(soccod, employe.Sitcod);
             if (site == null)
                 throw new ArgumentNullException("Données site manquantes");
 
@@ -103,15 +103,15 @@ namespace ABRPOINT.Server.CalculService.Conge
 
             if (anciente != 0)
             {
-                parecart = await _parametreRepository.GetParancemp(soccod);
+                parecart = await _parametreRepository.GetParancempAsync(soccod);
                 droitConge += Math.Floor((double)anciente / parecart);
             }
 
             for (int i = 0; i < int.Parse(moisfin.TrimStart('0')); i++)
             {
                 string currentMonth = (i + 1).ToString("D2");
-                var calendsoc = await _calendrierRepository.GetCalendrier(soccod, annee, currentMonth, caltype);
-                float nbConge = await _congeRepository.GetNbCongeRecue(soccod, empcod, annee, currentMonth);
+                var calendsoc = await _calendrierRepository.GetCalendrierAsync(soccod, annee, currentMonth, caltype);
+                float nbConge = await _congeRepository.GetNbCongeRecueAsync(soccod, empcod, annee, currentMonth);
 
                 if (!float.IsInfinity(nbConge) && !float.IsNaN(nbConge))
                 {

@@ -13,18 +13,18 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Lcategorie lcategorie)
+        public async Task AddAsync(Lcategorie lcategorie)
         {
-            _dbContext.Lcategories.Add(lcategorie);
-            _dbContext.SaveChanges();
+            await _dbContext.Lcategories.AddAsync(lcategorie);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Lcategorie lcategorie)
+        public async Task DeleteAsync(Lcategorie lcategorie)
         {
             if (lcategorie != null)
             {
                 _dbContext.Lcategories.Remove(lcategorie);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
@@ -91,18 +91,18 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(Lcategorie lcategorie)
+        public async Task UpdateAsync(Lcategorie lcategorie)
         {
             if (lcategorie != null)
             {
                 _dbContext.Lcategories.Update(lcategorie);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Lcategorie> GetAll()
+        public async Task<IEnumerable<Lcategorie>> GetAllAsync()
         {
-            return _dbContext.Lcategories.ToList();
+            return await _dbContext.Lcategories.ToListAsync();
         }
 
         public async Task<Dictionary<string, string>> GetHorLibs(string soccod)
@@ -187,6 +187,13 @@ namespace ABRPOINT.Server.Repository
                         .SetProperty(l => l.Catau, lcategorie.Catau)
                         .SetProperty(l => l.Catfixe, lcategorie.Catfixe)
                         .SetProperty(l => l.Codposte, lcategorie.Codposte)
+                    );
+
+                // 4️⃣ Update Employes table (as requested by user)
+                await _dbContext.Employes
+                    .Where(e => e.Soccod == lcategorie.Soccod && e.Catcod == lcategorie.Catcod)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(e => e.Poscod, lcategorie.Codposte)
                     );
             }
             catch (Exception)

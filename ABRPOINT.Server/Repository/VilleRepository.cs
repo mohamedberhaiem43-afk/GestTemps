@@ -1,52 +1,54 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
 {
-    public class VilleRepository:IVilleRepository
+    public class VilleRepository : IVilleRepository
     {
         private readonly ApplicationDbContext _dbContext;
         public VilleRepository(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }
-        public void Add(Ville entity)
+
+        public async Task AddAsync(Ville entity)
         {
-            _dbContext.Villes.Add(entity);
-            _dbContext.SaveChanges();
+            await _dbContext.Villes.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
         }
-        
-        public void Delete(Ville entity)
+
+        public async Task DeleteAsync(Ville entity)
         {
             if (entity != null)
             {
                 _dbContext.Villes.Remove(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Ville> GetAll()
+        public async Task<IEnumerable<Ville>> GetAllAsync()
         {
-            return _dbContext.Villes.ToList();
+            return await _dbContext.Villes.ToListAsync();
         }
 
-        public Ville GetByVilcod(string vilcod)
+        public async Task<Ville?> GetByVilcodAsync(string vilcod)
         {
-            return _dbContext.Villes.Find(vilcod);
+            return await _dbContext.Villes.FindAsync(vilcod);
         }
 
-        public Dictionary<string, string> GetVillibs()
+        public async Task<Dictionary<string, string>> GetVillibsAsync()
         {
-            return _dbContext.Villes.ToDictionary(v=>v.Vilcod,v=>v.Villib);
+            return await _dbContext.Villes.ToDictionaryAsync(v => v.Vilcod, v => v.Villib ?? "");
         }
 
-        public void Update(Ville entity)
+        public async Task UpdateAsync(Ville entity)
         {
             if (entity != null)
             {
                 _dbContext.Villes.Update(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
     }

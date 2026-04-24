@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,46 +17,48 @@ namespace ABRPOINT.Server.Controllers
         {
             _directionRepository = directionRepository;
         }
-        // GET: api/<DirectionsController>
+
+        // GET: api/Directions/get-directions/SOC01
         [HttpGet("get-directions/{soccod}")]
-        public IEnumerable<Direction> Get(string soccod)
+        public async Task<ActionResult<IEnumerable<Direction>>> Get(string soccod)
         {
-            return _directionRepository.GetAll(soccod);
+            var directions = await _directionRepository.GetAllAsync(soccod);
+            return Ok(directions);
         }
+
         [HttpGet("get-dirlibs/{soccod}")]
-        public Dictionary<string, string> GetSitLibs(string soccod)
+        public async Task<ActionResult<Dictionary<string, string>>> GetDirLibs(string soccod)
         {
-            return _directionRepository.GetDirLibs(soccod);
-        }
-        // GET api/<DirectionsController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
-        {
-            return "value";
+            var dirlibs = await _directionRepository.GetDirLibsAsync(soccod);
+            return Ok(dirlibs);
         }
 
-        // POST api/<DirectionsController>
+        // POST api/Directions
         [HttpPost]
-        public Direction Post([FromBody] Direction direction)
+        public async Task<ActionResult<Direction>> Post([FromBody] Direction direction)
         {
-            return _directionRepository.AddDirection(direction);
+            if (direction == null) return BadRequest();
+            await _directionRepository.AddAsync(direction);
+            return Ok(direction);
         }
 
-        // PUT api/<DirectionsController>/5
+        // PUT api/Directions
         [HttpPut]
-        public void Put(Direction direction)
+        public async Task<IActionResult> Put([FromBody] Direction direction)
         {
-            if (direction != null)
-                _directionRepository.Update(direction);
+            if (direction == null) return BadRequest();
+            await _directionRepository.UpdateAsync(direction);
+            return NoContent();
         }
 
-        // DELETE api/<DirectionsController>/5
+        // DELETE api/Directions/SOC01/D01
         [HttpDelete("{soccod}/{dircod}")]
-        public void Delete(string soccod,string dircod)
+        public async Task<IActionResult> Delete(string soccod, string dircod)
         {
-            Direction direction = _directionRepository.Get(soccod,dircod);
-            if(direction != null)
-                _directionRepository.Delete(direction);
+            var direction = await _directionRepository.GetAsync(soccod, dircod);
+            if (direction == null) return NotFound();
+            await _directionRepository.DeleteAsync(direction);
+            return NoContent();
         }
     }
 }

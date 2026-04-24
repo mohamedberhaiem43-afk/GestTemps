@@ -87,6 +87,7 @@ export type SidebarNavigationDualTierProps = {
   title?: string;
   logo?: React.ReactNode;
   toolbarActions?: React.ReactNode;
+  isAdmin?: boolean;
   children: React.ReactNode;
 };
 
@@ -162,6 +163,7 @@ export default function SidebarNavigationDualTier({
   title,
   logo,
   toolbarActions,
+  isAdmin,
   children,
 }: SidebarNavigationDualTierProps) {
   const [activePrimaryHref, setActivePrimaryHref] = React.useState<string>(() => {
@@ -302,13 +304,23 @@ export default function SidebarNavigationDualTier({
               <CalendarX size={20} />
               <span>Demandes</span>
             </button>
-            <button
-              onClick={() => onNavigate('/dashboard/gestion-de-solde')}
-              className={`sndt-nav-btn${pathname === '/dashboard/gestion-de-solde' ? ' sndt-nav-btn--active' : ''}`}
-            >
-              <PieChart size={20} />
-              <span>Solde</span>
-            </button>
+            {isAdmin ? (
+              <button
+                onClick={() => onNavigate('/dashboard/etat-periodique')}
+                className={`sndt-nav-btn${pathname === '/dashboard/etat-periodique' ? ' sndt-nav-btn--active' : ''}`}
+              >
+                <Activity size={20} />
+                <span>Etat Périodique</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => onNavigate('/dashboard/gestion-de-solde')}
+                className={`sndt-nav-btn${pathname === '/dashboard/gestion-de-solde' ? ' sndt-nav-btn--active' : ''}`}
+              >
+                <PieChart size={20} />
+                <span>Solde</span>
+              </button>
+            )}
           </nav>
         </div>
 

@@ -1,9 +1,8 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -18,18 +17,7 @@ namespace ABRPOINT.Server.Repository
             _utilisateurRepository = utilisateurRepository;
         }
 
-        public void Add(Contrat contrat)
-        {
-            try
-            {
-                _dbContext.Contrats.Add(contrat);
-                _dbContext.SaveChanges();
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
+
 
         public async Task AddAsync(Contrat contrat)
         {
@@ -52,14 +40,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Delete(Contrat contrat)
-        {
-            if (contrat != null)
-            {
-                _dbContext.Contrats.Remove(contrat);
-                _dbContext.SaveChanges();
-            }
-        }
+
 
         public async Task DeleteAsync(Contrat contrat)
         {
@@ -77,39 +58,18 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public IEnumerable<Contrat> GetAll()
+        public async Task<IEnumerable<Contrat>> GetAllAsync()
         {
-            return _dbContext.Contrats.ToList();
+            return await _dbContext.Contrats.ToListAsync();
+        }
+        public async Task<IEnumerable<Contrat>> GetAllBySoccodAsync(string soccod)
+        {
+            return await _dbContext.Contrats.Where(s=>s.Soccod ==soccod).ToListAsync();
         }
 
-        public IEnumerable<Contrat> GetAll(string soccod, string srvcod, string sitcod, DateTime echdeb, DateTime echfin)
-        {
-            if (!string.IsNullOrEmpty(soccod))
-            {
-                return _dbContext.Contrats
-                    .Where(e => e.Soccod == soccod && sitcod == e.Sitcod && srvcod == e.Sercod && e.Empemb >= echdeb && e.Empsort <= echfin)
-                    .ToList();
-            }
 
-            return GetAll();
-        }
 
-        public IEnumerable<Contrat> GetAll(string soccod, string uticod, DateTime echdeb, DateTime echfin)
-        {
-            if (!string.IsNullOrEmpty(soccod) && !string.IsNullOrEmpty(uticod))
-            {
-                List<string> sitcods = _dbContext.Socusers
-                    .Where(s => s.Soccod == soccod && s.Uticod == uticod)
-                    .Select(s => s.Sitcod)
-                    .ToList();
 
-                return _dbContext.Contrats
-                    .Where(e => e.Soccod == soccod && sitcods.Contains(e.Sitcod) && e.Empemb >= echdeb && e.Empsort <= echfin)
-                    .ToList();
-            }
-
-            return GetAll();
-        }
 
         public IEnumerable<object> GetEcheanceContrats(string soccod, string uticod)
         {
@@ -152,14 +112,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(Contrat employe)
-        {
-            if (employe != null)
-            {
-                _dbContext.Contrats.Update(employe);
-                _dbContext.SaveChanges();
-            }
-        }
+
 
         public async Task UpdateAsync(Contrat contrat)
         {
@@ -256,7 +209,36 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<IEnumerable<Contrat>> GetAll(string soccod, string uticod)
+        public async Task<IEnumerable<Contrat>> GetAllSearchAsync(string soccod, string srvcod, string sitcod, DateTime echdeb, DateTime echfin)
+        {
+            if (!string.IsNullOrEmpty(soccod))
+            {
+                return await _dbContext.Contrats
+                    .Where(e => e.Soccod == soccod && sitcod == e.Sitcod && srvcod == e.Sercod && e.Empemb >= echdeb && e.Empsort <= echfin)
+                    .ToListAsync();
+            }
+
+            return await GetAllAsync();
+        }
+
+        public async Task<IEnumerable<Contrat>> GetAllByUticodPeriodAsync(string soccod, string uticod, DateTime echdeb, DateTime echfin)
+        {
+            if (!string.IsNullOrEmpty(soccod) && !string.IsNullOrEmpty(uticod))
+            {
+                List<string> sitcods = await _dbContext.Socusers
+                    .Where(s => s.Soccod == soccod && s.Uticod == uticod)
+                    .Select(s => s.Sitcod)
+                    .ToListAsync();
+
+                return await _dbContext.Contrats
+                    .Where(e => e.Soccod == soccod && sitcods.Contains(e.Sitcod) && e.Empemb >= echdeb && e.Empsort <= echfin)
+                    .ToListAsync();
+            }
+
+            return await GetAllAsync();
+        }
+
+        public async Task<IEnumerable<Contrat>> GetAllByUticodAsync(string soccod, string uticod)
         {
             try
             {

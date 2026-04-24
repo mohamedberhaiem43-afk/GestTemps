@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,91 +12,66 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Qualif entity)
+
+        public async Task AddAsync(Qualif entity)
         {
-            _dbContext.Qualifs.Add(entity);
-            _dbContext.SaveChanges();
+            try
+            {
+                await _dbContext.Qualifs.AddAsync(entity);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
-        public void Delete(Qualif entity)
+        public async Task DeleteAsync(Qualif entity)
         {
             if (entity != null)
             {
                 _dbContext.Qualifs.Remove(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Qualif> GetAll()
+        public async Task<IEnumerable<Qualif>> GetAllAsync()
         {
-            return _dbContext.Qualifs.ToList();
-        }
-
-        public Dictionary<string, string> GetQuaLibs(string soccod)
-        {
-            try
-            {
-                var qualifs = _dbContext.Qualifs
-                    .Where(q => q.Soccod == soccod)
-                    .ToList();
-                
-                if (qualifs == null || qualifs.Count == 0)
-                {
-                    return new Dictionary<string, string>();
-                }
-                
-                return qualifs.ToDictionary(q => q.Quacod, q => q.Qualib ?? q.Quacod);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetQuaLibs: {ex.Message}");
-                throw new InvalidOperationException($"Erreur lors de la récupération des qualifications pour la société {soccod}", ex);
-            }
-        }
-
-        public Qualif GetByQuafcod(string quacod)
-        {
-            return _dbContext.Qualifs.Where(q=>q.Quacod == quacod).SingleOrDefault();
-        }
-
-        public void Update(Qualif entity)
-        {
-            if (entity != null)
-            {
-                _dbContext.Qualifs.Update(entity);
-                _dbContext.SaveChanges();
-            }
+            return await _dbContext.Qualifs.ToListAsync();
         }
 
         public async Task<IEnumerable<Qualif>> GetAllAsync(string soccod)
         {
-            try
-            {
-                var qualifs = await _dbContext.Qualifs.Where(q => q.Soccod == soccod).ToListAsync();
-                return qualifs;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return await _dbContext.Qualifs.Where(q => q.Soccod == soccod).ToListAsync();
         }
 
-        public async Task<bool> UpdateAsync(Qualif qualif)
+        public async Task<Dictionary<string, string>> GetQuaLibsAsync(string soccod)
         {
             try
             {
-                var rowsAffected = await _dbContext.Qualifs
-               .Where(s => s.Soccod == qualif.Soccod && s.Quacod == qualif.Quacod)
-               .ExecuteUpdateAsync(setters => setters
-                   .SetProperty(s => s.Qualib, qualif.Qualib)
-                   // .SetProperty(s => s.Catcod, qualif.Catcod) // Temporarily commented out due to missing column
-               );
+                var qualifs = await _dbContext.Qualifs
+                    .Where(q => q.Soccod == soccod)
+                    .ToListAsync();
 
-                return rowsAffected > 0;
+                return qualifs.ToDictionary(q => q.Quacod, q => q.Qualib ?? q.Quacod);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                throw new InvalidOperationException($"Erreur lors de la récupération des qualifications pour la société {soccod}", ex);
+            }
+        }
+
+        public async Task<Qualif?> GetByQuafcodAsync(string soccod, string quacod)
+        {
+            return await _dbContext.Qualifs.FirstOrDefaultAsync(q => q.Soccod == soccod && q.Quacod == quacod);
+        }
+
+        public async Task UpdateAsync(Qualif entity)
+        {
+            if (entity != null)
+            {
+                _dbContext.Qualifs.Update(entity);
+                await _dbContext.SaveChangesAsync();
             }
         }
     }

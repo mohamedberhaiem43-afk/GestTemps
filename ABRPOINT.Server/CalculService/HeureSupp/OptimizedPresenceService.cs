@@ -57,7 +57,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     string.IsNullOrEmpty(mois) || string.IsNullOrEmpty(annee))
                     return null;
 
-                var parametreMoisPointage = await _parametreRepository.GetParametreMoisPointage(soccod);
+                var parametreMoisPointage = await _parametreRepository.GetParametreMoisPointageAsync(soccod);
                 if (parametreMoisPointage == null) return null;
 
                 if (!int.TryParse(mois, out int month) || !int.TryParse(annee, out int year))
@@ -168,11 +168,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 .ToDictionary(p => p.Predat.Value.Date);
 
             // Load all sanctions for the period
-            List<SanctionDto> sanctions = await _sanctionRepository.GetSanctionsByPeriod(soccod, empcod, startDate, endDate);
+            List<SanctionDto> sanctions = await _sanctionRepository.GetSanctionsByPeriodAsync(soccod, empcod, startDate, endDate);
             cache.SanctionsByDate = sanctions.ToDictionary(s => (DateTime)s.Condat);
 
             // Load all conges for the period
-            List<CongeDto> conges = await _congeRepository.GetCongesByPeriod(soccod, empcod, startDate, endDate);
+            List<CongeDto> conges = await _congeRepository.GetCongesByPeriodAsync(soccod, empcod, startDate, endDate);
             cache.CongesByDate = conges
             .Where(c => c.Condat.HasValue)
             .GroupBy(c => c.Condat!.Value.Date)
@@ -216,11 +216,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
 
             // Load all allaitement hours
-            Dictionary<DateTime, float> allaitements = await _allaitementRepository.GetAllaitementsByPeriod(soccod, empcod, startDate, endDate);
+            Dictionary<DateTime, float> allaitements = await _allaitementRepository.GetAllaitementsByPeriodAsync(soccod, empcod, startDate, endDate);
             cache.AllaitementByDate = allaitements;
 
             // Load repos days
-            Dictionary<DateTime, bool> reposDays = await _parametreRepository.GetReposDaysByPeriod(soccod, empcod, allDates);
+            Dictionary<DateTime, bool> reposDays = await _parametreRepository.GetReposDaysByPeriodAsync(soccod, empcod, allDates);
             cache.ReposByDate = reposDays;
 
             // Load poste hours for ferier days
@@ -297,7 +297,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 countedConges.Contains(nombreConge.Concod) ||
                 nombreConge.nbJourConge == 0)
                 return;
-            var nbhConge = await _parametreRepository.GetNbhConge(soccod);
+            var nbhConge = await _parametreRepository.GetNbhCongeAsync(soccod);
             float congeHours = conge.Connbjour == 0.5 ? nbhConge.Value / 2 : nbhConge.Value;
             acc.NbHeuresDebutCalcul += congeHours;
             // 🔹 Compteurs généraux
@@ -371,9 +371,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
             bool isFerier = cache.FerierDates.Contains(date.Date);
             bool isRepos = cache.ReposByDate.TryGetValue(date.Date, out var r) && r;
-            string poste = cache.PostesByDate.TryGetValue(date.Date, out var p) ? p : null;
+            string? poste = cache.PostesByDate.TryGetValue(date.Date, out var p) ? p : null;
             bool isAfterDebutReel = date.Date >= debutReelDate.Date;
-            bool repos = await _parametreRepository.IsRepos(soccod, date, poste);
+            bool repos = await _parametreRepository.IsReposAsync(soccod, date, poste);
 
             // 🆕 ENRICHIR empparamBase avec les paramètres du poste de ce jour
             var empparam = EnrichEmpparamWithPoste(empparamBase, date, poste, cache.PostesObjects);
@@ -561,7 +561,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         acc.HCSF += paramMois.Nbhconge;
                     else
                     {
-                        float? nbhConge = await _parametreRepository.GetNbhConge(sanction.Soccod);
+                        float? nbhConge = await _parametreRepository.GetNbhCongeAsync(sanction.Soccod);
                         acc.HCSF += sanction.Connbjour == 0.5 ? nbhConge / 2 : nbhConge;
                     }
                     break;
@@ -626,7 +626,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 #endregion
 
                 #region Paramètres mois
-                var paramMois = await _parametreRepository.GetParametreMoisPointage(soccod);
+                var paramMois = await _parametreRepository.GetParametreMoisPointageAsync(soccod);
                 if (paramMois == null)
                     return ("0", 0, null, null, 0, 0);
                 #endregion
@@ -709,7 +709,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var ferierSet = new HashSet<DateTime>(ferierDates.Select(f => f.Ferdate.Value.Date));
 
                 // 🔹 BATCH 2: Load ALL conges for employee in this period
-                var conges = await _congeRepository.GetCongesByPeriod(
+                var conges = await _congeRepository.GetCongesByPeriodAsync(
                     soccod,
                     empcod,
                     minDate,
@@ -734,8 +734,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 }
 
                 // 🔹 BATCH 3: Get parameter values once
-                var nbhFerier = await _parametreRepository.GetNbhFerier(soccod);
-                var nbhConge = await _parametreRepository.GetNbhConge(soccod);
+                var nbhFerier = await _parametreRepository.GetNbhFerierAsync(soccod);
+                var nbhConge = await _parametreRepository.GetNbhCongeAsync(soccod);
 
                 // 🔹 Process each day with cached data (NO MORE N+1 QUERIES!)
                 foreach (var day in monthDays)

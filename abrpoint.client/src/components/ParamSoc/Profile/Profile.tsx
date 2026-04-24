@@ -21,6 +21,7 @@ import useUpdateProfile from '../../../hooks/profileHooks/useUpdateProfile';
 import useChangePasswordHook from '../../../hooks/profileHooks/useChangePassword';
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import apiInstance from '../../API/apiInstance';
+import { useAuth } from '../../helper/AuthProvider';
 import './Profile.css';
 
 const BASE_URL = import.meta.env.VITE_REACT_APP_API_URL || '';
@@ -36,6 +37,7 @@ function getInitials(nom: string | null, prn: string | null) {
 }
 
 function ProfilePage() {
+  const { uticod } = useAuth();
   const [userData, setUserData] = useState<User | null>(null);
   const [profileImage, setProfileImage] = useState<string>('');
   const [snackbar, setSnackbar] = useState<{
@@ -114,7 +116,7 @@ function ProfilePage() {
     formData.append('file', renamedFile);
 
     try {
-      const response = await apiInstance.post('/Utilisateurs/upload-profile', formData, {
+      const response = await apiInstance.post(`/Utilisateurs/upload-profile?uticod=${uticod}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const filePath = response.data;

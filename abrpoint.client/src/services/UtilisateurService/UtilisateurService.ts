@@ -12,7 +12,7 @@ class UtilisateurServiceClass extends ApiClient<Utilisateur> {
     };
 
     resetPassword = (uticod: string, newPassword: string) => {
-        return axiosInstance.post(`${this.endPoint}/reset-password-admin/${uticod}`, JSON.stringify(newPassword), {
+        return axiosInstance.post(`${this.endPoint}/reset-password-admin/${uticod}`, { NewPassword: newPassword }, {
             headers: { 'Content-Type': 'application/json' }
         }).then(res => res.data);
     };

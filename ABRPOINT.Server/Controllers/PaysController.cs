@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,78 +19,75 @@ namespace ABRPOINT.Server.Controllers
             _paysRepository = paysRepository;
         }
 
-        // GET: api/Services
+        // GET: api/Pays
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> Get()
         {
             try
             {
-                IEnumerable<Nation> nations = _paysRepository.GetAll();
+                var nations = await _paysRepository.GetAllAsync();
                 return Ok(nations);
             }
             catch (Exception ex)
             {
-
-                return StatusCode(500,ex);
+                return StatusCode(500, ex.Message);
             }
-            
-        }
-        [HttpGet("get-natlibs")]
-        public Dictionary<string,string> GetNatlibs()
-        {
-            return _paysRepository.GetNatlibs();
         }
 
-        // GET api/Services/5
-        [HttpGet("{natcod}")]
-        public ActionResult<Nation> Get(string natcod)
+        [HttpGet("get-natlibs")]
+        public async Task<Dictionary<string, string>> GetNatlibs()
         {
-            var ville = _paysRepository.GetByNatcod(natcod);
-            if (ville == null)
+            return await _paysRepository.GetNatlibsAsync();
+        }
+
+        // GET api/Pays/FRA
+        [HttpGet("{natcod}")]
+        public async Task<ActionResult<Nation>> Get(string natcod)
+        {
+            var nation = await _paysRepository.GetByNatcodAsync(natcod);
+            if (nation == null)
             {
                 return NotFound();
             }
-            return Ok(ville);
+            return Ok(nation);
         }
 
-        // POST api/Services
+        // POST api/Pays
         [HttpPost]
-        public IActionResult Post([FromBody] Nation nation)
+        public async Task<IActionResult> Post([FromBody] Nation nation)
         {
             if (nation != null)
             {
-                _paysRepository.Add(nation);
+                await _paysRepository.AddAsync(nation);
                 return CreatedAtAction(nameof(Get), new { natcod = nation.Natcod }, nation);
             }
             return BadRequest();
         }
 
-        // PUT api/Services/5
+        // PUT api/Pays/FRA
         [HttpPut("{natcod}")]
-        public IActionResult Put(string natcod, [FromBody] Nation nation)
+        public async Task<IActionResult> Put(string natcod, [FromBody] Nation nation)
         {
             if (nation == null || natcod != nation.Natcod)
             {
                 return BadRequest();
             }
 
-            _paysRepository.Update(nation);
+            await _paysRepository.UpdateAsync(nation);
             return NoContent();
         }
 
-        // DELETE api/Services/{seccod}
+        // DELETE api/Pays/FRA
         [HttpDelete("{natcod}")]
-
-        public IActionResult Delete(string natcod)
+        public async Task<IActionResult> Delete(string natcod)
         {
-            Nation nation = _paysRepository.GetByNatcod(natcod);
+            var nation = await _paysRepository.GetByNatcodAsync(natcod);
             if (nation == null)
             {
                 return NotFound();
             }
-            _paysRepository.Delete(nation);
+            await _paysRepository.DeleteAsync(nation);
             return NoContent();
         }
-
     }
 }

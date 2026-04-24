@@ -27,7 +27,7 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
                 }
                 else if(presence != null /*&& presence.Prerepos == "0"*/)
                 {
-                    var conge = await _congeRepository.GetEmpCongeByDate(soccod, presence.Empcod, (DateTime) date);
+                    var conge = await _congeRepository.GetEmpCongeByDateAsync(soccod, presence.Empcod, (DateTime) date);
                     if (conge?.Connbjour == 1)
                         return 0;
                     else if (conge?.Connbjour == 0.5)

@@ -1,6 +1,7 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -11,12 +12,13 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Fonction fonction)
+
+        public async Task AddAsync(Fonction fonction)
         {
             try
             {
-                _dbContext.Fonctions.Add(fonction);
-                _dbContext.SaveChanges();
+                await _dbContext.Fonctions.AddAsync(fonction);
+                await _dbContext.SaveChangesAsync();
             }
             catch (Exception)
             {
@@ -24,52 +26,51 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Delete(Fonction fonction)
+        public async Task DeleteAsync(Fonction fonction)
         {
             if (fonction != null)
             {
                 _dbContext.Fonctions.Remove(fonction);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Fonction> GetAll()
+        public async Task<IEnumerable<Fonction>> GetAllAsync()
         {
-            return _dbContext.Fonctions.ToList();
-        }
-        public Dictionary<string, string> GetFonLibs()
-        {
-            return _dbContext.Fonctions
-                               .ToDictionary(abs => abs.Foncod, abs => abs.Fonlib);
+            return await _dbContext.Fonctions.ToListAsync();
         }
 
-        public Fonction GetByFonccod(string soccod, string fonccod)
+        public async Task<Dictionary<string, string>> GetFonLibsAsync()
         {
-            return _dbContext.Fonctions.FirstOrDefault(s => s.Soccod == soccod && s.Foncod == fonccod);
+            return await _dbContext.Fonctions
+                               .ToDictionaryAsync(abs => abs.Foncod, abs => abs.Fonlib ?? "");
         }
 
-        public void Update(Fonction fonction)
+        public async Task<Fonction?> GetByFonccodAsync(string soccod, string fonccod)
+        {
+            return await _dbContext.Fonctions.FirstOrDefaultAsync(s => s.Soccod == soccod && s.Foncod == fonccod);
+        }
+
+        public async Task UpdateAsync(Fonction fonction)
         {
             if (fonction != null)
             {
                 _dbContext.Fonctions.Update(fonction);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Fonction> GetAll(string soccod)
+        public async Task<IEnumerable<Fonction>> GetAllAsync(string soccod)
         {
             try
             {
-                IEnumerable<Fonction> fonctions = _dbContext.Fonctions
+                return await _dbContext.Fonctions
                     .Where(f => f.Soccod == soccod)
-                    .ToList();
-                return fonctions;
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-
-                throw new Exception("",ex);
+                throw new Exception("Error retrieving functions", ex);
             }
         }
     }

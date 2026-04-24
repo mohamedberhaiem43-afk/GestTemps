@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Helper;
+using ABRPOINT.Helper;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Exceptions;
@@ -89,49 +89,9 @@ namespace ABRPOINT.Server.Repository
 
 
 
-        // Add a new Poste entity to the database
-        public void Add(Poste entity)
-        {
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity));
 
-            if (string.IsNullOrWhiteSpace(entity.Codposte))
-                throw new ArgumentException(nameof(entity.Codposte));
 
-            if (string.IsNullOrWhiteSpace(entity.Soccod))
-                throw new ArgumentException(nameof(entity.Soccod));
-            try
-            {
-                _dbContext.Postes.Add(entity);
-                _dbContext.SaveChanges();
-            }
-            catch (Exception ex)
-            {
 
-                throw new RepositoryException("Erreur innatendu ",ex);
-            }
-            
-        }
-
-        // Delete a Poste entity from the database
-        public void Delete(Poste entity)
-        {
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity));
-            
-            try
-            {
-                _dbContext.Postes.Remove(entity);
-                _dbContext.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-
-                throw new RepositoryException("Erreur innatendu ",ex);
-            }
-
-            
-        }
         public async Task DeleteAsync(Poste entity)
         {
             if (entity == null)
@@ -148,11 +108,11 @@ namespace ABRPOINT.Server.Repository
         }
 
         // Get all Poste entities from the database
-        public IEnumerable<Poste> GetAll()
+        public async Task<IEnumerable<Poste>> GetAllAsync()
         {
             try
             {
-                IEnumerable<Poste> postes = _dbContext.Postes.ToList();
+                IEnumerable<Poste> postes = await _dbContext.Postes.ToListAsync();
                 return postes;
             }
             catch (Exception ex)
@@ -276,27 +236,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        // Update an existing Poste entity in the database
-        public void Update(Poste entity)
-        {
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity));
 
-            try
-            {
-                _dbContext.Update(entity);
-                _dbContext.SaveChanges();
-            }
-            catch (DbUpdateException dbEx)
-            {
-                throw new RepositoryException("",dbEx);
-            }
-            catch (Exception ex)
-            {
-                throw new RepositoryException("",ex);
-            }
-           
-        }
 
 
         public async Task<float?> GetJourHeures(string soccod, DateTime? date, string? codposte)

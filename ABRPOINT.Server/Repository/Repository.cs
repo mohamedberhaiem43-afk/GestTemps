@@ -1,26 +1,25 @@
-﻿
 using ABRPOINT.Server.Interfaces;
 
 namespace ABRPOINT.Server.Repository
 {
     public class Repository<T> : IRepository<T> where T : class
     {
-        public void Add(T entity)
+        public Task AddAsync(T entity)
         {
             throw new NotImplementedException();
         }
 
-        public void Delete(T entity)
+        public Task DeleteAsync(T entity)
         {
             throw new NotImplementedException();
         }
 
-        public IEnumerable<T> GetAll()
+        public Task<IEnumerable<T>> GetAllAsync()
         {
             throw new NotImplementedException();
         }
 
-        public void Update(T entity)
+        public Task UpdateAsync(T entity)
         {
             throw new NotImplementedException();
         }

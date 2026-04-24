@@ -399,13 +399,28 @@
   .chm-week-grid { grid-template-columns: repeat(4, 1fr); }
   .chm-poste-cards-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
 @media (max-width: 1000px) {
   .chm-layout { flex-direction: column; }
   .chm-sidebar { width: 100%; }
   .chm-week-grid { grid-template-columns: repeat(7, 1fr); }
 }
+
+@media (max-width: 850px) {
+  .chm-week-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
 @media (max-width: 768px) {
   .chm-container { padding: 12px; }
-  .chm-week-grid { grid-template-columns: repeat(4, 1fr); }
+  .chm-preview-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .chm-week-grid { grid-template-columns: repeat(3, 1fr); }
   .chm-poste-cards-grid { grid-template-columns: 1fr 1fr; }
+  .chm-poste-selector { padding: 16px !important; }
+}
+
+@media (max-width: 550px) {
+  .chm-week-grid { grid-template-columns: repeat(2, 1fr); }
+  .chm-poste-cards-grid { grid-template-columns: 1fr; }
+  .chm-poste-selector-actions { flex-direction: column; }
+  .chm-poste-selector-actions button { width: 100%; }
 }

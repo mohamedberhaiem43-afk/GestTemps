@@ -646,7 +646,7 @@ const BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
 function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authReady, clearAuth, userName } = useAuth();
+  const { authReady, clearAuth, userName, utiadm } = useAuth();
   const { i18n } = useTranslation();
   const NAVIGATION = useNavigationItems();
   const outerTheme = useMuiTheme();
@@ -800,6 +800,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
         onNavigate={(to) => navigate(to)}
         title={title}
         logo={logo}
+        isAdmin={utiadm === '1'}
         toolbarActions={<ToolbarActions />}
       >
         {/* Dynamic Tab Bar */}

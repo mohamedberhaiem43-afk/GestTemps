@@ -19,7 +19,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return await _rubriqueService.GetAll(soccod);
+                return await _rubriqueService.GetAllAsync(soccod);
             }
             catch (Exception)
             {
@@ -32,7 +32,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return await _rubriqueService.GetPaires(soccod);
+                return await _rubriqueService.GetPairesAsync(soccod);
             }
             catch (Exception)
             {
@@ -45,7 +45,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return await _rubriqueService.GetRubrique(soccod, rubcod);
+                return await _rubriqueService.GetRubriqueAsync(soccod, rubcod);
             }
             catch (Exception)
             {
@@ -71,7 +71,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return await _rubriqueService.AddRubrique(rubrique);
+                return await _rubriqueService.AddRubriqueAsync(rubrique);
             }
             catch (Exception)
             {
@@ -84,7 +84,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return await _rubriqueService.UpdateRubrique(rubrique);
+                return await _rubriqueService.UpdateRubriqueAsync(rubrique);
             }
             catch (Exception)
             {

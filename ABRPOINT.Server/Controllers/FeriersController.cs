@@ -3,6 +3,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -18,28 +19,28 @@ namespace ABRPOINT.Server.Controllers
         }
         // GET: api/<DirectionsController>
         [HttpGet]
-        public IEnumerable<Ferier> Get()
+        public async Task<IEnumerable<Ferier>> Get()
         {
-            return _ferierRepository.GetAll();
+            return await _ferierRepository.GetAllAsync();
         }
 
         // POST api/<DirectionsController>
         [HttpPost]
         [CanAddFerie]
-        public void Post([FromBody] Ferier ferier)
+        public async Task Post([FromBody] Ferier ferier)
         {
-            _ferierRepository.Add(ferier);
+            await _ferierRepository.AddAsync(ferier);
         }
 
         [HttpPut]
         [CanUpdateFerie]
-        public IActionResult Put([FromBody] Ferier ferier)
+        public async Task<IActionResult> Put([FromBody] Ferier ferier)
         {
             if (ferier == null)
                return BadRequest("Veuillez remplir les champs obligatoires");
             try
             {
-                _ferierRepository.Update(ferier);
+                await _ferierRepository.UpdateAsync(ferier);
                 return Ok("Jour de repos modifé avec succées");
             }
             catch (Exception)
@@ -60,7 +61,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 return NotFound();
             }
-            _ferierRepository.Delete(ferier);
+            await _ferierRepository.DeleteAsync(ferier);
             return NoContent();
         }
     }

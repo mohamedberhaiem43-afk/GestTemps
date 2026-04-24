@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,64 +15,67 @@ namespace ABRPOINT.Server.Controllers
         {
             _fonctionRepository = fonctionRepository;
         }
-        // GET: api/<DirectionsController>
+
+        // GET: api/Fonctions/SOC01
         [HttpGet("{soccod}")]
-        public IEnumerable<Fonction> Get(string soccod)
+        public async Task<ActionResult<IEnumerable<Fonction>>> Get(string soccod)
         {
             try
             {
-                return _fonctionRepository.GetAll(soccod);
+                var fonctions = await _fonctionRepository.GetAllAsync(soccod);
+                return Ok(fonctions);
             }
             catch (Exception)
             {
-                throw;
+                return StatusCode(500, "Internal server error");
             }
         }
+
         [HttpGet("get-fonlibs")]
-        public Dictionary<string,string> GetFonlibs()
+        public async Task<Dictionary<string, string>> GetFonlibs()
         {
-            return _fonctionRepository.GetFonLibs();
+            return await _fonctionRepository.GetFonLibsAsync();
         }
 
-     
-
-        // POST api/<DirectionsController>
+        // POST api/Fonctions
         [HttpPost]
-        public void Post([FromBody] Fonction fonction)
+        public async Task<IActionResult> Post([FromBody] Fonction fonction)
         {
             try
             {
-                _fonctionRepository.Add(fonction);
+                if (fonction == null) return BadRequest();
+                await _fonctionRepository.AddAsync(fonction);
+                return Ok();
             }
             catch (Exception)
             {
-                throw;
+                return StatusCode(500, "Error adding function");
             }
         }
 
-        // PUT api/<DirectionsController>/5
+        // PUT api/Fonctions/SOC01/F01
         [HttpPut("{soccod}/{foncod}")]
-        public IActionResult Put(string foncod, [FromBody] Fonction fonction)
+        public async Task<IActionResult> Put(string soccod, string foncod, [FromBody] Fonction fonction)
         {
             if (fonction == null || foncod != fonction.Foncod)
             {
                 return BadRequest();
             }
 
-            _fonctionRepository.Update(fonction);
+            await _fonctionRepository.UpdateAsync(fonction);
             return NoContent();
         }
 
-        // DELETE api/<DirectionsController>/5
+        // DELETE api/Fonctions/SOC01/F01
         [HttpDelete("{soccod}/{foncod}")]
-        public IActionResult Delete(string soccod, string foncod)
+        public async Task<IActionResult> Delete(string soccod, string foncod)
         {
-            Fonction fonction = _fonctionRepository.GetByFonccod(soccod, foncod);
+            var fonction = await _fonctionRepository.GetByFonccodAsync(soccod, foncod);
             if (fonction == null)
             {
                 return NotFound();
             }
-            _fonctionRepository.Delete(fonction);
+            await _fonctionRepository.DeleteAsync(fonction);
             return NoContent();
         }
     }

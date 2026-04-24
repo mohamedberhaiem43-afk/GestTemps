@@ -392,10 +392,17 @@ function UtilisateurContent() {
               <button
                 className="um-btn-save"
                 onClick={async () => {
-                  await saisieRef.current?.handleSave();
-                  refetch();
-                  setShowAddModal(false);
-                  setSelectedUser(null);
+                  const success = await saisieRef.current?.handleSave();
+                  if (success) {
+                    setSnackbar({ 
+                      open: true, 
+                      message: selectedUser ? "Utilisateur mis à jour avec succès" : "Utilisateur créé avec succès", 
+                      severity: "success" 
+                    });
+                    refetch();
+                    setShowAddModal(false);
+                    setSelectedUser(null);
+                  }
                 }}
               >
                 Enregistrer

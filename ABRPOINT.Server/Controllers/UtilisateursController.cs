@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using OtpNet;
 using QRCoder;
+using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -113,7 +114,7 @@ namespace GestionDesTickets.Server.Controllers
         {
             try
             {
-                return Ok(await _utilisateurRepository.GetAllUsers(soccod,uticod));
+                return Ok(await _utilisateurRepository.GetAllUsersAsync(soccod,uticod));
             }
             catch (Exception ex)
             {
@@ -131,7 +132,7 @@ namespace GestionDesTickets.Server.Controllers
                 {
                     return BadRequest(new { Message = "User code is required" });
                 }
-                    var utilisateur = await _utilisateurRepository.GetUtilisateur(uticod);
+                    var utilisateur = await _utilisateurRepository.GetUtilisateurAsync(uticod);
                     return Ok(utilisateur);
             }
             catch (KeyNotFoundException)
@@ -396,14 +397,14 @@ namespace GestionDesTickets.Server.Controllers
         [Authorize]
         [HttpPost("reset-password-admin/{uticod}")]
         [Admin]
-        public async Task<IActionResult> ResetPasswordAdmin(string uticod, [FromBody] string newPassword)
+        public async Task<IActionResult> ResetPasswordAdmin(string uticod, [FromBody] AdminResetPasswordRequest request)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(newPassword))
+                if (string.IsNullOrWhiteSpace(request.NewPassword))
                     return BadRequest(new { Message = "Le nouveau mot de passe est requis." });
 
-                var success = await _utilisateurRepository.ResetPasswordAsync(uticod, newPassword);
+                var success = await _utilisateurRepository.ResetPasswordAsync(uticod, request.NewPassword);
                 if (!success) return NotFound(new { Message = "Utilisateur non trouvé" });
 
                 return Ok(new { Message = "Mot de passe réinitialisé avec succès." });
@@ -525,16 +526,16 @@ namespace GestionDesTickets.Server.Controllers
 
 
 
-        // PUT api/<UtilisateursController>/5
-        [HttpPut]
+        // PUT api/<UtilisateursController>/update-user/soccod/sitcod
+        [HttpPut("update-user/{soccod}/{sitcod}")]
         [Admin]
-        public async Task<bool> Put([FromBody] UtilisateurUpdate utilisateur)
+        public async Task<bool> Put([FromBody] UtilisateurUpdate utilisateur, string soccod, string sitcod)
         {
             try
             {
-                if (utilisateur.Moduser?.Any() == true && utilisateur.Utilisateur != null)
+                if (utilisateur.Utilisateur != null)
                 {
-                    await _utilisateurRepository.UpdateUser(utilisateur);
+                    await _utilisateurRepository.UpdateUserAsync(utilisateur);
                     return true;
                 }
 
@@ -552,7 +553,7 @@ namespace GestionDesTickets.Server.Controllers
             {
                 if (utilisateur.Utilisateur != null)
                 {
-                    await _utilisateurRepository.UpdateUser(utilisateur);
+                    await _utilisateurRepository.UpdateUserAsync(utilisateur);
                     return true;
                 }
 
@@ -570,7 +571,7 @@ namespace GestionDesTickets.Server.Controllers
             var (success, filePath, error) = await FileHelper.SaveFile(file);
             if (!success) return BadRequest(error);
             // Save filePath to the user's record in DB
-            await _utilisateurRepository.UpdateProfileImage(uticod, filePath);
+            await _utilisateurRepository.UpdateProfileImageAsync(uticod, filePath);
 
             return Ok(new { filePath });
         }
@@ -581,7 +582,7 @@ namespace GestionDesTickets.Server.Controllers
         {
             try
             {
-                UtiProfile profile = await _utilisateurRepository.GetProfile(soccod,uticod);
+                UtiProfile profile = await _utilisateurRepository.GetProfileAsync(soccod,uticod);
                 return profile;
             }
             catch (Exception)
@@ -594,7 +595,7 @@ namespace GestionDesTickets.Server.Controllers
         {
             try
             {
-                bool profile = await _utilisateurRepository.ChangePassword(pwd);
+                bool profile = await _utilisateurRepository.ChangePasswordAsync(pwd);
                 return profile;
             }
             catch (Exception)
@@ -819,9 +820,9 @@ namespace GestionDesTickets.Server.Controllers
 
         // DELETE api/<UtilisateursController>/5
         [HttpDelete]
-        public void Delete(Utilisateur utilisateur)
+        public async Task Delete(Utilisateur utilisateur)
         {
-            _utilisateurRepository.Delete(utilisateur);
+            await _utilisateurRepository.DeleteAsync(utilisateur);
         }
         private string GenerateJwtToken(string username)
         {

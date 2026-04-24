@@ -333,19 +333,52 @@ const { data: fetchedSanction } = useGetSanctionDate(
         const value = cell.getValue<string>();
         const hasValue = value !== null && value !== undefined && value.trim() !== '';
         
+        // Define colors based on state
+        let backgroundColor = 'transparent';
+        let color = 'inherit';
+        
+        if (hasValue) {
+          const lowerVal = value.toLowerCase();
+          if (lowerVal.includes('abs')) {
+            backgroundColor = '#dc2626'; // Red-600
+            color = '#ffffff';
+          } else if (lowerVal.includes('cong')) {
+            backgroundColor = '#dbeafe'; // Blue-100
+            color = '#1e40af'; // Blue-800
+          } else if (lowerVal.includes('aut')) {
+            backgroundColor = '#fef9c3'; // Yellow-100
+            color = '#854d0e'; // Yellow-800
+          } else if (lowerVal.includes('repos')) {
+            backgroundColor = '#dcfce7'; // Green-100
+            color = '#166534'; // Green-800
+          } else if (lowerVal.includes('féri')) {
+            backgroundColor = '#f3e8ff'; // Purple-100
+            color = '#6b21a8'; // Purple-800
+          } else {
+            backgroundColor = '#f1f5f9'; // Slate-100
+            color = '#475569'; // Slate-800
+          }
+        }
+
         return (
           <Box
             sx={{
-              backgroundColor: hasValue ? '#fff3cd' : 'transparent',
-              color: hasValue ? '#856404' : 'inherit',
-              padding: '3px',
+              backgroundColor: backgroundColor,
+              color: color,
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontWeight: hasValue ? 700 : 400,
+              fontSize: '11px',
+              textAlign: 'center',
               cursor: hasValue ? 'pointer' : 'default',
+              boxShadow: hasValue && !value.toLowerCase().includes('repos') ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+              textTransform: 'uppercase'
             }}
             onDoubleClick={() => {
-            if (hasValue) {
-              handleOpenSanctionDialog(row.original, value);
-            }
-          }}
+              if (hasValue && !value.toLowerCase().includes('repos') && !value.toLowerCase().includes('féri')) {
+                handleOpenSanctionDialog(row.original, value);
+              }
+            }}
           >
             {value}
           </Box>
@@ -389,6 +422,15 @@ const { data: fetchedSanction } = useGetSanctionDate(
       accessorKey: 'tothabs',
       header: t('empEtatPeriodique.headers.totalAbsence'),
       size: 10,
+      Cell: ({ cell }: { cell: import('material-react-table').MRT_Cell<EmpEtat> }) => {
+        const value = cell.getValue<string>();
+        const hasAbsence = value && value !== '00:00';
+        return (
+          <Box sx={{ color: hasAbsence ? '#dc2626' : 'inherit', fontWeight: hasAbsence ? 700 : 400 }}>
+            {value}
+          </Box>
+        );
+      },
     },
     {
       accessorKey: 'totcmp',
@@ -447,8 +489,9 @@ const { data: fetchedSanction } = useGetSanctionDate(
     ),
     muiTableBodyRowProps: ({ row }) => {
       const isRepos = row.original.prerepos === '1';
+      const isAbsence = row.original.etat?.toLowerCase().includes('abs');
       const isIncomplete =
-        !row.original.presortmatup ||
+        (row.original.preentmatup && !row.original.presortmatup) ||
         (row.original.preentamidiup && !row.original.presortamidiup) ||
         (row.original.preentsupup && !row.original.presortsupup);
 
@@ -471,10 +514,12 @@ const { data: fetchedSanction } = useGetSanctionDate(
           backgroundColor:
             selectedRowId === rowId
               ? 'rgba(25, 118, 210, 0.2)'
+              : isAbsence
+              ? 'rgba(220, 38, 38, 0.1)' // Very light red for absence
               : isRepos
-              ? 'rgba(0, 255, 0, 0.1)'
+              ? 'rgba(0, 255, 0, 0.05)'
               : isIncomplete
-              ? 'rgba(255, 0, 0, 0.1)'
+              ? 'rgba(255, 165, 0, 0.1)' // Orange for incomplete
               : 'transparent',
           transition: 'background-color 0.2s ease',
         },

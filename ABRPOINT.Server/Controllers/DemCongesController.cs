@@ -37,7 +37,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                var result =  await _demandecongeRepository.GetEmpDemconge(soccod, empcod);
+                var result =  await _demandecongeRepository.GetEmpDemcongeAsync(soccod, empcod);
                 return result;
             }
             catch (Exception)
@@ -54,7 +54,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 datedebut = datedebut.Date;
                 datefin = datefin.Date;
-                    var result =  await _demandecongeRepository.GetAllByPeriod(soccod, uticod,datedebut,datefin);
+                    var result =  await _demandecongeRepository.GetAllByPeriodAsync(soccod, uticod,datedebut,datefin);
                 return result;
             }
             catch (Exception)
@@ -70,7 +70,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 datedebut = datedebut.Date;
                 datefin = datefin.Date;
-                    var result =  await _demandecongeRepository.GetAllEnAttenteByPeriod(soccod, uticod,datedebut,datefin);
+                    var result =  await _demandecongeRepository.GetAllEnAttenteByPeriodAsync(soccod, uticod,datedebut,datefin);
                 return result;
             }
             catch (Exception)
@@ -167,13 +167,13 @@ namespace ABRPOINT.Server.Controllers
         // PUT api/<DirectionsController>/5
         [HttpPut]
         [CanUpdateDemConge]
-        public IActionResult Put([FromBody] Demconge demconge)
+        public async Task<IActionResult> Put([FromBody] Demconge demconge)
         {
             if (demconge == null || string.IsNullOrWhiteSpace(demconge.Concod))
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                _demandecongeRepository.Update(demconge);
+                await _demandecongeRepository.UpdateAsync(demconge);
                 return Ok("Demande de congé modifiée avec sucées");
             }
             catch (Exception)
@@ -187,14 +187,14 @@ namespace ABRPOINT.Server.Controllers
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{concod}")]
         [CanDeleteDemConge]
-        public IActionResult Delete(string soccod, string concod)
+        public async Task<IActionResult> Delete(string soccod, string concod)
         {
-            Demconge demconge = _demandecongeRepository.GetByConcod(soccod, concod);
+            Demconge? demconge = await _demandecongeRepository.GetByConcodAsync(soccod, concod);
             if (demconge == null)
             {
                 return NotFound();
             }
-            _demandecongeRepository.Delete(demconge);
+            await _demandecongeRepository.DeleteAsync(demconge);
             return NoContent();
         }
     }

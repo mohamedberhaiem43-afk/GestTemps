@@ -1,10 +1,10 @@
-﻿using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Models;
 
 namespace ABRPOINT.Server.Interfaces
 {
     public interface IVilleRepository : IRepository<Ville>
     {
-        Ville GetByVilcod(string vilcod);
-        Dictionary<string, string> GetVillibs();
+        Task<Ville?> GetByVilcodAsync(string vilcod);
+        Task<Dictionary<string, string>> GetVillibsAsync();
     }
 }

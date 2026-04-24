@@ -14,6 +14,21 @@
   align-items: flex-end;
   justify-content: space-between;
   margin-bottom: 2rem;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .poste-modern-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .header-actions button {
+    flex: 1;
+  }
 }
 
 .shift-id-badge {
@@ -479,4 +494,37 @@
 .progress-footer-text {
   font-size: 10px;
   color: rgba(191, 219, 254, 0.4);
+}
+
+@media (max-width: 768px) {
+  .poste-travail-modern-container {
+    padding: 1rem;
+  }
+  .shift-title {
+    font-size: 1.75rem;
+  }
+  .tolerance-grid {
+    grid-template-columns: 1fr;
+  }
+  .rules-container {
+    grid-template-columns: 1fr !important;
+  }
+  .table-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .btn-apply-all {
+    width: 100%;
+    justify-content: center;
+    background: rgba(0, 64, 161, 0.05);
+    padding: 8px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-actions {
+    flex-direction: column;
+  }
 }

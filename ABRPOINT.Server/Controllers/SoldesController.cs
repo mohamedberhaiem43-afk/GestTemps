@@ -17,11 +17,11 @@ namespace ABRPOINT.Server.Controllers
         }
         // GET: api/<DirectionsController>
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> Get()
         {
             try
             {
-                IEnumerable<Solde> soldes = _soldeCongeRepository.GetAll();
+                IEnumerable<Solde> soldes = await _soldeCongeRepository.GetAllAsync();
                 return Ok(soldes);
             }
             catch (Exception ex)
@@ -34,13 +34,13 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/<DirectionsController>
         [HttpPost]
-        public IActionResult Post([FromBody] Solde solde)
+        public async Task<IActionResult> Post([FromBody] Solde solde)
         {
             if (solde == null)
                 return BadRequest("Veuillez remplire les champs obligatoire");
             try
             {
-                _soldeCongeRepository.Add(solde);
+                await _soldeCongeRepository.AddAsync(solde);
                 return Ok(solde);
             }
             catch (Exception ex)
@@ -51,13 +51,13 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/<DirectionsController>/5
         [HttpPut]
-        public IActionResult Put([FromBody] Solde ferier)
+        public async Task<IActionResult> Put([FromBody] Solde ferier)
         {
             if (ferier == null)
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                _soldeCongeRepository.Update(ferier);
+                await _soldeCongeRepository.UpdateAsync(ferier);
                 return Ok(ferier);
             }
             catch (Exception ex)
@@ -68,18 +68,18 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{empcod}")]
-        public IActionResult Delete(string soccod, string empcod)
+        public async Task<IActionResult> Delete(string soccod, string empcod)
         {
             if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(empcod))
                 return BadRequest("code société est code employé sont obligatoires");
             try
             {
-                Solde solde = _soldeCongeRepository.GetByEmpcod(soccod, empcod);
+                Solde solde = await _soldeCongeRepository.GetByEmpcodAsync(soccod, empcod);
                 if (solde == null)
                 {
                     return NotFound("solde non trouvé");
                 }
-                _soldeCongeRepository.Delete(solde);
+                _soldeCongeRepository.DeleteAsync(solde);
                 return Ok("solde supprimé avec succées");
             }
             catch (Exception ex )

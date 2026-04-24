@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.Data.SqlClient;
@@ -13,50 +13,48 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Service entity)
+
+        public async Task AddAsync(Service entity)
         {
             try
             {
-                _dbContext.Services.Add(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.Services.AddAsync(entity);
+                await _dbContext.SaveChangesAsync();
             }
             catch (DbUpdateException ex)
             {
-                // Check if the exception is caused by a duplicate primary key
-                if (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2627) // 2627 is the SQL error code for PK violation
+                if (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2627)
                 {
-                    // You can log the error if needed
                     throw new Exception("Le service avec ce code existe déjà. Veuillez utiliser un autre code..", ex);
                 }
-
-                throw; // Re-throw if it's not a PK violation or if you want to handle other exceptions as well
+                throw;
             }
         }
 
-        public void Delete(Service entity)
+        public async Task DeleteAsync(Service entity)
         {
-            if(entity != null)
+            if (entity != null)
             {
                 _dbContext.Services.Remove(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Service> GetAll()
+        public async Task<IEnumerable<Service>> GetAllAsync()
         {
-            return _dbContext.Services.ToList();
-        }
-        public IEnumerable<Service> GetAll(string soccod)
-        {
-            return _dbContext.Services.Where(d => d.Soccod == soccod).ToList();
+            return await _dbContext.Services.ToListAsync();
         }
 
-        public async Task<Service> GetBySercod(string sercod,string soccod)
+        public async Task<IEnumerable<Service>> GetAllAsync(string soccod)
+        {
+            return await _dbContext.Services.Where(d => d.Soccod == soccod).ToListAsync();
+        }
+
+        public async Task<Service?> GetBySercodAsync(string sercod, string soccod)
         {
             try
             {
-                var service = await _dbContext.Services.FindAsync(sercod,soccod);
-                return service;
+                return await _dbContext.Services.FindAsync(sercod, soccod);
             }
             catch (Exception)
             {
@@ -64,15 +62,13 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-      
-        public async Task<Dictionary<string, string>> GetServLibs(string soccod)
+        public async Task<Dictionary<string, string>> GetServLibsAsync(string soccod)
         {
             try
             {
-                var services = await _dbContext.Services
-                    .Where(s=>s.Soccod == soccod)
-                                   .ToDictionaryAsync(abs => abs.Sercod, abs => abs.Serlib);
-                return services;
+                return await _dbContext.Services
+                    .Where(s => s.Soccod == soccod)
+                    .ToDictionaryAsync(abs => abs.Sercod, abs => abs.Serlib ?? abs.Sercod);
             }
             catch (Exception)
             {
@@ -80,14 +76,13 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(Service entity)
+        public async Task UpdateAsync(Service entity)
         {
-            if(entity != null)
+            if (entity != null)
             {
                 _dbContext.Services.Update(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
-              
     }
 }

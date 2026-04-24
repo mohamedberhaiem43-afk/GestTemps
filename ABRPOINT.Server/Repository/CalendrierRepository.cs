@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -27,35 +27,35 @@ namespace ABRPOINT.Server.Repository
             _congeRepository = congeRepository;
             _ferierRepository = jourFerieRepository;
         }
-        public void Add(Calendsoc calendrier)
+        public async Task AddAsync(Calendsoc calendrier)
         {
-            _dbContext.Calendsocs.Add(calendrier);
-            _dbContext.SaveChanges();
+            await _dbContext.Calendsocs.AddAsync(calendrier);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Calendsoc calendrier)
+        public async Task DeleteAsync(Calendsoc calendrier)
         {
             if (calendrier != null)
             {
                 _dbContext.Calendsocs.Remove(calendrier);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public async Task<Dictionary<string, string>> GetCalLibs()
+        public async Task<Dictionary<string, string>> GetCalLibsAsync()
         {
             return await _dbContext.Calendsocs
                                 .ToDictionaryAsync(abs => abs.Caltype, abs => abs.Callib);
         }
 
-        public IEnumerable<Calendsoc> GetAll()
+        public async Task<IEnumerable<Calendsoc>> GetAllAsync()
         {
-            return _dbContext.Calendsocs
+            return await _dbContext.Calendsocs
                 .Select(cal => new Calendsoc { Caltype = cal.Caltype, Callib = cal.Callib })
                 .Distinct()
-                  .ToList();
+                .ToListAsync();
         }
-        public async Task UpdateCalendrier(string soccod, string caltype, string annee, float nbhJours, float nbhSamedi, string jourRepos, string mois, byte tousMois)
+        public async Task UpdateCalendrierAsync(string soccod, string caltype, string annee, float nbhJours, float nbhSamedi, string jourRepos, string mois, byte tousMois)
         {
             try
             {
@@ -107,7 +107,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<IEnumerable<Lcalendsoc>> GetAnneeCalendrier(string soccod,string annee)
+        public async Task<IEnumerable<Lcalendsoc>> GetAnneeCalendrierAsync(string soccod,string annee)
         {
             try
             {
@@ -127,7 +127,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<IEnumerable<CalendsocDto>> GetCumul(string soccod, string annee)
+        public async Task<IEnumerable<CalendsocDto>> GetCumulAsync(string soccod, string annee)
         {
             try
             {
@@ -146,7 +146,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Calendsoc> GetCalendrier(string soccod, string annee, string moisdeb, string type)
+        public async Task<Calendsoc?> GetCalendrierAsync(string soccod, string annee, string moisdeb, string type)
         {
             try
             {
@@ -165,16 +165,16 @@ namespace ABRPOINT.Server.Repository
             
         }
 
-        public void Update(Calendsoc calendrier)
+        public async Task UpdateAsync(Calendsoc calendrier)
         {
             if (calendrier != null)
             {
                 _dbContext.Calendsocs.Update(calendrier);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public async Task<(string? calend,float? hours,DateTime? startDate,DateTime? endDate,int? jourferier,float? heuresferier)>GetNbHeuresParSemaineWithDates(string soccod,
+        public async Task<(string? calend,float? hours,DateTime? startDate,DateTime? endDate,int? jourferier,float? heuresferier)>GetNbHeuresParSemaineWithDatesAsync(string soccod,
                            string mois,string annee,string semaine,string empcod)
         {
             try
@@ -201,7 +201,7 @@ namespace ABRPOINT.Server.Repository
                 #endregion
 
                 #region Paramètres mois
-                var paramMois = await _parametreRepository.GetParametreMoisPointage(soccod);
+                var paramMois = await _parametreRepository.GetParametreMoisPointageAsync(soccod);
                 if (paramMois == null)
                     return ("0", 0, null, null, 0, 0);
                 #endregion
@@ -278,16 +278,16 @@ namespace ABRPOINT.Server.Repository
                 foreach (var day in monthDays)
                 {
                     bool isFerier = await _ferierRepository.IsFerier(soccod, day.CalDate.Value);
-                    var conge = await _congeRepository.GetEmpCongeByDate(
+                    var conge = await _congeRepository.GetEmpCongeByDateAsync(
                         soccod, empcod, day.CalDate.Value);
 
                     if (isFerier)
                     {
-                        day.CalNbh = await _parametreRepository.GetNbhFerier(soccod);
+                        day.CalNbh = await _parametreRepository.GetNbhFerierAsync(soccod);
                     }
                     else if (conge != null)
                     {
-                        var nbh = await _parametreRepository.GetNbhConge(soccod);
+                        var nbh = await _parametreRepository.GetNbhCongeAsync(soccod);
                         day.CalNbh = conge.Connbjour == 0.5 ? nbh / 2 : nbh;
                     }
 
@@ -318,7 +318,7 @@ namespace ABRPOINT.Server.Repository
                     foreach (var day in allDays)
                     {
                         bool isFerier = await _ferierRepository.IsFerier(soccod, day.CalDate.Value);
-                        var conge = await _congeRepository.GetEmpCongeByDate(
+                        var conge = await _congeRepository.GetEmpCongeByDateAsync(
                             soccod, empcod, day.CalDate.Value);
 
                         if (isFerier)
@@ -353,7 +353,7 @@ namespace ABRPOINT.Server.Repository
                 foreach (var day in selectedWeek)
                 {
                     bool isFerier = await _ferierRepository.IsFerier(soccod, day.CalDate.Value);
-                    var conge = await _congeRepository.GetEmpCongeByDate(
+                    var conge = await _congeRepository.GetEmpCongeByDateAsync(
                         soccod, empcod, day.CalDate.Value);
 
                     if (isFerier)
@@ -387,7 +387,7 @@ namespace ABRPOINT.Server.Repository
             return date.Day > daysInMonth ? new DateTime(date.Year, date.Month, daysInMonth) : date;
         }
 
-        public async Task<IDictionary<string, string>> GetCalendriers(string soccod)
+        public async Task<IDictionary<string, string>> GetCalendriersAsync(string soccod)
         {
             try
             {
@@ -409,7 +409,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<bool> CloneCalendrier(string soccod, int annee)
+        public async Task<bool> CloneCalendrierAsync(string soccod, int annee)
         {
             try
             {
@@ -465,7 +465,7 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public async Task<bool> CloneLCalendrier(string soccod, int annee)
+        public async Task<bool> CloneLCalendrierAsync(string soccod, int annee)
         {
             string anneeSource = (annee - 1).ToString();
             string anneeCible = annee.ToString();
@@ -516,7 +516,7 @@ namespace ABRPOINT.Server.Repository
             return true;
         }
 
-        public async Task AddCalendrier(string soccod, string annee, string caltype)
+        public async Task AddCalendrierAsync(string soccod, string annee, string caltype)
         {
             // Vérifier si le calendrier existe déjà
             var exists = await _dbContext.Calendsocs

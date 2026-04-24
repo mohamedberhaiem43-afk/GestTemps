@@ -39,7 +39,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                var sanction = await _sanctionRepository.GetSanction(soccod,concod);
+                var sanction = await _sanctionRepository.GetSanctionAsync(soccod,concod);
                 return Ok(sanction);
             }
             catch (Exception)
@@ -53,7 +53,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                Sanction? sanction = await _sanctionRepository.GetSanctionDate(soccod,date,empcod);
+                Sanction? sanction = await _sanctionRepository.GetSanctionDateAsync(soccod,date,empcod);
                 return sanction;
             }
             catch (Exception)
@@ -66,13 +66,13 @@ namespace ABRPOINT.Server.Controllers
         // POST api/<DirectionsController>
         [HttpPost]
         [CanAddSanction]
-        public IActionResult Post([FromBody] Sanction sanction)
+        public async Task<IActionResult> Post([FromBody] Sanction sanction)
         {
             if (string.IsNullOrEmpty(sanction.Concod) || string.IsNullOrEmpty(sanction.Consanc))
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                _sanctionRepository.Add(sanction);
+                await _sanctionRepository.AddAsync(sanction);
                 return Ok("ajout sanction avec succées");
             }
             catch (Exception)
@@ -111,12 +111,12 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest("Veuillez saisie les champs obligatoires");
             try
             {
-                Sanction sanction = await _sanctionRepository.GetSanction(soccod, concod);
+                Sanction? sanction = await _sanctionRepository.GetSanctionAsync(soccod, concod);
                 if (sanction == null)
                 {
                     return NotFound($"sanction avec cod {concod} non trouvée");
                 }
-                _sanctionRepository.Delete(sanction);
+                await _sanctionRepository.DeleteAsync(sanction);
                 return Ok("sanction supprimée avec succées");
             }
             catch (Exception)

@@ -37,18 +37,18 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Delete(Demconge demconge)
+        public async Task DeleteAsync(Demconge demconge)
         {
             if (demconge != null)
             {
                 _dbContext.Demconges.Remove(demconge);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Demconge> GetAll()
+        public async Task<IEnumerable<Demconge>> GetAllAsync()
         {
-            return _dbContext.Demconges.ToList();
+            return await _dbContext.Demconges.ToListAsync();
         }
 
         public async Task<List<DemcongeEmpAbsDto>> GetDemongeWithAbsenceAsync(string soccod, string uticod)
@@ -125,11 +125,11 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public Demconge GetByConcod(string soccod, string concod)
+        public async Task<Demconge?> GetByConcodAsync(string soccod, string concod)
         {
             try
             {
-                return _dbContext.Demconges.Find(soccod, concod);
+                return await _dbContext.Demconges.FindAsync(soccod, concod);
             }
             catch (Exception ex)
             {
@@ -139,7 +139,7 @@ namespace ABRPOINT.Server.Repository
             
         }
 
-        public async Task<List<DemcongeDto>> GetAllByPeriod(string soccod, string uticod, DateTime datedebut, DateTime datefin)
+        public async Task<List<DemcongeDto>> GetAllByPeriodAsync(string soccod, string uticod, DateTime datedebut, DateTime datefin)
         {
             try
             {
@@ -213,7 +213,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<List<Demconge>> GetAllEnAttenteByPeriod(string soccod, string uticod, DateTime datedebut, DateTime datefin)
+        public async Task<List<Demconge>> GetAllEnAttenteByPeriodAsync(string soccod, string uticod, DateTime datedebut, DateTime datefin)
         {
             try
             {
@@ -257,13 +257,13 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Update(Demconge demconge)
+        public async Task UpdateAsync(Demconge demconge)
         {
             try
             {
                 if (demconge != null)
                 {
-                    Demconge dbDemConge = GetByConcod(demconge.Soccod, demconge.Concod);
+                    Demconge? dbDemConge = await GetByConcodAsync(demconge.Soccod, demconge.Concod);
                     if(dbDemConge != null)
                     {
                         dbDemConge.Abscod = demconge.Abscod;
@@ -279,7 +279,7 @@ namespace ABRPOINT.Server.Repository
                         dbDemConge.Connbjour = demconge.Connbjour;
                     }
                     _dbContext.Demconges.Update(dbDemConge);
-                    _dbContext.SaveChanges();
+                    await _dbContext.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -418,7 +418,7 @@ namespace ABRPOINT.Server.Repository
                 }
         }
 
-        public async Task<List<DemcongeDto>> GetEmpDemconge(string soccod, string empcod)
+        public async Task<List<DemcongeDto>> GetEmpDemcongeAsync(string soccod, string empcod)
         {
             try
             {
@@ -487,10 +487,7 @@ namespace ABRPOINT.Server.Repository
             return null;
         }
 
-        public void Add(Demconge entity)
-        {
-            throw new NotImplementedException();
-        }
+
     }
 }
 

@@ -5,7 +5,7 @@ namespace ABRPOINT.Server.Interfaces
 {
     public interface IEmployeRepository : IRepository<Employe>
     {
-        IEnumerable<Employe> GetAll(string? soccod, string uticod);
+
         Task AddAsync(Employe employe);
         Task<Employe> GetByEmpcod(string soccod, string empcod);
         Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod, string? sitcod = null, string? sercod = null, string? dircod = null, string? empreg = null);
@@ -24,9 +24,9 @@ namespace ABRPOINT.Server.Interfaces
         Task<bool> GetEmpRetard(string? soccod, string? empcod);
         Task AddMultipleEmploye(List<Employe> employe);
         Task<List<EmpDepassMxHre>> GetEmployesDepassantMaxHeure(string soccod,string uticod);
-        Task<Employe> UpdateAsync(Employe employe);
+        Task<Employe> UpdateEmployeAsync(Employe employe);
         Task<string> GetByEmpMat(string user_id);
-        Task<(bool Success, string Message)> DeleteAsync(Employe employe);
+        Task<(bool Success, string Message)> DeleteEmployeAsync(Employe employe);
         Task<string?> GetEmpPanier(string soccod,string empcod);
         Task<Dictionary<DateTime, string>> GetEmpPostesByPeriod(string soccod, string empcod, DateTime startDate, DateTime endDate);
         Task<EmpparamPointageMois> GetEmpparam(string soccod, string empcod, DateTime date,string codpost);

@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -29,24 +29,24 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public void Add(Ferier ferier)
+        public async Task AddAsync(Ferier ferier)
         {
-            _dbContext.Feriers.Add(ferier);
-            _dbContext.SaveChanges();
+            await _dbContext.Feriers.AddAsync(ferier);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Ferier ferier)
+        public async Task DeleteAsync(Ferier ferier)
         {
             if (ferier != null)
             {
                 _dbContext.Feriers.Remove(ferier);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Ferier> GetAll()
+        public async Task<IEnumerable<Ferier>> GetAllAsync()
         {
-            return _dbContext.Feriers.ToList();
+            return await _dbContext.Feriers.ToListAsync();
         }
         public async Task<Dictionary<DateTime, Ferier>> GetByFerdateBatch(string soccod, DateTime dateDeb, DateTime dateFin)
         {
@@ -183,17 +183,17 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public void Update(Ferier ferier)
+        public async Task UpdateAsync(Ferier ferier)
         {
             try
             {
-                var existing = _dbContext.Feriers
-                    .FirstOrDefault(f => f.Soccod == ferier.Soccod && f.Ferdate == ferier.Ferdate);
+                var existing = await _dbContext.Feriers
+                    .FirstOrDefaultAsync(f => f.Soccod == ferier.Soccod && f.Ferdate == ferier.Ferdate);
 
                 if (existing == null)
                 {
                     // L'entrée n'existe pas, vous pouvez l'ajouter
-                    _dbContext.Feriers.Add(ferier);
+                    await _dbContext.Feriers.AddAsync(ferier);
                 }
                 else
                 {
@@ -201,7 +201,7 @@ namespace ABRPOINT.Server.Repository
                     _dbContext.Entry(existing).CurrentValues.SetValues(ferier);
                 }
 
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
 
             }
             catch (Exception)

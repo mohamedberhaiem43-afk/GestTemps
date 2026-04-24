@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,42 +19,40 @@ namespace ABRPOINT.Server.Controllers
             _villeRepository = villeRepository;
         }
 
-        // GET: api/Services
+        // GET: api/Villes
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> Get()
         {
             try
             {
-                return Ok(_villeRepository.GetAll());
-            }
-            catch (Exception)
-            {
-
-                return StatusCode(500);
-            }
-            
-        }
-        [HttpGet("get-villibs")]
-        public IActionResult GetVillibs()
-        {
-            try
-            {
-                Dictionary<string,string> villes = _villeRepository.GetVillibs();
+                var villes = await _villeRepository.GetAllAsync();
                 return Ok(villes);
             }
             catch (Exception)
             {
-
                 return StatusCode(500);
             }
-            
         }
 
-        // GET api/Services/5
-        [HttpGet("{vilcod}")]
-        public ActionResult<Ville> Get( string vilcod)
+        [HttpGet("get-villibs")]
+        public async Task<IActionResult> GetVillibs()
         {
-            var ville = _villeRepository.GetByVilcod( vilcod);
+            try
+            {
+                var villes = await _villeRepository.GetVillibsAsync();
+                return Ok(villes);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+        }
+
+        // GET api/Villes/01
+        [HttpGet("{vilcod}")]
+        public async Task<ActionResult<Ville>> Get(string vilcod)
+        {
+            var ville = await _villeRepository.GetByVilcodAsync(vilcod);
             if (ville == null)
             {
                 return NotFound();
@@ -62,44 +60,42 @@ namespace ABRPOINT.Server.Controllers
             return Ok(ville);
         }
 
-        // POST api/Services
+        // POST api/Villes
         [HttpPost]
-        public IActionResult Post([FromBody] Ville ville)
+        public async Task<IActionResult> Post([FromBody] Ville ville)
         {
             if (ville != null)
             {
-                _villeRepository.Add(ville);
+                await _villeRepository.AddAsync(ville);
                 return CreatedAtAction(nameof(Get), new { vilcod = ville.Vilcod }, ville);
             }
             return BadRequest();
         }
 
-        // PUT api/Services/5
+        // PUT api/Villes/01
         [HttpPut("{vilcod}")]
-        public IActionResult Put(string vilcod, [FromBody] Ville ville)
+        public async Task<IActionResult> Put(string vilcod, [FromBody] Ville ville)
         {
             if (ville == null || vilcod != ville.Vilcod)
             {
                 return BadRequest();
             }
 
-            _villeRepository.Update(ville);
+            await _villeRepository.UpdateAsync(ville);
             return NoContent();
         }
 
-        // DELETE api/Services/{seccod}
+        // DELETE api/Villes/01
         [HttpDelete("{vilcod}")]
-
-        public IActionResult Delete(string vilcod)
+        public async Task<IActionResult> Delete(string vilcod)
         {
-            Ville ville = _villeRepository.GetByVilcod(vilcod);
+            var ville = await _villeRepository.GetByVilcodAsync(vilcod);
             if (ville == null)
             {
                 return NotFound();
             }
-            _villeRepository.Delete(ville);
+            await _villeRepository.DeleteAsync(ville);
             return NoContent();
         }
-
     }
 }

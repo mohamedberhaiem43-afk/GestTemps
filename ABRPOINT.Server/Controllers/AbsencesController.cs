@@ -23,13 +23,13 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-absence/{soccod}")]
         [CanGetAbsence]
-        public IActionResult Get(string soccod)
+        public async Task<IActionResult> Get(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
                 return BadRequest(new {Message = "code sociÃ©tÃ© est obligatoire"});
             try
             {   
-                IEnumerable<Absence> absence = _absenceRepository.GetAll(soccod);
+                IEnumerable<Absence> absence = await _absenceRepository.GetAllAsync(soccod);
 
                 if(absence == null ||  !absence.Any())
                     return NotFound(new {Message = $"Aucun absenec trouvÃ©e avec code : {soccod}" });
@@ -65,7 +65,7 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest(new { Message = "Veuillez saisie le soccod des absences." });
             try
             {
-                Dictionary<string,string> absence = await _absenceRepository.GetAbsLibs(soccod);
+                Dictionary<string,string> absence = await _absenceRepository.GetAbsLibsAsync(soccod);
                 return Ok(absence);
             }
             catch (Exception)
@@ -86,7 +86,7 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest(new { Message = "Veuillez saisie les employÃ© des absences." });
             try
             {
-                List<EtatAbsence> etatAbsences = await _absenceRepository.GetEtatAbsence(soccod, datedebut, datefin, absaut, absret,
+                List<EtatAbsence> etatAbsences = await _absenceRepository.GetEtatAbsenceAsync(soccod, datedebut, datefin, absaut, absret,
                     presNonOpt, sansPointageInvalide, radioValue, empcods);
                 return Ok(etatAbsences);
             }
@@ -114,7 +114,7 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-etat-absences-report/{soccod}/{datedebut}/{datefin}")]
         [CanGetAbsence]
-        public IActionResult GetEtatAbsencesReport(string soccod, string datedebut, string datefin, [FromQuery] string empcods)
+        public async Task<IActionResult> GetEtatAbsencesReport(string soccod, string datedebut, string datefin, [FromQuery] string empcods)
         {
             try
             {
@@ -132,11 +132,10 @@ namespace ABRPOINT.Server.Controllers
                 // For now, let's call the repository to get the data as the frontend does.
                 
                 // Fetching data first to populate the report
-                var dataTask = _absenceRepository.GetEtatAbsence(soccod, DateTime.Parse(datedebut), DateTime.Parse(datefin), 
+                var dataTask = await _absenceRepository.GetEtatAbsenceAsync(soccod, DateTime.Parse(datedebut), DateTime.Parse(datefin), 
                     true, true, true, true, "tous", codes);
-                dataTask.Wait();
                 
-                var results = dataTask.Result;
+                var results = dataTask;
                 reportData.Data = results.Select(r => new EtatAbsenceData {
                     Empcod = r.Empcod,
                     Empmat = r.Empmat,
@@ -170,7 +169,7 @@ namespace ABRPOINT.Server.Controllers
         // POST api/<DirectionsController>
         [HttpPost]
         [CanAddAbsence]
-        public IActionResult Post([FromBody] Absence absence)
+        public async Task<IActionResult> Post([FromBody] Absence absence)
         {
             if(absence == null)
                 return BadRequest(new { Message = "Veuillez saisie les champs obligatoires de cet absence." });
@@ -179,7 +178,7 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest(new { Message = "Veuillez saisie les champs obligatoires de cet absence." });
             try
             {
-                _absenceRepository.Add(absence);
+                await _absenceRepository.AddAsync(absence);
                 return Ok(new { Message = "absence ajoutÃ©e avec succÃ©es." });
             }
             catch (Exception ex)
@@ -193,11 +192,11 @@ namespace ABRPOINT.Server.Controllers
         // PUT api/<DirectionsController>/5
         [HttpPut]
         [CanUpdateAbsence]
-        public IActionResult Put([FromBody] Absence absence)
+        public async Task<IActionResult> Put([FromBody] Absence absence)
         { 
             try
             {
-                _absenceRepository.Update(absence);
+                await _absenceRepository.UpdateAsync(absence);
                 return Ok("absence modifiÃ©e avec sucÃ©es");
             }
             catch (Exception)
@@ -210,18 +209,18 @@ namespace ABRPOINT.Server.Controllers
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{abscod}")]
         [CanDeleteSanction]
-        public IActionResult Delete(string soccod, string abscod)
+        public async Task<IActionResult> Delete(string soccod, string abscod)
         {
             if(string.IsNullOrEmpty(abscod) || string.IsNullOrEmpty(soccod))
                 return BadRequest(new { Message = "code sociÃ©tÃ© et code absence sont obligatoires." });
 
             try
             {
-                Absence absence = _absenceRepository.GetByAbscod(soccod, abscod);
+                Absence? absence = await _absenceRepository.GetByAbscodAsync(soccod, abscod);
                 if (absence == null)
                     return NotFound(new {Message = "absence avec non trouvÃ©e."});
                 
-                _absenceRepository.Delete(absence);
+                await _absenceRepository.DeleteAsync(absence);
                 return NoContent();
             }
             catch (Exception ex)

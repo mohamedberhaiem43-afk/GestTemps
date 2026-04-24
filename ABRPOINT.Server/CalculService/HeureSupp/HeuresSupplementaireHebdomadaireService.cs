@@ -108,11 +108,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 // Get detailed presence/absence/conge data
                 PresenceSemaineData res = await _optimizedPresenceService
                     .GetPresenceSemaineDataOptimized(soccod, empcod, mois, annee, semaine);
-                var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
+                var paramSupp = await _parametreRepository.GetSuppAndFerierParamAsync(soccod, empniveau);
                 result.Panier = res.Panier;
                 result.JourSamediTrv = res.JourSamediTrv;
                 result.HreSamediTrv = res.HreSamediTrv;
-                result.HreFerieTrv = Math.Min(res.NbhFerierTrv ?? 0, (await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau)).MaxFerier ?? 0);
+                result.HreFerieTrv = Math.Min(res.NbhFerierTrv ?? 0, (await _parametreRepository.GetSuppAndFerierParamAsync(soccod, empniveau)).MaxFerier ?? 0);
                 result.HreFerieTrv2 = (res.NbhFerierTrv ?? 0) - (result.HreFerieTrv ?? 0);
                 result.NbJourFerier = res.NbJourFerier;
                 result.HreFerier = res.HreFerier;
@@ -169,7 +169,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     taux1 = p?.Partaux1;
                     taux2 = p?.Partaux2;
 
-                    var param = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
+                    var param = await _parametreRepository.GetSuppAndFerierParamAsync(soccod, empniveau);
                     if (!param.HasSupp)
                     {
                         result.HeuresNormales = result.NbhCalendSem;
@@ -221,7 +221,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var results = new List<HeuresSupplementairesResultat>();
 
                 // Get parameters ONCE
-                var paramSupp = await _parametreRepository.GetSuppAndFerierParam(soccod, empniveau);
+                var paramSupp = await _parametreRepository.GetSuppAndFerierParamAsync(soccod, empniveau);
 
                 // Get par tranche info ONCE
                 IList<Partranche> partranche = await _parTrancheRepository.GetPartranche(soccod);

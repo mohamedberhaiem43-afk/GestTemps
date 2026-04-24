@@ -5,6 +5,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -26,7 +27,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                var result = await _parametreRepository.GetParametreMoisPointage(soccod);
+                var result = await _parametreRepository.GetParametreMoisPointageAsync(soccod);
                 if (result == null)
                 {
                     return NotFound();
@@ -39,13 +40,13 @@ namespace ABRPOINT.Server.Controllers
             }
         }
         [HttpGet("{soccod}")]
-        public ActionResult<Parametre> GetParametres(string soccod)
+        public async Task<ActionResult<Parametre>> GetParametres(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
                 return BadRequest("veuillez préciser la société");
             try
             {
-                Parametre parametres = _parametreRepository.GetAll(soccod);
+                Parametre parametres = await _parametreRepository.GetAllAsync(soccod);
                 return Ok(parametres);
             }
             catch (Exception)
@@ -60,7 +61,7 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest("veuillez préciser la société");
             try
             {
-                string paie = await _parametreRepository.GetPaie(soccod);
+                string paie = await _parametreRepository.GetPaieAsync(soccod);
                 return Ok(paie);
             }
             catch (Exception)
@@ -76,7 +77,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 //string isAdmin = Request.Cookies["admin"];
                 //if(isAdmin == "1")
-                    return await _parametreRepository.UpdateParametres(parametre);
+                    return await _parametreRepository.UpdateParametresAsync(parametre);
                 return false;
             }
             catch (Exception)
@@ -92,7 +93,7 @@ namespace ABRPOINT.Server.Controllers
             if (!success)
                 return BadRequest(error);
             // Save filePath to the user's record in DB
-            await _societeRepository.UpdateSocieteImage(soccod, filePath);
+            await _societeRepository.UpdateSocieteImageAsync(soccod, filePath);
             return Ok(new { filePath });
         }
     }

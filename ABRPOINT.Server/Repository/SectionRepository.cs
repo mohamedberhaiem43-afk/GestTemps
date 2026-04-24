@@ -1,8 +1,8 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Data.SqlClient;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -13,86 +13,78 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Section entity)
+
+        public async Task AddAsync(Section entity)
         {
             try
             {
-                _dbContext.Sections.Add(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.Sections.AddAsync(entity);
+                await _dbContext.SaveChangesAsync();
             }
             catch (DbUpdateException ex)
             {
-                // Check if the exception is caused by a duplicate primary key
-                if (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2627) // 2627 is the SQL error code for PK violation
+                if (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2627)
                 {
-                    // You can log the error if needed
                     throw new Exception("Le section avec ce code existe déjà. Veuillez utiliser un autre code..", ex);
                 }
-
-                throw; // Re-throw if it's not a PK violation or if you want to handle other exceptions as well
+                throw;
             }
         }
 
-        public void Delete(Section entity)
+        public async Task DeleteAsync(Section entity)
         {
             if (entity != null)
             {
                 _dbContext.Sections.Remove(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Section> GetAll(string soccod)
+        public async Task<IEnumerable<Section>> GetAllAsync()
+        {
+            return await _dbContext.Sections.ToListAsync();
+        }
+
+        public async Task<IEnumerable<Section>> GetAllAsync(string soccod)
         {
             try
             {
-                return _dbContext.Sections
+                return await _dbContext.Sections
                 .Where(sec => sec.Soccod == soccod)
-                .ToList();
+                .ToListAsync();
             }
             catch (Exception ex)
             {
-
-                throw new Exception("",ex);
+                throw new Exception("Error retrieving sections", ex);
             }
-            
-        }
-        public Dictionary<string, string> GetSecLibs()
-        {
-            return _dbContext.Sections
-                               .ToDictionary(abs => abs.Seccod, abs => abs.Seclib);
-        }
-        public Section GetBySeccod(string seccod, string soccod)
-        {
-            return _dbContext.Sections.Find(seccod, soccod);
         }
 
-        public void Update(Section entity)
+        public async Task<Section?> GetBySeccodAsync(string seccod, string soccod)
+        {
+            return await _dbContext.Sections.FindAsync(seccod, soccod);
+        }
+
+        public async Task UpdateAsync(Section entity)
         {
             if (entity != null)
             {
                 _dbContext.Sections.Update(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public Dictionary<string, string> GetSecLibs(string soccod)
+        public async Task<Dictionary<string, string>> GetSecLibsAsync(string soccod)
         {
             try
             {
-                return _dbContext.Sections
+                return await _dbContext.Sections
                     .Where(sec => sec.Soccod == soccod)
-                    .ToDictionary(abs => abs.Seccod ?? string.Empty, abs => abs.Seclib ?? string.Empty);
+                    .ToDictionaryAsync(abs => abs.Seccod ?? string.Empty, abs => abs.Seclib ?? string.Empty);
             }
             catch (Exception ex)
             {
                 throw new Exception("Erreur lors de la récupération des sections", ex);
             }
-        }
-
-        public IEnumerable<Section> GetAll()
-        {
-            throw new NotImplementedException();
         }
     }
 }

@@ -20,7 +20,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                var cummul = await _calendrierRepository.GetCumul(soccod, annee);
+                var cummul = await _calendrierRepository.GetCumulAsync(soccod, annee);
                 return Ok(cummul);
             }
             catch (Exception ex)
@@ -34,7 +34,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                var cummul = await _calendrierRepository.GetAnneeCalendrier(soccod, annee);
+                var cummul = await _calendrierRepository.GetAnneeCalendrierAsync(soccod, annee);
                 return Ok(cummul);
             }
             catch (Exception ex)
@@ -48,7 +48,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                IDictionary<string, string> calendriers = await _calendrierRepository.GetCalendriers(soccod);
+                IDictionary<string, string> calendriers = await _calendrierRepository.GetCalendriersAsync(soccod);
                 return calendriers;
             }
             catch (Exception ex)
@@ -63,7 +63,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                await _calendrierRepository.UpdateCalendrier(soccod,caltype, annee,nbhJours,nbhSamedi,jourRepos,mois,tousMois);
+                await _calendrierRepository.UpdateCalendrierAsync(soccod,caltype, annee,nbhJours,nbhSamedi,jourRepos,mois,tousMois);
                 return Ok("Calendrier modifiée avec sucées");
             }
             catch (Exception ex)
@@ -78,7 +78,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                await _calendrierRepository.AddCalendrier(soccod, annee, caltype);
+                await _calendrierRepository.AddCalendrierAsync(soccod, annee, caltype);
                 return Ok("Calendrier ajouté avec succès");
             }
             catch (Exception ex)

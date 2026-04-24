@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Helper;
+using ABRPOINT.Helper;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
@@ -18,22 +18,22 @@ namespace ABRPOINT.Server.Repository
             _employeRepository = employeRepository;
             _parametreRepository = parametreRepository;
         }   
-        public void Add(Sanction sanction)
+        public async Task AddAsync(Sanction sanction)
         {
             try
             {
                 sanction.Condat = sanction.Condat.Value.Date;
                 sanction.Condep = sanction.Condep.Value.Date;
                 sanction.Conret = sanction.Conret.Value.Date;
-                _dbContext.Sanctions.Add(sanction);
-                _dbContext.SaveChanges();
+                await _dbContext.Sanctions.AddAsync(sanction);
+                await _dbContext.SaveChangesAsync();
             }
             catch (Exception)
             {
                 throw;
             }
         }
-        public async Task<List<SanctionDto>> GetSanctionsByPeriod(string soccod,string empcod,DateTime startDate,DateTime endDate)
+        public async Task<List<SanctionDto>> GetSanctionsByPeriodAsync(string soccod,string empcod,DateTime startDate,DateTime endDate)
         {
             try
             {
@@ -67,23 +67,23 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        public void Delete(Sanction sanction)
+        public async Task DeleteAsync(Sanction sanction)
         {
             if (sanction != null)
             {
                 _dbContext.Sanctions.Remove(sanction);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Sanction> GetAll()
+        public async Task<IEnumerable<Sanction>> GetAllAsync()
         {
-            return _dbContext.Sanctions.ToList();
+            return await _dbContext.Sanctions.ToListAsync();
         }
-        public IEnumerable<Sanction> GetAll(string soccod)
+        public async Task<IEnumerable<Sanction>> GetAllAsync(string soccod)
         {
-            return _dbContext.Sanctions
-                .Where(s=>s.Soccod == soccod).ToList();
+            return await _dbContext.Sanctions
+                .Where(s=>s.Soccod == soccod).ToListAsync();
         }
         public async Task<List<SanctionEmpDto>> GetSanctionWithAbsenceAsync(string soccod, string uticod)
         {
@@ -125,7 +125,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Sanction> GetSanction(string soccod, string concod)
+        public async Task<Sanction?> GetSanctionAsync(string soccod, string concod)
         {
             if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(concod))
                 throw new ArgumentNullException("veuillez saisie les champs obligatoires");
@@ -172,7 +172,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<List<SanctionRangeDto>> GetAbsenceLibBatch(string soccod, string empcod, DateTime dateDeb, DateTime dateFin)
+        public async Task<List<SanctionRangeDto>> GetAbsenceLibBatchAsync(string soccod, string empcod, DateTime dateDeb, DateTime dateFin)
         {
             return await (
                 from s in _dbContext.Sanctions
@@ -195,7 +195,7 @@ namespace ABRPOINT.Server.Repository
         }
 
 
-        public async Task<string?> GetAbsenceLib(string? soccod, string? empcod, DateTime dmdate)
+        public async Task<string?> GetAbsenceLibAsync(string? soccod, string? empcod, DateTime dmdate)
         {
             try
             {
@@ -216,7 +216,7 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<bool> IsDeplacement(string soccod, string empcod, DateTime? predat)
+        public async Task<bool> IsDeplacementAsync(string soccod, string empcod, DateTime? predat)
         {
             try
             {
@@ -250,7 +250,7 @@ namespace ABRPOINT.Server.Repository
         //    if (actions == 0 && (presence?.Prerepos == "0" || !isRepos)) return true;
         //    return actions != 0 && presence?.Prerepos == "0";
         //}
-        public async Task<SanctionDto?> GetAbsence(string soccod, string? empcod, DateTime? date)
+        public async Task<SanctionDto?> GetAbsenceAsync(string soccod, string? empcod, DateTime? date)
         {
             try
             {
@@ -322,7 +322,7 @@ namespace ABRPOINT.Server.Repository
 
             if (!string.IsNullOrEmpty(codposte))
             {
-                (isRepos, empferepos) = await _parametreRepository.IsEmpcodRepos(soccod, date, codposte, empcod);
+                (isRepos, empferepos) = await _parametreRepository.IsEmpcodReposAsync(soccod, date, codposte, empcod);
             }
 
             // Si aucune action ET (pas marqué comme repos OU n'est pas un jour de repos configuré)
@@ -343,12 +343,12 @@ namespace ABRPOINT.Server.Repository
 
             return false;
         }
-        public Task<bool> IsSanction(string soccod, string? empcod, DateTime? predat)
+        public Task<bool> IsSanctionAsync(string soccod, string? empcod, DateTime? predat)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<Sanction?> GetSanctionDate(string soccod, DateTime? date, string empcod)
+        public async Task<Sanction?> GetSanctionDateAsync(string soccod, DateTime? date, string empcod)
         {
             try
             {

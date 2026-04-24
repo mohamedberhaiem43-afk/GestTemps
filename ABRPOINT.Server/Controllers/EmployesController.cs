@@ -304,7 +304,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de l'ajout d'employé ", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de l'ajout d'employé", details = ex.Message });
             }
         }
         [HttpPut]
@@ -364,7 +364,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de l'ajout d'employé ", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de l'ajout d'employé", details = ex.Message });
             }
 
         }
@@ -390,18 +390,18 @@ namespace ABRPOINT.Server.Controllers
                 employe.Empsbase = _encryptionService.Encrypt(employe.Empsbase);
                 employe.Empsbrut = _encryptionService.Encrypt(employe.Empsbrut);
                 employe.Empsnet = _encryptionService.Encrypt(employe.Empsnet);
-                Employe addEmp = await _employeRepository.UpdateAsync(employe);
+                Employe addEmp = await _employeRepository.UpdateEmployeAsync(employe);
                 // Decrypt for response
                 addEmp.Empcin = _encryptionService.Decrypt(addEmp.Empcin);
                 addEmp.Emptel = _encryptionService.Decrypt(addEmp.Emptel);
                 addEmp.Empsbase = _encryptionService.Decrypt(addEmp.Empsbase);
                 addEmp.Empsbrut = _encryptionService.Decrypt(addEmp.Empsbrut);
                 addEmp.Empsnet = _encryptionService.Decrypt(addEmp.Empsnet);
-                return Ok(new { message = "employé modifié avec succées", addEmp });
+                return Ok(new { message = "employé modifié avec succès", addEmp });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                return StatusCode(500, new { message = "Erreur lors de la modification de l'employé", details = ex.Message });
             }
         }
 
@@ -419,13 +419,9 @@ namespace ABRPOINT.Server.Controllers
                     return BadRequest(new { message = "Employé introuvable." });
                 }
 
-                var (success, message) = await _employeRepository.DeleteAsync(employe);
+                await _employeRepository.DeleteAsync(employe);
 
-                if (!success)
-                {
-                    return BadRequest(new { message });
-                }
-                return Ok(new { message });
+                return Ok(new { message="Employé supprimé avec succès" });
             }
             catch (Exception ex)
             {

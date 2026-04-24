@@ -15,41 +15,41 @@ namespace ABRPOINT.Server.Repository
             _dbContext = dbContext;
             _congeCalculationService = congeCalculationService;
         }
-        public void Add(Solde solde)
+        public async Task AddAsync(Solde solde)
         {
-            _dbContext.Soldes.Add(solde);
-            _dbContext.SaveChanges();
+            await _dbContext.Soldes.AddAsync(solde);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(Solde solde)
+        public async Task DeleteAsync(Solde solde)
         {
             if (solde != null)
             {
                 _dbContext.Soldes.Remove(solde);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Solde> GetAll()
+        public async Task<IEnumerable<Solde>> GetAllAsync()
         {
-            return _dbContext.Soldes.ToList();
+            return await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(_dbContext.Soldes);
         }
 
-        public Solde GetByEmpcod(string soccod, string empcod)
+        public async Task<Solde?> GetByEmpcodAsync(string soccod, string empcod)
         {
-            return _dbContext.Soldes.FirstOrDefault(s => s.Soccod == soccod && s.Empcod == empcod);
+            return await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(_dbContext.Soldes, s => s.Soccod == soccod && s.Empcod == empcod);
         }
 
-        public void Update(Solde solde)
+        public async Task UpdateAsync(Solde solde)
         {
             if (solde != null)
             {
                 _dbContext.Soldes.Update(solde);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public async Task<Solde> GetByEmpCalculatedAsync(string soccod, string empcod)
+        public async Task<Solde?> GetByEmpCalculatedAsync(string soccod, string empcod)
         {
             string year = DateTime.Now.Year.ToString();
             string month = DateTime.Now.Month.ToString("D2");

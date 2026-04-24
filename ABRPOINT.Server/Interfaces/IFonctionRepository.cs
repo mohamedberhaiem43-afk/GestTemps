@@ -1,11 +1,11 @@
-﻿using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Models;
 
 namespace ABRPOINT.Server.Interfaces
 {
     public interface IFonctionRepository : IRepository<Fonction>
     {
-        Fonction GetByFonccod(string soccod, string fonccod);
-        Dictionary<string, string> GetFonLibs();
-        IEnumerable<Fonction> GetAll(string soccod);
+        Task<Fonction?> GetByFonccodAsync(string soccod, string fonccod);
+        Task<Dictionary<string, string>> GetFonLibsAsync();
+        Task<IEnumerable<Fonction>> GetAllAsync(string soccod);
     }
 }

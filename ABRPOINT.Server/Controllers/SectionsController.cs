@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,35 +19,35 @@ namespace ABRPOINT.Server.Controllers
             _sectionRepository = sectionRepository;
         }
 
-        // GET: api/Services
+        // GET: api/Sections/SOC01
         [HttpGet("{soccod}")]
-        public IActionResult Get(string soccod)
+        public async Task<IActionResult> Get(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
                 return BadRequest("code société est obligatoire");
             try
             {
-                IEnumerable<Section> sections = _sectionRepository.GetAll(soccod);
+                var sections = await _sectionRepository.GetAllAsync(soccod);
                 return Ok(sections);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-               return StatusCode(500,"probléme de récuperation");
+                return StatusCode(500, "probléme de récuperation");
             }
-            
-        }
-        [HttpGet("get-seclibs/{soccod}")]
-        public Dictionary<string, string> GetSecLibs(string soccod)
-        {
-            return _sectionRepository.GetSecLibs(soccod);
         }
 
-        // GET api/Sections/{soccod}/{seccod}
-        [HttpGet("{soccod}/{seccod}")]
-        public ActionResult<Section> GetById(string soccod, string seccod)
+        [HttpGet("get-seclibs/{soccod}")]
+        public async Task<ActionResult<Dictionary<string, string>>> GetSecLibs(string soccod)
         {
-            var section = _sectionRepository.GetBySeccod(seccod, soccod);
+            var seclibs = await _sectionRepository.GetSecLibsAsync(soccod);
+            return Ok(seclibs);
+        }
+
+        // GET api/Sections/SOC01/SEC01
+        [HttpGet("{soccod}/{seccod}")]
+        public async Task<ActionResult<Section>> GetById(string soccod, string seccod)
+        {
+            var section = await _sectionRepository.GetBySeccodAsync(seccod, soccod);
             if (section == null)
             {
                 return NotFound();
@@ -57,7 +57,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/Sections
         [HttpPost]
-        public IActionResult Post([FromBody] Section section)
+        public async Task<IActionResult> Post([FromBody] Section section)
         {
             if (section == null || string.IsNullOrWhiteSpace(section.Seccod) || string.IsNullOrWhiteSpace(section.Soccod))
             {
@@ -65,7 +65,7 @@ namespace ABRPOINT.Server.Controllers
             }
             try
             {
-                _sectionRepository.Add(section);
+                await _sectionRepository.AddAsync(section);
                 return CreatedAtAction(nameof(GetById), new { soccod = section.Soccod, seccod = section.Seccod }, section);
             }
             catch (Exception ex)
@@ -74,38 +74,36 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        // PUT api/Sections/{soccod}/{seccod}
+        // PUT api/Sections/SOC01/SEC01
         [HttpPut("{soccod}/{seccod}")]
-        public IActionResult Put(string soccod, string seccod, [FromBody] Section section)
+        public async Task<IActionResult> Put(string soccod, string seccod, [FromBody] Section section)
         {
             if (section == null || seccod != section.Seccod || soccod != section.Soccod)
             {
                 return BadRequest();
             }
 
-            var existing = _sectionRepository.GetBySeccod(seccod, soccod);
+            var existing = await _sectionRepository.GetBySeccodAsync(seccod, soccod);
             if (existing == null)
             {
                 return NotFound();
             }
 
-            _sectionRepository.Update(section);
+            await _sectionRepository.UpdateAsync(section);
             return NoContent();
         }
 
-        // DELETE api/Services/{seccod}
+        // DELETE api/Sections/SOC01/SEC01
         [HttpDelete("{soccod}/{seccod}")]
-
-        public IActionResult Delete(string seccod, string soccod)
+        public async Task<IActionResult> Delete(string soccod, string seccod)
         {
-            var section = _sectionRepository.GetBySeccod(seccod, soccod);
+            var section = await _sectionRepository.GetBySeccodAsync(seccod, soccod);
             if (section == null)
             {
                 return NotFound();
             }
-            _sectionRepository.Delete(section);
+            await _sectionRepository.DeleteAsync(section);
             return NoContent();
         }
-
     }
 }

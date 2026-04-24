@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +12,13 @@ namespace ABRPOINT.Server.Repository
         {
             _dbContext = dbContext;
         }
-        public void Add(Site entity)
+
+        public async Task AddAsync(Site entity)
         {
             try
             {
-                _dbContext.Sites.Add(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.Sites.AddAsync(entity);
+                await _dbContext.SaveChangesAsync();
             }
             catch (Exception)
             {
@@ -25,28 +26,29 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public void Delete(Site entity)
+        public async Task DeleteAsync(Site entity)
         {
             if (entity != null)
             {
                 _dbContext.Sites.Remove(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Site> GetAll()
+        public async Task<IEnumerable<Site>> GetAllAsync()
         {
-            return _dbContext.Sites.ToList();
+            return await _dbContext.Sites.ToListAsync();
         }
-        public async Task<Dictionary<string, string>> GetSitLibs()
+
+        public async Task<Dictionary<string, string>> GetSitLibsAsync()
         {
             return await _dbContext.Sites
                              .GroupBy(s => s.Sitcod)
-                             .Select(group => group.First())  // Take the first item from each group
-                             .ToDictionaryAsync(abs => abs.Sitcod, abs => abs.Sitlib);
+                             .Select(group => group.First())
+                             .ToDictionaryAsync(abs => abs.Sitcod, abs => abs.Sitlib ?? abs.Sitcod);
         }
 
-        public async Task<Dictionary<string, string>> GetSitLibs(string soccod)
+        public async Task<Dictionary<string, string>> GetSitLibsAsync(string soccod)
         {
             try
             {
@@ -61,87 +63,56 @@ namespace ABRPOINT.Server.Repository
                 throw new InvalidOperationException($"Erreur lors de la récupération des sites pour la société {soccod}", ex);
             }
         }
-        public async Task<Dictionary<string, string>> GetSitLibs(string soccod, string uticod)
+
+        public async Task<Dictionary<string, string>> GetSitLibsAsync(string soccod, string uticod)
         {
-            // Perform a join between Socusers and Sites based on Sitcod
             return await _dbContext.Socusers
-                .Where(s => s.Soccod == soccod && s.Uticod == uticod) // Filter Socusers by soccod and uticod
+                .Where(s => s.Soccod == soccod && s.Uticod == uticod)
                 .Join(
-                    _dbContext.Sites, // Joining with Sites table
-                    socuser => socuser.Sitcod, // Join key from Socusers
-                    site => site.Sitcod,       // Join key from Sites
-                    (socuser, site) => new { site.Sitcod, site.Sitlib } // Selecting Sitcod and Sitlib from joined result
+                    _dbContext.Sites,
+                    socuser => socuser.Sitcod,
+                    site => site.Sitcod,
+                    (socuser, site) => new { site.Sitcod, site.Sitlib }
                 )
-                .Distinct() // Ensure unique Sitcod-Sitlib pairs
-                .ToDictionaryAsync(result => result.Sitcod, result => result.Sitlib); // Convert to Dictionary
+                .Distinct()
+                .ToDictionaryAsync(result => result.Sitcod, result => result.Sitlib ?? result.Sitcod);
         }
 
-        public Site GetBySitcod(string soccod,string sitcod)
+        public async Task<Site?> GetBySitcodAsync(string soccod, string sitcod)
         {
             try
             {
-                return _dbContext.Sites
+                return await _dbContext.Sites
                     .Where(s => s.Soccod == soccod && s.Sitcod == sitcod)
-                    .SingleOrDefault();
+                    .SingleOrDefaultAsync();
             }
             catch (Exception ex)
             {
-
-                throw new Exception("Erreur innatendu ",ex);
+                throw new Exception("Erreur inattendue", ex);
             }
-           
         }
 
-        public void Update(Site entity)
+        public async Task UpdateAsync(Site entity)
         {
             if (entity != null)
             {
                 _dbContext.Sites.Update(entity);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
 
-        public IEnumerable<Site> GetAll(string soccod)
+        public async Task<IEnumerable<Site>> GetAllAsync(string soccod)
         {
             try
             {
-                return _dbContext.Sites
+                return await _dbContext.Sites
                     .Where(s => s.Soccod == soccod)
-                    .ToList();
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                throw new Exception("",ex);
-            }
-        }
-
-        public async Task<bool> UpdateAsync(Site site)
-        {
-            try
-            {
-                var rowsAffected = await _dbContext.Sites
-                    .Where(s => s.Soccod == site.Soccod && s.Sitcod == site.Sitcod)
-                    .ExecuteUpdateAsync(setters => setters
-                        .SetProperty(s => s.Sitlib, site.Sitlib)
-                        .SetProperty(s => s.Sitadr, site.Sitadr)
-                        .SetProperty(s => s.Sitpaie, site.Sitpaie)
-                        .SetProperty(s => s.Sittel, site.Sittel)
-                        .SetProperty(s => s.Sitmois, site.Sitmois)
-                        .SetProperty(s => s.Sitconge, site.Sitconge)
-                        .SetProperty(s => s.Sitcongem, site.Sitcongem)
-                        .SetProperty(s => s.Sitsanch, site.Sitsanch)
-                        .SetProperty(s => s.Sitsancm, site.Sitsancm)
-                        .SetProperty(s => s.Sitfax, site.Sitfax)
-                        .SetProperty(s => s.Sitemail, site.Sitemail)
-                    );
-
-                return rowsAffected > 0;
-            }
-            catch (Exception)
-            {
-                throw;
+                throw new Exception("Error retrieving sites", ex);
             }
         }
     }
 }
-

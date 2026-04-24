@@ -17,36 +17,40 @@ namespace ABRPOINT.Server.Controllers
         {
             _allaitementRepository = allaitementRepository;
         }
-        // GET: api/<DirectionsController>
+
+        // GET: api/Allaitements/get-allaitements/SOC01/admin
         [HttpGet("get-allaitements/{soccod}/{uticod}")]
         [CanGetAllaitement]
-        public async Task<IEnumerable<AllaitementDto>> GetAllaitements(string soccod, string uticod)
+        public async Task<ActionResult<IEnumerable<AllaitementDto>>> GetAllaitements(string soccod, string uticod)
         {
             try
             {
-                var allaitements = await _allaitementRepository.GetAll(soccod,uticod);
-                return allaitements;
+                var allaitements = await _allaitementRepository.GetAllAsync(soccod, uticod);
+                return Ok(allaitements);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                return StatusCode(500, ex.Message);
             }
         }
 
         [HttpGet("{soccod}/{concod}")]
         [CanGetAllaitement]
-        public async Task<Allaitement> Get(string soccod,string concod)
+        public async Task<ActionResult<Allaitement>> Get(string soccod, string concod)
         {
-            return await _allaitementRepository.Get(soccod,concod);
+            var allaitement = await _allaitementRepository.GetAsync(soccod, concod);
+            if (allaitement == null) return NotFound();
+            return Ok(allaitement);
         }
 
         [HttpPost]
         [CanAddAllaitement]
-        public IActionResult Post([FromBody] Allaitement allaitement)
+        public async Task<IActionResult> Post([FromBody] Allaitement allaitement)
         {
             try
             {
-                _allaitementRepository.Add(allaitement);
+                if (allaitement == null) return BadRequest();
+                await _allaitementRepository.AddAsync(allaitement);
                 return Ok(new { message = "Allaitement ajouté avec succès" });
             }
             catch (Exception ex)
@@ -57,19 +61,18 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpPut]
         [CanUpdateAllaitement]
-        public IActionResult Put([FromBody] Allaitement allaitement)
+        public async Task<IActionResult> Put([FromBody] Allaitement allaitement)
         {
             try
             {
-                _allaitementRepository.Update(allaitement);
+                if (allaitement == null) return BadRequest();
+                await _allaitementRepository.UpdateAsync(allaitement);
                 return Ok(new { message = "Allaitement modifié avec succès" });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Erreur lors de modification d'allaitement ", details = ex.Message });
-
             }
-            
         }
 
         [HttpDelete("{soccod}/{concod}")]
@@ -80,12 +83,12 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest("Veuillez remplir les champs obligatoires");
             try
             {
-                Allaitement employe = await _allaitementRepository.GetByEmpcod(soccod, concod);
-                if (employe == null)
-                    return NotFound("employé non trouvé");
+                var allaitement = await _allaitementRepository.GetByEmpcodAsync(soccod, concod);
+                if (allaitement == null)
+                    return NotFound("Allaitement non trouvé");
 
-                _allaitementRepository.Delete(employe);
-                return Ok("allaitement supprimée avec sucées");
+                await _allaitementRepository.DeleteAsync(allaitement);
+                return Ok("Allaitement supprimé avec succès");
             }
             catch (Exception)
             {

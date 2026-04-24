@@ -5,7 +5,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -25,11 +25,11 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("{soccod}/{srvcod}/{sitcod}/{echdeb}/{echfin}")]
         [CanGetContrat]
-        public IActionResult Get(string soccod, string srvcod, string sitcod, DateTime echdeb, DateTime echfin)
+        public async Task<IActionResult> Get(string soccod, string srvcod, string sitcod, DateTime echdeb, DateTime echfin)
         {
             try
             {
-                IEnumerable<Contrat> contrats = _contratRepository.GetAll(soccod, srvcod, sitcod, echdeb, echfin);
+                IEnumerable<Contrat> contrats = await _contratRepository.GetAllSearchAsync(soccod, srvcod, sitcod, echdeb, echfin);
                 return Ok(contrats);
             }
             catch (Exception ex)
@@ -40,11 +40,11 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("{soccod}/{uticod}/{echdeb}/{echfin}")]
         [CanGetContrat]
-        public IActionResult Get(string soccod, string uticod, DateTime echdeb, DateTime echfin)
+        public async Task<IActionResult> Get(string soccod, string uticod, DateTime echdeb, DateTime echfin)
         {
             try
             {
-                IEnumerable<Contrat> contrats = _contratRepository.GetAll(soccod, uticod, echdeb, echfin);
+                IEnumerable<Contrat> contrats = await _contratRepository.GetAllByUticodPeriodAsync(soccod, uticod, echdeb, echfin);
                 return Ok(contrats);
             }
             catch (Exception ex)
@@ -103,7 +103,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                IEnumerable<Contrat> contrats = await _contratRepository.GetAll(soccod, uticod);
+                IEnumerable<Contrat> contrats = await _contratRepository.GetAllByUticodAsync(soccod, uticod);
                 return Ok(contrats);
             }
             catch (Exception ex)
@@ -213,8 +213,8 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        [HttpGet("expiring/{soccod}")]
-        public async Task<IActionResult> GetExpiringContracts(string soccod)
+        [HttpGet("expiring/{soccod}/{uticod}")]
+        public async Task<IActionResult> GetExpiringContracts(string soccod,string uticod)
         {
             try
             {
@@ -222,7 +222,7 @@ namespace ABRPOINT.Server.Controllers
                 var monthStart = new DateTime(now.Year, now.Month, 1);
                 var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-                var allContrats = await _contratRepository.GetAll(soccod, "");
+                var allContrats = await _contratRepository.GetAllByUticodAsync(soccod,uticod);
                 var expiring = allContrats
                     .Where(c => c.Empsort.HasValue && c.Empsort.Value >= monthStart && c.Empsort.Value <= monthEnd)
                     .Select(c => new {

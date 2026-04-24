@@ -45,7 +45,7 @@ namespace ABRPOINT.Server.Controllers
                 else
                 {
                     string poicod = await _pointeuseRepository.GetByIp(soccod, ip);
-                    await _presenceRepository.AddPresence(soccod, latestLog.Employe_code, latestLog.Time,poicod);
+                    await _presenceRepository.AddPresenceAsync(soccod, latestLog.Employe_code, latestLog.Time,poicod);
                     results.Add($"OK: {latestLog.Employe_code} at {latestLog.Time} from {ip}");
                 }
             }
@@ -64,7 +64,7 @@ namespace ABRPOINT.Server.Controllers
                 string poicod = await _pointeuseRepository.GetByIp(log.Soccod, log.Ip);
 
                 // Save presence
-                await _presenceRepository.AddPresence(
+                await _presenceRepository.AddPresenceAsync(
                     log.Soccod,
                     log.Employe_code,
                     log.Time,
@@ -116,7 +116,7 @@ namespace ABRPOINT.Server.Controllers
                 // 🔎 Enrichir les logs avec les noms
                 foreach (var log in logs)
                 {
-                    short? longbdg = await _parametreRepository.GetLongbdg(pointeuseTypes[0].Soccod);
+                    short? longbdg = await _parametreRepository.GetLongbdgAsync(pointeuseTypes[0].Soccod);
                     string empcode = GenericMethodes.FormatEmpmat(log.Employe_code, longbdg);
                     string emplib = await _employeRepository.GetByEmpMat(empcode);
                     log.User_name = emplib;
@@ -225,7 +225,7 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest();
             }
 
-            _pointeuseRepository.Update(pointeuse);
+            await _pointeuseRepository.UpdateAsync(pointeuse);
             return NoContent();
         }
 
@@ -242,7 +242,7 @@ namespace ABRPOINT.Server.Controllers
                     return NotFound();
                 }   
 
-                _pointeuseRepository.Delete(pointeuse);
+                await _pointeuseRepository.DeleteAsync(pointeuse);
                 return NoContent();
             }
             catch (Exception)

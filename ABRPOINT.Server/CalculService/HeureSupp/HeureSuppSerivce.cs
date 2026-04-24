@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Helper;
+using ABRPOINT.Helper;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -21,11 +21,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (poste == null)
             {
-                string? codpost;
-                if(!string.IsNullOrEmpty(presence.Codposte))
+                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat, presence.Catcod);
+                if (string.IsNullOrEmpty(codpost))
                     codpost = presence.Codposte;
-                else
-                    codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat,presence.Catcod);
                 poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
             }
             try

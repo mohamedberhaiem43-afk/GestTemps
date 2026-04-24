@@ -20,16 +20,16 @@ namespace ABRPOINT.Server.Controllers
 
         // GET: api/Services
         [HttpGet]
-        public IEnumerable<Societe> Get()
+        public async Task<IEnumerable<Societe>> Get()
         {
-            return _societeRepository.GetAll();
+            return await _societeRepository.GetAllAsync();
         }
         [HttpGet("get-soclibs")]
         public async Task<IActionResult> GetSoclibs()
         {
             try
             {
-                var societes = await _societeRepository.GetSoclibs();
+                var societes = await _societeRepository.GetSoclibsAsync();
                 return Ok(societes);
             }
             catch (Exception ex)
@@ -43,7 +43,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                SocHeures socHeures = await _societeRepository.GetSocHeures(soccod);
+                SocHeures socHeures = await _societeRepository.GetSocHeuresAsync(soccod);
                 return socHeures;
             }
             catch (Exception ex)
@@ -56,7 +56,7 @@ namespace ABRPOINT.Server.Controllers
           string soccod,
           [FromBody] SocHeures dto)
         {
-            return await _societeRepository.UpdateSocHeures(
+            return await _societeRepository.UpdateSocHeuresAsync(
                 soccod,
                 dto.Socpresence,
                 dto.Sochsup
@@ -66,9 +66,9 @@ namespace ABRPOINT.Server.Controllers
 
         // GET api/Services/5
         [HttpGet("{soccod}")]
-        public ActionResult<Societe> Get(string soccod)
+        public async Task<ActionResult<Societe>> Get(string soccod)
         {
-            var service = _societeRepository.GetBySoccod(soccod);
+            var service = await _societeRepository.GetBySoccodAsync(soccod);
             if (service == null)
             {
                 return NotFound();
@@ -79,7 +79,7 @@ namespace ABRPOINT.Server.Controllers
         // POST api/Services
         [Authorize]
         [HttpPost]
-        public IActionResult Post([FromBody] Societe societe)
+        public async Task<IActionResult> Post([FromBody] Societe societe)
         {
             if (societe == null)
             {
@@ -88,7 +88,7 @@ namespace ABRPOINT.Server.Controllers
 
             try
             {
-                _societeRepository.Add(societe);
+                await _societeRepository.AddAsync(societe);
                 return CreatedAtAction(nameof(Get), new { id = societe.Soccod }, societe);
             }
             catch (Exception ex)
@@ -106,25 +106,23 @@ namespace ABRPOINT.Server.Controllers
             if (societe == null)
                 return BadRequest("Données invalides.");
 
-            bool result = await _societeRepository.UpdateAsync(societe);
+            await _societeRepository.UpdateAsync(societe);
 
-            if (!result)
-                return NotFound($"Société avec le code '{societe.Soccod}' introuvable.");
-
-            return NoContent();
+            
+            return Ok($"Société avec le code '{societe.Soccod}' mise à jour avec succée.");
         }
 
         // DELETE api/Services/{seccod}
         [Authorize]
         [HttpDelete("{soccod}")]
-        public IActionResult Delete(string soccod)
+        public async Task<IActionResult> Delete(string soccod)
         {
-            var section = _societeRepository.GetBySoccod(soccod);
+            var section = await _societeRepository.GetBySoccodAsync(soccod);
             if (section == null)
             {
                 return NotFound();
             }
-            _societeRepository.Delete(section);
+            await _societeRepository.DeleteAsync(section);
             return NoContent();
         }
     }
