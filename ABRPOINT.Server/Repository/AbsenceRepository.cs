@@ -500,6 +500,23 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        public async Task<IEnumerable<Absence>> GetAutorisationAbsencesAsync(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                throw new ArgumentException("Soccod cannot be null or empty.", nameof(soccod));
+
+            try
+            {
+                return await _dbContext.Absences
+                    .Where(a => a.Soccod == soccod && a.Absaut == 1)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Erreur lors de la récupération des types d'autorisation", ex);
+            }
+        }
+
             public async Task<IEnumerable<Absence>> GetAllAsync()
             {
             try

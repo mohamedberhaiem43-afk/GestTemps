@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box, Typography, Paper, Button, TextField,
   Snackbar, Alert, CircularProgress, Avatar,
@@ -16,6 +16,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import useGetDemandeAutorisations from '../../../hooks/demandeAutorisationHooks/useGetDemandeAutorisations';
+import useGetAutorisationLibs from '../../../hooks/absenceHooks/useGetAutorisationLibs';
 import { useAuth } from '../../helper/AuthProvider';
 import { DemandeAutorisation } from '../../../models/DemandeAutorisation';
 import apiInstance from '../../API/apiInstance';
@@ -76,50 +77,21 @@ function DemandeFormDialog({ open, onClose, editDemande }: { open: boolean; onCl
   const [conret, setConret] = useState(now());
   const [conmotif, setConmotif] = useState('');
   const [abscod, setAbscod] = useState('');
-  const [absences, setAbsences] = useState<AbsenceOption[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch absences for the dropdown
-  const fetchAbsences = useCallback(async () => {
-    if (!soccod) return;
-    try {
-      const res = await apiInstance.get(`/Absences/get-libs/${soccod}`);
-
-      // Convert key-value object to AbsenceOption array
-      const rawData = res.data;
-      let absData: AbsenceOption[] = [];
-
-      if (Array.isArray(rawData)) {
-        absData = rawData;
-      } else if (rawData && typeof rawData === 'object') {
-        absData = Object.entries(rawData).map(([key, value]) => ({
-          abscod: key,
-          soccod: soccod,
-          abslib: value as string,
-          abscng: '',
-        }));
-      }
-
-      setAbsences(absData);
-
-      if (!editDemande) {
-        const defaultAbs = absData.find((a) => a.abslib.toLowerCase().includes('autorisation') || a.abscng === 'B');
-        if (defaultAbs) {
-          setAbscod(defaultAbs.abscod);
-        } else if (absData.length > 0) {
-          setAbscod(absData[0].abscod);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching absences:', err);
-    }
-  }, [soccod, editDemande]);
+  const { data: absencesData = [] } = useGetAutorisationLibs();
+  const absences: AbsenceOption[] = Array.isArray(absencesData) ? (absencesData as AbsenceOption[]) : [];
 
   useEffect(() => {
-    if (open) {
-      fetchAbsences();
+    if (open && !editDemande && absences.length > 0 && !abscod) {
+      const defaultAbs = absences.find((a) => a.abslib.toLowerCase().includes('autorisation') || a.abscng === 'B');
+      if (defaultAbs) {
+        setAbscod(defaultAbs.abscod);
+      } else {
+        setAbscod(absences[0].abscod);
+      }
     }
-  }, [open, fetchAbsences]);
+  }, [open, editDemande, absences, abscod]);
 
   useEffect(() => {
     if (editDemande) {

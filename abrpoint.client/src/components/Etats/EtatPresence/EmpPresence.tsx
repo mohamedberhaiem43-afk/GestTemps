@@ -167,7 +167,7 @@ const EmpPresence = () => {
   
 
   return (
-    <Box sx={{ display: 'flex', gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', xl: 'row' }, gap: 2 }}>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack spacing={2.2}>
           {/* KPIs */}
@@ -309,17 +309,7 @@ const EmpPresence = () => {
       </Box>
 
       {/* Panneau détail */}
-      <Paper
-        sx={{
-          width: 340,
-          p: 2,
-          borderRadius: 2.5,
-          border: '1px solid #e7eaf0',
-          boxShadow: '0 20px 48px -24px rgba(15,23,42,0.25)',
-          height: 'fit-content',
-          display: { xs: 'none', xl: 'block' },
-        }}
-      >
+      <Paper sx={{ display: { xs: 'none', xl: 'block' } }}>
         <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '1.1rem', mb: 2 }}>Details Presence</Typography>
         {selectedRow ? (
           <Stack spacing={1.5}>

@@ -393,86 +393,111 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                float? NbCongeRecus = await _dbContext.Conges
-                    .Where(c => c.Soccod == soccod && c.Empcod == empcod &&
-                                c.Condep >= datedebut && c.Conret <= datefin)
-                    .SumAsync(c => c.Connbjour);
+                float? NbCongeRecus = await (
+                    from c in _dbContext.Conges
+                    join a in _dbContext.Absences on new { c.Soccod, c.Abscod } equals new { a.Soccod, a.Abscod }
+                    where c.Soccod == soccod && c.Empcod == empcod &&
+                          c.Condep >= datedebut && c.Conret <= datefin &&
+                          a.Abscng == "0"
+                    select c.Connbjour
+                ).SumAsync();
 
-                // Prevent infinity values that can't be serialized to JSON
                 if (NbCongeRecus.HasValue && (float.IsInfinity(NbCongeRecus.Value) || float.IsNaN(NbCongeRecus.Value)))
                 {
                     NbCongeRecus = 0;
                 }
 
-                float? solde = await _dbContext.Sites
+                // 🟢 Get annual right from Site
+                float? sitconge = await _dbContext.Sites
                     .Where(p => p.Soccod == soccod)
                     .Select(p => p.Sitconge)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync() ?? 0;
 
                 var empdata = await _dbContext.Employes
                     .Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
-                    .Select(emp => new { emp.Empmat, emp.Emplib, emp.Empreg, emp.Empemb })
+                    .Select(emp => new { emp.Empmat, emp.Emplib, emp.Empreg, emp.Empemb, emp.Sitcod })
                     .FirstOrDefaultAsync();
+
+                // 🟢 Calculate accrued rights based on hire date
+                float accruedRights = 0;
+                if (empdata?.Empemb != null && datedebut.HasValue)
+                {
+                    int targetYear = datedebut.Value.Year;
+                    int startMonth = 1;
+                    if (empdata.Empemb.Value.Year == targetYear)
+                    {
+                        startMonth = empdata.Empemb.Value.Month;
+                    }
+                    else if (empdata.Empemb.Value.Year > targetYear)
+                    {
+                        startMonth = 13;
+                    }
+
+                    int endMonth = datefin?.Month ?? 12;
+                    int activeMonths = Math.Max(0, endMonth - startMonth + 1);
+                    accruedRights = (float)(sitconge / 12f) * activeMonths;
+                }
+                else
+                {
+                    accruedRights = (float)sitconge;
+                }
+
+                // 🟢 Get initial balance from 'solde' table
+                var soldeEntry = await _dbContext.Soldes.FirstOrDefaultAsync(s => s.Soccod == soccod && s.Empcod == empcod);
+                float initialSolde = soldeEntry?.Conge ?? 0;
+
+                // 🟢 Calculate Seniority (matching CongeCalculationService logic)
+                int anciente = 0;
+                float jourAncien = 0;
+                if (empdata?.Empemb != null && datedebut.HasValue)
+                {
+                    anciente = datedebut.Value.Year - empdata.Empemb.Value.Year;
+                    if (anciente != 0 && empdata.Empemb.Value.AddYears(anciente) > new DateTime(datedebut.Value.Year, 1, 1))
+                        anciente--;
+
+                    if (anciente > 0)
+                    {
+                        int parecart = await _parametreRepository.GetParancempAsync(soccod);
+                        if (parecart > 0)
+                            jourAncien = MathF.Floor((float)anciente / parecart);
+                    }
+                }
+
+                float totalDroit = accruedRights + initialSolde + jourAncien;
 
                 float? empsanctions = await _dbContext.Sanctions
                     .Where(s => s.Soccod == soccod && s.Empcod == empcod &&
                                 s.Condep >= datedebut && s.Conret <= datefin)
                     .SumAsync(s => s.Connbjour);
 
-                // Prevent infinity values that can't be serialized to JSON
                 if (empsanctions.HasValue && (float.IsInfinity(empsanctions.Value) || float.IsNaN(empsanctions.Value)))
                 {
                     empsanctions = 0;
                 }
 
-                // Monthly breakdown of sanctions
                 var sanctionsPerMonth = await _dbContext.Sanctions
                     .Where(s => s.Soccod == soccod && s.Empcod == empcod &&
                                 s.Condep >= datedebut && s.Conret <= datefin)
                     .GroupBy(s => s.Condep!.Value.Month)
-                    .Select(g => new MonthlyData
-                    {
-                        Month = g.Key, // 1 = Jan, 2 = Feb, ...
-                        TotalDays = g.Sum(x => x.Connbjour)
-                    })
+                    .Select(g => new MonthlyData { Month = g.Key, TotalDays = g.Sum(x => x.Connbjour) })
                     .ToListAsync();
 
-                // Prevent infinity values in grouped sums
-                foreach (var item in sanctionsPerMonth)
-                {
-                    if (item.TotalDays.HasValue && (float.IsInfinity(item.TotalDays.Value) || float.IsNaN(item.TotalDays.Value)))
-                    {
-                        item.TotalDays = 0;
-                    }
-                }
-                // Regroupement des congés reçus par mois
-                var congesParMois = await _dbContext.Conges
-                    .Where(c => c.Soccod == soccod && c.Empcod == empcod &&
-                                c.Condep >= datedebut && c.Conret <= datefin)
-                    .GroupBy(c => c.Condep!.Value.Month)
-                    .Select(g => new MonthlyData
-                    {
-                        Month = g.Key,
-                        TotalDays = g.Sum(c => c.Connbjour)
-                    })
-                    .ToListAsync();
+                var congesParMois = await (
+                    from c in _dbContext.Conges
+                    join a in _dbContext.Absences on new { c.Soccod, c.Abscod } equals new { a.Soccod, a.Abscod }
+                    where c.Soccod == soccod && c.Empcod == empcod &&
+                          c.Condep >= datedebut && c.Conret <= datefin &&
+                          a.Abscng == "0"
+                    group c by c.Condep!.Value.Month into g
+                    select new MonthlyData { Month = g.Key, TotalDays = g.Sum(c => c.Connbjour) }
+                ).ToListAsync();
 
-                // Prevent infinity values in grouped sums
-                foreach (var item in congesParMois)
-                {
-                    if (item.TotalDays.HasValue && (float.IsInfinity(item.TotalDays.Value) || float.IsNaN(item.TotalDays.Value)))
-                    {
-                        item.TotalDays = 0;
-                    }
-                }
-                // Dictionnaire de congés par mois
                 var nbCongeRecuParMois = congesParMois.ToDictionary(
                     x => new DateTime(2000, x.Month, 1).ToString("MMMM", new CultureInfo("fr-FR")),
                     x => x.TotalDays
                 );
-                // Create dictionary with formatted month names
                 var nbAbsenceParMois = sanctionsPerMonth.ToDictionary(
-                    x => new DateTime(2000, x.Month, 1).ToString("MMMM", new CultureInfo("fr-FR")), // month name in French
+                    x => new DateTime(2000, x.Month, 1).ToString("MMMM", new CultureInfo("fr-FR")),
                     x => x.TotalDays
                 );
 
@@ -484,8 +509,10 @@ namespace ABRPOINT.Server.Repository
                     Empemb = empdata?.Empemb,
                     Empreg = empdata?.Empreg,
                     Nbcongerecu = NbCongeRecus,
-                    Soldeinit = solde,
-                    Droitrestant = solde - NbCongeRecus,
+                    Soldeinit = initialSolde,
+                    Droitconge = accruedRights,
+                    Jourancien = jourAncien,
+                    Droitrestant = totalDroit - NbCongeRecus,
                     Nbabsences = empsanctions,
                     Nbabsenceparmois = nbAbsenceParMois,
                     Nbcongerecuparmois = nbCongeRecuParMois
@@ -506,14 +533,17 @@ namespace ABRPOINT.Server.Repository
                 int year = int.Parse(annee);
                 int month = int.Parse(currentMonth);
 
-                var totalConge = await _dbContext.Conges
-                    .Where(c =>
-                        c.Soccod == soccod &&
-                        c.Empcod == empcod &&
-                        c.Condep.HasValue &&
-                        c.Condep.Value.Year == year &&
-                        c.Condep.Value.Month == month)
-                    .SumAsync(c => c.Connbjour ?? 0);
+                var totalConge = await (
+                    from c in _dbContext.Conges
+                    join a in _dbContext.Absences on new { c.Soccod, c.Abscod } equals new { a.Soccod, a.Abscod }
+                    where c.Soccod == soccod &&
+                          c.Empcod == empcod &&
+                          c.Condep.HasValue &&
+                          c.Condep.Value.Year == year &&
+                          c.Condep.Value.Month == month &&
+                          a.Abscng == "0"
+                    select c.Connbjour ?? 0
+                ).SumAsync();
 
                 // Prevent infinity values that can't be serialized to JSON
                 if (float.IsInfinity(totalConge) || float.IsNaN(totalConge))

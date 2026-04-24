@@ -238,7 +238,7 @@ const EmpRetard = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', xl: 'row' }, gap: 2 }}>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack spacing={2.2}>
           <Paper sx={{ p: 2.5, borderRadius: 2.5, border: '1px solid #e7eaf0', boxShadow: '0 20px 48px -20px rgba(15,23,42,0.16)' }}>

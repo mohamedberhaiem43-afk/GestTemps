@@ -186,37 +186,41 @@ namespace ABRPOINT.Server.Repository
 
                 // Step 2: Get all valid poste ranges for the exact date
                 var dateMonth = date.Value.Month;
-                var dateDay = date.Value.Day;
+                var dateYear = date.Value.Year;
+
+                // Build the first day of the target month
+                var targetDate = new DateTime(dateYear, dateMonth, 1);
+
                 var matchingPostes = await _dbContext.Lcategories
                     .Where(c => c.Soccod == soccod &&
                                 c.Catcod == catcod &&
-                                c.Catdu.Value.Month <= dateMonth &&
-                                c.Catau.Value.Month >= dateMonth)
+                                c.Catdu.HasValue &&
+                                c.Catau.HasValue &&
+                                c.Catdu.Value <= targetDate &&
+                                c.Catau.Value >= targetDate)
                     .ToListAsync();
 
-                var dateYear = date.Value.Year;
-                if (!matchingPostes.Any(mp => mp.Catdu.Value.Year == dateYear || mp.Catau.Value.Year == dateYear))
+                if (!matchingPostes.Any(mp => (mp.Catdu.HasValue && mp.Catdu.Value.Year == dateYear) || (mp.Catau.HasValue && mp.Catau.Value.Year == dateYear)))
                 {
                     matchingPostes = matchingPostes.Where(mp => mp.Catfixe == "1").ToList();
                 }
+                
                 if (!matchingPostes.Any())
                     return null;
-
-                int targetMonth = date.Value.Month;
 
                 Lcategorie posteWithMonthMatch = matchingPostes[0];
                 foreach (var lcat in matchingPostes)
                 {
-                    if (targetMonth >= lcat.Catdu.Value.Month && targetMonth <= lcat.Catau.Value.Month
-                        && posteWithMonthMatch.Catdu <= date && posteWithMonthMatch.Catau >= date)
+                    if (lcat.Catdu.HasValue && lcat.Catau.HasValue &&
+                        dateMonth >= lcat.Catdu.Value.Month && dateMonth <= lcat.Catau.Value.Month &&
+                        posteWithMonthMatch.Catdu.HasValue && posteWithMonthMatch.Catau.HasValue &&
+                        date >= lcat.Catdu && date <= lcat.Catau)
+                    {
                         posteWithMonthMatch = lcat;
+                    }
                 }
-                // If found, return it
-                if (posteWithMonthMatch != null)
-                    return posteWithMonthMatch.Codposte;
-
-                // Else, fall back to the first valid match
-                return matchingPostes.First().Codposte;
+                
+                return posteWithMonthMatch.Codposte;
             }
             catch (Exception)
             {

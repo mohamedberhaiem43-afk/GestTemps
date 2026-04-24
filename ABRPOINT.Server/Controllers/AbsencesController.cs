@@ -58,6 +58,21 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de rÃ©cupÃ©rer des contrats", details = ex.Message });
             }
         }
+        [HttpGet("get-autorisations-libs/{soccod}")]
+        public async Task<IActionResult> GetAutorisationsLibs(string soccod)
+        {
+            if (string.IsNullOrEmpty(soccod))
+                return BadRequest(new { Message = "Veuillez saisir le soccod." });
+            try
+            {
+                var absences = await _absenceRepository.GetAutorisationAbsencesAsync(soccod);
+                return Ok(absences);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Problème de récupération des types d'autorisation");
+            }
+        }
         [HttpGet("get-libs/{soccod}")]
         public async Task<IActionResult> GetAbsLibs(string soccod)
         {

@@ -52,6 +52,9 @@ import CoffreFortModern from '../gestionEmploye/CoffreFortModern';
 import AdminVaultModern from '../gestionEmploye/Vault/AdminVaultModern';
 import ContractBuilderModern from '../gestionEmploye/Vault/ContractBuilderModern';
 import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
+import PricingPage from '../Pricing/PricingPage';
+import PaymentPage from '../Pricing/PaymentPage';
+import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
 import NotificationCenter from './NotificationCenter';
 import { useThemeMode } from '../../App';
 import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './SidebarNavigationDualTier';
@@ -327,6 +330,7 @@ const useNavigationItems = (): NavGroup[] => {
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         { label: t('navigation.chatBot'), href: '/dashboard/chat-bot', icon: MessageSquare },
+        { label: 'Tarification', href: '/dashboard/pricing', icon: DollarSign },
       ],
     }] : []),
   ];
@@ -398,6 +402,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/chat-bot': content = <Box p={3}>Utilisez le bouton flottant de l'assistant en bas à droite.</Box>; break;
     case '/dashboard/template-builder': content = <ContractBuilderModern />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
+    case '/dashboard/pricing': content = <PricingPage />; break;
+    case '/dashboard/payment': content = <PaymentPage />; break;
+    case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
     default: content = <DashboardModernSync />;
   }
 

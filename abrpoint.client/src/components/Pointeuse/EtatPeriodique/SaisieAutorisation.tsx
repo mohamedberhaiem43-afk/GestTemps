@@ -14,7 +14,7 @@ import {
   import { useState } from "react";
 import { useTranslation } from 'react-i18next';
   import SaveIcon from "@mui/icons-material/Save";
-import useGetAbsencesLibs from "../../../hooks/absenceHooks/useGetAbsenceLibs";
+import useGetAutorisationLibs from "../../../hooks/absenceHooks/useGetAutorisationLibs";
 import useAddSortie from "../../../hooks/sortieHooks/useAddSortie";
 import { Autoriser } from "../../../models/Autoriser";
 import InputComponent from "../../Inputs/Input";
@@ -36,7 +36,7 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
     const [writable,setWritable] = useState(true);
     const { t } = useTranslation();
 
-      const {data:absences = []} = useGetAbsencesLibs();
+      const {data:absences = []} = useGetAutorisationLibs();
       const { mutate:addSortie } = useAddSortie();
 
       // Function to handle saving the compensation data

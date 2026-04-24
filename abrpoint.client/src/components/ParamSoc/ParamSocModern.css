@@ -98,12 +98,68 @@
 }
 
 @media (max-width: 1024px) {
-
     .ps-modern-card--large,
     .ps-modern-card--medium,
     .ps-modern-card--small,
     .ps-modern-card--vsmall {
         grid-column: span 12;
+    }
+}
+
+@media (max-width: 768px) {
+    .ps-modern-container {
+        padding: 1rem;
+    }
+
+    .ps-modern-title {
+        font-size: 1.75rem;
+    }
+
+    .ps-modern-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .ps-modern-header > div {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 1.5rem;
+    }
+
+    .ps-modern-header .MuiBox-root {
+        text-align: left !important;
+    }
+
+    .ps-modern-tabs {
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ps-modern-tab {
+        white-space: nowrap;
+    }
+
+    .ps-modern-card {
+        padding: 1.25rem;
+    }
+
+    .ps-modern-card .MuiBox-root[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    .ps-modern-grid {
+        gap: 1rem;
+    }
+
+    .ps-modern-table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .ps-modern-save-fab {
+        bottom: 2rem;
+        right: 1rem;
     }
 }
 

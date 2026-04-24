@@ -713,3 +713,18 @@
   border-top: 1px solid var(--ea-border);
   flex-shrink: 0;
 }
+
+/* ───────────── Mobile Responsiveness ───────────── */
+@media (max-width: 768px) {
+  .ea-page { padding: 12px; }
+  .ea-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .ea-header-divider { display: none; }
+  .ea-filter-row { flex-direction: column; align-items: stretch; }
+  .ea-filter-field, .ea-filter-field-narrow { min-width: 100%; }
+  .ea-search-btn { width: 100%; justify-content: center; }
+  .ea-summary-grid { grid-template-columns: 1fr; }
+  .ea-table-header { flex-direction: column; align-items: stretch; }
+  .ea-table-actions { flex-direction: column; align-items: stretch; width: 100%; }
+  .ea-export-btn { width: 100%; justify-content: center; }
+  .ea-drawer { width: 100%; }
+}

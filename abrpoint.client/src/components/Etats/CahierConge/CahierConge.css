@@ -726,13 +726,22 @@
   }
 }
 @media (max-width: 768px) {
+  .cc-page { padding: 16px; }
+  .cc-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .cc-header-left { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cc-header-divider { display: none; }
   .cc-summary-grid {
     grid-template-columns: 1fr;
   }
   .cc-filter-row {
-    flex-direction: column;
+    flex-direction: column; align-items: stretch; gap: 12px;
   }
   .cc-filter-field {
     min-width: 100%;
   }
+  .cc-search-btn { width: 100%; justify-content: center; }
+  .cc-table-header { flex-direction: column; align-items: stretch; gap: 12px; }
+  .cc-table-actions { flex-direction: column; align-items: stretch; width: 100%; }
+  .cc-export-btn { width: 100%; justify-content: center; }
+  .cc-drawer { width: 100%; }
 }

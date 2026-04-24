@@ -231,7 +231,7 @@ const CoffreFortModern = () => {
 
       {/* Recent Activity Table */}
       <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div className="section-header-flex">
           <div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Documents Récents</h3>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Actifs validés téléchargés récemment</p>
@@ -239,7 +239,7 @@ const CoffreFortModern = () => {
           <Button sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.8rem' }}>Voir tout l'archive</Button>
         </div>
 
-        <div className="document-table-container">
+        <div className="vault-table-wrapper">
           <table className="vault-table">
             <thead>
               <tr>

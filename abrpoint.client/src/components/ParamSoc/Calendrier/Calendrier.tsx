@@ -207,19 +207,19 @@ function CalendrierContent() {
   return (
     <div className="bg-surface text-on-surface min-h-screen flex font-body w-full">
       {/* Main Content Area */}
-      <main className="flex-1 flex gap-8 p-4 bg-surface w-full">
-        <div className="flex-1 flex flex-col gap-8">
+      <main className="flex-1 flex flex-col lg:flex-row gap-8 p-4 bg-surface w-full overflow-x-hidden">
+        <div className="flex-1 flex flex-col gap-8 w-full min-w-0">
           {/* Header Section */}
-          <div className="flex justify-between items-end">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
               <p className="text-xs font-label font-bold text-primary uppercase tracking-[0.2em] mb-2">Suivi des temps</p>
-              <h2 className="text-4xl font-extrabold font-headline text-on-surface tracking-tight">Planification & Pointage Mensuel</h2>
+              <h2 className="text-2xl sm:text-4xl font-extrabold font-headline text-on-surface tracking-tight">Planification & Pointage Mensuel</h2>
             </div>
-            <div className="flex items-center gap-3 bg-surface-container-low p-1.5 rounded-xl">
+            <div className="flex items-center gap-3 bg-surface-container-low p-1.5 rounded-xl self-center sm:self-auto">
               <button onClick={handlePrevMonth} className="p-2 hover:bg-surface-container-lowest rounded-lg transition-all text-on-surface-variant">
                 <ChevronLeft size={20} />
               </button>
-              <div className="flex flex-col items-center px-6">
+              <div className="flex flex-col items-center px-4 sm:px-6">
                 <span className="font-headline font-black text-sm uppercase text-primary tracking-tighter">
                   {format(currentDate, 'MMMM', { locale: fr })}
                 </span>
@@ -252,71 +252,73 @@ function CalendrierContent() {
             </div>
           </div>
 
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-px overflow-hidden bg-outline-variant/20 rounded-2xl shadow-sm border border-outline-variant/10">
-            {/* Day Headers */}
-            {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].map(day => (
-              <div key={day} className="bg-surface-container-high py-4 text-center">
-                <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">{day}</span>
-              </div>
-            ))}
+          {/* Calendar Grid Wrapper for horizontal scroll on small devices */}
+          <div className="w-full overflow-x-auto rounded-2xl shadow-sm border border-outline-variant/10">
+            <div className="grid grid-cols-7 gap-px overflow-hidden bg-outline-variant/20 min-w-[700px]">
+              {/* Day Headers */}
+              {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].map(day => (
+                <div key={day} className="bg-surface-container-high py-4 text-center">
+                  <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">{day}</span>
+                </div>
+              ))}
 
-            {/* Day Cells */}
-            {(() => {
-              const cells = [];
-              const firstDayOfMonth = getDay(monthStart);
-              const startOffset = (firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1);
+              {/* Day Cells */}
+              {(() => {
+                const cells = [];
+                const firstDayOfMonth = getDay(monthStart);
+                const startOffset = (firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1);
 
-              for (let i = 0; i < startOffset; i++) {
-                cells.push(<div key={`offset-${i}`} className="min-h-[120px] p-4 bg-surface-container text-outline opacity-40" />);
-              }
+                for (let i = 0; i < startOffset; i++) {
+                  cells.push(<div key={`offset-${i}`} className="min-h-[100px] sm:min-h-[120px] p-2 sm:p-4 bg-surface-container text-outline opacity-40" />);
+                }
 
-              calendarDays.forEach(day => {
-                const dateStr = format(day, 'yyyy-MM-dd');
-                const entry = entriesByDate[dateStr];
+                calendarDays.forEach(day => {
+                  const dateStr = format(day, 'yyyy-MM-dd');
+                  const entry = entriesByDate[dateStr];
 
-                cells.push(
-                  <div key={dateStr} className="min-h-[120px] p-4 flex flex-col justify-between bg-surface-container-lowest text-on-surface hover:bg-primary/5 transition-colors group cursor-pointer border-t border-outline-variant/10">
-                    <span className="text-xs font-label font-bold">{format(day, 'd MMM')}</span>
-                    {entry ? (
-                      entry.calNbh > 0 ? (
-                        <div className="bg-primary/10 text-primary px-3 py-2 rounded-lg border-l-4 border-primary">
-                          <p className="text-[10px] font-bold leading-tight">08:30 - 17:30</p>
-                          <p className="text-[10px] font-black uppercase tracking-tighter mt-1">({entry.calNbh}h)</p>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] font-label font-semibold italic text-outline">Repos hebdomadaire</span>
-                      )
-                    ) : null}
-                  </div>
-                );
-              });
+                  cells.push(
+                    <div key={dateStr} className="min-h-[100px] sm:min-h-[120px] p-2 sm:p-4 flex flex-col justify-between bg-surface-container-lowest text-on-surface hover:bg-primary/5 transition-colors group cursor-pointer border-t border-outline-variant/10">
+                      <span className="text-xs font-label font-bold">{format(day, 'd MMM')}</span>
+                      {entry ? (
+                        entry.calNbh > 0 ? (
+                          <div className="bg-primary/10 text-primary px-2 sm:px-3 py-1 sm:py-2 rounded-lg border-l-4 border-primary">
+                            <p className="text-[9px] sm:text-[10px] font-bold leading-tight">08:30 - 17:30</p>
+                            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-tighter mt-1">({entry.calNbh}h)</p>
+                          </div>
+                        ) : (
+                          <span className="text-[9px] sm:text-[10px] font-label font-semibold italic text-outline">Repos</span>
+                        )
+                      ) : null}
+                    </div>
+                  );
+                });
 
-              const totalCells = cells.length;
-              const remaining = (7 - (totalCells % 7)) % 7;
-              for (let i = 0; i < remaining; i++) {
-                cells.push(<div key={`empty-${i}`} className="min-h-[120px] p-4 bg-surface-container text-outline opacity-40" />);
-              }
+                const totalCells = cells.length;
+                const remaining = (7 - (totalCells % 7)) % 7;
+                for (let i = 0; i < remaining; i++) {
+                  cells.push(<div key={`empty-${i}`} className="min-h-[100px] sm:min-h-[120px] p-2 sm:p-4 bg-surface-container text-outline opacity-40" />);
+                }
 
-              return cells;
-            })()}
+                return cells;
+              })()}
+            </div>
           </div>
 
           {/* Summary Line */}
-          <div className="bg-primary/5 p-6 rounded-2xl flex items-center justify-between border-l-8 border-primary shadow-sm">
+          <div className="bg-primary/5 p-4 sm:p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between border-l-8 border-primary shadow-sm gap-6">
             <div className="flex items-center gap-4">
-              <CheckCircle2 className="text-primary" size={32} />
+              <CheckCircle2 className="text-primary hidden sm:block" size={32} />
               <div>
-                <h3 className="text-2xl font-black font-headline text-primary">Total du mois : {stats.totalHours} heures</h3>
-                <p className="text-sm font-label font-semibold text-on-surface-variant">Basé sur <span className="text-on-surface font-bold">{stats.workedDays} jours travaillés</span></p>
+                <h3 className="text-xl sm:text-2xl font-black font-headline text-primary">Total du mois : {stats.totalHours} heures</h3>
+                <p className="text-xs sm:text-sm font-label font-semibold text-on-surface-variant">Basé sur <span className="text-on-surface font-bold">{stats.workedDays} jours travaillés</span></p>
               </div>
             </div>
-            <div className="flex gap-4">
-              <button className="px-6 py-2 bg-surface-container-lowest text-on-surface text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center gap-2">
-                <Download size={16} /> Télécharger PDF
+            <div className="flex flex-wrap gap-3 w-full md:w-auto">
+              <button className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-surface-container-lowest text-on-surface text-xs sm:text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2">
+                <Download size={16} /> <span className="hidden sm:inline">Télécharger</span> PDF
               </button>
-              <button onClick={handleSave} className="px-6 py-2 bg-primary text-on-primary text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center gap-2">
-                <Save size={16} /> Valider les heures
+              <button onClick={handleSave} className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-primary text-on-primary text-xs sm:text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2">
+                <Save size={16} /> Valider <span className="hidden sm:inline">les heures</span>
               </button>
             </div>
           </div>
@@ -324,14 +326,14 @@ function CalendrierContent() {
           {/* Annual Statistics */}
           <div className="mt-8">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-extrabold font-headline tracking-tight">Statistiques Annuelles {selectedYear}</h3>
-              <div className="flex items-center gap-2 text-outline">
+              <h3 className="text-lg sm:text-xl font-extrabold font-headline tracking-tight">Statistiques Annuelles {selectedYear}</h3>
+              <div className="hidden sm:flex items-center gap-2 text-outline">
                 <Info size={14} />
-                <span className="text-xs font-label font-medium italic">Calculé automatiquement par Architect Ledger</span>
+                <span className="text-xs font-label font-medium italic">Calculé automatiquement</span>
               </div>
             </div>
-            <div className="overflow-hidden rounded-2xl bg-surface-container-low shadow-sm border border-outline-variant/10">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto rounded-2xl bg-surface-container-low shadow-sm border border-outline-variant/10">
+              <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead className="bg-surface-container-high">
                   <tr>
                     <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">Mois</th>
@@ -365,8 +367,8 @@ function CalendrierContent() {
         </div>
 
         {/* Configuration Sidebar (Right) */}
-        <aside className="w-80 flex flex-col gap-8">
-          <div className="bg-surface-container-lowest p-8 rounded-3xl shadow-lg flex flex-col gap-6 sticky top-28 border border-outline-variant/20">
+        <aside className="w-full lg:w-80 flex flex-col gap-8">
+          <div className="bg-surface-container-lowest p-6 sm:p-8 rounded-3xl shadow-lg flex flex-col gap-6 sticky top-28 border border-outline-variant/20">
             <div>
               <h3 className="text-xl font-extrabold font-headline tracking-tight text-primary mb-1">Configuration</h3>
               <p className="text-xs font-label font-medium text-outline">Ajustez vos paramètres mensuels</p>
@@ -426,13 +428,13 @@ function CalendrierContent() {
                 </div>
                 <button
                   onClick={handleSave}
-                  className="w-full py-4 bg-primary text-on-primary font-headline font-bold rounded-xl hover:translate-y-[-1px] transition-all active:scale-95 text-sm shadow-md mb-3"
+                  className="w-full py-4 bg-primary text-on-primary text-sm font-bold font-headline rounded-xl shadow-md hover:translate-y-[-1px] transition-all active:scale-95 mb-3"
                 >
                   Enregistrer les réglages
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="w-full py-4 bg-surface-container-high text-primary font-headline font-bold rounded-xl hover:translate-y-[-1px] transition-all active:scale-95 text-sm border border-primary/10 flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-surface-container-high text-primary text-sm font-bold font-headline rounded-xl border border-primary/10 flex items-center justify-center gap-2 hover:translate-y-[-1px] transition-all active:scale-95"
                 >
                   <Plus size={18} /> Initialiser une année
                 </button>
@@ -442,7 +444,7 @@ function CalendrierContent() {
             <div className="mt-4 p-4 rounded-2xl bg-secondary-container/20 flex gap-4">
               <Lightbulb className="text-secondary flex-shrink-0" size={20} />
               <p className="text-[10px] font-label leading-relaxed text-on-secondary-fixed-variant">
-                <strong>Astuce :</strong> Le pointage se synchronise automatiquement avec votre terminal physique chaque jour à 23h59.
+                <strong>Astuce :</strong> Le pointage se synchronise automatiquement chaque jour à 23h59.
               </p>
             </div>
           </div>

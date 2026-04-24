@@ -70,6 +70,14 @@ namespace ABRPOINT.Server.CalculService.Conge
         private async Task<object> Calc_solde_conge(string soccod, string empcod, string moisdeb, string moisfin, string annee)
         {
             double droitConge = 0;
+
+            // 🟢 Initial balance from the 'solde' table
+            var soldeEntry = await _dbContext.Soldes.FirstOrDefaultAsync(s => s.Soccod == soccod && s.Empcod == empcod);
+            if (soldeEntry != null)
+            {
+                droitConge = soldeEntry.Conge ?? 0;
+            }
+
             double nbheuret = 208;
             double nbjourt = 26;
             double nbheurejour = 8;
@@ -101,15 +109,34 @@ namespace ABRPOINT.Server.CalculService.Conge
                     anciente--;
             }
 
-            if (anciente != 0)
+            if (anciente != 0 && anciente > 0)
             {
                 parecart = await _parametreRepository.GetParancempAsync(soccod);
-                droitConge += Math.Floor((double)anciente / parecart);
+                if (parecart > 0)
+                    droitConge += Math.Floor((double)anciente / parecart);
+            }
+
+            int targetYear = int.Parse(annee);
+            int startMonth = 1;
+
+            // 🟢 Determine the starting month for rights accrual
+            if (employe.Empemb.HasValue)
+            {
+                if (employe.Empemb.Value.Year == targetYear)
+                {
+                    startMonth = employe.Empemb.Value.Month;
+                }
+                else if (employe.Empemb.Value.Year > targetYear)
+                {
+                    // No rights if the employee wasn't hired yet in that year
+                    return new { anciente = 0, cm, droitConge = 0.0, sa = 0.0 };
+                }
             }
 
             for (int i = 0; i < int.Parse(moisfin.TrimStart('0')); i++)
             {
-                string currentMonth = (i + 1).ToString("D2");
+                int currentMonthInt = i + 1;
+                string currentMonth = currentMonthInt.ToString("D2");
                 var calendsoc = await _calendrierRepository.GetCalendrierAsync(soccod, annee, currentMonth, caltype);
                 float nbConge = await _congeRepository.GetNbCongeRecueAsync(soccod, empcod, annee, currentMonth);
 
@@ -118,7 +145,8 @@ namespace ABRPOINT.Server.CalculService.Conge
                     congeRecue += nbConge;
                 }
 
-                if (calendsoc != null)
+                // 🟢 Only accrue rights if the month is >= recruitment month
+                if (currentMonthInt >= startMonth && calendsoc != null)
                 {
                     nbheuret = (double)calendsoc.CalNbh;
                     nbjourt = (double)calendsoc.CalTrav;

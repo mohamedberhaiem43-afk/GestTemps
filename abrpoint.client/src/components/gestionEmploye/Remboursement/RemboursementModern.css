@@ -626,7 +626,7 @@
 }
 @media (max-width: 768px) {
   .rmb-container { padding: 12px; }
-  .rmb-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .rmb-header { flex-direction: column; align-items: stretch; gap: 20px; }
   .rmb-new-btn { width: 100%; justify-content: center; }
   .rmb-stats-grid { grid-template-columns: 1fr; }
   .rmb-stat-value { font-size: 22px; }
@@ -638,4 +638,8 @@
   }
   .rmb-desc-title { font-size: 12px; }
   .rmb-form-card { padding: 20px; }
+  .rmb-table-toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .rmb-toolbar-actions { flex-direction: column; align-items: stretch; width: 100%; }
+  .rmb-toolbar-btn { width: 100%; justify-content: center; }
+  .rmb-pagination { flex-direction: column; gap: 12px; align-items: center; }
 }

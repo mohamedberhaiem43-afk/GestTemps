@@ -121,10 +121,11 @@ function SoldeCongeModernInner() {
       const days = c.connbjour ?? 0;
       
       if (abs) {
-        if (abs.abspayer === 'O') stats.paye += days;
-        else if (abs.abscng === 'N') stats.maladie += days;
+        if (abs.abscng === '0') stats.paye += days;
+        else if (abs.abscng === '9' || abs.abslib?.toLowerCase().includes('mal')) stats.maladie += days;
         else if (c.abscod?.toLowerCase().includes('rtt')) stats.rtt += days;
         else if (c.abscod?.toLowerCase().includes('recup')) stats.recup += days;
+        else if (abs.abspayer === 'O') stats.paye += days; // Fallback to paid flag if not '0'
       } else {
         // Fallback for codes if map not ready
         if (c.abscod?.toLowerCase().includes('mal')) stats.maladie += days;

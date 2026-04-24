@@ -507,7 +507,13 @@
     text-align: center;
   }
   .pdm-header-actions {
+    flex-direction: column;
     justify-content: center;
+    width: 100%;
+    gap: 8px;
+  }
+  .pdm-header-actions > * {
+    width: 100% !important;
   }
   .pdm-title {
     font-size: 28px;
@@ -518,11 +524,19 @@
   .pdm-filter-field--action {
     margin-top: 8px;
   }
+  .pdm-filter-bar {
+    padding: 16px;
+  }
+  .pdm-detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
   
   /* Prevent sticky column from taking too much space on very small screens */
   .pdm-table th:first-child,
   .pdm-table td:first-child {
-    min-width: 140px;
+    min-width: 120px;
   }
 }
 

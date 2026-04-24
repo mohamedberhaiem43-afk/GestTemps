@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Helper;
+using ABRPOINT.Helper;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
@@ -44,9 +44,15 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
 
             if (poste == null)
             {
-                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat,presence.Catcod);
+                string? codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat, presence.Catcod);
+                if (string.IsNullOrEmpty(codpost))
+                    return (0, null, null, null, null, null, null, null, null);
+
                 poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
             }
+
+            if (poste == null)
+                return (0, null, null, null, null, null, null, null, null);
 
             var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) =
                 GenericMethodes.GetStartsWorkDay(presence.Dmdate, poste);

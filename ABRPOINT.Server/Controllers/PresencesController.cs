@@ -5,7 +5,6 @@ using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {

@@ -20,7 +20,7 @@ export default function EtatPresence() {
   return (
     <QueryClientProvider client={queryClient} >
 
-        <Box width={"75vw"} height={'95vh'} sx={{ flexGrow: 1, overflowX: 'hidden', px: 1 }}>
+        <Box sx={{ width: { xs: '100%', md: '80vw' }, height: '95vh', flexGrow: 1, overflowX: 'hidden', px: 1 }}>
             <Grid container spacing={2}>
                 <DateRangeProvider>
                     <Grid item xs={12}>
