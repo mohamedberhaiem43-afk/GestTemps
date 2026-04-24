@@ -32,9 +32,9 @@ const AlertModal: React.FC<AlertModalProps> = ({ open, onClose, onConfirm, messa
           alignItems: 'center',
         },
         '& .MuiDialog-paper': {
-          margin: { xs: 0, sm: '32px' },
-          width: { xs: '30%', sm: 'auto' },
-          maxWidth: { xs: '50%', sm: '500px' },
+          margin: { xs: '16px', sm: '32px' },
+          width: { xs: '90%', sm: '400px' },
+          maxWidth: '500px',
         },
       }}
     >
