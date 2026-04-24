@@ -26,6 +26,7 @@ interface ApiError {
 }
 
 export interface SaisieUtilisateurHandle {
+
     handleSave: () => Promise<boolean>;
 }
 
@@ -116,7 +117,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                 handleSnackbarOpen("Veuillez remplir tous les champs obligatoires.", 'error');
                 return false;
             }
-        
+
             const payload = {
                 user: {
                     uticod,
@@ -130,7 +131,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                 soccod: societe,
                 sitcod: site
             };
-        
+
             try {
                 if (selectedUser) {
                     await updateUser(payload);
@@ -143,7 +144,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                 return false;
             }
         };
-        
+
         useImperativeHandle(ref, () => ({
             handleSave
         }));
