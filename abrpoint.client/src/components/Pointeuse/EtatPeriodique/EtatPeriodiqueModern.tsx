@@ -10,7 +10,6 @@ import TimerIcon from '@mui/icons-material/Timer';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { EmployeeProvider, EmployeeContext } from './EmployeeContext';
 import { DateRangeProvider, useDateRange } from './FilterContext';
-import EmpEtatPeriodique from './EmpEtatPeriodique';
 import { useAuth } from '../../helper/AuthProvider';
 import apiInstance from '../../API/apiInstance';
 import useGenerateEtatDetaille from '../../../hooks/presenceHooks/useGenerateEtatDetaille';
@@ -21,7 +20,6 @@ import dayjs from 'dayjs';
 import EmpEtat from '../../../models/EmpEtat';
 import './EtatPeriodiqueModern.css';
 
-
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtMin = (totalMinutes: number) => {
   const h = Math.floor(totalMinutes / 60);
@@ -29,13 +27,300 @@ const fmtMin = (totalMinutes: number) => {
   return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}`;
 };
 
-const fmtTime = (t: string) => t ? t.slice(0, 5) : '--:--';
+const fmtTime = (t: string) => (t ? t.slice(0, 5) : '--:--');
 
-const AVATAR_COLORS = ['#0040a1','#047857','#b45309','#6d28d9','#065f46','#9d174d'];
-const DAY_NAMES = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-const MONTH_NAMES = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const AVATAR_COLORS = ['#0040a1', '#047857', '#b45309', '#6d28d9', '#065f46', '#9d174d'];
+const DAY_NAMES = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const MONTH_NAMES = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+];
 
 type EmpRow = { empcod: string; emplib: string; nbJours: number; totalMinutes: number; totalRetards: number };
+
+// ── Day Status classification ─────────────────────────────────────────────────
+// Mirrors exactly the backend logic from GetEmpEtatPeriodiqueAsync
+export type DayStatus = 'present' | 'absent' | 'retard' | 'conge' | 'autorisation' | 'ferie' | 'repos' | 'unknown';
+
+export function classifyDayStatus(etat: EmpEtat | undefined): DayStatus {
+  if (!etat) return 'unknown';
+
+  const etatStr = (etat.etat ?? '').trim().toLowerCase();
+
+  // Repos (highest priority — backend sets prerepos="1" and etat="J.Repos")
+  if (etat.prerepos === '1' || etatStr === 'j.repos') return 'repos';
+
+  // Férié — backend sets etat = "Férié (motif)"
+  if (etatStr.startsWith('férié') || etatStr.startsWith('ferie') || etatStr.startsWith('ferié')) return 'ferie';
+
+  // Congé — backend appends connbjour so etat looks like "Congé annuel 1" or "CA 0.5"
+  if (
+    etatStr.includes('congé') || etatStr.includes('conge') ||
+    etatStr.startsWith('ca ') || etatStr === 'ca' ||
+    etatStr.startsWith('cp ') || etatStr === 'cp'
+  ) return 'conge';
+
+  // Autorisation — from autorisations batch
+  if (
+    etatStr.includes('autorisation') ||
+    etatStr.includes('autori') ||
+    etatStr.includes('permission')
+  ) return 'autorisation';
+
+  // Sanction / absence explicite set by backend
+  if (etatStr === 'absence') return 'absent';
+
+  // No codposte means outside of contract range — treat as unknown, not absent
+  // if (!etat.codposte) return 'unknown';
+
+  // --- Pointage-based classification ---
+  const hasEntry = !!etat.preentmatup;
+  const hasExit = !!etat.presortmatup;
+  const tothre = (etat.tothre ?? '00:00').trim();
+  const hasHours = tothre !== '' && tothre !== '00:00';
+
+  // Missing entry when there IS a poste → absent
+  // (backend rule: preentmatup null, not congé/férié/repos → Absence)
+  if (!hasEntry && !hasHours) return 'absent';
+
+  // Single punch (only entry OR only exit) → treat as absent/incomplete
+  if (hasEntry && !hasExit) return 'absent';
+
+  // Has both punches — check retard
+  if (hasEntry && hasExit) {
+    const totret = etat.totret ?? '00:00';
+    // totret format "HH:MM" — non-zero means retard
+    const [rh, rm] = totret.split(':').map(Number);
+    const retardMins = (rh || 0) * 60 + (rm || 0);
+    if (retardMins > 0) return 'retard';
+    return 'present';
+  }
+
+  return 'unknown';
+}
+
+// Status visual config
+const STATUS_CFG: Record<DayStatus, {
+  calBg: string; calBorder: string; calText: string;
+  rowBg: string; rowBorder: string;
+  badgeBg: string; badgeText: string;
+  icon: string; label: string;
+}> = {
+  present: {
+    calBg: '#f0fdf4', calBorder: '#86efac', calText: '#166534',
+    rowBg: '#f0fdf4', rowBorder: '#bbf7d0',
+    badgeBg: '#dcfce7', badgeText: '#15803d',
+    icon: '✓', label: 'Présent',
+  },
+  absent: {
+    calBg: '#fff1f2', calBorder: '#fca5a5', calText: '#991b1b',
+    rowBg: '#fff1f2', rowBorder: '#fecaca',
+    badgeBg: '#fee2e2', badgeText: '#b91c1c',
+    icon: '✗', label: 'Absent',
+  },
+  retard: {
+    calBg: '#fff7ed', calBorder: '#fdba74', calText: '#9a3412',
+    rowBg: '#fff7ed', rowBorder: '#fed7aa',
+    badgeBg: '#ffedd5', badgeText: '#c2410c',
+    icon: '⏱', label: 'Retard',
+  },
+  conge: {
+    calBg: '#eff6ff', calBorder: '#93c5fd', calText: '#1d4ed8',
+    rowBg: '#eff6ff', rowBorder: '#bfdbfe',
+    badgeBg: '#dbeafe', badgeText: '#1e40af',
+    icon: '🏖', label: 'Congé',
+  },
+  autorisation: {
+    calBg: '#faf5ff', calBorder: '#c4b5fd', calText: '#6d28d9',
+    rowBg: '#faf5ff', rowBorder: '#ddd6fe',
+    badgeBg: '#ede9fe', badgeText: '#7c3aed',
+    icon: '📋', label: 'Autorisation',
+  },
+  ferie: {
+    calBg: '#fefce8', calBorder: '#fde047', calText: '#854d0e',
+    rowBg: '#fefce8', rowBorder: '#fef08a',
+    badgeBg: '#fef9c3', badgeText: '#a16207',
+    icon: '🎉', label: 'Férié',
+  },
+  repos: {
+    calBg: '#f8fafc', calBorder: '#e2e8f0', calText: '#64748b',
+    rowBg: '#f8fafc', rowBorder: '#e2e8f0',
+    badgeBg: '#f1f5f9', badgeText: '#475569',
+    icon: '💤', label: 'Repos',
+  },
+  unknown: {
+    calBg: '#ffffff', calBorder: '#e5e7eb', calText: '#6b7280',
+    rowBg: '#ffffff', rowBorder: '#f3f4f6',
+    badgeBg: '#f9fafb', badgeText: '#6b7280',
+    icon: '—', label: '—',
+  },
+};
+
+// ── Table view for the calendar month ────────────────────────────────────────
+function EmpDayTable({ etatByDate, annee, mois }: {
+  etatByDate: Record<string, EmpEtat>;
+  annee: string;
+  mois: string;
+}) {
+  const yr = parseInt(annee), mo = parseInt(mois);
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  return (
+    <Box sx={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #e5e7eb', mt: 1 }}>
+      {/* Legend */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, p: '10px 14px', borderBottom: '1px solid #f3f4f6', background: '#fafafa' }}>
+        {(['present', 'retard', 'absent', 'conge', 'autorisation', 'ferie', 'repos'] as DayStatus[]).map(s => {
+          const c = STATUS_CFG[s];
+          return (
+            <span key={s} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+              background: c.badgeBg, color: c.badgeText,
+            }}>
+              {c.icon} {c.label}
+            </span>
+          );
+        })}
+      </Box>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <thead>
+          <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
+            {['Date', 'Statut', 'Entrée', 'Sortie', 'H.Trav', 'Retard', 'H.Abs', 'H.Sup', 'Jours'].map(h => (
+              <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Date' || h === 'Statut' ? 'left' : 'center', fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {days.map(day => {
+            const key = `${annee}-${String(mo).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const e = etatByDate[key];
+            const status = classifyDayStatus(e);
+            const cfg = STATUS_CFG[status];
+            const dow = new Date(yr, mo - 1, day).getDay(); // 0=Sun,6=Sat
+            const isWeekend = dow === 0 || dow === 6;
+            const dateLabel = new Date(yr, mo - 1, day).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+
+            // Display etat label
+            const etatDisplay = e?.etat?.trim()
+              ? e.etat.trim()
+              : status === 'absent' ? 'Absent'
+              : status === 'present' ? 'Présent'
+              : cfg.label;
+
+            // Entry/exit highlighting
+            const missingEntry = e && !e.preentmatup && status !== 'repos' && status !== 'ferie' && status !== 'conge' && status !== 'autorisation';
+            const missingExit = e && !e.presortmatup && status !== 'repos' && status !== 'ferie' && status !== 'conge' && status !== 'autorisation';
+
+            // Retard highlighting
+            const [rh, rm] = (e?.totret ?? '00:00').split(':').map(Number);
+            const retardMins = (rh || 0) * 60 + (rm || 0);
+
+            return (
+              <tr key={day} style={{
+                background: isWeekend && !e ? '#f8fafc' : cfg.rowBg,
+                borderBottom: `1px solid ${cfg.rowBorder}`,
+                opacity: isWeekend && !e ? 0.6 : 1,
+                transition: 'background 0.15s',
+              }}>
+                {/* Date */}
+                <td style={{ padding: '7px 10px', fontWeight: 600, color: cfg.calText, whiteSpace: 'nowrap' }}>
+                  {dateLabel}
+                  {isWeekend && <span style={{ marginLeft: 4, fontSize: 10, color: '#94a3b8', fontWeight: 400 }}>(W-E)</span>}
+                </td>
+
+                {/* Status badge */}
+                <td style={{ padding: '7px 10px' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700,
+                    background: cfg.badgeBg, color: cfg.badgeText, whiteSpace: 'nowrap',
+                  }}>
+                    {cfg.icon} {etatDisplay}
+                  </span>
+                </td>
+
+                {/* Entrée */}
+                <td style={{ padding: '7px 10px', textAlign: 'center', fontFamily: 'monospace', color: missingEntry ? '#ef4444' : '#374151', fontWeight: missingEntry ? 700 : 400 }}>
+                  {e?.preentmatup ? fmtTime(e.preentmatup) : <span style={{ color: '#d1d5db' }}>—</span>}
+                </td>
+
+                {/* Sortie */}
+                <td style={{ padding: '7px 10px', textAlign: 'center', fontFamily: 'monospace', color: missingExit ? '#ef4444' : '#374151', fontWeight: missingExit ? 700 : 400 }}>
+                  {e?.presortmatup ? fmtTime(e.presortmatup) : <span style={{ color: '#d1d5db' }}>—</span>}
+                </td>
+
+                {/* H.Trav */}
+                <td style={{ padding: '7px 10px', textAlign: 'center', fontFamily: 'monospace', color: !e?.tothre || e.tothre === '00:00' ? '#ef4444' : '#1d4ed8', fontWeight: 600 }}>
+                  {e?.tothre && e.tothre !== '00:00' ? e.tothre : <span style={{ color: '#d1d5db' }}>00:00</span>}
+                </td>
+
+                {/* Retard */}
+                <td style={{ padding: '7px 10px', textAlign: 'center', fontFamily: 'monospace', color: retardMins > 0 ? '#ea580c' : '#d1d5db', fontWeight: retardMins > 0 ? 700 : 400 }}>
+                  {retardMins > 0 ? e!.totret : '—'}
+                </td>
+
+                {/* H.Abs */}
+                <td style={{ padding: '7px 10px', textAlign: 'center', fontFamily: 'monospace' }}>
+                  {e?.tothabs && e.tothabs !== '00:00'
+                    ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{e.tothabs}</span>
+                    : <span style={{ color: '#d1d5db' }}>—</span>}
+                </td>
+
+                {/* H.Sup */}
+                <td style={{ padding: '7px 10px', textAlign: 'center', fontFamily: 'monospace' }}>
+                  {e?.tothsup && e.tothsup !== '00:00'
+                    ? <span style={{ color: '#4f46e5', fontWeight: 600 }}>{e.tothsup}</span>
+                    : <span style={{ color: '#d1d5db' }}>—</span>}
+                </td>
+
+                {/* Jours */}
+                <td style={{ padding: '7px 10px', textAlign: 'center', color: e?.jour ? '#374151' : '#d1d5db', fontWeight: e?.jour ? 600 : 400 }}>
+                  {e?.jour != null ? Number(e.jour).toFixed(2) : '—'}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </Box>
+  );
+}
+
+// ── Summary bar ───────────────────────────────────────────────────────────────
+function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
+  const counts = useMemo(() => {
+    const c: Record<DayStatus, number> = { present: 0, absent: 0, retard: 0, conge: 0, autorisation: 0, ferie: 0, repos: 0, unknown: 0 };
+    Object.values(etatByDate).forEach(e => { c[classifyDayStatus(e)]++; });
+    return c;
+  }, [etatByDate]);
+
+  const totalJours = useMemo(() =>
+    Object.values(etatByDate).reduce((s, e) => s + Number(e.jour ?? 0), 0),
+    [etatByDate]
+  );
+
+  const shown: DayStatus[] = ['present', 'retard', 'absent', 'conge', 'autorisation', 'ferie', 'repos'];
+
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, p: '10px 14px', background: 'white', borderRadius: '10px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      {shown.filter(s => counts[s] > 0).map(s => {
+        const c = STATUS_CFG[s];
+        return (
+          <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: c.badgeBg, color: c.badgeText }}>
+            {c.icon} {counts[s]} {c.label}{counts[s] > 1 ? 's' : ''}
+          </span>
+        );
+      })}
+      <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: '#f1f5f9', color: '#374151' }}>
+        📅 {totalJours.toFixed(1)} j travaillés
+      </span>
+    </Box>
+  );
+}
 
 // ── Calendar cell ─────────────────────────────────────────────────────────────
 function CalCell({ day, etat, onClick, selected }: {
@@ -43,41 +328,62 @@ function CalCell({ day, etat, onClick, selected }: {
 }) {
   if (!day) return <Box className="ep-cal-cell ep-cal-cell-empty" />;
 
-  const isRepos = etat?.prerepos === '1';
-  const hasRetard = etat && parseFloat(etat.totret || '0') > 0;
-  const hasPresence = etat && !isRepos && (etat.preentmatup || etat.tothre);
-  const etatLabel = etat?.etat?.trim();
+  const status = classifyDayStatus(etat);
+  const cfg = STATUS_CFG[status];
 
-  let cellClass = 'ep-cal-cell';
-  if (isRepos) cellClass += ' ep-cal-cell-repos';
-  else if (hasRetard) cellClass += ' ep-cal-cell-retard';
-  else if (hasPresence) cellClass += ' ep-cal-cell-present';
-  else if (etatLabel) cellClass += ' ep-cal-cell-etat';
-  if (selected) cellClass += ' ep-cal-cell-selected';
+  const etatDisplay = etat?.etat?.trim()
+    ? etat.etat.trim()
+    : status === 'absent' ? 'Absent'
+    : status === 'present' ? 'Présent'
+    : cfg.label;
 
-  const totalH = etat?.tothre ? `${parseFloat(etat.tothre).toFixed(2)}h` : null;
-  const retardMin = etat?.totret ? Math.round(parseFloat(etat.totret)) : 0;
+  const totalH = etat?.tothre && etat.tothre !== '00:00' ? etat.tothre : null;
+  const [rh, rm] = (etat?.totret ?? '00:00').split(':').map(Number);
+  const retardMins = (rh || 0) * 60 + (rm || 0);
 
   return (
-    <Box className={cellClass} onClick={onClick}>
-      <span className="ep-cal-num">{day}</span>
-      {isRepos ? (
-        <span className="ep-cal-val-repos">Repos</span>
-      ) : etatLabel && !hasPresence ? (
-        /* état spécial: congé, absence, etc. */
-        <span className="ep-cal-val-etat">{etatLabel}</span>
-      ) : hasRetard ? (
-        <Box>
-          <div className="ep-cal-val-retard">{totalH || '--'}</div>
-          <div className="ep-cal-val-sub">+{retardMin}min retard</div>
-          {etatLabel && <div className="ep-cal-val-etat-small">{etatLabel}</div>}
-        </Box>
-      ) : hasPresence ? (
-        <Box>
-          <span className="ep-cal-val-present">{totalH || '--'}</span>
-          {etatLabel && <div className="ep-cal-val-etat-small">{etatLabel}</div>}
-        </Box>
-      ) : null}
+    <Box
+      onClick={onClick}
+      sx={{
+        borderRadius: '8px',
+        border: `1.5px solid ${selected ? '#0040a1' : cfg.calBorder}`,
+        background: selected ? '#e8f0fe' : cfg.calBg,
+        p: '6px 7px',
+        minHeight: 64,
+        cursor: onClick ? 'pointer' : 'default',
+        display: 'flex', flexDirection: 'column', gap: '3px',
+        transition: 'all 0.15s',
+        boxShadow: selected ? '0 0 0 2px #0040a166' : 'none',
+        '&:hover': onClick ? { transform: 'scale(1.03)', boxShadow: '0 2px 8px rgba(0,64,161,0.12)' } : {},
+      }}
+    >
+      {/* Day number */}
+      <span style={{ fontSize: 12, fontWeight: 700, color: cfg.calText }}>{day}</span>
+
+      {/* Status indicator */}
+      {status !== 'unknown' && (
+        <span style={{
+          fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99,
+          background: cfg.badgeBg, color: cfg.badgeText, alignSelf: 'flex-start',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+        }}>
+          {cfg.icon} {etatDisplay.length > 10 ? etatDisplay.slice(0, 10) + '…' : etatDisplay}
+        </span>
+      )}
+
+      {/* Hours */}
+      {totalH && status !== 'repos' && status !== 'ferie' && (
+        <span style={{ fontSize: 10, color: cfg.calText, fontFamily: 'monospace', fontWeight: 500 }}>
+          {totalH}
+        </span>
+      )}
+
+      {/* Retard */}
+      {retardMins > 0 && (
+        <span style={{ fontSize: 9, color: '#c2410c', fontWeight: 600 }}>
+          ⏱ +{retardMins}min
+        </span>
+      )}
     </Box>
   );
 }
@@ -92,9 +398,12 @@ function EmpSidebarRow({ row, active, onClick, index }: {
   return (
     <Box onClick={onClick} className={`ep-emp-row ${active ? 'ep-emp-row-active' : ''}`}>
       <Box className="ep-emp-row-left">
-        <Avatar sx={{ width: 40, height: 40, fontSize: '13px', fontWeight: 700,
+        <Avatar sx={{
+          width: 40, height: 40, fontSize: '13px', fontWeight: 700,
           background: active ? 'linear-gradient(135deg,#0040a1,#1a6eff)' : `${color}22`,
-          color: active ? 'white' : color, border: active ? 'none' : `1.5px solid ${color}44` }}>
+          color: active ? 'white' : color,
+          border: active ? 'none' : `1.5px solid ${color}44`,
+        }}>
           {initials}
         </Avatar>
         <Box>
@@ -116,8 +425,10 @@ function EmpSidebarRow({ row, active, onClick, index }: {
 function EtatPeriodiqueModernInner() {
   const { soccod, uticod, isManager, sercod: managerSercod } = useAuth();
   const isManagerScoped = Boolean(isManager && managerSercod);
-  const { setSelectedEmpMat, setSelectedEmpLib, selectedEmpMat, selectedEmpLib, empEtatData,
-    setSelectedEmpPoste, setDate, setSelectedEmp, setArrondi, setArrondiSup } = useContext(EmployeeContext);
+  const {
+    setSelectedEmpMat, setSelectedEmpLib, selectedEmpMat, selectedEmpLib, empEtatData,
+    setSelectedEmpPoste, setDate, setSelectedEmp, setArrondi, setArrondiSup,
+  } = useContext(EmployeeContext);
   const { setDateRange } = useDateRange();
 
   const [filiale, setFiliale] = useState<Record<string, string>>({});
@@ -134,18 +445,16 @@ function EtatPeriodiqueModernInner() {
   const [loadingEmps, setLoadingEmps] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const [selectedDay, setSelectedDay] = useState<EmpEtat | null>(null);
-  const [showTable, setShowTable] = useState(false); // toggle calendar vs table
+  const [showTable, setShowTable] = useState(false);
 
   const { mutateAsync: generatePdf } = useGenerateEtatDetaille();
 
-  // Fetch etat data for selected employee
   const { data: etatData = [] } = useGetEmpEtat({
     soccod,
     selectedEmpMat,
     dateRange: selectedEmpMat ? { dateDebut: new Date(dateDebut), dateFin: new Date(dateFin) } : null,
   });
 
-  // Build a map: date string → EmpEtat
   const etatByDate = useMemo(() => {
     const map: Record<string, EmpEtat> = {};
     const arr = Array.isArray(etatData) ? etatData : (etatData as any)?.$values ?? [];
@@ -156,7 +465,6 @@ function EtatPeriodiqueModernInner() {
     return map;
   }, [etatData]);
 
-  // Fetch poste data for the selected day
   const selectedDayStr = selectedDay ? dayjs(selectedDay.predat).format('YYYY-MM-DD') : '';
   const selectedDayAbbr = selectedDay
     ? dayjs(selectedDay.predat).locale('fr').format('ddd').replace('.', '').toLowerCase()
@@ -185,15 +493,13 @@ function EtatPeriodiqueModernInner() {
       let sm = moisdeb === 'P' ? mo - 1 : mo, em = moisfin === 'P' ? mo - 1 : mo;
       let sy = sm === 0 ? yr - 1 : yr, ey = em === 0 ? yr - 1 : yr;
       sm = sm === 0 ? 12 : sm; em = em === 0 ? 12 : em;
-      setDateDebut(`${sy}-${String(sm).padStart(2,'0')}-${joudeb}`);
-      setDateFin(`${ey}-${String(em).padStart(2,'0')}-${joufin}`);
+      setDateDebut(`${sy}-${String(sm).padStart(2, '0')}-${joudeb}`);
+      setDateFin(`${ey}-${String(em).padStart(2, '0')}-${joufin}`);
     }).catch(console.error);
   }, [soccod, isManagerScoped, managerSercod]);
 
   useEffect(() => {
-    if (isManagerScoped && managerSercod) {
-      setSelectedService(managerSercod);
-    }
+    if (isManagerScoped && managerSercod) setSelectedService(managerSercod);
   }, [isManagerScoped, managerSercod]);
 
   useEffect(() => {
@@ -203,8 +509,8 @@ function EtatPeriodiqueModernInner() {
     let sm = moisdeb === 'P' ? mo - 1 : mo, em = moisfin === 'P' ? mo - 1 : mo;
     let sy = sm === 0 ? parseInt(annee) - 1 : parseInt(annee), ey = em === 0 ? parseInt(annee) - 1 : parseInt(annee);
     sm = sm === 0 ? 12 : sm; em = em === 0 ? 12 : em;
-    setDateDebut(`${sy}-${String(sm).padStart(2,'0')}-${joudeb}`);
-    setDateFin(`${ey}-${String(em).padStart(2,'0')}-${joufin}`);
+    setDateDebut(`${sy}-${String(sm).padStart(2, '0')}-${joudeb}`);
+    setDateFin(`${ey}-${String(em).padStart(2, '0')}-${joufin}`);
   }, [mois, annee, paramMois]);
 
   const handleSearch = () => {
@@ -215,10 +521,7 @@ function EtatPeriodiqueModernInner() {
     params.append('fin', dateFin + 'T00:00:00');
     if (selectedRegime) params.append('empreg', selectedRegime);
     if (selectedService) params.append('service', selectedService);
-
-    // Use selectedFiliale if set, otherwise fall back to soccod's default site
     const sitcod = selectedFiliale || sessionStorage.getItem('sitcod') || soccod || '';
-
     apiInstance.get(`/Employes/get-emps/${soccod}/${sitcod}/${uticod}?${params}`)
       .then(r => {
         const data = r.data;
@@ -230,9 +533,7 @@ function EtatPeriodiqueModernInner() {
           pres: '', mois, empcods: [], retapres: false, retmat: false, retmin: 0, compterAvance: false,
         });
       })
-      .catch(err => {
-        console.error('Erreur chargement employés:', err);
-      })
+      .catch(err => console.error('Erreur chargement employés:', err))
       .finally(() => setLoadingEmps(false));
   };
 
@@ -250,7 +551,12 @@ function EtatPeriodiqueModernInner() {
 
   const handleExportExcel = () => {
     if (!Array.isArray(rows) || !rows.length) { alert('Aucune donnée à exporter'); return; }
-    const ws = XLSX.utils.json_to_sheet(rows.map(r => ({ Matricule: r.empcod, Nom: r.emplib, 'Nb Jours': r.nbJours, 'Total Heures': fmtMin(r.totalMinutes), 'Total Retards': fmtMin(r.totalRetards) })));
+    const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
+      Matricule: r.empcod, Nom: r.emplib,
+      'Nb Jours': r.nbJours,
+      'Total Heures': fmtMin(r.totalMinutes),
+      'Total Retards': fmtMin(r.totalRetards),
+    })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Etat');
     XLSX.writeFile(wb, `EtatPeriodique_${mois}_${annee}.xlsx`);
@@ -262,15 +568,14 @@ function EtatPeriodiqueModernInner() {
   }, [rows, searchQ]);
 
   const selectedEmpRow = Array.isArray(rows) ? rows.find(r => r.empcod === selectedEmpMat) : undefined;
-  const periodLabel = `${dateDebut.slice(8,10)}/${dateDebut.slice(5,7)} – ${dateFin.slice(8,10)}/${dateFin.slice(5,7)}`;
+  const periodLabel = `${dateDebut.slice(8, 10)}/${dateDebut.slice(5, 7)} – ${dateFin.slice(8, 10)}/${dateFin.slice(5, 7)}`;
   const monthLabel = MONTH_NAMES[parseInt(mois) - 1] || mois;
 
-  // Build calendar grid for the current month
   const calendarCells = useMemo(() => {
     const yr = parseInt(annee), mo = parseInt(mois);
     if (!yr || !mo) return [];
-    const firstDay = new Date(yr, mo - 1, 1).getDay(); // 0=Sun
-    const offset = firstDay === 0 ? 6 : firstDay - 1; // Mon-based
+    const firstDay = new Date(yr, mo - 1, 1).getDay();
+    const offset = firstDay === 0 ? 6 : firstDay - 1;
     const daysInMonth = new Date(yr, mo, 0).getDate();
     const cells: (number | null)[] = Array(offset).fill(null);
     for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -278,11 +583,11 @@ function EtatPeriodiqueModernInner() {
   }, [annee, mois]);
 
   const handleDayClick = (day: number) => {
-    const key = `${annee}-${String(parseInt(mois)).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const key = `${annee}-${String(parseInt(mois)).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const etat = etatByDate[key];
     if (etat) {
       setSelectedDay(etat);
-      setSelectedEmpPoste({ codposte: etat.codposte, day: dayjs(etat.predat).locale('fr').format('ddd').replace('.','') });
+      setSelectedEmpPoste({ codposte: etat.codposte, day: dayjs(etat.predat).locale('fr').format('ddd').replace('.', '') });
       setArrondi(etat.arrondi || 0);
       setArrondiSup(etat.arrhsup || 0);
       setSelectedEmp(etat.empcod);
@@ -399,7 +704,6 @@ function EtatPeriodiqueModernInner() {
 
         {/* Right panel */}
         <Box className="ep-right">
-          {/* Detail paper: calendar + day detail */}
           <Box className="ep-detail-paper">
             <Box className="ep-detail-header">
               <Box>
@@ -411,20 +715,9 @@ function EtatPeriodiqueModernInner() {
                 )}
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box className="ep-legend">
-                  {[{ color: '#dcfce7', border: '#86efac', label: 'Présent' },
-                    { color: '#fee2e2', border: '#fca5a5', label: 'Retard' },
-                    { color: '#f1f5f9', border: '#e2e8f0', label: 'Repos' }].map(l => (
-                    <Box key={l.label} className="ep-legend-item">
-                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: l.color, border: `1.5px solid ${l.border}` }} />
-                      <Typography className="ep-legend-label">{l.label}</Typography>
-                    </Box>
-                  ))}
-                </Box>
-                {/* Toggle calendar / table */}
                 <button className="ep-btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }}
                   onClick={() => setShowTable(t => !t)}>
-                  {showTable ? 'Calendrier' : 'Tableau'}
+                  {showTable ? '📅 Calendrier' : '📋 Tableau'}
                 </button>
               </Box>
             </Box>
@@ -437,17 +730,23 @@ function EtatPeriodiqueModernInner() {
                 </Typography>
               </Box>
             ) : showTable ? (
-              /* ── Table view (existing MRT) ── */
-              <Box className="ep-table-wrap"><EmpEtatPeriodique /></Box>
+              /* ── Enhanced table view ── */
+              <Box className="ep-table-wrap">
+                <SummaryBar etatByDate={etatByDate} />
+                <EmpDayTable etatByDate={etatByDate} annee={annee} mois={mois} />
+              </Box>
             ) : (
               /* ── Calendar view ── */
               <>
+                {/* Summary chips above calendar */}
+                <SummaryBar etatByDate={etatByDate} />
+
                 <Box className="ep-cal-grid">
                   {DAY_NAMES.map((d, i) => (
                     <Box key={d} className={`ep-cal-dayname ${i >= 5 ? 'ep-cal-dayname-weekend' : ''}`}>{d}</Box>
                   ))}
                   {calendarCells.map((day, i) => {
-                    const key = day ? `${annee}-${String(parseInt(mois)).padStart(2,'0')}-${String(day).padStart(2,'0')}` : '';
+                    const key = day ? `${annee}-${String(parseInt(mois)).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
                     const etat = key ? etatByDate[key] : undefined;
                     const isSelected = selectedDay && day ? dayjs(selectedDay.predat).date() === day : false;
                     return (
@@ -458,10 +757,9 @@ function EtatPeriodiqueModernInner() {
                   })}
                 </Box>
 
-                {/* Day detail bento */}
+                {/* Day detail panel */}
                 {selectedDay && (
                   <Box className="ep-day-section">
-                    {/* Col 1: pointage + all day details */}
                     <Box className="ep-day-card">
                       <Box className="ep-day-card-top">
                         <Box>
@@ -471,78 +769,59 @@ function EtatPeriodiqueModernInner() {
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          {selectedDay.etat?.trim() && (
-                            <span className="ep-etat-badge">{selectedDay.etat}</span>
-                          )}
-                          {parseFloat(selectedDay.totret || '0') > 0 && (
-                            <span className="ep-action-badge">Action requise</span>
-                          )}
-                          {selectedDay.prerepos === '1' && (
-                            <span className="ep-repos-badge">Repos</span>
-                          )}
+                          {/* Status badge using our classifier */}
+                          {(() => {
+                            const s = classifyDayStatus(selectedDay);
+                            const c = STATUS_CFG[s];
+                            return (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700, background: c.badgeBg, color: c.badgeText }}>
+                                {c.icon} {selectedDay.etat?.trim() || c.label}
+                              </span>
+                            );
+                          })()}
+                          {(() => {
+                            const [rh, rm] = (selectedDay.totret ?? '00:00').split(':').map(Number);
+                            return ((rh || 0) * 60 + (rm || 0)) > 0
+                              ? <span className="ep-action-badge">Action requise</span>
+                              : null;
+                          })()}
                         </Box>
                       </Box>
                       <Box className="ep-detail-cols">
                         <Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Entrée Matin</span>
-                            <span className={`ep-detail-row-val ${parseFloat(selectedDay.totret || '0') > 0 ? 'ep-val-error' : ''}`}>
-                              {fmtTime(selectedDay.preentmatup)}
-                            </span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Sortie Matin</span>
-                            <span className="ep-detail-row-val">{fmtTime(selectedDay.presortmatup)}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Entrée AM</span>
-                            <span className="ep-detail-row-val">{fmtTime(selectedDay.preentamidiup)}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Sortie AM</span>
-                            <span className="ep-detail-row-val">{fmtTime(selectedDay.presortamidiup)}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Total Travaillé</span>
-                            <span className="ep-detail-row-val ep-val-primary">{selectedDay.tothre || '--'}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Repas</span>
-                            <span className="ep-detail-row-val">{selectedDay.prerepas || '0'}</span>
-                          </Box>
+                          {[
+                            { label: 'Entrée Matin', val: fmtTime(selectedDay.preentmatup), warn: !selectedDay.preentmatup },
+                            { label: 'Sortie Matin', val: fmtTime(selectedDay.presortmatup), warn: !selectedDay.presortmatup },
+                            { label: 'Entrée AM', val: fmtTime(selectedDay.preentamidiup) },
+                            { label: 'Sortie AM', val: fmtTime(selectedDay.presortamidiup) },
+                            { label: 'Total Travaillé', val: selectedDay.tothre || '--', primary: true },
+                            { label: 'Repas', val: String(selectedDay.prerepas || 0) },
+                          ].map(({ label, val, warn, primary }) => (
+                            <Box key={label} className="ep-detail-row">
+                              <span className="ep-detail-row-label">{label}</span>
+                              <span className={`ep-detail-row-val ${warn ? 'ep-val-error' : primary ? 'ep-val-primary' : ''}`}>{val}</span>
+                            </Box>
+                          ))}
                         </Box>
                         <Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Retard</span>
-                            <span className="ep-detail-row-val ep-val-error">{selectedDay.totret || '0'}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">H. Suppl.</span>
-                            <span className="ep-detail-row-val ep-val-tertiary">{selectedDay.tothsup || '0'}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">H. Nuits</span>
-                            <span className="ep-detail-row-val">{selectedDay.tothnuit || '0'}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">H. Absences</span>
-                            <span className="ep-detail-row-val ep-val-error">{selectedDay.tothabs || '0'}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Compensation</span>
-                            <span className="ep-detail-row-val">{selectedDay.totcmp || '0'}</span>
-                          </Box>
-                          <Box className="ep-detail-row">
-                            <span className="ep-detail-row-label">Observation</span>
-                            <span className="ep-detail-row-val" style={{ fontSize: '11px', maxWidth: 110, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {selectedDay.preobs || '—'}
-                            </span>
-                          </Box>
+                          {[
+                            { label: 'Retard', val: selectedDay.totret || '0', err: true },
+                            { label: 'H. Suppl.', val: selectedDay.tothsup || '0', tertiary: true },
+                            { label: 'H. Nuits', val: selectedDay.tothnuit || '0' },
+                            { label: 'H. Absences', val: selectedDay.tothabs || '0', err: true },
+                            { label: 'Compensation', val: String(selectedDay.totcmp || 0) },
+                            { label: 'Observation', val: selectedDay.preobs || '—' },
+                          ].map(({ label, val, err, tertiary }) => (
+                            <Box key={label} className="ep-detail-row">
+                              <span className="ep-detail-row-label">{label}</span>
+                              <span className={`ep-detail-row-val ${err ? 'ep-val-error' : tertiary ? 'ep-val-tertiary' : ''}`}>{val}</span>
+                            </Box>
+                          ))}
                         </Box>
                       </Box>
                     </Box>
 
-                    {/* Col 2: poste du jour — real data */}
+                    {/* Poste du jour */}
                     <Box className="ep-horaire-mini">
                       <Typography className="ep-horaire-mini-title">Poste du jour</Typography>
                       {selectedPoste ? (
@@ -616,7 +895,6 @@ function EtatPeriodiqueModernInner() {
               </>
             )}
           </Box>
-
         </Box>
       </Box>
     </Box>
