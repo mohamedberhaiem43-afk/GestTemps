@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -11,21 +11,24 @@ import {
   FormControl,
   Paper,
   CircularProgress,
+  InputAdornment,
 } from '@mui/material';
 import AddCardIcon from '@mui/icons-material/AddCard';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import BusinessIcon from '@mui/icons-material/Business';
+import WorkIcon from '@mui/icons-material/Work';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import apiInstance from '../../API/apiInstance';
 import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
 import { useAuth } from '../../helper/AuthProvider';
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import getDatePart from '../../helper/TimeConverter/ExtractDateOnly';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
-// import { useTranslation } from 'react-i18next';
-import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 import getTodayDate from '../../helper/TimeConverter/TodayDate';
 import { useQueryClient } from 'react-query';
 import { Contrat } from '../../../models/Contrat';
+import type Employe from '../../../models/Employe';
 
 interface SaisieContratModernProps {
   editingContract?: Contrat | null;
@@ -39,8 +42,29 @@ const contratTypes: Record<string, string> = {
   '3': 'CIVP',
 };
 
+// Reverse mapping: label -> code
+const contratTypeByLabel: Record<string, string> = {
+  'cdd': '0',
+  'cdi': '1',
+  'ouvrier': '2',
+  'civp': '3',
+};
+
+const mapContratType = (empcontrat: string | null): string => {
+  if (!empcontrat) return '0';
+  const normalized = empcontrat.trim().toLowerCase();
+  // Direct match
+  if (contratTypeByLabel[normalized]) return contratTypeByLabel[normalized];
+  // Partial match
+  if (normalized.includes('cdi')) return '1';
+  if (normalized.includes('cdd')) return '0';
+  if (normalized.includes('ouvrier') || normalized.includes('ouvri')) return '2';
+  if (normalized.includes('civp') || normalized.includes('stage') || normalized.includes('stagiaire')) return '3';
+  return '0';
+};
+
 const createInitialForm = () => ({
-  numOrdre: generateNumeroOrdre(),
+  numOrdre: '',
   dateDebut: getTodayDate(),
   dateFin: getTodayDate(),
   jours: '1',
@@ -49,6 +73,10 @@ const createInitialForm = () => ({
   observations: '',
   typeContrat: '0',
   selectedEmployee: '',
+  // Auto-filled from employee
+  filiale: '',
+  poste: '',
+  salaireBase: '',
 });
 
 const calculateMonths = (start: string, end: string): number => {
@@ -69,7 +97,6 @@ const calculateDays = (start: string, end: string): number => {
 const toApiDate = (value: string) => new Date(`${value}T00:00:00`);
 
 const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieContratModernProps) => {
-  // const { t } = useTranslation();
   const { soccod } = useAuth();
   const sitcod = sessionStorage.getItem('sitcod');
   const queryClient = useQueryClient();
@@ -91,7 +118,59 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
   const [message, setMessage] = useState<string | null>(null);
   const [severity, setSeverity] = useState<'error' | 'success'>('success');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingEmployee, setIsFetchingEmployee] = useState(false);
   const [form, setForm] = useState(createInitialForm());
+
+  // Fetch next contract number from backend
+  const fetchNextConcod = useCallback(async () => {
+    if (!soccod || editingContract) return;
+    try {
+      const response = await apiInstance.get(`/Contrats/get-next-concod/${soccod}`);
+      if (response.data?.concod) {
+        setForm(prev => ({ ...prev, numOrdre: response.data.concod }));
+      }
+    } catch (err) {
+      console.error('Erreur lors de la génération du numéro de contrat:', err);
+    }
+  }, [soccod, editingContract]);
+
+  // Generate contract number on mount (new contract only)
+  useEffect(() => {
+    if (!editingContract) {
+      fetchNextConcod();
+    }
+  }, [editingContract, fetchNextConcod]);
+
+  // Fetch employee details when selected
+  useEffect(() => {
+    if (!form.selectedEmployee || !soccod || editingContract) return;
+
+    const empcod = form.selectedEmployee;
+    setIsFetchingEmployee(true);
+
+    apiInstance.get(`/Employes/get-employe/${soccod}/${empcod}`)
+      .then(response => {
+        const emp: Employe = response.data;
+        if (!emp) return;
+
+        // Map empcontrat to typeContrat code
+        const detectedType = mapContratType(emp.empcontrat);
+
+        setForm(prev => ({
+          ...prev,
+          filiale: emp.sitcod || '',
+          poste: emp.empfonc || emp.foncod || '',
+          salaireBase: emp.empsbase || '',
+          typeContrat: detectedType,
+        }));
+      })
+      .catch(err => {
+        console.error('Erreur lors de la récupération des détails employé:', err);
+      })
+      .finally(() => {
+        setIsFetchingEmployee(false);
+      });
+  }, [form.selectedEmployee, soccod, editingContract]);
 
   useEffect(() => {
     if (!editingContract) {
@@ -111,6 +190,9 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
       mois: editingContract.conmois?.toString() || calculateMonths(editStartDate, editEndDate).toString(),
       jours: calculateDays(editStartDate, editEndDate).toString(),
       observations: editingContract.empmotif || '',
+      filiale: editingContract.sitcod || '',
+      poste: editingContract.emppost || '',
+      salaireBase: editingContract.empsbase || '',
     });
   }, [editingContract]);
 
@@ -136,8 +218,11 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
   };
 
   const resetForm = () => {
-    setForm(createInitialForm());
+    const initial = createInitialForm();
+    setForm(initial);
     setEditingContract?.(null);
+    // Re-fetch next contract number
+    fetchNextConcod();
   };
 
   const buildContractPayload = (): Contrat => ({
@@ -146,13 +231,13 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
     empcod: form.selectedEmployee,
     condat: toApiDate(form.dateContrat),
     contype: form.typeContrat.slice(0, 1),
-    sitcod: sitcod || '',
+    sitcod: form.filiale || sitcod || '',
     sercod: 'SR01',
     empreg: 'Y',
     catcod: '',
     vilcod: '',
     empadr: '',
-    emppost: '',
+    emppost: form.poste || '',
     emptel: '',
     empemb: toApiDate(form.dateDebut),
     empsort: toApiDate(form.dateFin),
@@ -166,11 +251,11 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
     empcat: '',
     empscat: '',
     cnscod: '',
-    empsbase: '',
+    empsbase: form.salaireBase || '',
     empsbrut: '',
     socresp: '',
     dircod: '',
-    empcontrat: '',
+    empcontrat: contratTypes[form.typeContrat] || '',
     conmois: parseFloat(form.mois),
   });
 
@@ -247,6 +332,9 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
           >
             {editingContract ? 'Modifier le Contrat' : 'Nouvelle Entrée'}
           </Typography>
+          {isFetchingEmployee && (
+            <CircularProgress size={16} sx={{ ml: 1, color: '#0040a1' }} />
+          )}
         </Box>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -350,6 +438,114 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
                 </Select>
               </FormControl>
             </Box>
+          </Box>
+
+          {/* Auto-filled: Filiale, Poste */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: '#515f74',
+                  mb: 0.5,
+                }}
+              >
+                Filiale
+              </Typography>
+              <TextField
+                size="small"
+                fullWidth
+                value={form.filiale}
+                onChange={(e) => updateField('filiale', e.target.value)}
+                InputProps={{
+                  readOnly: true,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <BusinessIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                placeholder="Auto-rempli"
+                sx={{
+                  backgroundColor: '#f0f4f8',
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                }}
+              />
+            </Box>
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: '#515f74',
+                  mb: 0.5,
+                }}
+              >
+                Poste / Fonction
+              </Typography>
+              <TextField
+                size="small"
+                fullWidth
+                value={form.poste}
+                onChange={(e) => updateField('poste', e.target.value)}
+                InputProps={{
+                  readOnly: true,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <WorkIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                placeholder="Auto-rempli"
+                sx={{
+                  backgroundColor: '#f0f4f8',
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                }}
+              />
+            </Box>
+          </Box>
+
+          {/* Auto-filled: Salaire de base */}
+          <Box>
+            <Typography
+              sx={{
+                fontSize: '10px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: '#515f74',
+                mb: 0.5,
+              }}
+            >
+              Salaire de Base
+            </Typography>
+            <TextField
+              size="small"
+              fullWidth
+              value={form.salaireBase}
+              onChange={(e) => updateField('salaireBase', e.target.value)}
+              InputProps={{
+                readOnly: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AttachMoneyIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
+                  </InputAdornment>
+                ),
+              }}
+              placeholder="Auto-rempli"
+              sx={{
+                backgroundColor: '#f0f4f8',
+                borderRadius: '8px',
+                '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+              }}
+            />
           </Box>
 
           {/* Date Range */}
@@ -478,7 +674,7 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
               type="submit"
               variant="contained"
               size="small"
-              disabled={isLoading}
+              disabled={isLoading || isFetchingEmployee}
               startIcon={isLoading ? <CircularProgress size={16} /> : <SaveIcon sx={{ fontSize: 16 }} />}
               sx={{
                 borderRadius: '8px',

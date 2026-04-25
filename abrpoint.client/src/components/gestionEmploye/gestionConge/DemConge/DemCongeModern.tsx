@@ -21,13 +21,12 @@ import useAcceptDemConge from '../../../../hooks/congeHooks/useAcceptDemConge';
 import useAddDemConge from '../../../../hooks/congeHooks/useAddDemConge';
 import useUpdateDemConge from '../../../../hooks/congeHooks/useUpdateConge';
 import useDeleteDemConge from '../../../../hooks/congeHooks/useDeleteDemConge';
-import useGetAbsencesLibs from '../../../../hooks/absenceHooks/useGetAbsenceLibs';
+import useGetCongeAbsenceLibs from '../../../../hooks/absenceHooks/useGetCongeAbsenceLibs';
 import useGetEmployee from '../../../../hooks/employeHooks/useGetEmployee';
 import useGetDroitConge from '../../../../hooks/congeHooks/useGetDroitConge';
 import { useAuth } from '../../../helper/AuthProvider';
 import { Conge } from '../../../../models/Conge';
 import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
-import generateNumeroOrdre from '../../../helper/GenerateNumOrdre';
 import apiInstance from '../../../API/apiInstance';
 import './DemCongeModern.css';
 
@@ -120,16 +119,16 @@ function MiniCalendar({ leaves }: { leaves: Conge[] }) {
 }
 
 // ── Form Dialog ───────────────────────────────────────────────────────────────
-function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose: () => void; editConge: Conge | null }) {
+function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolean; onClose: () => void; editConge: Conge | null; onSuccess?: () => void }) {
   const { soccod, isEmp, uticod } = useAuth();
   const { refetch } = useGetDemConges();
-  const { data: absences = [] } = useGetAbsencesLibs();
+  const { data: absences = [] } = useGetCongeAbsenceLibs();
   const { data: employeOptions = [] } = useGetEmployee();
   const { mutate: addConge, isLoading: adding } = useAddDemConge();
   const { mutate: updateConge, isLoading: updating } = useUpdateDemConge();
 
   const [empcod, setEmpcod] = useState(() => isEmp && uticod ? uticod : '');
-  const [concod, setConcod] = useState(generateNumeroOrdre());
+  const [concod, setConcod] = useState('');
   const [condat, setCondat] = useState(today());
   const [condep, setCondep] = useState(today());
   const [conret, setConret] = useState(today());
@@ -153,6 +152,39 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
   const droitRestant = (droitConge as any)?.droitrestant ?? (droitConge as any)?.Droitrestant ?? 0;
   const nouveauSolde = Math.max(0, droitRestant - connbjour);
 
+  // Auto-fill phone when employee is selected or when uticod is set (employee self-request)
+  useEffect(() => {
+    const targetEmpcod = isEmp && uticod ? uticod : empcod;
+    if (targetEmpcod && !editConge) {
+      apiInstance.get(`/Employes/${targetEmpcod}`).then((res) => {
+        const tel = res.data?.emptel || res.data?.empmob || '';
+        if (tel) setContel(tel);
+      }).catch(() => {});
+    }
+  }, [empcod, isEmp, uticod, editConge]);
+
+  // Set default type de congé when absences load
+  useEffect(() => {
+    if (!editConge && open && absences && !abscod) {
+      const absEntries = Object.entries(absences);
+      if (absEntries.length > 0) {
+        setAbscod(absEntries[0][0]);
+      }
+    }
+  }, [open, editConge, absences, abscod]);
+
+  // Fetch next concod from database when form opens in add mode
+  useEffect(() => {
+    if (!editConge && open && soccod) {
+      apiInstance.get(`/DemConges/get-next-concod/${soccod}`)
+        .then(res => {
+          const nextConcod = res.data?.concod || res.data || '';
+          setConcod(nextConcod);
+        })
+        .catch(() => { /* silent */ });
+    }
+  }, [open, editConge, soccod]);
+
   useEffect(() => {
     if (editConge) {
       setEmpcod(editConge.empcod);
@@ -169,7 +201,6 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
       setConnbjour(editConge.connbjour);
     } else {
       setEmpcod(isEmp && uticod ? uticod : '');
-      setConcod(generateNumeroOrdre());
       setCondat(today());
       setCondep(today());
       setConret(today());
@@ -180,6 +211,7 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
       setContel('');
       setConref('');
       setConnbjour(0);
+      // concod will be set by the useEffect above
     }
   }, [editConge, open]);
 
@@ -200,7 +232,14 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
       abscod, conadr, contel, conref, connbjour,
       conjour: 'J', emplib: null, condg: '', conrefus: '', consolde: 0,
     };
-    const cb = { onSuccess: () => { refetch(); onClose(); }, onError: () => {} };
+    const cb = {
+      onSuccess: () => {
+        refetch();
+        if (onSuccess) onSuccess();
+        onClose();
+      },
+      onError: () => {}
+    };
     editConge ? updateConge(payload, cb) : addConge(payload, cb);
   };
 
@@ -227,11 +266,11 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>N° Ordre</Typography>
-            <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} InputProps={{ readOnly: !!editConge }} sx={fieldSx} />
+            <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} InputProps={{ readOnly: true }} sx={fieldSx} />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Date demande</Typography>
-            <TextField size="small" fullWidth type="date" value={condat} onChange={(e) => setCondat(e.target.value)} sx={fieldSx} />
+            <TextField size="small" fullWidth type="date" value={condat} InputProps={{ readOnly: true }} sx={fieldSx} />
           </Box>
         </Box>
 
@@ -339,6 +378,7 @@ function DemCongeModernInner() {
   const { setSelectedConge } = useCongeContext();
   const { data = [], isLoading, refetch } = useGetDemConges();
   const { mutate: acceptConge } = useAcceptDemConge();
+  const { data: absenceLibs = [] } = useGetCongeAbsenceLibs();
   const [managerEmployeeCodes, setManagerEmployeeCodes] = useState<Set<string> | null>(null);
   const [isManagerScopeLoading, setIsManagerScopeLoading] = useState(false);
 
@@ -405,6 +445,8 @@ function DemCongeModernInner() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [refuseConfirmOpen, setRefuseConfirmOpen] = useState(false);
   const [congeToRefuse, setCongeToRefuse] = useState<Conge | null>(null);
+  const [acceptConfirmOpen, setAcceptConfirmOpen] = useState(false);
+  const [congeToAccept, setCongeToAccept] = useState<Conge | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [congeToDelete, setCongeToDelete] = useState<Conge | null>(null);
   const deleteMutation = useDeleteDemConge();
@@ -412,11 +454,19 @@ function DemCongeModernInner() {
   const showSnack = (message: string, severity: 'success' | 'error') =>
     setSnackbar({ open: true, message, severity });
 
-  const handleAccept = (c: Conge) => {
-    acceptConge({ concod: c.concod, empcod: c.empcod }, {
-      onSuccess: (res: any) => { showSnack(res.message || 'Demande acceptée', 'success'); refetch(); },
+  const handleAcceptClick = (c: Conge) => {
+    setCongeToAccept(c);
+    setAcceptConfirmOpen(true);
+  };
+
+  const confirmAccept = () => {
+    if (!congeToAccept) return;
+    acceptConge({ concod: congeToAccept.concod, empcod: congeToAccept.empcod }, {
+      onSuccess: (res: any) => { showSnack(res.message || 'Demande acceptée avec succès', 'success'); refetch(); },
       onError: (err: any) => showSnack(err?.response?.data?.message || 'Erreur', 'error'),
     });
+    setAcceptConfirmOpen(false);
+    setCongeToAccept(null);
   };
 
   const handleRefuseClick = (c: Conge) => {
@@ -531,7 +581,7 @@ function DemCongeModernInner() {
                     {/* Type */}
                     <Box className="dcm-col-type">
                       <Box className="dcm-type-badge" style={{ backgroundColor: typeColor.bg, color: typeColor.text }}>
-                        {c.abscod || '—'}
+                        {(absenceLibs as Record<string, string>)?.[c.abscod] || c.abscod || '—'}
                       </Box>
                     </Box>
 
@@ -581,7 +631,7 @@ function DemCongeModernInner() {
                             </Button>
                           )}
                           {canModify && (
-                            <Button size="small" className="dcm-action-accept" onClick={() => handleAccept(c)} startIcon={<CheckIcon />}>
+                            <Button size="small" className="dcm-action-accept" onClick={() => handleAcceptClick(c)} startIcon={<CheckIcon />}>
                               Valider
                             </Button>
                           )}
@@ -637,7 +687,47 @@ function DemCongeModernInner() {
       </Box>
 
       {/* Form Dialog */}
-      <CongeFormDialog open={formOpen} onClose={() => { setFormOpen(false); refetch(); }} editConge={editConge} />
+      <CongeFormDialog 
+        open={formOpen} 
+        onClose={() => { setFormOpen(false); refetch(); }} 
+        editConge={editConge} 
+        onSuccess={() => showSnack(editConge ? 'Demande modifiée avec succès' : 'Demande de congé créée avec succès', 'success')}
+      />
+
+      {/* Accept Confirmation Dialog */}
+      <Dialog
+        open={acceptConfirmOpen}
+        onClose={() => setAcceptConfirmOpen(false)}
+        PaperProps={{ sx: { borderRadius: '12px', minWidth: '350px' } }}
+      >
+        <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#005136' }}>
+          Confirmer la validation
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: '#475569', fontSize: '14px', mt: 1 }}>
+            Êtes-vous sûr de vouloir valider la demande de congé
+            {congeToAccept ? ` de ${congeToAccept.emplib || congeToAccept.empcod}` : ''} 
+            {(congeToAccept && (absenceLibs as Record<string, string>)?.[congeToAccept.abscod]) 
+              ? ` (${(absenceLibs as Record<string, string>)[congeToAccept.abscod]})` 
+              : ''} ?
+          </Typography>
+          {congeToAccept && (
+            <Box sx={{ mt: 2, p: 1.5, background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+              <Typography sx={{ fontSize: '12px', color: '#166534', fontWeight: 600 }}>
+                Du {fmtDate(congeToAccept.condep)} au {fmtDate(congeToAccept.conret)} — {congeToAccept.connbjour} jour{congeToAccept.connbjour !== 1 ? 's' : ''}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setAcceptConfirmOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
+            Annuler
+          </Button>
+          <Button onClick={confirmAccept} variant="contained" color="success" sx={{ textTransform: 'none', borderRadius: '8px' }}>
+            Oui, Valider
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Refuse Confirmation Dialog */}
       <Dialog

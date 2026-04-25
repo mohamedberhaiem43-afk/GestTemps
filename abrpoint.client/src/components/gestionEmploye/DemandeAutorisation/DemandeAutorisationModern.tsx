@@ -20,6 +20,7 @@ import useGetAutorisationLibs from '../../../hooks/absenceHooks/useGetAutorisati
 import { useAuth } from '../../helper/AuthProvider';
 import { DemandeAutorisation } from '../../../models/DemandeAutorisation';
 import apiInstance from '../../API/apiInstance';
+import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 import './DemandeAutorisationModern.css';
 
 // ── Absence type ──
@@ -67,11 +68,11 @@ const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
 };
 
 // ── Form Dialog ──
-function DemandeFormDialog({ open, onClose, editDemande }: { open: boolean; onClose: () => void; editDemande: DemandeAutorisation | null }) {
+function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: boolean; onClose: () => void; editDemande: DemandeAutorisation | null; onSuccess?: () => void }) {
   const { soccod, isEmp, uticod } = useAuth();
   const { refetch } = useGetDemandeAutorisations();
 
-  const [concod, setConcod] = useState(`DA${Date.now().toString().slice(-6)}`);
+  const [concod, setConcod] = useState(generateNumeroOrdre());
   const [condat, setCondat] = useState(today());
   const [condep, setCondep] = useState(now());
   const [conret, setConret] = useState(now());
@@ -102,7 +103,7 @@ function DemandeFormDialog({ open, onClose, editDemande }: { open: boolean; onCl
       setConmotif(editDemande.conmotif || '');
       setAbscod(editDemande.abscod || '');
     } else {
-      setConcod(`DA${Date.now().toString().slice(-6)}`);
+      setConcod(generateNumeroOrdre());
       setCondat(today());
       setCondep(now());
       setConret(now());
@@ -137,6 +138,7 @@ function DemandeFormDialog({ open, onClose, editDemande }: { open: boolean; onCl
         await apiInstance.post('/DemandeAutorisations', payload);
       }
       refetch();
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
       console.error('Error saving demande:', err);
@@ -171,11 +173,11 @@ function DemandeFormDialog({ open, onClose, editDemande }: { open: boolean; onCl
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>N° Demande</Typography>
-            <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} InputProps={{ readOnly: !!editDemande }} sx={fieldSx} />
+            <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} InputProps={{ readOnly: true }} sx={fieldSx} />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Date demande</Typography>
-            <TextField size="small" fullWidth type="date" value={condat} onChange={(e) => setCondat(e.target.value)} sx={fieldSx} />
+            <TextField size="small" fullWidth type="date" value={condat} InputProps={{ readOnly: true }} sx={fieldSx} />
           </Box>
         </Box>
 
@@ -523,7 +525,12 @@ function DemandeAutorisationModern() {
       </Box>
 
       {/* Form Dialog */}
-      <DemandeFormDialog open={formOpen} onClose={() => { setFormOpen(false); refetch(); }} editDemande={editDemande} />
+      <DemandeFormDialog 
+        open={formOpen} 
+        onClose={() => { setFormOpen(false); refetch(); }} 
+        editDemande={editDemande}
+        onSuccess={() => showSnack(editDemande ? 'Demande modifiée avec succès' : 'Demande d\'autorisation créée avec succès', 'success')}
+      />
 
       {/* Approve/Refuse Dialog */}
       <TraitementDialog

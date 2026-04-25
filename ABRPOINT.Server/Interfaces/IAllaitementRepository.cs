@@ -10,5 +10,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<IEnumerable<AllaitementDto>> GetAllAsync(string soccod, string uticod);
         Task<float?> GetNbhAllaitementAsync(string soccod, string empcod, DateTime? predat);
         Task<Dictionary<DateTime, float>> GetAllaitementsByPeriodAsync(string soccod, string empcod, DateTime startDate, DateTime endDate);
+        Task<string> GetNextConcodAsync(string soccod);
     }
 }

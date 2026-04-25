@@ -5,7 +5,6 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -236,6 +235,20 @@ namespace ABRPOINT.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Erreur lors de recuperer les contrats qui expirent", details = ex.Message });
+            }
+        }
+
+        [HttpGet("get-next-concod/{soccod}")]
+        public async Task<IActionResult> GetNextConcod(string soccod)
+        {
+            try
+            {
+                var nextConcod = await _contratRepository.GetNextConcodAsync(soccod);
+                return Ok(new { concod = nextConcod });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de la génération du numéro de contrat", details = ex.Message });
             }
         }
 

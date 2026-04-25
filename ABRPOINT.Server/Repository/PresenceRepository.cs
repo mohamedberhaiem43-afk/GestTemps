@@ -17,7 +17,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ABRPOINT.Server.Repository
 {
     public class PresenceRepository : IPresenceRepository
-    {
+   {
         private readonly ApplicationDbContext _dbContext;
         private readonly IPosteRepository _posteRepository;
         private readonly IParametreRepository _parametreRepository;

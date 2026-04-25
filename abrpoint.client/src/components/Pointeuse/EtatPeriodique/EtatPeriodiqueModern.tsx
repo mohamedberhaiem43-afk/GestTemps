@@ -515,6 +515,18 @@ function EtatPeriodiqueModernInner() {
 
   const handleSearch = () => {
     if (!soccod || !uticod) return;
+
+    // Block future dates
+    const todayStr = dayjs().format('YYYY-MM-DD');
+    if (dateDebut > todayStr) {
+      alert('La date de début ne peut pas être dans le futur.');
+      return;
+    }
+    if (dateFin > todayStr) {
+      alert('La date de fin ne peut pas être dans le futur.');
+      return;
+    }
+
     setLoadingEmps(true);
     const params = new URLSearchParams();
     params.append('debut', dateDebut + 'T00:00:00');
@@ -601,16 +613,16 @@ function EtatPeriodiqueModernInner() {
     <Box className="ep-container">
       {/* Header */}
       <Box className="ep-header">
-        <Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography className="ep-title">État Périodique</Typography>
           <Typography className="ep-subtitle">Suivi détaillé des présences et horaires des collaborateurs</Typography>
         </Box>
-        <Box className="ep-header-actions">
+        <Box className="ep-header-actions" sx={{ flexShrink: 0 }}>
           <button className="ep-btn-secondary" onClick={handleExportExcel}>
-            <DownloadIcon sx={{ fontSize: 16 }} />Exporter Excel
+            <DownloadIcon sx={{ fontSize: 16 }} /><Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Exporter</Box>
           </button>
           <button className="ep-btn-primary" onClick={handlePrint}>
-            <PrintIcon sx={{ fontSize: 16 }} />Imprimer
+            <PrintIcon sx={{ fontSize: 16 }} /><Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Imprimer</Box>
           </button>
         </Box>
       </Box>
@@ -656,11 +668,11 @@ function EtatPeriodiqueModernInner() {
           </Box>
           <Box className="ep-filter-field">
             <span className="ep-filter-label">Date début</span>
-            <input className="ep-input-date" type="date" value={dateDebut} onChange={e => setDateDebut(e.target.value)} />
+            <input className="ep-input-date" type="date" value={dateDebut} max={dayjs().format('YYYY-MM-DD')} onChange={e => setDateDebut(e.target.value)} />
           </Box>
           <Box className="ep-filter-field">
             <span className="ep-filter-label">Date fin</span>
-            <input className="ep-input-date" type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} />
+            <input className="ep-input-date" type="date" value={dateFin} max={dayjs().format('YYYY-MM-DD')} onChange={e => setDateFin(e.target.value)} />
           </Box>
           <Box className="ep-filter-field ep-filter-search-btn">
             <button className="ep-search-btn" onClick={handleSearch} disabled={loadingEmps} title="Rechercher">

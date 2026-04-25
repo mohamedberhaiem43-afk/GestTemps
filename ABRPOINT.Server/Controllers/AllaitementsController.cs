@@ -34,6 +34,13 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        [HttpGet("get-next-concod/{soccod}")]
+        public async Task<ActionResult> GetNextConcod(string soccod)
+        {
+            var concod = await _allaitementRepository.GetNextConcodAsync(soccod);
+            return Ok(new { concod });
+        }
+
         [HttpGet("{soccod}/{concod}")]
         [CanGetAllaitement]
         public async Task<ActionResult<Allaitement>> Get(string soccod, string concod)

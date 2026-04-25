@@ -102,7 +102,7 @@ function DashboardModernAdmin() {
   const formattedDebut = useMemo(() => dateRange ? dayjs(dateRange.dateDebut).format('YYYY-MM-DD') : '', [dateRange]);
   const formattedFin = useMemo(() => dateRange ? dayjs(dateRange.dateFin).format('YYYY-MM-DD') : '', [dateRange]);
 
-  const { data: demandesData, isLoading: loadingDemandes } = useGetPendingDemCongesByPeriode(formattedDebut, formattedFin, openCongeDialog);
+  const { data: demandesData, isLoading: loadingDemandes } = useGetPendingDemCongesByPeriode(formattedDebut, formattedFin, true);
   const { data: pointagesData, isLoading: loadingPointages, error: errorPointages } = useGetPointagesInvalides(dashboardRequest, openPointageDialog);
 
   const today = dayjs().format('DD MMMM YYYY');
@@ -224,7 +224,7 @@ function DashboardModernAdmin() {
             <Typography className="db-bento-label">Congés en cours</Typography>
             <Box className="db-bento-icon-wrap-green"><EventAvailableIcon sx={{ fontSize: 20 }} /></Box>
           </Box>
-          <Typography className="db-bento-medium-num">{dashboardData?.totalDemandesEnAttente ?? '--'}</Typography>
+          <Typography className="db-bento-medium-num">{demandesData?.length ?? dashboardData?.totalDemandesEnAttente ?? '--'}</Typography>
           <Typography className="db-bento-sub">Demandes en attente d'approbation</Typography>
           <Box className="db-bento-progress">
             <Box className="db-bento-progress-fill" style={{ width: '75%' }} />
@@ -323,14 +323,14 @@ function DashboardModernAdmin() {
               </Box>
             </Box>
           ) : null}
-          {dashboardData?.totalDemandesEnAttente ? (
+          {(demandesData?.length || dashboardData?.totalDemandesEnAttente) ? (
             <Box className="db-renewal-item db-renewal-normal">
               <Box>
                 <Typography className="db-renewal-name">Demandes en attente</Typography>
                 <Typography className="db-renewal-type">Validation requise</Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
-                <Typography className="db-renewal-days-primary">{dashboardData.totalDemandesEnAttente} demandes</Typography>
+                <Typography className="db-renewal-days-primary">{demandesData?.length ?? dashboardData?.totalDemandesEnAttente} demandes</Typography>
                 <Typography className="db-renewal-action">Valider</Typography>
               </Box>
             </Box>

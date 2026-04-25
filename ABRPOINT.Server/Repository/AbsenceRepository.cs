@@ -500,6 +500,24 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        public async Task<Dictionary<string, string>> GetCongeAbsLibsAsync(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                throw new ArgumentException("Soccod cannot be null or empty.", nameof(soccod));
+
+            try
+            {
+                var congeTypes = new[] { "0", "1", "5" };
+                return await _dbContext.Absences
+                    .Where(a => a.Soccod == soccod && congeTypes.Contains(a.Abscng))
+                    .ToDictionaryAsync(abs => abs.Abscod, abs => abs.Abslib);
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Erreur lors de la récupération des types de congé", ex);
+            }
+        }
+
         public async Task<IEnumerable<Absence>> GetAutorisationAbsencesAsync(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
@@ -508,7 +526,7 @@ namespace ABRPOINT.Server.Repository
             try
             {
                 return await _dbContext.Absences
-                    .Where(a => a.Soccod == soccod && a.Absaut == 1)
+                    .Where(a => a.Soccod == soccod && a.Abscng == "B")
                     .ToListAsync();
             }
             catch (Exception ex)

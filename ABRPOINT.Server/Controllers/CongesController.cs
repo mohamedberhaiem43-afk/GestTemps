@@ -2,10 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Data;
 using Microsoft.AspNetCore.Authorization;
 using ABRPOINT.Server.Annotations.CongesAttributes.CongeAttributes;
 using ABRPOINT.Server.Annotations.CongesAttributes.CahierCongeAttributes;
 using ABRPOINT.Server.Annotations.CongesAttributes.DemCongeAttributes;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
@@ -17,10 +19,44 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly ICongeRepository _congeRepository;
         private readonly IReportsGenerationService _reportsGenerationRepository;
-        public CongesController(ICongeRepository congeRepository,IReportsGenerationService reportsGenerationService)
+        private readonly ApplicationDbContext _context;
+        public CongesController(ICongeRepository congeRepository,IReportsGenerationService reportsGenerationService, ApplicationDbContext context)
         {
             _congeRepository = congeRepository;
             _reportsGenerationRepository = reportsGenerationService;
+            _context = context;
+        }
+
+        // GET: api/Conges/get-next-concod/{soccod}
+        [HttpGet("get-next-concod/{soccod}")]
+        public async Task<IActionResult> GetNextConcod(string soccod)
+        {
+            try
+            {
+                var now = DateTime.Now;
+                var prefix = now.ToString("yyMM");
+                var pattern = prefix + "%";
+
+                var maxConcod = await _context.Conges
+                    .Where(c => c.Soccod == soccod && c.Concod.StartsWith(prefix))
+                    .OrderByDescending(c => c.Concod)
+                    .Select(c => c.Concod)
+                    .FirstOrDefaultAsync();
+
+                int nextSeq = 1;
+                if (!string.IsNullOrEmpty(maxConcod) && maxConcod.Length >= 6)
+                {
+                    if (int.TryParse(maxConcod.Substring(4), out int lastSeq))
+                        nextSeq = lastSeq + 1;
+                }
+
+                var nextConcod = prefix + nextSeq.ToString("D2");
+                return Ok(new { concod = nextConcod });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur lors de la génération du numéro: " + ex.Message);
+            }
         }
         // GET: api/<DirectionsController>
         [HttpGet("get-conges/{soccod}/{uticod}")]

@@ -1,9 +1,11 @@
 using ABRPOINT.Server.Annotations.CongesAttributes.DemCongeAttributes;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
@@ -14,9 +16,42 @@ namespace ABRPOINT.Server.Controllers
     public class DemCongesController : ControllerBase
     {
         private readonly IDemCongeRepository _demandecongeRepository;
-        public DemCongesController(IDemCongeRepository demandecongeRepository)
+        private readonly ApplicationDbContext _context;
+        public DemCongesController(IDemCongeRepository demandecongeRepository, ApplicationDbContext context)
         {
             _demandecongeRepository = demandecongeRepository;
+            _context = context;
+        }
+
+        // GET: api/DemConges/get-next-concod/{soccod}
+        [HttpGet("get-next-concod/{soccod}")]
+        public async Task<IActionResult> GetNextConcod(string soccod)
+        {
+            try
+            {
+                var now = DateTime.Now;
+                var prefix = "D" + now.ToString("yyMM");
+
+                var maxConcod = await _context.Demconges
+                    .Where(c => c.Soccod == soccod && c.Concod.StartsWith(prefix))
+                    .OrderByDescending(c => c.Concod)
+                    .Select(c => c.Concod)
+                    .FirstOrDefaultAsync();
+
+                int nextSeq = 1;
+                if (!string.IsNullOrEmpty(maxConcod) && maxConcod.Length >= 7)
+                {
+                    if (int.TryParse(maxConcod.Substring(5), out int lastSeq))
+                        nextSeq = lastSeq + 1;
+                }
+
+                var nextConcod = prefix + nextSeq.ToString("D2");
+                return Ok(new { concod = nextConcod });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur lors de la génération du numéro: " + ex.Message);
+            }
         }
         // GET: api/<DirectionsController>
         [HttpGet("get-demconge/{soccod}/{uticod}")]

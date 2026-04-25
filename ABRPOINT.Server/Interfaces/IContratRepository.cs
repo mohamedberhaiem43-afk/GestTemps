@@ -16,5 +16,6 @@ namespace ABRPOINT.Server.Interfaces
         Task UpdateAsync(Contrat contrat);
         Task<Contrat> RenewAsync(RenouvellementContratDto renouvellement);
         Task DeleteAsync(Contrat contrat);
+        Task<string> GetNextConcodAsync(string soccod);
     }
 }

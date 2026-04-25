@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box, Typography, Paper, TextField, Select, MenuItem,
   FormControl, Button, Avatar, Chip, IconButton, CircularProgress, Snackbar, Alert,
@@ -20,6 +20,7 @@ import useGetEmployeesLibs from '../../../hooks/employeHooks/useGetEmployeesLibs
 import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
 import useGetSocLibs from '../../../hooks/societeHooks/useGetSocLibs';
 import useGetSiteLibs from '../../../hooks/siteHooks/useGetSiteLibs';
+import useGetFonctionsLibs from '../../../hooks/fonctionHooks/useGetFonctionsLibs';
 import { useAuth } from '../../helper/AuthProvider';
 import AlertModal from '../../AlertModal/AlertModal';
 import apiInstance from '../../API/apiInstance';
@@ -161,6 +162,7 @@ const GestionContratsModernInner = () => {
   const { data: empLibsDirect } = useGetEmployee();
   const { data: socLibs = {} } = useGetSocLibs();
   const { data: sitLibs = {} } = useGetSiteLibs();
+  const { data: fonLibs = {} } = useGetFonctionsLibs();
 
   const contrats: Contrat[] = useMemo(() => {
     if (Array.isArray(contratsRaw)) return contratsRaw;
@@ -187,6 +189,19 @@ const GestionContratsModernInner = () => {
   const [searchQ, setSearchQ] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Contrat | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [loadingEmployee, setLoadingEmployee] = useState(false);
+
+  // ── Auto-fetch next concod on mount / when entering add mode ──
+  useEffect(() => {
+    if (soccod && mode === 'add' && !form.empcod) {
+      apiInstance.get(`/Contrats/get-next-concod/${soccod}`)
+        .then(res => {
+          const nextConcod = res.data?.concod || res.data || '';
+          setForm(prev => ({ ...prev, concod: nextConcod }));
+        })
+        .catch(() => { /* silent */ });
+    }
+  }, [soccod, mode]);
 
   const showSnack = (message: string, severity: 'success' | 'error') =>
     setSnackbar({ open: true, message, severity });
@@ -217,6 +232,58 @@ const GestionContratsModernInner = () => {
   const handleSelect = (name: string) => (e: any) =>
     setForm(p => ({ ...p, [name]: e.target.value }));
 
+  // ── Auto-fill when selecting an employee in add mode ──
+  const handleEmployeeSelect = async (empcod: string) => {
+    // If cleared, reset to empty
+    if (!empcod) {
+      setForm(emptyForm(soccod || ''));
+      return;
+    }
+
+    setLoadingEmployee(true);
+    try {
+      const resolvedSoccod = soccod || '';
+
+      // Fetch employee details & next contract number in parallel
+      const [empRes, concodRes] = await Promise.all([
+        apiInstance.get(`/Employes/get-employe/${resolvedSoccod}/${empcod}`),
+        apiInstance.get(`/Contrats/get-next-concod/${resolvedSoccod}`),
+      ]);
+
+      const emp = empRes.data;
+      const nextConcod = concodRes.data?.concod || concodRes.data || '';
+
+      setForm(prev => ({
+        ...prev,
+        empcod,
+        concod: nextConcod,
+        // Filiale (site) from employee
+        sitcod: emp.sitcod || prev.sitcod || '',
+        // Contract type from employee
+        empcontrat: emp.empcontrat || prev.empcontrat || 'CDI',
+        contype: emp.empcontrat || prev.contype,
+        // Date début = employee empemb
+        empemb: emp.empemb || prev.empemb,
+        // Date fin = employee empsort (if exists)
+        empsort: emp.empsort || prev.empsort,
+        // Poste: use foncod (function code) from employee — will match the Select options
+        emppost: emp.foncod || emp.empfonc || emp.poscod || prev.emppost || '',
+        // Salaire base from employee
+        empsbase: emp.empsbase ?? prev.empsbase ?? '',
+        // Also copy address and phone for completeness
+        empadr: emp.empadr || prev.empadr || '',
+        emptel: emp.emptel || prev.emptel || '',
+      }));
+    } catch (err: any) {
+      console.error('Error fetching employee details:', err);
+      showSnack('Erreur lors du chargement des données de l\'employé', 'error');
+      // Still set the empcod so the user can proceed manually
+      setForm(prev => ({ ...prev, empcod }));
+    } finally {
+      setLoadingEmployee(false);
+    }
+  };
+
   const handleEdit = (c: Contrat) => {
     setForm({
       ...c,
@@ -244,17 +311,25 @@ const GestionContratsModernInner = () => {
       return d.isValid() ? d.toISOString() : null;
     };
 
+    // Helper: parse string/number to float or null
+    const parseFloat2 = (val: any): number | null => {
+      if (val === null || val === undefined || val === '') return null;
+      const n = Number(val);
+      return isNaN(n) ? null : n;
+    };
+
     const payload = {
       soccod:     resolvedSoccod.slice(0, 4),
       concod:     form.concod.trim().slice(0, 9),
       empcod:     form.empcod.trim().slice(0, 12),
+      sitcod:     form.sitcod    || null,
       empcontrat: form.empcontrat || null,
       emppost:    form.emppost   || null,
       empadr:     form.empadr    || null,
       emptel:     form.emptel    || null,
       empmotif:   form.empmotif  || null,
-      empsbase:   form.empsbase  ?? null,
-      empsbrut:   form.empsbrut  ?? null,
+      empsbase:   parseFloat2(form.empsbase),
+      empsbrut:   parseFloat2(form.empsbrut),
       condat:     parseDate(form.condat),
       empemb:     parseDate(form.empemb),
       empsort:    parseDate(form.empsort),
@@ -291,11 +366,10 @@ const GestionContratsModernInner = () => {
     <Box sx={{ width: '100%', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', pb: 6 }}>
 
       {/* KPI Row */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, px: 3, pt: 3, pb: 2 }}>
-        <KpiCard label="Contrats Actifs"    value={activeCount}    sub={`/ ${contrats.length} total`} subColor="#10b981" />
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, px: 3, pt: 3, pb: 2 }}>
+        <KpiCard label="Contrats Actifs"    value={activeCount}    sub={`/ ${contrats.length} total`} subColor="#10b981" highlight />
         <KpiCard label="Expirent bientôt"   value={expiringCount}  sub="30 prochains jours" subColor="#f59e0b" />
         <KpiCard label="Nouveaux ce mois"   value={newThisMonth}   sub="Onboarding" subColor="#8896a8" />
-        <KpiCard label="Taux de conformité" value="99.2%" highlight />
       </Box>
 
       {/* Main grid */}
@@ -361,9 +435,10 @@ const GestionContratsModernInner = () => {
                 <FormControl fullWidth size="small">
                   <Select
                     value={form.empcod}
-                    onChange={handleSelect('empcod')}
+                    onChange={(e) => handleEmployeeSelect(e.target.value as string)}
                     sx={selectSx}
                     displayEmpty
+                    disabled={loadingEmployee}
                     MenuProps={{ PaperProps: { sx: { maxHeight: 300, borderRadius: '10px' } } }}
                   >
                     <MenuItem value=""><em style={{ color: '#aaa' }}>Sélectionner un employé...</em></MenuItem>
@@ -377,6 +452,14 @@ const GestionContratsModernInner = () => {
                     ))}
                   </Select>
                 </FormControl>
+              )}
+              {loadingEmployee && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                  <CircularProgress size={14} sx={{ color: '#0040a1' }} />
+                  <Typography sx={{ fontSize: '11px', color: '#0040a1', fontWeight: 600 }}>
+                    Chargement des données de l'employé...
+                  </Typography>
+                </Box>
               )}
             </Box>
 
@@ -414,8 +497,16 @@ const GestionContratsModernInner = () => {
             {/* Poste + Salaire */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
               <Box>
-                <Typography sx={labelSx}>Poste</Typography>
-                <TextField name="emppost" value={form.emppost || ''} onChange={handleField} size="small" fullWidth sx={fieldSx} />
+                <Typography sx={labelSx}>Poste / Fonction</Typography>
+                <FormControl fullWidth size="small">
+                  <Select value={form.emppost || ''} onChange={handleSelect('emppost')} sx={selectSx}
+                    displayEmpty MenuProps={{ PaperProps: { sx: { maxHeight: 250, borderRadius: '10px' } } }}>
+                    <MenuItem value=""><em style={{ color: '#aaa' }}>Sélectionner...</em></MenuItem>
+                    {Object.entries(fonLibs as Record<string, string>).map(([code, lib]) => (
+                      <MenuItem key={code} value={code} sx={{ fontSize: '13px' }}>{String(lib)}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Box>
               <Box>
                 <Typography sx={labelSx}>Salaire Base</Typography>
@@ -432,12 +523,14 @@ const GestionContratsModernInner = () => {
 
             {/* Save */}
               {((mode === 'edit' && canModify) || (mode === 'add' && canAdd)) && (
-                <Button variant="contained" fullWidth startIcon={<SaveIcon />} onClick={handleSave}
+                <Button variant="contained" fullWidth startIcon={loadingEmployee ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <SaveIcon />} onClick={handleSave}
+                  disabled={loadingEmployee}
                   sx={{
                     mt: 0.5, borderRadius: '10px', textTransform: 'none', fontWeight: 800, fontSize: '14px', py: 1.5,
                     background: 'linear-gradient(135deg, #0a2463 0%, #0040a1 50%, #1a6eff 100%)',
                     boxShadow: '0 4px 14px rgba(0,64,161,0.3)',
                     '&:hover': { background: 'linear-gradient(135deg, #071a47 0%, #003080 50%, #0040a1 100%)', transform: 'translateY(-1px)' },
+                    '&:disabled': { background: '#c0c8d4', color: '#fff' },
                     transition: 'all 0.2s',
                   }}>
                   {mode === 'edit' ? 'Modifier le Contrat' : 'Enregistrer le Contrat'}
@@ -535,7 +628,7 @@ const GestionContratsModernInner = () => {
 
                     {/* Poste */}
                     <Typography sx={{ fontSize: '12px', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.emppost || '—'}
+                      {(fonLibs as Record<string, string>)?.[c.emppost || ''] || c.emppost || '—'}
                     </Typography>
 
                     {/* Actions */}

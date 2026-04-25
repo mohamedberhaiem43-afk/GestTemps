@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   Box,
@@ -12,9 +12,7 @@ import {
   Select,
   FormControl,
   Paper,
-  ToggleButtonGroup,
-  ToggleButton,
-  Divider,
+  InputAdornment,
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ScheduleIcon from '@mui/icons-material/Schedule';
@@ -29,15 +27,15 @@ import useUpdateAllaitement from '../../../hooks/allaitementHooks/useUpdateAllai
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import { useAuth } from '../../helper/AuthProvider';
 import { getDatePart1 } from '../../helper/TimeConverter/ExtractDateOnly';
-import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 import getTodayDate from '../../helper/TimeConverter/TodayDate';
+import apiInstance from '../../API/apiInstance';
 import { useTranslation } from 'react-i18next';
 
 export default function AllaitementSaisieModern() {
   const { selectedAllaitement, setSelectedAllaitement } = useAllaitementContext();
   const { t } = useTranslation();
   const { soccod } = useAuth();
-  
+
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [severity, setSeverity] = useState<'success' | 'error'>('error');
@@ -45,12 +43,12 @@ export default function AllaitementSaisieModern() {
   const [forbiddenPutError, setForbiddenPutError] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [hourMode, setHourMode] = useState<'fixe' | 'hebdo'>('fixe');
+  const [nbHeures, setNbHeures] = useState<number>(0);
 
-  const { control, reset, handleSubmit } = useForm<AllaitementModel>({
+  const { control, reset, handleSubmit, setValue } = useForm<AllaitementModel>({
     defaultValues: {
       empcod: '',
-      concod: generateNumeroOrdre(),
+      concod: '',
       condat: getTodayDate(),
       condep: getTodayDate(),
       conret: getTodayDate(),
@@ -68,7 +66,20 @@ export default function AllaitementSaisieModern() {
   const { mutate: addAllaitement } = useAddAllaitement();
   const { mutate: updateAllaitement } = useUpdateAllaitement();
   const { data: employesData } = useGetFemmeLibs();
-  
+
+  // Fetch next concod from server
+  const fetchNextConcod = useCallback(async (): Promise<string> => {
+    try {
+      const res = await apiInstance.get(`/Allaitements/get-next-concod/${soccod}`);
+      return res.data?.concod || res.data || '';
+    } catch {
+      // Fallback: generate client-side
+      const year = new Date().getFullYear().toString().slice(-2);
+      const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
+      return `00${year}${month}01`;
+    }
+  }, [soccod]);
+
   // Convert object or array to array of { code, lib } for mapping
   const employesList = React.useMemo(() => {
     if (!employesData) return [];
@@ -79,10 +90,32 @@ export default function AllaitementSaisieModern() {
     return [];
   }, [employesData]);
 
+  // Load next concod on mount (add mode)
+  useEffect(() => {
+    if (!selectedAllaitement) {
+      fetchNextConcod().then(concod => {
+        reset({
+          concod,
+          empcod: '',
+          condat: getTodayDate(),
+          condep: getTodayDate(),
+          conret: getTodayDate(),
+          conjour: 'J',
+          lundi: 0,
+          mardi: 0,
+          mercredi: 0,
+          jeudi: 0,
+          vendredi: 0,
+          samedi: 0,
+        });
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedAllaitement) {
       reset({
-        concod: selectedAllaitement.concod || generateNumeroOrdre(),
+        concod: selectedAllaitement.concod || '',
         empcod: selectedAllaitement.empcod || '',
         condat: getDatePart1(selectedAllaitement.condat),
         condep: getDatePart1(selectedAllaitement.condep),
@@ -95,11 +128,28 @@ export default function AllaitementSaisieModern() {
         samedi: Number(selectedAllaitement.samedi),
         conjour: selectedAllaitement.conjour || 'J',
       });
+      // Set nbHeures to the max day value for reference
+      const dayValues = [
+        Number(selectedAllaitement.lundi),
+        Number(selectedAllaitement.mardi),
+        Number(selectedAllaitement.mercredi),
+        Number(selectedAllaitement.jeudi),
+        Number(selectedAllaitement.vendredi),
+        Number(selectedAllaitement.samedi),
+      ];
+      setNbHeures(Math.max(...dayValues));
       setIsEditMode(true);
     } else {
       resetForm();
     }
   }, [selectedAllaitement, reset]);
+
+  // Distribute nbHeures to all days
+  const handleNbHeuresChange = (value: number) => {
+    setNbHeures(value);
+    const days: (keyof AllaitementModel)[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+    days.forEach(day => setValue(day, value));
+  };
 
   const onSubmit = async (data: AllaitementModel) => {
     setForbiddenError(null);
@@ -109,15 +159,6 @@ export default function AllaitementSaisieModern() {
     const payload: AllaitementModel = {
       ...data,
       soccod: soccod || '',
-      // If hourMode is fixe, apply the standard 1 hour (30 min morning + 30 min afternoon)
-      ...(hourMode === 'fixe' ? {
-        lundi: 1,
-        mardi: 1,
-        mercredi: 1,
-        jeudi: 1,
-        vendredi: 1,
-        samedi: 1,
-      } : {})
     };
 
     if (!isEditMode) {
@@ -156,22 +197,26 @@ export default function AllaitementSaisieModern() {
   };
 
   const resetForm = () => {
-    reset({
-      concod: generateNumeroOrdre(),
-      empcod: '',
-      condat: getTodayDate(),
-      condep: getTodayDate(),
-      conret: getTodayDate(),
-      conjour: 'J',
-      lundi: 0,
-      mardi: 0,
-      mercredi: 0,
-      jeudi: 0,
-      vendredi: 0,
-      samedi: 0,
-    });
+    setNbHeures(0);
     setIsEditMode(false);
     setSelectedAllaitement(null);
+    // Fetch fresh concod from server
+    fetchNextConcod().then(concod => {
+      reset({
+        concod,
+        empcod: '',
+        condat: getTodayDate(),
+        condep: getTodayDate(),
+        conret: getTodayDate(),
+        conjour: 'J',
+        lundi: 0,
+        mardi: 0,
+        mercredi: 0,
+        jeudi: 0,
+        vendredi: 0,
+        samedi: 0,
+      });
+    });
     refetch();
   };
 
@@ -184,6 +229,23 @@ export default function AllaitementSaisieModern() {
 
   const handleSnackbarClose = () => {
     setIsSnackbarOpen(false);
+  };
+
+  const labelSx = {
+    fontSize: '11px',
+    fontWeight: 700,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05rem',
+    color: '#515f74',
+    mb: 0.5,
+  };
+
+  const inputSx = {
+    backgroundColor: '#f2f4f6',
+    borderRadius: '8px',
+    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+    '&:hover': { backgroundColor: '#ffffff' },
+    '&.Mui-focused': { backgroundColor: '#ffffff' },
   };
 
   return (
@@ -211,16 +273,7 @@ export default function AllaitementSaisieModern() {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Employee Select */}
           <Box>
-            <Typography
-              sx={{
-                fontSize: '11px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05rem',
-                color: '#515f74',
-                mb: 0.5,
-              }}
-            >
+            <Typography sx={labelSx}>
               {t('allaitement.form.employee') || 'Employée'}
             </Typography>
             <Controller
@@ -231,14 +284,7 @@ export default function AllaitementSaisieModern() {
                   <Select
                     {...field}
                     displayEmpty
-                    sx={{
-                      backgroundColor: '#f2f4f6',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      '&:hover': { backgroundColor: '#ffffff' },
-                      '&.Mui-focused': { backgroundColor: '#ffffff' },
-                    }}
+                    sx={inputSx}
                   >
                     <MenuItem value="" disabled>Choisir...</MenuItem>
                     {employesList.map((emp: any) => (
@@ -252,94 +298,33 @@ export default function AllaitementSaisieModern() {
             />
           </Box>
 
-          {/* N° Ordre and Type */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-            <Box>
-              <Typography
-                sx={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05rem',
-                  color: '#515f74',
-                  mb: 0.5,
-                }}
-              >
-                {t('allaitement.form.order') || 'N° Ordre'}
-              </Typography>
-              <Controller
-                name="concod"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    size="small"
-                    fullWidth
-                    InputProps={{ readOnly: isEditMode }}
-                    sx={{
-                      backgroundColor: '#f2f4f6',
-                      borderRadius: '8px',
-                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      '&:hover': { backgroundColor: '#ffffff' },
-                      '&.Mui-focused': { backgroundColor: '#ffffff' },
-                    }}
-                  />
-                )}
-              />
-            </Box>
-            <Box>
-              <Typography
-                sx={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05rem',
-                  color: '#515f74',
-                  mb: 0.5,
-                }}
-              >
-                Type
-              </Typography>
-              <Controller
-                name="conjour"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth size="small">
-                    <Select
-                      {...field}
-                      sx={{
-                        backgroundColor: '#f2f4f6',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                        '&:hover': { backgroundColor: '#ffffff' },
-                        '&.Mui-focused': { backgroundColor: '#ffffff' },
-                      }}
-                    >
-                      <MenuItem value="J">Journée</MenuItem>
-                      <MenuItem value="M">Matin</MenuItem>
-                      <MenuItem value="A">Après-midi</MenuItem>
-                      <MenuItem value="S">Sans présence</MenuItem>
-                    </Select>
-                  </FormControl>
-                )}
-              />
-            </Box>
+          {/* N° Ordre (auto-generated) */}
+          <Box>
+            <Typography sx={labelSx}>
+              {t('allaitement.form.order') || 'N° Allaitement'}
+            </Typography>
+            <Controller
+              name="concod"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  size="small"
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                  sx={{
+                    ...inputSx,
+                    '& .MuiInputBase-input': { color: '#0040a1', fontWeight: 700, fontFamily: 'monospace' },
+                  }}
+                />
+              )}
+            />
           </Box>
 
           {/* Date Range */}
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
             <Box>
-              <Typography
-                sx={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05rem',
-                  color: '#515f74',
-                  mb: 0.5,
-                }}
-              >
+              <Typography sx={labelSx}>
                 {t('allaitement.form.startDate') || 'Date Début'}
               </Typography>
               <Controller
@@ -351,28 +336,13 @@ export default function AllaitementSaisieModern() {
                     type="date"
                     size="small"
                     fullWidth
-                    sx={{
-                      backgroundColor: '#f2f4f6',
-                      borderRadius: '8px',
-                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      '&:hover': { backgroundColor: '#ffffff' },
-                      '&.Mui-focused': { backgroundColor: '#ffffff' },
-                    }}
+                    sx={inputSx}
                   />
                 )}
               />
             </Box>
             <Box>
-              <Typography
-                sx={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05rem',
-                  color: '#515f74',
-                  mb: 0.5,
-                }}
-              >
+              <Typography sx={labelSx}>
                 {t('allaitement.form.endDate') || 'Date Fin'}
               </Typography>
               <Controller
@@ -384,13 +354,7 @@ export default function AllaitementSaisieModern() {
                     type="date"
                     size="small"
                     fullWidth
-                    sx={{
-                      backgroundColor: '#f2f4f6',
-                      borderRadius: '8px',
-                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      '&:hover': { backgroundColor: '#ffffff' },
-                      '&.Mui-focused': { backgroundColor: '#ffffff' },
-                    }}
+                    sx={inputSx}
                   />
                 )}
               />
@@ -399,7 +363,7 @@ export default function AllaitementSaisieModern() {
         </Box>
       </Paper>
 
-      {/* Hours Configuration Card */}
+      {/* Hours Configuration Card — Hebdo only */}
       <Paper
         elevation={0}
         sx={{
@@ -409,116 +373,76 @@ export default function AllaitementSaisieModern() {
           backgroundColor: '#ffffff',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ScheduleIcon sx={{ color: '#0040a1', fontSize: '20px' }} />
-            <Typography
-              sx={{ fontWeight: 700, fontFamily: 'Manrope, sans-serif', fontSize: '1rem' }}
-            >
-              Heures
-            </Typography>
-          </Box>
-          <ToggleButtonGroup
-            value={hourMode}
-            exclusive
-            onChange={(_, newMode) => newMode && setHourMode(newMode)}
-            size="small"
-            sx={{
-              backgroundColor: '#f2f4f6',
-              borderRadius: '8px',
-              padding: '2px',
-              '& .MuiToggleButton-root': {
-                border: 'none',
-                borderRadius: '6px !important',
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 700,
-                fontFamily: 'Manrope, sans-serif',
-                textTransform: 'none',
-                '&.Mui-selected': {
-                  backgroundColor: '#ffffff',
-                  color: '#0040a1',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                },
-              },
-            }}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <ScheduleIcon sx={{ color: '#0040a1', fontSize: '20px' }} />
+          <Typography
+            sx={{ fontWeight: 700, fontFamily: 'Manrope, sans-serif', fontSize: '1rem' }}
           >
-            <ToggleButton value="fixe">Fixe</ToggleButton>
-            <ToggleButton value="hebdo">Hebdo</ToggleButton>
-          </ToggleButtonGroup>
+            Heures d'Allaitement
+          </Typography>
         </Box>
 
-        {hourMode === 'fixe' ? (
-          <Box
-            sx={{
-              p: 1.5,
-              backgroundColor: 'rgba(0, 64, 161, 0.05)',
-              borderRadius: '8px',
-              border: '1px solid rgba(0, 64, 161, 0.1)',
+        {/* Nb Heures field — distributes to all days */}
+        <Box sx={{ mb: 2 }}>
+          <Typography sx={labelSx}>
+            Nb Heures / Jour
+          </Typography>
+          <TextField
+            type="number"
+            size="small"
+            fullWidth
+            value={nbHeures || ''}
+            onChange={(e) => handleNbHeuresChange(Number(e.target.value) || 0)}
+            placeholder="Ex: 1"
+            InputProps={{
+              endAdornment: <InputAdornment position="end">h/jour</InputAdornment>,
+              inputProps: { min: 0, max: 24, step: 0.5 },
             }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-              <Box>
-                <Typography sx={{ fontSize: '12px', fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: '#0040a1' }}>
-                  Journée Type
-                </Typography>
-                <Typography sx={{ fontSize: '10px', color: '#515f74' }}>
-                  Appliqué par défaut
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#515f74', textTransform: 'uppercase' }}>
-                    Matin
-                  </Typography>
-                  <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#191c1e' }}>
-                    10:00-10:30
-                  </Typography>
-                </Box>
-                <Divider orientation="vertical" flexItem sx={{ height: '24px', alignSelf: 'center' }} />
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#515f74', textTransform: 'uppercase' }}>
-                    Après-midi
-                  </Typography>
-                  <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#191c1e' }}>
-                    15:30-16:00
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-        ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
-            {([
-              { field: 'lundi',    key: 'monday'    },
-              { field: 'mardi',    key: 'tuesday'   },
-              { field: 'mercredi', key: 'wednesday' },
-              { field: 'jeudi',    key: 'thursday'  },
-              { field: 'vendredi', key: 'friday'    },
-              { field: 'samedi',   key: 'saturday'  },
-            ] as const).map(({ field, key }) => (
-              <Controller
-                key={field}
-                name={field as keyof AllaitementModel}
-                control={control}
-                render={({ field: f }) => (
-                  <TextField
-                    {...f}
-                    type="number"
-                    label={t(`allaitement.form.${key}`)}
-                    size="small"
-                    value={f.value || 0}
-                    onChange={(e) => f.onChange(Number(e.target.value))}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { borderRadius: '8px' },
-                      '& .MuiInputLabel-root': { fontSize: '11px' },
-                    }}
-                  />
-                )}
-              />
-            ))}
-          </Box>
-        )}
+            sx={{
+              '& .MuiOutlinedInput-root': { borderRadius: '8px' },
+            }}
+          />
+          <Typography sx={{ fontSize: '10px', color: '#8896a8', mt: 0.5, fontStyle: 'italic' }}>
+            Saisissez le nombre d'heures — il sera appliqué à chaque jour automatiquement.
+          </Typography>
+        </Box>
+
+        {/* Daily hours grid (read-only display of distributed hours) */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+          {([
+            { field: 'lundi',    key: 'monday'    },
+            { field: 'mardi',    key: 'tuesday'   },
+            { field: 'mercredi', key: 'wednesday' },
+            { field: 'jeudi',    key: 'thursday'  },
+            { field: 'vendredi', key: 'friday'    },
+            { field: 'samedi',   key: 'saturday'  },
+          ] as const).map(({ field, key }) => (
+            <Controller
+              key={field}
+              name={field as keyof AllaitementModel}
+              control={control}
+              render={({ field: f }) => (
+                <TextField
+                  {...f}
+                  type="number"
+                  label={t(`allaitement.form.${key}`)}
+                  size="small"
+                  value={f.value || 0}
+                  onChange={(e) => {
+                    f.onChange(Number(e.target.value));
+                  }}
+                  InputProps={{
+                    inputProps: { min: 0, max: 24, step: 0.5 },
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': { borderRadius: '8px' },
+                    '& .MuiInputLabel-root': { fontSize: '11px' },
+                  }}
+                />
+              )}
+            />
+          ))}
+        </Box>
 
         {/* Action Buttons */}
         <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>

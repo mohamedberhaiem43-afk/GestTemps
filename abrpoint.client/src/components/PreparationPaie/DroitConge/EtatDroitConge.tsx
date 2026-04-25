@@ -6,6 +6,7 @@ import {
 import { DroitConge } from "../../../models/DroitConge";
 import { useMemo, useState } from "react";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
+import dayjs from "dayjs";
 import DroitCongeService from "../../../services/CongeService/DroitCongeService";
 import SearchIcon from '@mui/icons-material/Search';
 import DownloadIcon from '@mui/icons-material/FileDownload';
@@ -31,19 +32,29 @@ function EtatDroitConge() {
   }
   const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
   const { data: employeesLibs = {} } = useGetEmployeesLibs(undefined, isManagerScoped ? managerSercod ?? '' : undefined);
-  const [datedebut, setDatedebut] = useState("2023-01-01");
-  const [datefin, setDatefin] = useState("2023-12-31");
+
+  // Initialize dates to current month
+  const [datedebut, setDatedebut] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
+  const [datefin, setDatefin] = useState(() => dayjs().endOf('month').format('YYYY-MM-DD'));
+
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showEmpDropdown, setShowEmpDropdown] = useState(false);
+
+  const empKeys = useMemo(() => Object.keys(employeesLibs as Record<string, string>), [employeesLibs]);
+
+  // effectiveEmpcods: selected or ALL employees (not empty!)
   const effectiveEmpcods = useMemo(() => {
     if (selectedEmpcods.length > 0) return selectedEmpcods;
-    if (isManagerScoped) return Object.keys(employeesLibs as Record<string, string>);
-    return [];
-  }, [selectedEmpcods, isManagerScoped, employeesLibs]);
+    // For both manager-scoped and non-scoped: use ALL available employees
+    return empKeys;
+  }, [selectedEmpcods, empKeys]);
 
-  const queryParams = new URLSearchParams();
-  effectiveEmpcods.forEach((code: string) => queryParams.append("empcods", code));
-  const queryString = queryParams.toString();
+  const queryString = useMemo(() => {
+    const qp = new URLSearchParams();
+    effectiveEmpcods.forEach((code: string) => qp.append("empcods", code));
+    return qp.toString();
+  }, [effectiveEmpcods]);
   const [droitConges, setDroitConges] = useState<DroitConge[]>([]);
 
   // Pagination
@@ -149,24 +160,51 @@ function EtatDroitConge() {
       {/* Filter Section */}
       <Box className="edc-filter-section">
         <Box className="edc-filter-row">
-          <Box className="edc-filter-field">
+          <Box className="edc-filter-field" style={{ position: 'relative' }}>
             <label className="edc-filter-label">Collaborateur / Département</label>
-            <select
+            <Box
+              onClick={() => !isManagerScoped && setShowEmpDropdown(v => !v)}
               className="edc-filter-input"
-              value={selectedEmpcods[0] || ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSelectedEmpcods(val ? [val] : []);
-              }}
-              disabled={isManagerScoped}
+              style={{ cursor: isManagerScoped ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 38, userSelect: 'none' }}
             >
-              <option value="">{isManagerScoped ? "Mon service" : "Tous les employés"}</option>
-              {Object.entries(employeesLibs as Record<string, string>).map(([code, name]) => (
-                <option key={code} value={code}>
-                  {String(name)}
-                </option>
-              ))}
-            </select>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selectedEmpcods.length === 0
+                  ? (isManagerScoped ? 'Mon service' : 'Tous les employés')
+                  : selectedEmpcods.length === 1
+                    ? String((employeesLibs as Record<string, string>)[selectedEmpcods[0]] || selectedEmpcods[0])
+                    : `${selectedEmpcods.length} collaborateurs sélectionnés`}
+              </span>
+              {!isManagerScoped && <span style={{ fontSize: 10, color: '#94a3b8' }}>▼</span>}
+            </Box>
+            {showEmpDropdown && !isManagerScoped && (
+              <Box style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1200,
+                backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 260, overflowY: 'auto', marginTop: 4,
+              }}>
+                <Box
+                  onClick={() => { setSelectedEmpcods([]); setShowEmpDropdown(false); }}
+                  style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #f1f5f9', fontWeight: 600, fontSize: 13, color: selectedEmpcods.length === 0 ? '#0040a1' : '#334155' }}
+                >
+                  <input type="checkbox" readOnly checked={selectedEmpcods.length === 0} style={{ accentColor: '#0040a1' }} />
+                  Tous les employés
+                </Box>
+                {Object.entries(employeesLibs as Record<string, string>).map(([code, name]) => (
+                  <Box
+                    key={code}
+                    onClick={() => {
+                      setSelectedEmpcods(prev =>
+                        prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+                      );
+                    }}
+                    style={{ padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: selectedEmpcods.includes(code) ? '#0040a1' : '#334155', backgroundColor: selectedEmpcods.includes(code) ? '#f0f5ff' : 'transparent' }}
+                  >
+                    <input type="checkbox" readOnly checked={selectedEmpcods.includes(code)} style={{ accentColor: '#0040a1' }} />
+                    {String(name)}
+                  </Box>
+                ))}
+              </Box>
+            )}
           </Box>
           <Box className="edc-filter-field-narrow">
             <label className="edc-filter-label">Date Début</label>

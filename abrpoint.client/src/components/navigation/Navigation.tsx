@@ -162,8 +162,8 @@ const useNavigationItems = (): NavGroup[] => {
     'absence-et-sanction': 'Absences et Sanctions',
     'saisie-classe-horaire': 'Paramètres de Temps',
     'saisie-poste-de-travail': 'Paramètres de Temps',
-    'intitule-des-absences': 'Paramètres de Temps',
-    'Repos': 'Paramètres de Temps',
+    'intitule-des-absences': 'Données de Base',
+    'Repos': 'Données de Base',
     // 'accompte-salaire': 'Paie et Rémunération',
     'pointage-du-mois': 'Paie et Rémunération',
     'droit-de-conge': 'Paie et Rémunération',
@@ -224,7 +224,7 @@ const useNavigationItems = (): NavGroup[] => {
       icon: Home,
       items: [],
     },
-    ...(canSee('gestion-societe') || canSee('structure-organisationnelle') ? [{
+    ...(canSee('gestion-societe') || canSee('structure-organisationnelle') || canSee('intitule-des-absences') || canSee('Repos') ? [{
       label: t('navigation.dataBase'),
       href: '/dashboard/donnees-de-base',
       icon: Database,
@@ -237,6 +237,8 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('fonction') ? [{ label: t('navigation.function'), href: '/dashboard/fonction', icon: Briefcase }] : []),
         ...(canSee('qualification') ? [{ label: t('navigation.qualification'), href: '/dashboard/qualification', icon: Award }] : []),
         ...(canSee('rubrique') ? [{ label: t('navigation.rubric'), href: '/dashboard/rubrique', icon: DollarSign }] : []),
+        ...(canSee('intitule-des-absences') ? [{ label: t('navigation.absenceTypes'), href: '/dashboard/intitule-des-absences', icon: ClipboardList }] : []),
+        ...(canSee('Repos') ? [{ label: t('navigation.publicHolidays'), href: '/dashboard/Repos', icon: CalendarCheck }] : []),
       ],
     }] : []),
     ...(canSee('liste-pointeuse') ? [{
@@ -292,8 +294,6 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         ...(canSee('saisie-classe-horaire') ? [{ label: t('navigation.workSchedule'), href: '/dashboard/saisie-classe-horaire', icon: Clock3 }] : []),
         ...(canSee('saisie-poste-de-travail') ? [{ label: t('navigation.workStation'), href: '/dashboard/saisie-poste-de-travail', icon: Briefcase }] : []),
-        ...(canSee('intitule-des-absences') ? [{ label: t('navigation.absenceTypes'), href: '/dashboard/intitule-des-absences', icon: ClipboardList }] : []),
-        ...(canSee('Repos') ? [{ label: t('navigation.publicHolidays'), href: '/dashboard/Repos', icon: CalendarCheck }] : []),
       ],
     },
     {

@@ -1106,7 +1106,20 @@ const EmployeModernInner = () => {
                                                     {emp.emplib}
                                                 </Typography>
                                                 <Typography sx={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                    <BadgeIcon sx={{ fontSize: 12 }} /> {emp.empcod} • {emp.empfonc || 'Sans poste'}
+                                                    <BadgeIcon sx={{ fontSize: 12 }} /> {emp.empcod} • {fonMap[emp.foncod || ''] || fonMap[emp.empfonc || ''] || emp.empfonc || 'Sans poste'}
+                                                    {(() => {
+                                                      const c = (emp.empcontrat || '').toUpperCase();
+                                                      if (!c) return null;
+                                                      const colors: Record<string, { bg: string; color: string }> = {
+                                                        CDI: { bg: '#d1fae5', color: '#047857' },
+                                                        CDD: { bg: '#dbeafe', color: '#1d4ed8' },
+                                                        STAGE: { bg: '#fef3c7', color: '#b45309' },
+                                                        FREELANCE: { bg: '#ede9fe', color: '#6d28d9' },
+                                                      };
+                                                      const col = colors[c] || { bg: '#f1f5f9', color: '#475569' };
+                                                      const label = c === 'STAGE' ? 'Stage' : c === 'FREELANCE' ? 'Freelance' : emp.empcontrat;
+                                                      return <Chip label={label} size="small" sx={{ ml: 0.5, height: 16, fontSize: '9px', fontWeight: 700, backgroundColor: col.bg, color: col.color, borderRadius: '4px' }} />;
+                                                    })()}
                                                 </Typography>
                                             </Box>
                                         </Box>
@@ -1134,7 +1147,7 @@ const EmployeModernInner = () => {
                 </Alert>
             </Snackbar>
         </Box>
-    );
+);
 };
 
 const queryClient = new QueryClient();

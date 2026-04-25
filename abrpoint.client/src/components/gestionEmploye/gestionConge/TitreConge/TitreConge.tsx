@@ -21,13 +21,13 @@ import { Conge } from '../../../../models/Conge';
 import CongeReportService from '../../../../services/CongeService/CongeReportService';
 import useDeleteTitreConge from '../../../../hooks/congeHooks/useDeleteTitreConge';
 import useGetTitreConge from '../../../../hooks/congeHooks/useGetTitreConge';
-import useGetAbsencesLibs from '../../../../hooks/absenceHooks/useGetAbsenceLibs';
+import useGetCongeAbsenceLibs from '../../../../hooks/absenceHooks/useGetCongeAbsenceLibs';
 import useGetEmployee from '../../../../hooks/employeHooks/useGetEmployee';
 import useAddConge from '../../../../hooks/congeHooks/useAddConge';
 import useUpdateTitreConge from '../../../../hooks/congeHooks/useUpdateTitreConge';
 import useGetDroitConge from '../../../../hooks/congeHooks/useGetDroitConge';
 import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
-import generateNumeroOrdre from '../../../helper/GenerateNumOrdre';
+import apiInstance from '../../../API/apiInstance';
 
 const ITEMS_PER_PAGE = 10;
 const today = () => new Date().toISOString().split('T')[0];
@@ -99,15 +99,15 @@ function MiniCalendar({ leaves }: { leaves: Conge[] }) {
 }
 
 // ── Modern Form Dialog (from DemCongeModern) ──────────────────────────────────
-function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose: () => void; editConge: Conge | null }) {
+function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolean; onClose: () => void; editConge: Conge | null; onSuccess?: () => void }) {
   const { soccod } = useAuth();
-  const { data: absences = [] } = useGetAbsencesLibs();
+  const { data: absences = [] } = useGetCongeAbsenceLibs();
   const { data: employeOptions = [] } = useGetEmployee();
   const { mutate: addConge, isLoading: adding } = useAddConge();
   const { mutate: updateConge, isLoading: updating } = useUpdateTitreConge();
 
   const [empcod, setEmpcod] = useState('');
-  const [concod, setConcod] = useState(generateNumeroOrdre());
+  const [concod, setConcod] = useState('');
   const [condat, setCondat] = useState(today());
   const [condep, setCondep] = useState(today());
   const [conret, setConret] = useState(today());
@@ -128,6 +128,43 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
   const droitRestant = (droitConge as any)?.droitrestant ?? (droitConge as any)?.Droitrestant ?? 0;
   const nouveauSolde = Math.max(0, droitRestant - connbjour);
 
+  // Auto-fill phone when employee is selected
+  useEffect(() => {
+    if (empcod && !editConge) {
+      const empList = Object.entries(employeOptions);
+      const emp = empList.find(([k]) => k === empcod);
+      if (emp) {
+        // Fetch employee details to get phone
+        apiInstance.get(`/Employes/${empcod}`).then((res) => {
+          const tel = res.data?.emptel || res.data?.empmob || '';
+          if (tel) setContel(tel);
+        }).catch(() => {});
+      }
+    }
+  }, [empcod, employeOptions, editConge]);
+
+  // Set default type de congé when absences load
+  useEffect(() => {
+    if (!editConge && open && absences.length > 0 && !abscod) {
+      const absEntries = Object.entries(absences);
+      if (absEntries.length > 0) {
+        setAbscod(absEntries[0][0]);
+      }
+    }
+  }, [open, editConge, absences, abscod]);
+
+  // Fetch next concod from database when form opens in add mode
+  useEffect(() => {
+    if (!editConge && open && soccod) {
+      apiInstance.get(`/Conges/get-next-concod/${soccod}`)
+        .then(res => {
+          const nextConcod = res.data?.concod || res.data || '';
+          setConcod(nextConcod);
+        })
+        .catch(() => { /* silent */ });
+    }
+  }, [open, editConge, soccod]);
+
   useEffect(() => {
     if (editConge) {
       setEmpcod(editConge.empcod);
@@ -144,7 +181,6 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
       setConnbjour(editConge.connbjour);
     } else {
       setEmpcod('');
-      setConcod(generateNumeroOrdre());
       setCondat(today());
       setCondep(today());
       setConret(today());
@@ -175,7 +211,13 @@ function CongeFormDialog({ open, onClose, editConge }: { open: boolean; onClose:
       abscod, conadr, contel, conref, connbjour,
       conjour: 'J', emplib: null, condg: '', conrefus: '', consolde: 0,
     };
-    const cb = { onSuccess: () => { onClose(); }, onError: () => {} };
+    const cb = {
+      onSuccess: () => {
+        if (onSuccess) onSuccess();
+        onClose();
+      },
+      onError: () => {}
+    };
     editConge ? updateConge(payload, cb) : addConge(payload, cb);
   };
 
@@ -498,7 +540,12 @@ function TitreCongeInner() {
       </Box>
 
       {/* Modern Form Dialog replacing the old SaisieTitreConge */}
-      <CongeFormDialog open={formOpen} onClose={() => { setFormOpen(false); refetch(); }} editConge={editConge} />
+      <CongeFormDialog 
+        open={formOpen} 
+        onClose={() => { setFormOpen(false); refetch(); }} 
+        editConge={editConge} 
+        onSuccess={() => showSnack(editConge ? 'Titre de congé modifié avec succès' : 'Titre de congé créé avec succès', 'success')}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} PaperProps={{ sx: { borderRadius: '12px', minWidth: '350px' } }}>

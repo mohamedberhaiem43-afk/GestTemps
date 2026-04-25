@@ -54,6 +54,7 @@ const EffectifsGlobaux = () => {
 
   const [departments, setDepartments] = useState<Record<string, string>>({});
   const [sites, setSites] = useState<Record<string, string>>({});
+  const [fonctions, setFonctions] = useState<Record<string, string>>({});
   const [stats, setStats] = useState<Statistics>({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -134,6 +135,15 @@ const EffectifsGlobaux = () => {
       .catch((err) => console.error(err));
   }, [soccod]);
 
+  // Fetch fonctions (for Position libelle)
+  useEffect(() => {
+    if (!soccod) return;
+    apiInstance
+      .get(`/Fonctions/get-fonlibs/${soccod}`)
+      .then((res) => setFonctions(res.data ?? {}))
+      .catch((err) => console.error(err));
+  }, [soccod]);
+
   // Filter employees
   useEffect(() => {
     let result = [...employees];
@@ -158,11 +168,16 @@ const EffectifsGlobaux = () => {
     }
 
     if (selectedContract) {
-      result = result.filter((e) => e.empcontrat === selectedContract);
+      result = result.filter((e) => 
+        (e.empcontrat || '').toUpperCase() === selectedContract.toUpperCase()
+      );
     }
 
     if (selectedLevel) {
-      result = result.filter((e) => e.empniv === selectedLevel);
+      result = result.filter((e) => {
+        const empNiv = e.empniv != null ? String(e.empniv) : '';
+        return empNiv === String(selectedLevel);
+      });
     }
 
     setFilteredEmployees(result);
@@ -199,31 +214,20 @@ const EffectifsGlobaux = () => {
   };
 
   const getContractLabel = (contract: string | null): string => {
-    switch (contract) {
-      case "CDI":
-        return "CDI";
-      case "CDD":
-        return "CDD";
-      case "STAGE":
-        return "Stage";
-      case "FREELANCE":
-        return "Freelance";
-      default:
-        return contract || "N/A";
-    }
+    const c = (contract || '').toUpperCase();
+    if (c === 'CDI') return 'CDI';
+    if (c === 'CDD') return 'CDD';
+    if (c === 'STAGE') return 'Stage';
+    if (c === 'FREELANCE') return 'Freelance';
+    return contract || 'N/A';
   };
 
   const getContractColor = (contract: string | null): "primary" | "secondary" | "success" | "warning" | "default" => {
-    switch (contract) {
-      case "CDI":
-        return "success";
-      case "CDD":
-        return "primary";
-      case "STAGE":
-        return "warning";
-      default:
-        return "default";
-    }
+    const c = (contract || '').toUpperCase();
+    if (c === 'CDI') return 'success';
+    if (c === 'CDD') return 'primary';
+    if (c === 'STAGE') return 'warning';
+    return 'default';
   };
 
   if (isLoading) {
@@ -434,7 +438,7 @@ const EffectifsGlobaux = () => {
                     </TableCell>
                     <TableCell>
                       <Typography className="position-text">
-                        {employee.empfonc || departments[employee.sercod || ""] || "N/A"}
+                        {fonctions[employee.foncod || ''] || fonctions[employee.empfonc || ''] || employee.empfonc || departments[employee.sercod || ""] || "N/A"}
                       </Typography>
                     </TableCell>
                     <TableCell>

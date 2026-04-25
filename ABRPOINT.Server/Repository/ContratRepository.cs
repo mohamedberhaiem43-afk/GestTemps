@@ -357,7 +357,33 @@ namespace ABRPOINT.Server.Repository
             employe.Empemb = contrat.Empemb;
             employe.Empsort = contrat.Empsort;
         }
+
+        public async Task<string> GetNextConcodAsync(string soccod)
+        {
+            var now = DateTime.Now;
+            var yearPart = now.ToString("yy");   // e.g. "26"
+            var monthPart = now.ToString("MM");  // e.g. "04"
+            var prefix = $"00{yearPart}{monthPart}"; // e.g. "002604"
+
+            // Find all contracts for this company whose concod starts with the same prefix
+            var lastConcod = await _dbContext.Contrats
+                .Where(c => c.Soccod == soccod && c.Concod.StartsWith(prefix))
+                .OrderByDescending(c => c.Concod)
+                .Select(c => c.Concod)
+                .FirstOrDefaultAsync();
+
+            int nextSeq = 1;
+            if (!string.IsNullOrEmpty(lastConcod) && lastConcod.Length >= prefix.Length + 2)
+            {
+                var seqStr = lastConcod.Substring(prefix.Length);
+                if (int.TryParse(seqStr, out int lastSeq))
+                {
+                    nextSeq = lastSeq + 1;
+                }
+            }
+
+            return $"{prefix}{nextSeq.ToString().PadLeft(2, '0')}";
+        }
     }
 }
-
 

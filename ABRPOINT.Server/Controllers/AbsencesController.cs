@@ -73,6 +73,22 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, "Problème de récupération des types d'autorisation");
             }
         }
+        [HttpGet("get-conge-libs/{soccod}")]
+        public async Task<IActionResult> GetCongeAbsLibs(string soccod)
+        {
+            if(string.IsNullOrEmpty(soccod))
+                return BadRequest(new { Message = "Veuillez saisie le soccod des absences." });
+            try
+            {
+                Dictionary<string,string> absence = await _absenceRepository.GetCongeAbsLibsAsync(soccod);
+                return Ok(absence);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "problème de récupération des types de congé");
+            }
+        }
+
         [HttpGet("get-libs/{soccod}")]
         public async Task<IActionResult> GetAbsLibs(string soccod)
         {

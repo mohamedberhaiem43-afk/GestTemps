@@ -53,7 +53,7 @@
 .ep-retard-ok { color: #005136 !important; }
 
 /* ── Right panel ── */
-.ep-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.ep-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; overflow-x: auto; }
 
 /* ── Detail paper ── */
 .ep-detail-paper { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
@@ -63,7 +63,7 @@
 .ep-legend { display: flex; gap: 12px; align-items: center; }
 .ep-legend-item { display: flex; align-items: center; gap: 5px; }
 .ep-legend-label { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
-.ep-table-wrap { padding: 0; overflow: auto; }
+.ep-table-wrap { padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .ep-empty-state { display: flex; flex-direction: column; align-items: center; padding: 48px; }
 
 /* ── Calendar grid ── */
@@ -126,15 +126,59 @@
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .ep-filter-grid { grid-template-columns: repeat(5, 1fr); }
+  .ep-filter-grid { grid-template-columns: repeat(4, 1fr); }
   .ep-main { flex-direction: column; }
   .ep-sidebar { width: 100%; }
   .ep-sidebar-list { max-height: 280px; }
 }
-@media (max-width: 768px) {
-  .ep-container { padding: 10px; }
-  .ep-filter-grid { grid-template-columns: repeat(3, 1fr); }
-  .ep-cal-grid { gap: 3px; padding: 10px; }
-  .ep-cal-cell { min-height: 52px; }
+@media (max-width: 900px) {
+  .ep-header { flex-direction: column; gap: 10px; }
+  .ep-header-actions { width: 100%; justify-content: flex-end; }
+  .ep-filter-grid { grid-template-columns: repeat(2, 1fr); }
+  .ep-detail-cols { grid-template-columns: 1fr; }
   .ep-day-section { grid-template-columns: 1fr; }
+  .ep-right { overflow-x: auto; }
+  .ep-cal-grid { min-width: 500px; }
+  .ep-table-wrap { overflow-x: auto; }
+}
+@media (max-width: 600px) {
+  .ep-container { padding: 8px; gap: 10px; }
+  .ep-title { font-size: 20px !important; }
+  .ep-subtitle { font-size: 11px; }
+  .ep-header-actions { flex-wrap: wrap; }
+  .ep-btn-secondary, .ep-btn-primary { padding: 6px 10px; font-size: 11px; flex: 1; justify-content: center; min-width: 0; }
+  .ep-filter-bar { padding: 10px; border-radius: 10px; }
+  .ep-filter-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ep-filter-search-btn { grid-column: span 2; }
+  .ep-search-btn { width: 100%; height: 34px; }
+  .ep-main { gap: 10px; }
+  .ep-sidebar-paper { border-radius: 10px; }
+  .ep-sidebar-list { max-height: 200px; }
+  .ep-emp-row { padding: 8px 10px; }
+  .ep-emp-row-left { gap: 8px; }
+  .ep-detail-paper { border-radius: 10px; }
+  .ep-detail-header { padding: 10px 12px; }
+  .ep-detail-title { font-size: 13px !important; }
+  .ep-empty-state { padding: 28px 16px; }
+  .ep-cal-grid { gap: 3px; padding: 6px; overflow-x: auto; }
+  .ep-cal-dayname { font-size: 9px; }
+  .ep-cal-cell { min-height: 52px; padding: 3px 4px; border-radius: 6px; }
+  .ep-cal-cell span { font-size: 9px !important; line-height: 1.2 !important; }
+  .ep-day-section { padding: 0 8px 8px; grid-template-columns: 1fr; gap: 8px; }
+  .ep-day-card { padding: 10px; border-radius: 10px; border-left-width: 4px; }
+  .ep-day-card-top { flex-direction: column; gap: 8px; }
+  .ep-day-card-title { font-size: 13px; }
+  .ep-detail-cols { grid-template-columns: 1fr; gap: 0; }
+  .ep-detail-row { padding: 4px 0; font-size: 11px; }
+  .ep-horaire-mini { padding: 10px; border-radius: 10px; }
+  .ep-horaire-item { gap: 8px; margin-bottom: 8px; }
+  .ep-horaire-icon { width: 28px; height: 28px; }
+  .ep-horaire-item-val { font-size: 12px !important; }
+}
+@media (max-width: 400px) {
+  .ep-filter-grid { grid-template-columns: 1fr; }
+  .ep-filter-search-btn { grid-column: span 1; }
+  .ep-cal-grid { gap: 2px; padding: 4px; overflow-x: auto; min-width: 0; }
+  .ep-cal-cell { min-height: 44px; padding: 2px 3px; }
+  .ep-cal-cell span:first-child { font-size: 8px !important; }
 }
