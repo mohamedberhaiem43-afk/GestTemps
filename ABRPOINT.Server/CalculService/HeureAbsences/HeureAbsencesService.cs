@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Helper;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 
@@ -21,7 +22,7 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
                 float maxhrejour = (float)await _posteRepository.GetJourHeures(soccod, date, poste);
                 float hreTravValue = hretrav ?? 0f;
 
-                if (presence == null || presence.Tothre == "00:00")
+                if (presence == null || presence.Tothre == "00:00" || GenericMethodes.NotPresent(presence))
                 {
                     return await _posteRepository.GetJourHeures(soccod, date, poste);
                 }

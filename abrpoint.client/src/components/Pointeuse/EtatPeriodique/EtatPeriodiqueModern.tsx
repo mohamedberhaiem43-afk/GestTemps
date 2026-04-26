@@ -31,10 +31,6 @@ const fmtTime = (t: string) => (t ? t.slice(0, 5) : '--:--');
 
 const AVATAR_COLORS = ['#0040a1', '#047857', '#b45309', '#6d28d9', '#065f46', '#9d174d'];
 const DAY_NAMES = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-const MONTH_NAMES = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-];
 
 type EmpRow = { empcod: string; emplib: string; nbJours: number; totalMinutes: number; totalRetards: number };
 
@@ -53,14 +49,19 @@ export function classifyDayStatus(etat: EmpEtat | undefined): DayStatus {
   // Férié — backend sets etat = "Férié (motif)"
   if (etatStr.startsWith('férié') || etatStr.startsWith('ferie') || etatStr.startsWith('ferié')) return 'ferie';
 
-  // Congé — backend appends connbjour so etat looks like "Congé annuel 1" or "CA 0.5"
+  // ✅ Use explicit backend flags for reliable conge/autorisation classification
+  // Congé — flag set by backend when a congé record exists for this date
+  if (etat.hasConge) return 'conge';
+  // Fallback: also match by etat string for backwards compatibility
   if (
     etatStr.includes('congé') || etatStr.includes('conge') ||
     etatStr.startsWith('ca ') || etatStr === 'ca' ||
     etatStr.startsWith('cp ') || etatStr === 'cp'
   ) return 'conge';
 
-  // Autorisation — from autorisations batch
+  // Autorisation — flag set by backend when an autorisation record exists for this date
+  if (etat.hasAutorisation) return 'autorisation';
+  // Fallback: also match by etat string for backwards compatibility
   if (
     etatStr.includes('autorisation') ||
     etatStr.includes('autori') ||
@@ -156,15 +157,24 @@ const STATUS_CFG: Record<DayStatus, {
   },
 };
 
-// ── Table view for the calendar month ────────────────────────────────────────
-function EmpDayTable({ etatByDate, annee, mois }: {
+// ── Table view for the date range ────────────────────────────────────────
+function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
   etatByDate: Record<string, EmpEtat>;
-  annee: string;
-  mois: string;
+  dateDebut: string;
+  dateFin: string;
 }) {
-  const yr = parseInt(annee), mo = parseInt(mois);
-  const daysInMonth = new Date(yr, mo, 0).getDate();
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  // Generate all dates in the range
+  const days = useMemo(() => {
+    const start = dayjs(dateDebut);
+    const end = dayjs(dateFin);
+    const arr: string[] = []; // YYYY-MM-DD strings
+    let cur = start;
+    while (cur.isBefore(end) || cur.isSame(end, 'day')) {
+      arr.push(cur.format('YYYY-MM-DD'));
+      cur = cur.add(1, 'day');
+    }
+    return arr;
+  }, [dateDebut, dateFin]);
 
   return (
     <Box sx={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #e5e7eb', mt: 1 }}>
@@ -195,14 +205,14 @@ function EmpDayTable({ etatByDate, annee, mois }: {
           </tr>
         </thead>
         <tbody>
-          {days.map(day => {
-            const key = `${annee}-${String(mo).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const e = etatByDate[key];
+          {days.map(dateKey => {
+            const e = etatByDate[dateKey];
             const status = classifyDayStatus(e);
             const cfg = STATUS_CFG[status];
-            const dow = new Date(yr, mo - 1, day).getDay(); // 0=Sun,6=Sat
+            const d = dayjs(dateKey);
+            const dow = d.day(); // 0=Sun,6=Sat
             const isWeekend = dow === 0 || dow === 6;
-            const dateLabel = new Date(yr, mo - 1, day).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+            const dateLabel = d.toDate().toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
 
             // Display etat label
             const etatDisplay = e?.etat?.trim()
@@ -220,7 +230,7 @@ function EmpDayTable({ etatByDate, annee, mois }: {
             const retardMins = (rh || 0) * 60 + (rm || 0);
 
             return (
-              <tr key={day} style={{
+              <tr key={dateKey} style={{
                 background: isWeekend && !e ? '#f8fafc' : cfg.rowBg,
                 borderBottom: `1px solid ${cfg.rowBorder}`,
                 opacity: isWeekend && !e ? 0.6 : 1,
@@ -298,10 +308,16 @@ function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
     return c;
   }, [etatByDate]);
 
-  const totalJours = useMemo(() =>
-    Object.values(etatByDate).reduce((s, e) => s + Number(e.jour ?? 0), 0),
-    [etatByDate]
-  );
+  const totalJours = useMemo(() => {
+    const workedStatuses: DayStatus[] = ['present', 'retard', 'conge', 'autorisation', 'ferie'];
+    return Object.values(etatByDate).reduce((s, e) => {
+      const status = classifyDayStatus(e);
+      if (!workedStatuses.includes(status)) return s;
+      // If e.jour is a valid numeric string (like "0.5" for half-day), use it; otherwise count as 1
+      const jourNum = parseFloat(e.jour);
+      return s + (isNaN(jourNum) ? 1 : jourNum);
+    }, 0);
+  }, [etatByDate]);
 
   const shown: DayStatus[] = ['present', 'retard', 'absent', 'conge', 'autorisation', 'ferie', 'repos'];
 
@@ -323,11 +339,13 @@ function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
 }
 
 // ── Calendar cell ─────────────────────────────────────────────────────────────
-function CalCell({ day, etat, onClick, selected }: {
-  day: number | null; etat?: EmpEtat; onClick?: () => void; selected?: boolean;
+function CalCell({ dateKey, etat, onClick, selected }: {
+  dateKey: string | null; etat?: EmpEtat; onClick?: () => void; selected?: boolean;
 }) {
-  if (!day) return <Box className="ep-cal-cell ep-cal-cell-empty" />;
+  if (!dateKey) return <Box className="ep-cal-cell ep-cal-cell-empty" />;
 
+  const d = dayjs(dateKey);
+  const dayNum = d.date();
   const status = classifyDayStatus(etat);
   const cfg = STATUS_CFG[status];
 
@@ -357,8 +375,8 @@ function CalCell({ day, etat, onClick, selected }: {
         '&:hover': onClick ? { transform: 'scale(1.03)', boxShadow: '0 2px 8px rgba(0,64,161,0.12)' } : {},
       }}
     >
-      {/* Day number */}
-      <span style={{ fontSize: 12, fontWeight: 700, color: cfg.calText }}>{day}</span>
+      {/* Day number + short month */}
+      <span style={{ fontSize: 12, fontWeight: 700, color: cfg.calText }}>{dayNum} {d.format('MMM')}</span>
 
       {/* Status indicator */}
       {status !== 'unknown' && (
@@ -581,22 +599,27 @@ function EtatPeriodiqueModernInner() {
 
   const selectedEmpRow = Array.isArray(rows) ? rows.find(r => r.empcod === selectedEmpMat) : undefined;
   const periodLabel = `${dateDebut.slice(8, 10)}/${dateDebut.slice(5, 7)} – ${dateFin.slice(8, 10)}/${dateFin.slice(5, 7)}`;
-  const monthLabel = MONTH_NAMES[parseInt(mois) - 1] || mois;
 
   const calendarCells = useMemo(() => {
-    const yr = parseInt(annee), mo = parseInt(mois);
-    if (!yr || !mo) return [];
-    const firstDay = new Date(yr, mo - 1, 1).getDay();
-    const offset = firstDay === 0 ? 6 : firstDay - 1;
-    const daysInMonth = new Date(yr, mo, 0).getDate();
-    const cells: (number | null)[] = Array(offset).fill(null);
-    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-    return cells;
-  }, [annee, mois]);
+    const start = dayjs(dateDebut);
+    const end = dayjs(dateFin);
+    if (!start.isValid() || !end.isValid()) return [];
 
-  const handleDayClick = (day: number) => {
-    const key = `${annee}-${String(parseInt(mois)).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const etat = etatByDate[key];
+    // First day of the range — find its weekday offset (Mon=0 … Sun=6)
+    const firstDow = start.day(); // 0=Sun
+    const offset = firstDow === 0 ? 6 : firstDow - 1; // shift to Mon-based
+
+    const cells: (string | null)[] = Array(offset).fill(null);
+    let cur = start;
+    while (cur.isBefore(end) || cur.isSame(end, 'day')) {
+      cells.push(cur.format('YYYY-MM-DD'));
+      cur = cur.add(1, 'day');
+    }
+    return cells;
+  }, [dateDebut, dateFin]);
+
+  const handleDayClick = (dateKey: string) => {
+    const etat = etatByDate[dateKey];
     if (etat) {
       setSelectedDay(etat);
       setSelectedEmpPoste({ codposte: etat.codposte, day: dayjs(etat.predat).locale('fr').format('ddd').replace('.', '') });
@@ -719,7 +742,7 @@ function EtatPeriodiqueModernInner() {
           <Box className="ep-detail-paper">
             <Box className="ep-detail-header">
               <Box>
-                <Typography className="ep-detail-title">Planning Mensuel — {monthLabel} {annee}</Typography>
+                <Typography className="ep-detail-title">Planning Périodique — {periodLabel}</Typography>
                 {selectedEmpRow && (
                   <Typography className="ep-detail-sub">
                     {selectedEmpRow.emplib} · {selectedEmpRow.nbJours}j · {fmtMin(selectedEmpRow.totalMinutes)}
@@ -745,7 +768,7 @@ function EtatPeriodiqueModernInner() {
               /* ── Enhanced table view ── */
               <Box className="ep-table-wrap">
                 <SummaryBar etatByDate={etatByDate} />
-                <EmpDayTable etatByDate={etatByDate} annee={annee} mois={mois} />
+                <EmpDayTable etatByDate={etatByDate} dateDebut={dateDebut} dateFin={dateFin} />
               </Box>
             ) : (
               /* ── Calendar view ── */
@@ -757,14 +780,13 @@ function EtatPeriodiqueModernInner() {
                   {DAY_NAMES.map((d, i) => (
                     <Box key={d} className={`ep-cal-dayname ${i >= 5 ? 'ep-cal-dayname-weekend' : ''}`}>{d}</Box>
                   ))}
-                  {calendarCells.map((day, i) => {
-                    const key = day ? `${annee}-${String(parseInt(mois)).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
-                    const etat = key ? etatByDate[key] : undefined;
-                    const isSelected = selectedDay && day ? dayjs(selectedDay.predat).date() === day : false;
+                  {calendarCells.map((dateKey, i) => {
+                    const etat = dateKey ? etatByDate[dateKey] : undefined;
+                    const isSelected = selectedDay && dateKey ? dayjs(selectedDay.predat).format('YYYY-MM-DD') === dateKey : false;
                     return (
-                      <CalCell key={i} day={day} etat={etat}
+                      <CalCell key={i} dateKey={dateKey} etat={etat}
                         selected={isSelected}
-                        onClick={day ? () => handleDayClick(day) : undefined} />
+                        onClick={dateKey ? () => handleDayClick(dateKey) : undefined} />
                     );
                   })}
                 </Box>
@@ -832,6 +854,53 @@ function EtatPeriodiqueModernInner() {
                         </Box>
                       </Box>
                     </Box>
+
+                    {/* Autorisation du jour */}
+                    {selectedDay.hasAutorisation && selectedDay.autDebut && selectedDay.autFin && (
+                      <Box className="ep-horaire-mini" sx={{ borderColor: '#c4b5fd' }}>
+                        <Typography className="ep-horaire-mini-title" sx={{ color: '#6d28d9' }}>📋 Autorisation</Typography>
+                        <Box className="ep-horaire-item">
+                          <Box className="ep-horaire-icon" style={{ background: 'rgba(109,40,217,0.08)' }}>
+                            <AccessTimeIcon sx={{ fontSize: 16, color: '#6d28d9' }} />
+                          </Box>
+                          <Box>
+                            <Typography className="ep-horaire-item-label">Plage autorisée</Typography>
+                            <Typography className="ep-horaire-item-val" style={{ color: '#6d28d9', fontWeight: 700 }}>
+                              {selectedDay.autDebut} → {selectedDay.autFin}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Box className="ep-horaire-item">
+                          <Box className="ep-horaire-icon" style={{ background: 'rgba(109,40,217,0.08)' }}>
+                            <TimerIcon sx={{ fontSize: 16, color: '#6d28d9' }} />
+                          </Box>
+                          <Box>
+                            <Typography className="ep-horaire-item-label">Motif</Typography>
+                            <Typography className="ep-horaire-item-val">
+                              {selectedDay.etat?.trim() || 'Autorisation'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Congé du jour */}
+                    {selectedDay.hasConge && (
+                      <Box className="ep-horaire-mini" sx={{ borderColor: '#93c5fd' }}>
+                        <Typography className="ep-horaire-mini-title" sx={{ color: '#1d4ed8' }}>🏖 Congé</Typography>
+                        <Box className="ep-horaire-item">
+                          <Box className="ep-horaire-icon" style={{ background: 'rgba(29,78,216,0.08)' }}>
+                            <CalendarMonthIcon sx={{ fontSize: 16, color: '#1d4ed8' }} />
+                          </Box>
+                          <Box>
+                            <Typography className="ep-horaire-item-label">Type de congé</Typography>
+                            <Typography className="ep-horaire-item-val" style={{ color: '#1d4ed8', fontWeight: 700 }}>
+                              {selectedDay.etat?.trim() || 'Congé'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    )}
 
                     {/* Poste du jour */}
                     <Box className="ep-horaire-mini">

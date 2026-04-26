@@ -106,6 +106,84 @@ function DashboardModernAdmin() {
 
   const today = dayjs().format('DD MMMM YYYY');
 
+  const presenceRate = dashboardData ? ((dashboardData.effectifPresent / Math.max(dashboardData.effectifTotal || 1, 1)) * 100).toFixed(1) : '--';
+  const absenceRate = dashboardData ? (100 - parseFloat(presenceRate as string)).toFixed(1) : '--';
+
+  const handleExportReport = () => {
+    const lines: string[] = [];
+    const sep = ';'; // CSV semicolon for French Excel
+
+    // Title
+    lines.push(`Rapport Tableau de Bord - ${today}`);
+    lines.push(`Période: ${filterDateRange === 'today' ? "Aujourd'hui" : filterDateRange === 'week' ? 'Cette semaine' : 'Ce mois'}`);
+    lines.push(`Département: ${filterDepartment === 'all' ? 'Tous' : filterDepartment}`);
+    lines.push('');
+
+    // KPIs
+    lines.push('=== INDICATEURS CLÉS ===');
+    lines.push(`Taux de Présence;${presenceRate}%`);
+    lines.push(`Taux d'Absentéisme;${absenceRate}%`);
+    lines.push(`Ponctualité;${dashboardData ? `${dashboardData.pourcentagePonctualite.toFixed(1)}%` : '--'}`);
+    lines.push(`Heures Supp. Cumulées;${dashboardData ? `${dashboardData.heuresTravaillees.toFixed(0)} hrs` : '--'}`);
+    lines.push(`Effectif Total;${dashboardData?.effectifTotal ?? '--'}`);
+    lines.push(`Effectif Présent;${dashboardData?.effectifPresent ?? '--'}`);
+    lines.push(`Total Absences;${dashboardData?.totalAbsences ?? 0}`);
+    lines.push(`Nombre Retards;${dashboardData?.nombreRetards ?? 0}`);
+    lines.push(`Demandes en Attente;${dashboardData?.totalDemandesEnAttente ?? 0}`);
+    lines.push('');
+
+    // Absences récentes
+    if (dashboardData && dashboardData.totalAbsences > 0) {
+      lines.push('=== ABSENCES DU JOUR ===');
+      lines.push(`Total Absences;${dashboardData.totalAbsences}`);
+      lines.push('');
+    }
+
+    // Congés en attente
+    if (demandesData && demandesData.length > 0) {
+      lines.push('=== DEMANDES DE CONGÉ EN ATTENTE ===');
+      lines.push(['Matricule', 'Employé', 'Type', 'Date Début', 'Date Fin', 'Statut'].join(sep));
+      demandesData.forEach((d: any) => {
+        lines.push([d.empcod || '', d.emplib || '', d.cgntype || '', d.cgndatedebut ? dayjs(d.cgndatedebut).format('DD/MM/YYYY') : '', d.cgndatefin ? dayjs(d.cgndatefin).format('DD/MM/YYYY') : '', d.cgnstatut || 'En attente'].join(sep));
+      });
+      lines.push('');
+    }
+
+    // Contrats échus
+    if (expiringContracts.length > 0) {
+      lines.push('=== CONTRATS ÉCHUS CE MOIS ===');
+      lines.push(['Matricule', 'Employé', 'Type', 'Date Échéance', 'Jours Restants'].join(sep));
+      expiringContracts.forEach((c: any) => {
+        const daysLeft = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : 0;
+        lines.push([c.empcod || '', c.emplib || '', c.contype || 'CDD', c.empsort ? dayjs(c.empsort).format('DD/MM/YYYY') : '', `${daysLeft}j`].join(sep));
+      });
+      lines.push('');
+    }
+
+    // Pointages invalides
+    if (pointagesData && pointagesData.length > 0) {
+      lines.push('=== POINTAGES NON COMPLÈTES ===');
+      lines.push(['Matricule', 'Nom', 'Département', 'Date', 'Arrivée', 'Départ', 'Commentaire'].join(sep));
+      pointagesData.forEach((row: any) => {
+        lines.push([row.empcod || '', row.emplib || '', row.departement || '', row.predat ? dayjs(row.predat).format('DD/MM/YYYY') : '', row.preentmatup || '', row.presortamidiup || row.presortmatup || '', row.motif || ''].join(sep));
+      });
+      lines.push('');
+    }
+
+    // Create and download file
+    const bom = '\uFEFF'; // UTF-8 BOM for Excel
+    const csvContent = bom + lines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Rapport_TableauDeBord_${dayjs().format('YYYY-MM-DD_HHmm')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading) return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
       <CircularProgress size={48} sx={{ color: '#0040a1' }} />
@@ -116,9 +194,6 @@ function DashboardModernAdmin() {
     <Box sx={{ p: 3 }}><Alert severity="error">Erreur lors du chargement du tableau de bord</Alert></Box>
   );
 
-  const presenceRate = dashboardData ? ((dashboardData.effectifPresent / Math.max(dashboardData.effectifTotal || 1, 1)) * 100).toFixed(1) : '--';
-  const absenceRate = dashboardData ? (100 - parseFloat(presenceRate as string)).toFixed(1) : '--';
-
   return (
     <Box className="db-container">
       {/* Welcome header */}
@@ -127,7 +202,7 @@ function DashboardModernAdmin() {
           <Typography className="db-title">Vue d'ensemble</Typography>
           <Typography className="db-subtitle">Mise à jour aujourd'hui, le {today}</Typography>
         </Box>
-        <Button startIcon={<FileDownloadIcon />} className="db-export-btn">
+        <Button startIcon={<FileDownloadIcon />} className="db-export-btn" onClick={handleExportReport}>
           Exporter le rapport
         </Button>
       </Box>
@@ -183,7 +258,7 @@ function DashboardModernAdmin() {
         <KpiCard
           icon={<ScheduleIcon sx={{ fontSize: 20 }} />}
           label="Ponctualité"
-          value={dashboardData ? `${(100 - (dashboardData.nombreRetards / Math.max(dashboardData.effectifPresent, 1)) * 100).toFixed(1)}%` : '--'}
+          value={dashboardData ? `${dashboardData.pourcentagePonctualite.toFixed(1)}%` : '--'}
           trendLabel="Moyenne"
           iconBg="rgba(81,95,116,0.1)" iconColor="#515f74"
         />

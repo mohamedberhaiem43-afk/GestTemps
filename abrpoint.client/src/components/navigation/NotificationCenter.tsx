@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Badge,
   IconButton,
   Popover,
   List,
@@ -21,6 +20,9 @@ import {
   Avatar,
   Stack,
   Chip,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -107,7 +109,8 @@ function NotificationCenterInner() {
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [selectedNotif, setSelectedNotif] = useState<AppNotification | null>(null);
   const [isTreating, setIsTreating] = useState(false);
-  const { isEmp, utiadm } = useAuth();
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const { isEmp, utiadm, soccod } = useAuth();
   const isAdmin = utiadm === '1';
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -278,10 +281,6 @@ function NotificationCenterInner() {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
   const handleClose = () => {
     setAnchorEl(null);
   };
@@ -297,30 +296,48 @@ function NotificationCenterInner() {
     handleClose();
   };
 
-  const handleTreat = async (status: 'Accepté' | 'Refusé' | 'Validé' | 'Rejected') => {
+  const handleTreat = async (action: 'approve' | 'refuse') => {
     if (!selectedNotif?.rawData) return;
     setIsTreating(true);
     try {
       const { type, rawData } = selectedNotif;
+
       if (type === 'leave') {
-        const payload = { ...rawData, etat: status === 'Accepté' ? 'Accepté' : 'Refusé' };
-        await apiInstance.put('/DemConges', payload);
+        // Use dedicated accept/refuse endpoints for congé
+        const url = action === 'approve'
+          ? `/DemConges/accept-demconge/${soccod}/${rawData.concod}/${rawData.empcod}`
+          : `/DemConges/refuse-demconge/${soccod}/${rawData.concod}/${rawData.empcod}`;
+        await apiInstance.post(url);
       } else if (type === 'expense') {
-        const payload = { ...rawData, etat: status === 'Validé' ? 'Validée' : 'Refusée' };
-        await apiInstance.put('/NoteDeFrais', payload);
+        // Use dedicated update-status endpoint for note de frais
+        const newStatus = action === 'approve' ? 'Validée' : 'Refusée';
+        await apiInstance.put(`/NoteDeFrais/update-status/${rawData.id}/${newStatus}`);
       } else if (type === 'autorisation') {
-        const payload = { ...rawData, statut: status === 'Accepté' ? 'Approuvé' : 'Refusé' };
-        await apiInstance.put('/DemandeAutorisations', payload);
+        // Use dedicated approve/refuse endpoints for autorisation
+        const url = action === 'approve'
+          ? `/DemandeAutorisations/approve/${rawData.id}`
+          : `/DemandeAutorisations/refuse/${rawData.id}`;
+        await apiInstance.post(url, { traitePar: '', commentaire: '' });
       }
+
+      setSnackbar({
+        open: true,
+        message: action === 'approve' ? 'Demande approuvée avec succès' : 'Demande refusée',
+        severity: 'success'
+      });
       setSelectedNotif(null);
-      // Wait a bit for fresh data
-      setTimeout(() => {
-        if (type === 'leave') refetchLeaves();
-        if (type === 'expense') { refetchMyExpenses(); refetchAllExpenses(); }
-        if (type === 'autorisation') refetchAuts();
-      }, 500);
+
+      // Refetch data immediately
+      if (type === 'leave') refetchLeaves();
+      if (type === 'expense') { refetchMyExpenses(); refetchAllExpenses(); }
+      if (type === 'autorisation') refetchAuts();
     } catch (err) {
       console.error('Treatment error:', err);
+      setSnackbar({
+        open: true,
+        message: "Erreur lors du traitement de la demande",
+        severity: 'error'
+      });
     } finally {
       setIsTreating(false);
     }
@@ -342,38 +359,6 @@ function NotificationCenterInner() {
 
   return (
     <>
-      <IconButton
-        onClick={handleClick}
-        sx={{
-          color: isDark ? '#94a3b8' : '#64748b',
-          '&:hover': { color: '#0040a1', bgcolor: 'rgba(0, 64, 161, 0.05)' },
-          borderRadius: '12px',
-          p: 1.2,
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      >
-        <Badge
-          badgeContent={unreadCount}
-          color="error"
-          sx={{
-            '& .MuiBadge-badge': {
-              fontSize: 10,
-              height: 18,
-              minWidth: 18,
-              fontWeight: 800,
-              border: `2px solid ${isDark ? '#1e293b' : '#fff'}`,
-              animation: unreadCount > 0 ? 'pulse 2s infinite' : 'none',
-              '@keyframes pulse': {
-                '0%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(239, 68, 68, 0.4)' },
-                '70%': { transform: 'scale(1.1)', boxShadow: '0 0 0 10px rgba(239, 68, 68, 0)' },
-                '100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(239, 68, 68, 0)' },
-              }
-            }
-          }}
-        >
-          <NotificationsIcon sx={{ fontSize: 24 }} />
-        </Badge>
-      </IconButton>
 
       <Popover
         open={open}
@@ -631,9 +616,9 @@ function NotificationCenterInner() {
                   fullWidth
                   variant="outlined"
                   color="error"
-                  onClick={() => handleTreat(selectedNotif.type === 'expense' ? 'Rejected' : 'Refusé')}
+                  onClick={() => handleTreat('refuse')}
                   disabled={isTreating}
-                  startIcon={<CancelIcon />}
+                  startIcon={isTreating ? <CircularProgress size={16} color="inherit" /> : <CancelIcon />}
                   sx={{ borderRadius: '12px', fontWeight: 700, textTransform: 'none', py: 1.2 }}
                 >
                   Refuser
@@ -642,9 +627,9 @@ function NotificationCenterInner() {
                   fullWidth
                   variant="contained"
                   color="success"
-                  onClick={() => handleTreat(selectedNotif.type === 'expense' ? 'Validé' : 'Accepté')}
+                  onClick={() => handleTreat('approve')}
                   disabled={isTreating}
-                  startIcon={<ValidIcon />}
+                  startIcon={isTreating ? <CircularProgress size={16} color="inherit" /> : <ValidIcon />}
                   sx={{ borderRadius: '12px', fontWeight: 800, textTransform: 'none', py: 1.2, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
                 >
                   Approuver
@@ -665,6 +650,22 @@ function NotificationCenterInner() {
           </>
         )}
       </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ borderRadius: '12px', fontWeight: 600 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

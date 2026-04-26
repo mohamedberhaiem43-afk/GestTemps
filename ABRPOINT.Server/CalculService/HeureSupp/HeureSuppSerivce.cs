@@ -108,38 +108,16 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                             nbHeurSupp += SupAfternoonEntry;
                         }
                     }
-                    else
-                    {
-                        // ✅ PAS de session du soir : tout le travail = heures supp
-                        if (!string.IsNullOrEmpty(presence.Presortamidiup) && actualAfternoonEnd != TimeSpan.Zero)
-                        {
-                            int actualAfternoonEndMinutes = (int)actualAfternoonEnd.TotalMinutes;
-
-                            int afternoonWorkMinutes;
-
-                            // ✅ Gestion du passage de minuit
-                            if (actualAfternoonEndMinutes < actualAfternoonArrivalMinutes)
-                            {
-                                afternoonWorkMinutes = (1440 - actualAfternoonArrivalMinutes) + actualAfternoonEndMinutes;
-                            }
-                            else
-                            {
-                                afternoonWorkMinutes = actualAfternoonEndMinutes - actualAfternoonArrivalMinutes;
-                            }
-
-                            nbHeurSupp += afternoonWorkMinutes;
-                        }
-                    }
+                    // ⚠️ FIX: When no evening session is defined, we do NOT count all afternoon
+                    // work as overtime. The overtime for late departure is handled in section 4
+                    // (comparing actualLeave against the scheduled end time).
                 }
 
                 // 4️⃣ HEURES SUPP EN FIN DE JOURNÉE
                 TimeSpan actualLeave = TimeSpan.Zero;
 
-                if (!string.IsNullOrEmpty(presence.Presortmatup))
-                {
-                    actualLeave = ParseOrZero(presence.Presortmatup);
-                }
-                else if (!string.IsNullOrEmpty(presence.Presortamidiup))
+                // FIX: Prioritize afternoon exit (last departure of the day) over morning exit
+                if (!string.IsNullOrEmpty(presence.Presortamidiup) && actualAfternoonEnd != TimeSpan.Zero)
                 {
                     actualLeave = actualAfternoonEnd;
                 }
@@ -148,19 +126,22 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     actualLeave = actualMorningEnd;
                 }
 
-                if (actualLeave != TimeSpan.Zero && hasEveningSession)
+                // FIX: Handle both cases — with and without evening session
+                TimeSpan scheduledEnd = hasEveningSession ? eveningEnd : morningEnd;
+
+                if (actualLeave != TimeSpan.Zero)
                 {
-                    int eveningEndMinutes = (int)eveningEnd.TotalMinutes;
+                    int scheduledEndMinutes = (int)scheduledEnd.TotalMinutes;
                     int actualLeaveMinutes = (int)actualLeave.TotalMinutes;
 
-                    if (actualLeaveMinutes > (eveningEndMinutes + SortieTolerance))
+                    if (actualLeaveMinutes > (scheduledEndMinutes + SortieTolerance))
                     {
-                        int SupEvening = actualLeaveMinutes - eveningEndMinutes;
+                        int SupEvening = actualLeaveMinutes - scheduledEndMinutes;
                         nbHeurSupp += SupEvening;
                     }
-                    else if (actualLeaveMinutes < eveningEndMinutes)
+                    else if (actualLeaveMinutes < scheduledEndMinutes)
                     {
-                        int diffFromOfficialLeave = actualLeaveMinutes - eveningEndMinutes;
+                        int diffFromOfficialLeave = actualLeaveMinutes - scheduledEndMinutes;
                         UpdateTothre(presence, -diffFromOfficialLeave);
                     }
                 }
@@ -183,7 +164,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var convertedValue = GenericMethodes.ConvertHHmmToDouble(presence.Tothsup);
                 if (convertedValue.HasValue)
                 {
-                    return (int)convertedValue.Value;
+                    // FIX: Removed (int) cast that was truncating minutes.
+                    // e.g. "01:30" → 1.5 → (int)1.5 = 1 → lost 30 min
+                    return convertedValue.Value;
                 }
             }
 
@@ -269,38 +252,16 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                             nbHeurSupp += SupAfternoonEntry;
                         }
                     }
-                    else
-                    {
-                        // ✅ PAS de session du soir : tout le travail = heures supp
-                        if (!string.IsNullOrEmpty(presence.Presortamidiup) && actualAfternoonEnd != TimeSpan.Zero)
-                        {
-                            int actualAfternoonEndMinutes = (int)actualAfternoonEnd.TotalMinutes;
-
-                            int afternoonWorkMinutes;
-
-                            // ✅ Gestion du passage de minuit
-                            if (actualAfternoonEndMinutes < actualAfternoonArrivalMinutes)
-                            {
-                                afternoonWorkMinutes = (1440 - actualAfternoonArrivalMinutes) + actualAfternoonEndMinutes;
-                            }
-                            else
-                            {
-                                afternoonWorkMinutes = actualAfternoonEndMinutes - actualAfternoonArrivalMinutes;
-                            }
-
-                            nbHeurSupp += afternoonWorkMinutes;
-                        }
-                    }
+                    // ⚠️ FIX: When no evening session is defined, we do NOT count all afternoon
+                    // work as overtime. The overtime for late departure is handled in section 4
+                    // (comparing actualLeave against the scheduled end time).
                 }
 
                 // 4️⃣ HEURES SUPP EN FIN DE JOURNÉE
                 TimeSpan actualLeave = TimeSpan.Zero;
 
-                if (!string.IsNullOrEmpty(presence.Presortmatup))
-                {
-                    actualLeave = ParseOrZero(presence.Presortmatup);
-                }
-                else if (!string.IsNullOrEmpty(presence.Presortamidiup))
+                // FIX: Prioritize afternoon exit (last departure of the day) over morning exit
+                if (!string.IsNullOrEmpty(presence.Presortamidiup) && actualAfternoonEnd != TimeSpan.Zero)
                 {
                     actualLeave = actualAfternoonEnd;
                 }
@@ -309,19 +270,22 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     actualLeave = actualMorningEnd;
                 }
 
-                if (actualLeave != TimeSpan.Zero && hasEveningSession)
+                // FIX: Handle both cases — with and without evening session
+                TimeSpan scheduledEnd = hasEveningSession ? eveningEnd : morningEnd;
+
+                if (actualLeave != TimeSpan.Zero)
                 {
-                    int eveningEndMinutes = (int)eveningEnd.TotalMinutes;
+                    int scheduledEndMinutes = (int)scheduledEnd.TotalMinutes;
                     int actualLeaveMinutes = (int)actualLeave.TotalMinutes;
 
-                    if (actualLeaveMinutes > (eveningEndMinutes + SortieTolerance))
+                    if (actualLeaveMinutes > (scheduledEndMinutes + SortieTolerance))
                     {
-                        int SupEvening = actualLeaveMinutes - eveningEndMinutes;
+                        int SupEvening = actualLeaveMinutes - scheduledEndMinutes;
                         nbHeurSupp += SupEvening;
                     }
-                    else if (actualLeaveMinutes < eveningEndMinutes)
+                    else if (actualLeaveMinutes < scheduledEndMinutes)
                     {
-                        int diffFromOfficialLeave = actualLeaveMinutes - eveningEndMinutes;
+                        int diffFromOfficialLeave = actualLeaveMinutes - scheduledEndMinutes;
                         UpdateTothre(presence, -diffFromOfficialLeave);
                     }
                 }

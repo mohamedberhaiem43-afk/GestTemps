@@ -127,6 +127,12 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                 dashboardData.NombreRetards = retards;
                 dashboardData.PointagesIncomplets = pointagesIncomplets;
 
+                // Ponctualité : % d'entrées à l'heure par rapport au nombre total d'entrées
+                var totalEntrees = presences.Count(p => !string.IsNullOrEmpty(p.Preentmatup));
+                dashboardData.PourcentagePonctualite = totalEntrees > 0
+                    ? Math.Round((decimal)(totalEntrees - retards) / totalEntrees * 100, 2)
+                    : 0;
+
                 // =========================
                 // 5. Heures prévues
                 // =========================
@@ -420,6 +426,12 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                 dashboardData.HeuresSupplementaires = MathF.Round(heuresSupplementairesTotales, 2);
                 dashboardData.NombreRetards = retardsTotaux;
                 dashboardData.PointagesIncomplets = pointagesIncomplets;
+
+                // Ponctualité : % d'entrées à l'heure par rapport au nombre total d'entrées
+                var totalEntrees = pointagesAvecEntree.Count;
+                dashboardData.PourcentagePonctualite = totalEntrees > 0
+                    ? Math.Round((decimal)(totalEntrees - retardsTotaux) / totalEntrees * 100, 2)
+                    : 0;
 
                 // 5. Absences
                 var employesAbsents = effectifTotal - employesPresents;

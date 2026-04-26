@@ -5,6 +5,9 @@ import {
   Box,
   Button,
   Chip,
+  Collapse,
+  Divider,
+  IconButton,
   Paper,
   Skeleton,
   Stack,
@@ -16,9 +19,13 @@ import {
   TableRow,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   CalendarToday,
+  ExpandLess,
+  ExpandMore,
   Search,
   TrendingUp,
 } from '@mui/icons-material';
@@ -96,6 +103,10 @@ const readRetard = (row: EtatPresence): string => {
 const EmpPresence = () => {
   const { dateRange } = useDateRange() as DateRangeContext;
   const [search, setSearch] = useState('');
+  const [dailyDetailOpen, setDailyDetailOpen] = useState(false);
+
+  const theme = useTheme();
+  const isLgUp = useMediaQuery(theme.breakpoints.up('lg'));
 
   const { data = [], isLoading } = useGetEtatPresence(
     dateRange.dateDebut,
@@ -165,7 +176,7 @@ const EmpPresence = () => {
   
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', xl: 'row' }, gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 2 }}>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack spacing={2.2}>
           {/* KPIs */}
@@ -294,50 +305,130 @@ const EmpPresence = () => {
               </Table>
             </TableContainer>
           </Paper>
+
+          {/* Détail journalier repliable sous le tableau */}
+          {!isLgUp && selectedRow && (
+            <Paper sx={{ borderRadius: 2.5, border: '1px solid #e7eaf0', overflow: 'hidden' }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ px: 2, py: 1.5, cursor: 'pointer', bgcolor: '#f8fafc', borderBottom: dailyDetailOpen ? '1px solid #eef2f7' : 'none' }}
+                onClick={() => setDailyDetailOpen((prev) => !prev)}
+              >
+                <Stack direction="row" spacing={1.2} alignItems="center">
+                  <Avatar sx={{ width: 34, height: 34, bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 800, fontSize: '0.75rem' }}>
+                    {initials(selectedRow.emplib || selectedRow.empcod || 'NA')}
+                  </Avatar>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 700 }}>Details Presence</Typography>
+                    <Typography sx={{ fontSize: '0.68rem', color: '#64748b' }}>{formatDateLong(selectedRow.predat)}</Typography>
+                  </Box>
+                </Stack>
+                <IconButton size="small">
+                  {dailyDetailOpen ? <ExpandLess /> : <ExpandMore />}
+                </IconButton>
+              </Stack>
+
+              <Collapse in={dailyDetailOpen}>
+                <Box sx={{ p: 2 }}>
+                  <Stack spacing={1.5}>
+                    <Stack direction="row" spacing={1.2} alignItems="center">
+                      <Avatar sx={{ width: 48, height: 48, bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 800 }}>
+                        {initials(selectedRow.emplib || selectedRow.empcod || 'NA')}
+                      </Avatar>
+                      <Box>
+                        <Typography sx={{ fontWeight: 700 }}>{selectedRow.emplib || DASH}</Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedRow.empmat || selectedRow.empcod || DASH}</Typography>
+                      </Box>
+                    </Stack>
+
+                    <Divider />
+
+                    <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2, bgcolor: '#f8fafc' }}>
+                      <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Date</Typography>
+                      <Typography sx={{ fontSize: '0.86rem', fontWeight: 700 }}>{formatDateLong(selectedRow.predat)}</Typography>
+                    </Paper>
+
+                    <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}>
+                      <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, mb: 0.6 }}>Pointages enregistres</Typography>
+                      <Stack spacing={0.8}>
+                        <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree1 || DASH}</Typography></Stack>
+                        <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Sortie matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.sortie1 || DASH}</Typography></Stack>
+                        <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree2 || DASH}</Typography></Stack>
+                        <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Sortie apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.sortie2 || DASH}</Typography></Stack>
+                        <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Retard total</Typography><Chip size="small" label={readRetard(selectedRow)} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }} /></Stack>
+                        <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Heure nuit</Typography><Chip size="small" label={selectedRow.tothnuit || '00:00'} sx={{ bgcolor: '#f3e8ff', color: '#6b21a8', fontWeight: 700 }} /></Stack>
+                      </Stack>
+                    </Paper>
+                  </Stack>
+                </Box>
+              </Collapse>
+            </Paper>
+          )}
         </Stack>
       </Box>
 
-      {/* Panneau détail */}
-      <Paper sx={{ display: { xs: 'none', xl: 'block' } }}>
-        <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '1.1rem', mb: 2 }}>Details Presence</Typography>
-        {selectedRow ? (
-          <Stack spacing={1.5}>
-            <Stack direction="row" spacing={1.2} alignItems="center">
-              <Avatar sx={{ width: 52, height: 52, bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 800 }}>
-                {initials(selectedRow.emplib || selectedRow.empcod || 'NA')}
-              </Avatar>
-              <Box>
-                <Typography sx={{ fontWeight: 700 }}>{selectedRow.emplib || DASH}</Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedRow.empmat || selectedRow.empcod || DASH}</Typography>
-              </Box>
-            </Stack>
-
-            <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2, bgcolor: '#f8fafc' }}>
-              <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Date</Typography>
-              <Typography sx={{ fontSize: '0.86rem', fontWeight: 700 }}>{formatDateLong(selectedRow.predat)}</Typography>
-            </Paper>
-
-            <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}>
-              <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, mb: 0.6 }}>Pointages enregistres</Typography>
-              <Stack spacing={0.8}>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree1 || DASH}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Sortie matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.sortie1 || DASH}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree2 || DASH}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Sortie apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.sortie2 || DASH}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Retard total</Typography><Chip size="small" label={readRetard(selectedRow)} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }} /></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Heure nuit</Typography><Chip size="small" label={selectedRow.tothnuit || '00:00'} sx={{ bgcolor: '#f3e8ff', color: '#6b21a8', fontWeight: 700 }} /></Stack>
+      {/* Panneau détail latéral (xl+) */}
+      {isLgUp && (
+        <Paper sx={{ width: 300, flexShrink: 0, p: 2.5, borderRadius: 2.5, border: '1px solid #e7eaf0', height: 'fit-content', position: 'sticky', top: 16 }}>
+          <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '1.1rem', mb: 2 }}>Details Presence</Typography>
+          {selectedRow ? (
+            <Stack spacing={1.5}>
+              <Stack direction="row" spacing={1.2} alignItems="center">
+                <Avatar sx={{ width: 52, height: 52, bgcolor: '#dbeafe', color: '#1d4ed8', fontWeight: 800 }}>
+                  {initials(selectedRow.emplib || selectedRow.empcod || 'NA')}
+                </Avatar>
+                <Box>
+                  <Typography sx={{ fontWeight: 700 }}>{selectedRow.emplib || DASH}</Typography>
+                  <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedRow.empmat || selectedRow.empcod || DASH}</Typography>
+                </Box>
               </Stack>
-            </Paper>
 
-            <Stack spacing={1}>
-              <Button variant="outlined" fullWidth>Voir le detail journalier</Button>
-              <Button variant="outlined" fullWidth>Notifier l'employe</Button>
+              <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2, bgcolor: '#f8fafc' }}>
+                <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Date</Typography>
+                <Typography sx={{ fontSize: '0.86rem', fontWeight: 700 }}>{formatDateLong(selectedRow.predat)}</Typography>
+              </Paper>
+
+              <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}>
+                <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, mb: 0.6 }}>Pointages enregistres</Typography>
+                <Stack spacing={0.8}>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree1 || DASH}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Sortie matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.sortie1 || DASH}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree2 || DASH}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Sortie apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.sortie2 || DASH}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Retard total</Typography><Chip size="small" label={readRetard(selectedRow)} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }} /></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Heure nuit</Typography><Chip size="small" label={selectedRow.tothnuit || '00:00'} sx={{ bgcolor: '#f3e8ff', color: '#6b21a8', fontWeight: 700 }} /></Stack>
+                </Stack>
+              </Paper>
+
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={dailyDetailOpen ? <ExpandLess /> : <ExpandMore />}
+                onClick={() => setDailyDetailOpen((prev) => !prev)}
+              >
+                Voir le detail journalier
+              </Button>
+
+              <Collapse in={dailyDetailOpen}>
+                <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: '#f8fafc' }}>
+                  <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, mb: 1 }}>Detail journalier</Typography>
+                  <Stack spacing={0.6}>
+                    <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>Total heures</Typography><Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{selectedRow.totalHeure || DASH}</Typography></Stack>
+                    <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>Retard matin</Typography><Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{selectedRow.preretmateup || DASH}</Typography></Stack>
+                    <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>Retard apres-midi</Typography><Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{selectedRow.preretameup || DASH}</Typography></Stack>
+                    <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>Regime</Typography><Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{selectedRow.empreg || DASH}</Typography></Stack>
+                    <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>Motif</Typography><Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{selectedRow.motif || DASH}</Typography></Stack>
+                  </Stack>
+                </Paper>
+              </Collapse>
             </Stack>
-          </Stack>
-        ) : (
-          <Alert severity="info">Aucune ligne selectionnee.</Alert>
-        )}
-      </Paper>
+          ) : (
+            <Alert severity="info">Aucune ligne selectionnee.</Alert>
+          )}
+        </Paper>
+      )}
     </Box>
   );
 };

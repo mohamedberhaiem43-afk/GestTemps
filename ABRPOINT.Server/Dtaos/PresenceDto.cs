@@ -50,5 +50,12 @@
         public float? Predouche { get; set; }
         public double? Jour { get; set; }
 
+        // Flags for reliable frontend classification
+        public bool HasAutorisation { get; set; }
+        public bool HasConge { get; set; }
+        // Autorisation time range for display
+        public string? AutDebut { get; set; }
+        public string? AutFin { get; set; }
+
     }
 }

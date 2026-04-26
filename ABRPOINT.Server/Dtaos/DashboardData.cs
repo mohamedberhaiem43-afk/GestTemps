@@ -29,6 +29,9 @@
         public int DemandesCongesEnAttente { get; set; }
         public int TotalDemandesEnAttente { get; set; }
 
+        // Ponctualité
+        public decimal PourcentagePonctualite { get; set; }
+
         // Anomalies
         public int PointagesIncomplets { get; set; }
 

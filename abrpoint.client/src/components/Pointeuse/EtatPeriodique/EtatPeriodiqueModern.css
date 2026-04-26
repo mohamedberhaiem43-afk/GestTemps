@@ -15,8 +15,9 @@
 
 /* ── Filter bar ── */
 .ep-filter-bar { background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-.ep-filter-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 10px; align-items: end; }
-.ep-filter-field { display: flex; flex-direction: column; gap: 4px; }
+.ep-filter-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.ep-filter-field { display: flex; flex-direction: column; gap: 4px; min-width: 120px; flex: 1 1 calc(12% - 10px); }
+.ep-filter-search-btn { flex: 0 0 40px; min-width: 40px; justify-content: flex-end; }
 .ep-filter-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; }
 .ep-select, .ep-input-sm, .ep-input-date { font-size: 12px; font-weight: 600; padding: 6px 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #191c1e; width: 100%; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 .ep-period-display { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 6px 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; }
@@ -126,7 +127,7 @@
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .ep-filter-grid { grid-template-columns: repeat(4, 1fr); }
+  .ep-filter-field { flex: 1 1 calc(25% - 10px); min-width: 100px; }
   .ep-main { flex-direction: column; }
   .ep-sidebar { width: 100%; }
   .ep-sidebar-list { max-height: 280px; }
@@ -134,7 +135,7 @@
 @media (max-width: 900px) {
   .ep-header { flex-direction: column; gap: 10px; }
   .ep-header-actions { width: 100%; justify-content: flex-end; }
-  .ep-filter-grid { grid-template-columns: repeat(2, 1fr); }
+  .ep-filter-field { flex: 1 1 calc(50% - 10px); min-width: 90px; }
   .ep-detail-cols { grid-template-columns: 1fr; }
   .ep-day-section { grid-template-columns: 1fr; }
   .ep-right { overflow-x: auto; }
@@ -148,8 +149,8 @@
   .ep-header-actions { flex-wrap: wrap; }
   .ep-btn-secondary, .ep-btn-primary { padding: 6px 10px; font-size: 11px; flex: 1; justify-content: center; min-width: 0; }
   .ep-filter-bar { padding: 10px; border-radius: 10px; }
-  .ep-filter-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .ep-filter-search-btn { grid-column: span 2; }
+  .ep-filter-field { flex: 1 1 calc(50% - 8px); min-width: 80px; }
+  .ep-filter-search-btn { flex: 1 1 100%; }
   .ep-search-btn { width: 100%; height: 34px; }
   .ep-main { gap: 10px; }
   .ep-sidebar-paper { border-radius: 10px; }
@@ -176,8 +177,7 @@
   .ep-horaire-item-val { font-size: 12px !important; }
 }
 @media (max-width: 400px) {
-  .ep-filter-grid { grid-template-columns: 1fr; }
-  .ep-filter-search-btn { grid-column: span 1; }
+  .ep-filter-field { flex: 1 1 100%; min-width: 70px; }
   .ep-cal-grid { gap: 2px; padding: 4px; overflow-x: auto; min-width: 0; }
   .ep-cal-cell { min-height: 44px; padding: 2px 3px; }
   .ep-cal-cell span:first-child { font-size: 8px !important; }

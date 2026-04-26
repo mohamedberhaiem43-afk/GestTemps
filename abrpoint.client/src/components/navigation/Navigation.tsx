@@ -28,6 +28,7 @@ import Utilisateur from '../DonneeDeBase/Utilisteur/Utilisateur';
 import DemCongeModern from '../gestionEmploye/gestionConge/DemConge/DemCongeModern';
 import DemandeAutorisationModern from '../gestionEmploye/DemandeAutorisation/DemandeAutorisationModern';
 import SoldeCongeModern from '../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern';
+import SoldeCongeAdmin from '../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin';
 import TitreConge from '../gestionEmploye/gestionConge/TitreConge/TitreConge';
 import CongeGneral from '../gestionEmploye/gestionConge/TitreCongeGeneral/CongeGeneral';
 import SocieteModern from '../DonneeDeBase/Societe/SocieteModern';
@@ -153,6 +154,7 @@ const useNavigationItems = (): NavGroup[] => {
     'allaitement': 'Gestion Employés',
     'gestion-de-conge': 'Demande de Congé',
     'gestion-de-solde': 'Gestion des Congés',
+    'affectation-solde': 'Gestion des Congés',
     'titre-de-conge': 'Gestion des Congés',
     'titre-de-conge-general': 'Gestion des Congés',
     'jour-de-compensation': 'Absences et Sanctions',
@@ -273,6 +275,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
+        ...(isAdmin ? [{ label: 'Affectation Soldes', href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
       ],
     },
     {
@@ -398,6 +401,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/autorisation-de-sortie-generale': content = <AutSortieGenerale />; break;
     case '/dashboard/demande-autorisation': content = <DemandeAutorisationModern />; break;
     case '/dashboard/gestion-de-solde': content = <SoldeCongeModern />; break;
+    case '/dashboard/affectation-solde': content = <SoldeCongeAdmin />; break;
     case '/dashboard/calendrier-societe': content = <Calendrier />; break;
     case '/dashboard/chat-bot': content = <Box p={3}>Utilisez le bouton flottant de l'assistant en bas à droite.</Box>; break;
     case '/dashboard/template-builder': content = <ContractBuilderModern />; break;

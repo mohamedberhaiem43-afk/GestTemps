@@ -46,6 +46,13 @@ namespace ABRPOINT.Server.Repository
                                .ToDictionaryAsync(abs => abs.Foncod, abs => abs.Fonlib ?? "");
         }
 
+        public async Task<Dictionary<string, string>> GetFonLibsBySoccodAsync(string soccod)
+        {
+            return await _dbContext.Fonctions
+                               .Where(f => f.Soccod == soccod)
+                               .ToDictionaryAsync(abs => abs.Foncod, abs => abs.Fonlib ?? "");
+        }
+
         public async Task<Fonction?> GetByFonccodAsync(string soccod, string fonccod)
         {
             return await _dbContext.Fonctions.FirstOrDefaultAsync(s => s.Soccod == soccod && s.Foncod == fonccod);

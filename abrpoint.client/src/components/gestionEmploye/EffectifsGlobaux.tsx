@@ -47,6 +47,7 @@ const EffectifsGlobaux = () => {
   const [selectedSite, setSelectedSite] = useState("");
   const [selectedContract, setSelectedContract] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
+  const [selectedPosition, setSelectedPosition] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
   const [deleteTarget, setDeleteTarget] = useState<Employe | null>(null);
@@ -179,10 +180,15 @@ const EffectifsGlobaux = () => {
         return empNiv === String(selectedLevel);
       });
     }
-
+    if (selectedPosition) {
+      result = result.filter((e) => {
+        const fonCode = e.foncod || e.empfonc || '';
+        return fonCode === selectedPosition;
+      });
+    }
     setFilteredEmployees(result);
     setPage(0);
-  }, [searchQuery, selectedDepartment, selectedSite, selectedContract, selectedLevel, employees]);
+  }, [searchQuery, selectedDepartment, selectedSite, selectedContract, selectedLevel,selectedPosition, employees]);
 
   const paginatedEmployees = useMemo(() => {
     const start = page * rowsPerPage;
@@ -295,6 +301,27 @@ const EffectifsGlobaux = () => {
               >
                 <MenuItem value="">{isManagerScoped ? "Mon département" : "Tous les départements"}</MenuItem>
                 {Object.entries(departments).map(([code, label]) => (
+                  <MenuItem key={code} value={code}>
+                    {label}
+                  </MenuItem>
+                ))}
+              </TextField>
+              
+            </Box>
+            <Box className="filter-field">
+              <label>Position</label>
+              <TextField
+                select
+                size="small"
+                value={selectedPosition}
+                onChange={(e) => setSelectedPosition(e.target.value)}
+                className="filter-select"
+                SelectProps={{
+                  displayEmpty: true,
+                }}
+              >
+                <MenuItem value="">Toutes les positions</MenuItem>
+                {Object.entries(fonctions).map(([code, label]) => (
                   <MenuItem key={code} value={code}>
                     {label}
                   </MenuItem>

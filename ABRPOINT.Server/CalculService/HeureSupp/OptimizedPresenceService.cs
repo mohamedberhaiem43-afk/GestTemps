@@ -66,11 +66,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 // 🆕 Fetch employee's embauche and sortie dates
                 var employe = await _dbContext.Employes
                     .Where(e => e.Soccod == soccod && e.Empcod == empcod)
-                    .Select(e => new { e.Empemb, e.Empsort })
+                    .Select(e => new { e.Empemb, e.Empsort, e.Empferepos })
                     .FirstOrDefaultAsync();
 
                 DateTime? empemb = employe?.Empemb;
                 DateTime? empsort = employe?.Empsort;
+                string? empferepos = employe?.Empferepos ?? "0";
 
                 // 🆕 NOUVEAU : Charger les paramètres de BASE de l'employé
                 var empparamBase = await _employeRepository.GetEmpparam(
@@ -103,7 +104,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 // Process each day
                 foreach (var date in allDates)
                 {
-                    await ProcessDay(
+                await ProcessDay(
                         date,
                         dataCache,
                         parametreMoisPointage,
@@ -116,8 +117,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         soccod,
                         empcod,
                         debutReelDate,
-                        empemb, // ✅ Pass empemb
-                        empsort  // ✅ Pass empsort
+                        empemb,
+                        empsort,
+                        empferepos
                     );
                 }
 
@@ -344,7 +346,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         }
         private async Task ProcessDay(DateTime date,DataCache cache,ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,EmpparamPointageMois empparamBase,
     Accumulators acc,HashSet<string> countedSanctions,HashSet<string> countedConges,IDictionary<string, string> weekDetails,string soccod,string empcod,
-    DateTime debutReelDate,DateTime? empemb, DateTime? empsort)
+    DateTime debutReelDate,DateTime? empemb, DateTime? empsort, string? empferepos = "0")
         {
             // 🆕 Helper function to check if date is within employment period
             bool IsWithinEmploymentPeriod(DateTime checkDate)
@@ -441,7 +443,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     poste, empparam,
                     paramMois, paramNuit,
                     cache, acc, countedConges, autorisation, // ✅ Pass filtered autorisation
-                    soccod, empcod, true, isAfterDebutReel
+                    soccod, empcod, true, isAfterDebutReel, empferepos
                 );
             }
         }
@@ -466,7 +468,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         // UPDATED: Process presence details (now only for calculations that require presence)
         private async Task ProcessPresenceDetails(Presence presence,DateTime date,bool isFerier,CongeDto conge,bool isRepos,bool repos,string poste,EmpparamPointageMois empparam,
     ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,DataCache cache,Accumulators acc,HashSet<string> countedConges,AutDto autorisation,string soccod,string empcod,
-    bool isWorkingDay,bool isAfterDebutReel)
+    bool isWorkingDay,bool isAfterDebutReel,string? empferepos = "0")
         {
             // Only calculate panier for non-conge, non-ferier days with presence
             if (!isFerier && conge == null)
@@ -515,8 +517,38 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             if (isAfterDebutReel)
             {
                 acc.NbJourPointer += (float)GenericMethodes.journeeTime(dayworkhours,empparam);
-                if(!repos && !isRepos && conge == null && !isFerier && isWorkingDay)
+
+                // Count regular working days (not repos, not ferier)
+                if (!repos && !isRepos && conge == null && !isFerier && isWorkingDay)
+                {
                     acc.NbJours++;
+                }
+                // ✅ Count rest days worked based on empferepos setting
+                else if ((repos || isRepos) && conge == null && !isFerier && isWorkingDay)
+                {
+                    var dayOfWeek = date.DayOfWeek;
+                    bool shouldCountRepos = false;
+
+                    // empferepos: "1"=All repos, "2"=Saturday only, "3"=Sunday only, "0"=None
+                    switch (empferepos)
+                    {
+                        case "1": // Count all repos worked
+                            shouldCountRepos = true;
+                            break;
+                        case "2": // Count only Saturday repos worked
+                            shouldCountRepos = dayOfWeek == DayOfWeek.Saturday;
+                            break;
+                        case "3": // Count only Sunday repos worked
+                            shouldCountRepos = dayOfWeek == DayOfWeek.Sunday;
+                            break;
+                        default: // "0" or null = don't count repos worked
+                            shouldCountRepos = false;
+                            break;
+                    }
+
+                    if (shouldCountRepos)
+                        acc.NbJours++;
+                }
             }
 
             // Add allaitement hours

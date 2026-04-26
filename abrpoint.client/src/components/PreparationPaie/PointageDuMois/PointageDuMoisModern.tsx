@@ -17,6 +17,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import ErrorIcon from '@mui/icons-material/Error';
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import CheckIcon from '@mui/icons-material/Check';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 import { toast } from 'react-toastify';
 import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './FilterPointageMoisContext';
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
@@ -37,7 +39,7 @@ interface EtatGlobalData {
   jourtrv: number; tothre: string; jferier: number; jftrv: number;
   hftrv: string; hnuit: string; jconge: number;
   hs50: string; hs25: string; csf: string;
-}
+} 
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const fmtMin = (minutes: number) => {
@@ -133,6 +135,9 @@ function PointageDuMoisContent() {
   const [numSem, setNumSem] = useState(1);
   const [selectedWeekDetails, setSelectedWeekDetails] = useState<Record<string, string> | null>(null);
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'info' as any });
+  const [openAlertsDialog, setOpenAlertsDialog] = useState(false);
+  const [treatedAlerts, setTreatedAlerts] = useState<Record<string, 'traite' | 'ignore'>>({});
+  const [alertFilter, setAlertFilter] = useState<'all' | 'retard' | 'absnj'>('all');
 
   const { data: employeesLibs = [] } = useGetEmployeesLibs(selectedFiliale, selectedService, undefined, selectedRegime);
   const { data: rubriques = [] } = useGetRubriquesPaire();
@@ -149,6 +154,45 @@ function PointageDuMoisContent() {
       ...item,
       heuresSupplementairesResultats: item.heuresSupplementairesResultats || [],
     })), [pointageMoisData]);
+
+  // ── Alerts data ──
+  const alertsData = useMemo(() => {
+    const alerts: {
+      id: string; type: 'retard' | 'absnj'; empCod: string; empLib: string; empMat: string;
+      weekIdx: number; value: number; label: string; severity: 'warn' | 'err';
+    }[] = [];
+    pointageMois.forEach(emp => {
+      (emp.heuresSupplementairesResultats ?? []).forEach((r, idx) => {
+        if ((r.retard ?? 0) > 30) {
+          alerts.push({
+            id: `${emp.empCod}-retard-S${idx + 1}`,
+            type: 'retard', empCod: emp.empCod, empLib: emp.empLib, empMat: emp.empMat,
+            weekIdx: idx + 1, value: r.retard ?? 0,
+            label: `Retard de ${fmtMin(r.retard ?? 0)} en Semaine ${idx + 1}`,
+            severity: 'warn',
+          });
+        }
+        if ((r.absnj ?? 0) > 0) {
+          alerts.push({
+            id: `${emp.empCod}-absnj-S${idx + 1}`,
+            type: 'absnj', empCod: emp.empCod, empLib: emp.empLib, empMat: emp.empMat,
+            weekIdx: idx + 1, value: r.absnj ?? 0,
+            label: `Absence non justifiée (${(r.absnj ?? 0).toFixed(1)}j) en Semaine ${idx + 1}`,
+            severity: 'err',
+          });
+        }
+      });
+    });
+    return alerts;
+  }, [pointageMois]);
+
+  const filteredAlerts = useMemo(() =>
+    alertFilter === 'all' ? alertsData : alertsData.filter(a => a.type === alertFilter),
+    [alertsData, alertFilter]);
+
+  const treatedCount = Object.keys(treatedAlerts).filter(k => treatedAlerts[k] === 'traite').length;
+  const ignoredCount = Object.keys(treatedAlerts).filter(k => treatedAlerts[k] === 'ignore').length;
+  const pendingCount = alertsData.length - treatedCount - ignoredCount;
 
   useEffect(() => {
     if (!soccod) return;
@@ -282,10 +326,11 @@ function PointageDuMoisContent() {
   const monthLabel = new Date(parseInt(ctxAnnee), parseInt(ctxMois) - 1, 1)
     .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
-  // Format total hours for display
-  const formatTotalHours = (minutes: number) => {
-    const h = Math.floor(minutes / 60);
-    const m = Math.round(minutes % 60);
+  // Format total hours for display (input is decimal hours, e.g. 59.883 = 59h 53min)
+  const formatTotalHours = (decimalHours: number) => {
+    const h = Math.floor(decimalHours);
+    const m = Math.round((decimalHours - h) * 60);
+    if (m === 60) return `${h + 1}h00`;
     if (h > 0 && m > 0) return `${h}h${String(m).padStart(2, '0')}`;
     if (h > 0) return `${h}h`;
     return `${m}min`;
@@ -314,7 +359,7 @@ function PointageDuMoisContent() {
           </Tooltip>
           {canModify && <IntegrationPaieButton pointageMoisData={pointageMois as any} rubriques={rubriques} mois={ctxMois} annee={ctxAnnee} />}
           <Button className="pdm-export-btn" startIcon={<DownloadIcon />} onClick={handleExportAll} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            Exporter le ledger
+            Exporter
           </Button>
         </Box>
       </Box>
@@ -405,6 +450,72 @@ function PointageDuMoisContent() {
         <>
           {/* ── Ledger Table ── */}
           <Paper className="pdm-table-card" elevation={0}>
+            {/* Mobile card list (hidden on desktop via CSS) */}
+            <Box className="pdm-mobile-ledger">
+              {pointageMois.length === 0 ? (
+                <Typography sx={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', py: 4 }}>
+                  Aucune donnée — sélectionnez des employés et cliquez Rechercher
+                </Typography>
+              ) : (
+                pointageMois.map((emp) => {
+                  const weeks = emp.heuresSupplementairesResultats ?? [];
+                  const cumul = weeks.reduce((s, r) => s + (r.tothre ?? 0), 0);
+                  const isSelected = selectedEmp?.empCod === emp.empCod;
+                  return (
+                    <Box key={emp.empCod}
+                      className={`pdm-mobile-card${isSelected ? ' pdm-mobile-card--selected' : ''}`}
+                      onClick={() => setSelectedEmp(isSelected ? null : emp)}>
+                      <Box className="pdm-mobile-card-top">
+                        <Avatar className="pdm-avatar">{emp.empLib?.charAt(0) ?? '?'}</Avatar>
+                        <Box className="pdm-mobile-card-info">
+                          <Typography className="pdm-mobile-card-name">{emp.empLib}</Typography>
+                          <Typography className="pdm-mobile-card-sub">
+                            {emp.empMat} · {emp.empReg}
+                          </Typography>
+                        </Box>
+                        <Chip label={emp.empMat} size="small" className="pdm-mat-chip" />
+                      </Box>
+                      <Box className="pdm-mobile-weeks">
+                        {Array.from({ length: 6 }, (_, i) => {
+                          const w = weeks[i];
+                          if (!w) return (
+                            <Box key={i} className="pdm-mobile-week-chip">
+                              <Typography className="pdm-mobile-week-hrs" style={{ color: '#c3c6d6' }}>—</Typography>
+                              <Typography className="pdm-mobile-week-label">S{i+1}</Typography>
+                            </Box>
+                          );
+                          const hrs = (w.tothre ?? 0).toFixed(2);
+                          const hs = w.hreSupSemaine ?? 0;
+                          const abs = w.totalAbsence ?? 0;
+                          const conge = w.nbJourCngPaye ?? 0;
+                          const mal = w.maladie ?? 0;
+                          let label: string;
+                          let color: string;
+                          if (mal > 0) { label = 'Mal'; color = '#ba1a1a'; }
+                          else if (conge > 0) { label = `CP`; color = '#0040a1'; }
+                          else if (hs > 0) { label = `+${hs.toFixed(0)}h`; color = '#0040a1'; }
+                          else if (abs > 0) { label = `Abs`; color = '#ba1a1a'; }
+                          else { label = 'Ok'; color = '#005136'; }
+                          return (
+                            <Box key={i} className="pdm-mobile-week-chip"
+                              onClick={(e) => { e.stopPropagation(); setNumSem(i + 1); setSelectedWeekDetails(w.weekDetails as any); setOpenDialog(true); }}>
+                              <Typography className="pdm-mobile-week-hrs">{hrs}</Typography>
+                              <Typography className="pdm-mobile-week-label" style={{ color }}>{label}</Typography>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                      <Box className="pdm-mobile-cumul">
+                        <Typography className="pdm-mobile-cumul-sub">Total mois</Typography>
+                        <Typography className="pdm-mobile-cumul-val">{formatTotalHours(cumul)}</Typography>
+                      </Box>
+                    </Box>
+                  );
+                })
+              )}
+            </Box>
+
+            {/* Desktop table (hidden on mobile via CSS) */}
             <Box className="pdm-table-wrap">
               <table className="pdm-table">
                 <thead>
@@ -544,7 +655,7 @@ function PointageDuMoisContent() {
             <Paper className="pdm-summary-card pdm-summary-card--primary" elevation={0}>
               <Box className="pdm-summary-content">
                 <Typography className="pdm-summary-label">Total Heures Travaillées</Typography>
-                <Typography className="pdm-summary-value" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHours > 0 ? `${Math.floor(totalHours / 60)}h` : '0h'}</Typography>
+                <Typography className="pdm-summary-value" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHours > 0 ? formatTotalHours(totalHours) : '0h'}</Typography>
                 <Box className="pdm-summary-trend">
                   <TrendingUpIcon sx={{ fontSize: 16 }} />
                   <span>{pointageMois.length} employé(s)</span>
@@ -557,7 +668,7 @@ function PointageDuMoisContent() {
             <Paper className="pdm-summary-card pdm-summary-card--light" elevation={0}>
               <Box className="pdm-summary-content">
                 <Typography className="pdm-summary-label pdm-summary-label--dark">Heures Supplémentaires</Typography>
-                <Typography className="pdm-summary-value pdm-summary-value--dark" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHS > 0 ? `${Math.floor(totalHS / 60)}h` : '0h'}</Typography>
+                <Typography className="pdm-summary-value pdm-summary-value--dark" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHS > 0 ? formatTotalHours(totalHS) : '0h'}</Typography>
                 <Box className="pdm-summary-trend pdm-summary-trend--green">
                   <CheckCircleIcon sx={{ fontSize: 16 }} />
                   <span>Dans les quotas légaux</span>
@@ -612,7 +723,7 @@ function PointageDuMoisContent() {
             {/* Alerts card */}
             <Paper className="pdm-alerts-card" elevation={0}>
               <Box>
-                <Typography className="pdm-alerts-title">Alertes Ledger</Typography>
+                <Typography className="pdm-alerts-title">Alertes</Typography>
                 <Typography className="pdm-alerts-sub">Écarts de pointage détectés ce mois-ci.</Typography>
                 <Box className="pdm-alert-item pdm-alert-item--warn">
                   <Box className="pdm-alert-icon pdm-alert-icon--warn"><WarningIcon sx={{ color: '#f59e0b', fontSize: 20 }} /></Box>
@@ -629,7 +740,7 @@ function PointageDuMoisContent() {
                   </Box>
                 </Box>
               </Box>
-              <button className="pdm-alert-btn">Traiter les alertes</button>
+              <button className="pdm-alert-btn" onClick={() => { setTreatedAlerts({}); setAlertFilter('all'); setOpenAlertsDialog(true); }}>Traiter les alertes</button>
             </Paper>
           </Box>
         </>
@@ -673,6 +784,168 @@ function PointageDuMoisContent() {
           {snack.msg}
         </Alert>
       </Snackbar>
+
+      {/* ── Alerts Treatment Dialog ── */}
+      <Dialog open={openAlertsDialog} onClose={() => setOpenAlertsDialog(false)} maxWidth="md" fullWidth
+        PaperProps={{ sx: { borderRadius: '16px', fontFamily: 'Manrope, sans-serif' } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, fontSize: '18px', pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <WarningIcon sx={{ color: '#f59e0b', fontSize: 24 }} />
+            Traitement des Alertes — {monthLabel}
+          </Box>
+          <IconButton onClick={() => setOpenAlertsDialog(false)}><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {/* Stats bar */}
+          <Box sx={{ display: 'flex', gap: 2, px: 3, py: 2, bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <Chip label={`${alertsData.length} Total`} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#e2e8f0', color: '#334155' }} />
+            <Chip label={`${pendingCount} En attente`} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#fef3c7', color: '#92400e' }} />
+            <Chip label={`${treatedCount} Traitées`} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#d1fae5', color: '#065f46' }} />
+            <Chip label={`${ignoredCount} Ignorées`} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#e2e8f0', color: '#64748b' }} />
+          </Box>
+
+          {/* Filter + Actions bar */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 3, py: 1.5, borderBottom: '1px solid #f1f5f9' }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {([['all', 'Toutes'], ['retard', 'Retards'], ['absnj', 'Abs. NJ']] as const).map(([val, lbl]) => (
+                <Button key={val} size="small"
+                  onClick={() => setAlertFilter(val)}
+                  sx={{
+                    fontWeight: 700, fontSize: '12px', textTransform: 'none', borderRadius: '8px',
+                    bgcolor: alertFilter === val ? '#0040a1' : 'transparent',
+                    color: alertFilter === val ? '#fff' : '#64748b',
+                    '&:hover': { bgcolor: alertFilter === val ? '#003080' : 'rgba(0,64,161,0.05)' },
+                  }}>
+                  {lbl}
+                </Button>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button size="small" startIcon={<DoneAllIcon />}
+                onClick={() => {
+                  const newTreated = { ...treatedAlerts };
+                  filteredAlerts.forEach(a => { if (!newTreated[a.id]) newTreated[a.id] = 'traite'; });
+                  setTreatedAlerts(newTreated);
+                }}
+                sx={{ fontWeight: 700, fontSize: '11px', textTransform: 'none', color: '#059669' }}>
+                Tout traiter
+              </Button>
+              <Button size="small"
+                onClick={() => {
+                  const newTreated = { ...treatedAlerts };
+                  filteredAlerts.forEach(a => { if (!newTreated[a.id]) newTreated[a.id] = 'ignore'; });
+                  setTreatedAlerts(newTreated);
+                }}
+                sx={{ fontWeight: 700, fontSize: '11px', textTransform: 'none', color: '#94a3b8' }}>
+                Tout ignorer
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Alerts list */}
+          <Box sx={{ maxHeight: 450, overflow: 'auto' }}>
+            {filteredAlerts.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <CheckCircleIcon sx={{ fontSize: 48, color: '#d1d5db', mb: 1 }} />
+                <Typography sx={{ color: '#94a3b8', fontWeight: 600, fontSize: '14px' }}>
+                  Aucune alerte à afficher
+                </Typography>
+              </Box>
+            ) : (
+              filteredAlerts.map(alert => {
+                const status = treatedAlerts[alert.id];
+                const isTraite = status === 'traite';
+                const isIgnore = status === 'ignore';
+                return (
+                  <Box key={alert.id}
+                    sx={{
+                      display: 'flex', alignItems: 'center', gap: 2, px: 3, py: 1.5,
+                      borderBottom: '1px solid #f1f5f9',
+                      bgcolor: isTraite ? 'rgba(5,150,105,0.04)' : isIgnore ? 'rgba(100,116,139,0.04)' : '#fff',
+                      opacity: isIgnore ? 0.6 : 1,
+                      transition: 'all 0.2s',
+                      '&:hover': { bgcolor: isTraite ? 'rgba(5,150,105,0.08)' : isIgnore ? 'rgba(100,116,139,0.06)' : '#f8fafc' },
+                    }}>
+                    {/* Icon */}
+                    <Box sx={{
+                      width: 36, height: 36, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      bgcolor: alert.severity === 'warn' ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)',
+                    }}>
+                      {alert.severity === 'warn'
+                        ? <WarningIcon sx={{ color: '#f59e0b', fontSize: 18 }} />
+                        : <ErrorIcon sx={{ color: '#ef4444', fontSize: 18 }} />}
+                    </Box>
+
+                    {/* Info */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>
+                          {alert.empLib}
+                        </Typography>
+                        <Chip label={alert.empMat} size="small"
+                          sx={{ fontSize: '10px', fontWeight: 700, height: 20, bgcolor: '#e2e8f0', color: '#475569' }} />
+                        <Chip label={`S${alert.weekIdx}`} size="small"
+                          sx={{ fontSize: '10px', fontWeight: 700, height: 20, bgcolor: '#eff6ff', color: '#0040a1' }} />
+                      </Box>
+                      <Typography sx={{ fontSize: '12px', color: '#64748b', fontWeight: 500, mt: 0.25 }}>
+                        {alert.label}
+                      </Typography>
+                    </Box>
+
+                    {/* Status / Actions */}
+                    {isTraite ? (
+                      <Chip icon={<CheckIcon sx={{ fontSize: 14 }} />} label="Traité" size="small"
+                        sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#d1fae5', color: '#065f46' }} />
+                    ) : isIgnore ? (
+                      <Chip label="Ignoré" size="small"
+                        sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#f1f5f9', color: '#94a3b8' }} />
+                    ) : (
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <Tooltip title="Marquer comme traité">
+                          <IconButton size="small"
+                            onClick={() => setTreatedAlerts(prev => ({ ...prev, [alert.id]: 'traite' }))}
+                            sx={{ bgcolor: '#d1fae5', color: '#059669', borderRadius: '8px', '&:hover': { bgcolor: '#a7f3d0' } }}>
+                            <CheckIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Ignorer">
+                          <IconButton size="small"
+                            onClick={() => setTreatedAlerts(prev => ({ ...prev, [alert.id]: 'ignore' }))}
+                            sx={{ bgcolor: '#f1f5f9', color: '#94a3b8', borderRadius: '8px', '&:hover': { bgcolor: '#e2e8f0' } }}>
+                            <CloseIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    )}
+                  </Box>
+                );
+              })
+            )}
+          </Box>
+
+          {/* Footer actions */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 3, py: 2, borderTop: '1px solid #e2e8f0', bgcolor: '#f8fafc' }}>
+            <Typography sx={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
+              {pendingCount > 0 ? `${pendingCount} alerte(s) en attente` : '✅ Toutes les alertes ont été traitées'}
+            </Typography>
+            <Button
+              variant="contained"
+              disabled={pendingCount > 0}
+              onClick={() => {
+                setSnack({ open: true, msg: `${alertsData.length} alerte(s) traitée(s) avec succès`, sev: 'success' });
+                setOpenAlertsDialog(false);
+              }}
+              sx={{
+                fontWeight: 800, textTransform: 'none', borderRadius: '10px', fontSize: '13px',
+                bgcolor: pendingCount > 0 ? '#e2e8f0' : '#0040a1',
+                color: pendingCount > 0 ? '#94a3b8' : '#fff',
+                '&:hover': { bgcolor: pendingCount > 0 ? '#e2e8f0' : '#003080' },
+              }}>
+              Confirmer le traitement
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

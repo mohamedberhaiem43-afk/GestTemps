@@ -27,6 +27,7 @@ export interface DashboardData {
   pourcentagePresence: number;
   heuresTravaillees: number;
   nombreRetards: number;
+  pourcentagePonctualite: number;
   totalAbsences: number;
   totalDemandesEnAttente: number;
   pointagesIncomplets: number;

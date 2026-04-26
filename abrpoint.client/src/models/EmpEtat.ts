@@ -25,4 +25,9 @@ export default interface EmpEtat {
   codposte: string;
   preobs: string;
   hreaut: number;
+  // Flags from backend for reliable classification
+  hasAutorisation: boolean;
+  hasConge: boolean;
+  autDebut: string;
+  autFin: string;
 };

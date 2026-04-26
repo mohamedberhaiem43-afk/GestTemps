@@ -125,6 +125,7 @@
 .pdm-table-wrap {
   overflow-x: auto;
 }
+.pdm-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -134,7 +135,7 @@
   background: #e6e8ea;
 }
 .pdm-table th {
-  padding: 16px 16px;
+  padding: 16px;
   font-size: 11px;
   font-weight: 700;
   color: #424654;
@@ -146,6 +147,7 @@
 .pdm-th-right {
   text-align: right !important;
 }
+.pdm-table td {
   padding: 16px;
   border-top: 1px solid #f1f5f9;
   border-bottom: 1px solid #f1f5f9;
@@ -488,6 +490,100 @@
   background: #f0f5ff;
 }
 
+/* ── Mobile card list for ledger ──────────────────────────────────────────── */
+.pdm-mobile-ledger {
+  display: none;
+}
+.pdm-mobile-card {
+  background: #fff;
+  border: 1px solid #edf0f5;
+  border-radius: 14px;
+  padding: 16px;
+  transition: box-shadow 0.15s;
+}
+.pdm-mobile-card:hover {
+  box-shadow: 0 2px 8px rgba(15,23,42,0.08);
+}
+.pdm-mobile-card--selected {
+  background: #f0f5ff;
+  border-color: #bfdbfe;
+}
+.pdm-mobile-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pdm-mobile-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.pdm-mobile-card-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #191c1e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pdm-mobile-card-sub {
+  font-size: 12px;
+  color: #64748b;
+}
+.pdm-mobile-weeks {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.pdm-mobile-week-chip {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #edf0f5;
+  min-width: 56px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pdm-mobile-week-chip:hover {
+  background: #f0f5ff;
+  border-color: #bfdbfe;
+}
+.pdm-mobile-week-hrs {
+  font-size: 13px;
+  font-weight: 700;
+  color: #191c1e;
+  line-height: 1.3;
+}
+.pdm-mobile-week-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pdm-mobile-cumul {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+.pdm-mobile-cumul-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0040a1;
+}
+.pdm-mobile-cumul-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .pdm-summary-grid {
@@ -500,6 +596,7 @@
     padding: 20px 16px 32px;
   }
 }
+
 @media (max-width: 768px) {
   .pdm-header {
     flex-direction: column;
@@ -520,6 +617,7 @@
   }
   .pdm-filter-field {
     flex: 1 1 100%;
+    min-width: 0;
   }
   .pdm-filter-field--action {
     margin-top: 8px;
@@ -532,16 +630,53 @@
     align-items: flex-start;
     gap: 8px;
   }
-  
-  /* Prevent sticky column from taking too much space on very small screens */
   .pdm-table th:first-child,
   .pdm-table td:first-child {
     min-width: 120px;
   }
+  .pdm-summary-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+  .pdm-summary-value {
+    font-size: 32px !important;
+  }
+  .pdm-distrib-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+  .pdm-alerts-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+  .pdm-detail-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  /* Show mobile cards, hide desktop table */
+  .pdm-table-wrap {
+    display: none;
+  }
+  .pdm-mobile-ledger {
+    display: flex;
+  }
 }
 
 @media (max-width: 480px) {
+  .pdm-container {
+    padding: 12px 8px 24px;
+  }
   .pdm-summary-value {
-    font-size: 32px !important;
+    font-size: 28px !important;
+  }
+  .pdm-summary-card {
+    padding: 16px;
+  }
+  .pdm-distrib-card {
+    padding: 16px;
+  }
+  .pdm-alerts-card {
+    padding: 16px;
   }
 }

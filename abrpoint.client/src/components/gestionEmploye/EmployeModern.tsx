@@ -119,7 +119,7 @@ const getDefaultEmployeData = (soccod: string, sitcod: string): Employe => ({
     emplib: '', empmat: '', empsexe: '', sercod: '', empfonc: '',
     empelon: '', empreg: '', catcod: '', empnbp: 0, natcod: '',
     vilcod: '', empadr: '', empferepos: '', emptel: '', empmob: '',
-    empemb: null, empsort: null, empmotif: '', actif: 'N',
+    empemb: null, empsort: null, empmotif: '', actif: 'A',
     empdnais: '', emplnais: '', empcin: '', empdcin: null, empacin: '',
     empsbase: '', empsbrut: '', empdir: '', emptype: '', empniv: '',
     emplibar: '', empadrar: '', empfoncar: '', foncod: '', quacod: '',
@@ -913,6 +913,63 @@ const EmployeModernInner = () => {
                                                         )}
                                                     </Select>
                                                 </FormControl>
+                                            </Box>
+                                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2, mt: 0.5 }}>
+                                                <Box>
+                                                    <Typography sx={labelStyle}>Jour Max / Mois</Typography>
+                                                    <TextField name="empmaxjour" type="number" value={formData.empmaxjour ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="0 = illimité" />
+                                                </Box>
+                                                <Box>
+                                                    <Typography sx={labelStyle}>Max Heure / Jour</Typography>
+                                                    <TextField name="empmaxhre" type="number" value={formData.empmaxhre ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="0 = illimité" />
+                                                </Box>
+                                                <Box>
+                                                    <Typography sx={labelStyle}>Min Heure / Jour</Typography>
+                                                    <TextField name="empminhjour" type="number" value={formData.empminhjour ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="0" />
+                                                </Box>
+                                            </Box>
+                                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                                <Box>
+                                                    <Typography sx={labelStyle}>Compter Repos</Typography>
+                                                    <FormControl fullWidth size="small">
+                                                        <Select value={formData.empferepos || '0'} onChange={handleSelect('empferepos')} sx={selectStyle}>
+                                                            <MenuItem value="0">0- Ne pas compter</MenuItem>
+                                                            <MenuItem value="1">1- Tous les repos</MenuItem>
+                                                            <MenuItem value="2">2- Repos Samedi</MenuItem>
+                                                            <MenuItem value="3">3- Repos Dimanche</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                </Box>
+                                                <Box>
+                                                    <Typography sx={labelStyle}>Panier</Typography>
+                                                    <FormControl fullWidth size="small">
+                                                        <Select value={formData.emppanier || '0'} onChange={handleSelect('emppanier')} sx={selectStyle}>
+                                                            <MenuItem value="0">0- Pas de panier</MenuItem>
+                                                            <MenuItem value="1">1- Panier 7H</MenuItem>
+                                                            <MenuItem value="2">2- Panier 6H</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                </Box>
+                                            </Box>
+                                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                                <Box>
+                                                    <Typography sx={labelStyle}>Heures Nuit</Typography>
+                                                    <FormControl fullWidth size="small">
+                                                        <Select value={formData.empnuit || '0'} onChange={handleSelect('empnuit')} sx={selectStyle}>
+                                                            <MenuItem value="0">0- Normal</MenuItem>
+                                                            <MenuItem value="1">1- Spécial</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                </Box>
+                                                <Box>
+                                                    <Typography sx={labelStyle}>Éliminer Retard</Typography>
+                                                    <FormControl fullWidth size="small">
+                                                        <Select value={formData.empretard || '0'} onChange={handleSelect('empretard')} sx={selectStyle}>
+                                                            <MenuItem value="0">Non</MenuItem>
+                                                            <MenuItem value="1">Oui</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                </Box>
                                             </Box>
                                         </Box>
                                     </Paper>

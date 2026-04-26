@@ -37,6 +37,12 @@ namespace ABRPOINT.Server.Controllers
             return await _fonctionRepository.GetFonLibsAsync();
         }
 
+        [HttpGet("get-fonlibs/{soccod}")]
+        public async Task<Dictionary<string, string>> GetFonlibsBySoccod(string soccod)
+        {
+            return await _fonctionRepository.GetFonLibsBySoccodAsync(soccod);
+        }
+
         // POST api/Fonctions
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Fonction fonction)

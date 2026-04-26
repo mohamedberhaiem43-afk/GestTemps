@@ -692,8 +692,23 @@ namespace ABRPOINT.Server.Repository
                     }
 
                     AutDto? autorisation = null;
-                    if (IsWithinEmploymentPeriod(date) && autorisations.TryGetValue((empcod, date), out var autorisationValue))
-                        autorisation = autorisationValue;
+                    if (IsWithinEmploymentPeriod(date))
+                    {
+                        // Try exact date match first, then fallback to range-based matching
+                        if (autorisations.TryGetValue((empcod, date.Date), out var autorisationValue))
+                        {
+                            autorisation = autorisationValue;
+                        }
+                        else
+                        {
+                            // Fallback: search by date range in case the batch key used a different date component
+                            var autMatch = autorisations.FirstOrDefault(a =>
+                                a.Key.Empcod == empcod &&
+                                a.Key.Date.Date == date.Date);
+                            if (autMatch.Value != null)
+                                autorisation = autMatch.Value;
+                        }
+                    }
 
                     if (!feriers.TryGetValue(date, out var ferier)) ferier = null;
 
@@ -719,6 +734,15 @@ namespace ABRPOINT.Server.Repository
                                     ?? autorisation?.Abslib
                                     ?? conge
                                     ?? ferier?.Fermotif;
+
+                    // ✅ Populate explicit flags for reliable frontend classification
+                    presence.HasAutorisation = autorisation != null;
+                    presence.HasConge = !string.IsNullOrEmpty(conge);
+                    if (autorisation != null)
+                    {
+                        presence.AutDebut = autorisation.Condep?.ToString("HH:mm");
+                        presence.AutFin = autorisation.Conret?.ToString("HH:mm");
+                    }
 
                     presence.Poicod = poicods.GetValueOrDefault((empcod, date));
 
