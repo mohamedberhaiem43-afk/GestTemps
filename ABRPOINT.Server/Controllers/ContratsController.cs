@@ -1,10 +1,12 @@
 using ABRPOINT.Server.Annotations.ContratAttributes;
 using ABRPOINT.Server.Annotations.EtatsAttributes;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -15,11 +17,13 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IContratRepository _contratRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
+        private readonly ApplicationDbContext _dbContext;
 
-        public ContratsController(IContratRepository contratRepository, IReportsGenerationService reportsGenerationService)
+        public ContratsController(IContratRepository contratRepository, IReportsGenerationService reportsGenerationService, ApplicationDbContext dbContext)
         {
             _contratRepository = contratRepository;
             _reportsGenerationService = reportsGenerationService;
+            _dbContext = dbContext;
         }
 
         [HttpGet("{soccod}/{srvcod}/{sitcod}/{echdeb}/{echfin}")]
@@ -212,8 +216,8 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
-        [HttpGet("expiring/{soccod}/{uticod}")]
-        public async Task<IActionResult> GetExpiringContracts(string soccod,string uticod)
+        [HttpGet("expiring/{soccod}")]
+        public async Task<IActionResult> GetExpiringContracts(string soccod)
         {
             try
             {
@@ -221,12 +225,56 @@ namespace ABRPOINT.Server.Controllers
                 var monthStart = new DateTime(now.Year, now.Month, 1);
                 var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-                var allContrats = await _contratRepository.GetAllByUticodAsync(soccod,uticod);
+                // Query employees with contracts expiring this month, joined with employee names
+                var expiring = await (
+                    from e in _dbContext.Employes
+                    where e.Soccod == soccod && e.Actif == "A"
+                        && e.Empsort.HasValue
+                        && e.Empsort.Value >= monthStart
+                        && e.Empsort.Value <= monthEnd
+                    select new {
+                        empcod = e.Empcod,
+                        emplib = e.Emplib,
+                        empsort = e.Empsort,
+                        empemb = e.Empemb,
+                        contype = e.Empcontrat ?? "CDD",
+                        soccod = e.Soccod
+                    }
+                ).ToListAsync();
+
+                return Ok(expiring);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats qui expirent", details = ex.Message });
+            }
+        }
+
+        [HttpGet("expiring/{soccod}/{uticod}")]
+        public async Task<IActionResult> GetExpiringContracts(string soccod, string uticod)
+        {
+            try
+            {
+                var now = DateTime.Now;
+                var monthStart = new DateTime(now.Year, now.Month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                var allContrats = await _contratRepository.GetAllByUticodAsync(soccod, uticod);
+                var expiringEmpcods = allContrats
+                    .Where(c => c.Empsort.HasValue && c.Empsort.Value >= monthStart && c.Empsort.Value <= monthEnd)
+                    .Select(c => c.Empcod)
+                    .Distinct()
+                    .ToList();
+
+                var employees = await _dbContext.Employes
+                    .Where(e => e.Soccod == soccod && expiringEmpcods.Contains(e.Empcod))
+                    .ToDictionaryAsync(e => e.Empcod, e => e.Emplib);
+
                 var expiring = allContrats
                     .Where(c => c.Empsort.HasValue && c.Empsort.Value >= monthStart && c.Empsort.Value <= monthEnd)
                     .Select(c => new {
                         c.Soccod, c.Concod, c.Empcod, c.Empsort, c.Contype, c.Empemb,
-                        Emplib = c.Empcod
+                        Emplib = employees.GetValueOrDefault(c.Empcod, c.Empcod)
                     })
                     .ToList();
 

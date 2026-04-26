@@ -46,6 +46,9 @@ RUN dotnet publish "./ABRPOINT.Server.csproj" -c $BUILD_CONFIGURATION -o /app/pu
 
 # Cette phase est utilisée en production ou lors de l’exécution à partir de VS en mode normal (par défaut quand la configuration de débogage n’est pas utilisée)
 FROM base AS final
+# Fix: Set timezone to Europe/Paris so DateTime.Now returns correct local time
+ENV TZ=Europe/Paris
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "ABRPOINT.Server.dll"]

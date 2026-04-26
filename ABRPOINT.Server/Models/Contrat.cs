@@ -58,7 +58,8 @@ public partial class Contrat : BaseEntity
     public string? Emppost { get; set; }
 
     [Column("emptel")]
-    [StringLength(20)]
+    [StringLength(256)]
+    [Unicode(false)]
     public string? Emptel { get; set; }
 
     [Column("empemb", TypeName = "datetime")]

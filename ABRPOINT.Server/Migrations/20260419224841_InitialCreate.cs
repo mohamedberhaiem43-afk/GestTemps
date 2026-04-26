@@ -483,7 +483,7 @@ namespace ABRPOINT.Server.Migrations
                     vilcod = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     empadr = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     emppost = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: true),
-                    emptel = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    emptel = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     empemb = table.Column<DateTime>(type: "datetime", nullable: true),
                     empsort = table.Column<DateTime>(type: "datetime", nullable: true),
                     condg = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),

@@ -281,23 +281,34 @@ namespace ABRPOINT.Server.Controllers
                     employe.Empsbrut = _encryptionService.Encrypt(employe.Empsbrut);
                     employe.Empsnet = _encryptionService.Encrypt(employe.Empsnet);
                     await _employeRepository.AddAsync(employe);
-                    Utilisateur utilisateur = new Utilisateur()
+                    
+                    // Try to create user account - don't fail the whole request if user creation fails
+                    try
                     {
-                        Utiactif = "1",
-                        Utiadm = "0",
-                        Uticod = employe.Empcod,
-                        Utinom = employe.Emplib,
-                        Utimps = plainCin,
-                        Utimail = employe.Empemail,
-                        Utirole = employe.Utirole ?? "Utilisateur Standard"
-                    };
-                    Socuser socuser = new Socuser()
+                        Utilisateur utilisateur = new Utilisateur()
+                        {
+                            Utiactif = "1",
+                            Utiadm = "0",
+                            Uticod = employe.Empcod,
+                            Utinom = employe.Emplib,
+                            Utimps = plainCin,
+                            Utimail = employe.Empemail,
+                            Utirole = employe.Utirole ?? "Utilisateur Standard"
+                        };
+                        Socuser socuser = new Socuser()
+                        {
+                            Soccod = employe.Soccod,
+                            Sitcod = employe.Sitcod,
+                            Uticod = employe.Empcod,
+                        };
+                        await _utilisateurRepository.AddAsync(utilisateur, socuser);
+                    }
+                    catch (Exception userEx)
                     {
-                        Soccod = employe.Soccod,
-                        Sitcod = employe.Sitcod,
-                        Uticod = employe.Empcod,
-                    };
-                    await _utilisateurRepository.AddAsync(utilisateur, socuser);
+                        // Log the error but don't fail - employee was already saved successfully
+                        Console.WriteLine($"Avertissement: Employé créé mais compte utilisateur échoué pour {employe.Empcod}: {userEx.Message}");
+                    }
+                    
                     return Ok(new { message = "Employé ajouté avec succès" });
                 }
                     return BadRequest(new { message = "Veuillez remplir les champs obligatoires" });

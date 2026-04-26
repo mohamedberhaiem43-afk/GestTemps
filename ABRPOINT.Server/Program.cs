@@ -11,6 +11,8 @@ using System.Text.Json.Serialization;
 using DinkToPdf;
 using DinkToPdf.Contracts;
 
+// ✅ Fix: Set timezone to Europe/Paris so DateTime.Now returns correct local time (important for Docker containers that default to UTC)
+Environment.SetEnvironmentVariable("TZ", "Europe/Paris");
 
 var builder = WebApplication.CreateBuilder(args);
 

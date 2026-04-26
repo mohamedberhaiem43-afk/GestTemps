@@ -15,7 +15,6 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import dayjs from 'dayjs';
 import { useAuth } from '../helper/AuthProvider';
 import useGetDashboardData from '../../hooks/dashboardHooks/useGetDashboardData';
@@ -237,7 +236,7 @@ function DashboardModernAdmin() {
             <Typography className="db-bento-label-error">Alertes Contrat</Typography>
             <Box className="db-bento-icon-wrap-error"><PriorityHighIcon sx={{ fontSize: 20 }} /></Box>
           </Box>
-          <Typography className="db-bento-medium-num">{expiringContracts.length || dashboardData?.pointagesIncomplets || 0}</Typography>
+          <Typography className="db-bento-medium-num">{expiringContracts.length || 0}</Typography>
           <Typography className="db-bento-sub-error">
             Contrats échus ce mois →
           </Typography>
@@ -298,45 +297,29 @@ function DashboardModernAdmin() {
 
       {/* Bottom row */}
       <Box className="db-bottom-row">
-        {/* AI promo card */}
-        <Box className="db-ai-card">
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Typography className="db-ai-title">Optimisez vos revues de<br />performance trimestrielles.</Typography>
-            <Typography className="db-ai-sub">Notre nouvel outil d'IA génère des rapports de synthèse basés sur les retours d'équipe pour vous faire gagner 4h par manager.</Typography>
-            <Button className="db-ai-btn" startIcon={<AutoAwesomeIcon />}>Découvrir Ledger AI</Button>
-          </Box>
-          <AutoAwesomeIcon sx={{ position: 'absolute', right: -20, bottom: -20, fontSize: 160, opacity: 0.08, color: 'white' }} />
-        </Box>
-
+    
         {/* Contract renewals */}
         <Box className="db-renewals-card">
           <Typography className="db-chart-title" sx={{ mb: 2 }}>Prochains renouvellements de contrat</Typography>
-          {dashboardData?.pointagesIncomplets ? (
-            <Box className="db-renewal-item db-renewal-urgent">
-              <Box>
-                <Typography className="db-renewal-name">Pointages incomplets</Typography>
-                <Typography className="db-renewal-type">Vérification requise</Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography className="db-renewal-days-error">{dashboardData.pointagesIncomplets} cas</Typography>
-                <Typography className="db-renewal-action">Renouveler</Typography>
-              </Box>
-            </Box>
-          ) : null}
-          {(demandesData?.length || dashboardData?.totalDemandesEnAttente) ? (
-            <Box className="db-renewal-item db-renewal-normal">
-              <Box>
-                <Typography className="db-renewal-name">Demandes en attente</Typography>
-                <Typography className="db-renewal-type">Validation requise</Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography className="db-renewal-days-primary">{demandesData?.length ?? dashboardData?.totalDemandesEnAttente} demandes</Typography>
-                <Typography className="db-renewal-action">Valider</Typography>
-              </Box>
-            </Box>
+          {expiringContracts.length > 0 ? (
+            expiringContracts.slice(0, 5).map((c: any, i: number) => {
+              const daysLeft = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : 0;
+              return (
+                <Box key={i} className={`db-renewal-item ${daysLeft <= 7 ? 'db-renewal-urgent' : 'db-renewal-normal'}`}>
+                  <Box>
+                    <Typography className="db-renewal-name">{c.emplib || c.empcod}</Typography>
+                    <Typography className="db-renewal-type">{c.contype || 'CDD'} — échéance {c.empsort ? dayjs(c.empsort).format('DD/MM/YYYY') : '-'}</Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography className={daysLeft <= 7 ? 'db-renewal-days-error' : 'db-renewal-days-primary'}>{daysLeft}j restants</Typography>
+                    <Typography className="db-renewal-action">Renouveler</Typography>
+                  </Box>
+                </Box>
+              );
+            })
           ) : (
             <Typography sx={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', py: 3 }}>
-              Aucun renouvellement imminent
+              Aucun renouvellement imminent ce mois
             </Typography>
           )}
         </Box>

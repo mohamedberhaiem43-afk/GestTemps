@@ -130,12 +130,13 @@ function RowMenu({ onEdit, onDelete, canModify, canDelete }: { onEdit: () => voi
 // ── Empty form ────────────────────────────────────────────────────────────────
 const emptyForm = (soccod: string): Contrat => ({
   soccod, concod: '', empcod: '',
-  condat: undefined, contype: undefined,   // ← ne pas pré-remplir contype
+  condat: undefined, contype: undefined,
   empemb: undefined, empsort: undefined,
   emppost: '', empadr: '', emptel: '',
-  empmotif: '', empcontrat: 'CDI',         // ← valeur par défaut ici seulement
+  empmotif: '', empcontrat: 'CDI',
   empsbase: '', empsbrut: '',
 });
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 const GestionContratsModernInner = () => {
   const { soccod, uticod, hasPermission } = useAuth();
@@ -170,7 +171,6 @@ const GestionContratsModernInner = () => {
     return [];
   }, [contratsRaw]);
 
-  // Build empMap — useGetEmployee returns { empcod: emplib } plain object
   const empMap: Record<string, string> = useMemo(() => {
     const fromDirect = empLibsDirect;
     if (fromDirect && typeof fromDirect === 'object' && !Array.isArray(fromDirect)) {
@@ -191,7 +191,6 @@ const GestionContratsModernInner = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [loadingEmployee, setLoadingEmployee] = useState(false);
 
-  // ── Auto-fetch next concod on mount / when entering add mode ──
   useEffect(() => {
     if (soccod && mode === 'add' && !form.empcod) {
       apiInstance.get(`/Contrats/get-next-concod/${soccod}`)
@@ -206,7 +205,6 @@ const GestionContratsModernInner = () => {
   const showSnack = (message: string, severity: 'success' | 'error') =>
     setSnackbar({ open: true, message, severity });
 
-  // KPI stats
   const today = dayjs();
   const activeCount = contrats.filter(c => !c.empsort || dayjs(c.empsort).isAfter(today)).length;
   const expiringCount = contrats.filter(c => {
@@ -216,7 +214,6 @@ const GestionContratsModernInner = () => {
   }).length;
   const newThisMonth = contrats.filter(c => c.empemb && dayjs(c.empemb).month() === today.month() && dayjs(c.empemb).year() === today.year()).length;
 
-  // Filter
   const filtered = useMemo(() => {
     return contrats.filter(c => {
       const matchType = filterType === 'all' || c.empcontrat === filterType || c.contype === filterType;
@@ -232,9 +229,7 @@ const GestionContratsModernInner = () => {
   const handleSelect = (name: string) => (e: any) =>
     setForm(p => ({ ...p, [name]: e.target.value }));
 
-  // ── Auto-fill when selecting an employee in add mode ──
   const handleEmployeeSelect = async (empcod: string) => {
-    // If cleared, reset to empty
     if (!empcod) {
       setForm(emptyForm(soccod || ''));
       return;
@@ -243,8 +238,6 @@ const GestionContratsModernInner = () => {
     setLoadingEmployee(true);
     try {
       const resolvedSoccod = soccod || '';
-
-      // Fetch employee details & next contract number in parallel
       const [empRes, concodRes] = await Promise.all([
         apiInstance.get(`/Employes/get-employe/${resolvedSoccod}/${empcod}`),
         apiInstance.get(`/Contrats/get-next-concod/${resolvedSoccod}`),
@@ -257,27 +250,19 @@ const GestionContratsModernInner = () => {
         ...prev,
         empcod,
         concod: nextConcod,
-        // Filiale (site) from employee
         sitcod: emp.sitcod || prev.sitcod || '',
-        // Contract type from employee
         empcontrat: emp.empcontrat || prev.empcontrat || 'CDI',
         contype: emp.empcontrat || prev.contype,
-        // Date début = employee empemb
         empemb: emp.empemb || prev.empemb,
-        // Date fin = employee empsort (if exists)
         empsort: emp.empsort || prev.empsort,
-        // Poste: use foncod (function code) from employee — will match the Select options
         emppost: emp.foncod || emp.empfonc || emp.poscod || prev.emppost || '',
-        // Salaire base from employee
         empsbase: emp.empsbase ?? prev.empsbase ?? '',
-        // Also copy address and phone for completeness
         empadr: emp.empadr || prev.empadr || '',
         emptel: emp.emptel || prev.emptel || '',
       }));
     } catch (err: any) {
       console.error('Error fetching employee details:', err);
       showSnack('Erreur lors du chargement des données de l\'employé', 'error');
-      // Still set the empcod so the user can proceed manually
       setForm(prev => ({ ...prev, empcod }));
     } finally {
       setLoadingEmployee(false);
@@ -287,7 +272,7 @@ const GestionContratsModernInner = () => {
   const handleEdit = (c: Contrat) => {
     setForm({
       ...c,
-      empcontrat: c.empcontrat || c.contype || 'CDI',  // ← fallback propre
+      empcontrat: c.empcontrat || c.contype || 'CDI',
     });
     setMode('edit');
   };
@@ -304,14 +289,12 @@ const GestionContratsModernInner = () => {
     const resolvedSoccod = soccod || form.soccod || '';
     if (!resolvedSoccod) { showSnack('Session expirée, veuillez vous reconnecter', 'error'); return; }
 
-    // Parse date helper — returns ISO string or null
     const parseDate = (val: any): string | null => {
       if (!val) return null;
       const d = dayjs(val);
       return d.isValid() ? d.toISOString() : null;
     };
 
-    // Helper: parse string/number to float or null
     const parseFloat2 = (val: any): number | null => {
       if (val === null || val === undefined || val === '') return null;
       const n = Number(val);
@@ -365,19 +348,19 @@ const GestionContratsModernInner = () => {
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', pb: 6 }}>
 
-      {/* KPI Row */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, px: 3, pt: 3, pb: 2 }}>
+      {/* KPI Row — responsive: 1 col on mobile, 3 on tablet+ */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, px: { xs: 1.5, sm: 3 }, pt: 3, pb: 2 }}>
         <KpiCard label="Contrats Actifs"    value={activeCount}    sub={`/ ${contrats.length} total`} subColor="#10b981" highlight />
         <KpiCard label="Expirent bientôt"   value={expiringCount}  sub="30 prochains jours" subColor="#f59e0b" />
         <KpiCard label="Nouveaux ce mois"   value={newThisMonth}   sub="Onboarding" subColor="#8896a8" />
       </Box>
 
-      {/* Main grid */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 2.5, px: 3 }}>
+      {/* Main grid — responsive: stacked on mobile, side-by-side on desktop */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '360px 1fr' }, gap: 2.5, px: { xs: 1.5, sm: 3 } }}>
 
         {/* ── Form ── */}
         <Paper elevation={0} sx={{ borderRadius: '16px', backgroundColor: '#fff', border: '1px solid #edf0f5', boxShadow: '0 2px 8px rgba(15,23,42,0.05)', overflow: 'hidden' }}>
-          <Box sx={{ px: 3, pt: 3, pb: 2.5, borderBottom: '1px solid #f1f5f9' }}>
+          <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2.5, borderBottom: '1px solid #f1f5f9' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box sx={{ backgroundColor: '#eff6ff', p: '8px', borderRadius: '9px', display: 'flex' }}>
@@ -395,7 +378,7 @@ const GestionContratsModernInner = () => {
             </Box>
           </Box>
 
-          <Box sx={{ px: 3, py: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ px: { xs: 2, sm: 3 }, py: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* Société + Filiale */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
               <Box>
@@ -544,7 +527,7 @@ const GestionContratsModernInner = () => {
         <Paper elevation={0} sx={{ borderRadius: '16px', backgroundColor: '#fff', border: '1px solid #edf0f5', boxShadow: '0 2px 8px rgba(15,23,42,0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {/* Filters bar */}
-          <Box sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 1.5 }}>
+          <Box sx={{ px: { xs: 1.5, sm: 3 }, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 1.5 }}>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
               {['all', ...CONTRACT_TYPES].map(f => (
                 <Box key={f} onClick={() => setFilterType(f)}
@@ -558,9 +541,9 @@ const GestionContratsModernInner = () => {
                 </Box>
               ))}
               <TextField size="small" placeholder="Rechercher..." value={searchQ} onChange={e => setSearchQ(e.target.value)}
-                sx={{ ml: 1, width: 180, '& .MuiOutlinedInput-root': { borderRadius: '20px', fontSize: '12px', height: 32 } }} />
+                sx={{ ml: 1, width: { xs: 120, sm: 180 }, '& .MuiOutlinedInput-root': { borderRadius: '20px', fontSize: '12px', height: 32 } }} />
             </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1 }}>
               {[{ label: 'Export PDF', icon: <PictureAsPdfIcon sx={{ fontSize: 15 }} /> }, { label: 'Sélection', icon: <ChecklistIcon sx={{ fontSize: 15 }} /> }].map(btn => (
                 <Button key={btn.label} startIcon={btn.icon} size="small"
                   sx={{ borderRadius: '9px', textTransform: 'none', fontWeight: 600, fontSize: '12px', color: '#4a5568', border: '1.5px solid #e2e8f0', backgroundColor: '#fafbfc', px: 1.8, py: 0.7, '&:hover': { borderColor: '#0040a1', color: '#0040a1', backgroundColor: '#f0f5ff' } }}>
@@ -570,8 +553,8 @@ const GestionContratsModernInner = () => {
             </Box>
           </Box>
 
-          {/* Table header */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', px: 3, py: 1.5, borderBottom: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}>
+          {/* Table header — hidden on mobile */}
+          <Box sx={{ display: { xs: 'none', md: 'grid' }, gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', px: 3, py: 1.5, borderBottom: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}>
             {['N° Contrat', 'Employé', 'Période', 'Type', 'Poste', 'Actions'].map((h, i) => (
               <Typography key={h} sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8896a8', textAlign: i === 5 ? 'right' : 'left' }}>
                 {h}
@@ -579,8 +562,8 @@ const GestionContratsModernInner = () => {
             ))}
           </Box>
 
-          {/* Rows */}
-          <Box sx={{ flex: 1, overflow: 'auto', maxHeight: 480, scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent', '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { background: '#e2e8f0', borderRadius: 99 } }}>
+          {/* Rows container */}
+          <Box sx={{ flex: 1, overflow: 'auto', maxHeight: { xs: 'none', md: 480 }, scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent', '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { background: '#e2e8f0', borderRadius: 99 } }}>
             {isLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress size={36} /></Box>
             ) : filtered.length === 0 ? (
@@ -588,65 +571,112 @@ const GestionContratsModernInner = () => {
                 <Typography sx={{ color: '#94a3b8', fontSize: '13px' }}>Aucun contrat trouvé</Typography>
               </Box>
             ) : (
-              filtered.map((c, i) => {
-                const tc = typeColor(c.empcontrat || c.contype || '');
-                const empName = c.emplib || empMap[c.empcod] || c.empcod;
-                const initials = empName ? empName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() : '?';
-                const avatarColor = AVATAR_COLORS[i % AVATAR_COLORS.length];
-                const isExpired = c.empsort && dayjs(c.empsort).isBefore(today);
-                return (
-                  <Box key={`${c.soccod}-${c.concod}`}
-                    sx={{ display: 'grid', gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', alignItems: 'center', px: 3, py: 1.8, borderBottom: '1px solid #f8fafc', transition: 'background-color 0.15s', '&:hover': { backgroundColor: '#f8faff' }, '&:last-child': { borderBottom: 'none' } }}>
+              <>
+                {/* ── Mobile cards (visible on xs/sm only) ── */}
+                <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 1.5, p: 1.5 }}>
+                  {filtered.map((c, i) => {
+                    const tc = typeColor(c.empcontrat || c.contype || '');
+                    const empName = c.emplib || empMap[c.empcod] || c.empcod;
+                    const initials = empName ? String(empName).split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() : '?';
+                    const avatarColor = AVATAR_COLORS[i % AVATAR_COLORS.length];
+                    const isExpired = c.empsort && dayjs(c.empsort).isBefore(today);
+                    return (
+                      <Paper key={`m-${c.soccod}-${c.concod}`} elevation={0} sx={{
+                        p: 2, borderRadius: '12px', border: '1px solid #edf0f5',
+                        '&:hover': { boxShadow: '0 2px 8px rgba(15,23,42,0.08)' }, transition: 'box-shadow 0.15s',
+                      }}>
+                        {/* Top row: avatar + name + actions */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                          <Avatar sx={{ width: 36, height: 36, fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${avatarColor}cc, ${avatarColor})`, border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+                            {initials || '?'}
+                          </Avatar>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0d1f3c', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{empName}</Typography>
+                            <Typography sx={{ fontSize: '11px', color: '#8896a8', fontWeight: 500 }}>{c.concod} · {c.empcod}</Typography>
+                          </Box>
+                          {(canModify || canDelete) && (
+                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} canModify={canModify} canDelete={canDelete} />
+                          )}
+                        </Box>
+                        {/* Info chips row */}
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                          <Chip label={c.empcontrat || c.contype || '—'} size="small"
+                            sx={{ backgroundColor: tc.bg, color: tc.color, fontWeight: 800, fontSize: '11px', height: 24, borderRadius: '6px', '& .MuiChip-label': { px: 1.2 } }} />
+                          <Typography sx={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
+                            {fmtDate(c.empemb)} → {c.empsort ? fmtDate(c.empsort) : 'Indéterminé'}
+                          </Typography>
+                          {isExpired && (
+                            <Chip label="Expiré" size="small" sx={{ backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: 700, fontSize: '10px', height: 20 }} />
+                          )}
+                        </Box>
+                        {/* Poste */}
+                        {(fonLibs as Record<string, string>)?.[c.emppost || ''] || c.emppost ? (
+                          <Typography sx={{ fontSize: '11px', color: '#8896a8', mt: 0.5 }}>
+                            {(fonLibs as Record<string, string>)?.[c.emppost || ''] || c.emppost}
+                          </Typography>
+                        ) : null}
+                      </Paper>
+                    );
+                  })}
+                </Box>
 
-                    {/* N° Contrat */}
-                    <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#0040a1', fontFamily: 'monospace' }}>
-                      {c.concod}
-                    </Typography>
+                {/* ── Desktop grid rows (visible on md+ only) ── */}
+                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                  {filtered.map((c, i) => {
+                    const tc = typeColor(c.empcontrat || c.contype || '');
+                    const empName = c.emplib || empMap[c.empcod] || c.empcod;
+                    const initials = empName ? String(empName).split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() : '?';
+                    const avatarColor = AVATAR_COLORS[i % AVATAR_COLORS.length];
+                    const isExpired = c.empsort && dayjs(c.empsort).isBefore(today);
+                    return (
+                      <Box key={`${c.soccod}-${c.concod}`}
+                        sx={{ display: 'grid', gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', alignItems: 'center', px: 3, py: 1.8, borderBottom: '1px solid #f8fafc', transition: 'background-color 0.15s', '&:hover': { backgroundColor: '#f8faff' }, '&:last-child': { borderBottom: 'none' } }}>
 
-                    {/* Employé */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ width: 36, height: 36, fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${avatarColor}cc, ${avatarColor})`, border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-                        {initials || '?'}
-                      </Avatar>
-                      <Box>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0d1f3c', lineHeight: 1.3 }}>{empName}</Typography>
-                        <Typography sx={{ fontSize: '11px', color: '#8896a8', fontWeight: 500 }}>{c.empcod}</Typography>
+                        <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#0040a1', fontFamily: 'monospace' }}>
+                          {c.concod}
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Avatar sx={{ width: 36, height: 36, fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${avatarColor}cc, ${avatarColor})`, border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+                            {initials || '?'}
+                          </Avatar>
+                          <Box>
+                            <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0d1f3c', lineHeight: 1.3 }}>{empName}</Typography>
+                            <Typography sx={{ fontSize: '11px', color: '#8896a8', fontWeight: 500 }}>{c.empcod}</Typography>
+                          </Box>
+                        </Box>
+
+                        <Box>
+                          <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{fmtDate(c.empemb)}</Typography>
+                          <Typography sx={{ fontSize: '11px', color: isExpired ? '#ef4444' : c.empsort ? '#8896a8' : '#10b981', fontWeight: 500 }}>
+                            {c.empsort ? `→ ${fmtDate(c.empsort)}` : 'Indéterminé'}
+                          </Typography>
+                        </Box>
+
+                        <Chip label={c.empcontrat || c.contype || '—'} size="small"
+                          sx={{ backgroundColor: tc.bg, color: tc.color, fontWeight: 800, fontSize: '11px', height: 24, borderRadius: '6px', '& .MuiChip-label': { px: 1.2 } }} />
+
+                        <Typography sx={{ fontSize: '12px', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {(fonLibs as Record<string, string>)?.[c.emppost || ''] || c.emppost || '—'}
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          {(canModify || canDelete) ? (
+                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} canModify={canModify} canDelete={canDelete} />
+                          ) : (
+                            <Typography variant="caption">—</Typography>
+                          )}
+                        </Box>
                       </Box>
-                    </Box>
-
-                    {/* Période */}
-                    <Box>
-                      <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{fmtDate(c.empemb)}</Typography>
-                      <Typography sx={{ fontSize: '11px', color: isExpired ? '#ef4444' : c.empsort ? '#8896a8' : '#10b981', fontWeight: 500 }}>
-                        {c.empsort ? `→ ${fmtDate(c.empsort)}` : 'Indéterminé'}
-                      </Typography>
-                    </Box>
-
-                    {/* Type */}
-                    <Chip label={c.empcontrat || c.contype || '—'} size="small"
-                      sx={{ backgroundColor: tc.bg, color: tc.color, fontWeight: 800, fontSize: '11px', height: 24, borderRadius: '6px', '& .MuiChip-label': { px: 1.2 } }} />
-
-                    {/* Poste */}
-                    <Typography sx={{ fontSize: '12px', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {(fonLibs as Record<string, string>)?.[c.emppost || ''] || c.emppost || '—'}
-                    </Typography>
-
-                    {/* Actions */}
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      {(canModify || canDelete) ? (
-                        <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} canModify={canModify} canDelete={canDelete} />
-                      ) : (
-                        <Typography variant="caption">—</Typography>
-                      )}
-                    </Box>
-                  </Box>
-                );
-              })
+                    );
+                  })}
+                </Box>
+              </>
             )}
           </Box>
 
           {/* Footer */}
-          <Box sx={{ px: 3, py: 2, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafbfc' }}>
+          <Box sx={{ px: { xs: 1.5, sm: 3 }, py: 2, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafbfc' }}>
             <Typography sx={{ fontSize: '12px', color: '#8896a8', fontWeight: 500 }}>
               {filtered.length} contrat{filtered.length !== 1 ? 's' : ''} affiché{filtered.length !== 1 ? 's' : ''}
             </Typography>

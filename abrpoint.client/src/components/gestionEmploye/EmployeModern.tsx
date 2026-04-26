@@ -894,7 +894,7 @@ const EmployeModernInner = () => {
                                             <Box>
                                                 <Typography sx={labelStyle}>Statut</Typography>
                                                 <FormControl fullWidth size="small">
-                                                    <Select value={formData.actif || 'N'} onChange={handleSelect('actif')} sx={selectStyle}>
+                                                    <Select value={formData.actif || 'A'} onChange={handleSelect('actif')} sx={selectStyle}>
                                                         <MenuItem value="A">Actif</MenuItem>
                                                         <MenuItem value="N">Inactif</MenuItem>
                                                     </Select>

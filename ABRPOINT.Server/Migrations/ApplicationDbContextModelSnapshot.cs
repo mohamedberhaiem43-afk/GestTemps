@@ -1281,8 +1281,8 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("empsort");
 
                     b.Property<string>("Emptel")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("emptel");
 
                     b.Property<string>("Quacod")
