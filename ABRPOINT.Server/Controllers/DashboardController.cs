@@ -149,7 +149,7 @@ namespace ABRPOINT.Server.Controllers
                     EffectifTotal = data.EffectifTotal,
                     TauxPresence = data.PourcentagePresence,
                     HeuresTravaillees = data.HeuresTravaillees,
-                    Retards = data.NombreRetards,
+                    Retards = data.NombreEmployesEnRetard,
                     Absences = data.TotalAbsences,
                     DemandesEnAttente = data.TotalDemandesEnAttente,
                     Anomalies = data.PointagesIncomplets

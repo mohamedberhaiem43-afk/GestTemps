@@ -27,6 +27,7 @@ export interface DashboardData {
   pourcentagePresence: number;
   heuresTravaillees: number;
   nombreRetards: number;
+  nombreEmployesEnRetard: number;
   pourcentagePonctualite: number;
   totalAbsences: number;
   totalDemandesEnAttente: number;
@@ -77,6 +78,7 @@ export interface EvolutionJournaliere {
   pourcentagePresence: number;
   heuresTravaillees: number;
   nombreRetards: number;
+  nombreEmployesEnRetard: number;
   totalAbsences: number;
 }
 

@@ -193,7 +193,7 @@ export default function DashboardPage() {
       },
       {
         title: 'Retards/Absences',
-        value: dashboardData.nombreRetards + dashboardData.totalAbsences,
+        value: dashboardData.nombreEmployesEnRetard + dashboardData.totalAbsences,
         icon: <WarningIcon sx={{ fontSize: 32 }} />,
         evolution: dashboardData.evolutionRetards + dashboardData.evolutionAbsences,
         positiveIsGood: false, // baisse = bon
@@ -389,7 +389,7 @@ export default function DashboardPage() {
       </Grid>
 
       {/* Alerts Section */}
-      {dashboardData && (dashboardData.pointagesIncomplets > 0 || dashboardData.nombreRetards > 0 || dashboardData.totalDemandesEnAttente > 0) && (
+      {dashboardData && (dashboardData.pointagesIncomplets > 0 || dashboardData.nombreEmployesEnRetard > 0 || dashboardData.totalDemandesEnAttente > 0) && (
         <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: 2 }}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -405,9 +405,9 @@ export default function DashboardPage() {
                   <strong>Pointage manquant:</strong> {dashboardData.pointagesIncomplets} pointage(s) non compléte(s). Cliquez pour voir la liste.
                 </Alert>
               )}
-              {dashboardData.nombreRetards > 0 && (
+              {dashboardData.nombreEmployesEnRetard > 0 && (
                 <Alert severity="warning">
-                  <strong>Retards:</strong> {dashboardData.nombreRetards} employés en retard
+                  <strong>Retards:</strong> {dashboardData.nombreEmployesEnRetard} employés en retard
                 </Alert>
               )}
               {dashboardData.totalDemandesEnAttente > 0 && (

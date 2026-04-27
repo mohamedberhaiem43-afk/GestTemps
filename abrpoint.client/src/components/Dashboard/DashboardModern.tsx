@@ -123,12 +123,13 @@ function DashboardModernAdmin() {
     lines.push('=== INDICATEURS CLÉS ===');
     lines.push(`Taux de Présence;${presenceRate}%`);
     lines.push(`Taux d'Absentéisme;${absenceRate}%`);
-    lines.push(`Ponctualité;${dashboardData ? `${dashboardData.pourcentagePonctualite.toFixed(1)}%` : '--'}`);
-    lines.push(`Heures Supp. Cumulées;${dashboardData ? `${dashboardData.heuresTravaillees.toFixed(0)} hrs` : '--'}`);
+    lines.push(`Ponctualité;${dashboardData?.pourcentagePonctualite != null ? `${dashboardData.pourcentagePonctualite.toFixed(1)}%` : '--'}`);
+    lines.push(`Heures Supp. Cumulées;${dashboardData?.heuresTravaillees != null ? `${dashboardData.heuresTravaillees.toFixed(0)} hrs` : '--'}`);
     lines.push(`Effectif Total;${dashboardData?.effectifTotal ?? '--'}`);
     lines.push(`Effectif Présent;${dashboardData?.effectifPresent ?? '--'}`);
     lines.push(`Total Absences;${dashboardData?.totalAbsences ?? 0}`);
-    lines.push(`Nombre Retards;${dashboardData?.nombreRetards ?? 0}`);
+    lines.push(`Employés en Retard;${dashboardData?.nombreEmployesEnRetard ?? 0}`);
+    lines.push(`Minutes Retard Cumulées;${dashboardData?.nombreRetards ?? 0}`);
     lines.push(`Demandes en Attente;${dashboardData?.totalDemandesEnAttente ?? 0}`);
     lines.push('');
 
@@ -258,14 +259,14 @@ function DashboardModernAdmin() {
         <KpiCard
           icon={<ScheduleIcon sx={{ fontSize: 20 }} />}
           label="Ponctualité"
-          value={dashboardData ? `${dashboardData.pourcentagePonctualite.toFixed(1)}%` : '--'}
+          value={dashboardData?.pourcentagePonctualite != null ? `${dashboardData.pourcentagePonctualite.toFixed(1)}%` : '--'}
           trendLabel="Moyenne"
           iconBg="rgba(81,95,116,0.1)" iconColor="#515f74"
         />
         <KpiCard
           icon={<MoreTimeIcon sx={{ fontSize: 20 }} />}
           label="Heures Supp. Cumulées"
-          value={dashboardData ? `${dashboardData.heuresTravaillees.toFixed(0)} hrs` : '--'}
+          value={dashboardData?.heuresTravaillees != null ? `${dashboardData.heuresTravaillees.toFixed(0)} hrs` : '--'}
           trendLabel="Ce mois"
           iconBg="rgba(0,81,54,0.1)" iconColor="#005136"
         />
@@ -355,12 +356,12 @@ function DashboardModernAdmin() {
                 Aucune absence enregistrée
               </Typography>
             )}
-            {dashboardData && dashboardData.nombreRetards > 0 && (
+            {dashboardData && dashboardData.nombreEmployesEnRetard > 0 && (
               <Box className="db-absence-item">
                 <Avatar sx={{ width: 40, height: 40, background: '#ba1a1a', fontSize: '13px', fontWeight: 700 }}>R</Avatar>
                 <Box sx={{ flex: 1 }}>
                   <Typography className="db-absence-name">Retards du jour</Typography>
-                  <Typography className="db-absence-type">Total: {dashboardData.nombreRetards}</Typography>
+                  <Typography className="db-absence-type">Total: {dashboardData.nombreEmployesEnRetard}</Typography>
                 </Box>
                 <Chip label="Actif" size="small" sx={{ background: 'rgba(186,26,26,0.1)', color: '#ba1a1a', fontWeight: 700, fontSize: '10px' }} />
               </Box>

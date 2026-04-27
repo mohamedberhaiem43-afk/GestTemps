@@ -23,7 +23,8 @@
         public int AbsencesJustifiees { get; set; }
         public int AbsencesNonJustifiees { get; set; }
         public int TotalAbsences { get; set; }
-        public int NombreRetards { get; set; }
+        public int NombreRetards { get; set; }            // Minutes de retard cumulées
+        public int NombreEmployesEnRetard { get; set; }   // Nombre d'entrées avec retard > 0
 
         // Demandes
         public int DemandesCongesEnAttente { get; set; }
