@@ -50,6 +50,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         public DateTime? WeekStartDate { get; set; }
         public float? NbHeuresDebutCalcul { get; set; }
         public DateTime? WeekEndDate { get; set; }
+        // Dates within this week for which no poste could be resolved (warning surfaced to UI).
+        public List<DateTime> MissingPosteDates { get; set; } = new();
     }
 
     public class WeeklyPresenceComputation
@@ -135,6 +137,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.HCSF = res.HCSF;
                 result.Absnp = res.Absnp;
                 result.WeekDetails = res.WeekDetails;
+                result.MissingPosteDates = res.MissingPosteDates ?? new List<DateTime>();
                 result.Retard = res.TotalRetards;
                 result.NbNuits = res.NbNuits;
                 result.HreNuits = res.HreNuits;
@@ -299,6 +302,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     result.HCSF = res.HCSF;
                     result.Absnp = res.Absnp;
                     result.WeekDetails = res.WeekDetails;
+                    result.MissingPosteDates = res.MissingPosteDates ?? new List<DateTime>();
                     result.Retard = res.TotalRetards;
                     result.NbNuits = res.NbNuits;
                     result.HreNuits = res.HreNuits;

@@ -63,15 +63,16 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 if (!int.TryParse(mois, out int month) || !int.TryParse(annee, out int year))
                     return null;
 
-                // 🆕 Fetch employee's embauche and sortie dates
+                // 🆕 Fetch employee's embauche and sortie dates + default Poscod (fallback)
                 var employe = await _dbContext.Employes
                     .Where(e => e.Soccod == soccod && e.Empcod == empcod)
-                    .Select(e => new { e.Empemb, e.Empsort, e.Empferepos })
+                    .Select(e => new { e.Empemb, e.Empsort, e.Empferepos, e.Poscod })
                     .FirstOrDefaultAsync();
 
                 DateTime? empemb = employe?.Empemb;
                 DateTime? empsort = employe?.Empsort;
                 string? empferepos = employe?.Empferepos ?? "0";
+                string? defaultPoscod = employe?.Poscod;
 
                 // 🆕 NOUVEAU : Charger les paramètres de BASE de l'employé
                 var empparamBase = await _employeRepository.GetEmpparam(
@@ -89,12 +90,14 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var allDates = GenerateDateList(startDate, endDate);
 
                 // LOAD ALL DATA UPFRONT (batch queries)
-                var dataCache = await LoadAllDataAsync(soccod, empcod, startDate, endDate, allDates);
+                var dataCache = await LoadAllDataAsync(soccod, empcod, startDate, endDate, allDates, empemb, empsort, defaultPoscod);
 
                 // Initialize result accumulators
                 var result = new PresenceSemaineData
                 {
-                    WeekDetails = new Dictionary<string, string>()
+                    WeekDetails = new Dictionary<string, string>(),
+                    // Surface missing-poste dates to the response so the UI can warn the user
+                    MissingPosteDates = dataCache.MissingPosteDates
                 };
 
                 var accumulators = InitializeAccumulators();
@@ -153,7 +156,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             // Ajuster si le jour dépasse le nombre de jours du mois
             return AdjustDayToMonth(debutReelDate);
         }
-        private async Task<DataCache> LoadAllDataAsync(string soccod, string empcod, DateTime startDate, DateTime endDate, List<DateTime> allDates)
+        private async Task<DataCache> LoadAllDataAsync(string soccod, string empcod, DateTime startDate, DateTime endDate, List<DateTime> allDates,
+            DateTime? empemb, DateTime? empsort, string? defaultPoscod)
         {
             var cache = new DataCache();
 
@@ -190,7 +194,30 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
             // Load all postes for employee in period
             Dictionary<DateTime, string> postes = await _employeRepository.GetEmpPostesByPeriod(soccod, empcod, startDate, endDate);
+
+            // Fallback resolution mirrors PostesController.GetEmployePoste: when Lcategories doesn't
+            // resolve a poste for a date, use the Presence's own Codposte, then employee's default Poscod.
+            // Dates still unresolved (within employment period) are reported via MissingPosteDates so the UI
+            // can warn the user instead of crashing IsReposAsync with a null codposte.
+            var missingPosteDates = new List<DateTime>();
+            foreach (var d in allDates)
+            {
+                var dateKey = d.Date;
+                if (postes.TryGetValue(dateKey, out var existing) && !string.IsNullOrEmpty(existing))
+                    continue;
+                if (empemb.HasValue && dateKey < empemb.Value.Date) continue;
+                if (empsort.HasValue && dateKey >= empsort.Value.Date) continue;
+
+                if (cache.PresencesByDate.TryGetValue(dateKey, out var pres) && !string.IsNullOrEmpty(pres.Codposte))
+                    postes[dateKey] = pres.Codposte;
+                else if (!string.IsNullOrEmpty(defaultPoscod))
+                    postes[dateKey] = defaultPoscod;
+                else
+                    missingPosteDates.Add(dateKey);
+            }
+
             cache.PostesByDate = postes;
+            cache.MissingPosteDates = missingPosteDates;
             var postesCodes = postes.Values.Distinct().Where(p => !string.IsNullOrEmpty(p)).ToList();
             if (postesCodes.Any())
             {
@@ -375,7 +402,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             bool isRepos = cache.ReposByDate.TryGetValue(date.Date, out var r) && r;
             string? poste = cache.PostesByDate.TryGetValue(date.Date, out var p) ? p : null;
             bool isAfterDebutReel = date.Date >= debutReelDate.Date;
-            bool repos = await _parametreRepository.IsReposAsync(soccod, date, poste);
+            // Skip IsReposAsync when poste couldn't be resolved (employee outside employment period
+            // or missing Lcategories/Poscod). Calling it with a null codposte throws ArgumentException.
+            bool repos = !string.IsNullOrEmpty(poste)
+                ? await _parametreRepository.IsReposAsync(soccod, date, poste)
+                : false;
 
             // 🆕 ENRICHIR empparamBase avec les paramètres du poste de ce jour
             var empparam = EnrichEmpparamWithPoste(empparamBase, date, poste, cache.PostesObjects);
@@ -949,6 +980,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             public Dictionary<DateTime, float> AllaitementByDate { get; set; }
             public Dictionary<DateTime, bool> ReposByDate { get; set; }
             public Dictionary<DateTime, float> FerierHoursByDate { get; set; }
+            public List<DateTime> MissingPosteDates { get; set; } = new();
         }
 
         private class Accumulators

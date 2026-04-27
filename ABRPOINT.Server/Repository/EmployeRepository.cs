@@ -410,14 +410,19 @@ namespace ABRPOINT.Server.Repository
                         Soccod = e.Soccod,
                         Sitcod = e.Sitcod,
                         Emplib = e.Emplib,
+                        Empmat = e.Empmat,
                         Empreg = e.Empreg,
                         Empfonc = e.Empfonc,
+                        Foncod = e.Foncod,
                         Empemb = e.Empemb,
                         Empsort = e.Empsort,
                         Actif = e.Actif,
                         Quacod = e.Quacod,
                         Sercod = e.Sercod,
-                        Empferepos = e.Empferepos
+                        Empferepos = e.Empferepos,
+                        Empniv = e.Empniv,
+                        Empcontrat = e.Empcontrat,
+                        Empemail = e.Empemail
                     })
                     .ToListAsync();
 
@@ -640,6 +645,7 @@ namespace ABRPOINT.Server.Repository
                           && (string.IsNullOrEmpty(managerSercod) || e.Sercod == managerSercod)
                           && (string.IsNullOrEmpty(empreg) || e.Empreg == empreg)
                           && (string.IsNullOrEmpty(service) || e.Sercod == service)
+                          && (empcods == null || empcods.Count == 0 || empcods.Contains(e.Empcod))
                     orderby e.Empcod, p.Predat, p.Tothre descending
                     select new
                     {

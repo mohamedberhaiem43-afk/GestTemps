@@ -68,6 +68,7 @@
 .ep-empty-state { display: flex; flex-direction: column; align-items: center; padding: 48px; }
 
 /* ── Calendar grid ── */
+.ep-cal-scroll { width: 100%; }
 .ep-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 16px; }
 .ep-cal-dayname { text-align: center; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; padding: 4px 0; }
 .ep-cal-dayname-weekend { color: #ba1a1a; }
@@ -157,14 +158,20 @@
   .ep-sidebar-list { max-height: 200px; }
   .ep-emp-row { padding: 8px 10px; }
   .ep-emp-row-left { gap: 8px; }
-  .ep-detail-paper { border-radius: 10px; }
+  /* Le paper ne clippe plus le contenu qui dépasse — le scroll horizontal se fait dans .ep-cal-scroll */
+  .ep-detail-paper { border-radius: 10px; overflow: visible; }
   .ep-detail-header { padding: 10px 12px; }
   .ep-detail-title { font-size: 13px !important; }
   .ep-empty-state { padding: 28px 16px; }
-  .ep-cal-grid { gap: 3px; padding: 6px; overflow-x: auto; }
+  /* Wrapper scrollable horizontalement sur mobile : les 7 jours restent lisibles, l'utilisateur
+     swipe horizontalement pour voir tous les jours sans cellules tronquées. */
+  .ep-cal-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .ep-cal-scroll::-webkit-scrollbar { height: 6px; }
+  .ep-cal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  .ep-cal-grid { gap: 4px; padding: 8px; min-width: 560px; }
   .ep-cal-dayname { font-size: 9px; }
-  .ep-cal-cell { min-height: 52px; padding: 3px 4px; border-radius: 6px; }
-  .ep-cal-cell span { font-size: 9px !important; line-height: 1.2 !important; }
+  .ep-cal-cell { min-height: 60px; padding: 4px 5px; border-radius: 6px; }
+  .ep-cal-cell span { font-size: 10px !important; line-height: 1.2 !important; }
   .ep-day-section { padding: 0 8px 8px; grid-template-columns: 1fr; gap: 8px; }
   .ep-day-card { padding: 10px; border-radius: 10px; border-left-width: 4px; }
   .ep-day-card-top { flex-direction: column; gap: 8px; }
@@ -178,7 +185,8 @@
 }
 @media (max-width: 400px) {
   .ep-filter-field { flex: 1 1 100%; min-width: 70px; }
-  .ep-cal-grid { gap: 2px; padding: 4px; overflow-x: auto; min-width: 0; }
-  .ep-cal-cell { min-height: 44px; padding: 2px 3px; }
-  .ep-cal-cell span:first-child { font-size: 8px !important; }
+  /* Sur très petits écrans, on garde le scroll horizontal mais on rétrécit légèrement la grille */
+  .ep-cal-grid { gap: 3px; padding: 6px; min-width: 480px; }
+  .ep-cal-cell { min-height: 50px; padding: 3px 4px; }
+  .ep-cal-cell span:first-child { font-size: 9px !important; }
 }

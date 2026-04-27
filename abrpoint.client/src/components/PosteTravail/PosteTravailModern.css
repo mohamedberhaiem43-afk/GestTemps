@@ -506,6 +506,19 @@
   .tolerance-grid {
     grid-template-columns: 1fr;
   }
+  /* Sur mobile : AVANT et APRÈS s'affichent côte à côte (2 par ligne) au lieu d'être empilés */
+  .tolerance-grid > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .tolerance-grid > div > .tolerance-col-title {
+    grid-column: 1 / -1;
+    margin-bottom: 0.25rem;
+  }
+  .tolerance-grid > div > .tolerance-input-group {
+    margin-bottom: 0;
+  }
   .rules-container {
     grid-template-columns: 1fr !important;
   }

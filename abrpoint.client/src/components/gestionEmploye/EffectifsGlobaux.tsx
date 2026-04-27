@@ -48,6 +48,7 @@ const EffectifsGlobaux = () => {
   const [selectedContract, setSelectedContract] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
   const [selectedPosition, setSelectedPosition] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<"" | "actif" | "inactif">("");
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
   const [deleteTarget, setDeleteTarget] = useState<Employe | null>(null);
@@ -141,7 +142,18 @@ const EffectifsGlobaux = () => {
     if (!soccod) return;
     apiInstance
       .get(`/Fonctions/get-fonlibs/${soccod}`)
-      .then((res) => setFonctions(res.data ?? {}))
+      .then((res) => {
+        const rawData = res.data ?? {};
+        const normalizedFonctions: Record<string, string> = Array.isArray(rawData)
+          ? rawData.reduce((acc: Record<string, string>, item: any) => {
+              if (item?.foncod) {
+                acc[item.foncod] = item.fonlib ?? item.foncod;
+              }
+              return acc;
+            }, {})
+          : rawData;
+        setFonctions(normalizedFonctions);
+      })
       .catch((err) => console.error(err));
   }, [soccod]);
 
@@ -169,26 +181,36 @@ const EffectifsGlobaux = () => {
     }
 
     if (selectedContract) {
-      result = result.filter((e) => 
-        (e.empcontrat || '').toUpperCase() === selectedContract.toUpperCase()
+      const contractValue = selectedContract.trim().toUpperCase();
+      result = result.filter((e) =>
+        (e.empcontrat || '').trim().toUpperCase() === contractValue
       );
     }
 
     if (selectedLevel) {
+      const levelValue = selectedLevel.trim();
       result = result.filter((e) => {
-        const empNiv = e.empniv != null ? String(e.empniv) : '';
-        return empNiv === String(selectedLevel);
+        const empNiv = e.empniv != null ? String(e.empniv).trim() : '';
+        return empNiv === levelValue;
       });
     }
+
     if (selectedPosition) {
+      const positionValue = selectedPosition.trim().toUpperCase();
       result = result.filter((e) => {
-        const fonCode = e.foncod || e.empfonc || '';
-        return fonCode === selectedPosition;
+        const fonCode = (e.foncod || e.empfonc || '').trim().toUpperCase();
+        return fonCode === positionValue;
       });
+    }
+
+    if (selectedStatus) {
+      result = result.filter((e) =>
+        selectedStatus === "actif" ? e.actif === "A" : e.actif !== "A"
+      );
     }
     setFilteredEmployees(result);
     setPage(0);
-  }, [searchQuery, selectedDepartment, selectedSite, selectedContract, selectedLevel,selectedPosition, employees]);
+  }, [searchQuery, selectedDepartment, selectedSite, selectedContract, selectedLevel, selectedPosition, selectedStatus, employees]);
 
   const paginatedEmployees = useMemo(() => {
     const start = page * rowsPerPage;
@@ -220,19 +242,21 @@ const EffectifsGlobaux = () => {
   };
 
   const getContractLabel = (contract: string | null): string => {
-    const c = (contract || '').toUpperCase();
-    if (c === 'CDI') return 'CDI';
-    if (c === 'CDD') return 'CDD';
-    if (c === 'STAGE') return 'Stage';
-    if (c === 'FREELANCE') return 'Freelance';
-    return contract || 'N/A';
+    const normalized = (contract || '').trim().toUpperCase();
+    if (!normalized) return 'N/A';
+    if (normalized === 'CDI') return 'CDI';
+    if (normalized === 'CDD') return 'CDD';
+    if (normalized === 'STAGE') return 'Stage';
+    if (normalized === 'FREELANCE') return 'Freelance';
+    return contract?.trim() || 'N/A';
   };
 
   const getContractColor = (contract: string | null): "primary" | "secondary" | "success" | "warning" | "default" => {
-    const c = (contract || '').toUpperCase();
-    if (c === 'CDI') return 'success';
-    if (c === 'CDD') return 'primary';
-    if (c === 'STAGE') return 'warning';
+    const normalized = (contract || '').trim().toUpperCase();
+    if (normalized === 'CDI') return 'success';
+    if (normalized === 'CDD') return 'primary';
+    if (normalized === 'STAGE') return 'warning';
+    if (normalized === 'FREELANCE') return 'secondary';
     return 'default';
   };
 
@@ -383,6 +407,23 @@ const EffectifsGlobaux = () => {
                 <MenuItem value="0">Exécutant</MenuItem>
                 <MenuItem value="1">Maitrise</MenuItem>
                 <MenuItem value="2">Cadre</MenuItem>
+              </TextField>
+            </Box>
+            <Box className="filter-field">
+              <label>Statut</label>
+              <TextField
+                select
+                size="small"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value as "" | "actif" | "inactif")}
+                className="filter-select"
+                SelectProps={{
+                  displayEmpty: true,
+                }}
+              >
+                <MenuItem value="">Tous les statuts</MenuItem>
+                <MenuItem value="actif">Actif</MenuItem>
+                <MenuItem value="inactif">Inactif</MenuItem>
               </TextField>
             </Box>
           </Box>

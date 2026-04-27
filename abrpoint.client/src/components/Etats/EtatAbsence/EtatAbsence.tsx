@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Autocomplete, CircularProgress, TextField } from '@mui/material';
+import { CircularProgress } from '@mui/material';
+import EmployeeMultiSelectDropdown from '../../helper/EmployeeMultiSelectDropdown';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
@@ -371,24 +372,11 @@ function EtatAbsence() {
           </div>
           <div className="ea-filter-field" style={{ minWidth: 250, flexGrow: 1 }}>
             <label className="ea-filter-label">Employés</label>
-            <Autocomplete
-              multiple
-              limitTags={2}
-              size="small"
-              options={accessibleEmployees}
-              getOptionLabel={(option) => `${option.empcod} - ${option.emplib}`}
-              value={accessibleEmployees.filter(e => selectedEmpCodes.includes(e.empcod))}
-              onChange={(_, newValue) => {
-                handleEmployeeSelection(newValue.map(e => e.empcod));
-              }}
-              renderInput={(params) => (
-                <TextField {...params} placeholder="Sélectionner..." />
-              )}
-              sx={{
-                bgcolor: '#fff',
-                borderRadius: '8px',
-                '& .MuiOutlinedInput-root': { borderRadius: '8px', padding: '1px 8px' }
-              }}
+            <EmployeeMultiSelectDropdown
+              options={accessibleEmployees.map(e => ({ code: e.empcod, label: `${e.empcod} - ${e.emplib}` }))}
+              value={selectedEmpCodes}
+              onChange={handleEmployeeSelection}
+              minWidth={250}
             />
           </div>
           <button className="ea-search-btn" onClick={handleSearch} disabled={!hasEffectiveEmployees || isLoading}>

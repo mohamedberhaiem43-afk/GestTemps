@@ -15,6 +15,8 @@ import apiInstance from '../../API/apiInstance';
 import useGenerateEtatDetaille from '../../../hooks/presenceHooks/useGenerateEtatDetaille';
 import useGetEmpEtat from '../../../hooks/presenceHooks/useGetEmpEtat';
 import useGetEmployePosteByDate from '../../../hooks/employeHooks/useGetEmpPoste';
+import useGetEmployeesLibs from '../../../hooks/employeHooks/useGetEmployeesLibs';
+import EmployeeMultiSelectDropdown from '../../helper/EmployeeMultiSelectDropdown';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 import EmpEtat from '../../../models/EmpEtat';
@@ -325,9 +327,11 @@ function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, p: '10px 14px', background: 'white', borderRadius: '10px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       {shown.filter(s => counts[s] > 0).map(s => {
         const c = STATUS_CFG[s];
+        // Mots invariables (déjà terminés par 's' ou 'x') : pas d'ajout de 's' au pluriel.
+        const needsPlural = counts[s] > 1 && !/[sx]$/i.test(c.label);
         return (
           <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: c.badgeBg, color: c.badgeText }}>
-            {c.icon} {counts[s]} {c.label}{counts[s] > 1 ? 's' : ''}
+            {c.icon} {counts[s]} {c.label}{needsPlural ? 's' : ''}
           </span>
         );
       })}
@@ -380,12 +384,17 @@ function CalCell({ dateKey, etat, onClick, selected }: {
 
       {/* Status indicator */}
       {status !== 'unknown' && (
-        <span style={{
-          fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99,
-          background: cfg.badgeBg, color: cfg.badgeText, alignSelf: 'flex-start',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
-        }}>
-          {cfg.icon} {etatDisplay.length > 10 ? etatDisplay.slice(0, 10) + '…' : etatDisplay}
+        <span
+          title={etatDisplay}
+          style={{
+            fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 99,
+            background: cfg.badgeBg, color: cfg.badgeText, alignSelf: 'flex-start',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+          }}
+        >
+          <span style={{ flexShrink: 0 }}>{cfg.icon}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{etatDisplay}</span>
         </span>
       )}
 
@@ -464,6 +473,15 @@ function EtatPeriodiqueModernInner() {
   const [searchQ, setSearchQ] = useState('');
   const [selectedDay, setSelectedDay] = useState<EmpEtat | null>(null);
   const [showTable, setShowTable] = useState(false);
+  const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
+
+  // Employee multi-select dropdown — list filtered by current filiale/service/regime selection.
+  const { data: employeesLibs = {} } = useGetEmployeesLibs(
+    selectedFiliale || undefined,
+    isManagerScoped ? (managerSercod ?? undefined) : (selectedService || undefined),
+    undefined,
+    selectedRegime || undefined,
+  );
 
   const { mutateAsync: generatePdf } = useGenerateEtatDetaille();
 
@@ -551,6 +569,7 @@ function EtatPeriodiqueModernInner() {
     params.append('fin', dateFin + 'T00:00:00');
     if (selectedRegime) params.append('empreg', selectedRegime);
     if (selectedService) params.append('service', selectedService);
+    selectedEmpcods.forEach(code => params.append('empcods', code));
     const sitcod = selectedFiliale || sessionStorage.getItem('sitcod') || soccod || '';
     apiInstance.get(`/Employes/get-emps/${soccod}/${sitcod}/${uticod}?${params}`)
       .then(r => {
@@ -560,7 +579,7 @@ function EtatPeriodiqueModernInner() {
         setDateRange({
           dateDebut: new Date(dateDebut), dateFin: new Date(dateFin),
           selectedFiliale: sitcod, selectedRegime, selectedService,
-          pres: '', mois, empcods: [], retapres: false, retmat: false, retmin: 0, compterAvance: false,
+          pres: '', mois, empcods: selectedEmpcods, retapres: false, retmat: false, retmin: 0, compterAvance: false,
         });
       })
       .catch(err => console.error('Erreur chargement employés:', err))
@@ -653,6 +672,14 @@ function EtatPeriodiqueModernInner() {
       {/* Filter bar */}
       <Box className="ep-filter-bar">
         <Box className="ep-filter-grid">
+          <Box className="ep-filter-field" style={{ minWidth: 220 }}>
+            <span className="ep-filter-label">Collaborateurs</span>
+            <EmployeeMultiSelectDropdown
+              options={Object.entries(employeesLibs as Record<string, string>).map(([code, label]) => ({ code, label: String(label) }))}
+              value={selectedEmpcods}
+              onChange={setSelectedEmpcods}
+            />
+          </Box>
           <Box className="ep-filter-field">
             <span className="ep-filter-label">Filiale</span>
             <select className="ep-select" value={selectedFiliale} onChange={e => setSelectedFiliale(e.target.value)}>
@@ -776,19 +803,22 @@ function EtatPeriodiqueModernInner() {
                 {/* Summary chips above calendar */}
                 <SummaryBar etatByDate={etatByDate} />
 
-                <Box className="ep-cal-grid">
-                  {DAY_NAMES.map((d, i) => (
-                    <Box key={d} className={`ep-cal-dayname ${i >= 5 ? 'ep-cal-dayname-weekend' : ''}`}>{d}</Box>
-                  ))}
-                  {calendarCells.map((dateKey, i) => {
-                    const etat = dateKey ? etatByDate[dateKey] : undefined;
-                    const isSelected = selectedDay && dateKey ? dayjs(selectedDay.predat).format('YYYY-MM-DD') === dateKey : false;
-                    return (
-                      <CalCell key={i} dateKey={dateKey} etat={etat}
-                        selected={isSelected}
-                        onClick={dateKey ? () => handleDayClick(dateKey) : undefined} />
-                    );
-                  })}
+                {/* Wrapper scrollable horizontalement sur mobile pour que les 7 jours restent lisibles */}
+                <Box className="ep-cal-scroll">
+                  <Box className="ep-cal-grid">
+                    {DAY_NAMES.map((d, i) => (
+                      <Box key={d} className={`ep-cal-dayname ${i >= 5 ? 'ep-cal-dayname-weekend' : ''}`}>{d}</Box>
+                    ))}
+                    {calendarCells.map((dateKey, i) => {
+                      const etat = dateKey ? etatByDate[dateKey] : undefined;
+                      const isSelected = selectedDay && dateKey ? dayjs(selectedDay.predat).format('YYYY-MM-DD') === dateKey : false;
+                      return (
+                        <CalCell key={i} dateKey={dateKey} etat={etat}
+                          selected={isSelected}
+                          onClick={dateKey ? () => handleDayClick(dateKey) : undefined} />
+                      );
+                    })}
+                  </Box>
                 </Box>
 
                 {/* Day detail panel */}
@@ -878,24 +908,6 @@ function EtatPeriodiqueModernInner() {
                             <Typography className="ep-horaire-item-label">Motif</Typography>
                             <Typography className="ep-horaire-item-val">
                               {selectedDay.etat?.trim() || 'Autorisation'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-                    )}
-
-                    {/* Congé du jour */}
-                    {selectedDay.hasConge && (
-                      <Box className="ep-horaire-mini" sx={{ borderColor: '#93c5fd' }}>
-                        <Typography className="ep-horaire-mini-title" sx={{ color: '#1d4ed8' }}>🏖 Congé</Typography>
-                        <Box className="ep-horaire-item">
-                          <Box className="ep-horaire-icon" style={{ background: 'rgba(29,78,216,0.08)' }}>
-                            <CalendarMonthIcon sx={{ fontSize: 16, color: '#1d4ed8' }} />
-                          </Box>
-                          <Box>
-                            <Typography className="ep-horaire-item-label">Type de congé</Typography>
-                            <Typography className="ep-horaire-item-val" style={{ color: '#1d4ed8', fontWeight: 700 }}>
-                              {selectedDay.etat?.trim() || 'Congé'}
                             </Typography>
                           </Box>
                         </Box>

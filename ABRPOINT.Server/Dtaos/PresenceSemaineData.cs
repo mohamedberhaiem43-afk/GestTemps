@@ -39,5 +39,8 @@
         public float? ResHreSamediTrv { get; set; }
         public float? NbHeuresDebutCalcul { get; set; }
         public IDictionary<string, string> WeekDetails { get; set; }
+        // Dates within the employee's employment period for which no poste could be resolved
+        // (neither via Lcategories nor via the employee's default Poscod). Surfaced to the UI as a warning.
+        public List<DateTime> MissingPosteDates { get; set; } = new();
     }
 }

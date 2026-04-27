@@ -274,6 +274,12 @@ function PointageDuMoisContent() {
     pointageMois.filter(e => e.heuresSupplementairesResultats?.some(r => (r.absnj ?? 0) > 0)).length,
     [pointageMois]);
 
+  const employesAvecPosteManquant = useMemo(() =>
+    pointageMois.filter(e =>
+      e.heuresSupplementairesResultats?.some(r => (r.missingPosteDates ?? []).length > 0)
+    ).length,
+    [pointageMois]);
+
   const handleExportOne = async () => {
     if (!selectedEmp || !totals) { toast.error('Sélectionnez un employé'); return; }
     try {
@@ -739,6 +745,15 @@ function PointageDuMoisContent() {
                     <Typography className="pdm-alert-sub">Absences non justifiées</Typography>
                   </Box>
                 </Box>
+                {employesAvecPosteManquant > 0 && (
+                  <Box className="pdm-alert-item pdm-alert-item--err">
+                    <Box className="pdm-alert-icon pdm-alert-icon--err"><ErrorIcon sx={{ color: '#ef4444', fontSize: 20 }} /></Box>
+                    <Box>
+                      <Typography className="pdm-alert-title">{employesAvecPosteManquant} employé(s) avec poste non résolu</Typography>
+                      <Typography className="pdm-alert-sub">Vérifier les rattachements Lcategories ou le Poscod par défaut</Typography>
+                    </Box>
+                  </Box>
+                )}
               </Box>
               <button className="pdm-alert-btn" onClick={() => { setTreatedAlerts({}); setAlertFilter('all'); setOpenAlertsDialog(true); }}>Traiter les alertes</button>
             </Paper>

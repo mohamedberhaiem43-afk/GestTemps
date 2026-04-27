@@ -67,11 +67,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         int SupMorning = morningStartMinutes - actualMorningArrivalMinutes;
                         nbHeurSupp += SupMorning;
                     }
-                    else
-                    {
-                        int diffFromOfficialStart = actualMorningArrivalMinutes - morningStartMinutes;
-                        UpdateTothre(presence, diffFromOfficialStart);
-                    }
+                    // Pas de side-effect sur Tothre : un retard ou une arrivée dans la tolérance
+                    // ne génère pas d'heures supp (la diff est traitée par CalculateHeureRetard).
                 }
 
                 // 2️⃣ SORTIE MATIN TARDIVE
@@ -139,11 +136,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         int SupEvening = actualLeaveMinutes - scheduledEndMinutes;
                         nbHeurSupp += SupEvening;
                     }
-                    else if (actualLeaveMinutes < scheduledEndMinutes)
-                    {
-                        int diffFromOfficialLeave = actualLeaveMinutes - scheduledEndMinutes;
-                        UpdateTothre(presence, -diffFromOfficialLeave);
-                    }
+                    // Sortie anticipée : ne pas muter Tothre. CalcNbHeure reflète déjà le temps
+                    // réellement travaillé (entrée → sortie réelle).
                 }
 
                 return (double)nbHeurSupp / 60;
@@ -211,11 +205,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         int SupMorning = morningStartMinutes - actualMorningArrivalMinutes;
                         nbHeurSupp += SupMorning;
                     }
-                    else
-                    {
-                        int diffFromOfficialStart = actualMorningArrivalMinutes - morningStartMinutes;
-                        UpdateTothre(presence, diffFromOfficialStart);
-                    }
+                    // Pas de side-effect sur Tothre : un retard ou une arrivée dans la tolérance
+                    // ne génère pas d'heures supp (la diff est traitée par CalculateHeureRetard).
                 }
 
                 // 2️⃣ SORTIE MATIN TARDIVE
@@ -283,11 +274,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         int SupEvening = actualLeaveMinutes - scheduledEndMinutes;
                         nbHeurSupp += SupEvening;
                     }
-                    else if (actualLeaveMinutes < scheduledEndMinutes)
-                    {
-                        int diffFromOfficialLeave = actualLeaveMinutes - scheduledEndMinutes;
-                        UpdateTothre(presence, -diffFromOfficialLeave);
-                    }
+                    // Sortie anticipée : ne pas muter Tothre. CalcNbHeure reflète déjà le temps
+                    // réellement travaillé (entrée → sortie réelle).
                 }
 
                 return nbHeurSupp / 60;
@@ -303,33 +291,5 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         {
             return TimeSpan.TryParse(value, out var ts) ? ts : TimeSpan.Zero;
         }
-
-        /// <summary>
-        /// Met à jour le champ Tothre de presence en ajoutant des minutes
-        /// </summary>
-        private void UpdateTothre(PresenceDto presence, int minutesDelta)
-        {
-            TimeSpan tothre = TimeSpan.Zero;
-
-            if (!string.IsNullOrWhiteSpace(presence.Tothre) && TimeSpan.TryParse(presence.Tothre, out var existing))
-            {
-                tothre = existing.Add(TimeSpan.FromMinutes(minutesDelta));
-            }
-            else
-            {
-                tothre = TimeSpan.FromMinutes(minutesDelta);
-            }
-
-            if (tothre < TimeSpan.Zero)
-                tothre = TimeSpan.Zero;
-
-            // Limite de sécurité (12h max par jour par ex.)
-            TimeSpan maxOvertime = TimeSpan.FromHours(12);
-            if (tothre > maxOvertime)
-                tothre = maxOvertime;
-
-            presence.Tothre = $"{tothre.Hours:D2}:{tothre.Minutes:D2}";
-        }
-
     }
 }

@@ -84,6 +84,38 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                foreach (var auth in autoriser)
+                {
+                    auth.Conjour = "O";
+                    auth.Conamdep = auth.Conamdep ?? "0";
+                    auth.Conamret = auth.Conamret ?? "0";
+
+                    // Calculate hours difference between Conret and Condep
+                    if (auth.Condep.HasValue && auth.Conret.HasValue)
+                    {
+                        var condep = auth.Condep.Value;
+                        var conret = auth.Conret.Value;
+
+                        // Créer une nouvelle date pour conret avec l'année de condep
+                        var adjustedConret = new DateTime(
+                            condep.Year,
+                            condep.Month,
+                            condep.Day,
+                            conret.Hour,
+                            conret.Minute,
+                            conret.Second
+                        );
+                        auth.Conret = adjustedConret;
+
+                        TimeSpan duration = auth.Conret.Value - auth.Condep.Value;
+                        auth.Connbjour = (float)Math.Round(duration.TotalHours, 2); // Rounded to 2 decimal places
+                    }
+                    else
+                    {
+                        auth.Connbjour = 0; // Default if dates are null
+                    }
+                }
+
                 await _dbContext.Autorisers.AddRangeAsync(autoriser);
                 await _dbContext.SaveChangesAsync();
             }
@@ -216,7 +248,8 @@ namespace ABRPOINT.Server.Repository
                         Abslib = ab.Abslib,
                         Condep = a.Condep,
                         Conret = a.Conret,
-                        Connbjour = a.Connbjour
+                        Connbjour = a.Connbjour,
+                        Abspayer = ab.Abspayer
                     }
                 ).FirstOrDefaultAsync();
 
@@ -230,6 +263,7 @@ namespace ABRPOINT.Server.Repository
                     Connbjour = autorisation.Connbjour,
                     Condep = autorisation.Condep,
                     Conret = autorisation.Conret,
+                    Abspayer = autorisation.Abspayer,
                 };
             }
             catch (Exception)
@@ -242,17 +276,18 @@ namespace ABRPOINT.Server.Repository
             var result = await (
                 from a in _dbContext.Autorisers
                 join ab in _dbContext.Absences on a.Abscod equals ab.Abscod
-                where a.Soccod == soccod
+                where a.Soccod == soccod && a.Soccod == ab.Soccod
                     && a.Empcod == empcod
-                    && a.Condep <= dateFin
-                    && a.Conret >= dateDeb
+                    && a.Condep.Value.Date <= dateFin
+                    && a.Conret.Value.Date >= dateDeb
                 select new
                 {
                     a.Empcod,
                     a.Condep,
                     a.Conret,
                     ab.Abslib,
-                    a.Connbjour
+                    a.Connbjour,
+                    ab.Abspayer
                 })
                 .ToListAsync();
 
@@ -263,7 +298,8 @@ namespace ABRPOINT.Server.Repository
                     Abslib = x.Abslib,
                     Connbjour = x.Connbjour,
                     Condep = x.Condep,
-                    Conret = x.Conret
+                    Conret = x.Conret,
+                    Abspayer = x.Abspayer
                 });
         }
 
@@ -302,7 +338,8 @@ namespace ABRPOINT.Server.Repository
                     Abslib = ab.Abslib,
                     a.Condep,
                     a.Conret,
-                    a.Connbjour
+                    a.Connbjour,
+                    Abspayer = ab.Abspayer
                 }
             ).ToListAsync();
 
@@ -329,7 +366,8 @@ namespace ABRPOINT.Server.Repository
                     Abslib = aut.Abslib,
                     Connbjour = aut.Connbjour,
                     Condep = aut.Condep,
-                    Conret = aut.Conret
+                    Conret = aut.Conret,
+                    Abspayer = aut.Abspayer
                 };
             }
 
@@ -351,7 +389,8 @@ namespace ABRPOINT.Server.Repository
                         Abslib = ab.Abslib,
                         Connbjour = a.Connbjour,
                         Condep = a.Condep,
-                        Conret = a.Conret
+                        Conret = a.Conret,
+                        Abspayer = ab.Abspayer
                     }
                 ).ToListAsync();
             }

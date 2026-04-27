@@ -139,11 +139,16 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   const [contel, setContel] = useState('');
   const [conref, setConref] = useState('');
   const [connbjour, setConnbjour] = useState(0);
+  const [employeeHireDate, setEmployeeHireDate] = useState<Date | null>(null);
 
   // Droit conge - leave balance
   const currentEmpcod = isEmp && uticod ? uticod : empcod;
-  const yearStart = `${new Date().getFullYear()}-01-01`;
-  const yearEnd = `${new Date().getFullYear()}-12-31`;
+  const currentYear = new Date().getFullYear();
+  const defaultYearStart = `${currentYear}-01-01`;
+  const yearEnd = `${currentYear}-12-31`;
+  const yearStart = employeeHireDate && employeeHireDate.getFullYear() === currentYear && employeeHireDate > new Date(currentYear, 0, 1)
+    ? employeeHireDate.toISOString().split('T')[0]
+    : defaultYearStart;
   const { data: droitCongeData } = useGetDroitConge(currentEmpcod, yearStart, yearEnd);
   const droitConge = Array.isArray(droitCongeData) ? droitCongeData[0] : droitCongeData;
   const soldeAnterieur = (droitConge as any)?.soldeinit ?? (droitConge as any)?.Soldeinit ?? 0;
@@ -152,15 +157,25 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   const droitRestant = (droitConge as any)?.droitrestant ?? (droitConge as any)?.Droitrestant ?? 0;
   const nouveauSolde = Math.max(0, droitRestant - connbjour);
 
-  // Auto-fill phone when employee is selected or when uticod is set (employee self-request)
+  // Auto-fill phone and hire date when employee is selected or when uticod is set (employee self-request)
   useEffect(() => {
     const targetEmpcod = isEmp && uticod ? uticod : empcod;
-    if (targetEmpcod && !editConge) {
-      apiInstance.get(`/Employes/${targetEmpcod}`).then((res) => {
+    if (!targetEmpcod) return;
+
+    apiInstance.get(`/Employes/${targetEmpcod}`)
+      .then((res) => {
         const tel = res.data?.emptel || res.data?.empmob || '';
-        if (tel) setContel(tel);
-      }).catch(() => {});
-    }
+        if (tel && !editConge) setContel(tel);
+
+        const emb = res.data?.empemb;
+        if (emb) {
+          const date = new Date(emb);
+          if (!Number.isNaN(date.getTime())) {
+            setEmployeeHireDate(date);
+          }
+        }
+      })
+      .catch(() => {});
   }, [empcod, isEmp, uticod, editConge]);
 
   // Set default type de congé when absences load

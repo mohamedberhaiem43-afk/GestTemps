@@ -43,6 +43,7 @@ export type HeuresSupplementairesResultat =
     fm :number;
     maladie :number;
     weekDetails:Record<string, string>;
+    missingPosteDates?: string[];
 }
 export interface PointageMois {
     empCod: string;

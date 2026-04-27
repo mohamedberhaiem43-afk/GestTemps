@@ -737,6 +737,23 @@ namespace ABRPOINT.Server.Repository
                     result[(soccod, empcod, date, conge?.Connbjour)] = conge?.Abslib;
                 }
 
+#if DEBUG
+                // Diagnostic temporaire — comprendre pourquoi certains congés (ex: 23/04) ne matchent pas.
+                // À retirer après confirmation de la sémantique de Conret.
+                if (conges.Count > 0)
+                {
+                    Console.WriteLine($"[Conge match debug] {empcod} {debut:yyyy-MM-dd}→{fin:yyyy-MM-dd} : {conges.Count} enregistrement(s) chargé(s)");
+                    foreach (var c in conges)
+                        Console.WriteLine($"  Condep={c.Condep:yyyy-MM-dd} Conret={c.Conret:yyyy-MM-dd} Conamret={c.Conamret} Connbjour={c.Connbjour} Abslib={c.Abslib}");
+                    var unmatchedDates = result
+                        .Where(kv => string.IsNullOrEmpty(kv.Value))
+                        .Select(kv => kv.Key.Item3)
+                        .ToList();
+                    if (unmatchedDates.Count > 0)
+                        Console.WriteLine($"  Dates sans match ({unmatchedDates.Count}) : {string.Join(", ", unmatchedDates.Select(d => d.ToString("yyyy-MM-dd")))}");
+                }
+#endif
+
                 return result;
             }
             catch (Exception)

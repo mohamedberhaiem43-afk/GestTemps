@@ -1,5 +1,4 @@
-import { Box, IconButton, Tooltip, useTheme as useMuiTheme, Autocomplete, TextField, InputAdornment, Typography, type PaletteMode, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
-import { Brightness4, Brightness7 } from '@mui/icons-material';
+import { Box, IconButton, Tooltip, useTheme as useMuiTheme, Autocomplete, TextField, InputAdornment, Typography, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
 import { Search as SearchIcon, X as CloseIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -57,7 +56,6 @@ import PricingPage from '../Pricing/PricingPage';
 import PaymentPage from '../Pricing/PaymentPage';
 import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
 import NotificationCenter from './NotificationCenter';
-import { useThemeMode } from '../../App';
 import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './SidebarNavigationDualTier';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 
@@ -476,8 +474,6 @@ function RecentItemsBar({ items, onNavigate }: { items: RecentItem[], onNavigate
 /* ══════════════════════════════════════════════════════ */
 function makeToolbarActions(
   isDark: boolean,
-  mode: PaletteMode,
-  toggleTheme: () => void,
   navigation: NavGroup[],
   onNavigate: (href: string) => void,
   clearAuth: () => void,
@@ -615,30 +611,10 @@ function makeToolbarActions(
           <LanguageSwitcher />
         </Box>
 
-        {/* Notification Center */}
-        <Box sx={{ flexShrink: 0 }}>
+        {/* Notification Center — toujours visible (flexShrink: 0 pour ne pas être tronqué) */}
+        <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
           <NotificationCenter />
         </Box>
-
-        {/* Theme switcher */}
-        <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
-          <IconButton
-            onClick={toggleTheme}
-            size="small"
-            sx={{
-              color: isDark ? '#94a3b8' : '#64748b',
-              borderRadius: '10px',
-              p: 0.75,
-              transition: 'all 0.2s',
-              flexShrink: 0,
-              '&:hover': { color: '#0040a1', bgcolor: 'rgba(0,64,161,0.07)' },
-            }}
-          >
-            {mode === 'dark'
-              ? <Brightness7 sx={{ fontSize: 20 }} />
-              : <Brightness4 sx={{ fontSize: 20 }} />}
-          </IconButton>
-        </Tooltip>
 
         {/* User Profile instead of Help */}
         <Box sx={{ flexShrink: 0, ml: 1, display: 'flex', alignItems: 'center' }}>
@@ -661,7 +637,6 @@ function DashboardLayoutAccount(_props: DemoProps) {
   const { i18n } = useTranslation();
   const NAVIGATION = useNavigationItems();
   const outerTheme = useMuiTheme();
-  const { mode, toggleTheme } = useThemeMode();
   const isDark = outerTheme.palette.mode === 'dark';
   const pathname = location.pathname;
 
@@ -766,8 +741,8 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
 
   const ToolbarActions = React.useMemo(
-    () => makeToolbarActions(isDark, mode, toggleTheme, NAVIGATION, (h) => navigate(h), clearAuth, userName),
-    [isDark, mode, toggleTheme, NAVIGATION, navigate, clearAuth, userName]
+    () => makeToolbarActions(isDark, NAVIGATION, (h) => navigate(h), clearAuth, userName),
+    [isDark, NAVIGATION, navigate, clearAuth, userName]
   );
 
   const footerItems: FooterItem[] = [

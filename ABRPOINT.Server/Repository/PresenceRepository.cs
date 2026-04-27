@@ -591,14 +591,16 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                // 🆕 Fetch employee's embauche and sortie dates
+                // 🆕 Fetch employee's embauche, sortie dates + default poste (fallback)
                 var employe = await _dbContext.Employes
                     .Where(e => e.Soccod == soccod && e.Empcod == empcod)
-                    .Select(e => new { e.Empemb, e.Empsort })
+                    .Select(e => new { e.Empemb, e.Empsort, e.Poscod })
                     .FirstOrDefaultAsync();
-
+                dateDeb = dateDeb.Date;
+                dateFin = dateFin.Date;
                 DateTime? empemb = employe?.Empemb;
                 DateTime? empsort = employe?.Empsort;
+                string? defaultPoscod = employe?.Poscod;
 
                 // 1️⃣ Récupérer les présences existantes
                 var presenceList = await _dbContext.Presences
@@ -629,6 +631,7 @@ namespace ABRPOINT.Server.Repository
 
                 for (DateTime date = dateDeb; date <= dateFin; date = date.AddDays(1))
                 {
+                    date = date.Date;
                     // 🆕 Helper function to check if date is within employment period
                     bool IsWithinEmploymentPeriod(DateTime checkDate)
                     {
@@ -638,6 +641,12 @@ namespace ABRPOINT.Server.Repository
                     }
 
                     var effectivePoste = employePostes.GetValueOrDefault((Empcod: empcod, Date: date));
+                    // Fallback to employee's default poste when Lcategories doesn't resolve a poste for this date
+                    // (mirrors PostesController.GetEmployePoste step 3). Without this, absent days end up with empty
+                    // Codposte → Tothabs / Etat="Absence" never computed. Only apply within the employment period
+                    // to avoid marking pre-hire / post-termination days as Absence.
+                    if (string.IsNullOrEmpty(effectivePoste) && IsWithinEmploymentPeriod(date))
+                        effectivePoste = defaultPoscod;
                     presenceDict.TryGetValue(date.Date, out var presence);
                     if (presence == null)
                     {
@@ -778,6 +787,10 @@ namespace ABRPOINT.Server.Repository
                             empparam = GenericMethodes.EnrichEmpparamWithPoste(baseEmpparam, date, presence.Codposte, postesCache);
                         }
 
+                        // Force recompute from punches: clear any stale Tothre stored in DB (a previous
+                        // bug in CalculateHeureSupp's UpdateTothre side-effect could have stored the
+                        // lateness amount as Tothre on incomplete pointages).
+                        presence.Tothre = null;
                         presence.Tothre = await CalcHreTrav(presence, poste, empparam);
 
                         // 🔴 CAS JOUR FÉRIÉ : forcer les heures et ignorer le calcul normal
@@ -1104,8 +1117,9 @@ namespace ABRPOINT.Server.Repository
                 double hretrv = CalcNbHeure(presence.Preentmatup, presence.Presortmatup, presence.Preentamidiup,
                     presence.Presortamidiup, presence.Preentasupup, presence.Presortsupup, presence.Prerepas);
                 hretrv += ((double)nbHeurSupp) /60f;
-                // Étape 2 : Ajout heures d'autorisation si absence de présence
-                if (autorisation?.Condep != null && autorisation?.Conret != null)
+                // Étape 2 : Ajout heures d'autorisation si absence de présence — UNIQUEMENT si l'absence
+                // est payée (Abspayer == "O"). Sinon les heures autorisées non travaillées ne s'ajoutent pas.
+                if (autorisation?.Condep != null && autorisation?.Conret != null && autorisation.Abspayer == "O")
                 {
                     var condep = autorisation.Condep.Value;
                     var conret = autorisation.Conret.Value;
@@ -1204,8 +1218,9 @@ namespace ABRPOINT.Server.Repository
                 double hretrv = CalcNbHeure(presence.Preentmatup, presence.Presortmatup, presence.Preentamidiup,
                     presence.Presortamidiup, presence.Preentasupup, presence.Presortsupup, presence.Prerepas);
                 hretrv += ((double)nbHeurSupp - nbRetard) / 60f;
-                // Étape 2 : Ajout heures d'autorisation si absence de présence
-                if (autorisation?.Condep != null && autorisation?.Conret != null)
+                // Étape 2 : Ajout heures d'autorisation si absence de présence — UNIQUEMENT si l'absence
+                // est payée (Abspayer == "O"). Sinon les heures autorisées non travaillées ne s'ajoutent pas.
+                if (autorisation?.Condep != null && autorisation?.Conret != null && autorisation.Abspayer == "O")
                 {
                     var condep = autorisation.Condep.Value;
                     var conret = autorisation.Conret.Value;

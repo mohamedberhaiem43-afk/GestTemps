@@ -528,18 +528,20 @@ const EmployeModernInner = () => {
     }
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', width: '100vw', overflowX: 'hidden' }}>
+        // Pas de `overflowX: hidden` ici : ça crée un contexte de scroll qui casse `position: sticky`
+        // sur le Top bar. On garde le scroll au niveau du body pour que le header reste collé en haut.
+        <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', width: '100%', maxWidth: '100vw' }}>
 
             {/* ── Main content area ── */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
-                {/* Top bar */}
+                {/* Top bar — sticky en haut du viewport, reste visible pendant le scroll */}
                 <Box sx={{
                     display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' },
                     px: { xs: 2, sm: 4 }, py: 2, backgroundColor: '#fff',
                     borderBottom: '1px solid #edf0f5',
                     boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
-                    position: 'sticky', top: 0, zIndex: 10,
+                    position: 'sticky', top: 0, zIndex: 100,
                     flexDirection: { xs: 'column', sm: 'row' },
                     gap: { xs: 2, sm: 0 }
                 }}>

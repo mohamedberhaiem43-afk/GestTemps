@@ -23,6 +23,26 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
             return (min > 0 && retard >= min) ? bonus : 0;
         }
 
+        /// <summary>
+        /// Retourne le nombre de minutes de chevauchement entre la plage [rangeStart, rangeEnd] et la plage
+        /// d'autorisation. Sert à neutraliser la portion de retard qui tombe dans une autorisation.
+        /// </summary>
+        private int OverlapMinutes(TimeSpan rangeStart, TimeSpan rangeEnd, AutDto autorisation)
+        {
+            if (autorisation?.Condep == null || autorisation?.Conret == null) return 0;
+            if (rangeEnd <= rangeStart) return 0;
+
+            var authStart = autorisation.Condep.Value.TimeOfDay;
+            var authEnd = autorisation.Conret.Value.TimeOfDay;
+            if (authEnd <= authStart) return 0;
+
+            var overlapStart = rangeStart > authStart ? rangeStart : authStart;
+            var overlapEnd = rangeEnd < authEnd ? rangeEnd : authEnd;
+            if (overlapEnd <= overlapStart) return 0;
+
+            return (int)(overlapEnd - overlapStart).TotalMinutes;
+        }
+
         private bool IsInAutorisation(TimeSpan time, AutDto autorisation)
         {
             TimeSpan? autorisationStart = autorisation?.Condep?.TimeOfDay;
@@ -103,16 +123,20 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
             // =======================
             int retardMatin = (int)(actualMorningArrival - morningStart).TotalMinutes;
 
-            if (retardMatin > toleranceEntree &&
-                !IsInAutorisation(actualMorningArrival, autoisation) &&
-                retardMatin / 60 < 3)
-            {
-                nbRetard += retardMatin;
-                nbRetard += ApplySanction(retardMatin, poste.Retmin ?? 0, poste.Retsanc ?? 0);
+            // Soustraire la portion de retard couverte par une autorisation : si l'autorisation chevauche
+            // [morningStart, actualArrival], cette intersection est "autorisée" et ne doit pas être comptée.
+            int retardCouvertParAutorisation = OverlapMinutes(morningStart, actualMorningArrival, autoisation);
+            int retardMatinNet = Math.Max(0, retardMatin - retardCouvertParAutorisation);
 
-                presence.Preretmateup = ToRetardDate(TimeSpan.FromMinutes(retardMatin));
+            if (retardMatinNet > toleranceEntree &&
+                retardMatinNet / 60 < 3)
+            {
+                nbRetard += retardMatinNet;
+                nbRetard += ApplySanction(retardMatinNet, poste.Retmin ?? 0, poste.Retsanc ?? 0);
+
+                presence.Preretmateup = ToRetardDate(TimeSpan.FromMinutes(retardMatinNet));
                 if (presence.Preretmate == null)
-                    presence.Preretmate = ToRetardDate(TimeSpan.FromMinutes(retardMatin));
+                    presence.Preretmate = ToRetardDate(TimeSpan.FromMinutes(retardMatinNet));
             }
 
             // =======================
@@ -121,17 +145,17 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
             if (actualMorningDeparture != TimeSpan.Zero)
             {
                 int sortieMatin = (int)(morningEnd - actualMorningDeparture).TotalMinutes;
+                int sortieMatinNet = Math.Max(0, sortieMatin - OverlapMinutes(actualMorningDeparture, morningEnd, autoisation));
 
-                if (sortieMatin > toleranceSortie &&
-                    !IsInAutorisation(actualMorningDeparture, autoisation) &&
-                    sortieMatin / 60 < 3)
+                if (sortieMatinNet > toleranceSortie &&
+                    sortieMatinNet / 60 < 3)
                 {
-                    nbRetard += sortieMatin;
-                    nbRetard += ApplySanction(sortieMatin, poste.Avamn ?? 0, poste.Avabon ?? 0);
+                    nbRetard += sortieMatinNet;
+                    nbRetard += ApplySanction(sortieMatinNet, poste.Avamn ?? 0, poste.Avabon ?? 0);
 
-                    presence.Preretameup = ToRetardDate(TimeSpan.FromMinutes(sortieMatin));
+                    presence.Preretameup = ToRetardDate(TimeSpan.FromMinutes(sortieMatinNet));
                     if (presence.Preretame == null)
-                        presence.Preretame = ToRetardDate(TimeSpan.FromMinutes(sortieMatin));
+                        presence.Preretame = ToRetardDate(TimeSpan.FromMinutes(sortieMatinNet));
                 }
             }
 
@@ -143,20 +167,20 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                 if (actualEveningArrival != TimeSpan.Zero)
                 {
                     int retardAm = (int)(actualEveningArrival - eveningStart).TotalMinutes;
+                    int retardAmNet = Math.Max(0, retardAm - OverlapMinutes(eveningStart, actualEveningArrival, autoisation));
 
-                    if (retardAm > toleranceSortie &&
-                        !IsInAutorisation(actualEveningArrival, autoisation) &&
-                        retardAm / 60 < 3)
+                    if (retardAmNet > toleranceSortie &&
+                        retardAmNet / 60 < 3)
                     {
-                        nbRetard += retardAm;
+                        nbRetard += retardAmNet;
                         nbRetard += ApplySanction(
-                            retardAm,
+                            retardAmNet,
                             poste.Retminam ?? poste.Retmin ?? 0,
                             poste.Retsancam ?? poste.Retsanc ?? 0);
 
-                        presence.Preretameup = ToRetardDate(TimeSpan.FromMinutes(retardAm));
+                        presence.Preretameup = ToRetardDate(TimeSpan.FromMinutes(retardAmNet));
                         if (presence.Preretame == null)
-                            presence.Preretame = ToRetardDate(TimeSpan.FromMinutes(retardAm));
+                            presence.Preretame = ToRetardDate(TimeSpan.FromMinutes(retardAmNet));
                     }
                 }
 
@@ -166,20 +190,20 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                 if (actualEveningDeparture != TimeSpan.Zero)
                 {
                     int sortieAm = (int)(eveningEnd - actualEveningDeparture).TotalMinutes;
+                    int sortieAmNet = Math.Max(0, sortieAm - OverlapMinutes(actualEveningDeparture, eveningEnd, autoisation));
 
-                    if (sortieAm > toleranceSortie &&
-                        !IsInAutorisation(actualEveningDeparture, autoisation) &&
-                        sortieAm / 60 < 3)
+                    if (sortieAmNet > toleranceSortie &&
+                        sortieAmNet / 60 < 3)
                     {
-                        nbRetard += sortieAm;
+                        nbRetard += sortieAmNet;
                         nbRetard += ApplySanction(
-                            sortieAm,
+                            sortieAmNet,
                             poste.Avamnam ?? poste.Avamn ?? 0,
                             poste.Avabonam ?? poste.Avabon ?? 0);
 
-                        presence.Preretamsup = ToRetardDate(TimeSpan.FromMinutes(sortieAm));
+                        presence.Preretamsup = ToRetardDate(TimeSpan.FromMinutes(sortieAmNet));
                         if (presence.Preretams == null)
-                            presence.Preretams = ToRetardDate(TimeSpan.FromMinutes(sortieAm));
+                            presence.Preretams = ToRetardDate(TimeSpan.FromMinutes(sortieAmNet));
                     }
                 }
             }
