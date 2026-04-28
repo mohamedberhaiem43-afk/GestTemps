@@ -8,7 +8,7 @@ COPY abrpoint.client/ ./
 
 # Override env vars for Docker build
 ARG VITE_REACT_APP_API_URL=/api
-ENV VITE_API_URL=$VITE_REACT_APP_API_URL
+ENV VITE_REACT_APP_API_URL=$VITE_REACT_APP_API_URL
 ENV DOCKER_BUILD=true
 
 # Build will use the ENV variable, overriding .env files
