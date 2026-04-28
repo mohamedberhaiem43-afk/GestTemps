@@ -6,29 +6,31 @@ const axiosInstance = axios.create({
     withCredentials: true,  // <--- tokens are sent automatically via httpOnly cookies
 });
 
-// Add response interceptor to handle token refresh on 401
+// Coalesce concurrent refresh attempts (cf. apiInstance.ts pour le détail).
+let refreshInFlight: Promise<unknown> | null = null;
+
 axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        const url: string = originalRequest?.url ?? '';
+        const isRefreshCall = url.includes('/Utilisateurs/refresh');
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall) {
             originalRequest._retry = true;
 
             try {
-                // Attempt to refresh the token - send empty body, cookies are sent automatically
-                await axios.post(
-                    `${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/refresh`,
-                    {},
-                    { withCredentials: true }
-                );
-
-                // Retry the original request with new token (automatically included in cookies)
+                if (!refreshInFlight) {
+                    refreshInFlight = axios.post(
+                        `${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/refresh`,
+                        {},
+                        { withCredentials: true }
+                    ).finally(() => { refreshInFlight = null; });
+                }
+                await refreshInFlight;
                 return axiosInstance(originalRequest);
             } catch (refreshError) {
-                // Refresh failed - redirect to login
                 console.error('Token refresh failed:', refreshError);
-                window.location.href = '/';
                 return Promise.reject(refreshError);
             }
         }

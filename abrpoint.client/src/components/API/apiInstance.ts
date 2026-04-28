@@ -66,29 +66,34 @@ const originalCreate = axios.create.bind(axios);
     return inst;
 };
 
-// Add a response interceptor to handle token refresh on 401
+// Coalesce concurrent refresh attempts : sans ça, plusieurs requêtes parallèles qui 401
+// déclenchent N appels /refresh simultanés, chacun révoque le token précédent → boucle infinie.
+let refreshInFlight: Promise<unknown> | null = null;
+
 apiInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        const url: string = originalRequest?.url ?? '';
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Ne jamais tenter de refresh suite à un échec sur /refresh lui-même (sinon boucle).
+        const isRefreshCall = url.includes('/Utilisateurs/refresh');
+
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall) {
             originalRequest._retry = true;
 
             try {
-                // Attempt to refresh the token - send empty body, cookies are sent automatically
-                await axios.post(
-                    `${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/refresh`,
-                    {},
-                    { withCredentials: true }
-                );
-
-                // Retry the original request with new token (automatically included in cookies)
+                if (!refreshInFlight) {
+                    refreshInFlight = axios.post(
+                        `${import.meta.env.VITE_REACT_APP_API_URL}/Utilisateurs/refresh`,
+                        {},
+                        { withCredentials: true }
+                    ).finally(() => { refreshInFlight = null; });
+                }
+                await refreshInFlight;
                 return apiInstance(originalRequest);
             } catch (refreshError) {
-                // Refresh failed - redirect to login
                 console.error('Token refresh failed:', refreshError);
-                window.location.href = '/';
                 return Promise.reject(refreshError);
             }
         }
