@@ -11,6 +11,7 @@ public class MasterDbContext : DbContext
     public MasterDbContext(DbContextOptions<MasterDbContext> options) : base(options) { }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<TenantEmailIndex> TenantEmailIndex => Set<TenantEmailIndex>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -18,6 +19,11 @@ public class MasterDbContext : DbContext
         {
             e.HasIndex(t => t.Slug).IsUnique();
             e.HasIndex(t => t.StripeCustomerId);
+        });
+
+        b.Entity<TenantEmailIndex>(e =>
+        {
+            e.HasIndex(x => x.Slug);
         });
     }
 }

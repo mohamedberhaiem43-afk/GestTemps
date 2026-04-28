@@ -218,6 +218,18 @@ using (var scope = app.Services.CreateScope())
             {
                 await using var masterDb = await masterFactory.CreateDbContextAsync();
                 await masterDb.Database.EnsureCreatedAsync();
+                // EnsureCreatedAsync ne crée pas les tables manquantes quand la base existe déjà :
+                // pour les ajouts post-déploiement comme TenantEmailIndex on émet un CREATE idempotent.
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TenantEmailIndex')
+BEGIN
+    CREATE TABLE [TenantEmailIndex] (
+        [Email] NVARCHAR(255) NOT NULL CONSTRAINT [PK_TenantEmailIndex] PRIMARY KEY,
+        [Slug] NVARCHAR(30) NOT NULL,
+        [CreatedAt] DATETIME2 NOT NULL CONSTRAINT [DF_TenantEmailIndex_CreatedAt] DEFAULT SYSUTCDATETIME()
+    );
+    CREATE INDEX [IX_TenantEmailIndex_Slug] ON [TenantEmailIndex]([Slug]);
+END");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }

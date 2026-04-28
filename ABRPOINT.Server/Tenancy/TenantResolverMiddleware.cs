@@ -29,6 +29,7 @@ public sealed class TenantResolverMiddleware
         "/api/stripe/webhook",
         "/api/health",
         "/api/master",
+        "/api/auth",
         "/swagger",
         "/api/uploads",
     };

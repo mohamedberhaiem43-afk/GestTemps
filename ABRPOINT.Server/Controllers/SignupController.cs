@@ -144,6 +144,26 @@ public class SignupController : ControllerBase
             }
 
             tenant.Status = "Trialing";
+            // Index email→slug : permet à la page de login (root domain) de retrouver
+            // le tenant à partir de l'email saisi, sans demander le code société.
+            // Upsert : on remplace une éventuelle ligne existante (cas d'un re-signup
+            // après tenant 'Failed' avec le même email).
+            var adminEmailLower = req.AdminEmail.Trim().ToLowerInvariant();
+            var existingIndex = await master.TenantEmailIndex
+                .FirstOrDefaultAsync(x => x.Email == adminEmailLower, ct);
+            if (existingIndex != null)
+            {
+                existingIndex.Slug = slug;
+            }
+            else
+            {
+                master.TenantEmailIndex.Add(new TenantEmailIndex
+                {
+                    Email = adminEmailLower,
+                    Slug = slug,
+                    CreatedAt = DateTime.UtcNow,
+                });
+            }
             await master.SaveChangesAsync(ct);
             _tenantStore.Invalidate(slug);
 
