@@ -55,6 +55,8 @@ services:
       DB_NAME: "ABRPOINT"
       DB_USER: "sa"
       DB_PASSWORD: "PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A="
+      ConnectionStrings__MasterConnection: "Server=abrpoint.database;Database=ABRPOINT_master;User Id=sa;Password=PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=;TrustServerCertificate=True;"
+      ConnectionStrings__TenantTemplate: "Server=abrpoint.database;Database={DbName};User Id=sa;Password=PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=;TrustServerCertificate=True;"
       ASPNETCORE_URLS: "http://+:8080"
       DatabaseInitialization__Enabled: "true"
       DatabaseInitialization__SocieteCode: "01"
