@@ -50,7 +50,16 @@ public sealed class TenantResolverMiddleware
         var slug = ResolveSlug(ctx, cfg);
         if (string.IsNullOrEmpty(slug) || ReservedSubdomains.Contains(slug))
         {
-            // Pas de tenant : on laisse passer (utile pour servir le SPA / pages publiques sur app.concorde.com).
+            // Pure-SaaS : tout /api/* hors bypass exige un tenant. Sans tenant, on rejette
+            // ici plutôt que de laisser un controller résoudre ApplicationDbContext et
+            // taper la base legacy 'ABRPOINT' (qui n'existe pas en mode SaaS).
+            if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await ctx.Response.WriteAsync("Tenant introuvable : sous-domaine ou en-tête X-Tenant-Slug requis.");
+                return;
+            }
+            // Hors API (SPA, pages publiques) : on laisse passer.
             await _next(ctx);
             return;
         }
