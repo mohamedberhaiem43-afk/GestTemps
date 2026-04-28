@@ -1,5 +1,8 @@
+using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +12,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [Admin]
     public class RolesController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
@@ -79,22 +83,8 @@ namespace ABRPOINT.Server.Controllers
                     RoleCreatedAt = DateTime.UtcNow
                 };
 
-                // Create default permissions for all modules
-                var modules = new[]
-                {
-                    "Absences et Sanctions",
-                    "Pointage et Temps",
-                    "Gestion Employés",
-                    "Contrats et Avenants",
-                    "Paie et Rémunération",
-                    "Gestion des Congés",
-                    "Données de Base",
-                    "Paramètres de Temps",
-                    "Rapports et Statistiques",
-                    "Administration"
-                };
-
-                role.Permissions = modules.Select(m => new RolePermission
+                // Permissions par défaut sur tous les modules — refus par défaut.
+                role.Permissions = PermissionCatalog.Modules.All.Select(m => new RolePermission
                 {
                     RpModule = m,
                     RpConsult = "0",
@@ -112,6 +102,73 @@ namespace ABRPOINT.Server.Controllers
             {
                 return StatusCode(500, new { Message = "Error creating role", Error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Rattrape un tenant existant qui a été créé avant l'introduction des rôles système RBAC :
+        /// crée Administrator/Manager/Employee + leurs permissions par défaut s'ils n'existent pas.
+        /// Idempotent : ne touche pas une matrice déjà personnalisée par l'admin.
+        /// </summary>
+        [HttpPost("seed-system")]
+        public async Task<IActionResult> SeedSystemRoles(CancellationToken ct)
+        {
+            try
+            {
+                var report = await SystemRoleSeeder.SeedAsync(_dbContext, ct);
+                return Ok(new
+                {
+                    message = "Seed terminé.",
+                    rolesCreated = report.RolesCreated,
+                    rolesUpdated = report.RolesUpdated,
+                    permissionsCreated = report.PermissionsCreated,
+                    legacyUsersMigrated = report.LegacyUsersMigrated,
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Erreur durant le seed des rôles système.", Error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Crée les tables nécessaires aux fonctionnalités mobiles (push_tokens, push_reminder_log)
+        /// si absentes. À jouer une fois sur chaque tenant existant. Idempotent.
+        /// </summary>
+        [HttpPost("install-mobile-tables")]
+        public async Task<IActionResult> InstallMobileTables(CancellationToken ct)
+        {
+            try
+            {
+                var report = await MobileTablesInstaller.InstallAsync(_dbContext, ct);
+                return Ok(new
+                {
+                    message = "Tables mobiles installées.",
+                    pushTokensCreated = report.PushTokensCreated,
+                    pushReminderLogCreated = report.PushReminderLogCreated,
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Erreur lors de l'installation des tables mobiles.", Error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Envoie une notification push de test à tous les devices d'un utilisateur.
+        /// Pratique pour vérifier que l'enregistrement du token + la livraison Expo fonctionnent
+        /// avant de débugger les hooks métier (congés, autorisations, rappels).
+        /// </summary>
+        [HttpPost("test-push/{uticod}")]
+        public async Task<IActionResult> TestPush(string uticod, [FromServices] IUserNotificationService notify, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(uticod))
+                return BadRequest(new { message = "uticod requis" });
+            var sent = await notify.NotifyUserAsync(
+                uticod,
+                "🔔 Notification de test",
+                "Si vous recevez ce message, les notifications push sont opérationnelles.",
+                new { type = "test_push" }, ct);
+            return Ok(new { sent });
         }
 
         // PUT: api/Roles/5

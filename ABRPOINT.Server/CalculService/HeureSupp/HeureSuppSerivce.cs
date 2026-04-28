@@ -71,23 +71,20 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     // ne génère pas d'heures supp (la diff est traitée par CalculateHeureRetard).
                 }
 
-                // 2️⃣ SORTIE MATIN TARDIVE
-                if (actualMorningEnd > morningEnd)
+                // 2️⃣ SORTIE MATIN TARDIVE — ne s'applique QUE quand il y a une session soir.
+                // Sans session soir, c'est la section 4️⃣ qui mesure le débordement final
+                // (ne pas dupliquer ici sinon on compte 2× le supplément après morningEnd).
+                if (hasEveningSession && actualMorningEnd > morningEnd)
                 {
                     int morningEndMinutes = (int)morningEnd.TotalMinutes;
                     int actualMorningEndMinutes = (int)actualMorningEnd.TotalMinutes;
                     int eveningStartMinutes = (int)eveningStart.TotalMinutes;
 
-                    if (!hasEveningSession)
-                    {
-                        nbHeurSupp += actualMorningEndMinutes - morningEndMinutes;
-                    }
-                    else
-                    {
-                        nbHeurSupp += (int)(eveningStartMinutes < actualMorningEndMinutes
-                            ? actualMorningEndMinutes - morningEndMinutes
-                            : eveningStartMinutes - morningEndMinutes);
-                    }
+                    // Heures supp pendant la pause déjeuner : entre morningEnd et eveningStart
+                    // (ou jusqu'à actualMorningEnd si l'employé est sorti dans la pause).
+                    nbHeurSupp += (int)(eveningStartMinutes < actualMorningEndMinutes
+                        ? actualMorningEndMinutes - morningEndMinutes
+                        : eveningStartMinutes - morningEndMinutes);
                 }
 
                 // 3️⃣ SESSION APRÈS-MIDI/SOIR
@@ -209,23 +206,17 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     // ne génère pas d'heures supp (la diff est traitée par CalculateHeureRetard).
                 }
 
-                // 2️⃣ SORTIE MATIN TARDIVE
-                if (actualMorningEnd > morningEnd)
+                // 2️⃣ SORTIE MATIN TARDIVE — ne s'applique QUE quand il y a une session soir.
+                // Sans session soir, c'est la section 4️⃣ qui mesure le débordement final.
+                if (hasEveningSession && actualMorningEnd > morningEnd)
                 {
                     int morningEndMinutes = (int)morningEnd.TotalMinutes;
                     int actualMorningEndMinutes = (int)actualMorningEnd.TotalMinutes;
                     int eveningStartMinutes = (int)eveningStart.TotalMinutes;
 
-                    if (!hasEveningSession)
-                    {
-                        nbHeurSupp += actualMorningEndMinutes - morningEndMinutes;
-                    }
-                    else
-                    {
-                        nbHeurSupp += (int)(eveningStartMinutes < actualMorningEndMinutes
-                            ? actualMorningEndMinutes - morningEndMinutes
-                            : eveningStartMinutes - morningEndMinutes);
-                    }
+                    nbHeurSupp += (int)(eveningStartMinutes < actualMorningEndMinutes
+                        ? actualMorningEndMinutes - morningEndMinutes
+                        : eveningStartMinutes - morningEndMinutes);
                 }
 
                 // 3️⃣ SESSION APRÈS-MIDI/SOIR

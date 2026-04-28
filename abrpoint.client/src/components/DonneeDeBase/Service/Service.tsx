@@ -14,7 +14,9 @@ import AddIcon from '@mui/icons-material/Add';
 import { ServiceModel } from '../../../models/Service';
 import './Service.css'
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
+import ExcelImportButton from '../shared/ExcelImportButton';
 const Service = () => {
+  const soccod = sessionStorage.getItem('soccod') || '01';
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const [editedServices, setEditedServices] = useState<Record<string, ServiceModel>>({});
   const [services, setServices] = useState<ServiceModel[]>([]);
@@ -250,16 +252,28 @@ const Service = () => {
       </Box>
     ),
     renderTopToolbarCustomActions: ({ table }) => (
-      <Tooltip title="Create New Service">
-        <IconButton
-          color="primary"
-          onClick={() => {
-            table.setCreatingRow(true);
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Tooltip title="Create New Service">
+          <IconButton
+            color="primary"
+            onClick={() => {
+              table.setCreatingRow(true);
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+        <ExcelImportButton
+          endpoint="/BulkImport/services"
+          extraBody={{ Soccod: soccod }}
+          columnMap={{ Serlib: ['serlib', 'libelle', 'libellé', 'service', 'nom'] }}
+          onImported={() => {
+            // Refresh local list après import
+            apiInstance.get(`/Services/get-services/${soccod}`).then(r => setServices(r.data)).catch(() => {});
           }}
-        >
-          <AddIcon />
-        </IconButton>
-      </Tooltip>
+          label="Importer Excel"
+        />
+      </Box>
     ),
     initialState: {
       columnPinning: {

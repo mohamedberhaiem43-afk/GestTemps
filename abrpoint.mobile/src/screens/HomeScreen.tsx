@@ -9,6 +9,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
+import BottomTabBar from '../components/BottomTabBar';
+import { withCacheFallback } from '../services/cache';
+import { captureCurrentPosition } from '../services/geolocation';
 
 const { width } = Dimensions.get('window');
 
@@ -42,6 +45,11 @@ export default function HomeScreen({ navigation }: any) {
   const [recentDocs, setRecentDocs] = useState<VaultDoc[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  // True quand l'API a échoué et qu'on sert des données cachées en attendant le réseau.
+  const [offlineMode, setOfflineMode] = useState(false);
+  const [pointing, setPointing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [silentUntil, setSilentUntil] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -53,14 +61,39 @@ export default function HomeScreen({ navigation }: any) {
       loadTodayStatus();
       loadKPISummary();
       loadRecentDocs();
+      loadUnreadCount();
     }
   }, [user]);
+
+  // Refresh le badge à chaque retour sur le HomeScreen (focus event de React Navigation).
+  useEffect(() => {
+    const unsub = navigation?.addListener?.('focus', () => {
+      if (user?.soccod && user?.uticod) loadUnreadCount();
+    });
+    return unsub;
+  }, [navigation, user]);
+
+  const loadUnreadCount = async () => {
+    try {
+      const res = await apiService.unreadNotificationsCount();
+      setUnreadCount(res?.count ?? 0);
+    } catch { /* noop */ }
+    try {
+      const status = await apiService.getQuietStatus();
+      setSilentUntil(status?.silent ? (status.until || '...') : null);
+    } catch { /* noop */ }
+  };
 
   const loadTodayStatus = async () => {
     if (!user?.soccod || !user?.uticod) return;
     try {
       const today = new Date().toISOString().split('T')[0];
-      const data = await apiService.getMyPresenceByDate(user.soccod, user.uticod, today, today);
+      // withCacheFallback : sert le dernier snapshot connu si l'API échoue (avion, mauvais réseau).
+      const { data, fromCache } = await withCacheFallback(
+        `today_${user.soccod}_${user.uticod}_${today}`,
+        () => apiService.getMyPresenceByDate(user.soccod!, user.uticod!, today, today)
+      );
+      if (fromCache) setOfflineMode(true); else setOfflineMode(false);
       if (data && data.length > 0) {
         const p = data[0];
         const isRepos = p.prerepos === true || p.prerepos === 'True' || p.prerepos === 'true' || p.prerepos === '1';
@@ -80,7 +113,10 @@ export default function HomeScreen({ navigation }: any) {
   const loadKPISummary = async () => {
     if (!user?.soccod || !user?.uticod) return;
     try {
-      const data = await apiService.getMyKPIs(user.soccod, user.uticod);
+      const { data } = await withCacheFallback(
+        `kpis_${user.soccod}_${user.uticod}`,
+        () => apiService.getMyKPIs(user.soccod!, user.uticod!)
+      );
       if (data) {
         setKpiSummary({
           soldeConge: data.soldeConge || 0,
@@ -98,15 +134,37 @@ export default function HomeScreen({ navigation }: any) {
   const loadRecentDocs = async () => {
     if (!user?.soccod || !user?.uticod) return;
     try {
-      const data = await apiService.getMyPresence(user.soccod, user.uticod); // Mocking vault for now or use actual service if available
-      // In a real app, you'd call apiService.getVaultDocuments
-      // For now let's set some mock recent docs if service not ready
-      setRecentDocs([
-        { id: 1, titre: 'Fiche de paie - Avril 2024', dateAjout: 'Il y a 2 jours', type: 'PDF' }
-      ]);
+      const data = await apiService.getVaultDocuments(user.soccod, user.uticod);
+      const list = Array.isArray(data) ? data : [];
+      // On garde les 3 plus récents pour l'aperçu Home.
+      const sorted = [...list].sort((a: any, b: any) => {
+        const da = new Date(a.dateAjout || a.createdAt || 0).getTime();
+        const db = new Date(b.dateAjout || b.createdAt || 0).getTime();
+        return db - da;
+      }).slice(0, 3);
+      setRecentDocs(sorted.map((d: any) => ({
+        id: d.id,
+        titre: d.titre || d.docType || d.fileName || 'Document',
+        dateAjout: formatRelativeDate(d.dateAjout || d.createdAt),
+        type: (d.fileName || '').split('.').pop()?.toUpperCase() || 'PDF',
+      })));
     } catch (error) {
       console.log('Failed to load recent docs:', error);
+      setRecentDocs([]);
     }
+  };
+
+  const formatRelativeDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const diffMs = Date.now() - d.getTime();
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffDays === 0) return "Aujourd'hui";
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `Il y a ${diffDays} jours`;
+    if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} sem.`;
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   };
 
   const onRefresh = async () => {
@@ -116,13 +174,29 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const handlePointer = async () => {
-    if (!user?.soccod || !user?.uticod) return;
+    if (!user?.soccod || !user?.uticod || pointing) return;
+    setPointing(true);
     try {
-      const result = await apiService.markPresence(user.soccod, user.uticod);
+      // Capture GPS en best-effort : on ne bloque pas le pointage si refusé/timeout.
+      // Le backend journalise les coords pour l'audit anti-fraude (validation de zone à venir).
+      const gps = await captureCurrentPosition(5000);
+      await apiService.markPresence(
+        user.soccod,
+        user.uticod,
+        undefined,
+        gps.coords ?? undefined
+      );
       loadTodayStatus();
-      Alert.alert('✅ Succès', 'Pointage enregistré avec succès');
+      const gpsHint = gps.status === 'granted'
+        ? `📍 Position enregistrée (±${Math.round(gps.coords?.accuracy || 0)}m)`
+        : gps.status === 'blocked' || gps.status === 'denied'
+        ? '⚠️ Position non autorisée — activez la localisation dans les réglages'
+        : '⚠️ Position indisponible — pointage validé sans GPS';
+      Alert.alert('✅ Pointage enregistré', gpsHint);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de pointer');
+    } finally {
+      setPointing(false);
     }
   };
 
@@ -147,10 +221,19 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.logoText}>LEDGER HR</Text>
         </View>
         <View style={styles.topAppRight}>
-          <View style={styles.notificationWrapper}>
+          <TouchableOpacity
+            style={styles.notificationWrapper}
+            onPress={() => navigation.navigate('Notifications')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+          >
             <MaterialCommunityIcons name="bell-outline" size={24} color="#64748b" />
-            <View style={styles.notificationDot} />
-          </View>
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
             <Image
               source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAvAHpecvSxPFvNp0WiI32s75TOod9EfS859bgnvDcccilKQKfh5e4vMEDD_wO5dwMGzL0B245pIvD5_NADth7meBVNm-mUMMdQzjBtVtqk70SJNnincuv9kgEgFrl3janzeg5qQFmI_fw3E2OvZyQtwz1SpezTqNCPETmq0ZFbHMPK_VyHzFU6tN4Qs8HfCcZR5u7UW-q8N8Zfax8VOae0-wTo5oF8FyhJrjkBQaHdAuD5uHwFuKukdgOSGr4-aeJHLOySXd_KA80' }}
@@ -171,6 +254,29 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.welcomeTitle}>Bonjour, {user?.utilib?.split(' ')[0] || 'Marc'}.</Text>
         </View>
 
+        {/* Offline indicator : visible uniquement quand on sert le cache (réseau KO) */}
+        {offlineMode && (
+          <View style={styles.offlineBanner}>
+            <MaterialCommunityIcons name="cloud-off-outline" size={16} color={COLORS.warning} />
+            <Text style={styles.offlineText}>Mode hors-ligne — données du dernier accès</Text>
+          </View>
+        )}
+
+        {/* Indicateur "actuellement silencieux" : push muets jusqu'à HH:mm */}
+        {silentUntil && (
+          <TouchableOpacity
+            style={styles.silentChip}
+            onPress={() => navigation.navigate('NotificationPreferences')}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="bell-sleep-outline" size={14} color="#92400e" />
+            <Text style={styles.silentChipText}>
+              Notifications silencieuses jusqu'à {silentUntil}
+            </Text>
+            <MaterialCommunityIcons name="chevron-right" size={14} color="#92400e" />
+          </TouchableOpacity>
+        )}
+
         {/* Punch-in/out Glass Card */}
         <View style={styles.punchCard}>
           <View style={styles.gpsStatus}>
@@ -180,9 +286,10 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.currentTimeText}>{formatTime(currentTime)}</Text>
           <Text style={styles.serverTimeLabel}>Heure du serveur de Paris</Text>
           
-          <TouchableOpacity 
-            style={styles.pointerButton} 
+          <TouchableOpacity
+            style={[styles.pointerButton, pointing && { opacity: 0.6 }]}
             onPress={handlePointer}
+            disabled={pointing}
             activeOpacity={0.8}
           >
             <LinearGradient
@@ -191,15 +298,70 @@ export default function HomeScreen({ navigation }: any) {
               end={{ x: 1, y: 1 }}
               style={styles.pointerGradient}
             >
-              <MaterialCommunityIcons name="fingerprint" size={24} color="#fff" />
+              {pointing ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <MaterialCommunityIcons name="fingerprint" size={24} color="#fff" />
+              )}
               <Text style={styles.pointerButtonText}>
-                {todayStatus.hasEntry && !todayStatus.hasExit ? 'Pointer la Sortie' : 'Pointer l\'Entrée'}
+                {pointing
+                  ? 'Localisation en cours...'
+                  : todayStatus.hasEntry && !todayStatus.hasExit
+                  ? 'Pointer la Sortie'
+                  : "Pointer l'Entrée"}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
           <Text style={styles.lastExitLabel}>
             {todayStatus.hasEntry ? `Entrée à ${todayStatus.entryTime}` : 'Dernière sortie : Ven. 18:05'}
           </Text>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('LeaveRequest')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#dae2ff' }]}>
+              <MaterialCommunityIcons name="calendar-plus" size={22} color={COLORS.primary} />
+            </View>
+            <Text style={styles.quickLabel}>Congé</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('DemandeAutorisation')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#d1fadf' }]}>
+              <MaterialCommunityIcons name="exit-run" size={22} color={COLORS.tertiary} />
+            </View>
+            <Text style={styles.quickLabel}>Sortie</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Expense')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#fff1c2' }]}>
+              <MaterialCommunityIcons name="receipt" size={22} color="#92400e" />
+            </View>
+            <Text style={styles.quickLabel}>Frais</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('DigitalVault')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#fde2e7' }]}>
+              <MaterialCommunityIcons name="folder-lock" size={22} color={COLORS.error} />
+            </View>
+            <Text style={styles.quickLabel}>Coffre</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Stats Grid */}
@@ -283,25 +445,7 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </ScrollView>
 
-      {/* BottomNavBar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <MaterialCommunityIcons name="view-dashboard" size={24} color={COLORS.primaryContainer} />
-          <Text style={[styles.navLabel, { color: COLORS.primaryContainer }]}>DASHBOARD</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
-          <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>LEAVES</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('DigitalVault')}>
-          <MaterialCommunityIcons name="folder-account-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>VAULT</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
-          <MaterialCommunityIcons name="draw-pen" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>SIGN</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomTabBar active="home" navigation={navigation} />
     </SafeAreaView>
   );
 }
@@ -316,8 +460,15 @@ const styles = StyleSheet.create({
   iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
   topAppRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  notificationWrapper: { position: 'relative' },
-  notificationDot: { position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.error },
+  notificationWrapper: { position: 'relative', padding: 4 },
+  notificationBadge: {
+    position: 'absolute', top: -2, right: -4,
+    minWidth: 16, height: 16, borderRadius: 8,
+    paddingHorizontal: 4,
+    backgroundColor: COLORS.error,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  notificationBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
   profileImage: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#fff' },
   scrollContent: { padding: 20, paddingBottom: 100 },
   welcomeSection: { marginBottom: 24 },
@@ -374,13 +525,66 @@ const styles = StyleSheet.create({
   vaultItemContent: { flex: 1 },
   vaultItemTitle: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   vaultItemSubtitle: { fontSize: 9, fontWeight: '700', color: '#94a3b8', marginTop: 2 },
-  bottomNav: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', paddingBottom: 20,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff7e6',
+    borderColor: '#fde2a7',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
   },
-  navItem: { alignItems: 'center', gap: 4 },
-  navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
+  offlineText: {
+    fontSize: 12,
+    color: COLORS.warning,
+    fontWeight: '700',
+  },
+  silentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fef3c7',
+    borderColor: '#fde68a',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 16,
+  },
+  silentChipText: { fontSize: 11, color: '#92400e', fontWeight: '700', flex: 1 },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  quickAction: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  quickIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+    letterSpacing: 0.3,
+  },
 });
 

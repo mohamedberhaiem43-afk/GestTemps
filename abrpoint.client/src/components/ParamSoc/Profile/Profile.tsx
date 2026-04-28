@@ -23,6 +23,7 @@ import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import apiInstance from '../../API/apiInstance';
 import { useAuth } from '../../helper/AuthProvider';
 import './Profile.css';
+import NotificationPreferences from '../../Profil/NotificationPreferences';
 
 const BASE_URL = import.meta.env.VITE_REACT_APP_API_URL || '';
 const queryClient = new QueryClient();
@@ -466,6 +467,11 @@ function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Préférences de notification — pleine largeur sous la grille profil */}
+      <div style={{ marginTop: 32 }}>
+        <NotificationPreferences />
       </div>
 
       {/* Password Dialog */}

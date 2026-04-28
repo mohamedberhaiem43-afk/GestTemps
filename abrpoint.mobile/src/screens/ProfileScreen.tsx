@@ -8,6 +8,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
+import BottomTabBar from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
 
@@ -206,6 +207,22 @@ export default function ProfileScreen({ navigation, route }: any) {
           </View>
         </View>
 
+        {/* Préférences notifications */}
+        <TouchableOpacity
+          style={styles.prefRow}
+          onPress={() => navigation.navigate('NotificationPreferences')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.prefIconBox}>
+            <MaterialCommunityIcons name="bell-cog-outline" size={22} color={COLORS.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.prefTitle}>Préférences de notification</Text>
+            <Text style={styles.prefSub}>Choisir les types de rappels et alertes</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
+        </TouchableOpacity>
+
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <LinearGradient
@@ -220,29 +237,7 @@ export default function ProfileScreen({ navigation, route }: any) {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* BottomNavBar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>TABLEAU</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
-          <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>CONGÉS</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
-          <MaterialCommunityIcons name="exit-to-app" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>SORTIES</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('PresenceHistory')}>
-          <MaterialCommunityIcons name="history" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>POINTAGE</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Expense')}>
-          <MaterialCommunityIcons name="receipt-long" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>FRAIS</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomTabBar active="profile" navigation={navigation} />
     </SafeAreaView>
   );
 }
@@ -296,6 +291,18 @@ const styles = StyleSheet.create({
   securitySubText: { fontSize: 9, fontWeight: '800', color: COLORS.outlineVariant, letterSpacing: 0.5 },
   logoutButton: { marginTop: 8 },
   logoutGradient: { height: 56, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 4 },
+  prefRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: '#fff', borderRadius: 14, padding: 14,
+    marginHorizontal: 20, marginBottom: 16,
+  },
+  prefIconBox: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: COLORS.primaryFixed,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  prefTitle: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  prefSub: { fontSize: 12, color: COLORS.outline, marginTop: 2 },
   logoutText: { color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 1 },
   bottomNav: {
     position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,

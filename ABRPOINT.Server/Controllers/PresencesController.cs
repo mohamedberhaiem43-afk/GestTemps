@@ -16,11 +16,15 @@ namespace ABRPOINT.Server.Controllers
         private readonly IPresenceRepository _presenceRepository;
         private readonly IPointageOptimizerService _pointageOptimizerService;
         private readonly IReportsGenerationService _reportGenerationService;
-        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService)
+        private readonly ILogger<PresencesController>? _logger;
+        private readonly Services.IGeoZoneValidator? _geoValidator;
+        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null)
         {
             _presenceRepository = presenceRepository;
             _reportGenerationService = reportGenerationService;
             _pointageOptimizerService = pointageOptimizerService;
+            _logger = logger;
+            _geoValidator = geoValidator;
         }
         [HttpPut("optimiserPointage/{soccod}/{empmat}/{dateDeb}/{dateFin}")]
         public async Task OptimizePointage(string soccod,string empMat,DateTime dateDeb,DateTime dateFin)
@@ -165,13 +169,54 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // POST: api/Presences/mark-presence/{soccod}/{empcod}
+        // Coordonnées GPS optionnelles : journalisées pour audit anti-fraude (à connecter à
+        // une vérif de zone autorisée / table de log GPS dans une itération ultérieure).
         [HttpPost("mark-presence/{soccod}/{empcod}")]
-        public async Task<IActionResult> MarkPresence(string soccod, string empcod, [FromQuery] string? poicod = null)
+        public async Task<IActionResult> MarkPresence(
+            string soccod,
+            string empcod,
+            [FromQuery] string? poicod = null,
+            [FromQuery] double? lat = null,
+            [FromQuery] double? lon = null,
+            [FromQuery] double? acc = null)
         {
             try
             {
                 if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(empcod))
                     return BadRequest(new { message = "soccod et empcod sont obligatoires" });
+
+                if (lat.HasValue && lon.HasValue)
+                {
+                    // Audit trail simple via logger structurel : permet de tracer où le pointage
+                    // a été déclenché (rejouable dans un dashboard "carte des pointages" plus tard).
+                    _logger?.LogInformation(
+                        "Mobile clock-in GPS soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
+                        soccod, empcod, lat, lon, acc);
+
+                    // Validation de zone (config-driven via GeoZones:Mode dans appsettings).
+                    if (_geoValidator != null && _geoValidator.Mode != "off")
+                    {
+                        var validation = _geoValidator.Validate(soccod, lat.Value, lon.Value);
+                        if (!validation.InsideAnyZone)
+                        {
+                            var distance = validation.NearestDistanceMeters.HasValue
+                                ? $"{validation.NearestDistanceMeters.Value:F0}m"
+                                : "?";
+                            _logger?.LogWarning(
+                                "Pointage hors zone autorisée. soccod={Soccod} empcod={Empcod} nearest={Sitcod} distance={Distance}",
+                                soccod, empcod, validation.NearestSitcod, distance);
+                            if (_geoValidator.Mode == "reject")
+                            {
+                                return UnprocessableEntity(new
+                                {
+                                    message = $"Pointage refusé : vous êtes à {distance} de la zone autorisée la plus proche.",
+                                    distance = validation.NearestDistanceMeters,
+                                    nearestSitcod = validation.NearestSitcod,
+                                });
+                            }
+                        }
+                    }
+                }
 
                 var result = await _presenceRepository.AddPresenceAsync(soccod, empcod, DateTime.Now, poicod ?? "");
                 if (result == null)

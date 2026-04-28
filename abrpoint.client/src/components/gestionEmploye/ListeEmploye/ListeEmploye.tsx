@@ -42,6 +42,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import * as mammoth from 'mammoth';
 import ContratReportService from '../../../services/ContratService/ContratReportService';
+import apiInstance from '../../API/apiInstance';
 
 const ListEmploye = () => {
   const { selectedEmpMat, setSelectedEmpMat, setSelectedEmp } = useContext(EmployeeContext);
@@ -519,74 +520,59 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
       const workbook = XLSX.read(data, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      let jsonData: Employe[] = XLSX.utils.sheet_to_json(sheet);
+      const rawJson: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-      const normalizedData: Employe[] = jsonData.map((emp) => ({
-        empcod: String(emp.empcod ?? '').trim(),
-        soccod: String(emp.soccod ?? '').trim(),
-        sitcod: String(emp.sitcod ?? '').trim(),
-        emplib: emp.emplib ?? null,
-        empmat: emp.empmat ?? null,
-        empsexe: emp.empsexe ?? null,
-        sercod: emp.sercod ?? null,
-        empfonc: emp.empfonc ?? null,
-        empferepos: emp.empferepos ?? '',
-        empreg: emp.empreg ?? null,
-        catcod: emp.catcod ?? null,
-        empnbp: emp.empnbp != null ? Number(emp.empnbp) : null,
-        natcod: emp.natcod ?? null,
-        vilcod: emp.vilcod ?? null,
-        empadr: emp.empadr ?? null,
-        emptel: emp.emptel ?? null,
-        empmob: emp.empmob ?? null,
-        empemb: emp.empemb ? new Date(emp.empemb) : null,
-        empsort: emp.empsort ? new Date(emp.empsort) : null,
-        empmotif: emp.empmotif ?? null,
-        actif: emp.actif ?? null,
-        empdnais: emp.empdnais ?? null,
-        emplnais: emp.emplnais ?? null,
-        empcin: emp.empcin ?? null,
-        empdcin: emp.empdcin ? new Date(emp.empdcin) : null,
-        empacin: emp.empacin ?? null,
-        empsbase: emp.empsbase != null ? String(emp.empsbase) : null,
-        empsbrut: emp.empsbrut != null ? String(emp.empsbrut) : null,
-        empdir: emp.empdir ?? null,
-        emptype: emp.emptype ?? null,
-        empniv: emp.empniv != null ? String(emp.empniv) : null,
-        emplibar: emp.emplibar ?? null,
-        empadrar: emp.empadrar ?? null,
-        empfoncar: emp.empfoncar ?? null,
-        foncod: emp.foncod ?? null,
-        quacod: emp.quacod ?? null,
-        empmaxhre: emp.empmaxhre != null ? Number(emp.empmaxhre) : null,
-        empoptim: emp.empoptim ? new Date(emp.empoptim) : null,
-        dircod: emp.dircod ?? null,
-        empretraite: emp.empretraite ? new Date(emp.empretraite) : null,
-        caltype: emp.caltype ?? null,
-        empmaxjour: emp.empmaxjour != null ? Number(emp.empmaxjour) : null,
-        empretard: emp.empretard ?? null,
-        empemail: emp.empemail ?? null,
-        empresp: emp.empresp ?? null,
-        empsnet: emp.empsnet != null ? String(emp.empsnet) : null,
-        empcontrat: emp.empcontrat ?? null,
-        empsitfam: emp.empsitfam ?? null,
-        empech: emp.empech ?? null,
-        empelon: emp.empelon ?? null,
-        empcat: emp.empcat ?? null,
-        empscat: emp.empscat ?? null,
-        empnuit: emp.empnuit ?? null,
-        empminhjour: emp.empminhjour != null ? Number(emp.empminhjour) : null,
-        emppanier: emp.emppanier ?? null,
-        seccod: emp.soccod ?? null,
-        poscod: emp.poscod ?? null,
-        parmois: emp.parmois ?? null,
-      }));
+      // Mapping intelligent : la 1ère colonne du fichier dont le nom matche un alias devient
+      // la valeur. Permet d'importer un fichier RH "brut" même s'il utilise "Nom complet"
+      // au lieu de "emplib", ou "Service" au lieu de "sercod_lib". Le backend
+      // /BulkImport/employes auto-crée les Service/Fonction manquants.
+      const mapAliases = (row: Record<string, any>, aliases: string[]): string | undefined => {
+        const norm: Record<string, any> = {};
+        Object.keys(row).forEach(k => { norm[k.trim().toLowerCase()] = row[k]; });
+        for (const a of aliases) {
+          const v = norm[a.toLowerCase()];
+          if (v !== undefined && v !== '') return String(v).trim();
+        }
+        return undefined;
+      };
+      const rows = rawJson.map(r => ({
+        Empcod: mapAliases(r, ['empcod', 'matricule', 'code']),
+        Emplib: mapAliases(r, ['emplib', 'nom complet', 'nom', 'fullname', 'name']),
+        Emplnais: mapAliases(r, ['emplnais', 'lieu de naissance', 'lieu naissance']),
+        Empdnais: mapAliases(r, ['empdnais', 'date de naissance', 'naissance']),
+        Empsexe: mapAliases(r, ['empsexe', 'sexe', 'genre', 'gender']),
+        Empcin: mapAliases(r, ['empcin', 'cin', 'cni']),
+        Emptel: mapAliases(r, ['emptel', 'tel', 'téléphone', 'telephone', 'phone']),
+        Empemail: mapAliases(r, ['empemail', 'email', 'mail', 'e-mail']),
+        Empadr: mapAliases(r, ['empadr', 'adresse', 'address']),
+        Empemb: mapAliases(r, ['empemb', "date d'embauche", 'embauche', 'date embauche']),
+        ServiceLib: mapAliases(r, ['service', 'sercod_lib', 'libelle service', 'libellé service', 'departement', 'département']),
+        FonctionLib: mapAliases(r, ['fonction', 'foncod_lib', 'libelle fonction', 'libellé fonction', 'poste', 'job']),
+      })).filter(r => r.Emplib);
+
+      if (rows.length === 0) {
+        setSnackbarMessage('Aucune ligne valide. Ajoutez au moins une colonne nom/emplib.');
+        setSnackbarSeverity('error'); setSnackbarOpen(true);
+        return;
+      }
 
       try {
-        await EmployeService.putWithoutParamsList(normalizedData);
+        const { data: report } = await apiInstance.post('/BulkImport/employes', {
+          Rows: rows,
+          Soccod: soccod,
+          Sitcod: sessionStorage.getItem('sitcod') || '01',
+        });
+        const msg = `${report.inserted} employé(s) importé(s)`
+          + (report.skipped ? `, ${report.skipped} ignoré(s)` : '')
+          + (report.created ? `, ${report.created} services/fonctions créés` : '');
+        setSnackbarMessage(report.errors?.length ? `${msg}. ${report.errors.length} erreur(s)` : msg);
+        setSnackbarSeverity(report.errors?.length ? 'error' : 'success');
+        setSnackbarOpen(true);
         refetch();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erreur importation :', error);
+        setSnackbarMessage(error?.response?.data?.error || 'Erreur lors de l\'import.');
+        setSnackbarSeverity('error'); setSnackbarOpen(true);
       }
     };
 

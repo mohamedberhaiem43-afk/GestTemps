@@ -1,11 +1,15 @@
-﻿using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
+    [Admin]
     public class ModulesController : ControllerBase
     {
         private readonly IModuleRepository _moduleRepository;

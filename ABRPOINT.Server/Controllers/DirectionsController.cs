@@ -1,3 +1,5 @@
+using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -13,9 +15,19 @@ namespace ABRPOINT.Server.Controllers
     public class DirectionsController : ControllerBase
     {
         private readonly IDirectionRepository _directionRepository;
-        public DirectionsController(IDirectionRepository directionRepository)
+        private readonly ApplicationDbContext _db;
+        public DirectionsController(IDirectionRepository directionRepository, ApplicationDbContext db)
         {
             _directionRepository = directionRepository;
+            _db = db;
+        }
+
+        // GET api/Directions/next-code/SOC01 — code séquentiel auto-généré pour ce soccod.
+        [HttpGet("next-code/{soccod}")]
+        public async Task<ActionResult<string>> NextCode(string soccod)
+        {
+            var code = await SequentialCodeGenerator.NextDirectionCodeAsync(_db, soccod);
+            return Ok(new { code });
         }
 
         // GET: api/Directions/get-directions/SOC01
@@ -38,6 +50,11 @@ namespace ABRPOINT.Server.Controllers
         public async Task<ActionResult<Direction>> Post([FromBody] Direction direction)
         {
             if (direction == null) return BadRequest();
+            // Auto-génération du code si non fourni — le frontend peut se contenter du libellé.
+            if (string.IsNullOrWhiteSpace(direction.Dircod) && !string.IsNullOrWhiteSpace(direction.Soccod))
+            {
+                direction.Dircod = await SequentialCodeGenerator.NextDirectionCodeAsync(_db, direction.Soccod);
+            }
             await _directionRepository.AddAsync(direction);
             return Ok(direction);
         }

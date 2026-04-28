@@ -2,3 +2,11 @@
     margin-left: 12%;
     width:70vw;
 }
+
+/* Hauteur max + scroll vertical pour la liste des employés.
+   Évite que la table s'étire indéfiniment quand il y a beaucoup d'employés. */
+.employelist .MuiTableContainer-root,
+.employelist [class*='MuiPaper-root'] [class*='MuiTableContainer-root'] {
+    max-height: 65vh;
+    overflow-y: auto;
+}

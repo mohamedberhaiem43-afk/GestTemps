@@ -171,50 +171,64 @@ namespace GestionDesTickets.Server.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState); // Returns validation errors if the model is invalid
+                return BadRequest(ModelState);
             }
             try
             {
-                string? soclib = null;
                 if (string.IsNullOrEmpty(user.Utimail))
                 {
                     return BadRequest("Email or password is missing.");
                 }
 
-                Utilisateur? dbUser = _dbContext.Utilisateurs
-                    .FirstOrDefault(u => u.Utimail == user.Utimail);
+                Utilisateur? dbUser = await _dbContext.Utilisateurs
+                    .FirstOrDefaultAsync(u => u.Utimail == user.Utimail);
 
                 if (dbUser == null || !BCrypt.Net.BCrypt.Verify(user.Utimps, dbUser.Utimps))
                 {
                     return Unauthorized("Invalid credentials.");
                 }
-                var isEmp = await _dbContext.Employes.Where(e => e.Empcod == dbUser.Uticod).AnyAsync();
                 var isManager = dbUser.Utirole?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false;
-                Socuser? societe = null;
-                if (!string.IsNullOrEmpty(user.Usersit))
+
+                // Résolution Soccod/Sitcod simplifiée pour l'UX :
+                //   - Si Company/Usersit explicites → on les utilise (rétrocompat avec ancien front).
+                //   - Sinon → on prend le premier Socuser rattaché à cet utilisateur. En SaaS
+                //     mono-société-par-tenant, l'utilisateur n'a typiquement qu'une seule entrée.
+                var (societe, resolvedCompany) = await ResolveSocuserAsync(dbUser.Uticod!, user.Company, user.Usersit);
+                if (societe == null) return NotFound();
+
+                if (dbUser.UtiTwoFactorEnabled == "1")
                 {
-                    societe = await _dbContext.Socusers.SingleOrDefaultAsync(s => s.Soccod == user.Company &&
-                        s.Uticod == dbUser.Uticod &&
-                        s.Sitcod == user.Usersit);
-
-                    if (societe != null)
-                    {
-                        if (dbUser.UtiTwoFactorEnabled == "1")
-                        {
-                            // Stop before issuing cookies
-                            return Ok(new { requires2fa = true, uticod = dbUser.Uticod, societe,societe.Sitcod,isManager });
-                        }
-
-                        return await CompleteLoginSequence(dbUser, user.Company ?? "", societe);
-                    }
-
+                    return Ok(new { requires2fa = true, uticod = dbUser.Uticod, societe, societe.Sitcod, isManager });
                 }
-                return NotFound();
+                return await CompleteLoginSequence(dbUser, resolvedCompany, societe);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "An error occurred while processing your request.");
             }
+        }
+
+        /// <summary>
+        /// Trouve le Socuser à utiliser pour ce login. Privilégie un couple (Soccod, Sitcod) explicite,
+        /// sinon retourne le premier Socuser de l'utilisateur (filtré par Soccod si fourni).
+        /// </summary>
+        private async Task<(Socuser? Socuser, string Company)> ResolveSocuserAsync(string uticod, string? requestedCompany, string? requestedSitcod)
+        {
+            if (!string.IsNullOrEmpty(requestedCompany) && !string.IsNullOrEmpty(requestedSitcod))
+            {
+                var explicitMatch = await _dbContext.Socusers.SingleOrDefaultAsync(s =>
+                    s.Soccod == requestedCompany &&
+                    s.Uticod == uticod &&
+                    s.Sitcod == requestedSitcod);
+                return (explicitMatch, requestedCompany);
+            }
+
+            var query = _dbContext.Socusers.Where(s => s.Uticod == uticod);
+            if (!string.IsNullOrEmpty(requestedCompany))
+                query = query.Where(s => s.Soccod == requestedCompany);
+
+            var firstMatch = await query.OrderBy(s => s.Soccod).ThenBy(s => s.Sitcod).FirstOrDefaultAsync();
+            return (firstMatch, firstMatch?.Soccod ?? requestedCompany ?? string.Empty);
         }
 
         [HttpPost("complete-2fa-login")]
@@ -234,16 +248,9 @@ namespace GestionDesTickets.Server.Controllers
                     return BadRequest("Code invalide");
                 }
 
-                var societe = await _dbContext.Socusers.SingleOrDefaultAsync(s => s.Soccod == request.Company &&
-                        s.Uticod == dbUser.Uticod &&
-                        s.Sitcod == request.Usersit);
-
-                if (societe != null)
-                {
-                    return await CompleteLoginSequence(dbUser, request.Company, societe);
-                }
-
-                return NotFound();
+                var (societe, resolvedCompany) = await ResolveSocuserAsync(dbUser.Uticod!, request.Company, request.Usersit);
+                if (societe == null) return NotFound();
+                return await CompleteLoginSequence(dbUser, resolvedCompany, societe);
             }
             catch (Exception)
             {
@@ -475,14 +482,48 @@ namespace GestionDesTickets.Server.Controllers
                     .FirstOrDefaultAsync();
             }
 
+            // Société/site du tenant : nécessaire pour que le dashboard sache quoi requêter après
+            // signup direct (où il n'y a pas eu de POST /connect qui les renvoie). On va chercher
+            // le 1er Socuser lié à cet utilisateur, puis on joint Societe pour le libellé.
+            string? soccod = null;
+            string? sitcod = null;
+            string? soclib = null;
+            var socLink = await _dbContext.Socusers
+                .Where(s => s.Uticod == uticod)
+                .OrderBy(s => s.Soccod)
+                .Select(s => new { s.Soccod, s.Sitcod })
+                .FirstOrDefaultAsync();
+            if (socLink != null)
+            {
+                soccod = socLink.Soccod;
+                sitcod = socLink.Sitcod;
+                soclib = await _dbContext.Societes
+                    .Where(x => x.Soccod == soccod)
+                    .Select(x => x.Soclib)
+                    .FirstOrDefaultAsync();
+            }
+
+            // Source de vérité côté front pour les checks d'autorisation : roleName + permissions.
+            // utiadm + isManager + isAdmin sont fournis en bonus pour les composants legacy
+            // qui les lisent encore directement.
+            var roleName = user.Role?.RoleName;
+            var isAdmin = ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(roleName) || user.Utiadm == "1";
+            var isManager = string.Equals(roleName, ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Manager, StringComparison.OrdinalIgnoreCase)
+                            || (roleName?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false);
+
             return Ok(new
             {
                 uticod = user.Uticod,
                 utiadm = user.Utiadm,
                 isEmp,
-                isManager = user.Role?.RoleName?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false,
+                isAdmin,
+                isManager,
+                roleName,
                 utilib,
                 sercod,
+                soccod,
+                sitcod,
+                soclib,
                 permissions = user.Role?.Permissions ?? new List<RolePermission>()
             });
         }
@@ -806,11 +847,18 @@ namespace GestionDesTickets.Server.Controllers
                 var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
                 if (user == null) return NotFound(new { Message = "User not found" });
 
-                user.Utirole = request.Role;
-                user.Utiadm = request.Role == "admin" ? "1" : "0";
+                // RBAC : on accepte un nom de rôle exact (ex: "Administrator", "Manager", "Employee")
+                // ou un alias historique ("admin"). Utiadm est dérivé du rôle final pour rester
+                // synchronisé avec AdminAttribute.
+                var newRoleName = (request.Role ?? string.Empty).Trim();
+                if (string.Equals(newRoleName, "admin", StringComparison.OrdinalIgnoreCase))
+                    newRoleName = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Administrator;
+
+                user.Utirole = newRoleName;
+                user.Utiadm = ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(newRoleName) ? "1" : "0";
                 await _dbContext.SaveChangesAsync();
 
-                return Ok(new { Message = "Role updated successfully" });
+                return Ok(new { Message = "Role updated successfully", role = user.Utirole, utiadm = user.Utiadm });
             }
             catch (Exception ex)
             {

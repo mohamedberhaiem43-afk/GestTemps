@@ -74,7 +74,7 @@ function UtilisateurContent() {
   const filteredUsers = useMemo(() => {
     return users.filter((u: any) => {
       if (roleFilter !== 'all') {
-        const role = u.utirole || (u.utiadm === '1' || u.utiadm === 'Oui' ? 'admin' : 'standard');
+        const role = u.utirole || (u.utiadm === '1' || u.utiadm === 'Oui' ? 'Administrator' : 'Employee');
         if (role !== roleFilter) return false;
       }
       if (statusFilter !== 'all') {
@@ -96,6 +96,11 @@ function UtilisateurContent() {
     const role = user.utirole || (user.utiadm === '1' || user.utiadm === 'Oui' ? 'admin' : 'standard');
     const label = ROLE_LABELS[role] || role;
     const colors: Record<string, string> = {
+      // Noms RBAC modernes
+      Administrator: 'um-role-admin',
+      Manager: 'um-role-manager',
+      Employee: 'um-role-standard',
+      // Alias legacy
       admin: 'um-role-admin',
       rh: 'um-role-rh',
       superviseur: 'um-role-superviseur',

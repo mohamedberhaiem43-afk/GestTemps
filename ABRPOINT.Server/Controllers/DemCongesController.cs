@@ -3,6 +3,7 @@ using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +18,12 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IDemCongeRepository _demandecongeRepository;
         private readonly ApplicationDbContext _context;
-        public DemCongesController(IDemCongeRepository demandecongeRepository, ApplicationDbContext context)
+        private readonly IUserNotificationService? _notify;
+        public DemCongesController(IDemCongeRepository demandecongeRepository, ApplicationDbContext context, IUserNotificationService? notify = null)
         {
             _demandecongeRepository = demandecongeRepository;
             _context = context;
+            _notify = notify;
         }
 
         // GET: api/DemConges/get-next-concod/{soccod}
@@ -131,6 +134,16 @@ namespace ABRPOINT.Server.Controllers
                     });
                 }
 
+                // Notifie l'employé que sa demande est validée.
+                if (_notify != null)
+                {
+                    _ = _notify.NotifyUserAsync(
+                        empcod,
+                        "✅ Congé accepté",
+                        "Votre demande de congé a été acceptée.",
+                        new { type = "leave_request_accepted", concod, soccod });
+                }
+
                 return Ok(new
                 {
                     success = true,
@@ -164,6 +177,15 @@ namespace ABRPOINT.Server.Controllers
                     });
                 }
 
+                if (_notify != null)
+                {
+                    _ = _notify.NotifyUserAsync(
+                        empcod,
+                        "❌ Congé refusé",
+                        "Votre demande de congé n'a pas été acceptée. Consultez l'app pour plus de détails.",
+                        new { type = "leave_request_refused", concod, soccod });
+                }
+
                 return Ok(new
                 {
                     success = true,
@@ -191,6 +213,19 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 await _demandecongeRepository.AddAsync(conge);
+                // Notifier les managers qu'une nouvelle demande arrive (best-effort).
+                if (_notify != null)
+                {
+                    var who = await _context.Employes.AsNoTracking()
+                        .Where(e => e.Soccod == conge.Soccod && e.Empcod == conge.Empcod)
+                        .Select(e => e.Emplib)
+                        .FirstOrDefaultAsync()
+                        ?? conge.Empcod ?? "Un employé";
+                    _ = _notify.NotifyManagersAsync(
+                        "📥 Nouvelle demande de congé",
+                        $"{who} a soumis une demande de congé. Validez-la dans l'app.",
+                        new { type = "leave_request_created", concod = conge.Concod, soccod = conge.Soccod });
+                }
                 return Ok("Demande ajouté avec succées");
             }
             catch (Exception)

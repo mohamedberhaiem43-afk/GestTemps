@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import apiService from '../services/api';
+import { disableBiometricLogin } from '../services/biometric';
+import { clearRegisteredToken } from '../services/push';
 
 interface UserInfo {
   uticod: string;
@@ -20,7 +22,7 @@ interface AuthContextType {
   user: UserInfo | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, company?: string) => Promise<void>;
+  login: (email: string, password: string, company?: string, tenantSlug?: string) => Promise<void>;
   logout: () => Promise<void>;
   isAdmin: boolean;
   isManager: boolean;
@@ -65,13 +67,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string, company?: string) => {
-    const data = await apiService.login(email, password, company);
+  const login = async (email: string, password: string, company?: string, tenantSlug?: string) => {
+    const data = await apiService.login(email, password, company, tenantSlug);
     setUser(data.user);
   };
 
   const logout = async () => {
     await apiService.logout();
+    // Sécurité : on retire les credentials biométriques pour ne pas qu'un autre porteur du
+    // téléphone reconnecte le compte précédent. L'utilisateur les ré-active au prochain login.
+    try { await disableBiometricLogin(); } catch { /* noop */ }
+    // Force la ré-inscription du push token au prochain login (sinon on garde l'ancien
+    // dans SecureStore et le serveur ne sait pas que ce device est désormais lié à un autre user).
+    try { await clearRegisteredToken(); } catch { /* noop */ }
     setUser(null);
   };
 

@@ -11,10 +11,10 @@ public partial class Ville : BaseEntity
 {
     [Key]
     [Column("vilcod")]
-    [StringLength(2)]
+    [StringLength(6)]
     public string Vilcod { get; set; }
 
     [Column("villib")]
-    [StringLength(20)]
+    [StringLength(100)]
     public string? Villib { get; set; }
 }

@@ -41,7 +41,15 @@ export interface TwoFAResponse {
   manualEntryKey: string;
 }
 
+// Labels affichés dans l'UI par roleName. Inclut :
+//   - Les 3 rôles système modernes (Administrator/Manager/Employee), source de vérité backend.
+//   - Les anciens alias minuscules pour rétrocompat avec les utilisateurs legacy.
+//   - D'autres alias historiques (rh, superviseur) qui peuvent encore exister en base.
 export const ROLE_LABELS: Record<string, string> = {
+  Administrator: "Administrateur",
+  Manager: "Manager",
+  Employee: "Utilisateur Standard",
+  // Aliases legacy
   admin: "Administrateur",
   rh: "Responsable RH",
   superviseur: "Superviseur Pointage",
@@ -49,10 +57,10 @@ export const ROLE_LABELS: Record<string, string> = {
   standard: "Utilisateur Standard",
 };
 
+// Options proposées dans les dropdowns de création/édition d'utilisateur :
+// on présente uniquement les 3 rôles système modernes.
 export const ROLE_OPTIONS = [
-  { value: "admin", label: "Administrateur" },
-  { value: "rh", label: "Responsable RH" },
-  { value: "superviseur", label: "Superviseur Pointage" },
-  { value: "manager", label: "Manager" },
-  { value: "standard", label: "Utilisateur Standard" },
+  { value: "Administrator", label: "Administrateur" },
+  { value: "Manager", label: "Manager" },
+  { value: "Employee", label: "Utilisateur Standard" },
 ];

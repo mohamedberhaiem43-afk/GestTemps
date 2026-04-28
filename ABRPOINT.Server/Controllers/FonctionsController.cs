@@ -1,3 +1,5 @@
+using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -11,9 +13,19 @@ namespace ABRPOINT.Server.Controllers
     public class FonctionsController : ControllerBase
     {
         private readonly IFonctionRepository _fonctionRepository;
-        public FonctionsController(IFonctionRepository fonctionRepository)
+        private readonly ApplicationDbContext _db;
+        public FonctionsController(IFonctionRepository fonctionRepository, ApplicationDbContext db)
         {
             _fonctionRepository = fonctionRepository;
+            _db = db;
+        }
+
+        // GET api/Fonctions/next-code/SOC01 — code séquentiel auto-généré pour ce soccod.
+        [HttpGet("next-code/{soccod}")]
+        public async Task<IActionResult> NextCode(string soccod)
+        {
+            var code = await SequentialCodeGenerator.NextFonctionCodeAsync(_db, soccod);
+            return Ok(new { code });
         }
 
         // GET: api/Fonctions/SOC01
@@ -50,8 +62,12 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 if (fonction == null) return BadRequest();
+                if (string.IsNullOrWhiteSpace(fonction.Foncod) && !string.IsNullOrWhiteSpace(fonction.Soccod))
+                {
+                    fonction.Foncod = await SequentialCodeGenerator.NextFonctionCodeAsync(_db, fonction.Soccod);
+                }
                 await _fonctionRepository.AddAsync(fonction);
-                return Ok();
+                return Ok(fonction);
             }
             catch (Exception)
             {

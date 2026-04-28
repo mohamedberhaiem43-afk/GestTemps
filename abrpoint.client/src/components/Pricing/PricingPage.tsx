@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../helper/AuthProvider';
 import './PricingPage.css';
 
 const PricingPage: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const navigate = useNavigate();
+  const { uticod } = useAuth();
+  const isAuthenticated = Boolean(uticod);
 
   const plans = [
     {
@@ -12,28 +15,28 @@ const PricingPage: React.FC = () => {
       target: 'Startups',
       price: 0,
       period: 'gratuit à vie',
-      description: 'Idéal pour les micro-équipes qui souhaitent structurer leurs bases RH sans frais.',
+      description: "Idéal pour les micro-équipes qui souhaitent digitaliser leur pointage sans frais.",
       features: [
         "Jusqu'à 5 collaborateurs",
-        'Gestion des profils de base',
-        "Répertoire d'entreprise",
-        'Accès libre-service employé',
+        'Pointage manuel & web',
+        "Fiches employés & contrats",
+        'Calendrier des absences',
       ],
       cta: 'Démarrer gratuitement',
       accent: false,
     },
     {
       name: 'Standard',
-      target: 'Scale-ups',
+      target: 'PME en croissance',
       price: billingCycle === 'monthly' ? 7.5 : 6.0,
       period: '/ utilisateur / mois',
-      description: 'Une suite complète avec automatisation avancée pour les équipes en pleine croissance.',
+      description: 'Suite complète : pointage, congés et préparation paie pour les équipes structurées.',
       features: [
         'Utilisateurs illimités',
-        "Workflows d'automatisation",
-        'Gestion des congés et absences',
-        'Signatures électroniques',
-        'Support par chat prioritaire',
+        "Pointeuses biométriques & badgeuses",
+        'Gestion congés, autorisations & sanctions',
+        "Préparation paie & exports comptables",
+        'Support prioritaire',
       ],
       cta: 'Essayer Standard',
       accent: true,
@@ -44,13 +47,13 @@ const PricingPage: React.FC = () => {
       target: 'Entreprises',
       price: billingCycle === 'monthly' ? 11.0 : 8.8,
       period: '/ utilisateur / mois',
-      description: 'Analytique avancée et support dédié pour les organisations exigeantes.',
+      description: "Analytique avancée et accompagnement dédié pour les organisations multi-sites.",
       features: [
         'Tout le plan Standard',
-        'Tableaux de bord analytiques',
-        'SSO & Sécurité avancée',
+        'Tableaux de bord & KPI temps réel',
+        'Multi-filiales & multi-sites',
+        'SSO, audit & sécurité avancée',
         'Account Manager dédié',
-        'API illimitée',
       ],
       cta: 'Contacter les ventes',
       accent: false,
@@ -60,15 +63,19 @@ const PricingPage: React.FC = () => {
   const faqs = [
     {
       q: 'Puis-je changer de plan à tout moment ?',
-      a: 'Oui, vous pouvez upgrader ou downgrader votre abonnement à tout instant depuis votre tableau de bord administrateur. Les ajustements sont calculés au prorata.',
+      a: 'Oui, vous pouvez passer à un plan supérieur ou inférieur à tout instant depuis le tableau de bord administrateur. Les ajustements sont calculés au prorata jusqu\'à la fin de la période en cours.',
     },
     {
       q: 'Comment fonctionne la facturation par utilisateur ?',
-      a: "Nous comptabilisons uniquement les employés actifs. Si un collaborateur quitte l'entreprise, sa place devient vacante pour un nouveau recrutement sans surcoût.",
+      a: "Nous comptabilisons uniquement les collaborateurs actifs marqués 'A' dans Concorde. Lorsqu'un employé quitte l'entreprise, son siège est immédiatement disponible pour un nouveau recrutement sans surcoût.",
     },
     {
-      q: 'Mes données sont-elles sécurisées ?',
-      a: 'La sécurité est le pilier de notre ledger. Toutes les données sont chiffrées en transit et au repos (AES-256), avec une conformité RGPD totale et des audits SOC2 réguliers.',
+      q: 'Mes données de pointage et de paie sont-elles sécurisées ?',
+      a: "La sécurité est au cœur de Concorde Workforce. Toutes les données (pointages, salaires, contrats) sont chiffrées en transit (TLS 1.3) et au repos (AES-256), avec une conformité RGPD totale et des sauvegardes automatisées.",
+    },
+    {
+      q: 'Puis-je connecter mes pointeuses existantes ?',
+      a: "Oui. Concorde supporte les principales pointeuses biométriques et badgeuses du marché. Notre équipe vous accompagne lors de la mise en service pour synchroniser vos terminaux avec la plateforme.",
     },
   ];
 
@@ -77,7 +84,7 @@ const PricingPage: React.FC = () => {
       {/* TopNavBar */}
       <nav className="w-full top-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky z-50 border-b border-surface-container">
         <div className="flex justify-between items-center max-w-7xl mx-auto px-8 py-4">
-          <div className="text-2xl font-bold tracking-tight text-primary font-headline cursor-pointer" onClick={() => navigate('/dashboard')}>
+          <div className="text-2xl font-bold tracking-tight text-primary font-headline cursor-pointer" onClick={() => navigate('/')}>
             Concorde
           </div>
           <div className="hidden md:flex items-center gap-8">
@@ -87,12 +94,26 @@ const PricingPage: React.FC = () => {
             <a className="text-on-surface-variant font-medium hover:text-primary transition-colors text-xs tracking-wider uppercase" href="#">À propos</a>
           </div>
           <div className="flex items-center gap-4">
-            <button className="text-on-surface-variant font-bold text-xs tracking-wider uppercase hover:text-primary transition-colors px-4 py-2" onClick={() => navigate('/login')}>
-              Connexion
-            </button>
-            <button className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all">
-              Essai gratuit
-            </button>
+            {isAuthenticated ? (
+              <button
+                className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                onClick={() => navigate('/dashboard')}
+              >
+                Mon Dashboard
+              </button>
+            ) : (
+              <>
+                <button className="text-on-surface-variant font-bold text-xs tracking-wider uppercase hover:text-primary transition-colors px-4 py-2" onClick={() => navigate('/login')}>
+                  Connexion
+                </button>
+                <button
+                  className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  onClick={() => navigate('/signup')}
+                >
+                  Essai gratuit
+                </button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -100,10 +121,10 @@ const PricingPage: React.FC = () => {
       {/* Hero Section */}
       <header className="pt-20 pb-12 px-8 max-w-7xl mx-auto text-center">
         <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tight text-on-surface mb-6 leading-tight">
-          Trouvez le plan parfait <br className="hidden md:block" /> pour votre équipe
+          Le pointage et la paie <br className="hidden md:block" /> simplifiés pour vos équipes
         </h1>
         <p className="text-on-surface-variant text-lg max-w-2xl mx-auto mb-10 font-body leading-relaxed">
-          Gérez vos talents avec précision grâce à notre architecture de données haute performance. Des startups aux entreprises internationales.
+          Concorde Workforce centralise pointage, congés, autorisations de sortie et préparation paie dans une seule plateforme conforme et sécurisée.
         </p>
 
         {/* Toggle Switch */}
@@ -153,8 +174,11 @@ const PricingPage: React.FC = () => {
                 <h3 className="text-3xl font-extrabold font-headline mb-4 text-on-surface">{plan.name}</h3>
                 <div className="flex items-baseline gap-1">
                   <span className="text-5xl font-black font-headline tracking-tighter text-on-surface">
-                    {plan.price}
+                    {plan.price === 0 ? '0' : plan.price}
                   </span>
+                  {plan.price !== 0 && (
+                    <span className="text-2xl font-bold text-on-surface">€</span>
+                  )}
                   <span className="text-on-surface-variant font-medium text-sm">
                     {plan.period}
                   </span>
@@ -174,7 +198,13 @@ const PricingPage: React.FC = () => {
                 ))}
               </div>
               <button
-                onClick={() => navigate('/dashboard/payment', { state: { plan: plan.name, price: plan.price, cycle: billingCycle } })}
+                onClick={() => {
+                  // Approche Odoo : un visiteur non connecté est routé vers /signup pour démarrer
+                  // l'essai gratuit ; un utilisateur déjà authentifié va directement au paiement.
+                  // Le plan choisi est conservé dans le state pour reprise après inscription.
+                  const target = isAuthenticated ? '/dashboard/payment' : '/signup';
+                  navigate(target, { state: { plan: plan.name, price: plan.price, cycle: billingCycle } });
+                }}
                 className={`w-full py-4 font-bold rounded-xl text-xs uppercase tracking-widest transition-all ${plan.accent || plan.popular
                   ? 'bg-gradient-to-br from-primary to-primary-container text-white shadow-lg hover:brightness-110'
                   : 'bg-surface-container-high text-on-surface hover:bg-surface-dim'
@@ -191,7 +221,7 @@ const PricingPage: React.FC = () => {
       <section className="bg-surface-container-low py-20 border-y border-surface-container">
         <div className="max-w-7xl mx-auto px-8 text-center">
           <span className="text-xs font-black uppercase tracking-widest text-primary mb-6 block">Ils nous font confiance</span>
-          <h2 className="text-2xl font-bold font-headline mb-12 opacity-80">Plus de 2,500 entreprises utilisent Concorde</h2>
+          <h2 className="text-2xl font-bold font-headline mb-12 opacity-80">Des centaines d'entreprises pilotent leur temps de travail avec Concorde</h2>
           <div className="flex flex-wrap justify-center items-center gap-16 grayscale opacity-40 hover:opacity-100 transition-opacity">
             {/* Logos from user snippet */}
             <img alt="Company Logo" className="h-7 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXzlDRq8TLTxFcxiJkKfGlsE8wLgAmIW7bSzMx1CiTEmFaDtIA4IEeJSF0QPfOL1J4joc2j0pEXf9WDcPepXgSf9jKOlnpjDjaJbKyS-c8TWGg_zpuCsK-U9gU-eWB3-l7uctnVoNWZyQA3Wv8rFz56IkzZj4MzVTTV4lhdPV5fKtytwsLlAQNO5Xsif2KO_xLtmkoF6osynz5A6AT3nal26tmpS2cLMLLnNqG-AsFpmNUbuY6OW5jBUHtqppY0EfUSJ00rlAuSAc" />
@@ -230,11 +260,11 @@ const PricingPage: React.FC = () => {
       <footer className="w-full border-t border-surface-container bg-white py-16">
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-start gap-12">
           <div className="max-w-xs">
-            <div className="text-2xl font-black text-on-surface font-headline uppercase tracking-tighter mb-4">Structure HR</div>
+            <div className="text-2xl font-black text-on-surface font-headline uppercase tracking-tighter mb-4">Concorde Workforce</div>
             <p className="text-on-surface-variant text-sm font-body leading-relaxed">
-              La plateforme de gestion RH nouvelle génération, bâtie sur une architecture de données haute performance.
+              La plateforme de gestion du temps de travail nouvelle génération : pointage, congés, autorisations et paie réunis dans un même espace.
             </p>
-            <p className="text-outline text-xs mt-8 font-medium">© 2024 Structure HR. All rights reserved.</p>
+            <p className="text-outline text-xs mt-8 font-medium">© {new Date().getFullYear()} Concorde Workforce. Tous droits réservés.</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
             <div className="flex flex-col gap-4">

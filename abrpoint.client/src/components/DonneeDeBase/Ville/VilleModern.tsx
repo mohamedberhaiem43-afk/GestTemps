@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button, Snackbar, Alert, CircularProgress } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import LocationCityIcon from '@mui/icons-material/LocationCity';
 import SearchIcon from '@mui/icons-material/Search';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import apiInstance from '../../API/apiInstance';
 import { VilleModel } from '../../../models/Ville';
 import { useAuth } from '../../helper/AuthProvider';
@@ -20,6 +21,7 @@ function VilleModernContent() {
   const [form, setForm] = useState<VilleModel>(emptyForm);
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
   const [search, setSearch] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const { data: villes = [], refetch, isLoading } = useGetVilles();
   const isEditMode = form.vilcod !== '' && villes.some(v => v.vilcod === form.vilcod);
@@ -39,21 +41,40 @@ function VilleModernContent() {
   }, [villes, search]);
 
   const handleSubmit = async () => {
-    if (!form.vilcod || !form.villib) {
-      setSnack({ open: true, msg: 'Code et Libellé sont obligatoires.', sev: 'error' });
+    if (!form.villib) {
+      setSnack({ open: true, msg: 'Le libellé est obligatoire.', sev: 'error' });
       return;
     }
     try {
       if (isEditMode) {
         await apiInstance.put(`/Villes/${form.vilcod}`, { vilcod: form.vilcod, villib: form.villib });
       } else {
-        await apiInstance.post('/Villes', { vilcod: form.vilcod, villib: form.villib });
+        // En création, on laisse le backend générer le code séquentiel (vilcod vide).
+        await apiInstance.post('/Villes', { vilcod: '', villib: form.villib });
       }
       setSnack({ open: true, msg: isEditMode ? 'Ville mise à jour avec succès.' : 'Ville ajoutée avec succès.', sev: 'success' });
       setForm(emptyForm);
       refetch();
     } catch {
       setSnack({ open: true, msg: 'Erreur lors de l\'enregistrement.', sev: 'error' });
+    }
+  };
+
+  const handleImportFrance = async () => {
+    if (!window.confirm('Importer les ~35 000 communes françaises ? Les villes déjà présentes seront sautées.')) return;
+    setImporting(true);
+    try {
+      const { data } = await apiInstance.post('/Villes/import-france');
+      setSnack({
+        open: true,
+        msg: `${data.inserted} villes importées (${data.skipped} déjà présentes)`,
+        sev: 'success'
+      });
+      refetch();
+    } catch (e: any) {
+      setSnack({ open: true, msg: e?.response?.data?.message || 'Erreur lors de l\'import des villes', sev: 'error' });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -73,6 +94,17 @@ function VilleModernContent() {
           <Typography className="ref-header-sub">Configurer les villes disponibles</Typography>
         </Box>
         <Box className="ref-header-actions">
+          {!isEditMode && canAdd && (
+            <Button
+              variant="outlined"
+              startIcon={importing ? <CircularProgress size={16} /> : <CloudDownloadIcon />}
+              onClick={handleImportFrance}
+              disabled={importing}
+              sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+            >
+              {importing ? 'Import en cours…' : 'Importer villes France'}
+            </Button>
+          )}
           {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm(emptyForm)}>Annuler</Button>}
           {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
             <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>
@@ -89,8 +121,14 @@ function VilleModernContent() {
           </Box>
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field">
-              <label>Code Ville</label>
-              <input type="text" value={form.vilcod} onChange={e => setForm(p => ({ ...p, vilcod: e.target.value }))} readOnly={isEditMode} placeholder="CASA" />
+              <label>Code Ville {!isEditMode && <span style={{ color: '#8896a8', fontWeight: 400 }}>(auto-généré)</span>}</label>
+              <input
+                type="text"
+                value={isEditMode ? form.vilcod : ''}
+                readOnly
+                placeholder={isEditMode ? '' : 'Auto'}
+                style={{ background: '#f5f7fa', color: '#8896a8' }}
+              />
             </Box>
             <Box className="ref-field">
               <label>Libellé</label>

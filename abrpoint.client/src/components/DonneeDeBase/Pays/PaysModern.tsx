@@ -39,15 +39,16 @@ function PaysModernContent() {
   }
 
   const handleSubmit = async () => {
-    if (!form.natcod || !form.natlib) {
-      setSnack({ open: true, msg: 'Code et Libellé sont obligatoires.', sev: 'error' });
+    if (!form.natlib) {
+      setSnack({ open: true, msg: 'Le libellé est obligatoire.', sev: 'error' });
       return;
     }
     try {
       if (isEditMode) {
         await apiInstance.put('/Pays', { natcod: form.natcod, natlib: form.natlib });
       } else {
-        await apiInstance.post('/Pays', { natcod: form.natcod, natlib: form.natlib });
+        // Backend génère le code séquentiel si natcod est vide.
+        await apiInstance.post('/Pays', { natcod: '', natlib: form.natlib });
       }
       setSnack({ open: true, msg: isEditMode ? 'Pays mis à jour avec succès.' : 'Pays ajouté avec succès.', sev: 'success' });
       setForm(emptyForm);
@@ -99,8 +100,14 @@ function PaysModernContent() {
           </Box>
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field">
-              <label>Code Pays</label>
-              <input type="text" value={form.natcod} onChange={e => setForm(p => ({ ...p, natcod: e.target.value }))} readOnly={isEditMode} placeholder="MA" />
+              <label>Code Pays {!isEditMode && <span style={{ color: '#8896a8', fontWeight: 400 }}>(auto-généré)</span>}</label>
+              <input
+                type="text"
+                value={isEditMode ? form.natcod : ''}
+                readOnly
+                placeholder={isEditMode ? '' : 'Auto'}
+                style={{ background: '#f5f7fa', color: '#8896a8' }}
+              />
             </Box>
             <Box className="ref-field">
               <label>Libellé</label>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Alert, RefreshControl, Dimensions, Image,
+  Alert, RefreshControl, Dimensions, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
+import BottomTabBar from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
 
@@ -372,25 +373,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
         onChange={(d) => { setForm({ ...form, conret: d }); setShowEndPicker(false); }}
         onClose={() => setShowEndPicker(false)} title="Date de retour" />
 
-      {/* BottomNavBar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>DASHBOARD</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <MaterialCommunityIcons name="calendar-month" size={24} color={COLORS.primaryContainer} />
-          <Text style={[styles.navLabel, { color: COLORS.primaryContainer }]}>LEAVES</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('DigitalVault')}>
-          <MaterialCommunityIcons name="folder-account-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>VAULT</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
-          <MaterialCommunityIcons name="draw-pen" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>SIGN</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomTabBar active="requests" navigation={navigation} />
     </SafeAreaView>
   );
 }

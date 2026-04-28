@@ -1,3 +1,5 @@
+using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -9,10 +11,20 @@ using Microsoft.AspNetCore.Mvc;
 public class ServicesController : ControllerBase
 {
     private readonly IServiceRepository _servicesRepository;
+    private readonly ApplicationDbContext _db;
 
-    public ServicesController(IServiceRepository serviceRepository)
+    public ServicesController(IServiceRepository serviceRepository, ApplicationDbContext db)
     {
         _servicesRepository = serviceRepository;
+        _db = db;
+    }
+
+    // GET api/Services/next-code/SOC01 — code séquentiel auto-généré pour ce soccod.
+    [HttpGet("next-code/{soccod}")]
+    public async Task<IActionResult> NextCode(string soccod)
+    {
+        var code = await SequentialCodeGenerator.NextServiceCodeAsync(_db, soccod);
+        return Ok(new { code });
     }
 
     // GET: api/Services/get-services/SOC01
@@ -56,8 +68,13 @@ public class ServicesController : ControllerBase
         try
         {
             if (service == null) return BadRequest();
+            // Auto-génération du code si non fourni.
+            if (string.IsNullOrWhiteSpace(service.Sercod) && !string.IsNullOrWhiteSpace(service.Soccod))
+            {
+                service.Sercod = await SequentialCodeGenerator.NextServiceCodeAsync(_db, service.Soccod);
+            }
             await _servicesRepository.AddAsync(service);
-            return Ok("Service added successfully.");
+            return Ok(service);
         }
         catch (Exception ex)
         {

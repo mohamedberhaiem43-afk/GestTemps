@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,13 +17,43 @@ import { useAuth } from '../contexts/AuthContext';
 import { COLORS } from '../config/env';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/env';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {
+  authenticateBiometric,
+  enableBiometricLogin,
+  getBiometricCapabilities,
+  getStoredBiometricCredentials,
+  isBiometricLoginEnabled,
+} from '../services/biometric';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [company, setCompany] = useState('');
+  // Slug du tenant SaaS (ex: "acme") — sert au header X-Tenant-Slug pour router vers la bonne base.
+  // Persisté dans SecureStore après le 1er login pour ne plus avoir à le retaper.
+  const [tenantSlug, setTenantSlug] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+
+  // Biométrie : on n'affiche le bouton "Se connecter avec FaceID/TouchID" que si l'utilisateur
+  // l'a explicitement activé après un login classique précédent ET que l'appareil le supporte
+  // (sinon les credentials ne sont pas stockés).
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioLabel, setBioLabel] = useState('Biométrie');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const enabled = await isBiometricLoginEnabled();
+        if (!enabled) return;
+        const caps = await getBiometricCapabilities();
+        if (caps.hasHardware && caps.isEnrolled) {
+          setBioAvailable(true);
+          setBioLabel(caps.label);
+        }
+      } catch { /* best-effort */ }
+    })();
+  }, []);
 
   // Forgot password state
   const [showForgot, setShowForgot] = useState(false);
@@ -34,6 +64,46 @@ export default function LoginScreen() {
   const [forgotStep, setForgotStep] = useState<'email' | 'code' | 'reset'>('email');
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  const offerBiometricEnrollment = async (em: string, pwd: string, slug?: string) => {
+    try {
+      const caps = await getBiometricCapabilities();
+      const already = await isBiometricLoginEnabled();
+      if (already || !caps.hasHardware || !caps.isEnrolled) return;
+      Alert.alert(
+        `Activer ${caps.label} ?`,
+        `Connectez-vous plus rapidement la prochaine fois en utilisant ${caps.label}.`,
+        [
+          { text: 'Plus tard', style: 'cancel' },
+          {
+            text: 'Activer',
+            onPress: async () => {
+              try { await enableBiometricLogin(em, pwd, slug); } catch { /* noop */ }
+            },
+          },
+        ]
+      );
+    } catch { /* best-effort */ }
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      const ok = await authenticateBiometric();
+      if (!ok) return;
+      const creds = await getStoredBiometricCredentials();
+      if (!creds) {
+        Alert.alert('Information', 'Aucun identifiant biométrique stocké. Connectez-vous une première fois.');
+        return;
+      }
+      setLoading(true);
+      await login(creds.email, creds.password, undefined, creds.tenantSlug || undefined);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Connexion biométrique échouée.';
+      Alert.alert('Erreur', msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
@@ -41,7 +111,9 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await login(email, password, company || undefined);
+      await login(email, password, undefined, tenantSlug || undefined);
+      // Après un login classique réussi, on propose d'activer la biométrie pour la prochaine fois.
+      await offerBiometricEnrollment(email, password, tenantSlug || undefined);
     } catch (error: any) {
       console.log('Login error catch:', error);
       if (error.response) {
@@ -142,13 +214,14 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Code Société</Text>
+                <Text style={styles.label}>Code espace</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Code société (optionnel)"
-                  value={company}
-                  onChangeText={setCompany}
-                  autoCapitalize="characters"
+                  placeholder="ex: acme  (laissez vide en mono-tenant)"
+                  value={tenantSlug}
+                  onChangeText={setTenantSlug}
+                  autoCapitalize="none"
+                  autoCorrect={false}
                   placeholderTextColor={COLORS.textSecondary}
                 />
               </View>
@@ -164,6 +237,22 @@ export default function LoginScreen() {
                   <Text style={styles.buttonText}>Se Connecter</Text>
                 )}
               </TouchableOpacity>
+
+              {bioAvailable && (
+                <TouchableOpacity
+                  style={styles.bioButton}
+                  onPress={handleBiometricLogin}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons
+                    name={bioLabel.toLowerCase().includes('faciale') ? 'face-recognition' : 'fingerprint'}
+                    size={22}
+                    color={COLORS.primary}
+                  />
+                  <Text style={styles.bioButtonText}>{`Continuer avec ${bioLabel}`}</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity onPress={() => { setShowForgot(true); setForgotEmail(email); setForgotStep('email'); }} style={styles.forgotLink}>
                 <Text style={styles.forgotLinkText}>Mot de passe oublié ?</Text>
@@ -363,5 +452,22 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  bioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryFixed,
+  },
+  bioButtonText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

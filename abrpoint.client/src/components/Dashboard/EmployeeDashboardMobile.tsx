@@ -13,8 +13,7 @@ dayjs.locale('fr');
 
 export default function EmployeeDashboardMobile() {
   const navigate = useNavigate();
-  const { userName, soccod, uticod, utiadm } = useAuth();
-  const isAdmin = utiadm === '1';
+  const { userName, soccod, uticod, isAdmin } = useAuth();
   const [serverTime, setServerTime] = useState(dayjs().format('HH:mm'));
 
   // Data fetching

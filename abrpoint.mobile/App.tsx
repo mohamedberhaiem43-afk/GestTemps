@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { COLORS } from './src/config/env';
+import { configureNotificationHandler, registerForPushAsync } from './src/services/push';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -20,6 +21,8 @@ import AuthorizationScreen from './src/screens/AuthorizationScreen';
 import DemandeAutorisationScreen from './src/screens/DemandeAutorisationScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SignatureScreen from './src/screens/SignatureScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
+import NotificationPreferencesScreen from './src/screens/NotificationPreferencesScreen';
 
 // Manager Screens
 import EmployeeListScreen from './src/screens/manager/EmployeeListScreen';
@@ -57,6 +60,8 @@ function AppStack() {
       <Stack.Screen name="DemandeAutorisation" component={DemandeAutorisationScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Signature" component={SignatureScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} />
       {/* Manager Screens - always registered, access controlled by UI */}
       <Stack.Screen name="EmployeeList" component={EmployeeListScreen} />
       <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />
@@ -69,7 +74,15 @@ function AppStack() {
 }
 
 function RootNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  // Une fois l'utilisateur authentifié, on enregistre son token push pour que le backend
+  // puisse lui envoyer des rappels (entrée/sortie oubliée, validations, etc.).
+  useEffect(() => {
+    if (isAuthenticated && user?.soccod) {
+      registerForPushAsync(user.soccod).catch(() => { /* best-effort */ });
+    }
+  }, [isAuthenticated, user?.soccod]);
 
   if (isLoading) {
     return (
@@ -81,6 +94,10 @@ function RootNavigator() {
 
   return isAuthenticated ? <AppStack /> : <AuthStack />;
 }
+
+// Configure le handler global des notifications une seule fois au chargement du module.
+// Doit être appelé en dehors d'un composant React pour s'exécuter avant le 1er render.
+configureNotificationHandler();
 
 export default function App() {
   return (

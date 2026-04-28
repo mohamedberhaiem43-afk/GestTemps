@@ -1,7 +1,10 @@
 using ABRPOINT.Mappings;
+using ABRPOINT.Server.Billing;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
+using ABRPOINT.Server.Provisioning;
 using ABRPOINT.Server.Services;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -30,11 +33,57 @@ var connectionString = !string.IsNullOrWhiteSpace(dbName) && !string.IsNullOrWhi
     : builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("A database connection string could not be resolved.");
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        connectionString,
-        sqlOptions => sqlOptions.EnableRetryOnFailure()
-    ));
+// ApplicationDbContext registration tenant-aware :
+//   - Si un tenant est résolu pour la requête (ICurrentTenant.Current != null), on construit
+//     un context bound à la base de ce tenant via le template TenantTemplate.
+//   - Sinon (démarrage, signup, master endpoints, ou simplement dev sans tenant), on retombe
+//     sur DefaultConnection (= base legacy ABRPOINT). Préserve la compat ascendante.
+// Note : on perd le DbContext pooling parce que la connection est dynamique. Acceptable.
+builder.Services.AddScoped<ApplicationDbContext>(sp =>
+{
+    var current = sp.GetService<ICurrentTenant>();
+    var cfg = sp.GetRequiredService<IConfiguration>();
+
+    string resolvedConnStr;
+    if (current?.Current != null)
+    {
+        var template = cfg.GetConnectionString("TenantTemplate")
+            ?? throw new InvalidOperationException("ConnectionStrings:TenantTemplate manquant alors qu'un tenant est en scope.");
+        resolvedConnStr = template.Replace("{DbName}", current.Current.DbName);
+    }
+    else
+    {
+        resolvedConnStr = connectionString;
+    }
+
+    var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        .UseSqlServer(resolvedConnStr, sql => sql.EnableRetryOnFailure())
+        .Options;
+    return new ApplicationDbContext(options);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SaaS multi-tenant : master DB + tenant resolver + factory.
+// Additif et non-bloquant : si pas de master DB configurée, l'app fonctionne
+// comme avant (mode legacy mono-tenant via DefaultConnection).
+// ─────────────────────────────────────────────────────────────────────────────
+// Cache mémoire générique : utilisé par TenantStore (slug→tenant) ET par
+// RequirePermissionAttribute (snapshot permissions par utilisateur). Toujours actif.
+builder.Services.AddMemoryCache();
+
+var masterConnection = builder.Configuration.GetConnectionString("MasterConnection");
+if (!string.IsNullOrWhiteSpace(masterConnection))
+{
+    builder.Services.AddDbContextFactory<MasterDbContext>(options =>
+        options.UseSqlServer(masterConnection, sql => sql.EnableRetryOnFailure()));
+
+    builder.Services.AddSingleton<ICurrentTenant, AsyncLocalCurrentTenant>();
+    builder.Services.AddScoped<ITenantStore, TenantStore>();
+    builder.Services.AddScoped<ITenantDbContextFactory, TenantDbContextFactory>();
+    builder.Services.AddScoped<IProvisioningService, ProvisioningService>();
+    builder.Services.AddScoped<IBillingService, StripeBillingService>();
+    builder.Services.AddHostedService<TrialExpirationHostedService>();
+}
 
 builder.Services.Configure<DatabaseInitializationOptions>(
     builder.Configuration.GetSection(DatabaseInitializationOptions.SectionName));
@@ -48,6 +97,17 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.AddInfrastructureRegistration();
 builder.AddServicesRegistration();
+
+// Push notifications mobile (Expo) + service de rappel pointage (entrée/sortie oubliée).
+builder.Services.AddHttpClient(nameof(ABRPOINT.Server.Services.ExpoPushService));
+builder.Services.AddSingleton<ABRPOINT.Server.Services.IExpoPushService, ABRPOINT.Server.Services.ExpoPushService>();
+builder.Services.AddScoped<ABRPOINT.Server.Services.IUserNotificationService, ABRPOINT.Server.Services.UserNotificationService>();
+builder.Services.AddHostedService<ABRPOINT.Server.Services.PunctualityReminderHostedService>();
+builder.Services.AddSingleton<ABRPOINT.Server.Services.IGeoZoneValidator, ABRPOINT.Server.Services.GeoZoneValidator>();
+
+// Import des villes françaises depuis l'API publique geo.api.gouv.fr.
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<ABRPOINT.Server.Services.IFrenchCitiesImportService, ABRPOINT.Server.Services.FrenchCitiesImportService>();
 
 builder.Services.AddHttpClient("PythonApi", client =>
 {
@@ -114,6 +174,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://abrpoint.client:3000",
                 "https://localhost:5173",
+                "http://localhost:5173",
+                "https://localhost:5174",
                 "http://localhost:8081",
                 "http://localhost:8082",
                 "http://localhost:19000",
@@ -158,6 +220,14 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowReactApp");
 //app.UseHttpsRedirection();
 app.UseAuthentication();
+
+// Tenant resolver (entre Auth et Authorization pour pouvoir lire les claims JWT
+// et les comparer au sous-domaine). Activé seulement si MasterConnection est défini.
+if (!string.IsNullOrWhiteSpace(masterConnection))
+{
+    app.UseMiddleware<TenantResolverMiddleware>();
+}
+
 app.UseAuthorization();
 
 app.MapControllers();

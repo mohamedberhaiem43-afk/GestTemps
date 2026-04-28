@@ -11,6 +11,7 @@ import { FonctionModel } from '../../../models/Fonction';
 import useGetFonctions from '../../../hooks/fonctionHooks/useGetFonctions';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
+import ExcelImportButton from '../shared/ExcelImportButton';
 import '../shared/RefModern.css';
 
 const emptyForm: FonctionModel = { foncod: '', soccod: '', fonlib: '', fontype: '', fonpqual: '', fonpchoix: '' };
@@ -39,12 +40,15 @@ function FonctionModernContent() {
   }, [fonctions, search]);
 
   const handleSubmit = async () => {
-    if (!form.foncod || !form.fonlib) {
-      setSnack({ open: true, msg: 'Code et Libellé sont obligatoires.', sev: 'error' });
+    if (!form.fonlib) {
+      setSnack({ open: true, msg: 'Le libellé est obligatoire.', sev: 'error' });
       return;
     }
     try {
-      const payload = { ...form, soccod: soccod || '' };
+      // En création, on laisse le backend générer le code séquentiel (foncod vide).
+      const payload = isEditMode
+        ? { ...form, soccod: soccod || '' }
+        : { ...form, foncod: '', soccod: soccod || '' };
       if (isEditMode) {
         await apiInstance.put('/Fonctions', payload);
       } else {
@@ -74,6 +78,15 @@ function FonctionModernContent() {
           <Typography className="ref-header-sub">Configurer les fonctions disponibles</Typography>
         </Box>
         <Box className="ref-header-actions">
+          {!isEditMode && canAdd && (
+            <ExcelImportButton
+              endpoint="/BulkImport/fonctions"
+              extraBody={{ Soccod: soccod }}
+              columnMap={{ Fonlib: ['fonlib', 'libelle', 'libellé', 'fonction', 'nom'], Fontype: ['fontype', 'type'] }}
+              onImported={() => refetch()}
+              label="Importer Excel"
+            />
+          )}
           {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>Annuler</Button>}
           {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
             <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>
@@ -90,8 +103,14 @@ function FonctionModernContent() {
           </Box>
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field">
-              <label>Code</label>
-              <input type="text" value={form.foncod} onChange={e => setForm(p => ({ ...p, foncod: e.target.value }))} readOnly={isEditMode} placeholder="DIR" />
+              <label>Code {!isEditMode && <span style={{ color: '#8896a8', fontWeight: 400 }}>(auto-généré)</span>}</label>
+              <input
+                type="text"
+                value={isEditMode ? form.foncod : ''}
+                readOnly
+                placeholder={isEditMode ? '' : 'Auto'}
+                style={{ background: '#f5f7fa', color: '#8896a8' }}
+              />
             </Box>
             <Box className="ref-field">
               <label>Libellé</label>

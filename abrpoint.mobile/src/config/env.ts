@@ -3,7 +3,7 @@
 // For Android emulator: 'http://10.0.2.2:5125/api'
 // For web: 'http://localhost:5125/api'
 // export const API_BASE_URL = 'http://192.168.1.57:5125/api';
-export const API_BASE_URL = 'http://141.94.42.138/api';
+export const API_BASE_URL = 'https://141.94.42.138/api';
 
 export const COLORS = {
   primary: '#0040a1',
@@ -37,6 +37,25 @@ export const COLORS = {
   surfaceContainerHigh: '#e6e8ea',
   surfaceContainerHighest: '#e0e3e5',
   
+  // Material 3 fixed tokens (accents fixes utilisés dans les badges & chips)
+  primaryFixed: '#dae2ff',
+  onPrimaryFixed: '#001a41',
+  primaryFixedDim: '#b2c5ff',
+  onPrimaryFixedVariant: '#0040a1',
+
+  secondaryFixed: '#d5e3fc',
+  onSecondaryFixed: '#0c1c2f',
+  secondaryFixedDim: '#b8c9e0',
+  onSecondaryFixedVariant: '#384759',
+
+  tertiaryFixed: '#8df7c2',
+  onTertiaryFixed: '#00210f',
+  tertiaryFixedDim: '#71daa7',
+  onTertiaryFixedVariant: '#005236',
+
+  // Accent générique utilisé par certaines vues
+  accent: '#0056d2',
+
   // Legacy or common aliases
   success: '#006c49',
   warning: '#b45309',

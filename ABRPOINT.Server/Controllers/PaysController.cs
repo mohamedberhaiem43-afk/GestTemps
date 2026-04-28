@@ -1,3 +1,5 @@
+using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -13,10 +15,20 @@ namespace ABRPOINT.Server.Controllers
     public class PaysController : ControllerBase
     {
         private readonly IPaysRepoistory _paysRepository;
+        private readonly ApplicationDbContext _db;
 
-        public PaysController(IPaysRepoistory paysRepository)
+        public PaysController(IPaysRepoistory paysRepository, ApplicationDbContext db)
         {
             _paysRepository = paysRepository;
+            _db = db;
+        }
+
+        // GET api/Pays/next-code — code séquentiel auto-généré (3 chiffres).
+        [HttpGet("next-code")]
+        public async Task<IActionResult> NextCode()
+        {
+            var code = await SequentialCodeGenerator.NextNationCodeAsync(_db);
+            return Ok(new { code });
         }
 
         // GET: api/Pays
@@ -56,12 +68,13 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Nation nation)
         {
-            if (nation != null)
+            if (nation == null) return BadRequest();
+            if (string.IsNullOrWhiteSpace(nation.Natcod))
             {
-                await _paysRepository.AddAsync(nation);
-                return CreatedAtAction(nameof(Get), new { natcod = nation.Natcod }, nation);
+                nation.Natcod = await SequentialCodeGenerator.NextNationCodeAsync(_db);
             }
-            return BadRequest();
+            await _paysRepository.AddAsync(nation);
+            return CreatedAtAction(nameof(Get), new { natcod = nation.Natcod }, nation);
         }
 
         // PUT api/Pays/FRA

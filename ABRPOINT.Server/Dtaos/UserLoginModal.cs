@@ -7,8 +7,9 @@ namespace ABRPOINT.Server.Dtaos
         [Required]
         [StringLength(150)]
         public string? Utimail { get; set; }
+        // Pas de StringLength : un mot de passe peut dépasser 10 caractères ; BCrypt côté serveur
+        // gère n'importe quelle longueur.
         [Required]
-        [StringLength(10)]
         public string? Utimps { get; set; }
         [StringLength(2)]
         public string? Usersit { get; set; }

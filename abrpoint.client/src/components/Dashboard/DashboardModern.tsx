@@ -58,8 +58,7 @@ function KpiCard({ icon, label, value, trend, trendLabel, trendPositive, iconBg,
 }
 
 export default function DashboardModern() {
-  const { utiadm, isManager } = useAuth();
-  const isAdmin = utiadm === '1';
+  const { isAdmin, isManager } = useAuth();
 
   if (!isAdmin && !isManager) return <EmployeeDashboard />;
 

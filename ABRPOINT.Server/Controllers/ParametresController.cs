@@ -12,7 +12,6 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    [Admin]
     public class ParametresController : ControllerBase
     {
         private readonly IParametreRepository _parametreRepository;
@@ -71,6 +70,7 @@ namespace ABRPOINT.Server.Controllers
         }
 
         [HttpPut]
+        [Admin]
         public async Task<bool> UpdateParametres(Parametre parametre)
         {
             try
@@ -85,6 +85,7 @@ namespace ABRPOINT.Server.Controllers
                 return false;
             }
         }
+        [Admin]
         [HttpPost("upload-logo/{soccod}")]
         public async Task<IActionResult> UploadSocieteLogo(IFormFile file, string soccod)
         {

@@ -2,6 +2,7 @@ using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +16,13 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IDemandeAutorisationRepository _repository;
         private readonly ApplicationDbContext _context;
+        private readonly IUserNotificationService? _notify;
 
-        public DemandeAutorisationsController(IDemandeAutorisationRepository repository, ApplicationDbContext context)
+        public DemandeAutorisationsController(IDemandeAutorisationRepository repository, ApplicationDbContext context, IUserNotificationService? notify = null)
         {
             _repository = repository;
             _context = context;
+            _notify = notify;
         }
 
         // GET: api/DemandeAutorisations/get-next-concod/{soccod}
@@ -112,6 +115,13 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 var result = await _repository.AddAsync(demande);
+                if (_notify != null)
+                {
+                    _ = _notify.NotifyManagersAsync(
+                        "📥 Nouvelle demande d'autorisation",
+                        $"Une nouvelle demande d'autorisation de sortie a été soumise.",
+                        new { type = "auth_request_created", id = (result as DemandeAutorisation)?.Id, soccod = demande.Soccod });
+                }
                 return Ok(new { success = true, message = "Demande d'autorisation créée avec succès", data = result });
             }
             catch (Exception)
@@ -164,6 +174,17 @@ namespace ABRPOINT.Server.Controllers
                 var result = await _repository.ApproveAsync(id, traitement.TraitePar ?? "", traitement.Commentaire);
                 if (!result.Success)
                     return BadRequest(new { success = false, message = result.Message });
+                if (_notify != null)
+                {
+                    var demande = await _context.DemandeAutorisations.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
+                    if (!string.IsNullOrEmpty(demande?.Empcod))
+                    {
+                        _ = _notify.NotifyUserAsync(demande.Empcod,
+                            "✅ Autorisation acceptée",
+                            "Votre demande d'autorisation a été acceptée.",
+                            new { type = "auth_request_accepted", id });
+                    }
+                }
                 return Ok(new { success = true, message = result.Message });
             }
             catch (Exception ex)
@@ -181,6 +202,17 @@ namespace ABRPOINT.Server.Controllers
                 var result = await _repository.RefuseAsync(id, traitement.TraitePar ?? "", traitement.Commentaire);
                 if (!result.Success)
                     return BadRequest(new { success = false, message = result.Message });
+                if (_notify != null)
+                {
+                    var demande = await _context.DemandeAutorisations.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
+                    if (!string.IsNullOrEmpty(demande?.Empcod))
+                    {
+                        _ = _notify.NotifyUserAsync(demande.Empcod,
+                            "❌ Autorisation refusée",
+                            "Votre demande d'autorisation a été refusée. Détails dans l'app.",
+                            new { type = "auth_request_refused", id });
+                    }
+                }
                 return Ok(new { success = true, message = result.Message });
             }
             catch (Exception ex)

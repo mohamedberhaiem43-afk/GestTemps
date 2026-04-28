@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert,
-  MenuItem, FormControl, Select, InputAdornment, IconButton,
+  InputAdornment, IconButton,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
 import MailIcon from '@mui/icons-material/Mail';
@@ -16,23 +16,21 @@ import './Login.css';
 interface UserLoginModel {
   Utimail: string;
   Utimps: string;
-  Usersit?: string;
-  Company?: string;
 }
 
 export default function CredentialsSignInPage() {
   const { setAuthData, refreshAuth } = useAuth();
   const [utimail, setUtimail] = useState('');
-  const [usersit, setUsersit] = useState('');
   const [password, setPassword] = useState('');
-  const [company, setCompany] = useState('');
-  const [societes, setSocietes] = useState<Record<string, string>>({});
-  const [sites, setSites] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Si l'utilisateur arrive depuis le PricingPage avec un plan choisi, on conserve l'info pour
+  // l'envoyer vers la page de paiement après authentification réussie (style Odoo).
+  const pendingPlan = (location.state as any)?.plan ? location.state : null;
 
   // Forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -43,20 +41,8 @@ export default function CredentialsSignInPage() {
   const [forgotStep, setForgotStep] = useState<'email' | 'code' | 'reset'>('email');
   const [forgotLoading, setForgotLoading] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
-      apiInstance.get(`/Societes/get-soclibs`),
-      apiInstance.get(`/Sites/get-sitlibs`)
-    ])
-      .then(([societesRes, sitesRes]) => {
-        setSocietes(societesRes.data);
-        setSites(sitesRes.data);
-      })
-      .catch(err => {
-        console.error('Error fetching data', err);
-        setError('Failed to load data.');
-      });
-  }, []);
+  // En SaaS multi-tenant, la société et le site sont résolus côté backend depuis le
+  // tenant courant + le Socuser de l'utilisateur. Plus besoin de les demander à l'écran.
 
   const [requires2FA, setRequires2FA] = useState(false);
   const [twoFACode, setTwoFACode] = useState('');
@@ -83,7 +69,13 @@ export default function CredentialsSignInPage() {
     await refreshAuth();
     window.dispatchEvent(new Event('utiadmUpdated'));
     window.dispatchEvent(new Event('imageUpdated'));
-    navigate('/dashboard');
+    // Reprise du flow de souscription : si un plan a été sélectionné avant la connexion,
+    // on redirige vers la page de paiement avec les détails du plan.
+    if (pendingPlan) {
+      navigate('/dashboard/payment', { state: pendingPlan });
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const handleSignIn = () => {
@@ -96,8 +88,6 @@ export default function CredentialsSignInPage() {
     const user: UserLoginModel = {
       Utimail: utimail,
       Utimps: password,
-      Usersit: usersit || undefined,
-      Company: company || undefined,
     };
 
     setLoading(true);
@@ -126,8 +116,6 @@ export default function CredentialsSignInPage() {
     setLoading(true);
     apiInstance.post(`/Utilisateurs/complete-2fa-login`, {
       Uticod: tempUticod,
-      Company: company || undefined,
-      Usersit: usersit || undefined,
       Code: twoFACode
     }).then(async response => {
       await processLoginSuccess(response.data);
@@ -312,41 +300,7 @@ export default function CredentialsSignInPage() {
                   </Typography>
                 </Box>
 
-                {/* Company & Site */}
-                <Box className="login-field-row">
-                  <Box className="login-field-group" sx={{ flex: 1 }}>
-                    <Typography className="login-field-label">Société</Typography>
-                    <FormControl fullWidth size="small" className="login-input">
-                      <Select
-                        value={company}
-                        onChange={(e) => setCompany(e.target.value)}
-                        displayEmpty
-                        renderValue={(v) => v ? String(societes[v] || v) : 'ID Société'}
-                        sx={{ borderRadius: '12px', backgroundColor: '#f2f4f6', fontSize: '13px' }}
-                      >
-                        {Object.entries(societes).map(([k, v]) => (
-                          <MenuItem key={k} value={k}>{String(v)}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                  <Box className="login-field-group" sx={{ flex: 1 }}>
-                    <Typography className="login-field-label">Filiale / Site</Typography>
-                    <FormControl fullWidth size="small" className="login-input">
-                      <Select
-                        value={usersit}
-                        onChange={(e) => setUsersit(e.target.value)}
-                        displayEmpty
-                        renderValue={(v) => v ? String(sites[v] || v) : 'Localisation'}
-                        sx={{ borderRadius: '12px', backgroundColor: '#f2f4f6', fontSize: '13px' }}
-                      >
-                        {Object.entries(sites).map(([k, v]) => (
-                          <MenuItem key={k} value={k}>{String(v)}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                </Box>
+                {/* Société + Site retirés : résolus côté backend depuis le tenant + Socuser de l'utilisateur. */}
               </>
             ) : (
               <Box className="login-field-group" sx={{ textAlign: 'center', mb: 3 }}>

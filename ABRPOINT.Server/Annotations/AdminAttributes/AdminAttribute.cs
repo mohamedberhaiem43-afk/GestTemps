@@ -1,10 +1,17 @@
-﻿using ABRPOINT.Server.Data;
+﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Security.Claims;
 
 namespace ABRPOINT.Server.Annotations.AdminAttributes
 {
+    /// <summary>
+    /// Restreint un endpoint aux administrateurs du tenant.
+    /// Source de vérité : l'utilisateur a Utiadm="1" OU Utirole = "Administrator".
+    /// Les deux sont supposés alignés (sync à l'écriture), mais on accepte l'un ou l'autre
+    /// pour rester robuste si l'écriture a sauté un côté.
+    /// </summary>
     public class AdminAttribute : TypeFilterAttribute
     {
         public AdminAttribute() : base(typeof(AdminFilter))
@@ -19,7 +26,6 @@ namespace ABRPOINT.Server.Annotations.AdminAttributes
             }
             public void OnAuthorization(AuthorizationFilterContext context)
             {
-                // Get logged-in user's uticod from Claims
                 var userUticod = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                 if (string.IsNullOrEmpty(userUticod))
@@ -28,10 +34,10 @@ namespace ABRPOINT.Server.Annotations.AdminAttributes
                     return;
                 }
 
-                // Check in moduser table if this user has permission
+                var adminRoleName = PermissionCatalog.Roles.Administrator;
                 var hasPermission = _context.Utilisateurs.Any(m =>
                     m.Uticod == userUticod &&
-                    m.Utiadm == "1"
+                    (m.Utiadm == "1" || m.Utirole == adminRoleName)
                 );
 
                 if (!hasPermission)

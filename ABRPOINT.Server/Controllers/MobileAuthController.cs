@@ -292,6 +292,52 @@ namespace ABRPOINT.Server.Controllers
             return Ok(new { message = "Déconnexion réussie" });
         }
 
+        /// <summary>
+        /// Enregistre / met à jour un token Expo Push pour le device courant.
+        /// Idempotent : upsert sur (uticod, device_id) ou sur le token lui-même.
+        /// Appelé par le mobile après l'autorisation système des notifications.
+        /// </summary>
+        [Authorize]
+        [HttpPost("register-push-token")]
+        public async Task<IActionResult> RegisterPushToken([FromBody] RegisterPushTokenRequest req, CancellationToken ct)
+        {
+            if (req == null || string.IsNullOrWhiteSpace(req.Token))
+                return BadRequest(new { message = "token requis" });
+
+            var uticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(uticod)) return Unauthorized();
+
+            // Soccod par claim si présent (cohérence multi-tenant), sinon on prend ce que le client envoie.
+            var soccod = req.Soccod ?? User.FindFirst("soccod")?.Value;
+
+            // Upsert : si même token déjà présent (peut-être pour un autre user), on le réassigne.
+            var existing = await _dbContext.PushTokens
+                .FirstOrDefaultAsync(t => t.Token == req.Token, ct);
+
+            if (existing != null)
+            {
+                existing.Uticod = uticod;
+                existing.Soccod = soccod;
+                existing.Platform = req.Platform ?? existing.Platform;
+                existing.DeviceId = req.DeviceId ?? existing.DeviceId;
+                existing.LastSeenAt = DateTime.UtcNow;
+                existing.Active = true;
+            }
+            else
+            {
+                _dbContext.PushTokens.Add(new PushToken
+                {
+                    Uticod = uticod,
+                    Soccod = soccod,
+                    Token = req.Token,
+                    Platform = req.Platform,
+                    DeviceId = req.DeviceId,
+                });
+            }
+            await _dbContext.SaveChangesAsync(ct);
+            return Ok(new { registered = true });
+        }
+
         private string GenerateJwtToken(string username)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
@@ -334,5 +380,13 @@ namespace ABRPOINT.Server.Controllers
     public class RefreshTokenRequest
     {
         public string? RefreshToken { get; set; }
+    }
+
+    public class RegisterPushTokenRequest
+    {
+        public string Token { get; set; } = string.Empty;
+        public string? Platform { get; set; }
+        public string? DeviceId { get; set; }
+        public string? Soccod { get; set; }
     }
 }

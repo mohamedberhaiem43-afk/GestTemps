@@ -253,6 +253,11 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<DocumentVault> DocumentVaults { get; set; }
     public virtual DbSet<DemandeAutorisation> DemandeAutorisations { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
+    public virtual DbSet<PushToken> PushTokens { get; set; }
+    public virtual DbSet<PushReminderLog> PushReminderLogs { get; set; }
+    public virtual DbSet<Notification> Notifications { get; set; }
+    public virtual DbSet<NotificationPreference> NotificationPreferences { get; set; }
+    public virtual DbSet<NotificationUserSettings> NotificationUserSettings { get; set; }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

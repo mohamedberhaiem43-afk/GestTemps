@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../config/env';
 
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const TENANT_SLUG_KEY = 'tenant_slug';
 
 class ApiService {
   private client: AxiosInstance;
@@ -17,12 +18,18 @@ class ApiService {
       },
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor : auth token + multi-tenant slug.
+    // Sans le header X-Tenant-Slug, le backend SaaS retombe sur la base legacy
+    // et l'app mobile montre les données du mauvais tenant.
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         const token = await SecureStore.getItemAsync(TOKEN_KEY);
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        const slug = await SecureStore.getItemAsync(TENANT_SLUG_KEY);
+        if (slug && config.headers) {
+          config.headers['X-Tenant-Slug'] = slug;
         }
         return config;
       },
@@ -61,6 +68,7 @@ class ApiService {
   private async clearTokens() {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(TENANT_SLUG_KEY);
   }
 
   async saveTokens(token: string, refreshToken: string) {
@@ -68,13 +76,26 @@ class ApiService {
     await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
   }
 
+  async saveTenantSlug(slug: string) {
+    await SecureStore.setItemAsync(TENANT_SLUG_KEY, slug.trim().toLowerCase());
+  }
+
+  async getStoredTenantSlug(): Promise<string | null> {
+    return SecureStore.getItemAsync(TENANT_SLUG_KEY);
+  }
+
   async getStoredToken(): Promise<string | null> {
     return SecureStore.getItemAsync(TOKEN_KEY);
   }
 
   // Auth endpoints
-  async login(email: string, password: string, company?: string) {
+  async login(email: string, password: string, company?: string, tenantSlug?: string) {
     try {
+      // Stocke le slug AVANT le login pour qu'il soit injecté dans le header de la requête
+      // (sinon le backend ne sait pas dans quelle DB chercher l'utilisateur).
+      if (tenantSlug && tenantSlug.trim()) {
+        await this.saveTenantSlug(tenantSlug);
+      }
       const response = await this.client.post('/MobileAuth/login', {
         email,
         password,
@@ -108,6 +129,58 @@ class ApiService {
     return response.data;
   }
 
+  // Push notifications
+  async registerPushToken(payload: { Token: string; Platform: string; DeviceId: string; Soccod?: string }) {
+    const response = await this.client.post('/MobileAuth/register-push-token', payload);
+    return response.data;
+  }
+
+  // Notifications center
+  async listNotifications(take = 50, unreadOnly = false) {
+    const response = await this.client.get(`/Notifications`, { params: { take, unreadOnly } });
+    return response.data as Array<{
+      id: number; title: string; body: string;
+      category?: string | null; dataJson?: string | null;
+      createdAt: string; readAt?: string | null;
+    }>;
+  }
+  async unreadNotificationsCount() {
+    const response = await this.client.get(`/Notifications/unread-count`);
+    return response.data as { count: number };
+  }
+  async markNotificationRead(id: number) {
+    const response = await this.client.post(`/Notifications/${id}/read`);
+    return response.data;
+  }
+  async markAllNotificationsRead() {
+    const response = await this.client.post(`/Notifications/read-all`);
+    return response.data;
+  }
+  async deleteNotification(id: number) {
+    const response = await this.client.delete(`/Notifications/${id}`);
+    return response.data;
+  }
+  async getNotificationPreferences() {
+    const response = await this.client.get(`/Notifications/preferences`);
+    return response.data as Array<{ code: string; label: string; description: string; group: string; push: boolean; inapp: boolean }>;
+  }
+  async updateNotificationPreferences(updates: Array<{ code: string; push: boolean; inapp: boolean }>) {
+    const response = await this.client.put(`/Notifications/preferences`, updates);
+    return response.data;
+  }
+  async getQuietHours() {
+    const response = await this.client.get(`/Notifications/quiet-hours`);
+    return response.data as { enabled: boolean; mode: 'manual' | 'auto_poste'; start: string; end: string };
+  }
+  async updateQuietHours(payload: { Enabled: boolean; Mode: 'manual' | 'auto_poste'; Start: string; End: string }) {
+    const response = await this.client.put(`/Notifications/quiet-hours`, payload);
+    return response.data;
+  }
+  async getQuietStatus() {
+    const response = await this.client.get(`/Notifications/quiet-status`);
+    return response.data as { silent: boolean; until?: string | null; reason?: string; mode?: string };
+  }
+
   // Presence endpoints
   async getMyPresence(soccod: string, empcod: string) {
     const response = await this.client.get(`/Presences/emp-point/${soccod}/${empcod}`);
@@ -129,9 +202,22 @@ class ApiService {
     return response.data;
   }
 
-  async markPresence(soccod: string, empcod: string, poicod?: string) {
+  async markPresence(
+    soccod: string,
+    empcod: string,
+    poicod?: string,
+    gps?: { latitude: number; longitude: number; accuracy?: number }
+  ) {
+    const params = new URLSearchParams();
+    if (poicod) params.append('poicod', poicod);
+    if (gps) {
+      params.append('lat', String(gps.latitude));
+      params.append('lon', String(gps.longitude));
+      if (gps.accuracy != null) params.append('acc', String(gps.accuracy));
+    }
+    const qs = params.toString();
     const response = await this.client.post(
-      `/Presences/mark-presence/${soccod}/${empcod}${poicod ? `?poicod=${poicod}` : ''}`
+      `/Presences/mark-presence/${soccod}/${empcod}${qs ? `?${qs}` : ''}`
     );
     return response.data;
   }

@@ -1,5 +1,8 @@
+using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,10 +16,42 @@ namespace ABRPOINT.Server.Controllers
     public class VillesController : ControllerBase
     {
         private readonly IVilleRepository _villeRepository;
+        private readonly ApplicationDbContext _db;
+        private readonly IFrenchCitiesImportService _frenchCitiesImport;
 
-        public VillesController(IVilleRepository villeRepository)
+        public VillesController(IVilleRepository villeRepository, ApplicationDbContext db, IFrenchCitiesImportService frenchCitiesImport)
         {
             _villeRepository = villeRepository;
+            _db = db;
+            _frenchCitiesImport = frenchCitiesImport;
+        }
+
+        // GET api/Villes/next-code — code séquentiel auto-généré (6 chiffres pour cohabiter avec INSEE).
+        [HttpGet("next-code")]
+        public async Task<IActionResult> NextCode()
+        {
+            var code = await SequentialCodeGenerator.NextVilleCodeAsync(_db);
+            return Ok(new { code });
+        }
+
+        // POST api/Villes/import-france — importe les ~35k communes françaises depuis geo.api.gouv.fr.
+        // Idempotent : les villes déjà présentes (par code INSEE) sont sautées.
+        [HttpPost("import-france")]
+        public async Task<IActionResult> ImportFrance(CancellationToken ct)
+        {
+            try
+            {
+                var report = await _frenchCitiesImport.ImportAsync(ct);
+                return Ok(report);
+            }
+            catch (HttpRequestException ex)
+            {
+                return StatusCode(502, new { message = "Service externe injoignable", detail = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de l'import", detail = ex.Message });
+            }
         }
 
         // GET: api/Villes
@@ -64,12 +99,15 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Ville ville)
         {
-            if (ville != null)
+            if (ville == null) return BadRequest();
+            // S'assure que la colonne vilcod accepte 6 chars (legacy DBs avaient nvarchar(2)).
+            await BaseDataSchemaMigrator.MigrateAsync(_db);
+            if (string.IsNullOrWhiteSpace(ville.Vilcod))
             {
-                await _villeRepository.AddAsync(ville);
-                return CreatedAtAction(nameof(Get), new { vilcod = ville.Vilcod }, ville);
+                ville.Vilcod = await SequentialCodeGenerator.NextVilleCodeAsync(_db);
             }
-            return BadRequest();
+            await _villeRepository.AddAsync(ville);
+            return CreatedAtAction(nameof(Get), new { vilcod = ville.Vilcod }, ville);
         }
 
         // PUT api/Villes/01

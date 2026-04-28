@@ -283,8 +283,34 @@
 
 .ref-table-container {
   width: 100%;
+  max-height: 60vh;
   overflow-x: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Header sticky pour garder les libellés visibles quand on scrolle */
+.ref-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+}
+
+/* Scrollbar : look discret cohérent avec la palette */
+.ref-table-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.ref-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+.ref-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.ref-table-container::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .ref-table thead th {

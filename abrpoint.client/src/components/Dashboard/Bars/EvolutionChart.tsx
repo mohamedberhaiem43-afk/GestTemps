@@ -34,7 +34,9 @@ const EvolutionChart = ({ data, isLoading }: EvolutionChartProps) => {
             }),
             'Effectif Présent': item.effectifPresent || 0,
             'Heures Travaillées': item.heuresTravaillees || 0,
-            'Taux Présence (%)': ((item.tauxPresence || 0) * 100).toFixed(1),
+            // Le backend renvoie déjà un pourcentage (0–100), pas un ratio (0–1).
+            // Ne pas re-multiplier par 100 sinon on affiche 6000% pour 60%.
+            'Taux Présence (%)': (item.tauxPresence || 0).toFixed(1),
             jourSemaine: item.jourSemaine || '',
           };
         } catch (e) {
@@ -244,9 +246,8 @@ const EvolutionChart = ({ data, isLoading }: EvolutionChartProps) => {
                 <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 600 }}>
                   {data && data.length > 0
                     ? (
-                        (data.reduce((sum, item) => sum + (item.tauxPresence || 0), 0) /
-                          data.length) *
-                        100
+                        data.reduce((sum, item) => sum + (item.tauxPresence || 0), 0) /
+                          data.length
                       ).toFixed(1)
                     : '0'}
                   %

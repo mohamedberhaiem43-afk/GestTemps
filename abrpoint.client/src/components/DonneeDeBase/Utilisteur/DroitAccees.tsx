@@ -150,9 +150,12 @@ export default function DroitAccees(_props: DroitAcceesProps) {
       await saveMutation.mutateAsync({ roleId: selectedRole, perms: permsList });
       
       // 2. Identifier les utilisateurs de ce rôle
-      const usersToUpdate = allUsers.filter((u: any) => 
-        (u.utirole === selectedRoleData.roleName) || 
-        (selectedRoleData.roleName === 'admin' && (u.utiadm === '1' || u.utiadm === 'Oui'))
+      // Match strict sur roleName ; en compat on accepte aussi l'ancien alias "admin"
+      // pour le rôle système actuel "Administrator", quand utiadm=1 sans utirole défini.
+      const isAdminRole = ['admin', 'Administrator'].includes(selectedRoleData.roleName);
+      const usersToUpdate = allUsers.filter((u: any) =>
+        u.utirole === selectedRoleData.roleName ||
+        (isAdminRole && (u.utiadm === '1' || u.utiadm === 'Oui'))
       );
 
       if (usersToUpdate.length > 0) {

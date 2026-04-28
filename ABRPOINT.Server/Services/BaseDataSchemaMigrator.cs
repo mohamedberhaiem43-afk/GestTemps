@@ -1,0 +1,74 @@
+using ABRPOINT.Server.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace ABRPOINT.Server.Services;
+
+/// <summary>
+/// Migrations idempotentes "in place" pour les colonnes des données de base.
+/// Aujourd'hui : élargit vilcod (2 → 6 chars) et villib (20 → 100 chars) pour
+/// pouvoir importer les communes françaises (codes INSEE 5 chiffres + noms longs
+/// comme "Saint-Remy-en-Bouzemont-Saint-Genest-et-Isson").
+///
+/// Comme MobileTablesInstaller, on évite EF migrations (pipeline existant) et on
+/// garde du SQL plat pour rattraper les bases déjà déployées.
+/// </summary>
+public static class BaseDataSchemaMigrator
+{
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded);
+
+    public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
+    {
+        var vilcod = await ExpandColumnIfNeededAsync(db, "ville", "vilcod", "NVARCHAR(6) NOT NULL", currentMaxLen: 2, targetMaxLen: 6, ct);
+        var villib = await ExpandColumnIfNeededAsync(db, "ville", "villib", "NVARCHAR(100) NULL", currentMaxLen: 20, targetMaxLen: 100, ct);
+        return new MigrationReport(vilcod, villib);
+    }
+
+    private static async Task<bool> ExpandColumnIfNeededAsync(
+        ApplicationDbContext db,
+        string table,
+        string column,
+        string newDefinition,
+        int currentMaxLen,
+        int targetMaxLen,
+        CancellationToken ct)
+    {
+        if (!await TableExistsAsync(db, table, ct)) return false;
+        var len = await GetColumnMaxLengthAsync(db, table, column, ct);
+        // sys.columns max_length pour NVARCHAR = 2 * char_count ; -1 = MAX.
+        var actualChars = len switch
+        {
+            -1 => int.MaxValue,
+            > 0 => len / 2,
+            _ => 0
+        };
+        if (actualChars >= targetMaxLen) return false;
+
+        // Pour SQL Server : ALTER COLUMN ne casse pas une PK NVARCHAR(2) → NVARCHAR(6) tant qu'on garde NOT NULL.
+        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE [{table}] ALTER COLUMN [{column}] {newDefinition};", ct);
+        return true;
+    }
+
+    private static async Task<bool> TableExistsAsync(ApplicationDbContext db, string tableName, CancellationToken ct)
+    {
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(1) FROM sys.tables WHERE name = @name";
+        var p = cmd.CreateParameter(); p.ParameterName = "@name"; p.Value = tableName; cmd.Parameters.Add(p);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return Convert.ToInt32(result) > 0;
+    }
+
+    private static async Task<int> GetColumnMaxLengthAsync(ApplicationDbContext db, string table, string column, CancellationToken ct)
+    {
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"SELECT c.max_length FROM sys.columns c JOIN sys.tables t ON c.object_id = t.object_id WHERE t.name = @t AND c.name = @c";
+        var pT = cmd.CreateParameter(); pT.ParameterName = "@t"; pT.Value = table; cmd.Parameters.Add(pT);
+        var pC = cmd.CreateParameter(); pC.ParameterName = "@c"; pC.Value = column; cmd.Parameters.Add(pC);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        if (result == null || result == DBNull.Value) return 0;
+        return Convert.ToInt32(result);
+    }
+}

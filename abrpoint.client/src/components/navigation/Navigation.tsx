@@ -10,6 +10,7 @@ import AllaitementModern from '../gestionEmploye/Allaitement/AllaitementModern';
 import GestionContratsModern from '../gestionEmploye/GestionContrats/GestionContratsModern';
 import ClasseHoraireModern from '../ClasseHoraire/ClasseHoraireModern';
 import CredentialsSignInPage from '../Login/Login';
+import SignupPage from '../Signup/SignupPage';
 import IntituleDesAbsencesModern from '../ClasseHoraire/IntituleDesAbsences/IntituleDesAbsencesModern';
 import ReposModern from '../ClasseHoraire/Repos/ReposModern';
 import JourDeCompensation from '../gestionEmploye/gestionAbsence/jourCompensation/JourCompensation';
@@ -128,8 +129,12 @@ interface OpenedTab {
 /* ══════════════════════════════════════════════════════ */
 const useNavigationItems = (): NavGroup[] => {
   const { t } = useTranslation();
-  const { authReady, utiadm, isEmp, isManager, hasPermission } = useAuth();
-  const isAdmin = utiadm === '1';
+  const { authReady, isAdmin, isEmp, isManager, hasPermission, utiadm } = useAuth();
+
+  // utiadm='1' est un fallback admin — utile pendant la fenêtre où /me n'a pas encore
+  // répondu mais où sessionStorage a hydraté utiadm. Évite que le sidebar perde la
+  // plupart de ses items après un reload.
+  const isAdminEffective = isAdmin || utiadm === '1';
 
   if (!authReady) return [];
 
@@ -185,14 +190,14 @@ const useNavigationItems = (): NavGroup[] => {
   };
 
   const canSee = (segment: string) => {
-    if (isAdmin) return true;
+    if (isAdminEffective) return true;
     const mod = segmentToModule[segment];
     if (!mod) return true;
     return hasPermission(mod, 'consult');
   };
 
   /* ── Employee (minimal) navigation ── */
-  if (isEmp && !isManager && !isAdmin) {
+  if (isEmp && !isManager && !isAdminEffective) {
     return [
       {
         label: t('navigation.dashboard'),
@@ -273,7 +278,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
-        ...(isAdmin ? [{ label: 'Affectation Soldes', href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
+        ...(isAdminEffective ? [{ label: 'Affectation Soldes', href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
       ],
     },
     {
@@ -320,7 +325,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('cahier-conge') ? [{ label: t('navigation.leaveBook'), href: '/dashboard/cahier-conge', icon: BookOpen }] : []),
       ],
     },
-    ...(isAdmin ? [{
+    ...(isAdminEffective ? [{
       label: t('navigation.administrator'),
       href: '/dashboard/admin',
       icon: KeyRound,
@@ -331,7 +336,9 @@ const useNavigationItems = (): NavGroup[] => {
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         { label: t('navigation.chatBot'), href: '/dashboard/chat-bot', icon: MessageSquare },
-        { label: 'Tarification', href: '/dashboard/pricing', icon: DollarSign },
+        // L'entrée Tarification est volontairement absente du sidebar : la page est servie
+        // sur la landing publique '/' (parcours d'inscription Odoo-style). La route reste
+        // mappée plus bas pour les liens directs / paiement.
       ],
     }] : []),
   ];
@@ -353,7 +360,10 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
   let content: React.ReactNode;
 
   switch (pathname) {
-    case '/': content = <CredentialsSignInPage />; break;
+    // Public marketing/pricing landing — visible sans authentification (approche Odoo).
+    case '/': content = <PricingPage />; break;
+    case '/login': content = <CredentialsSignInPage />; break;
+    case '/signup': content = <SignupPage />; break;
     case '/dashboard': content = <DashboardModernSync />; break;
     case '/dashboard/structure-organisationnelle': content = <OrgStructureModern />; break;
     case '/dashboard/ville': content = <VilleModern />; break;
@@ -633,7 +643,7 @@ const BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
 function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authReady, clearAuth, userName, utiadm } = useAuth();
+  const { authReady, clearAuth, userName, isAdmin } = useAuth();
   const { i18n } = useTranslation();
   const NAVIGATION = useNavigationItems();
   const outerTheme = useMuiTheme();
@@ -674,8 +684,12 @@ function DashboardLayoutAccount(_props: DemoProps) {
       document.title = `${matched.label} | Concorde Workforce`;
     } else if (pathname === '/dashboard') {
       document.title = `Tableau de bord | Concorde Workforce`;
-    } else if (pathname === '/login' || pathname === '/') {
+    } else if (pathname === '/login') {
       document.title = `Connexion | Concorde Workforce`;
+    } else if (pathname === '/signup') {
+      document.title = `Créer mon espace | Concorde Workforce`;
+    } else if (pathname === '/') {
+      document.title = `Tarifs | Concorde Workforce`;
     } else {
       document.title = `Concorde Workforce`;
     }
@@ -689,7 +703,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // Track navigation to add tabs
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/login') return;
+    if (pathname === '/' || pathname === '/login' || pathname === '/signup') return;
 
     // Find the item in flattened navigation to get title and icon
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
@@ -708,7 +722,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // ── Recent Pages Tracking ──
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/login' || pathname === '/dashboard') return;
+    if (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/dashboard') return;
 
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
@@ -751,7 +765,8 @@ function DashboardLayoutAccount(_props: DemoProps) {
     { label: 'Déconnexion', href: '#', icon: LogOut, onClick: () => { clearAuth(); navigate('/'); } },
   ];
 
-  const isLoginPage = pathname === '/';
+  // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
+  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup';
   const isProfilePage = pathname === '/dashboard/profil-employe';
 
   if (!authReady) {
@@ -764,7 +779,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
     );
   }
 
-  if (isLoginPage || isProfilePage) {
+  if (isPublicPage || isProfilePage) {
     return <DemoPageContent pathname={pathname} />;
   }
 
@@ -786,7 +801,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
         onNavigate={(to) => navigate(to)}
         title={title}
         logo={logo}
-        isAdmin={utiadm === '1'}
+        isAdmin={isAdmin}
         toolbarActions={<ToolbarActions />}
       >
         {/* Dynamic Tab Bar */}

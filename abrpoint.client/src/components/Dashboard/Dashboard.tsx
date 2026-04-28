@@ -62,9 +62,8 @@ export default function DashboardPage() {
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
 
-  // Check if user is admin
-  const { utiadm } = useAuth();
-  const isAdmin = utiadm === '1';
+  // Source de vérité RBAC : isAdmin = roleName=Administrator (ou Utiadm=1 en compat).
+  const { isAdmin } = useAuth();
 
   // If not admin, show employee dashboard
   if (!isAdmin) {

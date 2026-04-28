@@ -42,6 +42,7 @@
     <PackageReference Include="Otp.NET" Version="1.4.1" />
     <PackageReference Include="PdfPig" Version="0.1.14" />
     <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="Stripe.net" Version="47.*" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
     <PackageReference Include="ZKemkeeper" Version="1.0.2" />

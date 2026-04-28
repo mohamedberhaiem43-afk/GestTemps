@@ -1,11 +1,15 @@
-﻿using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
+    [Admin]
     public class ModusersController : ControllerBase
     {
         private readonly IModuserRepository _moduserRepository;
