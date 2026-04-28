@@ -134,12 +134,10 @@ export default function SignupPage() {
         planCode: planFromPricing?.plan,
         billingCycle: planFromPricing?.cycle,
       });
-      // En DEV (host=localhost) on ne dispose pas du sous-domaine,
-      // on stocke le slug en localStorage pour que apiInstance l'injecte automatiquement.
-      const isLocalhost = window.location.hostname === 'localhost' || /^[\d.]+$/.test(window.location.hostname);
-      if (isLocalhost) {
-        localStorage.setItem('tenantSlug', slug);
-      }
+      // On stocke le slug en localStorage pour que apiInstance l'injecte automatiquement
+      // dans le header X-Tenant-Slug. Indispensable tant que le déploiement n'a pas
+      // de wildcard DNS/SSL pour les sous-domaines (acme.concorde-work-force.com).
+      localStorage.setItem('tenantSlug', slug);
       // Recharge le contexte d'auth maintenant que les cookies JWT du nouveau tenant sont posés
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();

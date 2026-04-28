@@ -39,6 +39,12 @@ services:
     volumes:
       - sqlserver-data:/var/opt/mssql
       - ./sql-backup:/var/opt/sql-backup
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     networks:
       - app-network
 
@@ -71,7 +77,8 @@ services:
       DatabaseInitialization__AdminPassword: "123"
       DatabaseInitialization__ApplicationCode: "GRH"
     depends_on:
-      - abrpoint.database
+      abrpoint.database:
+        condition: service_healthy
     networks:
       - app-network
     expose:

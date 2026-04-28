@@ -8,6 +8,7 @@ import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
 import MailIcon from '@mui/icons-material/Mail';
 import LockIcon from '@mui/icons-material/Lock';
+import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -20,6 +21,10 @@ interface UserLoginModel {
 
 export default function CredentialsSignInPage() {
   const { setAuthData, refreshAuth } = useAuth();
+  // Slug du tenant : nécessaire pour que apiInstance injecte X-Tenant-Slug et que
+  // le backend route vers la bonne base. Pré-rempli depuis localStorage si l'utilisateur
+  // s'est déjà connecté ; sinon il doit le saisir (pas de wildcard subdomain en prod).
+  const [tenantSlug, setTenantSlug] = useState(() => localStorage.getItem('tenantSlug') ?? '');
   const [utimail, setUtimail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,10 +85,14 @@ export default function CredentialsSignInPage() {
 
   const handleSignIn = () => {
     setError(null);
-    if (!utimail || !password) {
-      setError('Veuillez remplir tous les champs obligatoires');
+    const normalizedSlug = tenantSlug.trim().toLowerCase();
+    if (!normalizedSlug || !utimail || !password) {
+      setError('Veuillez remplir tous les champs obligatoires (code société inclus).');
       return;
     }
+    // Persister immédiatement : apiInstance lit localStorage avant chaque requête
+    // pour injecter X-Tenant-Slug. Sans ça, le middleware tenant rejette en 400.
+    localStorage.setItem('tenantSlug', normalizedSlug);
 
     const user: UserLoginModel = {
       Utimail: utimail,
@@ -240,6 +249,27 @@ export default function CredentialsSignInPage() {
           <Box className="login-form-fields" onKeyDown={handleKeyDown}>
             {!requires2FA ? (
               <>
+                {/* Code société (slug du tenant) */}
+                <Box className="login-field-group">
+                  <Typography className="login-field-label">Code société</Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="text"
+                    placeholder="ex : condor"
+                    value={tenantSlug}
+                    onChange={(e) => setTenantSlug(e.target.value)}
+                    className="login-input"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <BusinessIcon sx={{ color: '#737785', fontSize: 18 }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+
                 {/* Email */}
                 <Box className="login-field-group">
                   <Typography className="login-field-label">Email</Typography>
