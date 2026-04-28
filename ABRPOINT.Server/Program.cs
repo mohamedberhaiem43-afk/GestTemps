@@ -205,8 +205,41 @@ app.UseStaticFiles(new StaticFileOptions
 });
 using (var scope = app.Services.CreateScope())
 {
-    var databaseInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
-    await databaseInitializer.InitializeAsync();
+    var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+
+    // 1. Master DB (multi-tenant) : on l'auto-migre au boot pour qu'un signup puisse
+    //    réussir dès le 1er déploiement, même sans setup DBA manuel.
+    if (!string.IsNullOrWhiteSpace(masterConnection))
+    {
+        try
+        {
+            var masterFactory = scope.ServiceProvider.GetService<IDbContextFactory<MasterDbContext>>();
+            if (masterFactory != null)
+            {
+                await using var masterDb = await masterFactory.CreateDbContextAsync();
+                await masterDb.Database.EnsureCreatedAsync();
+                startupLogger.LogInformation("Master DB prête (EnsureCreated).");
+            }
+        }
+        catch (Exception ex)
+        {
+            startupLogger.LogError(ex, "Échec de l'initialisation de la master DB. L'app démarre quand même mais les signups vont échouer.");
+        }
+    }
+
+    // 2. Legacy DB (ABRPOINT) : ne plus crasher si elle n'existe pas. En mode SaaS, on ne
+    //    devrait pas en avoir besoin — chaque tenant a sa propre base. On loggue et on continue.
+    try
+    {
+        var databaseInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+        await databaseInitializer.InitializeAsync();
+    }
+    catch (Exception ex)
+    {
+        startupLogger.LogWarning(ex,
+            "Initialisation de la base legacy ignorée (probable absence de la base 'ABRPOINT'). " +
+            "OK en mode SaaS multi-tenant : les bases tenants sont créées au signup.");
+    }
 }
 
 app.UseDefaultFiles();

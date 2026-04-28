@@ -58,6 +58,28 @@ public sealed class DatabaseInitializer
             return;
         }
 
+        // En mode SaaS multi-tenant, la base legacy "ABRPOINT" est optionnelle : chaque tenant
+        // a sa propre base créée au signup. On vérifie d'abord la connexion via un open SQL
+        // brut (timeout 3s, pas de retry strategy) — sinon CanConnectAsync passe par le
+        // SqlServerRetryingExecutionStrategy et bloque 30s au boot quand la base n'existe pas.
+        var connStr = _dbContext.Database.GetConnectionString();
+        if (!string.IsNullOrWhiteSpace(connStr))
+        {
+            try
+            {
+                var b = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connStr) { ConnectTimeout = 3 };
+                await using var probe = new Microsoft.Data.SqlClient.SqlConnection(b.ConnectionString);
+                await probe.OpenAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation(
+                    "Base legacy non accessible ({Err}) : seed ignoré. Normal en mode SaaS pur — chaque tenant a sa propre base.",
+                    ex.Message.Split('\n')[0]);
+                return;
+            }
+        }
+
         await SeedAsync(cancellationToken);
     }
 
