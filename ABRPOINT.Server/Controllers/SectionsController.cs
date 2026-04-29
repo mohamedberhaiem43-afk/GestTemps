@@ -1,3 +1,5 @@
+using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -13,10 +15,12 @@ namespace ABRPOINT.Server.Controllers
     public class SectionsController : ControllerBase
     {
         private readonly ISectionRepository _sectionRepository;
+        private readonly ApplicationDbContext _db;
 
-        public SectionsController(ISectionRepository sectionRepository)
+        public SectionsController(ISectionRepository sectionRepository, ApplicationDbContext db)
         {
             _sectionRepository = sectionRepository;
+            _db = db;
         }
 
         // GET: api/Sections/SOC01
@@ -59,12 +63,15 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Section section)
         {
-            if (section == null || string.IsNullOrWhiteSpace(section.Seccod) || string.IsNullOrWhiteSpace(section.Soccod))
+            if (section == null || string.IsNullOrWhiteSpace(section.Soccod))
             {
-                return BadRequest(new { message = "Code section et code société sont obligatoires" });
+                return BadRequest(new { message = "Code société est obligatoire" });
             }
             try
             {
+                if (string.IsNullOrWhiteSpace(section.Seccod))
+                    section.Seccod = await SequentialCodeGenerator.NextSectionCodeAsync(_db, section.Soccod);
+
                 await _sectionRepository.AddAsync(section);
                 return CreatedAtAction(nameof(GetById), new { soccod = section.Soccod, seccod = section.Seccod }, section);
             }
@@ -72,6 +79,15 @@ namespace ABRPOINT.Server.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        // GET: api/Sections/get-next-seccod/SOC01
+        [HttpGet("get-next-seccod/{soccod}")]
+        public async Task<IActionResult> GetNextSeccod(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod)) return BadRequest("code société est obligatoire");
+            var next = await SequentialCodeGenerator.NextSectionCodeAsync(_db, soccod);
+            return Ok(new { seccod = next });
         }
 
         // PUT api/Sections/SOC01/SEC01

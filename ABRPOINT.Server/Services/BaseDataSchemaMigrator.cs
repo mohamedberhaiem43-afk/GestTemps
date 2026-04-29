@@ -14,13 +14,38 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public static class BaseDataSchemaMigrator
 {
-    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded);
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded);
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
         var vilcod = await ExpandColumnIfNeededAsync(db, "ville", "vilcod", "NVARCHAR(6) NOT NULL", currentMaxLen: 2, targetMaxLen: 6, ct);
         var villib = await ExpandColumnIfNeededAsync(db, "ville", "villib", "NVARCHAR(100) NULL", currentMaxLen: 20, targetMaxLen: 100, ct);
-        return new MigrationReport(vilcod, villib);
+        var parmodemp = await AddColumnIfMissingAsync(db, "parametre", "parmodemp", "NVARCHAR(1) NULL", ct);
+        return new MigrationReport(vilcod, villib, parmodemp);
+    }
+
+    /// <summary>
+    /// Ajoute une colonne à une table existante si elle n'y est pas encore. Idempotent : en cas
+    /// d'absence de la table ou si la colonne existe déjà, ne fait rien et retourne false.
+    /// </summary>
+    private static async Task<bool> AddColumnIfMissingAsync(ApplicationDbContext db, string table, string column, string columnDef, CancellationToken ct)
+    {
+        if (!await TableExistsAsync(db, table, ct)) return false;
+        if (await ColumnExistsAsync(db, table, column, ct)) return false;
+        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE [{table}] ADD [{column}] {columnDef};", ct);
+        return true;
+    }
+
+    private static async Task<bool> ColumnExistsAsync(ApplicationDbContext db, string table, string column, CancellationToken ct)
+    {
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"SELECT COUNT(1) FROM sys.columns c JOIN sys.tables t ON c.object_id = t.object_id WHERE t.name = @t AND c.name = @c";
+        var pT = cmd.CreateParameter(); pT.ParameterName = "@t"; pT.Value = table; cmd.Parameters.Add(pT);
+        var pC = cmd.CreateParameter(); pC.ParameterName = "@c"; pC.Value = column; cmd.Parameters.Add(pC);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return Convert.ToInt32(result) > 0;
     }
 
     private static async Task<bool> ExpandColumnIfNeededAsync(

@@ -29,6 +29,9 @@ import EvolutionChart from './Bars/EvolutionChart';
 import './DashboardModern.css';
 import EmployeeDashboard from './EmployeeDashboard';
 import useGetPendingDemCongesByPeriode from '../../hooks/congeHooks/useGetPendingDemConge';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import RenewContractDialog from '../gestionEmploye/GestionContrats/RenewContractDialog';
+import { Contrat } from '../../models/Contrat';
 
 const AVATAR_COLORS = ['#0040a1', '#047857', '#b45309', '#6d28d9', '#065f46'];
 
@@ -72,6 +75,7 @@ function DashboardModernAdmin() {
   const [openCongeDialog, setOpenCongeDialog] = useState(false);
   const [openPointageDialog, setOpenPointageDialog] = useState(false);
   const [openContractDialog, setOpenContractDialog] = useState(false);
+  const [renewTarget, setRenewTarget] = useState<Contrat | null>(null);
 
   const { data: expiringContracts = [] } = useGetExpiringContracts(soccod);
   const { data: directionsResponse } = useGetDirectionLibs();
@@ -380,7 +384,12 @@ function DashboardModernAdmin() {
             expiringContracts.slice(0, 5).map((c: any, i: number) => {
               const daysLeft = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : 0;
               return (
-                <Box key={i} className={`db-renewal-item ${daysLeft <= 7 ? 'db-renewal-urgent' : 'db-renewal-normal'}`}>
+                <Box
+                  key={i}
+                  onClick={() => setRenewTarget(c as unknown as Contrat)}
+                  className={`db-renewal-item ${daysLeft <= 7 ? 'db-renewal-urgent' : 'db-renewal-normal'}`}
+                  sx={{ cursor: 'pointer' }}
+                >
                   <Box>
                     <Typography className="db-renewal-name">{c.emplib || c.empcod}</Typography>
                     <Typography className="db-renewal-type">{c.contype || 'CDD'} — échéance {c.empsort ? dayjs(c.empsort).format('DD/MM/YYYY') : '-'}</Typography>
@@ -446,7 +455,7 @@ function DashboardModernAdmin() {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ background: '#fef2f2' }}>
-                    {['Matricule', 'Employé', 'Type', 'Date Embauche', 'Date Échéance', 'Jours Restants'].map(h => (
+                    {['Matricule', 'Employé', 'Type', 'Date Embauche', 'Date Échéance', 'Jours Restants', 'Action'].map(h => (
                       <TableCell key={h} sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#991b1b' }}>{h}</TableCell>
                     ))}
                   </TableRow>
@@ -462,15 +471,26 @@ function DashboardModernAdmin() {
                         <TableCell>{c.empemb ? dayjs(c.empemb).format('DD/MM/YYYY') : '-'}</TableCell>
                         <TableCell sx={{ fontWeight: 700, color: '#ba1a1a' }}>{c.empsort ? dayjs(c.empsort).format('DD/MM/YYYY') : '-'}</TableCell>
                         <TableCell>
-                          <Chip 
-                            label={`${daysLeft}j`} 
-                            size="small" 
-                            sx={{ 
-                              background: daysLeft <= 7 ? '#fee2e2' : daysLeft <= 15 ? '#fef3c7' : '#dcfce7', 
-                              color: daysLeft <= 7 ? '#991b1b' : daysLeft <= 15 ? '#92400e' : '#166534', 
-                              fontWeight: 700, fontSize: '10px' 
-                            }} 
+                          <Chip
+                            label={`${daysLeft}j`}
+                            size="small"
+                            sx={{
+                              background: daysLeft <= 7 ? '#fee2e2' : daysLeft <= 15 ? '#fef3c7' : '#dcfce7',
+                              color: daysLeft <= 7 ? '#991b1b' : daysLeft <= 15 ? '#92400e' : '#166534',
+                              fontWeight: 700, fontSize: '10px'
+                            }}
                           />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<RefreshIcon sx={{ fontSize: 14 }} />}
+                            onClick={() => { setOpenContractDialog(false); setRenewTarget(c as unknown as Contrat); }}
+                            sx={{ textTransform: 'none', fontWeight: 700, fontSize: '11px', px: 1.5, py: 0.5, background: '#0040a1', '&:hover': { background: '#003280' } }}
+                          >
+                            Renouveler
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -524,6 +544,13 @@ function DashboardModernAdmin() {
                 )}
         </DialogContent>
       </Dialog>
+
+      <RenewContractDialog
+        open={!!renewTarget}
+        source={renewTarget}
+        onClose={() => setRenewTarget(null)}
+        onSuccess={() => { setRenewTarget(null); }}
+      />
     </Box>
   );
 }

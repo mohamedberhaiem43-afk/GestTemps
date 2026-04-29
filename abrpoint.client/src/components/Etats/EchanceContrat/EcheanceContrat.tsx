@@ -1,179 +1,368 @@
-import { Box, Container, Grid, IconButton } from "@mui/material";
-import DataList from "../../lists/list";
-import { useMemo, useState } from "react";
-import { MRT_ColumnDef } from "material-react-table";
-import EchContrat from "../../../models/EcheanceContrat";
-import InputComponent from "../../Inputs/Input";
-import { Print, Search } from "@mui/icons-material";
-import apiInstance from "../../API/apiInstance";
-import formatDateForApi from "../../helper/TimeConverter/formatDateForApi";
-import ContratReportService from "../../../services/ContratService/ContratReportService";
-import CustomizedSnackbars from "../../Snackbar/Snackbar";
-import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
-import { useAuth } from "../../helper/AuthProvider";
+import { useEffect, useMemo, useState } from 'react';
+import { CircularProgress } from '@mui/material';
+import { QueryClient, QueryClientProvider } from 'react-query';
 
-function EcheanceContrat() {
-  const [echdeb, setEchdeb] = useState<string>(formatDateForApi(new Date()));
-  const [echfin, setEchfin] = useState<string>(formatDateForApi(new Date()));
-  const [contrats, setContrats] = useState<EchContrat[]>([]);
+// Icons
+import SearchIcon from '@mui/icons-material/Search';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import DownloadIcon from '@mui/icons-material/FileDownload';
+import PrintIcon from '@mui/icons-material/Print';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import GroupIcon from '@mui/icons-material/Group';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import AssignmentLateIcon from '@mui/icons-material/AssignmentLate';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info" as "success" | "error" | "warning" | "info",
-  });
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import dayjs from 'dayjs';
 
-  const handleSnackbarOpen = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
-    setSnackbar({ open: true, message, severity });
-  };
+import apiInstance from '../../API/apiInstance';
+import { useAuth } from '../../helper/AuthProvider';
+import AccessDenied from '../../helper/AccessDenied';
+import EchContrat from '../../../models/EcheanceContrat';
+import ContratReportService from '../../../services/ContratService/ContratReportService';
+import RenewContractDialog from '../../gestionEmploye/GestionContrats/RenewContractDialog';
+import { Contrat } from '../../../models/Contrat';
 
-  const handleSnackbarClose = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
+import '../EtatAbsence/Etatabsence.css';
 
-  const { soccod, uticod } = useAuth();
+const queryClient = new QueryClient();
 
-  const columns = useMemo<MRT_ColumnDef<EchContrat>[]>(() => [
-    {
-      id: 'echeance-contrats',
-      header: '',
-      columns: [
-        { accessorKey: 'empmat', header: 'Matricule', size: 60 },
-        { accessorKey: 'emplib', header: 'Nom et Prénom', size: 60 },
-        {
-          accessorKey: 'condat',
-          header: 'Date Contrat',
-          size: 180,
-          Cell: ({ cell }) => {
-            const value = cell.getValue<Date>();
-            return value ? new Date(value).toLocaleDateString() : '';
-          },
-        },
-        { accessorKey: 'concod', header: 'N°Contrat', size: 180 },
-        {
-          accessorKey: 'empemb',
-          header: 'Date Début',
-          size: 180,
-          Cell: ({ cell }) => {
-            const value = cell.getValue<Date>();
-            return value ? new Date(value).toLocaleDateString() : '';
-          },
-        },
-        {
-          accessorKey: 'empsort',
-          header: 'Date Fin',
-          size: 180,
-          Cell: ({ cell }) => {
-            const value = cell.getValue<Date>();
-            return value ? new Date(value).toLocaleDateString() : '';
-          },
-        },
-      ],
-    },
-  ], []);
+// Heuristique d'urgence : nombre de jours restants → couleur de badge.
+const urgencyClass = (daysLeft: number) => {
+  if (daysLeft <= 0) return 'ea-abs-badge-red';
+  if (daysLeft <= 7) return 'ea-abs-badge-red';
+  if (daysLeft <= 30) return 'ea-abs-badge-amber';
+  return 'ea-abs-badge-green';
+};
 
-  async function handleApplyFilter(): Promise<void> {
-    if (!soccod || !uticod) return;
+const getInitials = (name: string | null | undefined) => {
+  if (!name) return '??';
+  const parts = String(name).trim().split(/\s+/);
+  return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+};
 
-    try {
-      const formattedEchdeb = formatDateForApi(new Date(echdeb));
-      const formattedEchfin = formatDateForApi(new Date(echfin));
+const fmt = (d: any) => {
+  if (!d) return '—';
+  const v = new Date(d);
+  return Number.isNaN(v.getTime()) ? '—' : v.toLocaleDateString('fr-FR');
+};
 
-      const response = await apiInstance.get(`/Contrats/get-echeance/${soccod}/${formattedEchdeb}/${formattedEchfin}/${uticod}`);
-      setContrats(response.data);
-    } catch (error: any) {
-      if (error?.response?.status === 403) {
-        handleSnackbarOpen("Action interdite : vous n'avez pas la permission.", "error");
-      } else {
-        handleSnackbarOpen("Erreur lors de la récupération des contrats.", "error");
-      }
-      console.error("Erreur lors de la récupération des contrats:", error);
-    }
+const toIso = (d: Date) => dayjs(d).format('YYYY-MM-DD');
+
+function EcheanceContratInner() {
+  const { soccod, uticod, hasPermission } = useAuth();
+
+  if (!hasPermission('Rapports et Statistiques', 'consult')) {
+    return <AccessDenied message="Vous n'avez pas le droit de consulter l'échéance des contrats." />;
   }
 
-  const handlePrintReport = async () => {
+  // Période par défaut : aujourd'hui → fin du mois courant.
+  const today = useMemo(() => dayjs().startOf('day'), []);
+  const [echdeb, setEchdeb] = useState<string>(toIso(today.toDate()));
+  const [echfin, setEchfin] = useState<string>(toIso(today.endOf('month').toDate()));
+  const [annee, setAnnee] = useState(today.year().toString());
+
+  const [contrats, setContrats] = useState<EchContrat[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchTriggered, setSearchTriggered] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  const [renewTarget, setRenewTarget] = useState<Contrat | null>(null);
+
+  // Synchronise l'année avec les bornes de date — utile quand l'utilisateur change l'année.
+  useEffect(() => {
+    if (!annee) return;
+    const sp = echdeb.split('-'); const ep = echfin.split('-');
+    if (sp.length === 3) setEchdeb(`${annee}-${sp[1]}-${sp[2]}`);
+    if (ep.length === 3) setEchfin(`${annee}-${ep[1]}-${ep[2]}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annee]);
+
+  const handleSearch = async () => {
+    if (!soccod || !uticod) return;
+    setIsLoading(true);
+    setError(null);
+    setSearchTriggered(true);
     try {
-      const formattedEchdeb = formatDateForApi(new Date(echdeb));
-      const formattedEchfin = formatDateForApi(new Date(echfin));
+      const response = await apiInstance.get(`/Contrats/get-echeance/${soccod}/${echdeb}/${echfin}/${uticod}`);
+      setContrats(response.data || []);
+      setCurrentPage(1);
+    } catch (e: any) {
+      const msg = e?.response?.status === 403
+        ? "Action interdite : vous n'avez pas la permission."
+        : 'Erreur lors de la récupération des contrats.';
+      setError(msg);
+      setContrats([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      const pdfBlob = await ContratReportService.getReport(
-        `get-echeance-contrat-report/${soccod}/${formattedEchdeb}/${formattedEchfin}`
-      );
-
-      const url = window.URL.createObjectURL(pdfBlob);
+  const handlePrintReport = async () => {
+    if (!soccod) return;
+    try {
+      const pdfBlob = await ContratReportService.getReport(`get-echeance-contrat-report/${soccod}/${echdeb}/${echfin}`);
+      const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `EcheanceContrat_${formattedEchdeb}_${formattedEchfin}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      window.URL.revokeObjectURL(url);
-      link.remove();
-    } catch (error: any) {
-      if (error?.response?.status === 403) {
-        handleSnackbarOpen("Accès refusé à la génération du rapport.", "error");
-      } else {
-        handleSnackbarOpen("Erreur lors de la génération du rapport.", "error");
-      }
-      console.error("Erreur génération rapport:", error);
+      link.setAttribute('download', `EcheanceContrat_${echdeb}_${echfin}.pdf`);
+      document.body.appendChild(link); link.click(); link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e?.response?.status === 403 ? 'Accès refusé à la génération du rapport.' : 'Erreur lors de la génération du rapport.');
     }
+  };
+
+  const handleExportExcel = () => {
+    if (!contrats.length) return;
+    const title = [`Échéance de Contrats — ${fmt(echdeb)} au ${fmt(echfin)}`];
+    const headers = ['Matricule', 'Nom & Prénom', 'N° Contrat', 'Date Contrat', 'Date Début', 'Date Fin', 'Jours Restants'];
+    const rows = contrats.map((c) => {
+      const days = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : 0;
+      return [c.empmat || '', c.emplib || '', c.concod || '', fmt(c.condat), fmt(c.empemb), fmt(c.empsort), days];
+    });
+    const ws = XLSX.utils.aoa_to_sheet([title, [], headers, ...rows]);
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
+    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Echeance');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    saveAs(new Blob([buf], { type: 'application/octet-stream' }), `echeance-contrats-${annee}.xlsx`);
+  };
+
+  // KPIs
+  const stats = useMemo(() => {
+    const total = contrats.length;
+    const employes = new Set(contrats.map(c => c.empmat || c.empcod)).size;
+    let urgents = 0; let echus = 0;
+    contrats.forEach((c) => {
+      if (!c.empsort) return;
+      const days = Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000);
+      if (days < 0) echus++;
+      else if (days <= 7) urgents++;
+    });
+    return { total, employes, urgents, echus };
+  }, [contrats]);
+
+  const totalPages = Math.max(1, Math.ceil(contrats.length / pageSize));
+  const paginated = contrats.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handleRenew = (c: EchContrat) => {
+    // EchContrat est compatible Contrat pour les champs essentiels utilisés par le dialog
+    // (empcod, emplib, concod, contype, empsort).
+    setRenewTarget(c as unknown as Contrat);
   };
 
   return (
-    <Container>
-      <Box width={'95vw'} height={'85vh'} mt={-1}>
-        <BreadcrumbNavigation />
+    <div className="ea-page">
+      {/* ── Header ── */}
+      <div className="ea-header">
+        <div className="ea-header-left">
+          <div>
+            <h2 className="ea-title">Échéance des Contrats</h2>
+            <p className="ea-subtitle">Suivi des fins de contrat et anticipation des renouvellements</p>
+          </div>
+          <div className="ea-header-divider" />
+          <div className="ea-year-select">
+            <CalendarTodayIcon sx={{ fontSize: 15, color: '#94a3b8' }} />
+            <select
+              value={annee} onChange={(e) => setAnnee(e.target.value)}
+              style={{ background: 'transparent', border: 'none', fontSize: 13, fontWeight: 700, color: '#334155', outline: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+            >
+              {['2027', '2026', '2025', '2024'].map((y) => <option key={y} value={y}>Année {y}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
 
-        <Grid container xs={12} spacing={2} display={'flex'} justifyContent={'center'} mt={2}>
-          <Grid item xs={2}>
-            <InputComponent type={'date'} label={'Echéance Début'} value={echdeb} setValue={setEchdeb} />
-          </Grid>
-          <Grid item xs={2}>
-            <InputComponent type={'date'} label={'Echéance Fin'} value={echfin} setValue={setEchfin} />
-          </Grid>
-          <Grid item xs={4} display={'flex'}>
-            <Grid item xs={1.5} mt={2}>
-              <IconButton color="primary" onClick={handleApplyFilter} sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <Search />
-              </IconButton>
-            </Grid>
-            <Grid item xs={1.5} mt={2}>
-              <IconButton color="primary" onClick={handlePrintReport} sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <Print />
-              </IconButton>
-            </Grid>
-          </Grid>
-        </Grid>
+      {/* ── Filters ── */}
+      <div className="ea-filter-section">
+        <div className="ea-filter-row">
+          <div className="ea-filter-field-narrow">
+            <label className="ea-filter-label">Échéance Début</label>
+            <input type="date" className="ea-filter-input" value={echdeb} onChange={(e) => setEchdeb(e.target.value)} />
+          </div>
+          <div className="ea-filter-field-narrow">
+            <label className="ea-filter-label">Échéance Fin</label>
+            <input type="date" className="ea-filter-input" value={echfin} onChange={(e) => setEchfin(e.target.value)} />
+          </div>
+          <button className="ea-search-btn" onClick={handleSearch} disabled={isLoading}>
+            {isLoading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon sx={{ fontSize: 15 }} />}
+            RECHERCHE
+          </button>
+        </div>
+        {error && (
+          <div className="ea-status-msg" style={{ marginLeft: 4 }}>
+            <span className="ea-status-msg-warn">{error}</span>
+          </div>
+        )}
+      </div>
 
-        <Grid mt={3}>
-          <DataList
-            data={contrats}
-            columns={columns}
-            message={undefined}
-            deleteMethod={undefined}
-            idKey={'concod'}
-            refetchMethod={undefined}
-            reportGeneration1={undefined}
-            reportGeneration2={undefined}
-            reportGeneration3={undefined}
-            reportGeneration4={undefined}
-            empHoraires={undefined}
-            setData={undefined}
-            pageSize={5}
-            purge={undefined}
-          />
-        </Grid>
-      </Box>
+      {/* ── Summary Cards ── */}
+      <div className="ea-summary-grid">
+        <div className="ea-summary-card ea-card-border-blue">
+          <div className="ea-summary-card-top">
+            <span className="ea-summary-label">Contrats à échéance</span>
+            <div className="ea-summary-icon ea-icon-bg-blue"><EventBusyIcon sx={{ fontSize: 19 }} /></div>
+          </div>
+          <div className="ea-summary-value">{stats.total}<span className="ea-summary-unit">Contrats</span></div>
+          <div className="ea-summary-footer">Sur la période sélectionnée</div>
+        </div>
 
-      {/* ✅ Snackbar affiché ici */}
-      <CustomizedSnackbars
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={handleSnackbarClose}
+        <div className="ea-summary-card ea-card-border-green">
+          <div className="ea-summary-card-top">
+            <span className="ea-summary-label">Employés concernés</span>
+            <div className="ea-summary-icon ea-icon-bg-green"><GroupIcon sx={{ fontSize: 19 }} /></div>
+          </div>
+          <div className="ea-summary-value">{stats.employes}</div>
+          <div className="ea-summary-footer">Distinct sur la période</div>
+        </div>
+
+        <div className="ea-summary-card ea-card-border-amber">
+          <div className="ea-summary-card-top">
+            <span className="ea-summary-label">Urgents (≤ 7j)</span>
+            <div className="ea-summary-icon ea-icon-bg-orange"><HourglassEmptyIcon sx={{ fontSize: 19 }} /></div>
+          </div>
+          <div className="ea-summary-value">{stats.urgents}</div>
+          <div className="ea-summary-footer">À renouveler très prochainement</div>
+        </div>
+
+        <div className="ea-summary-card ea-card-border-red">
+          <div className="ea-summary-card-top">
+            <span className="ea-summary-label">Déjà échus</span>
+            <div className="ea-summary-icon ea-icon-bg-red"><AssignmentLateIcon sx={{ fontSize: 19 }} /></div>
+          </div>
+          <div className="ea-summary-value">{stats.echus}</div>
+          <div className="ea-summary-footer">Action immédiate requise</div>
+        </div>
+      </div>
+
+      {/* ── Table Section ── */}
+      <div className="ea-table-section">
+        <div className="ea-table-header">
+          <div>
+            <div className="ea-table-title"><CheckCircleOutlineIcon /> Registre des Échéances</div>
+            <div className="ea-table-subtitle">Période du {fmt(echdeb)} au {fmt(echfin)}</div>
+          </div>
+          <div className="ea-table-actions">
+            <button className="ea-export-btn" onClick={handleExportExcel} disabled={!contrats.length}>
+              <DownloadIcon sx={{ fontSize: 13 }} /> EXPORTER EXCEL
+            </button>
+            <button className="ea-export-btn" onClick={handlePrintReport}>
+              <PrintIcon sx={{ fontSize: 13 }} /> IMPRIMER PDF
+            </button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="ea-loading"><CircularProgress size={38} /></div>
+        ) : (
+          <>
+            <div className="ea-table-wrap">
+              <table className="ea-table">
+                <thead>
+                  <tr>
+                    <th>Matricule</th>
+                    <th>Collaborateur</th>
+                    <th>N° Contrat</th>
+                    <th>Date Contrat</th>
+                    <th>Date Début</th>
+                    <th>Date Fin</th>
+                    <th className="ea-th-right">Jours Restants</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="ea-no-data">
+                        {searchTriggered ? 'Aucun contrat n\'arrive à échéance sur cette période.' : 'Cliquez sur RECHERCHE pour charger les données.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    paginated.map((c, i) => {
+                      const days = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : 0;
+                      return (
+                        <tr key={`${c.empcod}-${c.concod}-${i}`}>
+                          <td className="ea-td-matricule">{c.empmat || '—'}</td>
+                          <td>
+                            <div className="ea-td-name">
+                              <div className="ea-td-avatar">{getInitials(c.emplib)}</div>
+                              <span className="ea-td-name-text">{c.emplib || '—'}</span>
+                            </div>
+                          </td>
+                          <td className="ea-td-text" style={{ fontFamily: 'monospace' }}>{c.concod || '—'}</td>
+                          <td className="ea-td-date">{fmt(c.condat)}</td>
+                          <td className="ea-td-date">{fmt(c.empemb)}</td>
+                          <td className="ea-td-date" style={{ fontWeight: 700, color: days < 0 ? '#b91c1c' : days <= 7 ? '#b45309' : '#0f5132' }}>
+                            {fmt(c.empsort)}
+                          </td>
+                          <td className="ea-td-right">
+                            <span className={`ea-abs-badge ${urgencyClass(days)}`}>
+                              {days < 0 ? `Échu (${Math.abs(days)}j)` : `${days}j`}
+                            </span>
+                          </td>
+                          <td className="ea-actions">
+                            <button className="ea-action-btn" onClick={() => handleRenew(c)} title="Renouveler ce contrat">
+                              <RefreshIcon sx={{ fontSize: 13 }} />
+                              <span className="ea-action-label">Renouveler</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {contrats.length > 0 && (
+              <div className="ea-table-footer">
+                <span className="ea-table-footer-info">
+                  Affichage de {Math.min((currentPage - 1) * pageSize + 1, contrats.length)} à {Math.min(currentPage * pageSize, contrats.length)} sur {contrats.length} contrat(s)
+                </span>
+                <div className="ea-pagination">
+                  <button className="ea-page-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
+                    <ChevronLeftIcon sx={{ fontSize: 13 }} />
+                  </button>
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => (
+                    <button key={i} className={`ea-page-btn ${currentPage === i + 1 ? 'ea-page-btn-active' : ''}`} onClick={() => setCurrentPage(i + 1)}>
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button className="ea-page-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
+                    <ChevronRightIcon sx={{ fontSize: 13 }} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Dialog renouvellement */}
+      <RenewContractDialog
+        open={!!renewTarget}
+        source={renewTarget}
+        onClose={() => setRenewTarget(null)}
+        onSuccess={() => { setRenewTarget(null); handleSearch(); }}
       />
-    </Container>
+    </div>
   );
 }
 
-export default EcheanceContrat;
+export default function EcheanceContrat() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <EcheanceContratInner />
+    </QueryClientProvider>
+  );
+}

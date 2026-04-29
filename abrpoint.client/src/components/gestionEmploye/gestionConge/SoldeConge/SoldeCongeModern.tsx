@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { Box, Typography, Paper, Button, CircularProgress, Chip } from '@mui/material';
+import { useMemo, useState, useEffect } from 'react';
+import { Box, Typography, Paper, Button, CircularProgress, Chip,
+  Autocomplete, TextField } from '@mui/material';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
@@ -14,6 +15,7 @@ import { useAuth } from '../../../helper/AuthProvider';
 import useGetSoldeByEmp from '../../../../hooks/soldeCongeHooks/useGetSoldeByEmp';
 import useGetDemConges from '../../../../hooks/congeHooks/useGetDemConges';
 import useGetAllAbsences from '../../../../hooks/absenceHooks/useGetAllAbsence';
+import useGetEmployee from '../../../../hooks/employeHooks/useGetEmployee';
 import { Conge } from '../../../../models/Conge';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -81,17 +83,54 @@ function BalanceCard({ icon, iconBg, label, balance, acquired, taken, barColor, 
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 function SoldeCongeModernInner() {
-  const { uticod } = useAuth();
-  const empId = uticod || '';
+  const { uticod, isAdmin, isManager } = useAuth();
+  const ownEmpId = uticod || '';
 
+  // Pour admin/manager : possibilité de consulter le solde d'un autre employé.
+  // Pour les managers, useGetEmployee filtre déjà la liste sur le service du connecté.
+  const canPickEmployee = isAdmin || isManager;
+
+  // Pour l'admin : on ne consulte JAMAIS son propre solde (l'admin n'est pas un employé
+  // métier au sens "congés"). On force donc l'admin à passer par la liste déroulante.
+  // Pour le manager : par défaut on montre son propre solde (il reste un employé), avec
+  // possibilité de basculer vers ceux de son service.
+  const [selectedEmpId, setSelectedEmpId] = useState<string>('');
+  const empId = isAdmin
+    ? (selectedEmpId || '')
+    : ((canPickEmployee && selectedEmpId) ? selectedEmpId : ownEmpId);
+
+  // True si la page doit afficher l'invite "sélectionnez un employé" au lieu des données.
+  const adminMustPickFirst = isAdmin && !selectedEmpId;
+
+  const { data: empMap } = useGetEmployee();
+  const employeeOptions = useMemo(() => {
+    if (!canPickEmployee || !empMap || typeof empMap !== 'object') return [] as Array<{ code: string; lib: string }>;
+    return Object.entries(empMap as Record<string, string>).map(([code, lib]) => ({ code, lib }));
+  }, [empMap, canPickEmployee]);
+
+  // Le hook ne fire la requête que si empId est non vide (cf. enabled: !!empcod). Pour l'admin
+  // sans sélection, empId === '' donc aucun appel /Soldes/by-emp n'est fait — exactement le
+  // comportement demandé.
   const { data: solde, isLoading: loadingSolde } = useGetSoldeByEmp(empId);
   const { data: conges = [], isLoading: loadingConges } = useGetDemConges();
 
-  // Filter to current employee's leave requests
+  // Filter to selected employee's leave requests (admin/manager peut sélectionner ; sinon = soi).
+  // Pour l'admin sans sélection (empId=''), aucun congé n'est affiché.
   const myConges: Conge[] = useMemo(() =>
-    conges.filter((c: Conge) => c.empcod === empId),
+    empId ? conges.filter((c: Conge) => c.empcod === empId) : [],
     [conges, empId]
   );
+
+  // Si on change d'employé, réinitialiser visuellement n'est pas nécessaire — les useMemo se
+  // recalculent. On affiche juste un libellé d'en-tête contextuel.
+  const selectedLabel = useMemo(() => {
+    if (!canPickEmployee || !selectedEmpId) return null;
+    const opt = employeeOptions.find(o => o.code === selectedEmpId);
+    return opt ? `${opt.lib} (${opt.code})` : selectedEmpId;
+  }, [canPickEmployee, selectedEmpId, employeeOptions]);
+
+  // Suppress unused warning
+  useEffect(() => { /* noop */ }, [selectedLabel]);
 
   const accepted = myConges.filter((c) => getStatus(c) === 'Accepté');
   const refused  = myConges.filter((c) => getStatus(c) === 'Refusé');
@@ -167,7 +206,9 @@ function SoldeCongeModernInner() {
     doc.save(`solde-conges-${empId}.pdf`);
   };
 
-  if (loadingSolde || loadingConges) {
+  // Pour l'admin sans sélection : pas de loader (rien à charger), pas d'écran vide brut —
+  // on saute directement au render qui montrera l'invite "Sélectionnez un employé".
+  if (!adminMustPickFirst && (loadingSolde || loadingConges)) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <CircularProgress size={48} />
@@ -180,22 +221,69 @@ function SoldeCongeModernInner() {
       {/* Page title */}
       <Box className="scm-header">
         <Box>
-          <Typography className="scm-title">Mon Solde de Congés</Typography>
+          <Typography className="scm-title">
+            {isAdmin
+              ? (selectedEmpId ? `Solde de Congés — ${selectedLabel}` : 'Solde de Congés des Employés')
+              : (canPickEmployee && selectedEmpId ? `Solde de Congés — ${selectedLabel}` : 'Mon Solde de Congés')}
+          </Typography>
           <Box className="scm-period">
             <EventIcon sx={{ fontSize: 16 }} />
             <Typography className="scm-period-text">Période de référence : {refPeriod}</Typography>
           </Box>
+          {canPickEmployee && (
+            <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Autocomplete
+                size="small"
+                options={employeeOptions}
+                getOptionLabel={(o) => `${o.lib} (${o.code})`}
+                isOptionEqualToValue={(a, b) => a.code === b.code}
+                value={employeeOptions.find(o => o.code === selectedEmpId) || null}
+                onChange={(_, val) => setSelectedEmpId(val?.code || '')}
+                sx={{ minWidth: 320 }}
+                renderInput={(params) => (
+                  <TextField {...params} placeholder={isAdmin ? 'Sélectionner un employé…' : 'Consulter un employé de mon service…'} />
+                )}
+              />
+              {/* Le bouton "Voir mon propre solde" est masqué pour l'admin : un admin ne consulte
+                  que des soldes employés, jamais le sien. */}
+              {selectedEmpId && !isAdmin && (
+                <Button size="small" onClick={() => setSelectedEmpId('')} sx={{ textTransform: 'none' }}>
+                  Voir mon propre solde
+                </Button>
+              )}
+            </Box>
+          )}
         </Box>
-        <Paper className="scm-projection-card">
-          <Box className="scm-projection-icon"><AutoAwesomeIcon /></Box>
-          <Box>
-            <Typography className="scm-projection-label">Projection fin d'année</Typography>
-            <Typography className="scm-projection-value">
-              {projection.toFixed(1)} <span className="scm-projection-unit">jours estimés</span>
-            </Typography>
-          </Box>
-        </Paper>
+        {/* La projection n'a pas de sens tant qu'aucun employé n'est ciblé côté admin. */}
+        {!adminMustPickFirst && (
+          <Paper className="scm-projection-card">
+            <Box className="scm-projection-icon"><AutoAwesomeIcon /></Box>
+            <Box>
+              <Typography className="scm-projection-label">Projection fin d'année</Typography>
+              <Typography className="scm-projection-value">
+                {projection.toFixed(1)} <span className="scm-projection-unit">jours estimés</span>
+              </Typography>
+            </Box>
+          </Paper>
+        )}
       </Box>
+
+      {/* Admin sans sélection : invite explicite, on n'affiche pas le reste du dashboard. */}
+      {adminMustPickFirst && (
+        <Paper sx={{ p: 4, textAlign: 'center', mt: 3, border: '1px dashed #cbd5e1', background: '#f8fafc', boxShadow: 'none' }}>
+          <EventIcon sx={{ fontSize: 40, color: '#94a3b8', mb: 1 }} />
+          <Typography sx={{ fontWeight: 700, fontSize: '15px', color: '#334155', mb: 0.5 }}>
+            Sélectionnez un employé
+          </Typography>
+          <Typography sx={{ fontSize: '13px', color: '#64748b' }}>
+            En tant qu'administrateur, vous consultez le solde de congés d'un employé. Choisissez-en un dans la liste ci-dessus.
+          </Typography>
+        </Paper>
+      )}
+
+      {/* Tout le reste de la page n'a de sens qu'avec un employé ciblé. */}
+      {!adminMustPickFirst && (
+        <>
 
       {/* Balance cards */}
       <Box className="scm-cards-grid">
@@ -360,6 +448,8 @@ function SoldeCongeModernInner() {
           </Paper>
         </Box>
       </Box>
+      </>
+      )}
     </Box>
   );
 }

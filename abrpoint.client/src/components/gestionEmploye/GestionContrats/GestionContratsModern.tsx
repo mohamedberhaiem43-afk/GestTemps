@@ -16,6 +16,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { Contrat } from '../../../models/Contrat';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
 import useDeleteContrat from '../../../hooks/contratHooks/useDeleteContrat';
+import RenewContractDialog from './RenewContractDialog';
 import useGetEmployeesLibs from '../../../hooks/employeHooks/useGetEmployeesLibs';
 import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
 import useGetSocLibs from '../../../hooks/societeHooks/useGetSocLibs';
@@ -99,7 +100,10 @@ function KpiCard({ label, value, sub, subColor, highlight }: {
 }
 
 // ── Row menu ──────────────────────────────────────────────────────────────────
-function RowMenu({ onEdit, onDelete, canModify, canDelete }: { onEdit: () => void; onDelete: () => void; canModify: boolean; canDelete: boolean }) {
+function RowMenu({ onEdit, onDelete, onRenew, canModify, canDelete, canAdd }: {
+  onEdit: () => void; onDelete: () => void; onRenew: () => void;
+  canModify: boolean; canDelete: boolean; canAdd: boolean;
+}) {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   return (
     <>
@@ -111,6 +115,7 @@ function RowMenu({ onEdit, onDelete, canModify, canDelete }: { onEdit: () => voi
         <Paper sx={{ position: 'fixed', zIndex: 1300, borderRadius: '10px', boxShadow: '0 8px 24px rgba(15,23,42,0.12)', minWidth: 160, border: '1px solid #edf0f5', mt: 0.5 }}
           onClick={() => setAnchor(null)}>
           {[
+            canAdd && { label: 'Renouveler', icon: <RefreshIcon fontSize="small" />, onClick: onRenew, color: '#0040a1' },
             canModify && { label: 'Modifier', icon: <EditIcon fontSize="small" />, onClick: onEdit },
             canDelete && { label: 'Supprimer', icon: <DeleteIcon fontSize="small" />, onClick: onDelete, color: '#ef4444' },
           ].filter(Boolean).map((item: any) => (
@@ -188,6 +193,7 @@ const GestionContratsModernInner = () => {
   const [filterType, setFilterType] = useState('all');
   const [searchQ, setSearchQ] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Contrat | null>(null);
+  const [renewTarget, setRenewTarget] = useState<Contrat | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [loadingEmployee, setLoadingEmployee] = useState(false);
 
@@ -343,7 +349,7 @@ const GestionContratsModernInner = () => {
     } catch { showSnack('Erreur lors de la suppression', 'error'); }
   };
 
-  const CONTRACT_TYPES = ['CDI', 'CDD', 'Stage', 'CIVP', 'Ouvrier'];
+  const CONTRACT_TYPES = ['CDI', 'CDD', 'Stage', 'CIVP', 'Ouvrier', 'Alternance'];
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', pb: 6 }}>
@@ -594,8 +600,8 @@ const GestionContratsModernInner = () => {
                             <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0d1f3c', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{empName}</Typography>
                             <Typography sx={{ fontSize: '11px', color: '#8896a8', fontWeight: 500 }}>{c.concod} · {c.empcod}</Typography>
                           </Box>
-                          {(canModify || canDelete) && (
-                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} canModify={canModify} canDelete={canDelete} />
+                          {(canModify || canDelete || canAdd) && (
+                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} onRenew={() => setRenewTarget(c)} canModify={canModify} canDelete={canDelete} canAdd={canAdd} />
                           )}
                         </Box>
                         {/* Info chips row */}
@@ -661,8 +667,8 @@ const GestionContratsModernInner = () => {
                         </Typography>
 
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          {(canModify || canDelete) ? (
-                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} canModify={canModify} canDelete={canDelete} />
+                          {(canModify || canDelete || canAdd) ? (
+                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} onRenew={() => setRenewTarget(c)} canModify={canModify} canDelete={canDelete} canAdd={canAdd} />
                           ) : (
                             <Typography variant="caption">—</Typography>
                           )}
@@ -697,6 +703,13 @@ const GestionContratsModernInner = () => {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
         message={`Voulez-vous vraiment supprimer le contrat "${deleteTarget?.concod}" de ${deleteTarget?.emplib || empMap[deleteTarget?.empcod || ''] || deleteTarget?.empcod} ?`}
+      />
+
+      <RenewContractDialog
+        open={!!renewTarget}
+        source={renewTarget}
+        onClose={() => setRenewTarget(null)}
+        onSuccess={() => { setRenewTarget(null); refetch(); showSnack('Contrat renouvelé avec succès', 'success'); }}
       />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>

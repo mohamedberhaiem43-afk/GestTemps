@@ -54,7 +54,6 @@ const BreadcrumbNavigation: React.FC<BreadcrumbNavigationProps> = ({ customTitle
       'etat-periodique': 'navigation.periodicReport',
       'allaitement': 'navigation.breastfeeding',
       'contrat': 'navigation.contract',
-      'renouvellement-contrat': 'navigation.renewal',
       'gestion-de-conge': 'navigation.leaveRequest',
       'gestion-de-solde': 'navigation.leaveBalance',
       'titre-de-conge': 'navigation.leaveTitle',

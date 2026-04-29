@@ -1,9 +1,14 @@
+using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -15,12 +20,14 @@ namespace ABRPOINT.Server.Controllers
         private readonly IVaultRepository _vaultRepository;
         private readonly IReportsGenerationService _reportsService;
         private readonly EncryptionService _encryptionService;
+        private readonly ApplicationDbContext _db;
 
-        public VaultController(IVaultRepository vaultRepository, IReportsGenerationService reportsService, EncryptionService encryptionService)
+        public VaultController(IVaultRepository vaultRepository, IReportsGenerationService reportsService, EncryptionService encryptionService, ApplicationDbContext db)
         {
             _vaultRepository = vaultRepository;
             _reportsService = reportsService;
             _encryptionService = encryptionService;
+            _db = db;
         }
 
         [HttpGet("{soccod}/{empcod}")]
@@ -75,6 +82,100 @@ namespace ABRPOINT.Server.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Dépose un document dans le coffre-fort d'un employé spécifique (utilisé par
+        /// l'admin / le manager pour partager une fiche de paie, contrat, attestation…).
+        ///
+        /// Sécurité :
+        ///   - Réservé aux comptes admin (Utiadm="1" OU rôle "Administrator") ou manager (rôle "Manager").
+        ///   - Pour un manager, la cible doit appartenir à son service (Empcod.Sercod == manager.Sercod).
+        ///
+        /// Effet : crée la ligne DocumentVault liée à l'employé cible + une notification interne
+        /// pour que ce dernier soit informé du nouveau document.
+        /// </summary>
+        [HttpPost("upload-for-employee")]
+        public async Task<IActionResult> UploadDocumentForEmployee(
+            [FromForm] IFormFile file,
+            [FromForm] string soccod,
+            [FromForm] string targetEmpcod,
+            [FromForm] string docType,
+            [FromForm] string? message)
+        {
+            var callerUticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(callerUticod)) return Unauthorized();
+            if (string.IsNullOrWhiteSpace(targetEmpcod)) return BadRequest("targetEmpcod requis.");
+
+            // Charge le profil appelant pour vérifier ses droits.
+            var caller = await _db.Utilisateurs
+                .AsNoTracking()
+                .Where(u => u.Uticod == callerUticod)
+                .Select(u => new { u.Utiadm, u.Utirole })
+                .FirstOrDefaultAsync();
+            if (caller is null) return Unauthorized();
+
+            var isAdmin = caller.Utiadm == "1" || PermissionCatalog.IsAdminRole(caller.Utirole);
+            var isManager = string.Equals(caller.Utirole, PermissionCatalog.Roles.Manager, StringComparison.OrdinalIgnoreCase);
+            if (!isAdmin && !isManager)
+                return Forbid();
+
+            // Pour un manager : la cible doit être dans son service.
+            if (!isAdmin && isManager)
+            {
+                var callerSercod = await _db.Employes
+                    .Where(e => e.Soccod == soccod && e.Empcod == callerUticod)
+                    .Select(e => e.Sercod)
+                    .FirstOrDefaultAsync();
+                var targetSercod = await _db.Employes
+                    .Where(e => e.Soccod == soccod && e.Empcod == targetEmpcod)
+                    .Select(e => e.Sercod)
+                    .FirstOrDefaultAsync();
+                if (string.IsNullOrEmpty(callerSercod) || callerSercod != targetSercod)
+                    return Forbid();
+            }
+
+            var (saved, filePath, error) = await FileHelper.SaveFile(file);
+            if (!saved) return BadRequest(error);
+
+            var doc = new DocumentVault
+            {
+                Soccod = soccod,
+                Empcod = targetEmpcod,
+                DocName = file.FileName,
+                DocType = string.IsNullOrWhiteSpace(docType) ? "Autre" : docType,
+                DocPath = _encryptionService.Encrypt(filePath),
+                DocSize = file.Length,
+                DocDate = DateTime.UtcNow
+            };
+            await _vaultRepository.AddDocumentAsync(doc);
+
+            // Notification pour le destinataire — l'Uticod du compte employé est égal à son Empcod
+            // dans ce projet (cf. claim NameIdentifier = uticod = empcod).
+            try
+            {
+                _db.Notifications.Add(new Notification
+                {
+                    Uticod = targetEmpcod,
+                    Soccod = soccod,
+                    Title = "Nouveau document dans votre coffre-fort",
+                    Body = string.IsNullOrWhiteSpace(message)
+                        ? $"Un document « {doc.DocType} » a été déposé : {doc.DocName}"
+                        : message!,
+                    Category = "vault_document_uploaded",
+                    DataJson = JsonSerializer.Serialize(new { docId = doc.Id, docType = doc.DocType, docName = doc.DocName }),
+                    CreatedAt = DateTime.UtcNow,
+                });
+                await _db.SaveChangesAsync();
+            }
+            catch
+            {
+                // Ne pas faire échouer l'upload si la notification ne peut pas être créée :
+                // le document est déjà sauvegardé, c'est l'effet métier principal.
+            }
+
+            doc.DocPath = _encryptionService.Decrypt(doc.DocPath);
+            return Ok(doc);
         }
 
         [HttpDelete("{id}")]

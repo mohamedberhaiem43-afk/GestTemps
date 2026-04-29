@@ -1,6 +1,8 @@
 using ABRPOINT.Server.Billing;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Stripe;
 
 namespace ABRPOINT.Server.Controllers;
@@ -16,12 +18,21 @@ namespace ABRPOINT.Server.Controllers;
 public class StripeWebhookController : ControllerBase
 {
     private readonly IBillingService _billing;
+    private readonly IDbContextFactory<MasterDbContext> _masterFactory;
+    private readonly ITenantStore _tenantStore;
     private readonly IConfiguration _cfg;
     private readonly ILogger<StripeWebhookController> _log;
 
-    public StripeWebhookController(IBillingService billing, IConfiguration cfg, ILogger<StripeWebhookController> log)
+    public StripeWebhookController(
+        IBillingService billing,
+        IDbContextFactory<MasterDbContext> masterFactory,
+        ITenantStore tenantStore,
+        IConfiguration cfg,
+        ILogger<StripeWebhookController> log)
     {
         _billing = billing;
+        _masterFactory = masterFactory;
+        _tenantStore = tenantStore;
         _cfg = cfg;
         _log = log;
     }
@@ -84,6 +95,40 @@ public class StripeWebhookController : ControllerBase
                     // Hook informatif : envoyer un email J-3 (à brancher plus tard sur EmailService).
                     var sub = stripeEvent.Data.Object as Subscription;
                     _log.LogInformation("Trial will end for customer {CustomerId} (sub {SubId}).", sub?.CustomerId, sub?.Id);
+                    break;
+                }
+                case "checkout.session.completed":
+                {
+                    // L'utilisateur a complété le Checkout : on rattache la nouvelle subscription
+                    // au tenant et on annule l'éventuelle subscription trial pré-existante pour
+                    // éviter d'avoir deux subscriptions actives sur le même customer.
+                    var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
+                    var tenantIdRaw = session?.ClientReferenceId
+                        ?? (session?.Metadata != null && session.Metadata.TryGetValue("tenant_id", out var tid) ? tid : null);
+                    if (!Guid.TryParse(tenantIdRaw, out var tenantId) || string.IsNullOrEmpty(session?.SubscriptionId))
+                    {
+                        _log.LogWarning("checkout.session.completed sans tenant_id ou subscription_id (session={SessionId}).", session?.Id);
+                        break;
+                    }
+                    await using var master = await _masterFactory.CreateDbContextAsync(ct);
+                    var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, ct);
+                    if (tenant is null)
+                    {
+                        _log.LogWarning("Tenant {TenantId} introuvable pour checkout.session.completed.", tenantId);
+                        break;
+                    }
+                    var oldSubId = tenant.StripeSubscriptionId;
+                    tenant.StripeSubscriptionId = session.SubscriptionId;
+                    if (!string.IsNullOrEmpty(session.CustomerId)) tenant.StripeCustomerId = session.CustomerId;
+                    tenant.Status = "Active";
+                    await master.SaveChangesAsync(ct);
+                    _tenantStore.Invalidate(tenant.Slug);
+
+                    if (!string.IsNullOrEmpty(oldSubId) && oldSubId != session.SubscriptionId)
+                    {
+                        try { await new SubscriptionService().CancelAsync(oldSubId, cancellationToken: ct); }
+                        catch (StripeException ex) { _log.LogWarning(ex, "Annulation de l'ancienne subscription {OldSubId} échouée.", oldSubId); }
+                    }
                     break;
                 }
                 default:

@@ -19,20 +19,41 @@
     background-color: var(--surface);
     color: var(--on-surface);
     min-height: 100vh;
-    padding: 2rem;
+    padding: 1rem;
     font-family: 'Inter', sans-serif;
+    padding-bottom: 6rem;
+}
+
+@media (min-width: 1024px) {
+    .ps-modern-container {
+        padding: 2rem;
+        padding-bottom: 8rem;
+    }
 }
 
 .ps-modern-header {
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-header {
+        margin-bottom: 2.5rem;
+    }
 }
 
 .ps-modern-title {
     font-family: 'Manrope', sans-serif;
     font-weight: 800;
-    font-size: 2.25rem;
+    font-size: 1.75rem;
     letter-spacing: -0.025em;
     color: var(--on-surface);
+    margin: 0.5rem 0;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-title {
+        font-size: 2.25rem;
+    }
 }
 
 .ps-modern-subtitle {
@@ -40,13 +61,29 @@
     max-width: 40rem;
     line-height: 1.6;
     margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-subtitle {
+        font-size: 1rem;
+    }
 }
 
 .ps-modern-tabs {
     display: flex;
-    gap: 2rem;
-    margin-bottom: 2.5rem;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-tabs {
+        gap: 2rem;
+        margin-bottom: 2.5rem;
+    }
 }
 
 .ps-modern-tab {
@@ -59,6 +96,16 @@
     border: none;
     cursor: pointer;
     font-size: 0.875rem;
+    white-space: nowrap;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-tab {
+        padding-left: 0;
+        padding-right: 0;
+    }
 }
 
 .ps-modern-tab--active {
@@ -68,98 +115,67 @@
 
 .ps-modern-grid {
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-grid {
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+    }
 }
 
 .ps-modern-card {
     background: var(--surface-container-lowest);
     border-radius: 0.75rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
-    position: relative;
-    overflow: hidden;
+    padding: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-card {
+        padding: 2rem;
+    }
 }
 
 .ps-modern-card--large {
-    grid-column: span 8;
+    grid-column: 1;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-card--large {
+        grid-column: span 8;
+    }
 }
 
 .ps-modern-card--medium {
-    grid-column: span 7;
+    grid-column: 1;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-card--medium {
+        grid-column: span 7;
+    }
 }
 
 .ps-modern-card--small {
-    grid-column: span 4;
+    grid-column: 1;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-card--small {
+        grid-column: span 4;
+    }
 }
 
 .ps-modern-card--vsmall {
-    grid-column: span 5;
+    grid-column: 1;
 }
 
-@media (max-width: 1024px) {
-    .ps-modern-card--large,
-    .ps-modern-card--medium,
-    .ps-modern-card--small,
+@media (min-width: 768px) {
     .ps-modern-card--vsmall {
-        grid-column: span 12;
-    }
-}
-
-@media (max-width: 768px) {
-    .ps-modern-container {
-        padding: 1rem;
-    }
-
-    .ps-modern-title {
-        font-size: 1.75rem;
-    }
-
-    .ps-modern-header {
-        margin-bottom: 1.5rem;
-    }
-
-    .ps-modern-header > div {
-        flex-direction: column;
-        align-items: stretch !important;
-        gap: 1.5rem;
-    }
-
-    .ps-modern-header .MuiBox-root {
-        text-align: left !important;
-    }
-
-    .ps-modern-tabs {
-        gap: 1rem;
-        overflow-x: auto;
-        padding-bottom: 0.5rem;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .ps-modern-tab {
-        white-space: nowrap;
-    }
-
-    .ps-modern-card {
-        padding: 1.25rem;
-    }
-
-    .ps-modern-card .MuiBox-root[style*="grid-template-columns"] {
-        grid-template-columns: 1fr !important;
-    }
-
-    .ps-modern-grid {
-        gap: 1rem;
-    }
-
-    .ps-modern-table {
-        display: block;
-        overflow-x: auto;
-    }
-
-    .ps-modern-save-fab {
-        bottom: 2rem;
-        right: 1rem;
+        grid-column: span 5;
     }
 }
 
@@ -167,13 +183,25 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-card-header {
+        margin-bottom: 2rem;
+    }
 }
 
 .ps-modern-card-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 700;
     margin-bottom: 0.25rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-card-title {
+        font-size: 1.25rem;
+    }
 }
 
 .ps-modern-card-sub {
@@ -182,7 +210,13 @@
 }
 
 .ps-modern-form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-form-group {
+        margin-bottom: 1.5rem;
+    }
 }
 
 .ps-modern-label {
@@ -205,9 +239,16 @@
     border: none;
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
-    font-size: 1.125rem;
+    font-size: 1rem;
     font-weight: 700;
     transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-input {
+        font-size: 1.125rem;
+    }
 }
 
 .ps-modern-input:focus {
@@ -223,6 +264,7 @@
     transform: translateY(-50%);
     font-size: 0.875rem;
     color: #94a3b8;
+    pointer-events: none;
 }
 
 .ps-modern-btn-group {
@@ -274,21 +316,41 @@
 .ps-modern-table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-table {
+        font-size: 1rem;
+    }
 }
 
 .ps-modern-table th {
     background: var(--surface-container-high);
-    padding: 1rem 2rem;
-    font-size: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     color: #64748b;
     text-align: left;
 }
 
+@media (min-width: 768px) {
+    .ps-modern-table th {
+        padding: 1rem 2rem;
+        font-size: 0.75rem;
+    }
+}
+
 .ps-modern-table td {
-    padding: 1.25rem 2rem;
+    padding: 0.85rem 1rem;
     border-bottom: 1px solid #f1f5f9;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-table td {
+        padding: 1.25rem 2rem;
+    }
 }
 
 .ps-modern-switch-row {
@@ -303,8 +365,15 @@
 
 .ps-modern-time-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .ps-modern-time-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
 }
 
 .ps-modern-badge-green {
@@ -325,25 +394,103 @@
     font-weight: 700;
 }
 
-.ps-modern-save-fab {
-    position: fixed;
-    bottom: 6rem;
-    right: 1.6rem;
-    width: 3.6rem;
-    height: 3.6rem;
-    border-radius: 9999px;
-    background: var(--primary);
-    color: #fff;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    transition: transform 0.2s;
-    z-index: 100;
+/* Sticky Save Button */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.ps-modern-save-fab:hover {
-    transform: scale(1.05);
+.MuiBox-root[style*="sticky"] {
+    animation: slideUp 0.3s ease-out;
+}
+
+/* Utility classes for responsive grid */
+[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+}
+
+@media (min-width: 768px) {
+    [style*="gridTemplateColumns: 'repeat(2, 1fr)'"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    [style*="gridTemplateColumns: 'repeat(3, 1fr)'"] {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    [style*="gridTemplateColumns: 'repeat(4, 1fr)'"] {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+}
+
+/* Enhanced Scrollbar for tables */
+.ps-modern-table::-webkit-scrollbar {
+    height: 8px;
+}
+
+.ps-modern-table::-webkit-scrollbar-track {
+    background: var(--surface-container-low);
+    border-radius: 10px;
+}
+
+.ps-modern-table::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 10px;
+}
+
+.ps-modern-table::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Select and Input enhancements */
+.MuiSelect-standard {
+    font-weight: 700 !important;
+}
+
+.MuiSelect-icon {
+    color: var(--primary);
+}
+
+.MuiMenuItem-root {
+    font-weight: 500 !important;
+}
+
+/* Button enhancements */
+.MuiButton-outlined {
+    border-color: #cbd5e0 !important;
+    color: #64748b !important;
+    transition: all 0.2s;
+}
+
+.MuiButton-outlined:hover {
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+    background-color: rgba(0, 64, 161, 0.04);
+}
+
+/* Checkbox enhancements */
+.MuiCheckbox-root {
+    color: #cbd5e0 !important;
+}
+
+.MuiCheckbox-root.Mui-checked {
+    color: var(--primary) !important;
+}
+
+/* Print styles */
+@media print {
+    .ps-modern-container {
+        padding: 0;
+    }
+
+    .ps-modern-card {
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
 }

@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Box, Button, Typography, Snackbar, Alert } from '@mui/material';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Box, Button, Typography, Snackbar, Alert, Menu, MenuItem } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DomainIcon from '@mui/icons-material/Domain';
@@ -22,6 +23,7 @@ import '../Societe/SocieteModern.css';
 import './OrgStructureModern.css';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
+import ExcelImportButton from '../shared/ExcelImportButton';
 
 type OrgUnit = {
   code: string;
@@ -48,6 +50,8 @@ function OrgStructureContent() {
   const [dialogMode, setDialogMode] = useState<'direction' | 'service' | 'section'>('direction');
   const [editUnit, setEditUnit] = useState<OrgUnit | null>(null);
   const [form, setForm] = useState({ code: '', libelle: '', location: '', email: '' });
+  const addMenuAnchor = useRef<HTMLButtonElement | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
 
   const soccod = sessionStorage.getItem('soccod') || '01';
 
@@ -108,7 +112,11 @@ function OrgStructureContent() {
   };
 
   const handleSave = async () => {
-    if (!form.code || !form.libelle) { setSnack({ open: true, msg: 'Code et Libellé obligatoires.', sev: 'error' }); return; }
+    // Le libellé est obligatoire dans tous les cas. Le code est facultatif à la création
+    // (auto-généré côté serveur) mais obligatoire pour les directions (clé fonctionnelle).
+    if (!form.libelle) { setSnack({ open: true, msg: 'Libellé obligatoire.', sev: 'error' }); return; }
+    if (editUnit && !form.code) { setSnack({ open: true, msg: 'Code obligatoire en modification.', sev: 'error' }); return; }
+    if (!editUnit && dialogMode === 'direction' && !form.code) { setSnack({ open: true, msg: 'Code obligatoire pour une direction.', sev: 'error' }); return; }
     try {
       if (editUnit) {
         if (dialogMode === 'direction') await apiInstance.put(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
@@ -117,8 +125,9 @@ function OrgStructureContent() {
         setSnack({ open: true, msg: 'Unité mise à jour.', sev: 'success' });
       } else {
         if (dialogMode === 'direction') await apiInstance.post(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
-        else if (dialogMode === 'service') await apiInstance.post(`/Services`, { soccod, sercod: form.code, serlib: form.libelle, serloc: form.location, effectif: 0 });
-        else await apiInstance.post(`/Sections`, { soccod, seccod: form.code, seclib: form.libelle, effectif: 0 });
+        // Service & Section : on n'envoie pas de code si vide → serveur génère le suivant.
+        else if (dialogMode === 'service') await apiInstance.post(`/Services`, { soccod, sercod: form.code || undefined, serlib: form.libelle, serloc: form.location, effectif: 0 });
+        else await apiInstance.post(`/Sections`, { soccod, seccod: form.code || undefined, seclib: form.libelle, effectif: 0 });
         setSnack({ open: true, msg: 'Unité ajoutée.', sev: 'success' });
       }
       setDialogOpen(false); fetchData();
@@ -148,9 +157,76 @@ function OrgStructureContent() {
           <Typography className="org-title">Structure Organisationnelle</Typography>
         </Box>
         {canAdd && (
-          <Button className="org-add-btn" startIcon={<AddIcon />} onClick={() => openAddDialog('direction')}>Ajouter une Unité</Button>
+          <>
+            <Button
+              ref={addMenuAnchor}
+              className="org-add-btn"
+              startIcon={<AddIcon />}
+              endIcon={<ArrowDropDownIcon />}
+              onClick={() => setAddMenuOpen(true)}
+            >
+              Ajouter une Unité
+            </Button>
+            <Menu
+              anchorEl={addMenuAnchor.current}
+              open={addMenuOpen}
+              onClose={() => setAddMenuOpen(false)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <MenuItem onClick={() => { setAddMenuOpen(false); openAddDialog('direction'); }}>
+                <DomainIcon sx={{ fontSize: 18, mr: 1, color: '#0040a1' }} /> Direction
+              </MenuItem>
+              <MenuItem onClick={() => { setAddMenuOpen(false); openAddDialog('service'); }}>
+                <BadgeIcon sx={{ fontSize: 18, mr: 1, color: '#0066ff' }} /> Service
+              </MenuItem>
+              <MenuItem onClick={() => { setAddMenuOpen(false); openAddDialog('section'); }}>
+                <LocationCityIcon sx={{ fontSize: 18, mr: 1, color: '#4edea3' }} /> Section
+              </MenuItem>
+            </Menu>
+          </>
         )}
       </Box>
+
+      {/* Excel imports */}
+      {canAdd && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, px: { xs: 1.5, sm: 0 }, mb: 2 }}>
+          <ExcelImportButton
+            label="Importer Directions (Excel)"
+            endpoint="/BulkImport/directions"
+            extraBody={{ Soccod: soccod }}
+            columnMap={{
+              Dircod: ['dircod', 'code', 'code direction'],
+              Dirlib: ['dirlib', 'libelle', 'libellé', 'libelle direction', 'libellé direction', 'direction', 'nom'],
+              Dirloc: ['dirloc', 'localisation', 'lieu'],
+              Diremail: ['diremail', 'email', 'mail'],
+              Dirresp: ['dirresp', 'responsable'],
+            }}
+            onImported={fetchData}
+          />
+          <ExcelImportButton
+            label="Importer Services (Excel)"
+            endpoint="/BulkImport/services"
+            extraBody={{ Soccod: soccod }}
+            columnMap={{
+              Serlib: ['serlib', 'libelle', 'libellé', 'libelle service', 'libellé service', 'service', 'nom'],
+              Serloc: ['serloc', 'localisation', 'lieu'],
+            }}
+            onImported={fetchData}
+          />
+          <ExcelImportButton
+            label="Importer Sections (Excel)"
+            endpoint="/BulkImport/sections"
+            extraBody={{ Soccod: soccod }}
+            columnMap={{
+              Seccod: ['seccod', 'code', 'code section'],
+              Seclib: ['seclib', 'libelle', 'libellé', 'libelle section', 'libellé section', 'section', 'nom'],
+              Sectype: ['sectype', 'type'],
+            }}
+            onImported={fetchData}
+          />
+        </Box>
+      )}
 
       {/* Metrics */}
       <Box className="org-metrics">
@@ -267,12 +343,31 @@ function OrgStructureContent() {
           <Box className="org-dialog" onClick={(e:any)=>e.stopPropagation()}>
             <h3 className="org-dialog-title">{editUnit?'Modifier':'Ajouter'} {dialogMode==='direction'?'une Direction':dialogMode==='service'?'un Service':'une Section'}</h3>
             <Box sx={{display:'flex',flexDirection:'column',gap:'16px'}}>
-              <Box className="soc-field"><label>Code</label><input type="text" value={form.code} onChange={e=>setForm({...form,code:e.target.value})} readOnly={!!editUnit}/></Box>
+              <Box className="soc-field">
+                <label>
+                  Code
+                  {!editUnit && (dialogMode === 'service' || dialogMode === 'section') && (
+                    <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 6 }}>
+                      (laisser vide pour auto-générer)
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={form.code}
+                  onChange={e=>setForm({...form,code:e.target.value})}
+                  readOnly={!!editUnit}
+                  placeholder={!editUnit && (dialogMode === 'service' || dialogMode === 'section') ? 'Auto' : ''}
+                />
+              </Box>
               <Box className="soc-field"><label>Libellé</label><input type="text" value={form.libelle} onChange={e=>setForm({...form,libelle:e.target.value})}/></Box>
               {dialogMode==='direction' && <>
                 <Box className="soc-field"><label>Localisation</label><input type="text" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></Box>
                 <Box className="soc-field"><label>Email</label><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></Box>
               </>}
+              {dialogMode==='service' && (
+                <Box className="soc-field"><label>Localisation</label><input type="text" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></Box>
+              )}
             </Box>
             <Box className="org-dialog-actions">
               <button className="org-dialog-cancel" onClick={()=>setDialogOpen(false)}>Annuler</button>

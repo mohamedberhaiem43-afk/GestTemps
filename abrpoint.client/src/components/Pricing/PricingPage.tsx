@@ -84,8 +84,18 @@ const PricingPage: React.FC = () => {
       {/* TopNavBar */}
       <nav className="w-full top-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky z-50 border-b border-surface-container">
         <div className="flex justify-between items-center max-w-7xl mx-auto px-8 py-4">
-          <div className="text-2xl font-bold tracking-tight text-primary font-headline cursor-pointer" onClick={() => navigate('/')}>
-            Concorde
+          <div
+            className="flex items-center gap-3 cursor-pointer select-none"
+            onClick={() => navigate('/')}
+          >
+            <img
+              src="/Concorde.png"
+              alt="Logo Concorde"
+              style={{ height: 36, width: 'auto', objectFit: 'contain' }}
+            />
+            <span className="text-2xl font-bold tracking-tight text-primary font-headline">
+              Concorde
+            </span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <a className="text-on-surface-variant font-medium hover:text-primary transition-colors text-xs tracking-wider uppercase" href="#">Produit</a>
@@ -200,9 +210,10 @@ const PricingPage: React.FC = () => {
               <button
                 onClick={() => {
                   // Approche Odoo : un visiteur non connecté est routé vers /signup pour démarrer
-                  // l'essai gratuit ; un utilisateur déjà authentifié va directement au paiement.
+                  // l'essai gratuit ; un utilisateur déjà authentifié va directement à
+                  // PlanConfiguration (qui crée une session Stripe Checkout au clic "Confirmer").
                   // Le plan choisi est conservé dans le state pour reprise après inscription.
-                  const target = isAuthenticated ? '/dashboard/payment' : '/signup';
+                  const target = isAuthenticated ? '/dashboard/plan-configuration' : '/signup';
                   navigate(target, { state: { plan: plan.name, price: plan.price, cycle: billingCycle } });
                 }}
                 className={`w-full py-4 font-bold rounded-xl text-xs uppercase tracking-widest transition-all ${plan.accent || plan.popular
@@ -260,7 +271,10 @@ const PricingPage: React.FC = () => {
       <footer className="w-full border-t border-surface-container bg-white py-16">
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-start gap-12">
           <div className="max-w-xs">
-            <div className="text-2xl font-black text-on-surface font-headline uppercase tracking-tighter mb-4">Concorde Workforce</div>
+            <div className="flex items-center gap-3 mb-4">
+              <img src="/Concorde.png" alt="Logo Concorde" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
+              <div className="text-2xl font-black text-on-surface font-headline uppercase tracking-tighter">Concorde Workforce</div>
+            </div>
             <p className="text-on-surface-variant text-sm font-body leading-relaxed">
               La plateforme de gestion du temps de travail nouvelle génération : pointage, congés, autorisations et paie réunis dans un même espace.
             </p>

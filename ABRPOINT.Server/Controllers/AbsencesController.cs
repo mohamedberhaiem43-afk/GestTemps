@@ -1,5 +1,7 @@
 using ABRPOINT.Server.Annotations.AbsenceAttributes;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -14,10 +16,12 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IAbscenceRepository _absenceRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
-        public AbsencesController(IAbscenceRepository absenceRepository,IReportsGenerationService reportsGenerationService)
+        private readonly ApplicationDbContext _db;
+        public AbsencesController(IAbscenceRepository absenceRepository, IReportsGenerationService reportsGenerationService, ApplicationDbContext db)
         {
             _absenceRepository = absenceRepository;
             _reportsGenerationService = reportsGenerationService;
+            _db = db;
         }
 
 
@@ -205,19 +209,31 @@ namespace ABRPOINT.Server.Controllers
             if(absence == null)
                 return BadRequest(new { Message = "Veuillez saisie les champs obligatoires de cet absence." });
 
-            if(string.IsNullOrEmpty(absence.Abscod) || string.IsNullOrEmpty(absence.Soccod))
-                return BadRequest(new { Message = "Veuillez saisie les champs obligatoires de cet absence." });
+            if(string.IsNullOrEmpty(absence.Soccod))
+                return BadRequest(new { Message = "Code société obligatoire." });
+
+            // Auto-génération du code absence si vide à la création.
+            if (string.IsNullOrWhiteSpace(absence.Abscod))
+                absence.Abscod = await SequentialCodeGenerator.NextAbscodAsync(_db, absence.Soccod);
+
             try
             {
                 await _absenceRepository.AddAsync(absence);
-                return Ok(new { Message = "absence ajoutÃ©e avec succÃ©es." });
+                return Ok(new { Message = "Absence ajoutée avec succès.", abscod = absence.Abscod });
             }
             catch (Exception ex)
             {
-
-                return StatusCode(500, "problÃ©me d'ajout d'absence");
+                return StatusCode(500, "Problème d'ajout d'absence : " + ex.Message);
             }
-            
+        }
+
+        // GET: api/Absences/get-next-abscod/SOC01
+        [HttpGet("get-next-abscod/{soccod}")]
+        public async Task<IActionResult> GetNextAbscod(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod)) return BadRequest("soccod requis");
+            var next = await SequentialCodeGenerator.NextAbscodAsync(_db, soccod);
+            return Ok(new { abscod = next });
         }
 
         // PUT api/<DirectionsController>/5

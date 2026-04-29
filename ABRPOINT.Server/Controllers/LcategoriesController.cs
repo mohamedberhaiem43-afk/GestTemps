@@ -1,4 +1,6 @@
-﻿using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,9 +14,11 @@ namespace ABRPOINT.Server.Controllers
     public class LcategoriesController : ControllerBase
     {
         private readonly ILcategorieRepository _lcategorieRepository;
-        public LcategoriesController(ILcategorieRepository lcategorieRepository)
+        private readonly ApplicationDbContext _db;
+        public LcategoriesController(ILcategorieRepository lcategorieRepository, ApplicationDbContext db)
         {
             _lcategorieRepository = lcategorieRepository;
+            _db = db;
         }
         // GET: api/<DirectionsController>
         [HttpGet("{soccod}/{catperiode}")]
@@ -56,20 +60,24 @@ namespace ABRPOINT.Server.Controllers
                 if (lcategorie == null)
                     return BadRequest("Lcategorie is null");
 
-                if (string.IsNullOrEmpty(lcategorie.Soccod) || string.IsNullOrEmpty(lcategorie.Catcod))
-                    return BadRequest("Soccod and Catcod are required");
+                if (string.IsNullOrEmpty(lcategorie.Soccod))
+                    return BadRequest("Soccod requis");
+
+                // Auto-génération du Catcod (sur 2 caractères) si vide à la création.
+                if (string.IsNullOrWhiteSpace(lcategorie.Catcod))
+                    lcategorie.Catcod = await SequentialCodeGenerator.NextCatcodAsync(_db, lcategorie.Soccod);
 
                 var existing = await _lcategorieRepository.GetcatAsync(lcategorie.Soccod, lcategorie.Catcod);
 
                 if (existing != null && existing.Count() != 0)
                 {
                     await _lcategorieRepository.UpdateAsync(lcategorie);
-                    return Ok(new { message = "Classe horaire mise à jour avec succès" });
+                    return Ok(new { message = "Classe horaire mise à jour avec succès", catcod = lcategorie.Catcod });
                 }
                 else
                 {
                     await _lcategorieRepository.AddAsync(lcategorie);
-                    return Ok(new { message = "Classe horaire ajoutée avec succès" });
+                    return Ok(new { message = "Classe horaire ajoutée avec succès", catcod = lcategorie.Catcod });
                 }
             }
             catch (Exception ex)
@@ -77,6 +85,15 @@ namespace ABRPOINT.Server.Controllers
                 // optional: log ex
                 return StatusCode(500, new { message = "Erreur interne du serveur", error = ex.Message });
             }
+        }
+
+        // GET: api/Lcategories/get-next-catcod/SOC01
+        [HttpGet("get-next-catcod/{soccod}")]
+        public async Task<IActionResult> GetNextCatcod(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod)) return BadRequest("soccod requis");
+            var next = await SequentialCodeGenerator.NextCatcodAsync(_db, soccod);
+            return Ok(new { catcod = next });
         }
 
 

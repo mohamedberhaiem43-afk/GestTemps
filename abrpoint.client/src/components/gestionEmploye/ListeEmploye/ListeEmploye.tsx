@@ -26,6 +26,7 @@ import DataList from '../../lists/list';
 import TableEtat from '../../lists/TableEtat';
 import * as XLSX from 'xlsx';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import ExcelImportButton from '../../DonneeDeBase/shared/ExcelImportButton';
 import EmployeService from '../../../services/EmployeService/EmployeService';
 import Employe from '../../../models/Employe';
 import dayjs from 'dayjs';
@@ -590,8 +591,33 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
               position: 'fixed',
               top: 69,
               right: 100,
+              display: 'flex',
+              gap: 1,
+              alignItems: 'center',
             }}
           >
+            {/* Import Excel d'employés (bulk + auto-création service/fonction par libellé +
+                auto-génération du matricule selon Parametre.Parmodemp). */}
+            <ExcelImportButton
+              label="Importer Employés (Excel)"
+              endpoint="/BulkImport/employes"
+              extraBody={{ Soccod: soccod, Sitcod: '01' }}
+              columnMap={{
+                Empcod: ['empcod', 'matricule', 'code'],
+                Emplib: ['emplib', 'nom', 'nom complet', 'nom et prenom', 'nom et prénom', 'employe', 'employé'],
+                Emplnais: ['emplnais', 'lieu de naissance', 'lieu naissance'],
+                Empdnais: ['empdnais', 'date de naissance', 'date naissance', 'naissance'],
+                Empsexe: ['empsexe', 'sexe', 'genre'],
+                Empcin: ['empcin', 'cin', 'cnie', 'identite', 'identité'],
+                Emptel: ['emptel', 'telephone', 'téléphone', 'tel', 'mobile'],
+                Empemail: ['empemail', 'email', 'mail', 'e-mail'],
+                Empadr: ['empadr', 'adresse', 'address'],
+                Empemb: ['empemb', 'date embauche', 'date d\'embauche', 'embauche', 'hire date'],
+                ServiceLib: ['servicelib', 'service', 'serlib', 'departement', 'département'],
+                FonctionLib: ['fonctionlib', 'fonction', 'fonlib', 'poste', 'job'],
+              }}
+              onImported={refetch}
+            />
             <input
               accept=".xlsx, .xls"
               id="excel-upload"

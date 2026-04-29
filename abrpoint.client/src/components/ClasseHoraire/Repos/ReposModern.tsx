@@ -13,12 +13,14 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { FerierProvider, useFerierContext } from '../../helper/ReposContext';
 import useGetRepos from '../../../hooks/Repos/useGetRepos';
 import useAddRepos from '../../../hooks/Repos/useAddRepos';
 import useUpdateRepos from '../../../hooks/Repos/useUpdateRepos';
 import useDeleteRepos from '../../../hooks/Repos/useDeleteRepos';
+import { fetchJoursFeriesFr, toFerier } from '../../../hooks/Repos/useImportJoursFeriesFr';
 import AlertModal from '../../AlertModal/AlertModal';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
@@ -62,6 +64,7 @@ function ReposModernInner() {
   const [deleteTarget, setDeleteTarget] = useState<Ferier | null>(null);
   const [page, setPage] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [importing, setImporting] = useState(false);
 
   const { hasPermission } = useAuth();
   const canAdd = hasPermission('Paramètres de Temps', 'add');
@@ -145,6 +148,66 @@ function ReposModernInner() {
     });
   };
 
+  /**
+   * Pré-remplit les jours fériés par défaut depuis l'API gouv.fr (métropole) pour l'année
+   * sélectionnée. Les fériés déjà présents (même date) sont ignorés pour éviter les doublons.
+   * Pour chaque ligne créée :
+   *   - ferheure = 8h (journée pleine)
+   *   - fertype  = 'F' (férié)
+   *   - fernpaye = '0' (payé)
+   *   - ferfixe  = '1' pour les dates fixes (1er janvier, 1er mai, …), '0' sinon (Pâques etc.)
+   */
+  const handleImportFromGouvFr = async () => {
+    if (!soccod) { showSnack('Session expirée, veuillez vous reconnecter', 'error'); return; }
+    if (!canAdd) { showSnack("Vous n'avez pas le droit d'ajouter des jours fériés.", 'error'); return; }
+
+    const yearNum = parseInt(annee, 10);
+    if (!yearNum || yearNum < 1900 || yearNum > 2100) {
+      showSnack("Saisissez une année valide avant l'import.", 'error');
+      return;
+    }
+    if (!window.confirm(
+      `Importer les jours fériés métropole France pour ${yearNum} ?\n\n` +
+      `Les jours déjà saisis seront conservés (pas de doublon).`
+    )) return;
+
+    setImporting(true);
+    try {
+      const items = await fetchJoursFeriesFr(yearNum);
+      // Index par yyyy-mm-dd des fériés déjà présents pour cette année.
+      const existing = new Set<string>(
+        ferierList
+          .filter((f) => String(f.annee) === String(yearNum) || (f.ferdate && new Date(f.ferdate).getFullYear() === yearNum))
+          .map((f) => f.ferdate ? new Date(f.ferdate).toISOString().slice(0, 10) : '')
+          .filter(Boolean)
+      );
+
+      let inserted = 0;
+      let skipped = 0;
+      // On insère séquentiellement pour respecter la cohérence côté API et permettre un
+      // message clair en cas d'échec partiel.
+      for (const it of items) {
+        if (existing.has(it.date)) { skipped++; continue; }
+        const payload = toFerier(it, soccod);
+        await new Promise<void>((resolve) => {
+          addRepos(payload, {
+            onSuccess: () => { inserted++; resolve(); },
+            onError: () => { resolve(); },
+          });
+        });
+      }
+      await refetch();
+      showSnack(
+        `Import terminé : ${inserted} ajouté(s), ${skipped} ignoré(s) (déjà présents).`,
+        inserted > 0 ? 'success' : 'error'
+      );
+    } catch (err: any) {
+      showSnack(err?.message || "Échec de l'import des jours fériés.", 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   // Filter + paginate
   const PAGE_SIZE = 10;
   const ferierList: Ferier[] = Array.isArray(data) ? data : [];
@@ -170,6 +233,17 @@ function ReposModernInner() {
           <Typography className="rp-page-sub">Définissez et gérez les périodes de repos exceptionnelles pour l'ensemble des collaborateurs.</Typography>
         </Box>
         <Box className="rp-page-actions">
+          {canAdd && (
+            <button
+              className="rp-btn-secondary"
+              onClick={handleImportFromGouvFr}
+              disabled={importing}
+              title="Importer la liste officielle des jours fériés métropole France pour l'année saisie"
+            >
+              {importing ? <CircularProgress size={16} color="inherit" /> : <CloudDownloadIcon sx={{ fontSize: 18 }} />}
+              Importer (gouv.fr)
+            </button>
+          )}
           {canAdd && (
             <button className="rp-btn-secondary" onClick={resetForm}>
               <AddCircleIcon sx={{ fontSize: 18 }} />Nouveau

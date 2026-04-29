@@ -1,13 +1,46 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, Users, Rocket, CheckCircle2, FileText, LayoutGrid, Headset } from 'lucide-react';
+import apiInstance from '../API/apiInstance';
 import './PricingPage.css';
 
 const PlanConfigurationPage: React.FC = () => {
+  const location = useLocation();
+  // Plan + cycle viennent en général de PricingPage via location.state ; valeurs par défaut
+  // si l'utilisateur arrive directement sur l'URL.
+  const initialState = (location.state ?? {}) as { plan?: string; cycle?: 'monthly' | 'annual' };
+  const planCode = (initialState.plan ?? 'Standard');
   const [userCount, setUserCount] = useState(50);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
   const [packageType, setPackageType] = useState<'self' | 'success' | 'partner'>('success');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const handleConfirmCheckout = async () => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const { data } = await apiInstance.post('/billing/checkout', {
+        planCode,
+        billingCycle,
+        userCount,
+        packageType,
+        successUrl: `${window.location.origin}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/dashboard/plan-configuration?checkout=cancelled`,
+      });
+      if (data?.url) {
+        // Redirection vers Stripe Checkout (page hostée Stripe → encaisse + crée subscription).
+        window.location.href = data.url;
+        return;
+      }
+      setError('Réponse Stripe invalide.');
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Échec de la création de la session de paiement.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const pricePerUser = 8.00;
   const subtotal = userCount * pricePerUser;
@@ -259,15 +292,24 @@ const PlanConfigurationPage: React.FC = () => {
 
                 {/* Actions */}
                 <div className="space-y-4">
-                  <button 
-                    onClick={() => navigate('/dashboard')}
-                    className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg hover:-translate-y-1 transition-all shadow-xl shadow-primary/20 uppercase tracking-widest"
+                  {error && (
+                    <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-3 font-bold">
+                      {error}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleConfirmCheckout}
+                    disabled={submitting}
+                    className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg hover:-translate-y-1 transition-all shadow-xl shadow-primary/20 uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                   >
-                    Confirmer l'achat
+                    {submitting ? 'Redirection vers Stripe…' : "Confirmer l'achat"}
                   </button>
-                  <button className="w-full bg-surface-container-high text-on-surface py-5 rounded-2xl font-black hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs">
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full bg-surface-container-high text-on-surface py-5 rounded-2xl font-black hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
+                  >
                     <FileText size={18} />
-                    Générer un devis
+                    Plus tard, retour au tableau de bord
                   </button>
                 </div>
 

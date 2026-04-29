@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Annotations.EmployeAttributes;
 using ABRPOINT.Server.Services;
+using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -17,12 +19,27 @@ namespace ABRPOINT.Server.Controllers
         private readonly IUtilisateurRepository _utilisateurRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
         private readonly EncryptionService _encryptionService;
-        public EmployesController(IEmployeRepository employeRepository, IReportsGenerationService reportsGenerationService, IUtilisateurRepository utilisateurRepository, EncryptionService encryptionService)
+        private readonly ApplicationDbContext _db;
+        public EmployesController(IEmployeRepository employeRepository, IReportsGenerationService reportsGenerationService, IUtilisateurRepository utilisateurRepository, EncryptionService encryptionService, ApplicationDbContext db)
         {
             _employeRepository = employeRepository;
             _reportsGenerationService = reportsGenerationService;
             _utilisateurRepository = utilisateurRepository;
             _encryptionService = encryptionService;
+            _db = db;
+        }
+
+        /// <summary>
+        /// Génère le prochain code employé en respectant le paramètre Parametre.Parmodemp.
+        /// Si nom est fourni et le mode = "N", le préfixe sera basé sur le nom.
+        /// </summary>
+        [HttpGet("get-next-empcod/{soccod}")]
+        public async Task<IActionResult> GetNextEmpcod(string soccod, [FromQuery] string? sitcod, [FromQuery] string? nom)
+        {
+            if (string.IsNullOrWhiteSpace(soccod)) return BadRequest(new { message = "soccod requis." });
+            var sit = string.IsNullOrWhiteSpace(sitcod) ? "01" : sitcod;
+            var next = await SequentialCodeGenerator.NextEmpcodAsync(_db, soccod, sit, nom);
+            return Ok(new { empcod = next });
         }
 
         // GET: api/employes

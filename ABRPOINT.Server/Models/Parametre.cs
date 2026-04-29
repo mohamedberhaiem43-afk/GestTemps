@@ -348,4 +348,14 @@ public partial class Parametre : BaseEntity
     [Column("parretabs")]
     [StringLength(1)]
     public string? Parretabs { get; set; }
+
+    /// <summary>
+    /// Mode de génération automatique du code employé.
+    ///   "S" → préfixe = 2 premiers caractères du libellé société + n° séquentiel
+    ///   "N" → préfixe = 2 premiers caractères du nom employé + n° séquentiel
+    ///   "X" ou null → pas de préfixe, code purement séquentiel sur 6 chiffres
+    /// </summary>
+    [Column("parmodemp")]
+    [StringLength(1)]
+    public string? Parmodemp { get; set; }
 }

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -243,16 +244,24 @@ namespace ABRPOINT.Server.Controllers
             {
                 if (ModelState.IsValid)
                 {
+                    if (string.IsNullOrWhiteSpace(poste.Soccod))
+                        return BadRequest(new { success = false, message = "Soccod est obligatoire" });
+
+                    // Auto-génération du code poste si vide. La PK étant (Codposte, Soccod) on évite
+                    // ainsi un doublon : SequentialCodeGenerator prend MAX existant + 1.
+                    if (string.IsNullOrWhiteSpace(poste.Codposte))
+                        poste.Codposte = await SequentialCodeGenerator.NextCodposteAsync(_dbContext, poste.Soccod);
+
                     bool isExisting = await _posteRepository.isExisting(poste.Soccod, poste.Codposte);
                     if (isExisting)
                     {
                         await _posteRepository.UpdateAsync(poste);
-                        return Ok(new { success = true, message = "Poste mis à jour avec succès" });
+                        return Ok(new { success = true, message = "Poste mis à jour avec succès", codposte = poste.Codposte });
                     }
                     else
                     {
-                        await _posteRepository.AddAsync(poste); // Add poste to repository
-                        return Ok(new { success = true, message = "Poste ajouté avec succès" });
+                        await _posteRepository.AddAsync(poste);
+                        return Ok(new { success = true, message = "Poste ajouté avec succès", codposte = poste.Codposte });
                     }
                 }
                 return BadRequest(ModelState);
@@ -261,6 +270,15 @@ namespace ABRPOINT.Server.Controllers
             {
                 throw;
             }
+        }
+
+        // GET: api/Postes/get-next-codposte/SOC01
+        [HttpGet("get-next-codposte/{soccod}")]
+        public async Task<IActionResult> GetNextCodposte(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod)) return BadRequest("soccod requis");
+            var next = await SequentialCodeGenerator.NextCodposteAsync(_dbContext, soccod);
+            return Ok(new { codposte = next });
         }
 
         // PUT: api/Poste/{codposte}

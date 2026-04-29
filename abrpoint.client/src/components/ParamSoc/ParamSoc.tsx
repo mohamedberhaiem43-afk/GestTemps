@@ -5,22 +5,18 @@ import {
   Button,
   Snackbar,
   Alert,
-  IconButton,
   Tooltip,
   Switch,
   Select,
   MenuItem,
   FormControlLabel,
   Checkbox,
-  Avatar,
 } from '@mui/material';
 import {
   Save as SaveIcon,
   Functions as FunctionsIcon,
   EventAvailable as EventIcon,
   NightsStay as NightIcon,
-  DeviceHub as DeviceIcon,
-  NotificationsNone as NotifIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
@@ -36,7 +32,7 @@ import ParTranche from '../../models/ParTranche';
 import './ParamSocModern.css';
 
 export default function ParamSocModern() {
-  const { soccod, userName } = useAuth();
+  const { soccod } = useAuth();
   const { data: parametres, refetch } = useGetParametres();
   const { data: partranche } = useGetParTranche();
   const { data: socheures } = useGetSocHeures();
@@ -47,11 +43,15 @@ export default function ParamSocModern() {
 
   const [activeTab, setActiveTab] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Parametre>>({});
   const [tranchesH, setTranchesH] = useState<ParTranche[]>([]);
   const [tranchesM, setTranchesM] = useState<ParTranche[]>([]);
   const [socHeuresData, setSocHeuresData] = useState({ socpresence: 'P', sochsup: 'P' });
+
+  // Liste des calendriers disponibles
+  const calendriersList = ['CAL001', 'CAL002', 'CAL003', 'CAL004', 'Standard', 'Aménagé', 'Flexible'];
 
   useEffect(() => {
     if (parametres) setFormData(parametres);
@@ -63,6 +63,7 @@ export default function ParamSocModern() {
   }, [parametres, partranche, socheures]);
 
   const handleUpdate = () => {
+    setIsLoading(true);
     const dataToSend = { ...formData, soccod: soccod || '' } as Parametre;
     const trancheDataToSend = [...tranchesH, ...tranchesM];
 
@@ -72,12 +73,14 @@ export default function ParamSocModern() {
     const checkAllDone = () => {
       successCount++;
       if (successCount >= total) {
+        setIsLoading(false);
         setSnackbar({ open: true, message: "Paramètres mis à jour avec succès !", severity: "success" });
         refetch();
       }
     };
 
     const onError = () => {
+      setIsLoading(false);
       setSnackbar({ open: true, message: "Erreur lors de la mise à jour.", severity: "error" });
     };
 
@@ -126,29 +129,15 @@ export default function ParamSocModern() {
     { label: 'Calculs & Dates', icon: <FunctionsIcon /> },
     { label: 'Heures Sup', icon: <EventIcon /> },
     { label: 'Heures de Nuit', icon: <NightIcon /> },
-    { label: 'Pointeuses', icon: <DeviceIcon /> },
   ];
 
   return (
     <div className="ps-modern-container">
       <header className="ps-modern-header">
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box>
-            <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Configuration</span>
-            <h1 className="ps-modern-title">Paramètres Système</h1>
-            <p className="ps-modern-subtitle">Gérez les règles de calcul, les dates de paie et les paramètres avancés de pointage.</p>
-          </Box>
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <Tooltip title="Notifications"><IconButton sx={{ bgcolor: 'white', borderRadius: '12px' }}><NotifIcon /></IconButton></Tooltip>
-            {/* User Profile instead of Help */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="body2" sx={{ fontWeight: 800 }}>{userName || 'Administrateur'}</Typography>
-                <Typography variant="caption" sx={{ color: '#64748b' }}>Super Admin</Typography>
-              </Box>
-              <Avatar sx={{ bgcolor: 'var(--primary)', fontWeight: 800 }}>{userName?.charAt(0) || 'A'}</Avatar>
-            </Box>
-          </div>
+        <Box>
+          <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Configuration</span>
+          <h1 className="ps-modern-title">Paramètres Système</h1>
+          <p className="ps-modern-subtitle">Gérez les règles de calcul, les dates de paie et les paramètres avancés de pointage.</p>
         </Box>
       </header>
 
@@ -167,6 +156,7 @@ export default function ParamSocModern() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+              {/* Diviseur Mensuel - Commented out
               <div className="ps-modern-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="ps-modern-label">Diviseur Mensuel</label>
                 <div className="ps-modern-input-wrapper">
@@ -174,6 +164,7 @@ export default function ParamSocModern() {
                   <span className="ps-modern-unit">heures</span>
                 </div>
               </div>
+              */}
 
               <div className="ps-modern-form-group">
                 <label className="ps-modern-label">Début de Mois</label>
@@ -198,7 +189,7 @@ export default function ParamSocModern() {
                 </Select>
               </div>
 
-
+              {/* Intégration Paie - Commented out
               <div className="ps-modern-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="ps-modern-label">Intégration Paie</label>
                 <Select fullWidth variant="standard" value={formData.paie || ''} onChange={(e) => handleInputChange('paie', e.target.value)}>
@@ -207,6 +198,7 @@ export default function ParamSocModern() {
                   <MenuItem value="sage">Sage</MenuItem>
                 </Select>
               </div>
+              */}
 
               <div className="ps-modern-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="ps-modern-label">Ancienneté Requise (ans)</label>
@@ -286,8 +278,6 @@ export default function ParamSocModern() {
                 <MenuItem value="3">Déduire samedi + dimanche</MenuItem>
               </Select>
             </div>
-            <div className="ps-modern-switch-row"><span>Arrondi auto</span><Switch checked={formData.arrondi === 1} onChange={(e) => handleInputChange('arrondi', e.target.checked ? 1 : 0)} /></div>
-            <Button fullWidth variant="contained" startIcon={<SaveIcon />} onClick={handleUpdate} sx={{ mt: 2, borderRadius: '12px', bgcolor: 'var(--primary)', fontWeight: 800 }}>Enregistrer</Button>
           </div>
         </div>
       )}
@@ -309,21 +299,36 @@ export default function ParamSocModern() {
                 <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>Hebdomadaire (H)</Typography>
                 <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => addTranche('H')}>Ajouter</Button>
               </Box>
-              <table className="ps-modern-table">
-                <thead><tr><th>Cal.</th><th>Tr1</th><th>%1</th><th>Tr2</th><th>%2</th><th></th></tr></thead>
-                <tbody>
-                  {tranchesH.map((t, i) => (
-                    <tr key={i}>
-                      <td><input style={{ width: '60px', border: '1px solid #eee' }} value={t.caltype} onChange={(e) => handleTrancheChange(i, 'caltype', e.target.value, 'H')} /></td>
-                      <td><input type="number" style={{ width: '60px', border: '1px solid #eee' }} value={t.partranche1} onChange={(e) => handleTrancheChange(i, 'partranche1', Number(e.target.value), 'H')} />h</td>
-                      <td><input type="number" style={{ width: '60px', border: '1px solid #eee' }} value={t.partaux1} onChange={(e) => handleTrancheChange(i, 'partaux1', Number(e.target.value), 'H')} />%</td>
-                      <td><input type="number" style={{ width: '60px', border: '1px solid #eee' }} value={t.partranche2} onChange={(e) => handleTrancheChange(i, 'partranche2', Number(e.target.value), 'H')} />h</td>
-                      <td><input type="number" style={{ width: '60px', border: '1px solid #eee' }} value={t.partaux2} onChange={(e) => handleTrancheChange(i, 'partaux2', Number(e.target.value), 'H')} />%</td>
-                      <td><IconButton size="small" onClick={() => removeTranche(i, 'H')}><DeleteIcon sx={{ fontSize: 18 }} /></IconButton></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Box sx={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <table className="ps-modern-table">
+                  <thead><tr><th>Calendrier</th><th>Tr1</th><th>%1</th><th>Tr2</th><th>%2</th><th></th></tr></thead>
+                  <tbody>
+                    {tranchesH.map((t, i) => (
+                      <tr key={i}>
+                        <td style={{ minWidth: '150px' }}>
+                          <Select
+                            value={t.caltype}
+                            onChange={(e) => handleTrancheChange(i, 'caltype', e.target.value, 'H')}
+                            size="small"
+                            fullWidth
+                            sx={{ borderRadius: '8px' }}
+                          >
+                            <MenuItem value="">-- Sélectionner --</MenuItem>
+                            {calendriersList.map((cal) => (
+                              <MenuItem key={cal} value={cal}>{cal}</MenuItem>
+                            ))}
+                          </Select>
+                        </td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partranche1} onChange={(e) => handleTrancheChange(i, 'partranche1', Number(e.target.value), 'H')} />h</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partaux1} onChange={(e) => handleTrancheChange(i, 'partaux1', Number(e.target.value), 'H')} />%</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partranche2} onChange={(e) => handleTrancheChange(i, 'partranche2', Number(e.target.value), 'H')} />h</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partaux2} onChange={(e) => handleTrancheChange(i, 'partaux2', Number(e.target.value), 'H')} />%</td>
+                        <td><Button size="small" variant="text" color="error" onClick={() => removeTranche(i, 'H')}><DeleteIcon sx={{ fontSize: 18 }} /></Button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Box>
             </Box>
 
             <Box>
@@ -331,21 +336,36 @@ export default function ParamSocModern() {
                 <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>Mensuel (M)</Typography>
                 <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => addTranche('M')}>Ajouter</Button>
               </Box>
-              <table className="ps-modern-table">
-                <thead><tr><th>Cal.</th><th>Tr1</th><th>%1</th><th>Tr2</th><th>%2</th><th></th></tr></thead>
-                <tbody>
-                  {tranchesM.map((t, i) => (
-                    <tr key={i}>
-                      <td><input style={{ width: '60px', border: '1px solid #eee' }} value={t.caltype} onChange={(e) => handleTrancheChange(i, 'caltype', e.target.value, 'M')} /></td>
-                      <td><input type="number" style={{ width: '60px', border: '1px solid #eee' }} value={t.partranche1} onChange={(e) => handleTrancheChange(i, 'partranche1', Number(e.target.value), 'M')} />h</td>
-                      <td><input type="number" style={{ width: '60px', border: '1px solid #eee' }} value={t.partaux1} onChange={(e) => handleTrancheChange(i, 'partaux1', Number(e.target.value), 'M')} />%</td>
-                      <td><input type="number" style={{ width: '60px', border: '1px solid #eee' }} value={t.partranche2} onChange={(e) => handleTrancheChange(i, 'partranche2', Number(e.target.value), 'M')} />h</td>
-                      <td><input type="number" style={{ width: '60px', border: '1px solid #eee' }} value={t.partaux2} onChange={(e) => handleTrancheChange(i, 'partaux2', Number(e.target.value), 'M')} />%</td>
-                      <td><IconButton size="small" onClick={() => removeTranche(i, 'M')}><DeleteIcon sx={{ fontSize: 18 }} /></IconButton></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Box sx={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <table className="ps-modern-table">
+                  <thead><tr><th>Calendrier</th><th>Tr1</th><th>%1</th><th>Tr2</th><th>%2</th><th></th></tr></thead>
+                  <tbody>
+                    {tranchesM.map((t, i) => (
+                      <tr key={i}>
+                        <td style={{ minWidth: '150px' }}>
+                          <Select
+                            value={t.caltype}
+                            onChange={(e) => handleTrancheChange(i, 'caltype', e.target.value, 'M')}
+                            size="small"
+                            fullWidth
+                            sx={{ borderRadius: '8px' }}
+                          >
+                            <MenuItem value="">-- Sélectionner --</MenuItem>
+                            {calendriersList.map((cal) => (
+                              <MenuItem key={cal} value={cal}>{cal}</MenuItem>
+                            ))}
+                          </Select>
+                        </td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partranche1} onChange={(e) => handleTrancheChange(i, 'partranche1', Number(e.target.value), 'M')} />h</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partaux1} onChange={(e) => handleTrancheChange(i, 'partaux1', Number(e.target.value), 'M')} />%</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partranche2} onChange={(e) => handleTrancheChange(i, 'partranche2', Number(e.target.value), 'M')} />h</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partaux2} onChange={(e) => handleTrancheChange(i, 'partaux2', Number(e.target.value), 'M')} />%</td>
+                        <td><Button size="small" variant="text" color="error" onClick={() => removeTranche(i, 'M')}><DeleteIcon sx={{ fontSize: 18 }} /></Button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Box>
             </Box>
           </div>
         </div>
@@ -384,27 +404,50 @@ export default function ParamSocModern() {
         </div>
       )}
 
-      {activeTab === 3 && (
-        <div className="ps-modern-grid">
-          <div className="ps-modern-card ps-modern-card--small">
-            <h3 className="ps-modern-card-title">Configuration Pointeuse</h3>
-            <div className="ps-modern-form-group">
-              <label className="ps-modern-label">N° Communication</label>
-              <Select fullWidth variant="standard" value={formData.ncom || ''} onChange={(e) => handleInputChange('ncom', e.target.value)}>
-                {['T', 'K', 'Z', 'D', 'H', 'N', 'E', 'B', '1', '2', '3'].map((val) => (<MenuItem key={val} value={val}>{val}</MenuItem>))}
-              </Select>
-            </div>
-            <div className="ps-modern-form-group">
-              <label className="ps-modern-label">Nb. Pointeuses</label>
-              <Select fullWidth variant="standard" value={formData.vitesse || 0} onChange={(e) => handleInputChange('vitesse', Number(e.target.value))}>
-                {[10, 11, 12, 300, 600, 1200, 2400, 4800].map((val) => (<MenuItem key={val} value={val}>{val}</MenuItem>))}
-              </Select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <Tooltip title="Tout enregistrer"><button className="ps-modern-save-fab" onClick={handleUpdate}><SaveIcon sx={{ fontSize: 32 }} /></button></Tooltip>
+      {/* Save Button Footer - Sticky and prominent */}
+      <Box
+        sx={{
+          position: 'sticky',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '2rem',
+          background: 'linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0.95))',
+          backdropFilter: 'blur(10px)',
+          borderTop: '1px solid #e2e8f0',
+          zIndex: 1000,
+        }}
+      >
+        <Tooltip title="Enregistrer tous les changements">
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleUpdate}
+            disabled={isLoading}
+            sx={{
+              bgcolor: 'var(--primary)',
+              color: 'white',
+              fontWeight: 900,
+              fontSize: '1.1rem',
+              padding: '12px 48px',
+              borderRadius: '12px',
+              boxShadow: '0 8px 24px rgba(0, 64, 161, 0.3)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 12px 32px rgba(0, 64, 161, 0.4)',
+                transform: 'translateY(-2px)',
+              },
+              '&:disabled': {
+                bgcolor: '#cbd5e0',
+              },
+            }}
+          >
+            {isLoading ? 'Enregistrement...' : 'Enregistrer les paramètres'}
+          </Button>
+        </Tooltip>
+      </Box>
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity={snackbar.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 700 }}>{snackbar.message}</Alert>

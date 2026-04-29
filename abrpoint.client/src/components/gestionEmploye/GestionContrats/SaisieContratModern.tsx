@@ -40,6 +40,7 @@ const contratTypes: Record<string, string> = {
   '1': 'CDI',
   '2': 'Ouvrier',
   '3': 'CIVP',
+  '4': 'Alternance',
 };
 
 // Reverse mapping: label -> code
@@ -48,6 +49,7 @@ const contratTypeByLabel: Record<string, string> = {
   'cdi': '1',
   'ouvrier': '2',
   'civp': '3',
+  'alternance': '4',
 };
 
 const mapContratType = (empcontrat: string | null): string => {
@@ -60,6 +62,7 @@ const mapContratType = (empcontrat: string | null): string => {
   if (normalized.includes('cdd')) return '0';
   if (normalized.includes('ouvrier') || normalized.includes('ouvri')) return '2';
   if (normalized.includes('civp') || normalized.includes('stage') || normalized.includes('stagiaire')) return '3';
+  if (normalized.includes('alternance') || normalized.includes('apprent')) return '4';
   return '0';
 };
 

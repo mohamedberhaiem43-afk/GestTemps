@@ -65,6 +65,8 @@ const ListContrats = ({ req, filters, onEdit, onRenew, allowDelete = true }: Lis
         return 'Ouvrier';
       case '3':
         return 'CIVP';
+      case '4':
+        return 'Alternance';
       default:
         return type || '-';
     }

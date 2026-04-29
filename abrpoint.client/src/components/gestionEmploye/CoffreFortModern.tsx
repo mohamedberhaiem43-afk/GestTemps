@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Box, Button, CircularProgress, IconButton, Menu, MenuItem } from '@mui/material';
+import { Box, Button, CircularProgress, IconButton, Menu, MenuItem,
+  Autocomplete, TextField, TextField as MuiTextField, Snackbar, Alert } from '@mui/material';
 import { useAuth } from '../helper/AuthProvider';
 import apiInstance from '../API/apiInstance';
 import { DocumentVault } from '../../models/DocumentVault';
+import useGetEmployee from '../../hooks/employeHooks/useGetEmployee';
 import './CoffreFortModern.css';
 
 const CoffreFortModern = () => {
-  const { soccod, uticod, authReady } = useAuth();
+  const { soccod, uticod, authReady, isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
 
   const [documents, setDocuments] = useState<DocumentVault[]>([]);
@@ -16,6 +18,19 @@ const CoffreFortModern = () => {
   const [uploading, setUploading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedType, setSelectedType] = useState<string>('');
+
+  // Cible du dépôt (admin/manager only). Vide = soi-même.
+  const canDepositForOthers = isAdmin || isManager;
+  const [targetEmpcod, setTargetEmpcod] = useState<string>('');
+  const [uploadMessage, setUploadMessage] = useState<string>('');
+  const [snack, setSnack] = useState<{ open: boolean; sev: 'success' | 'error'; msg: string }>({ open: false, sev: 'success', msg: '' });
+
+  // Liste employés filtrée automatiquement par sercod côté hook si manager.
+  const { data: empMap } = useGetEmployee();
+  const employeeOptions = useMemo(() => {
+    if (!empMap || typeof empMap !== 'object') return [] as Array<{ code: string; lib: string }>;
+    return Object.entries(empMap as Record<string, string>).map(([code, lib]) => ({ code, lib }));
+  }, [empMap]);
 
   useEffect(() => {
     if (authReady) {
@@ -64,18 +79,36 @@ const CoffreFortModern = () => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('soccod', soccod);
-    formData.append('empcod', uticod);
-    formData.append('docType', selectedType || 'Autre'); 
+    formData.append('docType', selectedType || 'Autre');
+
+    // Si l'admin/manager a choisi un employé cible différent de lui-même → endpoint dédié
+    // qui crée la notification interne pour le destinataire.
+    const isDepositForOther = canDepositForOthers && targetEmpcod && targetEmpcod !== uticod;
+    const endpoint = isDepositForOther ? '/Vault/upload-for-employee' : '/Vault/upload';
+    if (isDepositForOther) {
+      formData.append('targetEmpcod', targetEmpcod);
+      if (uploadMessage) formData.append('message', uploadMessage);
+    } else {
+      formData.append('empcod', uticod);
+    }
 
     try {
-      await apiInstance.post('/Vault/upload', formData, {
+      await apiInstance.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      fetchDocuments();
-    } catch (err) {
+      setSnack({ open: true, sev: 'success', msg: isDepositForOther ? 'Document déposé et employé notifié.' : 'Document ajouté.' });
+      // Rafraîchir la liste : si on dépose chez quelqu'un d'autre, le coffre courant n'a pas
+      // changé — pas besoin de refetch ici. Sinon on rafraîchit la liste personnelle.
+      if (!isDepositForOther) fetchDocuments();
+      // Reset cible/message pour éviter dépôt accidentel suivant.
+      if (isDepositForOther) { setTargetEmpcod(''); setUploadMessage(''); }
+    } catch (err: any) {
       console.error("Erreur d'upload", err);
+      setSnack({ open: true, sev: 'error', msg: err?.response?.data?.message || err?.response?.data || "Erreur lors du dépôt du document." });
     } finally {
       setUploading(false);
+      // Reset l'input pour permettre de re-sélectionner le même fichier après une erreur.
+      event.target.value = '';
     }
   };
 
@@ -148,6 +181,42 @@ const CoffreFortModern = () => {
           </div>
         </div>
       </section>
+
+      {/* Admin/Manager — déposer un document pour un employé spécifique */}
+      {canDepositForOthers && (
+        <section style={{ marginBottom: '2rem', padding: '1rem 1.25rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <span className="material-symbols-outlined" style={{ color: '#0040a1' }}>admin_panel_settings</span>
+            <strong style={{ fontSize: '0.9rem' }}>Déposer un document pour un employé</strong>
+            <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
+              {isAdmin ? '(tous les employés)' : '(employés de votre service uniquement)'}
+            </span>
+          </div>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' }, gap: 1.5 }}>
+            <Autocomplete
+              size="small"
+              options={employeeOptions}
+              getOptionLabel={(o) => `${o.lib} (${o.code})`}
+              isOptionEqualToValue={(a, b) => a.code === b.code}
+              value={employeeOptions.find(o => o.code === targetEmpcod) || null}
+              onChange={(_, val) => setTargetEmpcod(val?.code || '')}
+              renderInput={(params) => <TextField {...params} placeholder="Sélectionner un employé…" />}
+            />
+            <MuiTextField
+              size="small"
+              placeholder="Message (optionnel) — sera affiché dans la notification"
+              value={uploadMessage}
+              onChange={(e) => setUploadMessage(e.target.value)}
+              disabled={!targetEmpcod}
+            />
+          </Box>
+          {targetEmpcod && (
+            <p style={{ marginTop: 8, fontSize: '0.75rem', color: '#0f5132' }}>
+              Le prochain document que vous ajouterez sera déposé dans le coffre de cet employé et celui-ci sera notifié.
+            </p>
+          )}
+        </section>
+      )}
 
       {/* Asset Collections */}
       <section style={{ marginBottom: '3rem' }}>
@@ -329,6 +398,10 @@ const CoffreFortModern = () => {
           </table>
         </div>
       </section>
+
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
+        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))}>{snack.msg}</Alert>
+      </Snackbar>
 
       {/* Floating Privacy Guard */}
       <div className="privacy-guard-bar">

@@ -4,7 +4,9 @@ import {
     TextField, Select, MenuItem, FormControl, CircularProgress,
     IconButton, Menu, ListItemIcon, ListItemText, Divider, Chip,
     Dialog, DialogTitle, DialogContent, DialogActions, Avatar,
+    InputAdornment, Tooltip,
 } from '@mui/material';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonIcon from '@mui/icons-material/Person';
@@ -410,6 +412,31 @@ const EmployeModernInner = () => {
         );
     }, [employeesList, empSearchQuery]);
 
+    /**
+     * Demande au serveur le prochain code employé selon le mode paramétré (Parametre.Parmodemp).
+     * Le nom courant du formulaire est passé en query : utile quand le mode est "N" (préfixe = nom).
+     */
+    const fetchNextEmpcod = React.useCallback(async () => {
+        if (!soccod) return;
+        try {
+            const params = new URLSearchParams();
+            if (sitcod) params.set('sitcod', sitcod);
+            if (formData.emplib) params.set('nom', String(formData.emplib));
+            const res = await apiInstance.get(`/Employes/get-next-empcod/${soccod}?${params.toString()}`);
+            if (res.data?.empcod) setFormData(prev => ({ ...prev, empcod: res.data.empcod }));
+        } catch (err) {
+            console.error('Auto-génération du matricule échouée', err);
+        }
+    }, [soccod, sitcod, formData.emplib]);
+
+    // Pré-remplissage à l'ouverture en mode création (si le matricule est encore vide).
+    useEffect(() => {
+        if (mode === 'save' && !formData.empcod && soccod) {
+            fetchNextEmpcod();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode, soccod]);
+
     useEffect(() => {
         if (formData.empcod && soccod && mode === 'update') {
             apiInstance.get(`/Employes/get-emp-horaires/${soccod}/${formData.empcod}`)
@@ -465,11 +492,51 @@ const EmployeModernInner = () => {
     };
 
     const handleApplyScanData = (data: Partial<Employe>) => {
-        setFormData(prev => ({ ...prev, ...data }));
+        // Le scan IA envoie souvent des chaînes vides ou null pour les champs qu'il n'a pas pu
+        // extraire (ex: empcod absent d'un CIN). Si on fusionne tel quel, ces vides écrasent les
+        // valeurs déjà calculées (ex: matricule auto-généré) → le POST renvoie 400 "Veuillez
+        // remplir les champs obligatoires". On filtre donc les vides / null / undefined avant le merge.
+        const cleaned: Partial<Employe> = {};
+        Object.entries(data).forEach(([k, v]) => {
+            if (v === null || v === undefined) return;
+            if (typeof v === 'string' && v.trim() === '') return;
+            (cleaned as any)[k] = v;
+        });
+        setFormData(prev => ({ ...prev, ...cleaned }));
         showSnackbar(`Données importées avec succès depuis le document`, 'success');
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        // Sécurité : si le matricule est vide à la création (cas d'un scan qui aurait écrasé
+        // l'auto-fetch initial avec une valeur vide), on demande au backend un nouveau code
+        // au dernier moment plutôt que d'envoyer un POST qui retournerait 400.
+        if (mode === 'save' && !String(formData.empcod || '').trim() && soccod) {
+            try {
+                const params = new URLSearchParams();
+                if (sitcod) params.set('sitcod', sitcod);
+                if (formData.emplib) params.set('nom', String(formData.emplib));
+                const r = await apiInstance.get(`/Employes/get-next-empcod/${soccod}?${params.toString()}`);
+                if (r.data?.empcod) {
+                    formData.empcod = r.data.empcod;
+                    setFormData(prev => ({ ...prev, empcod: r.data.empcod }));
+                }
+            } catch { /* on laisse continuer ; la validation suivante affichera l'erreur */ }
+        }
+
+        // À la création, l'email est utilisé pour générer le compte Utilisateur. Sans email,
+        // l'employé n'aura pas d'accès à l'application — on alerte explicitement avant de
+        // laisser passer.
+        const isCreating = mode === 'save';
+        if (isCreating && !String(formData.empemail || '').trim()) {
+            const proceed = window.confirm(
+                "Aucun email renseigné.\n\n" +
+                "Sans adresse email, cet employé ne pourra pas se connecter à l'application " +
+                "(aucun compte utilisateur ne peut être créé).\n\n" +
+                "Voulez-vous continuer quand même ?"
+            );
+            if (!proceed) return;
+        }
+
         setIsSaving(true);
         const payload: Employe = {
             ...formData, soccod: soccod || '', sitcod: sitcod || '',
@@ -668,7 +735,19 @@ const EmployeModernInner = () => {
                                         <Box>
                                             <Typography sx={labelStyle}>Matricule</Typography>
                                             <TextField name="empcod" value={formData.empcod} onChange={handleField} size="small" fullWidth
-                                                InputProps={{ readOnly: mode === 'update' }} sx={fieldStyle} placeholder="EMP-2024-000" />
+                                                InputProps={{
+                                                    readOnly: mode === 'update',
+                                                    endAdornment: mode === 'save' ? (
+                                                        <InputAdornment position="end">
+                                                            <Tooltip title="Régénérer le matricule selon le paramétrage société">
+                                                                <IconButton size="small" onClick={fetchNextEmpcod}>
+                                                                    <AutorenewIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </InputAdornment>
+                                                    ) : undefined,
+                                                }}
+                                                sx={fieldStyle} placeholder="Auto" />
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>Nom complet</Typography>
@@ -806,6 +885,9 @@ const EmployeModernInner = () => {
                                                         <MenuItem value="CDD">CDD</MenuItem>
                                                         <MenuItem value="STAGE">Stage</MenuItem>
                                                         <MenuItem value="FREELANCE">Freelance</MenuItem>
+                                                        <MenuItem value="CIVP">CIVP</MenuItem>
+                                                        <MenuItem value="OUVRIER">Ouvrier</MenuItem>
+                                                        <MenuItem value="ALTERNANCE">Alternance</MenuItem>
                                                     </Select>
                                                 </FormControl>
                                             </Box>

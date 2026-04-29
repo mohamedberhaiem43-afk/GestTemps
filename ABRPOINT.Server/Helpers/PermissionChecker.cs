@@ -42,20 +42,57 @@ namespace ABRPOINT.Server.Helpers
         {
             return code.ToLower() switch
             {
+                // Gestion Employés
                 "employe" => "Gestion Employés",
+                "emp_allait" => "Gestion Employés",
+
+                // Absences et Sanctions
                 "absence" => "Absences et Sanctions",
                 "sanction" => "Absences et Sanctions",
+                "emp_abs" => "Absences et Sanctions",
+                "emp_aut" => "Absences et Sanctions",
+                "tout_auto" => "Absences et Sanctions",
+
+                // Pointage et Temps
                 "pointeuse" => "Pointage et Temps",
                 "etat_point" => "Pointage et Temps",
+                "etat_period" => "Pointage et Temps",
+                "ppimp" => "Pointage et Temps",
+
+                // Contrats et Avenants
                 "contrat" => "Contrats et Avenants",
                 "emp_ctr" => "Contrats et Avenants",
+
+                // Gestion des Congés
                 "conge" => "Gestion des Congés",
                 "dem_conge" => "Gestion des Congés",
+                "frm_conge" => "Gestion des Congés",
+                "tout_conge" => "Gestion des Congés",
+                "frm_dcong" => "Gestion des Congés",
+
+                // Paie et Rémunération
                 "paie" => "Paie et Rémunération",
+
+                // Données de Base
                 "base" => "Données de Base",
+                "frm_ferie" => "Données de Base",
+
+                // Paramètres de Temps
                 "param" => "Paramètres de Temps",
+                "poste" => "Paramètres de Temps",
+
+                // Rapports et Statistiques
                 "rapport" => "Rapports et Statistiques",
+                "etat_ret" => "Rapports et Statistiques",
+                "etat_mens" => "Rapports et Statistiques",
+                "etat_abs" => "Rapports et Statistiques",
+                "etat_conge" => "Rapports et Statistiques",
+                "ech_ctr" => "Rapports et Statistiques",
+                "dec_conge" => "Rapports et Statistiques",
+
+                // Administration
                 "admin" => "Administration",
+
                 _ => code // Return original if no mapping
             };
         }

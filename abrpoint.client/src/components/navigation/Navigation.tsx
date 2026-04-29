@@ -23,7 +23,8 @@ import Pointeuse from '../Pointeuse/Pointeuse';
 import AutSortieGenerale from '../gestionEmploye/gestionAbsence/jourCompensation/AutSortieGenerale/AutSortieGenerale';
 import DashboardModernSync from '../Dashboard/DashboardModern';
 import EtatPeriodiqueModern from '../Pointeuse/EtatPeriodique/EtatPeriodiqueModern';
-import RenouvellementContrat from '../gestionEmploye/GestionContrats/Renouvellement/RenouvellementContrat';
+// RenouvellementContrat (page autonome) supprimée : le renouvellement est intégré à la liste
+// des contrats (bouton "Renouveler" par ligne) et au dashboard (KPI échéance → dialog).
 import Utilisateur from '../DonneeDeBase/Utilisteur/Utilisateur';
 import DemCongeModern from '../gestionEmploye/gestionConge/DemConge/DemCongeModern';
 import DemandeAutorisationModern from '../gestionEmploye/DemandeAutorisation/DemandeAutorisationModern';
@@ -153,7 +154,6 @@ const useNavigationItems = (): NavGroup[] => {
     'gestion-employe': 'Gestion Employés',
     'profil-employe': 'Gestion Employés',
     'contrat': 'Contrats et Avenants',
-    'renouvellement-contrat': 'Contrats et Avenants',
     'allaitement': 'Gestion Employés',
     'gestion-de-conge': 'Demande de Congé',
     'gestion-de-solde': 'Gestion des Congés',
@@ -263,7 +263,8 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
         ...(canSee('profil-employe') ? [{ label: 'Profil Employé', href: '/dashboard/profil-employe', icon: User }] : []),
         ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat/contrat', icon: FileText }] : []),
-        ...(canSee('renouvellement-contrat') ? [{ label: t('navigation.renewal'), href: '/dashboard/contrat/renouvellement-contrat', icon: RefreshCw }] : []),
+        // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
+        // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
         ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
         ...(canSee('coffre-fort') ? [{ label: 'Coffre-fort', href: '/dashboard/coffre-fort', icon: Shield }] : []),
         ...(canSee('admin-vault') ? [{ label: 'Vue Globale Vault', href: '/dashboard/admin-vault', icon: Eye }] : []),
@@ -393,7 +394,8 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/parametres': content = <BasicTabs />; break;
     case '/dashboard/allaitement': content = <AllaitementModern />; break;
     case '/dashboard/contrat/contrat': content = <GestionContratsModern />; break;
-    case '/dashboard/contrat/renouvellement-contrat': content = <RenouvellementContrat />; break;
+    // /dashboard/contrat/renouvellement-contrat retiré : flux intégré à la liste des contrats
+    // et au dashboard (KPI échéance → dialog).
     case '/dashboard/saisie-classe-horaire': content = <ClasseHoraireModern />; break;
     case '/dashboard/saisie-poste-de-travail': content = <MainModern />; break;
     case '/dashboard/Repos': content = <ReposModern />; break;

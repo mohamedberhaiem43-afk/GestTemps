@@ -29,8 +29,25 @@ public class BulkImportController : ControllerBase
 
     public sealed record ImportReport(int Inserted, int Skipped, int Created, List<string> Errors);
 
-    public sealed class ServiceRow { public string? Serlib { get; set; } }
+    public sealed class ServiceRow { public string? Serlib { get; set; } public string? Serloc { get; set; } }
     public sealed class FonctionRow { public string? Fonlib { get; set; } public string? Fontype { get; set; } }
+    public sealed class DirectionRow
+    {
+        public string? Dircod { get; set; }
+        public string? Dirlib { get; set; }
+        public string? Dirloc { get; set; }
+        public string? Diremail { get; set; }
+        public string? Dirresp { get; set; }
+    }
+    public sealed class SectionRow
+    {
+        public string? Seccod { get; set; }
+        public string? Seclib { get; set; }
+        public string? Sectype { get; set; }
+    }
+    public sealed class VilleRow { public string? Vilcod { get; set; } public string? Villib { get; set; } }
+    public sealed class PaysRow { public string? Natcod { get; set; } public string? Natlib { get; set; } }
+    public sealed class QualificationRow { public string? Qualib { get; set; } public string? Catcod { get; set; } }
     public sealed class EmployeRow
     {
         public string? Empcod { get; set; }
@@ -49,6 +66,11 @@ public class BulkImportController : ControllerBase
 
     public sealed class ServicesImportRequest { public List<ServiceRow> Rows { get; set; } = new(); public string? Soccod { get; set; } }
     public sealed class FonctionsImportRequest { public List<FonctionRow> Rows { get; set; } = new(); public string? Soccod { get; set; } }
+    public sealed class DirectionsImportRequest { public List<DirectionRow> Rows { get; set; } = new(); public string? Soccod { get; set; } }
+    public sealed class SectionsImportRequest { public List<SectionRow> Rows { get; set; } = new(); public string? Soccod { get; set; } }
+    public sealed class VillesImportRequest { public List<VilleRow> Rows { get; set; } = new(); }
+    public sealed class PaysImportRequest { public List<PaysRow> Rows { get; set; } = new(); }
+    public sealed class QualificationsImportRequest { public List<QualificationRow> Rows { get; set; } = new(); public string? Soccod { get; set; } }
     public sealed class EmployesImportRequest { public List<EmployeRow> Rows { get; set; } = new(); public string Soccod { get; set; } = ""; public string Sitcod { get; set; } = "01"; }
 
     [HttpPost("services")]
@@ -187,12 +209,12 @@ public class BulkImportController : ControllerBase
                     }
                 }
 
-                // Empcod : utilise celui fourni ou auto-génère un code séquentiel sur 6 chiffres.
+                // Empcod : utilise celui fourni ou auto-génère selon le mode paramétré
+                // (préfixe société, préfixe nom, ou pur séquentiel).
                 var empcod = row.Empcod?.Trim();
                 if (string.IsNullOrWhiteSpace(empcod))
                 {
-                    var existingCount = await _db.Employes.CountAsync(e => e.Soccod == soccod);
-                    empcod = (existingCount + inserted + 1).ToString().PadLeft(6, '0');
+                    empcod = await SequentialCodeGenerator.NextEmpcodAsync(_db, soccod, sitcod, name);
                 }
                 if (existingEmpcods.Contains(empcod)) { skipped++; continue; }
 
@@ -229,5 +251,171 @@ public class BulkImportController : ControllerBase
             }
         }
         return Ok(new ImportReport(inserted, skipped, created, errors));
+    }
+
+    [HttpPost("directions")]
+    public async Task<ActionResult<ImportReport>> ImportDirections([FromBody] DirectionsImportRequest req)
+    {
+        if (req.Rows == null || req.Rows.Count == 0) return BadRequest(new { error = "Aucune ligne." });
+        var soccod = string.IsNullOrWhiteSpace(req.Soccod)
+            ? (await _db.Societes.Select(s => s.Soccod).FirstOrDefaultAsync() ?? "01")
+            : req.Soccod;
+
+        // On dédoublonne par Dircod (clé fonctionnelle) ; à défaut, par libellé.
+        var existingCodes = (await _db.Directions.Where(d => d.Soccod == soccod).Select(d => d.Dircod).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToUpperInvariant()).ToHashSet();
+        var existingLibs = (await _db.Directions.Where(d => d.Soccod == soccod).Select(d => d.Dirlib).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToLowerInvariant()).ToHashSet();
+        var inserted = 0; var skipped = 0; var errors = new List<string>();
+
+        foreach (var row in req.Rows)
+        {
+            var lib = row.Dirlib?.Trim();
+            if (string.IsNullOrWhiteSpace(lib)) { skipped++; continue; }
+            try
+            {
+                var code = string.IsNullOrWhiteSpace(row.Dircod)
+                    ? await SequentialCodeGenerator.NextDirectionCodeAsync(_db, soccod)
+                    : row.Dircod!.Trim();
+                if (existingCodes.Contains(code.ToUpperInvariant()) || existingLibs.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
+
+                _db.Directions.Add(new Direction
+                {
+                    Dircod = code, Soccod = soccod, Dirlib = lib,
+                    Dirloc = row.Dirloc?.Trim(), Diremail = row.Diremail?.Trim(), Dirresp = row.Dirresp?.Trim(),
+                    CreatedAt = DateTime.UtcNow,
+                });
+                await _db.SaveChangesAsync();
+                existingCodes.Add(code.ToUpperInvariant());
+                existingLibs.Add(lib.ToLowerInvariant());
+                inserted++;
+            }
+            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+        }
+        return Ok(new ImportReport(inserted, skipped, 0, errors));
+    }
+
+    [HttpPost("sections")]
+    public async Task<ActionResult<ImportReport>> ImportSections([FromBody] SectionsImportRequest req)
+    {
+        if (req.Rows == null || req.Rows.Count == 0) return BadRequest(new { error = "Aucune ligne." });
+        var soccod = string.IsNullOrWhiteSpace(req.Soccod)
+            ? (await _db.Societes.Select(s => s.Soccod).FirstOrDefaultAsync() ?? "01")
+            : req.Soccod;
+
+        var existingCodes = (await _db.Sections.Where(s => s.Soccod == soccod).Select(s => s.Seccod).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToUpperInvariant()).ToHashSet();
+        var existingLibs = (await _db.Sections.Where(s => s.Soccod == soccod).Select(s => s.Seclib).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToLowerInvariant()).ToHashSet();
+        var inserted = 0; var skipped = 0; var errors = new List<string>();
+
+        foreach (var row in req.Rows)
+        {
+            var lib = row.Seclib?.Trim();
+            if (string.IsNullOrWhiteSpace(lib)) { skipped++; continue; }
+            try
+            {
+                var code = string.IsNullOrWhiteSpace(row.Seccod)
+                    ? await SequentialCodeGenerator.NextSectionCodeAsync(_db, soccod)
+                    : row.Seccod!.Trim();
+                if (existingCodes.Contains(code.ToUpperInvariant()) || existingLibs.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
+
+                _db.Sections.Add(new Section { Seccod = code, Soccod = soccod, Seclib = lib, Sectype = row.Sectype?.Trim(), CreatedAt = DateTime.UtcNow });
+                await _db.SaveChangesAsync();
+                existingCodes.Add(code.ToUpperInvariant());
+                existingLibs.Add(lib.ToLowerInvariant());
+                inserted++;
+            }
+            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+        }
+        return Ok(new ImportReport(inserted, skipped, 0, errors));
+    }
+
+    [HttpPost("villes")]
+    public async Task<ActionResult<ImportReport>> ImportVilles([FromBody] VillesImportRequest req)
+    {
+        if (req.Rows == null || req.Rows.Count == 0) return BadRequest(new { error = "Aucune ligne." });
+        var existingCodes = (await _db.Villes.Select(v => v.Vilcod).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToUpperInvariant()).ToHashSet();
+        var inserted = 0; var skipped = 0; var errors = new List<string>();
+
+        foreach (var row in req.Rows)
+        {
+            var lib = row.Villib?.Trim();
+            if (string.IsNullOrWhiteSpace(lib)) { skipped++; continue; }
+            try
+            {
+                var code = string.IsNullOrWhiteSpace(row.Vilcod)
+                    ? await SequentialCodeGenerator.NextVilleCodeAsync(_db)
+                    : row.Vilcod!.Trim();
+                if (existingCodes.Contains(code.ToUpperInvariant())) { skipped++; continue; }
+
+                _db.Villes.Add(new Ville { Vilcod = code, Villib = lib, CreatedAt = DateTime.UtcNow });
+                await _db.SaveChangesAsync();
+                existingCodes.Add(code.ToUpperInvariant());
+                inserted++;
+            }
+            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+        }
+        return Ok(new ImportReport(inserted, skipped, 0, errors));
+    }
+
+    [HttpPost("pays")]
+    public async Task<ActionResult<ImportReport>> ImportPays([FromBody] PaysImportRequest req)
+    {
+        if (req.Rows == null || req.Rows.Count == 0) return BadRequest(new { error = "Aucune ligne." });
+        var existingCodes = (await _db.Nations.Select(n => n.Natcod).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToUpperInvariant()).ToHashSet();
+        var inserted = 0; var skipped = 0; var errors = new List<string>();
+
+        foreach (var row in req.Rows)
+        {
+            var lib = row.Natlib?.Trim();
+            if (string.IsNullOrWhiteSpace(lib)) { skipped++; continue; }
+            try
+            {
+                var code = string.IsNullOrWhiteSpace(row.Natcod)
+                    ? await SequentialCodeGenerator.NextNationCodeAsync(_db)
+                    : row.Natcod!.Trim();
+                if (existingCodes.Contains(code.ToUpperInvariant())) { skipped++; continue; }
+
+                _db.Nations.Add(new Nation { Natcod = code, Natlib = lib, CreatedAt = DateTime.UtcNow });
+                await _db.SaveChangesAsync();
+                existingCodes.Add(code.ToUpperInvariant());
+                inserted++;
+            }
+            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+        }
+        return Ok(new ImportReport(inserted, skipped, 0, errors));
+    }
+
+    [HttpPost("qualifications")]
+    public async Task<ActionResult<ImportReport>> ImportQualifications([FromBody] QualificationsImportRequest req)
+    {
+        if (req.Rows == null || req.Rows.Count == 0) return BadRequest(new { error = "Aucune ligne." });
+        var soccod = string.IsNullOrWhiteSpace(req.Soccod)
+            ? (await _db.Societes.Select(s => s.Soccod).FirstOrDefaultAsync() ?? "01")
+            : req.Soccod;
+
+        var existingLibs = (await _db.Qualifs.Where(q => q.Soccod == soccod).Select(q => q.Qualib).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToLowerInvariant()).ToHashSet();
+        var inserted = 0; var skipped = 0; var errors = new List<string>();
+
+        foreach (var row in req.Rows)
+        {
+            var lib = row.Qualib?.Trim();
+            if (string.IsNullOrWhiteSpace(lib)) { skipped++; continue; }
+            if (existingLibs.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
+            try
+            {
+                var code = await SequentialCodeGenerator.NextQualifCodeAsync(_db, soccod);
+                _db.Qualifs.Add(new Qualif { Quacod = code, Soccod = soccod, Qualib = lib, Catcod = row.Catcod?.Trim(), CreatedAt = DateTime.UtcNow });
+                await _db.SaveChangesAsync();
+                existingLibs.Add(lib.ToLowerInvariant());
+                inserted++;
+            }
+            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+        }
+        return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
 }

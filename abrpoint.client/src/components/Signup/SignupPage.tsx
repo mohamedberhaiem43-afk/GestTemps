@@ -141,9 +141,13 @@ export default function SignupPage() {
       // Recharge le contexte d'auth maintenant que les cookies JWT du nouveau tenant sont posés
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();
-      // Trial 14j actif : on entre directement dans l'app sans imposer le paiement immédiat.
-      // Le bandeau de paiement sera proposé sur le dashboard pour finaliser plus tard.
-      navigate('/dashboard', { state: { ...planFromPricing, signupRedirectUrl: data.redirectUrl } });
+      // Si l'utilisateur arrive depuis PricingPage avec un plan choisi, on l'envoie directement
+      // sur PlanConfiguration pour finaliser le paiement Stripe. Sinon, dashboard avec le trial 14j.
+      if (planFromPricing?.plan) {
+        navigate('/dashboard/plan-configuration', { state: { ...planFromPricing, signupRedirectUrl: data.redirectUrl } });
+      } else {
+        navigate('/dashboard', { state: { signupRedirectUrl: data.redirectUrl } });
+      }
     } catch (e: any) {
       const msg = e?.response?.data?.error || e?.response?.data?.detail || 'Inscription échouée. Réessayez.';
       setError(msg);
