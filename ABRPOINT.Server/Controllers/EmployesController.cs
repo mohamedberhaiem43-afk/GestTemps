@@ -7,6 +7,8 @@ using ABRPOINT.Server.Annotations.EmployeAttributes;
 using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
+using ABRPOINT.Server.Tenancy;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -20,13 +22,27 @@ namespace ABRPOINT.Server.Controllers
         private readonly IReportsGenerationService _reportsGenerationService;
         private readonly EncryptionService _encryptionService;
         private readonly ApplicationDbContext _db;
-        public EmployesController(IEmployeRepository employeRepository, IReportsGenerationService reportsGenerationService, IUtilisateurRepository utilisateurRepository, EncryptionService encryptionService, ApplicationDbContext db)
+        private readonly IDbContextFactory<MasterDbContext> _masterFactory;
+        private readonly ICurrentTenant _currentTenant;
+        private readonly ILogger<EmployesController> _log;
+        public EmployesController(
+            IEmployeRepository employeRepository,
+            IReportsGenerationService reportsGenerationService,
+            IUtilisateurRepository utilisateurRepository,
+            EncryptionService encryptionService,
+            ApplicationDbContext db,
+            IDbContextFactory<MasterDbContext> masterFactory,
+            ICurrentTenant currentTenant,
+            ILogger<EmployesController> log)
         {
             _employeRepository = employeRepository;
             _reportsGenerationService = reportsGenerationService;
             _utilisateurRepository = utilisateurRepository;
             _encryptionService = encryptionService;
             _db = db;
+            _masterFactory = masterFactory;
+            _currentTenant = currentTenant;
+            _log = log;
         }
 
         /// <summary>
@@ -289,6 +305,19 @@ namespace ABRPOINT.Server.Controllers
             {
                 if(employe != null && !string.IsNullOrEmpty(employe.Empcod))
                 {
+                    // Defense in depth : si une chaîne vide arrive sur un champ FK (cas
+                    // typique : scan IA qui n'a pas extrait le code → reste ""), on la
+                    // remet à null pour ne pas violer la contrainte FK avec une chaîne vide
+                    // qui ne correspond à aucune ligne référencée.
+                    employe.Foncod  = string.IsNullOrWhiteSpace(employe.Foncod)  ? null : employe.Foncod;
+                    employe.Quacod  = string.IsNullOrWhiteSpace(employe.Quacod)  ? null : employe.Quacod;
+                    employe.Dircod  = string.IsNullOrWhiteSpace(employe.Dircod)  ? null : employe.Dircod;
+                    employe.Sercod  = string.IsNullOrWhiteSpace(employe.Sercod)  ? null : employe.Sercod;
+                    employe.Seccod  = string.IsNullOrWhiteSpace(employe.Seccod)  ? null : employe.Seccod;
+                    employe.Catcod  = string.IsNullOrWhiteSpace(employe.Catcod)  ? null : employe.Catcod;
+                    employe.Natcod  = string.IsNullOrWhiteSpace(employe.Natcod)  ? null : employe.Natcod;
+                    employe.Vilcod  = string.IsNullOrWhiteSpace(employe.Vilcod)  ? null : employe.Vilcod;
+
                     // Save plain CIN for user password before encrypting
                     var plainCin = employe.Empcin;
                     // Encrypt sensitive fields before saving
@@ -319,13 +348,60 @@ namespace ABRPOINT.Server.Controllers
                             Uticod = employe.Empcod,
                         };
                         await _utilisateurRepository.AddAsync(utilisateur, socuser);
+
+                        // ⚠ Sans cet upsert, l'employé fraîchement créé ne peut PAS se connecter :
+                        // /Auth/lookup-tenant interroge la table master TenantEmailIndex pour
+                        // résoudre le slug du tenant à partir de l'email saisi sur la page de
+                        // login. Si l'email n'y figure pas → 404 "Aucun compte trouvé pour cet
+                        // email". On l'ajoute donc en même temps que le compte utilisateur.
+                        if (!string.IsNullOrWhiteSpace(employe.Empemail))
+                        {
+                            try
+                            {
+                                var slug = _currentTenant.Current?.Slug;
+                                if (!string.IsNullOrWhiteSpace(slug))
+                                {
+                                    var emailLower = employe.Empemail.Trim().ToLowerInvariant();
+                                    await using var master = await _masterFactory.CreateDbContextAsync();
+                                    var existing = await master.TenantEmailIndex
+                                        .FirstOrDefaultAsync(x => x.Email == emailLower);
+                                    if (existing == null)
+                                    {
+                                        master.TenantEmailIndex.Add(new TenantEmailIndex
+                                        {
+                                            Email = emailLower,
+                                            Slug = slug,
+                                            CreatedAt = DateTime.UtcNow,
+                                        });
+                                        await master.SaveChangesAsync();
+                                    }
+                                    else if (!string.Equals(existing.Slug, slug, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        // Email déjà connu pour un autre tenant : on n'écrase pas
+                                        // (un email est unique à un tenant) — on log l'incident pour
+                                        // que l'admin puisse trancher.
+                                        _log.LogWarning(
+                                            "Email {Email} déjà mappé sur le tenant {OtherSlug} ; nouvelle création sur {Slug} ignorée pour le routage login.",
+                                            emailLower, existing.Slug, slug);
+                                    }
+                                }
+                            }
+                            catch (Exception indexEx)
+                            {
+                                // Ne pas faire échouer la requête : l'employé existe déjà dans
+                                // le tenant ; faute d'index, l'admin pourra toujours router le
+                                // login à la main via le slug, mais l'utilisateur métier verra
+                                // un "compte introuvable" jusqu'à correction.
+                                _log.LogError(indexEx, "Échec d'écriture TenantEmailIndex pour {Email}", employe.Empemail);
+                            }
+                        }
                     }
                     catch (Exception userEx)
                     {
                         // Log the error but don't fail - employee was already saved successfully
-                        Console.WriteLine($"Avertissement: Employé créé mais compte utilisateur échoué pour {employe.Empcod}: {userEx.Message}");
+                        _log.LogWarning(userEx, "Employé créé mais compte utilisateur échoué pour {Empcod}", employe.Empcod);
                     }
-                    
+
                     return Ok(new { message = "Employé ajouté avec succès" });
                 }
                     return BadRequest(new { message = "Veuillez remplir les champs obligatoires" });

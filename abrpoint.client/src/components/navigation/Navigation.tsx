@@ -55,6 +55,7 @@ import AdminVaultModern from '../gestionEmploye/Vault/AdminVaultModern';
 import ContractBuilderModern from '../gestionEmploye/Vault/ContractBuilderModern';
 import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
 import PricingPage from '../Pricing/PricingPage';
+import AboutPage from '../About/AboutPage';
 import PaymentPage from '../Pricing/PaymentPage';
 import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
 import NotificationCenter from './NotificationCenter';
@@ -363,6 +364,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
   switch (pathname) {
     // Public marketing/pricing landing — visible sans authentification (approche Odoo).
     case '/': content = <PricingPage />; break;
+    case '/about': content = <AboutPage />; break;
     case '/login': content = <CredentialsSignInPage />; break;
     case '/signup': content = <SignupPage />; break;
     case '/dashboard': content = <DashboardModernSync />; break;
@@ -705,7 +707,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // Track navigation to add tabs
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/login' || pathname === '/signup') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup') return;
 
     // Find the item in flattened navigation to get title and icon
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
@@ -724,7 +726,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // ── Recent Pages Tracking ──
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/dashboard') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/dashboard') return;
 
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
@@ -768,7 +770,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   ];
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
-  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup';
+  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup';
   const isProfilePage = pathname === '/dashboard/profil-employe';
 
   if (!authReady) {

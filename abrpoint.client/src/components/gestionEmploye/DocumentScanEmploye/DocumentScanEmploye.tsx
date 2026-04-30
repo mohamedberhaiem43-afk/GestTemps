@@ -136,16 +136,20 @@ const DocumentScanEmploye: React.FC<DocumentScanEmployeProps> = ({ open, onClose
   const handleApply = () => {
     if (!editedData) return;
     const d = editedData;
+    // ⚠ On ne propage PAS les codes de clés étrangères (foncod, quacod, dircod, sercod,
+    // seccod, catcod, natcod, vilcod) extraits par l'IA : le scan retourne souvent un
+    // libellé ("Comptable") au lieu d'un code valide en base, ce qui faisait échouer le
+    // POST côté serveur avec une violation de contrainte FK ("FOREIGN KEY constraint
+    // failed"). L'utilisateur sélectionne ces champs manuellement via les listes
+    // déroulantes du formulaire après l'application du scan.
     onApplyData({
       empcod: d.empcod || '', emplib: d.emplib || '', empmat: d.empmat || null,
       empsexe: d.empsexe || null, empcin: d.empcin || '', empdnais: d.empdnais || null,
       emplnais: d.emplnais || null, empsitfam: d.empsitfam || null, empnbp: d.empnbp || 0,
       empadr: d.empadr || null, emptel: d.emptel || null, empmob: d.empmob || null,
       empemail: d.empemail || null, empemb: d.empemb ? new Date(d.empemb) : null,
-      empcontrat: d.empcontrat || null, foncod: d.foncod || null, empfonc: d.empfonc || '',
-      quacod: d.quacod || null, dircod: d.dircod || null, sercod: d.sercod || null,
-      seccod: d.seccod || null, empsbase: d.empsbase || '', empsbrut: d.empsbrut || '',
-      catcod: d.catcod || null, natcod: d.natcod || null, vilcod: d.vilcod || null,
+      empcontrat: d.empcontrat || null, empfonc: d.empfonc || '',
+      empsbase: d.empsbase || '', empsbrut: d.empsbrut || '',
       empfoncar: d.empfoncar || null, emplibar: d.emplibar || null, empadrar: d.empadrar || null,
     });
     handleClose();

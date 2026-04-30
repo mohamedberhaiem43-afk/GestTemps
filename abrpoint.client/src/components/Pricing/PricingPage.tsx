@@ -30,12 +30,12 @@ const PricingPage: React.FC = () => {
       target: 'PME en croissance',
       price: billingCycle === 'monthly' ? 7.5 : 6.0,
       period: '/ utilisateur / mois',
-      description: 'Suite complète : pointage, congés et préparation paie pour les équipes structurées.',
+      description: 'Suite complète : pointage, congés et gestion du temps pour les équipes structurées.',
       features: [
         'Utilisateurs illimités',
         "Pointeuses biométriques & badgeuses",
         'Gestion congés, autorisations & sanctions',
-        "Préparation paie & exports comptables",
+        "Exports comptables & reporting RH",
         'Support prioritaire',
       ],
       cta: 'Essayer Standard',
@@ -70,8 +70,8 @@ const PricingPage: React.FC = () => {
       a: "Nous comptabilisons uniquement les collaborateurs actifs marqués 'A' dans Concorde. Lorsqu'un employé quitte l'entreprise, son siège est immédiatement disponible pour un nouveau recrutement sans surcoût.",
     },
     {
-      q: 'Mes données de pointage et de paie sont-elles sécurisées ?',
-      a: "La sécurité est au cœur de Concorde Workforce. Toutes les données (pointages, salaires, contrats) sont chiffrées en transit (TLS 1.3) et au repos (AES-256), avec une conformité RGPD totale et des sauvegardes automatisées.",
+      q: 'Mes données de pointage et RH sont-elles sécurisées ?',
+      a: "La sécurité est au cœur de Concorde Workforce. Toutes les données (pointages, contrats, fiches employés) sont chiffrées en transit (TLS 1.3) et au repos (AES-256), avec une conformité RGPD totale et des sauvegardes automatisées.",
     },
     {
       q: 'Puis-je connecter mes pointeuses existantes ?',
@@ -91,17 +91,22 @@ const PricingPage: React.FC = () => {
             <img
               src="/Concorde.png"
               alt="Logo Concorde"
-              style={{ height: 36, width: 'auto', objectFit: 'contain' }}
+              style={{ height: 64, width: 'auto', objectFit: 'contain' }}
             />
-            <span className="text-2xl font-bold tracking-tight text-primary font-headline">
+            <span className="text-3xl font-bold tracking-tight text-primary font-headline">
               Concorde
             </span>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            <a className="text-on-surface-variant font-medium hover:text-primary transition-colors text-xs tracking-wider uppercase" href="#">Produit</a>
-            <a className="text-on-surface-variant font-medium hover:text-primary transition-colors text-xs tracking-wider uppercase" href="#">Solutions</a>
+            {/* Liens Produit / Solutions retirés : pas encore de page dédiée. */}
             <a className="text-primary border-b-2 border-primary pb-1 text-xs tracking-wider uppercase font-bold" href="#">Tarifs</a>
-            <a className="text-on-surface-variant font-medium hover:text-primary transition-colors text-xs tracking-wider uppercase" href="#">À propos</a>
+            <button
+              type="button"
+              className="text-on-surface-variant font-medium hover:text-primary transition-colors text-xs tracking-wider uppercase"
+              onClick={() => navigate('/about')}
+            >
+              À propos
+            </button>
           </div>
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
@@ -131,10 +136,10 @@ const PricingPage: React.FC = () => {
       {/* Hero Section */}
       <header className="pt-20 pb-12 px-8 max-w-7xl mx-auto text-center">
         <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tight text-on-surface mb-6 leading-tight">
-          Le pointage et la paie <br className="hidden md:block" /> simplifiés pour vos équipes
+          Le pointage et la gestion du temps <br className="hidden md:block" /> simplifiés pour vos équipes
         </h1>
         <p className="text-on-surface-variant text-lg max-w-2xl mx-auto mb-10 font-body leading-relaxed">
-          Concorde Workforce centralise pointage, congés, autorisations de sortie et préparation paie dans une seule plateforme conforme et sécurisée.
+          Concorde Workforce centralise pointage, congés, autorisations de sortie et reporting RH dans une seule plateforme conforme et sécurisée.
         </p>
 
         {/* Toggle Switch */}
@@ -276,7 +281,7 @@ const PricingPage: React.FC = () => {
               <div className="text-2xl font-black text-on-surface font-headline uppercase tracking-tighter">Concorde Workforce</div>
             </div>
             <p className="text-on-surface-variant text-sm font-body leading-relaxed">
-              La plateforme de gestion du temps de travail nouvelle génération : pointage, congés, autorisations et paie réunis dans un même espace.
+              La plateforme de gestion du temps de travail nouvelle génération : pointage, congés, autorisations et reporting RH réunis dans un même espace.
             </p>
             <p className="text-outline text-xs mt-8 font-medium">© {new Date().getFullYear()} Concorde Workforce. Tous droits réservés.</p>
           </div>
