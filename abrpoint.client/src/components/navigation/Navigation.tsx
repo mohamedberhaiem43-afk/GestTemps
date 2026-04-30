@@ -108,6 +108,7 @@ import {
   Home,
   DollarSign,
   LogOut,
+  XCircle,
 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -758,6 +759,14 @@ function DashboardLayoutAccount(_props: DemoProps) {
     }
   };
 
+  const handleCloseAllTabs = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const dashboardTab: OpenedTab = { label: 'Tableau de bord', href: '/dashboard', icon: 'Home' };
+    setOpenedTabs([dashboardTab]);
+    localStorage.setItem('openedTabs', JSON.stringify([dashboardTab]));
+    if (pathname !== '/dashboard') navigate('/dashboard');
+  };
+
 
   const ToolbarActions = React.useMemo(
     () => makeToolbarActions(isDark, NAVIGATION, (h) => navigate(h), clearAuth, userName),
@@ -909,6 +918,36 @@ function DashboardLayoutAccount(_props: DemoProps) {
               </Box>
             );
           })}
+          {openedTabs.length > 1 && (
+            <Tooltip title="Fermer tous les onglets" arrow>
+              <IconButton
+                size="small"
+                onClick={handleCloseAllTabs}
+                sx={{
+                  ml: 'auto',
+                  alignSelf: 'center',
+                  mb: 0.5,
+                  color: isDark ? '#fca5a5' : '#dc2626',
+                  bgcolor: isDark ? 'rgba(239,68,68,0.08)' : 'rgba(220,38,38,0.06)',
+                  borderRadius: '6px',
+                  px: 0.75,
+                  py: 0.25,
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  gap: 0.5,
+                  flexShrink: 0,
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.12)',
+                  }
+                }}
+              >
+                <XCircle size={14} />
+                <Typography sx={{ fontSize: '11px', fontWeight: 600, ml: 0.25 }}>
+                  Fermer tout
+                </Typography>
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
 
         <DemoPageContent pathname={pathname} />

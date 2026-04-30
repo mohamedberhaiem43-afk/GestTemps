@@ -91,9 +91,9 @@ const PricingPage: React.FC = () => {
             <img
               src="/Concorde.png"
               alt="Logo Concorde"
-              style={{ height: 64, width: 'auto', objectFit: 'contain' }}
+              style={{ height: 96, width: 'auto', objectFit: 'contain' }}
             />
-            <span className="text-3xl font-bold tracking-tight text-primary font-headline">
+            <span className="text-xl font-bold tracking-tight text-primary font-headline">
               Concorde
             </span>
           </div>

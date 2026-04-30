@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Tenancy;
 using FastReport;
 using FastReport.Data;
 using FastReport.Export.PdfSimple;
@@ -19,19 +20,29 @@ namespace ABRPOINT.Server.Repository
         private readonly string _vaultPath;
         private readonly IConverter _pdfConverter;
 
-        public ReportsGenerationService(IConfiguration config, IWebHostEnvironment env, IConverter converter)
+        public ReportsGenerationService(IConfiguration config, IWebHostEnvironment env, IConverter converter, ICurrentTenant currentTenant)
         {
             _pdfConverter = converter;
             _vaultPath = Path.Combine(env.ContentRootPath, "VaultTemplates");
             if (!Directory.Exists(_vaultPath)) Directory.CreateDirectory(_vaultPath);
 
             FastReport.Utils.RegisteredObjects.AddConnection(typeof(MsSqlDataConnection));
-            var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-            var dbName = Environment.GetEnvironmentVariable("DB_NAME");
-            var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
-            var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 
-            var connectionString = $"Server={dbHost};Database={dbName};User Id={dbUser};Password={dbPassword};TrustServerCertificate=True;";
+            // Multi-tenant: utiliser la base du tenant courant via le template de connexion.
+            // Fallback sur DefaultConnection (mono-tenant / migrations / dev sans slug).
+            string connectionString;
+            var tenant = currentTenant?.Current;
+            var template = config.GetConnectionString("TenantTemplate");
+            if (tenant != null && !string.IsNullOrWhiteSpace(template) && !string.IsNullOrWhiteSpace(tenant.DbName))
+            {
+                connectionString = template.Replace("{DbName}", tenant.DbName);
+            }
+            else
+            {
+                connectionString = config.GetConnectionString("FastReportConnection")
+                    ?? config.GetConnectionString("DefaultConnection")
+                    ?? throw new InvalidOperationException("Aucune chaîne de connexion configurée pour les rapports.");
+            }
             _sqlConnection = new MsSqlDataConnection { ConnectionString = connectionString };
         }
 

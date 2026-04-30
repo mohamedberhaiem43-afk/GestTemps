@@ -141,10 +141,11 @@ export default function SignupPage() {
       // Recharge le contexte d'auth maintenant que les cookies JWT du nouveau tenant sont posés
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();
-      // Si l'utilisateur arrive depuis PricingPage avec un plan choisi, on l'envoie directement
-      // sur PlanConfiguration pour finaliser le paiement Stripe. Sinon, dashboard avec le trial 14j.
+      // L'utilisateur arrive depuis PricingPage avec un plan choisi → on le redirige vers la page
+      // Tarifs (dans le dashboard) pour qu'il visualise / confirme son choix avant le paiement Stripe.
+      // Sans plan choisi → dashboard avec le trial 14j.
       if (planFromPricing?.plan) {
-        navigate('/dashboard/plan-configuration', { state: { ...planFromPricing, signupRedirectUrl: data.redirectUrl } });
+        navigate('/dashboard/pricing', { state: { ...planFromPricing, signupRedirectUrl: data.redirectUrl } });
       } else {
         navigate('/dashboard', { state: { signupRedirectUrl: data.redirectUrl } });
       }
