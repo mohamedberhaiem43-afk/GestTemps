@@ -424,3 +424,39 @@
   padding: 32px;
   font-size: 13px;
 }
+/* ── Selected row + Contextual details header (mockup pattern) ───────────── */
+.ref-row--selected {
+  background: rgba(0, 64, 161, 0.05) !important;
+  border-left: 4px solid #0040a1 !important;
+}
+.ref-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 4px;
+  margin-top: 8px;
+  border-bottom: 1px solid rgba(195, 198, 214, 0.3);
+}
+.ref-details-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #0040a1;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ref-details-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #191c1e;
+}
+.ref-details-code {
+  color: #0040a1;
+}
+.ref-details-sub {
+  font-size: 13px !important;
+  color: #424654;
+}

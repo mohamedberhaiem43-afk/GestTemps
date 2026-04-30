@@ -358,4 +358,18 @@ public partial class Parametre : BaseEntity
     [Column("parmodemp")]
     [StringLength(1)]
     public string? Parmodemp { get; set; }
+
+    /// <summary>
+    /// Date limite (format "DD-MM") au-delà de laquelle les congés payés non pris sont
+    /// transférés automatiquement vers le CET. Défaut : 31-05.
+    /// </summary>
+    [Column("parcetdatelim")]
+    [StringLength(5)]
+    public string? Parcetdatelim { get; set; }
+
+    /// <summary>
+    /// Plafond en jours du transfert CET annuel. Défaut : 10.
+    /// </summary>
+    [Column("parcetmaxjours")]
+    public float? Parcetmaxjours { get; set; }
 }

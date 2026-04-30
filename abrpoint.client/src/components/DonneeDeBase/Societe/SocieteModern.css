@@ -372,3 +372,42 @@ table.soc-table {
   .soc-header { flex-direction: column; align-items: flex-start; }
   .soc-title { font-size: 24px; }
 }
+/* ── Selected row + Contextual details header (mockup pattern) ───────────── */
+.soc-row--selected {
+  background: rgba(0, 64, 161, 0.05) !important;
+  border-left: 4px solid #0040a1 !important;
+}
+.soc-row--selected td:first-child {
+  border-left: 4px solid transparent;
+}
+.soc-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  margin-top: 8px;
+  border-bottom: 1px solid rgba(195, 198, 214, 0.3);
+}
+.soc-details-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #0040a1;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.soc-details-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #191c1e;
+}
+.soc-details-code {
+  color: #0040a1;
+}
+.soc-details-sub {
+  font-size: 13px !important;
+  color: #424654;
+}

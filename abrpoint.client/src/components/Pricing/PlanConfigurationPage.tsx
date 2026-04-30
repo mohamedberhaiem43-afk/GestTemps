@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Users, Rocket, CheckCircle2, FileText, LayoutGrid, Headset } from 'lucide-react';
+import { Users, Rocket, CheckCircle2, FileText, Headset } from 'lucide-react';
 import { useAuth } from '../helper/AuthProvider';
 import './PricingPage.css';
 
@@ -14,12 +14,12 @@ const PlanConfigurationPage: React.FC = () => {
     plan?: string;
     cycle?: 'monthly' | 'annual';
     userCount?: number;
-    packageType?: 'self' | 'success' | 'partner';
+    packageType?: 'formation' | 'pack' | 'coaching';
   };
   const planCode = (initialState.plan ?? 'Standard');
   const [userCount, setUserCount] = useState(initialState.userCount ?? 50);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
-  const [packageType, setPackageType] = useState<'self' | 'success' | 'partner'>(initialState.packageType ?? 'success');
+  const [packageType, setPackageType] = useState<'formation' | 'pack' | 'coaching'>(initialState.packageType ?? 'pack');
   const navigate = useNavigate();
 
   const handleConfirmCheckout = () => {
@@ -100,76 +100,66 @@ const PlanConfigurationPage: React.FC = () => {
                   <h2 className="text-xl font-black tracking-tight font-headline uppercase">Accompagnement</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Card 1 */}
+                  {/* Card 1 — Formation logiciel */}
                   <div
-                    onClick={() => setPackageType('self')}
+                    onClick={() => setPackageType('formation')}
                     className={`group relative bg-white p-8 rounded-3xl border-2 transition-all cursor-pointer hover:shadow-xl ${
-                      packageType === 'self' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
+                      packageType === 'formation' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
                     }`}
                   >
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
-                      packageType === 'self' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
+                      packageType === 'formation' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
                     }`}>
-                      <span className="material-symbols-outlined text-2xl">person_play</span>
+                      <span className="material-symbols-outlined text-2xl">school</span>
                     </div>
-                    <h3 className="font-black text-lg mb-2 font-headline">Self-service</h3>
-                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Documentation complète et tutoriels vidéo pour une mise en place autonome.</p>
-                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'self' ? 'text-primary' : 'text-outline'}`}>Inclus</div>
+                    <h3 className="font-black text-lg mb-2 font-headline">Formation logiciel</h3>
+                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Sessions visio + présentielles animées par nos formateurs experts pour vos équipes.</p>
+                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'formation' ? 'text-primary' : 'text-outline'}`}>Inclus</div>
                   </div>
 
-                  {/* Card 2 (Active) */}
+                  {/* Card 2 — Pack de mise en place (recommended) */}
                   <div
-                    onClick={() => setPackageType('success')}
+                    onClick={() => setPackageType('pack')}
                     className={`group relative bg-white p-8 rounded-3xl border-2 transition-all cursor-pointer hover:shadow-xl ${
-                      packageType === 'success' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
+                      packageType === 'pack' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
                     }`}
                   >
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest shadow-lg">Conseillé</div>
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
-                      packageType === 'success' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
+                      packageType === 'pack' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
                     }`}>
-                      <span className="material-symbols-outlined text-2xl fill-icon">verified</span>
+                      <span className="material-symbols-outlined text-2xl fill-icon">rocket_launch</span>
                     </div>
-                    <h3 className="font-black text-lg mb-2 font-headline">Success Pack</h3>
-                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Un expert dédié vous accompagne pendant 3 mois pour le déploiement.</p>
-                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'success' ? 'text-primary' : 'text-outline'}`}>+ 1 200 € <span className="text-[10px] font-normal text-outline">HT</span></div>
+                    <h3 className="font-black text-lg mb-2 font-headline">Pack de mise en place</h3>
+                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Déploiement clés en main : paramétrage, import des données, formation des équipes.</p>
+                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'pack' ? 'text-primary' : 'text-outline'}`}>+ 1 800 € <span className="text-[10px] font-normal text-outline">HT</span></div>
                   </div>
 
-                  {/* Card 3 */}
+                  {/* Card 3 — Coaching sur mesure */}
                   <div
-                    onClick={() => setPackageType('partner')}
+                    onClick={() => setPackageType('coaching')}
                     className={`group relative bg-white p-8 rounded-3xl border-2 transition-all cursor-pointer hover:shadow-xl ${
-                      packageType === 'partner' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
+                      packageType === 'coaching' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
                     }`}
                   >
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
-                      packageType === 'partner' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
+                      packageType === 'coaching' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
                     }`}>
-                      <span className="material-symbols-outlined text-2xl">handshake</span>
+                      <span className="material-symbols-outlined text-2xl">psychology</span>
                     </div>
-                    <h3 className="font-black text-lg mb-2 font-headline">Partner</h3>
-                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Externalisez l'implémentation complète à l'un de nos partenaires certifiés.</p>
-                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'partner' ? 'text-primary' : 'text-outline'}`}>Sur devis</div>
+                    <h3 className="font-black text-lg mb-2 font-headline">Coaching sur mesure</h3>
+                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Un consultant RH dédié vous accompagne sur 3 mois après la mise en production.</p>
+                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'coaching' ? 'text-primary' : 'text-outline'}`}>+ 1 200 € <span className="text-[10px] font-normal text-outline">HT</span></div>
                   </div>
                 </div>
               </section>
 
               {/* Feature Preview Bento */}
-              <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-surface-container-low rounded-3xl p-8 flex flex-col justify-between aspect-video relative overflow-hidden group">
+              <section>
+                <div className="bg-primary text-white rounded-3xl p-8 flex flex-col justify-between aspect-[2.4/1] relative overflow-hidden group">
                   <div className="z-10">
-                    <h4 className="font-black text-xl font-headline mb-2">Apps Illimitées</h4>
-                    <p className="text-sm text-on-surface-variant font-medium">Accédez à l'ensemble du catalogue Concorde.</p>
-                  </div>
-                  <LayoutGrid className="text-surface-container-highest absolute -right-6 -bottom-6 w-32 h-32 group-hover:scale-110 transition-transform" />
-                  <div className="z-10 pt-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full">12 modules actifs</span>
-                  </div>
-                </div>
-                <div className="bg-primary text-white rounded-3xl p-8 flex flex-col justify-between aspect-video relative overflow-hidden group">
-                  <div className="z-10">
-                    <h4 className="font-black text-xl font-headline mb-2">Support Premium</h4>
-                    <p className="text-sm text-blue-100/80 font-medium">Temps de réponse &lt; 2h garanti par SLA.</p>
+                    <h4 className="font-black text-xl font-headline mb-2">Support</h4>
+                    <p className="text-sm text-blue-100/80 font-medium">Notre équipe support répond sous 24h ouvrées (2h garanties sur Premium).</p>
                   </div>
                   <Headset className="text-primary-container absolute -right-6 -bottom-6 w-32 h-32 opacity-20 group-hover:scale-110 transition-transform" />
                   <div className="z-10 pt-4">

@@ -15,13 +15,13 @@ const PaymentPage: React.FC = () => {
     price?: number;
     cycle?: 'monthly' | 'annual';
     userCount?: number;
-    packageType?: 'self' | 'success' | 'partner';
+    packageType?: 'formation' | 'pack' | 'coaching';
   };
   const plan = state.plan ?? 'Standard';
   const price = state.price ?? 7.5;
   const cycle = state.cycle ?? 'monthly';
   const userCount = state.userCount ?? 1;
-  const packageType = state.packageType ?? 'success';
+  const packageType = state.packageType ?? 'pack';
   const totalAmount = price * (userCount || 1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

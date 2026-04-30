@@ -30,4 +30,11 @@ public partial class Solde : BaseEntity
 
     [Column("empconge")]
     public float? Empconge { get; set; }
+
+    /// <summary>
+    /// Compte Épargne Temps cumulé (en jours). Alimenté par le transfert automatique
+    /// des congés payés non pris à la date limite paramétrée (Parcetdatelim / Parcetmaxjours).
+    /// </summary>
+    [Column("cetjours")]
+    public float? Cetjours { get; set; }
 }

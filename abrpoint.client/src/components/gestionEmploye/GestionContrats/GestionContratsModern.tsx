@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box, Typography, Paper, TextField, Select, MenuItem,
   FormControl, Button, Avatar, Chip, IconButton, CircularProgress, Snackbar, Alert,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
@@ -100,8 +101,8 @@ function KpiCard({ label, value, sub, subColor, highlight }: {
 }
 
 // ── Row menu ──────────────────────────────────────────────────────────────────
-function RowMenu({ onEdit, onDelete, onRenew, canModify, canDelete, canAdd }: {
-  onEdit: () => void; onDelete: () => void; onRenew: () => void;
+function RowMenu({ onEdit, onDelete, onRenew, onExport, canModify, canDelete, canAdd }: {
+  onEdit: () => void; onDelete: () => void; onRenew: () => void; onExport: () => void;
   canModify: boolean; canDelete: boolean; canAdd: boolean;
 }) {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
@@ -115,6 +116,7 @@ function RowMenu({ onEdit, onDelete, onRenew, canModify, canDelete, canAdd }: {
         <Paper sx={{ position: 'fixed', zIndex: 1300, borderRadius: '10px', boxShadow: '0 8px 24px rgba(15,23,42,0.12)', minWidth: 160, border: '1px solid #edf0f5', mt: 0.5 }}
           onClick={() => setAnchor(null)}>
           {[
+            { label: 'Exporter (PDF)', icon: <PictureAsPdfIcon fontSize="small" />, onClick: onExport, color: '#16a34a' },
             canAdd && { label: 'Renouveler', icon: <RefreshIcon fontSize="small" />, onClick: onRenew, color: '#0040a1' },
             canModify && { label: 'Modifier', icon: <EditIcon fontSize="small" />, onClick: onEdit },
             canDelete && { label: 'Supprimer', icon: <DeleteIcon fontSize="small" />, onClick: onDelete, color: '#ef4444' },
@@ -194,6 +196,10 @@ const GestionContratsModernInner = () => {
   const [searchQ, setSearchQ] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Contrat | null>(null);
   const [renewTarget, setRenewTarget] = useState<Contrat | null>(null);
+  const [exportTarget, setExportTarget] = useState<Contrat | null>(null);
+  const [exportTemplates, setExportTemplates] = useState<{ name: string }[]>([]);
+  const [exportTpl, setExportTpl] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [loadingEmployee, setLoadingEmployee] = useState(false);
 
@@ -347,6 +353,60 @@ const GestionContratsModernInner = () => {
       setDeleteTarget(null);
       refetch();
     } catch { showSnack('Erreur lors de la suppression', 'error'); }
+  };
+
+  const openExportDialog = async (c: Contrat) => {
+    setExportTarget(c);
+    setExportTpl('');
+    try {
+      const { data } = await apiInstance.get('/Templates');
+      const list = Array.isArray(data) ? data : Array.isArray((data as any)?.$values) ? (data as any).$values : [];
+      const tpls = list.map((t: any) => ({ name: t.name || t }));
+      setExportTemplates(tpls);
+      // Pré-sélection : modèle nommé "Contrat" si présent.
+      const contratTpl = tpls.find((t: any) => /contrat/i.test(t.name));
+      if (contratTpl) setExportTpl(contratTpl.name);
+      else if (tpls.length > 0) setExportTpl(tpls[0].name);
+    } catch {
+      showSnack("Impossible de charger les modèles.", 'error');
+    }
+  };
+
+  const doExport = async () => {
+    if (!exportTarget || !exportTpl) {
+      showSnack('Sélectionnez un modèle.', 'error');
+      return;
+    }
+    const target = exportTarget;
+    const empName = target.emplib || empMap[target.empcod] || target.empcod;
+    setExporting(true);
+    try {
+      const res = await apiInstance.get(
+        `/Templates/preview/${encodeURIComponent(exportTpl)}`,
+        { params: { soccod: target.soccod, empcod: target.empcod }, responseType: 'blob' }
+      );
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const cleanTpl = exportTpl.replace(/\.(html|frx)$/i, '');
+      const cleanEmp = String(empName).replace(/[^a-zA-Z0-9_-]+/g, '_');
+      link.download = `${cleanTpl}_${cleanEmp}_${target.concod}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showSnack('Document exporté.', 'success');
+      setExportTarget(null);
+    } catch (err: any) {
+      let msg = "Erreur lors de l'export.";
+      if (err?.response?.data instanceof Blob) {
+        try { msg = JSON.parse(await err.response.data.text())?.message || msg; } catch { /* ignore */ }
+      }
+      showSnack(msg, 'error');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const CONTRACT_TYPES = ['CDI', 'CDD', 'Stage', 'CIVP', 'Ouvrier', 'Alternance'];
@@ -601,7 +661,7 @@ const GestionContratsModernInner = () => {
                             <Typography sx={{ fontSize: '11px', color: '#8896a8', fontWeight: 500 }}>{c.concod} · {c.empcod}</Typography>
                           </Box>
                           {(canModify || canDelete || canAdd) && (
-                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} onRenew={() => setRenewTarget(c)} canModify={canModify} canDelete={canDelete} canAdd={canAdd} />
+                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} onRenew={() => setRenewTarget(c)} onExport={() => openExportDialog(c)} canModify={canModify} canDelete={canDelete} canAdd={canAdd} />
                           )}
                         </Box>
                         {/* Info chips row */}
@@ -668,7 +728,7 @@ const GestionContratsModernInner = () => {
 
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                           {(canModify || canDelete || canAdd) ? (
-                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} onRenew={() => setRenewTarget(c)} canModify={canModify} canDelete={canDelete} canAdd={canAdd} />
+                            <RowMenu onEdit={() => handleEdit(c)} onDelete={() => setDeleteTarget(c)} onRenew={() => setRenewTarget(c)} onExport={() => openExportDialog(c)} canModify={canModify} canDelete={canDelete} canAdd={canAdd} />
                           ) : (
                             <Typography variant="caption">—</Typography>
                           )}
@@ -711,6 +771,51 @@ const GestionContratsModernInner = () => {
         onClose={() => setRenewTarget(null)}
         onSuccess={() => { setRenewTarget(null); refetch(); showSnack('Contrat renouvelé avec succès', 'success'); }}
       />
+
+      <Dialog open={!!exportTarget} onClose={() => !exporting && setExportTarget(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <PictureAsPdfIcon sx={{ color: '#16a34a' }} />
+          Exporter le contrat — {exportTarget?.concod}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: 13, color: '#475569', mb: 2 }}>
+            Sélectionnez le modèle de document à utiliser pour générer le PDF du contrat de{' '}
+            <strong>{exportTarget?.emplib || empMap[exportTarget?.empcod || ''] || exportTarget?.empcod}</strong>.
+          </Typography>
+          <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+            <Select
+              value={exportTpl}
+              onChange={(e) => setExportTpl(e.target.value as string)}
+              displayEmpty
+              sx={selectSx}
+            >
+              <MenuItem value=""><em>Sélectionner un modèle…</em></MenuItem>
+              {exportTemplates.map((t) => (
+                <MenuItem key={t.name} value={t.name} sx={{ fontSize: 13 }}>{t.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {exportTemplates.length === 0 && (
+            <Typography sx={{ fontSize: 12, color: '#ef4444', mt: 1 }}>
+              Aucun modèle disponible. Créez-en un depuis le Coffre-fort → Bibliothèque de modèles.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setExportTarget(null)} disabled={exporting} sx={{ textTransform: 'none' }}>
+            Annuler
+          </Button>
+          <Button
+            onClick={doExport}
+            disabled={exporting || !exportTpl}
+            variant="contained"
+            startIcon={exporting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <PictureAsPdfIcon />}
+            sx={{ bgcolor: '#16a34a', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#15803d' } }}
+          >
+            {exporting ? 'Export en cours…' : 'Télécharger PDF'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
         <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>

@@ -58,6 +58,14 @@ import PricingPage from '../Pricing/PricingPage';
 import AboutPage from '../About/AboutPage';
 import PaymentPage from '../Pricing/PaymentPage';
 import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
+import ContactSalesPage from '../Pricing/ContactSalesPage';
+import CetPage from '../gestionEmploye/gestionConge/Cet/CetPage';
+import SupportPage from '../Support/SupportPage';
+import FAQPage from '../Support/FAQPage';
+import FormationsPage from '../Support/FormationsPage';
+import CoachingPage from '../Support/CoachingPage';
+import PackMiseEnPlacePage from '../Support/PackMiseEnPlacePage';
+import ContactPage from '../Support/ContactPage';
 import NotificationCenter from './NotificationCenter';
 import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './SidebarNavigationDualTier';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
@@ -282,6 +290,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
         ...(isAdminEffective ? [{ label: 'Affectation Soldes', href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
+        ...(isAdminEffective ? [{ label: 'Compte Épargne Temps', href: '/dashboard/cet', icon: CalendarCheck }] : []),
       ],
     },
     {
@@ -371,6 +380,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/signup': content = <SignupPage />; break;
     case '/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/payment': content = <PaymentPage />; break;
+    case '/contact-sales': content = <ContactSalesPage />; break;
     case '/dashboard': content = <DashboardModernSync />; break;
     case '/dashboard/structure-organisationnelle': content = <OrgStructureModern />; break;
     case '/dashboard/ville': content = <VilleModern />; break;
@@ -418,6 +428,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/demande-autorisation': content = <DemandeAutorisationModern />; break;
     case '/dashboard/gestion-de-solde': content = <SoldeCongeModern />; break;
     case '/dashboard/affectation-solde': content = <SoldeCongeAdmin />; break;
+    case '/dashboard/cet': content = <CetPage />; break;
     case '/dashboard/calendrier-societe': content = <Calendrier />; break;
     case '/dashboard/chat-bot': content = <Box p={3}>Utilisez le bouton flottant de l'assistant en bas à droite.</Box>; break;
     case '/dashboard/template-builder': content = <ContractBuilderModern />; break;
@@ -425,6 +436,12 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/pricing': content = <PricingPage />; break;
     case '/dashboard/payment': content = <PaymentPage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
+    case '/dashboard/support': content = <SupportPage />; break;
+    case '/dashboard/support/faq': content = <FAQPage />; break;
+    case '/dashboard/support/formations': content = <FormationsPage />; break;
+    case '/dashboard/support/coaching': content = <CoachingPage />; break;
+    case '/dashboard/support/pack-mise-en-place': content = <PackMiseEnPlacePage />; break;
+    case '/dashboard/support/contact': content = <ContactPage />; break;
     default: content = <DashboardModernSync />;
   }
 
@@ -711,7 +728,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // Track navigation to add tabs
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales') return;
 
     // Find the item in flattened navigation to get title and icon
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
@@ -730,7 +747,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // ── Recent Pages Tracking ──
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/dashboard') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/dashboard') return;
 
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
@@ -782,7 +799,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   ];
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
-  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment';
+  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales';
   const isProfilePage = pathname === '/dashboard/profil-employe';
 
   if (!authReady) {

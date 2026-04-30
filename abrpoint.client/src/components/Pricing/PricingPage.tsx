@@ -93,9 +93,6 @@ const PricingPage: React.FC = () => {
               alt="Logo Concorde"
               style={{ height: 64, width: 'auto', objectFit: 'contain' }}
             />
-            <span className="text-xl font-bold tracking-tight text-primary font-headline">
-              Concorde
-            </span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             {/* Liens Produit / Solutions retirés : pas encore de page dédiée. */}
@@ -216,14 +213,18 @@ const PricingPage: React.FC = () => {
                 onClick={() => {
                   // Plan Essentiel (gratuit) : pas de configuration, on envoie directement vers
                   // /signup (visiteur) ou /dashboard (utilisateur déjà authentifié).
-                  // Plans payants : on passe par PlanConfiguration qui collecte userCount /
-                  // packageType, puis route vers /signup (visiteur) ou Stripe Checkout (auth).
                   if (plan.name === 'Essentiel') {
                     navigate(isAuthenticated ? '/dashboard' : '/signup', {
                       state: { plan: plan.name, price: plan.price, cycle: billingCycle },
                     });
                     return;
                   }
+                  // Plan Premium : devis sur mesure → page de contact ventes (pas de Stripe direct).
+                  if (plan.name === 'Premium') {
+                    navigate('/contact-sales', { state: { plan: plan.name, cycle: billingCycle } });
+                    return;
+                  }
+                  // Plan Standard (payant) : configuration → paiement Stripe.
                   const target = isAuthenticated ? '/dashboard/plan-configuration' : '/plan-configuration';
                   navigate(target, { state: { plan: plan.name, price: plan.price, cycle: billingCycle } });
                 }}

@@ -98,11 +98,79 @@ function FilialeModernContent() {
       </Box>
 
       <Box className="ref-body">
+        {/* PRIMARY: Table at top (Portefeuille des filiales) */}
+        <Box className="ref-table-section">
+          <Box className="ref-table-header">
+            <Typography className="ref-table-title">Portefeuille des Filiales ({filtered.length})</Typography>
+            <Box className="ref-table-search">
+              <SearchIcon sx={{ fontSize: 16, color: '#8896a8' }} />
+              <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
+            </Box>
+          </Box>
+          <Box className="ref-table-container">
+            <table className="ref-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 80 }}>Actions</th>
+                  <th>Code</th>
+                  <th>Nom</th>
+                  <th>Tél</th>
+                  <th>Email</th>
+                  <th>Hrs/Mois</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={6} className="ref-empty">Aucune filiale trouvée.</td></tr>
+                ) : filtered.map(s => {
+                  const isSelected = isEditMode && form.sitcod === s.sitcod;
+                  return (
+                  <tr key={s.sitcod} className={isSelected ? 'ref-row--selected' : ''}>
+                    <td>
+                      <Box sx={{ display: 'flex', gap: '4px' }}>
+                        {canModify && (
+                          <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(s)}><EditIcon sx={{ fontSize: 16 }} /></button>
+                        )}
+                        {canDelete && (
+                          <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(s)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
+                        )}
+                        {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
+                      </Box>
+                    </td>
+                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{s.sitcod}</td>
+                    <td>{s.sitlib}</td>
+                    <td>{s.sittel || '—'}</td>
+                    <td style={{ color: '#64748b' }}>{s.sitemail || '—'}</td>
+                    <td><span className="ref-badge ref-badge--blue">{s.sitmois || '—'}</span></td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Box>
+          <Box className="ref-table-footer"><span>Affichage de {filtered.length} filiales</span></Box>
+        </Box>
+
+        {/* SECONDARY: Contextual sub-header */}
+        <Box className="ref-details-header">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box className="ref-details-icon"><BusinessIcon fontSize="small" /></Box>
+            <Box>
+              <Typography className="ref-details-title">
+                {isEditMode ? <>Détails de la filiale : <span className="ref-details-code">{form.sitcod}</span></> : 'Nouvelle filiale'}
+              </Typography>
+              <Typography className="ref-details-sub">
+                {isEditMode ? 'Modifiez les informations de la filiale sélectionnée.' : "Renseignez les informations de la nouvelle filiale."}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
         {/* Card: Identification */}
         <Box className="ref-card">
           <Box className="ref-card-header">
             <Box className="ref-card-icon"><BusinessIcon fontSize="small" /></Box>
-            <Typography className="ref-card-title">{isEditMode ? 'Modifier la filiale' : 'Nouvelle filiale'}</Typography>
+            <Typography className="ref-card-title">Identification</Typography>
           </Box>
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field">
@@ -164,55 +232,6 @@ function FilialeModernContent() {
           </Box>
         </Box>
 
-        {/* Table */}
-        <Box className="ref-table-section">
-          <Box className="ref-table-header">
-            <Typography className="ref-table-title">Liste des Filiales ({filtered.length})</Typography>
-            <Box className="ref-table-search">
-              <SearchIcon sx={{ fontSize: 16, color: '#8896a8' }} />
-              <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
-            </Box>
-          </Box>
-          <Box className="ref-table-container">
-            <table className="ref-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 80 }}>Actions</th>
-                  <th>Code</th>
-                  <th>Nom</th>
-                  <th>Tél</th>
-                  <th>Email</th>
-                  <th>Hrs/Mois</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="ref-empty">Aucune filiale trouvée.</td></tr>
-                ) : filtered.map(s => (
-                  <tr key={s.sitcod}>
-                    <td>
-                      <Box sx={{ display: 'flex', gap: '4px' }}>
-                        {canModify && (
-                          <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(s)}><EditIcon sx={{ fontSize: 16 }} /></button>
-                        )}
-                        {canDelete && (
-                          <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(s)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
-                        )}
-                        {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
-                      </Box>
-                    </td>
-                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{s.sitcod}</td>
-                    <td>{s.sitlib}</td>
-                    <td>{s.sittel || '—'}</td>
-                    <td style={{ color: '#64748b' }}>{s.sitemail || '—'}</td>
-                    <td><span className="ref-badge ref-badge--blue">{s.sitmois || '—'}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Box>
-          <Box className="ref-table-footer"><span>Affichage de {filtered.length} filiales</span></Box>
-        </Box>
       </Box>
 
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>

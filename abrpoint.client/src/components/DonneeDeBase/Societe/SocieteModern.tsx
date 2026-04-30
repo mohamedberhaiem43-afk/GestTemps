@@ -127,20 +127,131 @@ function SocieteModernContent() {
       <Box className="soc-header">
         <Box>
           <Typography className="soc-title">Paramètres Société</Typography>
-          <Typography className="soc-subtitle">Configurez l'identité et les paramètres fiscaux de votre entité.</Typography>
+          <Typography className="soc-subtitle">Gérez votre portefeuille d'entités et leurs configurations.</Typography>
         </Box>
         <Box className="soc-header-actions">
           <Button className="soc-export-btn" startIcon={<DownloadIcon />}>
-            Exporter la sélection
+            Exporter
           </Button>
-          {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
-            <Button className="soc-save-btn" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>
-              {isLoading ? 'Enregistrement...' : isEditMode ? 'Mettre à jour' : 'Enregistrer'}
+          {canAdd && !isEditMode && (
+            <Button className="soc-save-btn" startIcon={<EditIcon />} onClick={() => setForm(emptyForm)}>
+              Nouvelle Société
             </Button>
           )}
+        </Box>
+      </Box>
+
+      {/* ── PRIMARY SECTION: Table (top) ── */}
+      <Box className="soc-table-section">
+        <Box className="soc-table-header">
+          <Typography className="soc-table-title">Portefeuille des Sociétés</Typography>
+          <Box className="soc-table-filter">
+            <span>Filtrer par type :</span>
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+              <option value="">Toutes</option>
+              <option value="filiales">Filiales</option>
+              <option value="groupes">Groupes</option>
+            </select>
+          </Box>
+        </Box>
+        <Box sx={{ overflowX: 'auto' }}>
+          <table className="soc-table">
+            <thead>
+              <tr>
+                <th>Actions</th>
+                <th>Code</th>
+                <th>Libellé</th>
+                <th>Type</th>
+                <th>Tél / E-mail</th>
+                <th>Responsable</th>
+                <th>Adresse</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSocietes.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>
+                    Aucune société trouvée.
+                  </td>
+                </tr>
+              ) : (
+                filteredSocietes.map((soc) => {
+                  const isSelected = isEditMode && form.soccod === soc.soccod;
+                  return (
+                    <tr key={soc.soccod} className={isSelected ? 'soc-row--selected' : ''}>
+                      <td>
+                        <Box sx={{ display: 'flex', gap: '4px' }}>
+                          {canModify && (
+                            <button className="soc-action-btn soc-action-btn--edit" onClick={() => handleEdit(soc)}>
+                              <EditIcon sx={{ fontSize: 16 }} />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button className="soc-action-btn soc-action-btn--delete" onClick={() => handleDelete(soc)}>
+                              <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                            </button>
+                          )}
+                          {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
+                        </Box>
+                      </td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{soc.soccod}</td>
+                      <td>{soc.soclib}</td>
+                      <td>
+                        <span className={`soc-type-badge ${getTypeBadge(soc.soctype)}`}>
+                          {getTypeLabel(soc.soctype)}
+                        </span>
+                      </td>
+                      <td>
+                        <Box className="soc-contact-cell">
+                          <span className="soc-contact-name">{soc.soctel || '—'}</span>
+                          <span className="soc-contact-sub">{soc.socemail || '—'}</span>
+                        </Box>
+                      </td>
+                      <td style={{ fontWeight: 500, color: '#334155' }}>{soc.socresp || '—'}</td>
+                      <td style={{ color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {soc.socadr || '—'}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </Box>
+        <Box className="soc-table-footer">
+          <span className="soc-table-footer-info">
+            Affichage de {filteredSocietes.length > 0 ? 1 : 0} à {filteredSocietes.length} sur {filteredSocietes.length} sociétés
+          </span>
+          <Box className="soc-pagination">
+            <button className="soc-page-btn" disabled><ChevronLeftIcon sx={{ fontSize: 16 }} /></button>
+            <button className="soc-page-btn soc-page-btn--active">1</button>
+            <button className="soc-page-btn" disabled><ChevronRightIcon sx={{ fontSize: 16 }} /></button>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* ── SECONDARY SECTION: Contextual sub-header + Form ── */}
+      <Box className="soc-details-header">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box className="soc-details-icon"><FingerprintIcon fontSize="small" /></Box>
+          <Box>
+            <Typography className="soc-details-title">
+              {isEditMode ? <>Détails de l'entité : <span className="soc-details-code">{form.soccod}</span></> : 'Nouvelle société'}
+            </Typography>
+            <Typography className="soc-details-sub">
+              {isEditMode ? "Modifiez les informations de l'entité sélectionnée." : 'Renseignez les informations de la nouvelle entité.'}
+            </Typography>
+          </Box>
+        </Box>
+        <Box className="soc-header-actions">
           {isEditMode && (
             <Button className="soc-export-btn" onClick={handleCancel} sx={{ color: '#ba1a1a !important' }}>
               Annuler
+            </Button>
+          )}
+          {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
+            <Button className="soc-save-btn" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>
+              {isLoading ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Enregistrer'}
             </Button>
           )}
         </Box>
@@ -315,92 +426,6 @@ function SocieteModernContent() {
             <Box className="soc-info-box">
               <p>Ce paramètre impacte le calcul automatique des heures supplémentaires et de la paie nette.</p>
             </Box>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* ── Table Section ── */}
-      <Box className="soc-table-section">
-        <Box className="soc-table-header">
-          <Typography className="soc-table-title">Liste des Sociétés</Typography>
-          <Box className="soc-table-filter">
-            <span>Filtrer par type :</span>
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-              <option value="">Toutes</option>
-              <option value="filiales">Filiales</option>
-              <option value="groupes">Groupes</option>
-            </select>
-          </Box>
-        </Box>
-        <Box sx={{ overflowX: 'auto' }}>
-          <table className="soc-table">
-            <thead>
-              <tr>
-                <th>Actions</th>
-                <th>Code</th>
-                <th>Libellé</th>
-                <th>Type</th>
-                <th>Tél / E-mail</th>
-                <th>Responsable</th>
-                <th>Adresse</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSocietes.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>
-                    Aucune société trouvée.
-                  </td>
-                </tr>
-              ) : (
-                filteredSocietes.map((soc) => (
-                  <tr key={soc.soccod}>
-                    <td>
-                      <Box sx={{ display: 'flex', gap: '4px' }}>
-                        {canModify && (
-                          <button className="soc-action-btn soc-action-btn--edit" onClick={() => handleEdit(soc)}>
-                            <EditIcon sx={{ fontSize: 16 }} />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button className="soc-action-btn soc-action-btn--delete" onClick={() => handleDelete(soc)}>
-                            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
-                          </button>
-                        )}
-                        {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
-                      </Box>
-                    </td>
-                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{soc.soccod}</td>
-                    <td>{soc.soclib}</td>
-                    <td>
-                      <span className={`soc-type-badge ${getTypeBadge(soc.soctype)}`}>
-                        {getTypeLabel(soc.soctype)}
-                      </span>
-                    </td>
-                    <td>
-                      <Box className="soc-contact-cell">
-                        <span className="soc-contact-name">{soc.soctel || '—'}</span>
-                        <span className="soc-contact-sub">{soc.socemail || '—'}</span>
-                      </Box>
-                    </td>
-                    <td style={{ fontWeight: 500, color: '#334155' }}>{soc.socresp || '—'}</td>
-                    <td style={{ color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {soc.socadr || '—'}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </Box>
-        <Box className="soc-table-footer">
-          <span className="soc-table-footer-info">
-            Affichage de {filteredSocietes.length > 0 ? 1 : 0} à {filteredSocietes.length} sur {filteredSocietes.length} sociétés
-          </span>
-          <Box className="soc-pagination">
-            <button className="soc-page-btn" disabled><ChevronLeftIcon sx={{ fontSize: 16 }} /></button>
-            <button className="soc-page-btn soc-page-btn--active">1</button>
-            <button className="soc-page-btn" disabled><ChevronRightIcon sx={{ fontSize: 16 }} /></button>
           </Box>
         </Box>
       </Box>
