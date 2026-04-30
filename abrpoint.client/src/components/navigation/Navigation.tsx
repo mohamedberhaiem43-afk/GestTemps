@@ -796,7 +796,16 @@ function DashboardLayoutAccount(_props: DemoProps) {
   }
 
   if (isPublicPage || isProfilePage) {
-    return <DemoPageContent pathname={pathname} />;
+    return (
+      <>
+        <DemoPageContent pathname={pathname} />
+        {/* L'assistant IA reste accessible aussi sur la landing publique pour aider
+            les visiteurs à se renseigner sur les fonctionnalités / tarifs / inscription. */}
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+          <GeminiChat />
+        </Box>
+      </>
+    );
   }
 
   const title = sessionStorage.getItem('soclib') || 'Concorde';
