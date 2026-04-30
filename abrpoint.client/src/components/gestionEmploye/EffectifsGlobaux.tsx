@@ -15,6 +15,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Employe from "../../models/Employe";
 import useDeleteEmploye from "../../hooks/employeHooks/useDeleteEmploye";
 import AlertModal from "../AlertModal/AlertModal";
+import ExcelImportButton from "../DonneeDeBase/shared/ExcelImportButton";
 import "./EffectifsGlobaux.css";
 
 interface EmployeeWithDetails extends Employe {
@@ -52,6 +53,8 @@ const EffectifsGlobaux = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
   const [deleteTarget, setDeleteTarget] = useState<Employe | null>(null);
+  // Compteur rechargé après un import Excel pour ré-exécuter le useEffect de fetch.
+  const [reloadKey, setReloadKey] = useState(0);
   const { mutateAsync: deleteEmploye } = useDeleteEmploye();
 
   const [departments, setDepartments] = useState<Record<string, string>>({});
@@ -106,7 +109,7 @@ const EffectifsGlobaux = () => {
       })
       .catch((err) => console.error(err))
       .finally(() => setIsLoading(false));
-  }, [soccod, uticod, isManagerScoped, sercod]);
+  }, [soccod, uticod, isManagerScoped, sercod, reloadKey]);
 
   // Fetch departments (services)
   useEffect(() => {
@@ -292,7 +295,29 @@ const EffectifsGlobaux = () => {
             Gérez et visualisez l'ensemble de vos effectifs avec précision et simplicité.
           </Typography>
         </Box>
-        <Box className="effectifs-header-right">
+        <Box className="effectifs-header-right" sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+          {canAdd && (
+            <ExcelImportButton
+              label="Importer (Excel)"
+              endpoint="/BulkImport/employes"
+              extraBody={{ Soccod: soccod, Sitcod: '01' }}
+              columnMap={{
+                Empcod: ['empcod', 'matricule', 'code'],
+                Emplib: ['emplib', 'nom', 'nom complet', 'nom et prenom', 'nom et prénom', 'employe', 'employé'],
+                Emplnais: ['emplnais', 'lieu de naissance', 'lieu naissance'],
+                Empdnais: ['empdnais', 'date de naissance', 'date naissance', 'naissance'],
+                Empsexe: ['empsexe', 'sexe', 'genre'],
+                Empcin: ['empcin', 'cin', 'cnie', 'identite', 'identité'],
+                Emptel: ['emptel', 'telephone', 'téléphone', 'tel', 'mobile'],
+                Empemail: ['empemail', 'email', 'mail', 'e-mail'],
+                Empadr: ['empadr', 'adresse', 'address'],
+                Empemb: ['empemb', 'date embauche', "date d'embauche", 'embauche', 'hire date'],
+                ServiceLib: ['servicelib', 'service', 'serlib', 'departement', 'département'],
+                FonctionLib: ['fonctionlib', 'fonction', 'fonlib', 'poste', 'job'],
+              }}
+              onImported={() => setReloadKey(k => k + 1)}
+            />
+          )}
           {canAdd && (
             <Button
               className="add-employee-btn"

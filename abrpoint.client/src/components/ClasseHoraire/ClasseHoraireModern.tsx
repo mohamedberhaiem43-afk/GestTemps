@@ -28,6 +28,7 @@ import useGetPoste from '../../hooks/posteHooks/useGetPoste';
 import useGetPostesData from '../../hooks/posteHooks/useGetPostesData';
 import AlertModal from '../AlertModal/AlertModal';
 import { useClasseHoraireContext, ClasseHoraireProvider } from '../helper/ClasseHoraireContext';
+import apiInstance from '../API/apiInstance';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (val: any) => {
@@ -698,11 +699,24 @@ function ClasseHoraireModernInner() {
               />
               <Button
                 startIcon={<RefreshIcon />}
-                onClick={() => {
+                onClick={async () => {
                   setActivePeriod(null);
                   setSelectedClasseHoraire(null);
-                  setClasseCode('');
                   setClasseLib('');
+                  // Pré-remplit le code via l'endpoint serveur d'auto-génération.
+                  // L'utilisateur voit immédiatement le code qui sera attribué (et peut
+                  // le modifier s'il préfère un code custom).
+                  const soccod = sessionStorage.getItem('soccod') || '';
+                  if (soccod) {
+                    try {
+                      const r = await apiInstance.get(`/Lcategories/get-next-catcod/${soccod}`);
+                      setClasseCode(r.data?.catcod || '');
+                    } catch {
+                      setClasseCode('');
+                    }
+                  } else {
+                    setClasseCode('');
+                  }
                 }}
                 sx={{
                   borderRadius: '8px', textTransform: 'none', fontWeight: 600,

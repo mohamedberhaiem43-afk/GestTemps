@@ -337,7 +337,8 @@ const useNavigationItems = (): NavGroup[] => {
         { label: 'Modèles de Contrats', href: '/dashboard/template-builder', icon: FileText },
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
-        { label: t('navigation.chatBot'), href: '/dashboard/chat-bot', icon: MessageSquare },
+        // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
+        // en bas à droite, présent globalement sur le dashboard. Pas besoin d'un menu dédié.
         // L'entrée Tarification est volontairement absente du sidebar : la page est servie
         // sur la landing publique '/' (parcours d'inscription Odoo-style). La route reste
         // mappée plus bas pour les liens directs / paiement.

@@ -7,6 +7,8 @@ import useGetLPoste from "../../hooks/posteHooks/useGetLPoste";
 import { Poste } from "../../models/Poste";
 import SancBonusLegend from "./SancBonusLegend";
 import ForbiddenMessage from "../AlertModal/ForbiddenMessage";
+import { useAuth } from "../helper/AuthProvider";
+import apiInstance from "../API/apiInstance";
 
 // Define interface for the form data
 export interface PosteFormData {
@@ -60,11 +62,15 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
       }));
     }
   }, [selectedPoste]);
-  // Reset form when no poste is selected
+  const { soccod } = useAuth();
+
+  // Reset form when no poste is selected ; pré-remplit le code via l'endpoint
+  // GET /Postes/get-next-codposte/{soccod} pour que l'utilisateur voie le matricule
+  // qui sera attribué (modifiable s'il préfère un code custom).
   useEffect(() => {
     if (!selectedPoste) {
       setFormData({
-        soccod: '',
+        soccod: soccod || '',
         codposte: '',
         libposte: '',
         avantent: 0,
@@ -74,8 +80,16 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
         reposAvant: '0',
         reposApres: '0'
       });
+
+      if (soccod) {
+        apiInstance.get(`/Postes/get-next-codposte/${soccod}`)
+          .then(r => {
+            if (r.data?.codposte) setFormData(p => ({ ...p, codposte: r.data.codposte }));
+          })
+          .catch(() => { /* fallback : champ vide, le serveur auto-générera au save */ });
+      }
     }
-  }, [selectedPoste]);
+  }, [selectedPoste, soccod]);
 
   // Update form when lposte data is loaded
   useEffect(() => {

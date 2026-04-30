@@ -22,6 +22,7 @@ import AccessDenied from '../../helper/AccessDenied';
 import './IntituleDesAbsencesModern.css';
 import { Absence } from '../../../models/Absence';
 import AlertModal from '../../AlertModal/AlertModal';
+import apiInstance from '../../API/apiInstance';
 
 // ── Type imputation map ───────────────────────────────────────────────────────
 const IMPUTATION_OPTIONS = [
@@ -149,12 +150,31 @@ function IntituleDesAbsencesModernInner() {
   const showSnack = (message: string, severity: 'success' | 'error') =>
     setSnackbar({ open: true, message, severity });
 
+  // Pré-charge le prochain code absence quand on ouvre le formulaire en mode "Nouveau".
+  // L'utilisateur voit immédiatement le code attribué (et peut le modifier s'il veut un
+  // code lisible type "CP" plutôt que "0001").
+  const fetchNextAbscod = async () => {
+    if (!soccod) return;
+    try {
+      const r = await apiInstance.get(`/Absences/get-next-abscod/${soccod}`);
+      if (r.data?.abscod) setAbscod(r.data.abscod);
+    } catch { /* fallback : champ vide, le serveur auto-générera au save */ }
+  };
+
   const resetForm = () => {
     setAbscod(''); setAbslib(''); setAbspar('A'); setAbsunite('J');
     setAbscng('0'); setAbssanc('N'); setAbspayer(false); setAbsrepos(false);
     setAbsferier(false); setAbsaut(false); setMode('save');
     setSelectedAbsence(null as any);
+    fetchNextAbscod();
   };
+
+  // Au montage initial : si on est en mode "save" et qu'aucune absence n'est sélectionnée,
+  // on pré-remplit le code.
+  useEffect(() => {
+    if (mode === 'save' && !selectedAbsence && !abscod) fetchNextAbscod();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSave = () => {
     const payload: any = {

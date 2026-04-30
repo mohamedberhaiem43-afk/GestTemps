@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box } from '@mui/material';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box,
+  Snackbar, Alert, Autocomplete } from '@mui/material';
 import apiInstance from '../../API/apiInstance';
+import { useAuth } from '../../helper/AuthProvider';
+import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
 import './ContractBuilder.css';
 
 interface TemplateFile {
@@ -31,6 +34,32 @@ const ContractBuilderModern = () => {
   const [aiExampleFile, setAiExampleFile] = useState<File | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
+
+  /* ── Snackbar (remplace les alert() bruts) ── */
+  const [snackbar, setSnackbar] = useState<{ open: boolean; severity: 'success' | 'error' | 'info'; message: string }>({
+    open: false, severity: 'info', message: ''
+  });
+  const showSnack = (message: string, severity: 'success' | 'error' | 'info' = 'success') =>
+    setSnackbar({ open: true, severity, message });
+
+  /* ── Recherche dans la liste de modèles ── */
+  const [searchQuery, setSearchQuery] = useState('');
+
+  /* ── Insertion tableau (remplace les prompt() bruts) ── */
+  const [openInsertTable, setOpenInsertTable] = useState(false);
+  const [tableRows, setTableRows] = useState<number>(3);
+  const [tableCols, setTableCols] = useState<number>(3);
+
+  /* ── Export pour un employé spécifique ── */
+  const { soccod, uticod } = useAuth();
+  const { data: empMap } = useGetEmployee();
+  const employeeOptions = useMemo(() => {
+    if (!empMap || typeof empMap !== 'object') return [] as Array<{ code: string; lib: string }>;
+    return Object.entries(empMap as Record<string, string>).map(([code, lib]) => ({ code, lib }));
+  }, [empMap]);
+  const [openExport, setOpenExport] = useState(false);
+  const [exportEmpcod, setExportEmpcod] = useState<string>('');
+  const [exporting, setExporting] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,10 +126,15 @@ const ContractBuilderModern = () => {
     setSelectedTpl(name);
     setLoading(true);
     try {
-      const res = await apiInstance.get(`/Templates/${name}`);
+      // Bug fix : les noms de modèles peuvent contenir espaces / accents / parenthèses.
+      // Sans encodeURIComponent, la requête échoue avec 404 ou 400.
+      const res = await apiInstance.get(`/Templates/${encodeURIComponent(name)}`);
       setContent(res.data.content);
       if (editorRef.current) editorRef.current.innerHTML = res.data.content;
-    } catch (err) { setContent('<h1>Error</h1>'); }
+    } catch (err) {
+      setContent('<h1>Error</h1>');
+      showSnack(`Impossible de charger le modèle "${name}".`, 'error');
+    }
     finally { setLoading(false); }
   };
 
@@ -109,10 +143,12 @@ const ContractBuilderModern = () => {
     setSaving(true);
     const htmlContent = editorRef.current ? editorRef.current.innerHTML : content;
     try {
-      await apiInstance.put(`/Templates/${selectedTpl}`, { content: htmlContent });
-      alert("Modèle enregistré !");
+      await apiInstance.put(`/Templates/${encodeURIComponent(selectedTpl)}`, { content: htmlContent });
+      showSnack('Modèle enregistré.', 'success');
       fetchTemplates();
-    } catch (err) { console.error(err); }
+    } catch (err: any) {
+      showSnack(err?.response?.data?.message || "Erreur lors de l'enregistrement.", 'error');
+    }
     finally { setSaving(false); }
   };
 
@@ -131,20 +167,21 @@ const ContractBuilderModern = () => {
     setContent(editorRef.current.innerHTML);
   };
 
-  const insertTable = () => {
-    const rows = prompt("Nombre de lignes?", "3");
-    const cols = prompt("Nombre de colonnes?", "3");
-    if (!rows || !cols) return;
+  const insertTable = () => setOpenInsertTable(true);
+  const confirmInsertTable = () => {
+    const r = Math.max(1, Math.min(20, Math.floor(tableRows)));
+    const c = Math.max(1, Math.min(20, Math.floor(tableCols)));
     let tableHtml = '<table style="width:100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #e2e8f0;">';
-    for(let i=0; i<parseInt(rows); i++) {
-        tableHtml += '<tr>';
-        for(let j=0; j<parseInt(cols); j++) {
-            tableHtml += '<td style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Contenu</td>';
-        }
-        tableHtml += '</tr>';
+    for (let i = 0; i < r; i++) {
+      tableHtml += '<tr>';
+      for (let j = 0; j < c; j++) {
+        tableHtml += '<td style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Contenu</td>';
+      }
+      tableHtml += '</tr>';
     }
     tableHtml += '</table><p><br></p>';
     exec('insertHTML', tableHtml);
+    setOpenInsertTable(false);
   };
 
   const onDragStart = (e: React.DragEvent, tag: string) => {
@@ -165,12 +202,69 @@ const ContractBuilderModern = () => {
     }
   };
 
+  /**
+   * Aperçu rapide : génère le PDF avec l'utilisateur courant comme employé cible
+   * (utile pour un manager qui veut juste voir la mise en page). Pour un export
+   * destiné à un autre employé, voir handleExportForEmployee ci-dessous.
+   *
+   * Bug fixé : les anciennes versions hardcodaient `soccod=01&empcod=001091`,
+   * ce qui plantait sur tout tenant qui n'avait pas exactement cet empcod.
+   */
   const handlePreview = async () => {
     if (!selectedTpl) return;
+    if (!soccod || !uticod) {
+      showSnack('Session expirée — reconnectez-vous pour générer un aperçu.', 'error');
+      return;
+    }
     try {
-      const res = await apiInstance.get(`/Templates/preview/${selectedTpl}?soccod=01&empcod=001091`, { responseType: 'blob' });
+      const res = await apiInstance.get(
+        `/Templates/preview/${encodeURIComponent(selectedTpl)}`,
+        { params: { soccod, empcod: uticod }, responseType: 'blob' }
+      );
       setPreviewUrl(URL.createObjectURL(res.data));
-    } catch (err) { alert("Error rendering PDF"); }
+    } catch (err: any) {
+      showSnack(err?.response?.data?.message || 'Erreur de génération PDF.', 'error');
+    }
+  };
+
+  /**
+   * Export PDF d'un modèle pour un EMPLOYÉ spécifique (sélectionné via l'autocomplete
+   * du dialog) — déclenche un téléchargement direct en plus d'afficher l'aperçu.
+   */
+  const handleExportForEmployee = async () => {
+    if (!selectedTpl) { showSnack('Sélectionnez un modèle dans la sidebar.', 'error'); return; }
+    if (!exportEmpcod) { showSnack('Choisissez l\'employé cible.', 'error'); return; }
+    if (!soccod) { showSnack('Session expirée.', 'error'); return; }
+    setExporting(true);
+    try {
+      const res = await apiInstance.get(
+        `/Templates/preview/${encodeURIComponent(selectedTpl)}`,
+        { params: { soccod, empcod: exportEmpcod }, responseType: 'blob' }
+      );
+      // Télécharger le PDF directement.
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const cleanTpl = selectedTpl.replace(/\.(html|frx)$/i, '');
+      const empLib = (employeeOptions.find(o => o.code === exportEmpcod)?.lib || exportEmpcod).replace(/[^a-zA-Z0-9_-]+/g, '_');
+      link.download = `${cleanTpl}_${empLib}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showSnack('Document exporté.', 'success');
+      setOpenExport(false);
+    } catch (err: any) {
+      // L'API renvoie le message dans le blob — on le décode pour afficher la cause.
+      let msg = 'Erreur lors de l\'export.';
+      if (err?.response?.data instanceof Blob) {
+        try { msg = JSON.parse(await err.response.data.text())?.message || msg; } catch { /* ignore */ }
+      }
+      showSnack(msg, 'error');
+    } finally {
+      setExporting(false);
+    }
   };
 
   /* ── AI Assistant Function ── */
@@ -211,7 +305,10 @@ const ContractBuilderModern = () => {
       await apiInstance.delete(`/Templates/${encodeURIComponent(name)}`);
       if (selectedTpl === name) { setSelectedTpl(null); setContent(''); }
       fetchTemplates();
-    } catch (err) { console.error(err); alert("Erreur lors de la suppression"); }
+      showSnack('Modèle supprimé.', 'success');
+    } catch (err: any) {
+      showSnack(err?.response?.data?.message || 'Erreur lors de la suppression.', 'error');
+    }
   };
 
   const handleRename = async () => {
@@ -280,11 +377,25 @@ const ContractBuilderModern = () => {
            <input type="file" ref={fileInputRef} className="hidden" accept=".pdf" onChange={handlePdfImport} />
            
            <Button variant="outlined" color="primary" onClick={() => setOpenNewTpl(true)} size="small" className="rounded-xl font-bold border-slate-200 text-slate-700">
-              <span className="material-symbols-outlined mr-2 text-sm">add</span> New
+              <span className="material-symbols-outlined mr-2 text-sm">add</span> Nouveau
            </Button>
-           
+
+           <Button
+             variant="outlined"
+             onClick={() => {
+               if (!selectedTpl) { showSnack('Sélectionnez un modèle avant d\'exporter.', 'error'); return; }
+               setExportEmpcod('');
+               setOpenExport(true);
+             }}
+             startIcon={<span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>}
+             className="rounded-xl font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+             size="small"
+           >
+             Exporter pour un employé
+           </Button>
+
            <Button variant="contained" onClick={handleSave} disabled={saving} size="small" className="rounded-xl px-6 font-bold shadow-lg shadow-blue-100 bg-blue-700">
-             {saving ? "Publishing..." : "Save Template"}
+             {saving ? "Enregistrement…" : "Enregistrer"}
            </Button>
         </div>
       </header>
@@ -295,17 +406,21 @@ const ContractBuilderModern = () => {
           <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0">
             <div className="p-4 border-b border-slate-100">
                <div className="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-4">Library</div>
-               <TextField 
-                 placeholder="Search templates..." 
-                 size="small" fullWidth 
-                 InputProps={{ 
+               <TextField
+                 placeholder="Rechercher un modèle…"
+                 size="small" fullWidth
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 InputProps={{
                    startAdornment: <span className="material-symbols-outlined text-slate-400 text-sm mr-2">search</span>,
                    className: 'text-sm bg-slate-50 rounded-xl border-none outline-none'
-                 }} 
+                 }}
                />
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {templates.map(t => (
+              {templates
+                .filter(t => !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map(t => (
                  <div 
                    key={t.name}
                    onClick={() => handleSelect(t.name)}
@@ -501,6 +616,73 @@ const ContractBuilderModern = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Insert Table Dialog (remplace les prompt() bruts) */}
+      <Dialog open={openInsertTable} onClose={() => setOpenInsertTable(false)} PaperProps={{ className: 'rounded-3xl p-4' }}>
+        <DialogTitle className="font-black text-slate-900">Insérer un tableau</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
+            <TextField
+              label="Nombre de lignes" type="number" size="small"
+              inputProps={{ min: 1, max: 20 }}
+              value={tableRows}
+              onChange={(e) => setTableRows(parseInt(e.target.value || '1', 10))}
+            />
+            <TextField
+              label="Nombre de colonnes" type="number" size="small"
+              inputProps={{ min: 1, max: 20 }}
+              value={tableCols}
+              onChange={(e) => setTableCols(parseInt(e.target.value || '1', 10))}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenInsertTable(false)} color="inherit">Annuler</Button>
+          <Button onClick={confirmInsertTable} variant="contained" className="bg-blue-700">Insérer</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Export pour un employé spécifique */}
+      <Dialog open={openExport} onClose={() => !exporting && setOpenExport(false)} PaperProps={{ className: 'rounded-3xl p-4 max-w-md w-full' }}>
+        <DialogTitle className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+            <span className="material-symbols-outlined text-emerald-700">picture_as_pdf</span>
+          </div>
+          <div>
+            <div className="text-lg font-black text-slate-900">Exporter le modèle</div>
+            <div className="text-xs text-slate-400 font-medium">
+              {selectedTpl ? `Modèle : ${selectedTpl}` : 'Aucun modèle sélectionné'}
+            </div>
+          </div>
+        </DialogTitle>
+        <DialogContent className="space-y-4 mt-2">
+          <Autocomplete
+            size="small"
+            options={employeeOptions}
+            getOptionLabel={(o) => `${o.lib} (${o.code})`}
+            isOptionEqualToValue={(a, b) => a.code === b.code}
+            value={employeeOptions.find(o => o.code === exportEmpcod) || null}
+            onChange={(_, val) => setExportEmpcod(val?.code || '')}
+            renderInput={(params) => <TextField {...params} label="Employé cible" placeholder="Rechercher…" />}
+          />
+          <Box className="text-[12px] text-slate-500 leading-relaxed">
+            Le modèle sera fusionné avec les données de l'employé sélectionné (nom, CIN,
+            fonction, salaire, dates…) et téléchargé au format PDF.
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenExport(false)} color="inherit" disabled={exporting}>Annuler</Button>
+          <Button
+            onClick={handleExportForEmployee}
+            variant="contained"
+            disabled={exporting || !exportEmpcod}
+            startIcon={exporting ? <CircularProgress size={16} color="inherit" /> : <span className="material-symbols-outlined text-sm">download</span>}
+            className="bg-emerald-700"
+          >
+            {exporting ? 'Génération…' : 'Exporter PDF'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {previewUrl && (
         <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-8 backdrop-blur-md" onClick={() => setPreviewUrl(null)}>
            <div className="bg-white w-full h-full max-w-6xl rounded-3xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -508,6 +690,12 @@ const ContractBuilderModern = () => {
            </div>
         </div>
       )}
+
+      <Snackbar open={snackbar.open} autoHideDuration={4500} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
