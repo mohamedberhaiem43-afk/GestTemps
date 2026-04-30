@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, Rocket, CheckCircle2, FileText, LayoutGrid, Headset } from 'lucide-react';
-import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
 import './PricingPage.css';
 
@@ -21,41 +20,21 @@ const PlanConfigurationPage: React.FC = () => {
   const [userCount, setUserCount] = useState(initialState.userCount ?? 50);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
   const [packageType, setPackageType] = useState<'self' | 'success' | 'partner'>(initialState.packageType ?? 'success');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleConfirmCheckout = async () => {
-    setError(null);
-    // Visiteur non connecté : on l'envoie sur /signup avec la configuration choisie.
-    // Après inscription, SignupPage déclenchera lui-même /billing/checkout pour Stripe.
-    if (!isAuthenticated) {
-      navigate('/signup', {
-        state: { plan: planCode, cycle: billingCycle, userCount, packageType },
-      });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { data } = await apiInstance.post('/billing/checkout', {
-        planCode,
-        billingCycle,
+  const handleConfirmCheckout = () => {
+    // Étape suivante = page de paiement (récapitulatif + formulaire carte).
+    // /payment (visiteur, plein écran) ou /dashboard/payment (utilisateur connecté).
+    const target = isAuthenticated ? '/dashboard/payment' : '/payment';
+    navigate(target, {
+      state: {
+        plan: planCode,
+        price: pricePerUser,
+        cycle: billingCycle,
         userCount,
         packageType,
-        successUrl: `${window.location.origin}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/dashboard/plan-configuration?checkout=cancelled`,
-      });
-      if (data?.url) {
-        // Redirection vers Stripe Checkout (page hostée Stripe → encaisse + crée subscription).
-        window.location.href = data.url;
-        return;
-      }
-      setError('Réponse Stripe invalide.');
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Échec de la création de la session de paiement.');
-    } finally {
-      setSubmitting(false);
-    }
+      },
+    });
   };
 
   const pricePerUser = 8.00;
@@ -256,17 +235,11 @@ const PlanConfigurationPage: React.FC = () => {
 
                 {/* Actions */}
                 <div className="space-y-4">
-                  {error && (
-                    <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-3 font-bold">
-                      {error}
-                    </div>
-                  )}
                   <button
                     onClick={handleConfirmCheckout}
-                    disabled={submitting}
-                    className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg hover:-translate-y-1 transition-all shadow-xl shadow-primary/20 uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                    className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg hover:-translate-y-1 transition-all shadow-xl shadow-primary/20 uppercase tracking-widest"
                   >
-                    {submitting ? 'Redirection vers Stripe…' : "Confirmer l'achat"}
+                    Confirmer l'achat
                   </button>
                   <button
                     onClick={() => navigate('/dashboard')}

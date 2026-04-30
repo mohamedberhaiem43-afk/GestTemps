@@ -299,21 +299,21 @@ function RemboursementModernContent() {
                             <div className="rmb-stat-label">En attente</div>
                             <div className="rmb-stat-value rmb-stat-value--pending">
                                 {formatMontant(pendingTotal)}
-                                <span className="rmb-stat-currency">TND</span>
+                                <span className="rmb-stat-currency">€</span>
                             </div>
                         </div>
                         <div className="rmb-stat-card rmb-stat-card--reimbursed">
                             <div className="rmb-stat-label">Remboursé</div>
                             <div className="rmb-stat-value rmb-stat-value--reimbursed">
                                 {formatMontant(reimbursedTotal)}
-                                <span className="rmb-stat-currency">TND</span>
+                                <span className="rmb-stat-currency">€</span>
                             </div>
                         </div>
                         <div className="rmb-stat-card rmb-stat-card--total">
                             <div className="rmb-stat-label">Total Année</div>
                             <div className="rmb-stat-value rmb-stat-value--total">
                                 {formatMontant(ytdTotal)}
-                                <span className="rmb-stat-currency">TND</span>
+                                <span className="rmb-stat-currency">€</span>
                             </div>
                         </div>
                     </div>
@@ -420,7 +420,7 @@ function RemboursementModernContent() {
                                                 <td>
                                                     <span className="rmb-amount-cell">
                                                         {formatMontant(exp.montant)}
-                                                        <span className="rmb-amount-currency">TND</span>
+                                                        <span className="rmb-amount-currency">€</span>
                                                     </span>
                                                 </td>
                                                 <td>
@@ -558,7 +558,7 @@ function RemboursementModernContent() {
                     <Typography sx={{ color: '#475569', fontSize: '14px', mt: 1, lineHeight: 1.6 }}>
                         Êtes-vous sûr de vouloir supprimer la dépense
                         <strong> « {expenseToDelete?.titre} »</strong> d'un montant de{' '}
-                        <strong>{expenseToDelete ? formatMontant(expenseToDelete.montant) : '0'} TND</strong> ?
+                        <strong>{expenseToDelete ? formatMontant(expenseToDelete.montant) : '0'} €</strong> ?
                     </Typography>
                     <Typography sx={{ color: '#94a3b8', fontSize: '12px', mt: 2 }}>
                         Cette action est irréversible.
@@ -610,7 +610,7 @@ function RemboursementModernContent() {
                                         Dépense
                                     </Typography>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#191c1e' }}>
-                                        {statusAction.expense.titre} — <strong>{formatMontant(statusAction.expense.montant)} TND</strong>
+                                        {statusAction.expense.titre} — <strong>{formatMontant(statusAction.expense.montant)} €</strong>
                                     </Typography>
                                 </Box>
                                 <Typography sx={{ color: '#475569', fontSize: '13px', lineHeight: 1.6 }}>
@@ -698,7 +698,7 @@ function RemboursementModernContent() {
                                     Montant
                                 </Typography>
                                 <Typography sx={{ fontSize: '22px', fontWeight: 800, color: '#0040a1', fontFamily: 'Manrope, sans-serif' }}>
-                                    {formatMontant(selectedExpense.montant)} <span style={{ fontSize: '13px', fontWeight: 600, opacity: 0.5 }}>TND</span>
+                                    {formatMontant(selectedExpense.montant)} <span style={{ fontSize: '13px', fontWeight: 600, opacity: 0.5 }}>€</span>
                                 </Typography>
                             </Box>
                             <Box>
@@ -825,7 +825,7 @@ function RemboursementModernContent() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="rmb-form-label">Montant (TND)</label>
+                                    <label className="rmb-form-label">Montant (€)</label>
                                     <input
                                         className="rmb-form-input"
                                         placeholder="0.000"
@@ -882,7 +882,7 @@ function RemboursementModernContent() {
                     <div className="rmb-tip-card" style={{ marginTop: '24px' }}>
                         <Info className="rmb-tip-icon" size={20} />
                         <p className="rmb-tip-text">
-                            Les équipements de plus de 500 TND nécessitent une pré-autorisation.
+                            Les équipements de plus de 500 € nécessitent une pré-autorisation.
                         </p>
                     </div>
                 </DialogContent>
