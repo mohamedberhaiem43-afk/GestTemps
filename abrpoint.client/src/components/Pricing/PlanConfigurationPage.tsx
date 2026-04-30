@@ -1,24 +1,40 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, Users, Rocket, CheckCircle2, FileText, LayoutGrid, Headset } from 'lucide-react';
+import { Users, Rocket, CheckCircle2, FileText, LayoutGrid, Headset } from 'lucide-react';
 import apiInstance from '../API/apiInstance';
+import { useAuth } from '../helper/AuthProvider';
 import './PricingPage.css';
 
 const PlanConfigurationPage: React.FC = () => {
   const location = useLocation();
+  const { uticod } = useAuth();
+  const isAuthenticated = Boolean(uticod);
   // Plan + cycle viennent en général de PricingPage via location.state ; valeurs par défaut
   // si l'utilisateur arrive directement sur l'URL.
-  const initialState = (location.state ?? {}) as { plan?: string; cycle?: 'monthly' | 'annual' };
+  const initialState = (location.state ?? {}) as {
+    plan?: string;
+    cycle?: 'monthly' | 'annual';
+    userCount?: number;
+    packageType?: 'self' | 'success' | 'partner';
+  };
   const planCode = (initialState.plan ?? 'Standard');
-  const [userCount, setUserCount] = useState(50);
+  const [userCount, setUserCount] = useState(initialState.userCount ?? 50);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
-  const [packageType, setPackageType] = useState<'self' | 'success' | 'partner'>('success');
+  const [packageType, setPackageType] = useState<'self' | 'success' | 'partner'>(initialState.packageType ?? 'success');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleConfirmCheckout = async () => {
     setError(null);
+    // Visiteur non connecté : on l'envoie sur /signup avec la configuration choisie.
+    // Après inscription, SignupPage déclenchera lui-même /billing/checkout pour Stripe.
+    if (!isAuthenticated) {
+      navigate('/signup', {
+        state: { plan: planCode, cycle: billingCycle, userCount, packageType },
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       const { data } = await apiInstance.post('/billing/checkout', {
@@ -49,70 +65,18 @@ const PlanConfigurationPage: React.FC = () => {
 
   return (
     <div className="pricing-container min-h-screen bg-surface font-body selection:bg-primary-fixed">
-      {/* TopNavBar */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-surface-container">
-        <div className="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
-          <div className="text-2xl font-bold tracking-tight text-primary font-headline">Architect Ledger</div>
-          <nav className="hidden md:flex items-center gap-8">
-            <a className="text-on-surface-variant hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest" href="#">Platform</a>
-            <a className="text-on-surface-variant hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest" href="#">Solutions</a>
-            <a className="text-on-surface-variant hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest" href="#">Pricing</a>
-          </nav>
-          <div className="flex items-center gap-4">
-            <button className="text-on-surface-variant hover:text-primary font-bold text-xs uppercase tracking-widest px-4 py-2 transition-all">Sign In</button>
-            <button className="bg-primary text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest hover:-translate-y-0.5 transition-all shadow-md">Contact Sales</button>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex min-h-screen max-w-screen-2xl mx-auto">
-        {/* SideNavBar */}
-        <aside className="hidden lg:flex flex-col h-screen sticky left-0 w-72 border-r border-surface-container bg-surface-container-low overflow-y-auto">
-          <div className="p-8">
-            <div className="flex items-center gap-3 mb-12">
-              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg">
-                <span className="material-symbols-outlined fill-icon">architecture</span>
-              </div>
-              <div>
-                <div className="text-lg font-black text-primary font-headline">Standard Plan</div>
-                <div className="text-[10px] font-bold text-outline uppercase tracking-widest">HR Digital Curation</div>
-              </div>
-            </div>
-            <nav className="space-y-2">
-              <div className="flex items-center gap-4 text-outline py-3 px-6 hover:text-primary hover:bg-white rounded-xl transition-all cursor-pointer">
-                <span className="material-symbols-outlined">edit_document</span>
-                <span className="font-label uppercase tracking-widest text-[10px] font-black">Plan Selection</span>
-              </div>
-              <div className="flex items-center gap-4 text-primary font-black bg-white shadow-sm py-3 px-6 rounded-xl transition-all cursor-pointer border-r-4 border-primary">
-                <span className="material-symbols-outlined">group_add</span>
-                <span className="font-label uppercase tracking-widest text-[10px]">Configuration</span>
-              </div>
-              <div className="flex items-center gap-4 text-outline py-3 px-6 hover:text-primary hover:bg-white rounded-xl transition-all cursor-pointer">
-                <span className="material-symbols-outlined">handshake</span>
-                <span className="font-label uppercase tracking-widest text-[10px] font-black">Implementation</span>
-              </div>
-              <div className="flex items-center gap-4 text-outline py-3 px-6 hover:text-primary hover:bg-white rounded-xl transition-all cursor-pointer">
-                <span className="material-symbols-outlined">fact_check</span>
-                <span className="font-label uppercase tracking-widest text-[10px] font-black">Review</span>
-              </div>
-            </nav>
-          </div>
-        </aside>
-
-        {/* Main Content Canvas */}
-        <main className="flex-1 p-8 lg:p-12 bg-surface">
-          {/* Breadcrumbs & Header */}
-          <div className="mb-12">
-            <nav className="flex items-center gap-2 text-xs text-outline mb-6 font-bold uppercase tracking-widest">
-              <span>Abonnement</span>
-              <ChevronRight size={14} />
-              <span>Plans</span>
-              <ChevronRight size={14} />
-              <span className="text-primary">Plan Standard</span>
-            </nav>
+      {/* Plein écran : pas de navbar, pas de sidebar — la configuration de plan
+          précède l'inscription, l'utilisateur ne doit pas être distrait. */}
+      <main className="w-full px-6 lg:px-12 py-10 lg:py-16">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-12 text-center">
+            <span className="inline-block text-[10px] font-black uppercase tracking-[0.3em] text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-6">
+              Plan {planCode}
+            </span>
             <h1 className="text-4xl lg:text-5xl font-black text-on-surface tracking-tight mb-4 font-headline">Configuration du plan</h1>
-            <p className="text-on-surface-variant max-w-2xl text-lg leading-relaxed">
-              Personnalisez votre infrastructure RH pour correspondre exactement aux besoins de votre organisation.
+            <p className="text-on-surface-variant max-w-2xl mx-auto text-lg leading-relaxed">
+              Personnalisez votre abonnement Concorde Workforce pour correspondre exactement aux besoins de votre organisation.
             </p>
           </div>
 
@@ -325,8 +289,8 @@ const PlanConfigurationPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
 
       {/* Background Decorative Elements */}
       <div className="fixed top-0 right-0 -z-10 w-1/3 h-1/2 opacity-20 pointer-events-none">

@@ -369,6 +369,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/about': content = <AboutPage />; break;
     case '/login': content = <CredentialsSignInPage />; break;
     case '/signup': content = <SignupPage />; break;
+    case '/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/dashboard': content = <DashboardModernSync />; break;
     case '/dashboard/structure-organisationnelle': content = <OrgStructureModern />; break;
     case '/dashboard/ville': content = <VilleModern />; break;
@@ -709,7 +710,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // Track navigation to add tabs
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration') return;
 
     // Find the item in flattened navigation to get title and icon
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
@@ -728,7 +729,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // ── Recent Pages Tracking ──
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/dashboard') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/dashboard') return;
 
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
@@ -780,7 +781,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   ];
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
-  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup';
+  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration';
   const isProfilePage = pathname === '/dashboard/profil-employe';
 
   if (!authReady) {

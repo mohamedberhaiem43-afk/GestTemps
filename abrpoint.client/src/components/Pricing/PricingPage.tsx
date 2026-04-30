@@ -91,7 +91,7 @@ const PricingPage: React.FC = () => {
             <img
               src="/Concorde.png"
               alt="Logo Concorde"
-              style={{ height: 96, width: 'auto', objectFit: 'contain' }}
+              style={{ height: 64, width: 'auto', objectFit: 'contain' }}
             />
             <span className="text-xl font-bold tracking-tight text-primary font-headline">
               Concorde
@@ -214,11 +214,17 @@ const PricingPage: React.FC = () => {
               </div>
               <button
                 onClick={() => {
-                  // Approche Odoo : un visiteur non connecté est routé vers /signup pour démarrer
-                  // l'essai gratuit ; un utilisateur déjà authentifié va directement à
-                  // PlanConfiguration (qui crée une session Stripe Checkout au clic "Confirmer").
-                  // Le plan choisi est conservé dans le state pour reprise après inscription.
-                  const target = isAuthenticated ? '/dashboard/plan-configuration' : '/signup';
+                  // Plan Essentiel (gratuit) : pas de configuration, on envoie directement vers
+                  // /signup (visiteur) ou /dashboard (utilisateur déjà authentifié).
+                  // Plans payants : on passe par PlanConfiguration qui collecte userCount /
+                  // packageType, puis route vers /signup (visiteur) ou Stripe Checkout (auth).
+                  if (plan.name === 'Essentiel') {
+                    navigate(isAuthenticated ? '/dashboard' : '/signup', {
+                      state: { plan: plan.name, price: plan.price, cycle: billingCycle },
+                    });
+                    return;
+                  }
+                  const target = isAuthenticated ? '/dashboard/plan-configuration' : '/plan-configuration';
                   navigate(target, { state: { plan: plan.name, price: plan.price, cycle: billingCycle } });
                 }}
                 className={`w-full py-4 font-bold rounded-xl text-xs uppercase tracking-widest transition-all ${plan.accent || plan.popular
