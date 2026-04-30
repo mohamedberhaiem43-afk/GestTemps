@@ -1,6 +1,8 @@
+using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace ABRPOINT.Server.Tenancy;
 
@@ -23,6 +25,11 @@ public sealed class TenantResolverMiddleware
         _log = log;
     }
 
+    // Cache des tenants déjà migrés (in-place schema migrations) pour éviter de relancer
+    // le check à chaque requête. Reset au redémarrage du process — acceptable car les
+    // ALTER TABLE sont idempotents (vérifient sys.columns avant action).
+    private static readonly ConcurrentDictionary<string, byte> _migratedTenants = new();
+
     private static readonly string[] BypassPrefixes = new[]
     {
         "/api/signup",
@@ -39,7 +46,7 @@ public sealed class TenantResolverMiddleware
         "www", "app", "api", "admin", "mail", "support", "billing", "status",
     };
 
-    public async Task Invoke(HttpContext ctx, ITenantStore store, ICurrentTenant current, IConfiguration cfg)
+    public async Task Invoke(HttpContext ctx, ITenantStore store, ICurrentTenant current, IConfiguration cfg, ITenantDbContextFactory dbFactory)
     {
         var path = ctx.Request.Path.Value ?? string.Empty;
         if (BypassPrefixes.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
@@ -93,6 +100,25 @@ public sealed class TenantResolverMiddleware
         current.Set(tenant);
         try
         {
+            // Migrations de schéma idempotentes (ajout de colonnes type parmodemp, expand vilcod/villib)
+            // exécutées une fois par tenant et par process. Évite l'exception "Invalid column name"
+            // sur les bases déployées avant l'ajout de la colonne.
+            if (_migratedTenants.TryAdd(tenant.Slug, 1))
+            {
+                try
+                {
+                    await using var db = dbFactory.Create();
+                    await BaseDataSchemaMigrator.MigrateAsync(db, ctx.RequestAborted);
+                }
+                catch (Exception migEx)
+                {
+                    // Ne bloque jamais la requête. On retire le slug du cache pour réessayer
+                    // à la requête suivante si la migration a échoué (ex: race au boot).
+                    _migratedTenants.TryRemove(tenant.Slug, out _);
+                    _log.LogWarning(migEx, "Schema migration ignorée pour tenant {Slug} : {Msg}", tenant.Slug, migEx.Message);
+                }
+            }
+
             await _next(ctx);
         }
         finally
