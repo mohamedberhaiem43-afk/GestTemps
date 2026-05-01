@@ -18,10 +18,11 @@ import useGetUsers from '../../../hooks/userHooks/useGetUsers';
 import { Societe as SocieteModel } from '../../../models/Societe';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
+import apiInstance from '../../API/apiInstance';
 import './SocieteModern.css';
 
 const emptyForm: SocieteModel = {
-  soccod: '', soclib: '', socresp: '', socadr: '', soctel: '', socfax: '',
+  soccod: '', soclib: '', socresp: '', socadr: '', socville: '', soctel: '', socfax: '',
   socemail: '', socccb: '', soctva: '', soctva1: '', soctva2: '', soctva3: '',
   soctva000: '000', socreg: 0, socmois: 0.0, soctype: '', socpresence: '',
   sochsup: '', socmere: '', socsmig: '', soclibar: '', socadrar: '', socrespar: ''
@@ -302,21 +303,33 @@ function SocieteModernContent() {
                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '8px', border: '1px solid #eee' }} 
                     />
                  )}
-                 <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={(e) => {
+                 <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
                        const file = e.target.files?.[0];
-                       if (file) {
-                          // In a real app, you'd upload this via API. 
-                          // The previous version likely used a specific endpoint or local storage path.
-                          // For now, we simulate the path setting.
-                          const fileName = `/${file.name}`;
-                          localStorage.setItem('societeImage', fileName);
-                          window.dispatchEvent(new Event('imageUpdated'));
-                          setSnack({ open: true, msg: 'Logo mis à jour (Aperçu local).', sev: 'info' });
+                       if (!file) return;
+                       const target = form.soccod || form.soccod === '' ? form.soccod : '';
+                       if (!target) {
+                          setSnack({ open: true, msg: 'Sélectionnez ou enregistrez la société avant d\'uploader le logo.', sev: 'warning' as any });
+                          return;
                        }
-                    }} 
+                       try {
+                          const fd = new FormData();
+                          fd.append('file', file);
+                          const r = await apiInstance.post(`/Parametres/upload-logo/${target}`, fd, {
+                             headers: { 'Content-Type': 'multipart/form-data' },
+                          });
+                          const filePath: string | undefined = r.data?.filePath;
+                          if (filePath) {
+                             localStorage.setItem('societeImage', filePath);
+                             window.dispatchEvent(new Event('imageUpdated'));
+                             setSnack({ open: true, msg: 'Logo mis à jour avec succès.', sev: 'success' });
+                          }
+                       } catch (err: any) {
+                          setSnack({ open: true, msg: err?.response?.data?.message || 'Erreur lors de l\'upload du logo.', sev: 'error' });
+                       }
+                    }}
                     style={{ fontSize: '12px' }}
                  />
               </Box>
@@ -332,12 +345,12 @@ function SocieteModernContent() {
           </Box>
           <Box className="soc-form-grid soc-form-grid--2">
             <Box className="soc-field soc-field--full">
-              <label>Adresse Siège</label>
+              <label>Num Rue</label>
               <input type="text" value={form.socadr} onChange={set('socadr')} />
             </Box>
             <Box className="soc-field">
               <label>Ville</label>
-              <input type="text" value={form.socadr} onChange={set('socadr')} placeholder="Casablanca" />
+              <input type="text" value={form.socville} onChange={set('socville')} placeholder="Casablanca" />
             </Box>
             <Box className="soc-field">
               <label>E-mail</label>

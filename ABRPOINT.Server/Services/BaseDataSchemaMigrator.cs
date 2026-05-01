@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public static class BaseDataSchemaMigrator
 {
-    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded);
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded);
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
@@ -26,7 +26,17 @@ public static class BaseDataSchemaMigrator
         var cetMax = await AddColumnIfMissingAsync(db, "parametre", "parcetmaxjours", "REAL NULL", ct);
         var cetSolde = await AddColumnIfMissingAsync(db, "solde", "cetjours", "REAL NULL", ct);
         var cetAdded = cetDate || cetMax || cetSolde;
-        return new MigrationReport(vilcod, villib, parmodemp, cetAdded);
+        // Société : ville séparée du numéro de rue (champ socadr existant).
+        var socville = await AddColumnIfMissingAsync(db, "societe", "socville", "NVARCHAR(60) NULL", ct);
+        // Tables enfants qui référencent ville.vilcod : la PK a été élargie à 6 chars,
+        // les FKs étaient encore à 4 → toute sauvegarde d'employé avec un vilcod
+        // auto-généré (6 chiffres) ou un code INSEE (5 chiffres) échouait.
+        var vilFkEmploye = await ExpandColumnIfNeededAsync(db, "employe", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
+        var vilFkContrat = await ExpandColumnIfNeededAsync(db, "contrat", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
+        var vilFkContrat2 = await ExpandColumnIfNeededAsync(db, "contrat2", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
+        var vilFkEmpaff = await ExpandColumnIfNeededAsync(db, "empaff", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
+        var vilFkExpanded = vilFkEmploye || vilFkContrat || vilFkContrat2 || vilFkEmpaff;
+        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded);
     }
 
     /// <summary>

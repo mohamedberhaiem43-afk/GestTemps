@@ -10,7 +10,7 @@ import useGetSocietes from '../../../hooks/societeHooks/useGetSocietes';
 import { Societe } from '../../../models/Societe';
 
 const emptyForm: Societe = {
-    soccod: '', soclib: '', socresp: '', socadr: '', soctel: '', socfax: '',
+    soccod: '', soclib: '', socresp: '', socadr: '', socville: '', soctel: '', socfax: '',
     socemail: '', socccb: '', soctva: '', soctva1: '', soctva2: '', soctva3: '',
     soctva000: '000', socreg: 0, socmois: 0.0, soctype: '', socpresence: '',
     sochsup: '', socmere: '', socsmig: '', soclibar: '', socadrar: '', socrespar: ''

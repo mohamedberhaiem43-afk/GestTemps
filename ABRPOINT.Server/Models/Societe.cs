@@ -23,6 +23,10 @@ public partial class Societe : BaseEntity
     [StringLength(40)]
     public string? Socadr { get; set; }
 
+    [Column("socville")]
+    [StringLength(60)]
+    public string? Socville { get; set; }
+
     [Column("soctel")]
     [StringLength(20)]
     public string? Soctel { get; set; }

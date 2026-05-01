@@ -58,7 +58,7 @@ public partial class Employe : BaseEntity
     public string? Natcod { get; set; }
 
     [Column("vilcod")]
-    [StringLength(4)]
+    [StringLength(6)]
     public string? Vilcod { get; set; }
 
     [Column("empadr")]

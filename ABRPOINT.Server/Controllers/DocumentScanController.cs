@@ -25,7 +25,8 @@ namespace ABRPOINT.Server.Controllers
         /// Supports contracts, CIN/ID cards, CVs, and other employment documents.
         /// </summary>
         [HttpPost("scan-employe")]
-        [RequestSizeLimit(10_000_000)] // 10MB max
+        [RequestSizeLimit(50_000_000)] // 50MB max — scans haute résolution + PDFs.
+        [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
         public async Task<IActionResult> ScanEmployeDocument()
         {
             try
@@ -291,7 +292,8 @@ Règles importantes:
         /// Quick text extraction using AI Vision via OpenRouter.
         /// </summary>
         [HttpPost("quick-scan")]
-        [RequestSizeLimit(10_000_000)]
+        [RequestSizeLimit(50_000_000)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
         public async Task<IActionResult> QuickScan()
         {
             try

@@ -108,6 +108,7 @@ namespace ABRPOINT.Server.Repository
                         .SetProperty(s => s.Soclib, societe.Soclib)
                         .SetProperty(s => s.Socresp, societe.Socresp)
                         .SetProperty(s => s.Socadr, societe.Socadr)
+                        .SetProperty(s => s.Socville, societe.Socville)
                         .SetProperty(s => s.Soctel, societe.Soctel)
                         .SetProperty(s => s.Socfax, societe.Socfax)
                         .SetProperty(s => s.Socemail, societe.Socemail)

@@ -46,7 +46,7 @@ public partial class Contrat2 : BaseEntity
     public string? Catcod { get; set; }
 
     [Column("vilcod")]
-    [StringLength(4)]
+    [StringLength(6)]
     public string? Vilcod { get; set; }
 
     [Column("empadr")]

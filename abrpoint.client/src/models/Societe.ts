@@ -3,6 +3,7 @@ export type Societe = {
     soclib: string;
     socresp: string;
     socadr: string;
+    socville: string;
     soctel: string;
     socfax: string;
     socemail: string;
