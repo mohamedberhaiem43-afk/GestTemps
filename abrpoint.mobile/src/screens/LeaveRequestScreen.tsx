@@ -46,8 +46,10 @@ export default function LeaveRequestScreen({ navigation }: any) {
   const [showEndPicker, setShowEndPicker] = useState(false);
 
   useEffect(() => {
-    loadInitialData();
-  }, [user]);
+    if (user?.soccod && user?.uticod) {
+      loadInitialData();
+    }
+  }, [user?.soccod, user?.uticod]);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -73,9 +75,17 @@ export default function LeaveRequestScreen({ navigation }: any) {
   };
 
   const loadAbsences = async () => {
+    if (!user?.soccod) return;
     try {
-      const data = await apiService.getAbsences();
-      setAbsences(Array.isArray(data) ? data : []);
+      // Même backend que le web : Dictionary<abscod, abslib> filtré sur les types de congé.
+      const data = await apiService.getCongeAbsenceLibs(user.soccod);
+      let absData: any[] = [];
+      if (Array.isArray(data)) {
+        absData = data;
+      } else if (data && typeof data === 'object') {
+        absData = Object.entries(data).map(([abscod, abslib]) => ({ abscod, abslib }));
+      }
+      setAbsences(absData);
     } catch (e) { console.log('Absences load error:', e); }
   };
 

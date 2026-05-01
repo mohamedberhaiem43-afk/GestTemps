@@ -67,9 +67,10 @@ namespace ABRPOINT.Server.Controllers
                 if (string.IsNullOrWhiteSpace(lcategorie.Catcod))
                     lcategorie.Catcod = await SequentialCodeGenerator.NextCatcodAsync(_db, lcategorie.Soccod);
 
-                var existing = await _lcategorieRepository.GetcatAsync(lcategorie.Soccod, lcategorie.Catcod);
-
-                if (existing != null && existing.Count() != 0)
+                // POST = "ajout d'une période". Si Ordre est fourni (>0), on est en édition d'une
+                // période existante → UpdateAsync. Sinon, AddAsync upsert la classe (Categorie) si
+                // elle n'existe pas et insère une nouvelle Lcategorie pour la période courante.
+                if (lcategorie.Ordre.HasValue && lcategorie.Ordre.Value > 0)
                 {
                     await _lcategorieRepository.UpdateAsync(lcategorie);
                     return Ok(new { message = "Classe horaire mise à jour avec succès", catcod = lcategorie.Catcod });

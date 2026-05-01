@@ -210,37 +210,54 @@ namespace ABRPOINT.Server.Repository
                 if (lcategorie == null)
                     throw new ArgumentNullException(nameof(lcategorie));
 
-                // 1️⃣ Auto-set Ordre if null or 0
-                var maxOrdre = await _dbContext.Lcategories
-                    .Where(l => l.Soccod == lcategorie.Soccod
-                             && l.Catcod == lcategorie.Catcod
-                             && l.Codposte == lcategorie.Codposte)
-                    .MaxAsync(l => (int?)l.Ordre) ?? 0;
+                // 1️⃣ Catégorie : upsert. Si la classe existe déjà (cas "ajout d'une période"),
+                // on met à jour ses métadonnées sans la dupliquer (la PK (Soccod, Catcod) sauterait).
+                var existingCat = await _dbContext.Categories
+                    .FirstOrDefaultAsync(c => c.Soccod == lcategorie.Soccod && c.Catcod == lcategorie.Catcod);
 
-                lcategorie.Ordre = maxOrdre + 1;
-
-                // 2️⃣ Create and map Categorie
-                var cat = new Categorie
+                if (existingCat == null)
                 {
-                    Soccod = lcategorie.Soccod,
-                    Catcod = lcategorie.Catcod,
-                    Catlib = lcategorie.Catlib,
-                    Cathsup = lcategorie.Cathsup,
-                    Catperiode = lcategorie.Catperiode,
-                    Catsem2 = lcategorie.Catsem2,
-                    Catsem3 = lcategorie.Catsem3,
-                    Catsem4 = lcategorie.Catsem4,
-                    Catsem5 = lcategorie.Catsem5,
-                    Catsem6 = lcategorie.Catsem6,
-                    Catsem7 = lcategorie.Catsem7,
-                    Catsem8 = lcategorie.Catsem8,
-                    Catsem9 = lcategorie.Catsem9,
-                    Catsem10 = lcategorie.Catsem10,
-                    Catsem11 = lcategorie.Catsem11,
-                    Catsem12 = lcategorie.Catsem12,
-                };
+                    var cat = new Categorie
+                    {
+                        Soccod = lcategorie.Soccod,
+                        Catcod = lcategorie.Catcod,
+                        Catlib = lcategorie.Catlib,
+                        Cathsup = lcategorie.Cathsup,
+                        Catperiode = lcategorie.Catperiode,
+                        Catsem2 = lcategorie.Catsem2,
+                        Catsem3 = lcategorie.Catsem3,
+                        Catsem4 = lcategorie.Catsem4,
+                        Catsem5 = lcategorie.Catsem5,
+                        Catsem6 = lcategorie.Catsem6,
+                        Catsem7 = lcategorie.Catsem7,
+                        Catsem8 = lcategorie.Catsem8,
+                        Catsem9 = lcategorie.Catsem9,
+                        Catsem10 = lcategorie.Catsem10,
+                        Catsem11 = lcategorie.Catsem11,
+                        Catsem12 = lcategorie.Catsem12,
+                    };
+                    await _dbContext.Categories.AddAsync(cat);
+                }
+                else
+                {
+                    existingCat.Catlib = lcategorie.Catlib ?? existingCat.Catlib;
+                    existingCat.Cathsup = lcategorie.Cathsup ?? existingCat.Cathsup;
+                    existingCat.Catperiode = lcategorie.Catperiode ?? existingCat.Catperiode;
+                    existingCat.Catsem2 = lcategorie.Catsem2;
+                    existingCat.Catsem3 = lcategorie.Catsem3;
+                    existingCat.Catsem4 = lcategorie.Catsem4;
+                    existingCat.Catsem5 = lcategorie.Catsem5;
+                    existingCat.Catsem6 = lcategorie.Catsem6;
+                    existingCat.Catsem7 = lcategorie.Catsem7;
+                    existingCat.Catsem8 = lcategorie.Catsem8;
+                    existingCat.Catsem9 = lcategorie.Catsem9;
+                    existingCat.Catsem10 = lcategorie.Catsem10;
+                    existingCat.Catsem11 = lcategorie.Catsem11;
+                    existingCat.Catsem12 = lcategorie.Catsem12;
+                }
 
-                // 3️⃣ Create and map Lcategorie
+                // 2️⃣ Nouvelle période (Lcategorie). Ordre est Identity côté DB → on ne l'envoie pas,
+                // EF Core l'ignorera grâce à [DatabaseGenerated(Identity)].
                 var lcat = new Lcategorie
                 {
                     Soccod = lcategorie.Soccod,
@@ -249,14 +266,9 @@ namespace ABRPOINT.Server.Repository
                     Catdu = lcategorie.Catdu,
                     Catau = lcategorie.Catau,
                     Catfixe = lcategorie.Catfixe,
-                    Ordre = (int)lcategorie.Ordre
                 };
-
-                // 4️⃣ Add to DbContext
-                await _dbContext.Categories.AddAsync(cat);
                 await _dbContext.Lcategories.AddAsync(lcat);
 
-                // 5️⃣ Save changes
                 await _dbContext.SaveChangesAsync();
             }
             catch (Exception)

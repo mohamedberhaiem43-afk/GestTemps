@@ -58,6 +58,10 @@ function ReposModernInner() {
   const [fernpaye, setFernpaye] = useState(false);
   const [fertype, setFertype] = useState<'F' | 'R'>('F');
   const [mode, setMode] = useState<'save' | 'edit'>('save');
+  // Date d'origine de la ligne en édition. Indispensable car la PK côté backend est
+  // (Soccod, Ferdate) — si l'utilisateur change la date, le backend doit retrouver la ligne
+  // via son ancienne clé sinon il insère un doublon.
+  const [originalFerdate, setOriginalFerdate] = useState<string | null>(null);
 
   // Table state
   const [filterTab, setFilterTab] = useState<'all' | 'paye' | 'fixe'>('all');
@@ -94,6 +98,8 @@ function ReposModernInner() {
       setFernpaye(selectedFerier.fernpaye === '1');
       setFertype((selectedFerier.fertype as 'F' | 'R') || 'F');
       setMode('edit');
+      // Mémorise la PK d'origine pour pouvoir la transmettre au PUT en cas de changement de date.
+      setOriginalFerdate(fmtDateInput(selectedFerier.ferdate) || null);
     }
   }, [selectedFerier]);
 
@@ -105,6 +111,7 @@ function ReposModernInner() {
     setFermotif(''); setFerdate(today()); setFertrv(today());
     setFerheure(8); setFerfixe(false); setFernpaye(false);
     setFertype('F'); setMode('save');
+    setOriginalFerdate(null);
     setSelectedFerier(null as any);
   };
 
@@ -137,7 +144,11 @@ function ReposModernInner() {
         showSnack(String(msg), 'error');
       },
     };
-    mode === 'save' ? addRepos(payload, cb) : editRepos(payload, cb);
+    if (mode === 'save') {
+      addRepos(payload, cb);
+    } else {
+      editRepos({ ferier: payload, originalFerdate }, cb);
+    }
   };
 
   const handleDelete = () => {

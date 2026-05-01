@@ -209,5 +209,39 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        public async Task UpdateByOriginalKeyAsync(string soccod, DateTime originalFerdate, Ferier ferier)
+        {
+            // PK = (Soccod, Ferdate). Si l'utilisateur change la date, on doit retrouver l'entrée
+            // par sa clé d'origine — sinon on ne trouve rien et on insère un doublon.
+            var existing = await _dbContext.Feriers
+                .FirstOrDefaultAsync(f => f.Soccod == soccod && f.Ferdate == originalFerdate);
+
+            if (existing == null)
+            {
+                // Plus rien sous l'ancienne clé : l'utilisateur a probablement supprimé puis ré-édite.
+                await _dbContext.Feriers.AddAsync(ferier);
+                await _dbContext.SaveChangesAsync();
+                return;
+            }
+
+            // Si la date change, EF Core refuse de modifier la PK d'une entité tracked → on supprime
+            // l'ancienne et on insère une nouvelle ligne avec les valeurs mises à jour. Sinon
+            // un simple SetValues suffit (et préserve les colonnes hors PK non envoyées).
+            var pkChanged = existing.Ferdate != ferier.Ferdate;
+            if (pkChanged)
+            {
+                _dbContext.Feriers.Remove(existing);
+                await _dbContext.SaveChangesAsync();
+                ferier.Soccod = soccod;
+                await _dbContext.Feriers.AddAsync(ferier);
+                await _dbContext.SaveChangesAsync();
+            }
+            else
+            {
+                _dbContext.Entry(existing).CurrentValues.SetValues(ferier);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
     }
 }

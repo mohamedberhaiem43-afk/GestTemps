@@ -34,13 +34,22 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpPut]
         [CanUpdateFerie]
-        public async Task<IActionResult> Put([FromBody] Ferier ferier)
+        public async Task<IActionResult> Put([FromBody] Ferier ferier, [FromQuery] DateTime? originalFerdate)
         {
             if (ferier == null)
                return BadRequest("Veuillez remplir les champs obligatoires");
             try
             {
-                await _ferierRepository.UpdateAsync(ferier);
+                // Quand le front envoie originalFerdate, on autorise le changement de date sans
+                // créer un doublon — la mise à jour cible la ligne identifiée par l'ancienne clé.
+                if (originalFerdate.HasValue && !string.IsNullOrEmpty(ferier.Soccod))
+                {
+                    await _ferierRepository.UpdateByOriginalKeyAsync(ferier.Soccod, originalFerdate.Value, ferier);
+                }
+                else
+                {
+                    await _ferierRepository.UpdateAsync(ferier);
+                }
                 return Ok("Jour de repos modifé avec succées");
             }
             catch (Exception)
@@ -48,7 +57,7 @@ namespace ABRPOINT.Server.Controllers
 
                 return StatusCode(500);
             }
-            
+
         }
 
         // DELETE api/<DirectionsController>/5

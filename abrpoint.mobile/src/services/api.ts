@@ -531,6 +531,18 @@ class ApiService {
     return response.data;
   }
 
+  // Types de congé (parmi les absences). Mêmes données que le web (useGetCongeAbsenceLibs).
+  async getCongeAbsenceLibs(soccod: string) {
+    const response = await this.client.get(`/Absences/get-conge-libs/${soccod}`);
+    return response.data;
+  }
+
+  // Types d'autorisation de sortie. Mêmes données que le web (useGetAutorisationLibs).
+  async getAutorisationLibs(soccod: string) {
+    const response = await this.client.get(`/Absences/get-autorisations-libs/${soccod}`);
+    return response.data;
+  }
+
   async getAbsencesBySoc(soccod: string) {
     const response = await this.client.get(`/Absences/get-libs/${soccod}`);
     return response.data;

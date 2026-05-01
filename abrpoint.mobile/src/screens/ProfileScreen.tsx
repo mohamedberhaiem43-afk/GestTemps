@@ -71,6 +71,20 @@ export default function ProfileScreen({ navigation, route }: any) {
   const firstName = names[0];
   const lastName = names.slice(1).join(' ');
 
+  const fmtDate = (val: any) => {
+    if (!val) return '—';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return String(val);
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch { return '—'; }
+  };
+
+  const sexeLabel = emp?.empsexe === 'F' ? 'Féminin' : emp?.empsexe === 'M' ? 'Masculin' : '—';
+  const sitFam: Record<string, string> = { 'C': 'Célibataire', 'M': 'Marié(e)', 'D': 'Divorcé(e)', 'V': 'Veuf/Veuve' };
+  const sitFamLabel = emp?.empsitfam ? (sitFam[emp.empsitfam] || emp.empsitfam) : '—';
+  const hireYear = emp?.empemb ? new Date(emp.empemb).getFullYear() : null;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* TopAppBar */}
@@ -97,13 +111,17 @@ export default function ProfileScreen({ navigation, route }: any) {
         {/* Profile Hero Section */}
         <View style={styles.heroSection}>
           <Text style={styles.heroSubLabel}>PROFIL COLLABORATEUR</Text>
-          <Text style={styles.heroName}>{firstName}{"\n"}{lastName}</Text>
+          <Text style={styles.heroName}>{firstName}{lastName ? `\n${lastName}` : ''}</Text>
           <View style={styles.heroBadges}>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>{emp?.empfon || 'Architecte Solutions RH'}</Text>
-            </View>
-            <View style={styles.statusDot} />
-            <Text style={styles.activeSince}>Actif depuis {new Date(emp?.empdatent || Date.now()).getFullYear()}</Text>
+            {!!emp?.empfonc && (
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>{emp.empfonc}</Text>
+              </View>
+            )}
+            {hireYear && <>
+              <View style={styles.statusDot} />
+              <Text style={styles.activeSince}>Actif depuis {hireYear}</Text>
+            </>}
           </View>
         </View>
 
@@ -113,25 +131,41 @@ export default function ProfileScreen({ navigation, route }: any) {
             <Text style={styles.sectionTitle}>Informations Personnelles</Text>
             <Text style={styles.sectionStep}>SECTION 01</Text>
           </View>
-          
+
           <View style={styles.bentoGrid}>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>DATE DE NAISSANCE</Text>
-              <Text style={styles.bentoValue}>
-                {emp?.empdatnais ? new Date(emp.empdatnais).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '14 Mars 1988'}
-              </Text>
+              <Text style={styles.bentoLabel}>MATRICULE</Text>
+              <Text style={styles.bentoValue}>{emp?.empmat || emp?.empcod || '—'}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>NATIONALITÉ</Text>
-              <Text style={styles.bentoValue}>Française</Text>
+              <Text style={styles.bentoLabel}>SEXE</Text>
+              <Text style={styles.bentoValue}>{sexeLabel}</Text>
             </View>
-            <View style={[styles.bentoCard, styles.fullWidthCard]}>
-              <View>
-                <Text style={styles.bentoLabel}>NUMÉRO DE SÉCURITÉ SOCIALE</Text>
-                <Text style={[styles.bentoValue, styles.trackingWider]}>1 88 03 75 001 002 42</Text>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>DATE DE NAISSANCE</Text>
+              <Text style={styles.bentoValue}>{fmtDate(emp?.empdnais)}</Text>
+            </View>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>LIEU DE NAISSANCE</Text>
+              <Text style={styles.bentoValue}>{emp?.emplnais || '—'}</Text>
+            </View>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>SITUATION FAMILIALE</Text>
+              <Text style={styles.bentoValue}>{sitFamLabel}</Text>
+            </View>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>PERS. À CHARGE</Text>
+              <Text style={styles.bentoValue}>{emp?.empnbp ?? '—'}</Text>
+            </View>
+            {!!emp?.empcin && (
+              <View style={[styles.bentoCard, styles.fullWidthCard]}>
+                <View>
+                  <Text style={styles.bentoLabel}>CIN</Text>
+                  <Text style={[styles.bentoValue, styles.trackingWider]}>{emp.empcin}</Text>
+                </View>
+                <MaterialCommunityIcons name="card-account-details-outline" size={20} color={COLORS.outline} />
               </View>
-              <MaterialCommunityIcons name="eye-outline" size={20} color={COLORS.outline} />
-            </View>
+            )}
           </View>
         </View>
 
@@ -141,45 +175,93 @@ export default function ProfileScreen({ navigation, route }: any) {
             <Text style={styles.sectionTitle}>Coordonnées</Text>
             <Text style={styles.sectionStep}>SECTION 02</Text>
           </View>
-          
+
           <View style={styles.contactList}>
             <View style={styles.contactItem}>
               <View style={styles.contactIconWrapper}>
                 <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.primary} />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.contactLabel}>EMAIL PROFESSIONNEL</Text>
-                <Text style={styles.contactValue}>{emp?.empemail || d?.utimail || 'ma.dussault@entreprise.com'}</Text>
+                <Text style={styles.contactValue}>{emp?.empemail || d?.utimail || '—'}</Text>
+              </View>
+            </View>
+            <View style={styles.contactItem}>
+              <View style={styles.contactIconWrapper}>
+                <MaterialCommunityIcons name="phone-outline" size={20} color={COLORS.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contactLabel}>TÉLÉPHONE FIXE</Text>
+                <Text style={styles.contactValue}>{emp?.emptel || '—'}</Text>
               </View>
             </View>
             <View style={styles.contactItem}>
               <View style={styles.contactIconWrapper}>
                 <MaterialCommunityIcons name="cellphone" size={20} color={COLORS.primary} />
               </View>
-              <View>
-                <Text style={styles.contactLabel}>TÉLÉPHONE</Text>
-                <Text style={styles.contactValue}>{emp?.emptel || '+33 6 12 34 56 78'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contactLabel}>MOBILE</Text>
+                <Text style={styles.contactValue}>{emp?.empmob || '—'}</Text>
               </View>
             </View>
             <View style={[styles.contactItem, styles.noBorder]}>
               <View style={styles.contactIconWrapper}>
                 <MaterialCommunityIcons name="map-marker-outline" size={20} color={COLORS.primary} />
               </View>
-              <View>
-                <Text style={styles.contactLabel}>BUREAU PRINCIPAL</Text>
-                <Text style={styles.contactValue}>{emp?.sitcod || 'Paris — Campus Etoile'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contactLabel}>ADRESSE</Text>
+                <Text style={styles.contactValue}>{emp?.empadr || '—'}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Section 03: Sécurité & Accès */}
+        {/* Section: Informations professionnelles */}
+        <View style={styles.infoLedger}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Informations Professionnelles</Text>
+            <Text style={styles.sectionStep}>SECTION 03</Text>
+          </View>
+
+          <View style={styles.bentoGrid}>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>DATE D'EMBAUCHE</Text>
+              <Text style={styles.bentoValue}>{fmtDate(emp?.empemb)}</Text>
+            </View>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>FONCTION</Text>
+              <Text style={styles.bentoValue}>{emp?.empfonc || '—'}</Text>
+            </View>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>SOCIÉTÉ</Text>
+              <Text style={styles.bentoValue}>{d?.soclib || emp?.soccod || '—'}</Text>
+            </View>
+            <View style={styles.bentoCard}>
+              <Text style={styles.bentoLabel}>SITE</Text>
+              <Text style={styles.bentoValue}>{emp?.sitcod || '—'}</Text>
+            </View>
+            {!!emp?.sercod && (
+              <View style={styles.bentoCard}>
+                <Text style={styles.bentoLabel}>SERVICE</Text>
+                <Text style={styles.bentoValue}>{emp.sercod}</Text>
+              </View>
+            )}
+            {!!emp?.utirole && (
+              <View style={styles.bentoCard}>
+                <Text style={styles.bentoLabel}>RÔLE</Text>
+                <Text style={styles.bentoValue}>{emp.utirole}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Section: Sécurité & Accès */}
         <View style={styles.infoLedger}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Sécurité & Accès</Text>
-            <Text style={styles.sectionStep}>SECTION 03</Text>
+            <Text style={styles.sectionStep}>SECTION 04</Text>
           </View>
-          
+
           <View style={styles.securityStack}>
             <TouchableOpacity style={styles.securityBtn}>
               <View style={styles.securityLeft}>
@@ -194,7 +276,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                 <MaterialCommunityIcons name="shield-check" size={24} color={COLORS.tertiaryContainer} />
                 <View>
                   <Text style={styles.securityText}>Double authentification (2FA)</Text>
-                  <Text style={styles.securitySubText}>ACTIVÉ VIA MICROSOFT AUTHENTICATOR</Text>
+                  <Text style={styles.securitySubText}>{is2FAEnabled ? 'ACTIVÉ' : 'DÉSACTIVÉ'}</Text>
                 </View>
               </View>
               <Switch

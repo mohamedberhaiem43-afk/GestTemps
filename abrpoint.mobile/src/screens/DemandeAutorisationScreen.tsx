@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
+import TimePickerModal from '../components/TimePickerModal';
 
 // ── Types ──
 interface DemandeAutorisation {
@@ -87,6 +88,8 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
   const [formAbscod, setFormAbscod] = useState('');
   const [showDepDatePicker, setShowDepDatePicker] = useState(false);
   const [showRetDatePicker, setShowRetDatePicker] = useState(false);
+  const [showDepTimePicker, setShowDepTimePicker] = useState(false);
+  const [showRetTimePicker, setShowRetTimePicker] = useState(false);
 
   useEffect(() => { loadDemandes(); loadAbsences(); }, [user]);
 
@@ -115,12 +118,12 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
   const loadAbsences = async () => {
   if (!user?.soccod) return;
   try {
-    const data = await apiService.getAbsencesBySoc(user.soccod);
+    // Même backend que le web (useGetAutorisationLibs) — renvoie un array d'AbsenceOption.
+    const data = await apiService.getAutorisationLibs(user.soccod);
 
-    // Convert key-value object to AbsenceOption array if needed
     let absData: AbsenceOption[] = [];
     if (Array.isArray(data)) {
-      absData = data;
+      absData = data as AbsenceOption[];
     } else if (data && typeof data === 'object') {
       absData = Object.entries(data).map(([key, value]) => ({
         abscod: key,
@@ -132,7 +135,8 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
 
     setAbsences(absData);
 
-    const defaultAbs = absData.find((a) => a.abslib.toLowerCase().includes('autorisation') );
+    const defaultAbs = absData.find((a) => a.abscng === 'B')
+      || absData.find((a) => a.abslib?.toLowerCase().includes('autorisation'));
     if (defaultAbs) setFormAbscod(defaultAbs.abscod);
     else if (absData.length > 0) setFormAbscod(absData[0].abscod);
   } catch (e) { console.log('Load absences error:', e); }
@@ -307,21 +311,27 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
                 <Text style={styles.pickerArrow}>▼</Text>
               </TouchableOpacity>
 
-              {/* Heure début */}
+              {/* Début : date + heure séparés */}
               <Text style={styles.label}>Date/Heure début</Text>
-              <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowDepDatePicker(true)}>
-                <Text style={styles.pickerBtnText}>
-                  📅 {fmtDate(formCondep.toISOString())} à {fmtTime(formCondep.toISOString())}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.dateTimeRow}>
+                <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowDepDatePicker(true)}>
+                  <Text style={styles.pickerBtnText}>📅 {fmtDate(formCondep.toISOString())}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowDepTimePicker(true)}>
+                  <Text style={styles.pickerBtnText}>🕐 {fmtTime(formCondep.toISOString())}</Text>
+                </TouchableOpacity>
+              </View>
 
-              {/* Heure fin */}
+              {/* Retour : date + heure séparés */}
               <Text style={styles.label}>Date/Heure fin</Text>
-              <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowRetDatePicker(true)}>
-                <Text style={styles.pickerBtnText}>
-                  📅 {fmtDate(formConret.toISOString())} à {fmtTime(formConret.toISOString())}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.dateTimeRow}>
+                <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowRetDatePicker(true)}>
+                  <Text style={styles.pickerBtnText}>📅 {fmtDate(formConret.toISOString())}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowRetTimePicker(true)}>
+                  <Text style={styles.pickerBtnText}>🕐 {fmtTime(formConret.toISOString())}</Text>
+                </TouchableOpacity>
+              </View>
 
               {/* Duration */}
               <View style={styles.durationCard}>
@@ -380,20 +390,46 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      {/* Date Pickers */}
+      {/* Date pickers (préservent l'heure existante) */}
       <DatePickerModal
         visible={showDepDatePicker}
         value={formCondep}
-        onChange={(d) => { setFormCondep(d); setShowDepDatePicker(false); }}
+        onChange={(d) => {
+          const next = new Date(d);
+          next.setHours(formCondep.getHours(), formCondep.getMinutes(), 0, 0);
+          setFormCondep(next);
+          setShowDepDatePicker(false);
+        }}
         onClose={() => setShowDepDatePicker(false)}
-        title="Date/Heure début"
+        title="Date début"
       />
       <DatePickerModal
         visible={showRetDatePicker}
         value={formConret}
-        onChange={(d) => { setFormConret(d); setShowRetDatePicker(false); }}
+        onChange={(d) => {
+          const next = new Date(d);
+          next.setHours(formConret.getHours(), formConret.getMinutes(), 0, 0);
+          setFormConret(next);
+          setShowRetDatePicker(false);
+        }}
         onClose={() => setShowRetDatePicker(false)}
-        title="Date/Heure fin"
+        title="Date fin"
+      />
+
+      {/* Time pickers — heure et minute pour début & retour */}
+      <TimePickerModal
+        visible={showDepTimePicker}
+        value={formCondep}
+        onChange={(d) => { setFormCondep(d); }}
+        onClose={() => setShowDepTimePicker(false)}
+        title="Heure de début"
+      />
+      <TimePickerModal
+        visible={showRetTimePicker}
+        value={formConret}
+        onChange={(d) => { setFormConret(d); }}
+        onClose={() => setShowRetTimePicker(false)}
+        title="Heure de retour"
       />
 
       {/* List */}
@@ -528,6 +564,8 @@ const styles = StyleSheet.create({
   },
   pickerBtnText: { fontSize: 14, color: COLORS.text },
   pickerArrow: { fontSize: 12, color: '#999' },
+  dateTimeRow: { flexDirection: 'row', gap: 8 },
+  dateTimeBtn: { flex: 1 },
 
   // Duration
   durationCard: {
