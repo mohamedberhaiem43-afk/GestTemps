@@ -80,11 +80,23 @@ public sealed class TenantResolverMiddleware
             return;
         }
 
-        // Tenant désactivé → bloquer l'accès aux endpoints applicatifs (sauf /api/billing/* à venir).
+        // Tenant désactivé → bloquer l'accès aux endpoints applicatifs (sauf /api/billing/*).
         if (tenant.Status is "Suspended" or "Cancelled" or "Failed")
         {
             ctx.Response.StatusCode = StatusCodes.Status402PaymentRequired;
             await ctx.Response.WriteAsync($"Tenant '{slug}' désactivé (status={tenant.Status}).");
+            return;
+        }
+
+        // Tenant inscrit avec un plan payant non confirmé : seul /api/billing/* est autorisé
+        // pour permettre à l'utilisateur de finaliser le paiement Stripe. Sans ce garde-fou,
+        // le cookie JWT posé au signup laisserait entrer dans /api/* avant tout encaissement.
+        if (string.Equals(tenant.Status, "PendingPayment", StringComparison.OrdinalIgnoreCase)
+            && path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("/api/billing/", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status402PaymentRequired;
+            await ctx.Response.WriteAsync("Paiement requis. Finalisez votre abonnement avant d'accéder à l'application.");
             return;
         }
 

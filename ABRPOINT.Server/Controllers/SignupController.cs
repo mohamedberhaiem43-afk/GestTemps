@@ -98,8 +98,11 @@ public class SignupController : ControllerBase
         }
 
         // Génération du DbName : tenant_<slug>_<8hex>. Limite 64 caractères enforce par Tenant entity.
+        // Les hyphens du slug (autorisés dans l'URL) sont remplacés par '_' pour rester compatibles
+        // avec le validateur SQL — ProvisioningService.ValidateDbName n'accepte que [A-Za-z0-9_].
         var suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
-        var dbName = $"tenant_{slug}_{suffix}";
+        var dbSafeSlug = slug.Replace('-', '_');
+        var dbName = $"tenant_{dbSafeSlug}_{suffix}";
         if (dbName.Length > 64) dbName = dbName.Substring(0, 64);
 
         var tenant = new Tenant
