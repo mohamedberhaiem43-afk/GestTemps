@@ -95,6 +95,16 @@ class ApiService {
       // (sinon le backend ne sait pas dans quelle DB chercher l'utilisateur).
       if (tenantSlug && tenantSlug.trim()) {
         await this.saveTenantSlug(tenantSlug);
+      } else {
+        // Résolution control-plane : on cherche le tenant à partir de l'email avant le login,
+        // pour que le header X-Tenant-Slug soit présent sur /MobileAuth/login.
+        try {
+          const lookup = await this.client.post('/auth/lookup-tenant', { email: email.trim() });
+          const slug: string | undefined = lookup.data?.slug;
+          if (slug) await this.saveTenantSlug(slug);
+        } catch {
+          // En cas d'échec, on laisse passer — le login renverra une erreur explicite.
+        }
       }
       const response = await this.client.post('/MobileAuth/login', {
         email,
