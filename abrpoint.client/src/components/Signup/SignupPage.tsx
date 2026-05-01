@@ -13,6 +13,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
+import { startStripeCheckout } from '../Pricing/stripeCheckout';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
@@ -147,21 +148,18 @@ export default function SignupPage() {
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();
       // L'utilisateur arrive depuis PlanConfigurationPage (visiteur) avec plan + userCount + packageType :
-      //   → signup d'abord, puis on l'envoie sur /dashboard/payment (récap + carte) avant Stripe.
+      //   → on déclenche directement la session Stripe Checkout (pas d'écran de paiement custom).
       // Avec uniquement plan/cycle (PricingPage → signup direct) :
       //   → on l'envoie sur /dashboard/plan-configuration pour finaliser la config.
       // Sans plan choisi : dashboard + trial 14j.
       if (planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType) {
-        navigate('/dashboard/payment', {
-          state: {
-            plan: planFromPricing.plan,
-            price: planFromPricing.price,
-            cycle: planFromPricing.cycle ?? 'annual',
-            userCount: planFromPricing.userCount,
-            packageType: planFromPricing.packageType,
-            signupRedirectUrl: data.redirectUrl,
-          },
+        await startStripeCheckout({
+          plan: planFromPricing.plan,
+          cycle: planFromPricing.cycle ?? 'annual',
+          userCount: planFromPricing.userCount,
+          packageType: planFromPricing.packageType,
         });
+        return;
       } else if (planFromPricing?.plan) {
         navigate('/dashboard/plan-configuration', { state: { ...planFromPricing, signupRedirectUrl: data.redirectUrl } });
       } else {

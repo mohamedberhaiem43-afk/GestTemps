@@ -56,7 +56,6 @@ import ContractBuilderModern from '../gestionEmploye/Vault/ContractBuilderModern
 import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
 import PricingPage from '../Pricing/PricingPage';
 import AboutPage from '../About/AboutPage';
-import PaymentPage from '../Pricing/PaymentPage';
 import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
 import ContactSalesPage from '../Pricing/ContactSalesPage';
 import CetPage from '../gestionEmploye/gestionConge/Cet/CetPage';
@@ -379,7 +378,6 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/login': content = <CredentialsSignInPage />; break;
     case '/signup': content = <SignupPage />; break;
     case '/plan-configuration': content = <PlanConfigurationPage />; break;
-    case '/payment': content = <PaymentPage />; break;
     case '/contact-sales': content = <ContactSalesPage />; break;
     case '/dashboard': content = <DashboardModernSync />; break;
     case '/dashboard/structure-organisationnelle': content = <OrgStructureModern />; break;
@@ -434,7 +432,6 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/template-builder': content = <ContractBuilderModern />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
     case '/dashboard/pricing': content = <PricingPage />; break;
-    case '/dashboard/payment': content = <PaymentPage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/dashboard/support': content = <SupportPage />; break;
     case '/dashboard/support/faq': content = <FAQPage />; break;

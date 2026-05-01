@@ -6,6 +6,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
+import { startStripeCheckout, resumeStripeCheckout } from '../Pricing/stripeCheckout';
 import MailIcon from '@mui/icons-material/Mail';
 import LockIcon from '@mui/icons-material/Lock';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -70,12 +71,17 @@ export default function CredentialsSignInPage() {
     window.dispatchEvent(new Event('utiadmUpdated'));
     window.dispatchEvent(new Event('imageUpdated'));
     // Reprise du flow de souscription : si un plan a été sélectionné avant la connexion,
-    // on redirige vers la page de paiement avec les détails du plan.
+    // on redirige directement vers Stripe Checkout (pas de page de paiement custom).
     if (pendingPlan) {
-      navigate('/dashboard/payment', { state: pendingPlan });
-    } else {
-      navigate('/dashboard');
+      try {
+        await startStripeCheckout(pendingPlan);
+        return;
+      } catch (e: any) {
+        setError(e?.response?.data?.error || 'Échec de la redirection vers Stripe.');
+        return;
+      }
     }
+    navigate('/dashboard');
   };
 
   const handleSignIn = async () => {
@@ -121,8 +127,20 @@ export default function CredentialsSignInPage() {
         } else {
           await processLoginSuccess(response.data);
         }
-      }).catch(error => {
+      }).catch(async error => {
         console.error('Login failed', error);
+        // Tenant en PendingPayment : on rebondit directement sur Stripe Checkout pour
+        // que l'utilisateur finalise son paiement avant de pouvoir entrer dans l'app.
+        if (error?.response?.status === 402) {
+          try {
+            await resumeStripeCheckout(utimail.trim(), password);
+            return;
+          } catch (resumeErr: any) {
+            setError(resumeErr?.response?.data?.error
+              || 'Paiement requis. Finalisez votre abonnement pour activer votre compte.');
+            return;
+          }
+        }
         setError('Identifiants incorrects. Veuillez réessayer.');
       })
       .finally(() => setLoading(false));

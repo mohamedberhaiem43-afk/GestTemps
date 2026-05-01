@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, Rocket, CheckCircle2, FileText, Headset } from 'lucide-react';
 import { useAuth } from '../helper/AuthProvider';
+import { startStripeCheckout } from './stripeCheckout';
 import './PricingPage.css';
 
 const PlanConfigurationPage: React.FC = () => {
@@ -20,14 +21,13 @@ const PlanConfigurationPage: React.FC = () => {
   const [userCount, setUserCount] = useState(initialState.userCount ?? 50);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
   const [packageType, setPackageType] = useState<'formation' | 'pack' | 'coaching'>(initialState.packageType ?? 'pack');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleConfirmCheckout = () => {
-    // Étape suivante :
-    //  - utilisateur connecté → directement la page de paiement (récap + carte)
-    //  - visiteur → on bascule sur /signup AVANT /payment, pour qu'il crée son tenant
-    //    avant de saisir sa carte. Le plan est conservé dans location.state pour que
-    //    SignupPage le forwarde ensuite à /dashboard/payment.
+  const handleConfirmCheckout = async () => {
+    // Utilisateur connecté → on lance directement la session Stripe Checkout.
+    // Visiteur → on bascule sur /signup ; SignupPage déclenchera Stripe après création du tenant.
     const state = {
       plan: planCode,
       price: pricePerUser,
@@ -35,8 +35,18 @@ const PlanConfigurationPage: React.FC = () => {
       userCount,
       packageType,
     };
-    const target = isAuthenticated ? '/dashboard/payment' : '/signup';
-    navigate(target, { state });
+    if (!isAuthenticated) {
+      navigate('/signup', { state });
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await startStripeCheckout({ plan: planCode, cycle: billingCycle, userCount, packageType });
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Échec de la redirection vers Stripe.');
+      setSubmitting(false);
+    }
   };
 
   const pricePerUser = 8.00;
@@ -227,11 +237,17 @@ const PlanConfigurationPage: React.FC = () => {
 
                 {/* Actions */}
                 <div className="space-y-4">
+                  {error && (
+                    <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-3 font-bold">
+                      {error}
+                    </div>
+                  )}
                   <button
                     onClick={handleConfirmCheckout}
-                    className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg hover:-translate-y-1 transition-all shadow-xl shadow-primary/20 uppercase tracking-widest"
+                    disabled={submitting}
+                    className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg hover:-translate-y-1 transition-all shadow-xl shadow-primary/20 uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                   >
-                    Confirmer l'achat
+                    {submitting ? 'Redirection vers Stripe…' : "Confirmer l'achat"}
                   </button>
                   <button
                     onClick={() => navigate('/dashboard')}
