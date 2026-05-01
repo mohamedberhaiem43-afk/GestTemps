@@ -154,14 +154,27 @@ public static class SequentialCodeGenerator
     private static async Task<string> NextAsync(IQueryable<string?> codesQuery, int width, CancellationToken ct)
     {
         var codes = await codesQuery.ToListAsync(ct);
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var max = 0;
         foreach (var c in codes)
         {
             if (string.IsNullOrWhiteSpace(c)) continue;
+            var raw = c.Trim();
+            taken.Add(raw);
             // Trim padding pour traiter "0001" comme 1.
-            if (int.TryParse(c.Trim(), out var n) && n > max) max = n;
+            if (int.TryParse(raw, out var n) && n > max) max = n;
         }
-        var next = max + 1;
-        return next.ToString().PadLeft(width, '0');
+
+        // Filet de sécurité : on incrémente tant que le candidat formaté entre en collision
+        // avec un code existant. Couvre les codes saisis sans padding ("50") qui pourraient
+        // collisionner avec un max+1 zéro-paddé ("0050"), et tout autre cas de doublon legacy.
+        var nextNum = max;
+        string candidate;
+        do
+        {
+            nextNum++;
+            candidate = nextNum.ToString().PadLeft(width, '0');
+        } while (taken.Contains(candidate));
+        return candidate;
     }
 }
