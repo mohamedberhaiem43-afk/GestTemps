@@ -24,6 +24,8 @@ namespace ABRPOINT.Server.Controllers
         private readonly ApplicationDbContext _db;
         private readonly IDbContextFactory<MasterDbContext> _masterFactory;
         private readonly ICurrentTenant _currentTenant;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<EmployesController> _log;
         public EmployesController(
             IEmployeRepository employeRepository,
@@ -33,6 +35,8 @@ namespace ABRPOINT.Server.Controllers
             ApplicationDbContext db,
             IDbContextFactory<MasterDbContext> masterFactory,
             ICurrentTenant currentTenant,
+            IEmailService emailService,
+            IConfiguration configuration,
             ILogger<EmployesController> log)
         {
             _employeRepository = employeRepository;
@@ -42,7 +46,51 @@ namespace ABRPOINT.Server.Controllers
             _db = db;
             _masterFactory = masterFactory;
             _currentTenant = currentTenant;
+            _emailService = emailService;
+            _configuration = configuration;
             _log = log;
+        }
+
+        private string BuildLoginUrl()
+        {
+            var rootDomain = _configuration["Hosting:RootDomain"] ?? "concorde.com";
+            var slug = _currentTenant.Current?.Slug;
+            return string.IsNullOrWhiteSpace(slug)
+                ? $"https://{rootDomain}/login"
+                : $"https://{slug}.{rootDomain}/login";
+        }
+
+        private async Task SendWelcomeEmailAsync(string toEmail, string fullName, string login, string password)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail)) return;
+            try
+            {
+                var loginUrl = BuildLoginUrl();
+                var safeName = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fullName) ? login : fullName);
+                var safeLogin = System.Net.WebUtility.HtmlEncode(login);
+                var safePassword = System.Net.WebUtility.HtmlEncode(password);
+                var safeEmail = System.Net.WebUtility.HtmlEncode(toEmail);
+
+                var subject = "Bienvenue sur GestTemps — vos identifiants de connexion";
+                var body =
+                    $"<p>Bonjour {safeName},</p>" +
+                    "<p>Votre compte collaborateur vient d'être créé sur la plateforme <strong>GestTemps</strong>.</p>" +
+                    "<p>Voici vos informations de connexion :</p>" +
+                    "<ul>" +
+                    $"<li><strong>Email :</strong> {safeEmail}</li>" +
+                    $"<li><strong>Identifiant :</strong> {safeLogin}</li>" +
+                    $"<li><strong>Mot de passe provisoire :</strong> {safePassword}</li>" +
+                    "</ul>" +
+                    $"<p>Connectez-vous via le lien suivant : <a href=\"{loginUrl}\">{loginUrl}</a></p>" +
+                    "<p>Pour des raisons de sécurité, nous vous recommandons de modifier votre mot de passe dès votre première connexion.</p>" +
+                    "<p>Cordialement,<br/>L'équipe GestTemps</p>";
+
+                await _emailService.SendEmailAsync(toEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Échec de l'envoi de l'email de bienvenue à {Email}", toEmail);
+            }
         }
 
         /// <summary>
@@ -349,6 +397,9 @@ namespace ABRPOINT.Server.Controllers
                         };
                         await _utilisateurRepository.AddAsync(utilisateur, socuser);
 
+                        // Email de bienvenue avec identifiants — n'échoue jamais la requête.
+                        await SendWelcomeEmailAsync(employe.Empemail, employe.Emplib, employe.Empcod, plainCin);
+
                         // ⚠ Sans cet upsert, l'employé fraîchement créé ne peut PAS se connecter :
                         // /Auth/lookup-tenant interroge la table master TenantEmailIndex pour
                         // résoudre le slug du tenant à partir de l'email saisi sur la page de
@@ -456,6 +507,7 @@ namespace ABRPOINT.Server.Controllers
                         try
                         {
                             await _utilisateurRepository.AddAsync(utilisateur, socuser);
+                            await SendWelcomeEmailAsync(emp.Empemail, emp.Emplib, emp.Empcod, emp._plainCin ?? string.Empty);
                         }
                         catch
                         {

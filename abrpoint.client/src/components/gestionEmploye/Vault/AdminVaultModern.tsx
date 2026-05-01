@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, CircularProgress, IconButton } from '@mui/material';
+import { Box, CircularProgress, IconButton, FormControl, Select, MenuItem, InputLabel } from '@mui/material';
 import { useAuth } from '../../helper/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../../API/apiInstance';
@@ -9,11 +9,13 @@ import './AdminVault.css';
 type FilterType = 'Tous' | 'Pending Signature' | 'Signed' | 'Validated';
 
 const AdminVaultModern = () => {
-  const { soccod, isEmp, authReady } = useAuth();
+  const { soccod, uticod, isEmp, authReady } = useAuth();
   const navigate = useNavigate();
 
 
   const [documents, setDocuments] = useState<DocumentVault[]>([]);
+  const [employees, setEmployees] = useState<Record<string, string>>({});
+  const [selectedEmpcod, setSelectedEmpcod] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('Tous');
   const [search, setSearch] = useState('');
@@ -26,20 +28,34 @@ const AdminVaultModern = () => {
       navigate('/dashboard/coffre-fort', { replace: true });
       return;
     }
-    if (soccod) {
-      fetchAllDocuments();
-    } else {
+    if (!soccod || !uticod) {
       setIsLoading(false);
+      return;
     }
-  }, [soccod, isEmp, authReady]);
+    // Charge la liste des employés du périmètre de l'admin/manager pour alimenter le sélecteur.
+    apiInstance.get(`/Employes/get-libs/${soccod}/${uticod}`)
+      .then(r => setEmployees(r.data ?? {}))
+      .catch(err => console.error('Erreur chargement liste employés', err));
+  }, [soccod, uticod, isEmp, authReady, navigate]);
 
-  const fetchAllDocuments = async () => {
+  useEffect(() => {
+    if (!authReady || isEmp || !soccod) return;
+    fetchDocuments();
+  }, [soccod, selectedEmpcod, authReady, isEmp]);
+
+  const fetchDocuments = async () => {
     try {
       setIsLoading(true);
-      const res = await apiInstance.get(`/Vault/admin/${soccod}`);
+      // Si un employé est sélectionné → on consulte SON coffre-fort privé.
+      // Sinon → vue globale (tous les employés du tenant).
+      const url = selectedEmpcod
+        ? `/Vault/${soccod}/${selectedEmpcod}`
+        : `/Vault/admin/${soccod}`;
+      const res = await apiInstance.get(url);
       setDocuments(res.data);
     } catch (err) {
       console.error('Erreur chargement vault admin', err);
+      setDocuments([]);
     } finally {
       setIsLoading(false);
     }
@@ -166,6 +182,21 @@ const AdminVaultModern = () => {
 
       {/* ── Toolbar ── */}
       <div className="avlt-toolbar">
+        <FormControl size="small" sx={{ minWidth: 240 }}>
+          <InputLabel>Employé</InputLabel>
+          <Select
+            label="Employé"
+            value={selectedEmpcod}
+            onChange={e => setSelectedEmpcod(String(e.target.value))}
+            displayEmpty
+          >
+            <MenuItem value=""><em>Tous les employés</em></MenuItem>
+            {Object.entries(employees).map(([code, lib]) => (
+              <MenuItem key={code} value={code}>{lib} ({code})</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         <div className="avlt-search-wrap">
           <span className="material-symbols-outlined avlt-search-icon">search</span>
           <input

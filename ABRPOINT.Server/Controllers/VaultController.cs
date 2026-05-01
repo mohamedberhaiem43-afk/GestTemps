@@ -33,6 +33,39 @@ namespace ABRPOINT.Server.Controllers
         [HttpGet("{soccod}/{empcod}")]
         public async Task<IActionResult> GetDocuments(string soccod, string empcod)
         {
+            var callerUticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(callerUticod)) return Unauthorized();
+
+            // L'employé n'a accès qu'à son propre coffre-fort. Un admin / manager peut consulter
+            // celui de n'importe quel employé (limité au service du manager).
+            if (!string.Equals(callerUticod, empcod, StringComparison.OrdinalIgnoreCase))
+            {
+                var caller = await _db.Utilisateurs
+                    .AsNoTracking()
+                    .Where(u => u.Uticod == callerUticod)
+                    .Select(u => new { u.Utiadm, u.Utirole })
+                    .FirstOrDefaultAsync();
+                if (caller is null) return Unauthorized();
+
+                var isAdmin = caller.Utiadm == "1" || PermissionCatalog.IsAdminRole(caller.Utirole);
+                var isManager = string.Equals(caller.Utirole, PermissionCatalog.Roles.Manager, StringComparison.OrdinalIgnoreCase);
+                if (!isAdmin && !isManager) return Forbid();
+
+                if (!isAdmin && isManager)
+                {
+                    var callerSercod = await _db.Employes
+                        .Where(e => e.Soccod == soccod && e.Empcod == callerUticod)
+                        .Select(e => e.Sercod)
+                        .FirstOrDefaultAsync();
+                    var targetSercod = await _db.Employes
+                        .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                        .Select(e => e.Sercod)
+                        .FirstOrDefaultAsync();
+                    if (string.IsNullOrEmpty(callerSercod) || callerSercod != targetSercod)
+                        return Forbid();
+                }
+            }
+
             var docs = await _vaultRepository.GetDocumentsAsync(soccod, empcod);
             foreach (var d in docs) d.DocPath = _encryptionService.Decrypt(d.DocPath);
             return Ok(docs);
