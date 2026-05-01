@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,11 +17,13 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IConfiguration _configuration;
+        private readonly ICurrentTenant _currentTenant;
 
-        public MobileAuthController(ApplicationDbContext dbContext, IConfiguration configuration)
+        public MobileAuthController(ApplicationDbContext dbContext, IConfiguration configuration, ICurrentTenant currentTenant)
         {
             _dbContext = dbContext;
             _configuration = configuration;
+            _currentTenant = currentTenant;
         }
 
         /// <summary>
@@ -31,6 +34,17 @@ namespace ABRPOINT.Server.Controllers
         {
             if (string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.Password))
                 return BadRequest(new { message = "Email et mot de passe sont obligatoires" });
+
+            // Garde paiement : si le tenant a souscrit un plan payant non confirmé par Stripe,
+            // on bloque la connexion mobile au même titre que le login web.
+            if (_currentTenant.Current?.Status == "PendingPayment")
+            {
+                return StatusCode(StatusCodes.Status402PaymentRequired, new
+                {
+                    message = "Paiement requis. Finalisez votre abonnement avant de vous connecter.",
+                    paymentRequired = true,
+                });
+            }
 
             try
             {

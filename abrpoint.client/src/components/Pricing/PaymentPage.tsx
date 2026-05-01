@@ -66,7 +66,6 @@ const PaymentPage: React.FC = () => {
             <ChevronLeft size={20} />
             Retour aux tarifs
           </button>
-          <div className="text-xl font-black tracking-tighter text-primary font-headline">CONCORDE</div>
         </div>
       </nav>
 

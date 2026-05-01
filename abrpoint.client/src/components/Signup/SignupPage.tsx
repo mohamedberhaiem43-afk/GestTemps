@@ -124,6 +124,10 @@ export default function SignupPage() {
     setError(null);
     setSubmitting(true);
     try {
+      // requiresPayment = true quand l'utilisateur arrive d'un plan payant configuré.
+      // Le backend bascule alors le tenant en "PendingPayment" et bloque le login tant
+      // que Stripe n'a pas confirmé la transaction.
+      const requiresPayment = !!(planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType);
       const { data } = await apiInstance.post('/signup', {
         slug,
         companyName: companyName.trim(),
@@ -133,6 +137,7 @@ export default function SignupPage() {
         adminPassword: password,
         planCode: planFromPricing?.plan,
         billingCycle: planFromPricing?.cycle,
+        requiresPayment,
       });
       // On stocke le slug en localStorage pour que apiInstance l'injecte automatiquement
       // dans le header X-Tenant-Slug. Indispensable tant que le déploiement n'a pas

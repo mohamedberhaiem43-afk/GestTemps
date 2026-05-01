@@ -4,6 +4,7 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,14 +27,17 @@ namespace GestionDesTickets.Server.Controllers
         private readonly ApplicationDbContext _dbContext;
         private readonly IUtilisateurRepository _utilisateurRepository;
         private readonly IConfiguration _configuration;
+        private readonly ICurrentTenant _currentTenant;
         public UtilisateursController(
             IConfiguration configuration,
             ApplicationDbContext dbContext,
-            IUtilisateurRepository utilisateurRepository)
+            IUtilisateurRepository utilisateurRepository,
+            ICurrentTenant currentTenant)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
+            _currentTenant = currentTenant;
         }
         private bool IsHttpsRequest()
         {
@@ -178,6 +182,19 @@ namespace GestionDesTickets.Server.Controllers
                 if (string.IsNullOrEmpty(user.Utimail))
                 {
                     return BadRequest("Email or password is missing.");
+                }
+
+                // Garde paiement : un tenant inscrit avec un plan payant reste en "PendingPayment"
+                // tant que Stripe n'a pas confirmé la transaction. On bloque la connexion ici pour
+                // forcer le passage par le checkout — le webhook checkout.session.completed
+                // basculera ensuite le statut sur "Active" et le login fonctionnera normalement.
+                if (_currentTenant.Current?.Status == "PendingPayment")
+                {
+                    return StatusCode(StatusCodes.Status402PaymentRequired, new
+                    {
+                        message = "Paiement requis. Finalisez votre abonnement avant de vous connecter.",
+                        paymentRequired = true,
+                    });
                 }
 
                 Utilisateur? dbUser = await _dbContext.Utilisateurs

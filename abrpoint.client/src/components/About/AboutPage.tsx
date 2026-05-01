@@ -54,8 +54,7 @@ function AboutPage() {
       <nav className="w-full top-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky z-50 border-b border-surface-container">
         <div className="flex justify-between items-center max-w-7xl mx-auto px-8 py-4">
           <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => navigate('/')}>
-            <img src="/Concorde.png" alt="Logo Concorde" style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
-            <span className="text-3xl font-bold tracking-tight text-primary font-headline">Concorde</span>
+            <img src="/Concorde.png" alt="Logo" style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
           </div>
           <div className="hidden md:flex items-center gap-8">
             <button

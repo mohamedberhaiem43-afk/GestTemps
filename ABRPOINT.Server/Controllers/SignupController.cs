@@ -143,7 +143,10 @@ public class SignupController : ControllerBase
                 _log.LogError(billingEx, "Billing échoué pour {Slug} mais provisioning OK — tenant marqué Trialing sans Stripe.", slug);
             }
 
-            tenant.Status = "Trialing";
+            // Si l'inscription découle d'un plan payant, on garde le tenant en attente jusqu'à
+            // la confirmation Stripe (webhook checkout.session.completed → Active). Tant qu'on
+            // est dans cet état, les endpoints de login refusent la connexion.
+            tenant.Status = req.RequiresPayment ? "PendingPayment" : "Trialing";
             // Index email→slug : permet à la page de login (root domain) de retrouver
             // le tenant à partir de l'email saisi, sans demander le code société.
             // Upsert : on remplace une éventuelle ligne existante (cas d'un re-signup
@@ -245,4 +248,10 @@ public class SignupRequest
     public string AdminPassword { get; set; } = string.Empty;
     public string? PlanCode { get; set; }
     public string? BillingCycle { get; set; }
+    /// <summary>
+    /// True quand l'inscription vient d'un plan payant configuré (PricingPage → PlanConfiguration → Signup).
+    /// Le tenant est alors créé en statut "PendingPayment" : la connexion est refusée tant que le
+    /// paiement Stripe n'est pas confirmé via le webhook checkout.session.completed.
+    /// </summary>
+    public bool RequiresPayment { get; set; }
 }
