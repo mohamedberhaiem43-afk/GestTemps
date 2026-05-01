@@ -91,32 +91,52 @@ public static class SequentialCodeGenerator
             _ => string.Empty,
         };
 
-        // Filtrer les codes existants ayant le même préfixe pour calculer le suffixe suivant.
-        var allCodes = await db.Employes
+        // On considère TOUS les codes potentiellement réservés, pas seulement Employes :
+        // une suppression d'employé pouvait laisser des orphelins dans Utilisateur(Uticod=Empcod)
+        // et Socuser, et le séquentiel renvoyait alors un code déjà pris → violation PK à l'INSERT.
+        // L'union ci-dessous garantit qu'on saute toujours les codes déjà occupés ailleurs.
+        var empCodes = await db.Employes
             .Where(e => e.Soccod == soccod && e.Sitcod == sitcod)
             .Select(e => e.Empcod)
             .ToListAsync(ct);
+        var userCodes = await db.Utilisateurs.Select(u => u.Uticod).ToListAsync(ct);
+        var socuserCodes = await db.Socusers
+            .Where(s => s.Soccod == soccod && s.Sitcod == sitcod)
+            .Select(s => s.Uticod)
+            .ToListAsync(ct);
 
-        var suffixWidth = totalWidth - prefix.Length;
-        if (suffixWidth <= 0) suffixWidth = totalWidth; // cas pathologique : préfixe trop long
-
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var max = 0;
-        foreach (var c in allCodes)
+        foreach (var c in empCodes.Concat(userCodes).Concat(socuserCodes))
         {
             if (string.IsNullOrWhiteSpace(c)) continue;
             var raw = c.Trim();
+            taken.Add(raw);
+
             string numericPart;
             if (!string.IsNullOrEmpty(prefix) && raw.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 numericPart = raw[prefix.Length..];
             else if (string.IsNullOrEmpty(prefix))
                 numericPart = raw;
             else
-                continue; // code d'un autre préfixe → on l'ignore
+                continue; // code d'un autre préfixe → ignoré pour le calcul du max
 
             if (int.TryParse(numericPart, out var n) && n > max) max = n;
         }
-        var nextNum = (max + 1).ToString().PadLeft(suffixWidth, '0');
-        return prefix + nextNum;
+
+        var suffixWidth = totalWidth - prefix.Length;
+        if (suffixWidth <= 0) suffixWidth = totalWidth; // cas pathologique : préfixe trop long
+
+        // Filet de sécurité : si max+1 collisionne tout de même avec un code "hors préfixe"
+        // (mode changé, code legacy non numérique réutilisé), on incrémente jusqu'à libre.
+        var n2 = max;
+        string candidate;
+        do
+        {
+            n2++;
+            candidate = prefix + n2.ToString().PadLeft(suffixWidth, '0');
+        } while (taken.Contains(candidate));
+        return candidate;
     }
 
     /// <summary>
