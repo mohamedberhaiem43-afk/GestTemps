@@ -51,6 +51,12 @@ public sealed class ProvisioningService : IProvisioningService
 
         await using var db = new ApplicationDbContext(options);
         await db.Database.MigrateAsync(ct);
+
+        // Migrations "in place" non couvertes par EF (colonnes ajoutées au modèle après
+        // 'InitialCreate' : socville, vilcod élargi, parmodemp, CET, etc.). Sans ça,
+        // SeedInitialAsync échoue dès qu'il insère une Societe avec Socville.
+        await BaseDataSchemaMigrator.MigrateAsync(db, ct);
+
         _log.LogInformation("Migrations applied to {DbName}", dbName);
     }
 
