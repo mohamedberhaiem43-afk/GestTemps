@@ -94,6 +94,96 @@ namespace ABRPOINT.Server.Controllers
         }
 
         /// <summary>
+        /// Upsert / suppression dans la table master TenantEmailIndex (mapping email → slug).
+        /// Cette table sert au routing du login : l'email saisi sur la page de connexion racine
+        /// est utilisé pour retrouver le slug du tenant. Sans cette synchro, un changement
+        /// d'email côté employé casse le login pour ce collaborateur.
+        /// </summary>
+        private async Task UpsertTenantEmailIndexAsync(string? newEmail, string? oldEmail = null)
+        {
+            try
+            {
+                var slug = _currentTenant.Current?.Slug;
+                if (string.IsNullOrWhiteSpace(slug)) return;
+
+                await using var master = await _masterFactory.CreateDbContextAsync();
+                var newLower = string.IsNullOrWhiteSpace(newEmail) ? null : newEmail.Trim().ToLowerInvariant();
+                var oldLower = string.IsNullOrWhiteSpace(oldEmail) ? null : oldEmail.Trim().ToLowerInvariant();
+
+                // Si l'email a changé, on retire l'ancien mapping (sauf s'il pointe sur un autre tenant).
+                if (oldLower != null && oldLower != newLower)
+                {
+                    var oldRow = await master.TenantEmailIndex.FirstOrDefaultAsync(x => x.Email == oldLower);
+                    if (oldRow != null && string.Equals(oldRow.Slug, slug, StringComparison.OrdinalIgnoreCase))
+                    {
+                        master.TenantEmailIndex.Remove(oldRow);
+                    }
+                }
+
+                if (newLower != null)
+                {
+                    var existing = await master.TenantEmailIndex.FirstOrDefaultAsync(x => x.Email == newLower);
+                    if (existing == null)
+                    {
+                        master.TenantEmailIndex.Add(new TenantEmailIndex
+                        {
+                            Email = newLower,
+                            Slug = slug,
+                            CreatedAt = DateTime.UtcNow,
+                        });
+                    }
+                    else if (!string.Equals(existing.Slug, slug, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Email déjà mappé sur un autre tenant : on ne l'écrase pas.
+                        _log.LogWarning(
+                            "Email {Email} déjà mappé sur le tenant {OtherSlug} ; mise à jour sur {Slug} ignorée.",
+                            newLower, existing.Slug, slug);
+                    }
+                }
+
+                await master.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Échec d'écriture TenantEmailIndex pour {Email}", newEmail);
+            }
+        }
+
+        private async Task SendEmailChangedNotificationAsync(string newEmail, string? oldEmail, string? fullName, string login)
+        {
+            if (string.IsNullOrWhiteSpace(newEmail)) return;
+            try
+            {
+                var loginUrl = BuildLoginUrl();
+                var safeName = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fullName) ? login : fullName);
+                var safeNew = System.Net.WebUtility.HtmlEncode(newEmail);
+                var safeOld = System.Net.WebUtility.HtmlEncode(oldEmail ?? "(non renseignée)");
+                var safeLogin = System.Net.WebUtility.HtmlEncode(login);
+
+                var subject = "GestTemps — Mise à jour de votre adresse email";
+                var body =
+                    $"<p>Bonjour {safeName},</p>" +
+                    "<p>L'adresse email associée à votre compte collaborateur sur la plateforme " +
+                    "<strong>GestTemps</strong> vient d'être modifiée par votre administrateur.</p>" +
+                    "<ul>" +
+                    $"<li><strong>Ancienne adresse :</strong> {safeOld}</li>" +
+                    $"<li><strong>Nouvelle adresse :</strong> {safeNew}</li>" +
+                    $"<li><strong>Identifiant :</strong> {safeLogin}</li>" +
+                    "</ul>" +
+                    $"<p>Vous devrez désormais utiliser cette nouvelle adresse pour vous connecter : " +
+                    $"<a href=\"{loginUrl}\">{loginUrl}</a></p>" +
+                    "<p>Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement votre administrateur.</p>" +
+                    "<p>Cordialement,<br/>L'équipe GestTemps</p>";
+
+                await _emailService.SendEmailAsync(newEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Échec de l'envoi de l'email de changement d'adresse à {Email}", newEmail);
+            }
+        }
+
+        /// <summary>
         /// Génère le prochain code employé en respectant le paramètre Parametre.Parmodemp.
         /// Si nom est fourni et le mode = "N", le préfixe sera basé sur le nom.
         /// </summary>
@@ -540,6 +630,14 @@ namespace ABRPOINT.Server.Controllers
                     await _utilisateurRepository.UpdateRoleAsync(employe.Empcod, employe.Utirole);
                 }
 
+                // Lit l'email avant update pour détecter un changement et notifier le collaborateur.
+                var oldEmail = await _db.Employes
+                    .Where(e => e.Empcod == employe.Empcod
+                        && e.Soccod == employe.Soccod
+                        && e.Sitcod == employe.Sitcod)
+                    .Select(e => e.Empemail)
+                    .FirstOrDefaultAsync();
+
                 // Encrypt sensitive fields before updating
                 employe.Empcin = _encryptionService.Encrypt(employe.Empcin);
                 employe.Emptel = _encryptionService.Encrypt(employe.Emptel);
@@ -547,6 +645,19 @@ namespace ABRPOINT.Server.Controllers
                 employe.Empsbrut = _encryptionService.Encrypt(employe.Empsbrut);
                 employe.Empsnet = _encryptionService.Encrypt(employe.Empsnet);
                 Employe addEmp = await _employeRepository.UpdateEmployeAsync(employe);
+
+                // Notification email + sync TenantEmailIndex si l'adresse a changé.
+                // N'échoue jamais la requête.
+                var newEmail = employe.Empemail?.Trim();
+                if (!string.Equals(newEmail, oldEmail?.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    await UpsertTenantEmailIndexAsync(newEmail, oldEmail);
+                    if (!string.IsNullOrWhiteSpace(newEmail))
+                    {
+                        await SendEmailChangedNotificationAsync(newEmail, oldEmail, employe.Emplib, employe.Empcod);
+                    }
+                }
+
                 // Decrypt for response
                 addEmp.Empcin = _encryptionService.Decrypt(addEmp.Empcin);
                 addEmp.Emptel = _encryptionService.Decrypt(addEmp.Emptel);
@@ -575,7 +686,29 @@ namespace ABRPOINT.Server.Controllers
                     return BadRequest(new { message = "Employé introuvable." });
                 }
 
+                // On capture l'email avant suppression pour nettoyer le master TenantEmailIndex.
+                var oldEmail = employe.Empemail;
+
+                // Nettoyage des dépendances : sans ça, l'Empcod est libéré dans la table Employes
+                // mais Utilisateur(Uticod=Empcod) / Socuser / Modusers restent orphelins. Le prochain
+                // employé créé par le séquentiel réutilise le même code et collisionne avec ces orphelins.
+                var modusers = await _db.Modusers.Where(m => m.Uticod == empcod).ToListAsync();
+                if (modusers.Count > 0) _db.Modusers.RemoveRange(modusers);
+
+                var socusers = await _db.Socusers
+                    .Where(s => s.Uticod == empcod && s.Soccod == soccod)
+                    .ToListAsync();
+                if (socusers.Count > 0) _db.Socusers.RemoveRange(socusers);
+
+                var utilisateur = await _db.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == empcod);
+                if (utilisateur != null) _db.Utilisateurs.Remove(utilisateur);
+
+                await _db.SaveChangesAsync();
+
                 await _employeRepository.DeleteAsync(employe);
+
+                // Retire le mapping email→tenant dans la base master (s'il pointe bien sur ce tenant).
+                await UpsertTenantEmailIndexAsync(newEmail: null, oldEmail: oldEmail);
 
                 return Ok(new { message="Employé supprimé avec succès" });
             }

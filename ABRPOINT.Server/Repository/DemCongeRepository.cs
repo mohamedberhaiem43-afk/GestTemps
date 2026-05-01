@@ -333,20 +333,18 @@ namespace ABRPOINT.Server.Repository
                     // Save changes in a single transaction
                     await _dbContext.SaveChangesAsync();
 
-                    // Notify Employee
-                    _ = Task.Run(async () =>
+                    // Notify Employee — synchrone : Task.Run capturait le DbContext scopé
+                    // qui était disposé avant l'exécution → l'email n'était jamais envoyé.
+                    try
                     {
-                        try
+                        var user = await _dbContext.Utilisateurs.FindAsync(demConge.Empcod);
+                        if (user != null && !string.IsNullOrEmpty(user.Utimail))
                         {
-                            var user = await _dbContext.Utilisateurs.FindAsync(demConge.Empcod);
-                            if (user != null && !string.IsNullOrEmpty(user.Utimail))
-                            {
-                                await _emailService.SendEmailAsync(user.Utimail, "Demande de Congé Acceptée",
-                                    $"Votre demande de congé pour la période du {demConge.Condep:dd/MM/yyyy} au {demConge.Conret:dd/MM/yyyy} a été <b>acceptée</b>.");
-                            }
+                            await _emailService.SendEmailAsync(user.Utimail, "Demande de Congé Acceptée",
+                                $"Bonjour,<br/><br/>Votre demande de congé pour la période du <b>{demConge.Condep:dd/MM/yyyy}</b> au <b>{demConge.Conret:dd/MM/yyyy}</b> a été <b>acceptée</b>.<br/><br/>Cordialement,<br/>L'équipe GestTemps");
                         }
-                        catch { /* ignore */ }
-                    });
+                    }
+                    catch { /* ne pas casser l'acceptation si l'email échoue */ }
 
                     return (true, $"Demande de cong {concod} accepte avec succs.");
                 }

@@ -1,4 +1,6 @@
-﻿using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Dtaos;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +12,23 @@ namespace ABRPOINT.Server.Controllers
     public class RubriquesController : ControllerBase
     {
         private readonly IRubriqueService _rubriqueService;
-        public RubriquesController(IRubriqueService rubriqueService)
+        private readonly ApplicationDbContext _db;
+        public RubriquesController(IRubriqueService rubriqueService, ApplicationDbContext db)
         {
             _rubriqueService = rubriqueService;
+            _db = db;
         }
+
+        // GET api/Rubriques/next-code/SOC01 — code séquentiel auto-généré pour ce soccod.
+        [HttpGet("next-code/{soccod}")]
+        public async Task<ActionResult<string>> NextCode(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                return BadRequest(new { message = "soccod requis." });
+            var code = await SequentialCodeGenerator.NextRubcodAsync(_db, soccod);
+            return Ok(new { code });
+        }
+
         [HttpGet("{soccod}")]
         public async Task<IEnumerable<RubriqueDto>> Get(string soccod)
         {
@@ -71,6 +86,11 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                // Auto-génération du code si non fourni — le frontend peut se contenter du libellé.
+                if (rubrique != null && string.IsNullOrWhiteSpace(rubrique.Rubcod) && !string.IsNullOrWhiteSpace(rubrique.Soccod))
+                {
+                    rubrique.Rubcod = await SequentialCodeGenerator.NextRubcodAsync(_db, rubrique.Soccod);
+                }
                 return await _rubriqueService.AddRubriqueAsync(rubrique);
             }
             catch (Exception)

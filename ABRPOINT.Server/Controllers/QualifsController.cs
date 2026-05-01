@@ -1,3 +1,5 @@
+using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -13,10 +15,22 @@ namespace ABRPOINT.Server.Controllers
     public class QualifsController : ControllerBase
     {
         private readonly IQualifRepository _qualifRepository;
+        private readonly ApplicationDbContext _db;
 
-        public QualifsController(IQualifRepository qualifRepository)
+        public QualifsController(IQualifRepository qualifRepository, ApplicationDbContext db)
         {
             _qualifRepository = qualifRepository;
+            _db = db;
+        }
+
+        // GET api/Qualifs/next-code/SOC01 — code séquentiel auto-généré pour ce soccod.
+        [HttpGet("next-code/{soccod}")]
+        public async Task<ActionResult<string>> NextCode(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                return BadRequest(new { message = "soccod requis." });
+            var code = await SequentialCodeGenerator.NextQualifCodeAsync(_db, soccod);
+            return Ok(new { code });
         }
 
         // GET: api/Qualifs/SOC01
@@ -69,6 +83,12 @@ namespace ABRPOINT.Server.Controllers
             {
                 if (qualif == null)
                     return BadRequest(new { message = "Données invalides" });
+
+                // Auto-génération du code si non fourni — le frontend peut se contenter du libellé.
+                if (string.IsNullOrWhiteSpace(qualif.Quacod) && !string.IsNullOrWhiteSpace(qualif.Soccod))
+                {
+                    qualif.Quacod = await SequentialCodeGenerator.NextQualifCodeAsync(_db, qualif.Soccod);
+                }
 
                 await _qualifRepository.AddAsync(qualif);
                 return CreatedAtAction(nameof(Get), new { soccod = qualif.Soccod, quacod = qualif.Quacod }, qualif);

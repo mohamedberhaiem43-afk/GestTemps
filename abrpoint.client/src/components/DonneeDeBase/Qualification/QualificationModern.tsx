@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import SaveIcon from '@mui/icons-material/Save';
@@ -13,6 +13,7 @@ import useDeleteQualification from '../../../hooks/QualificationHooks/useDeleteQ
 import { Qualification as QualificationModel } from '../../../models/Qualification';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
+import apiInstance from '../../API/apiInstance';
 import '../shared/RefModern.css';
 
 const emptyForm: QualificationModel = { quacod: '', qualib: '', soccod: '', catcod: null };
@@ -34,6 +35,17 @@ function QualificationModernContent() {
   const canModify = hasPermission('Données de Base', 'modify');
   const canDelete = hasPermission('Données de Base', 'delete');
 
+  // Pré-charge le prochain code auto-généré quand le formulaire est en création.
+  useEffect(() => {
+    if (isEditMode || !soccod || form.quacod) return;
+    let cancelled = false;
+    apiInstance
+      .get(`/Qualifs/next-code/${soccod}`)
+      .then(res => { if (!cancelled) setForm(p => (p.quacod ? p : { ...p, quacod: res.data?.code ?? '' })); })
+      .catch(() => { /* silencieux : le backend auto-génère aussi à la POST */ });
+    return () => { cancelled = true; };
+  }, [soccod, isEditMode, form.quacod]);
+
   if (!hasPermission('Données de Base', 'consult')) {
     return <AccessDenied message="Vous n'avez pas le droit de consulter les qualifications." />;
   }
@@ -45,10 +57,11 @@ function QualificationModernContent() {
   }, [qualifications, search]);
 
   const handleSubmit = () => {
-    if (!form.quacod || !form.qualib) {
-      setSnack({ open: true, msg: 'Code et Libellé sont obligatoires.', sev: 'error' });
+    if (!form.qualib) {
+      setSnack({ open: true, msg: 'Le libellé est obligatoire.', sev: 'error' });
       return;
     }
+    // Code auto-généré côté serveur si vide — on laisse passer même sans quacod.
     const payload = { ...form, soccod: soccod || '' };
     const onSuccess = () => {
       setSnack({ open: true, msg: isEditMode ? 'Qualification mise à jour.' : 'Qualification ajoutée.', sev: 'success' });
@@ -92,7 +105,7 @@ function QualificationModernContent() {
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field">
               <label>Code</label>
-              <input type="text" value={form.quacod} onChange={e => setForm(p => ({ ...p, quacod: e.target.value }))} readOnly={isEditMode} placeholder="Q1" />
+              <input type="text" value={form.quacod} readOnly placeholder="Auto-généré" />
             </Box>
             <Box className="ref-field">
               <label>Libellé</label>

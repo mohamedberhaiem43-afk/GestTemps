@@ -49,6 +49,9 @@ public static class SequentialCodeGenerator
     public static Task<string> NextQualifCodeAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
         => NextAsync(db.Qualifs.Where(q => q.Soccod == soccod).Select(q => q.Quacod), width: 4, ct);
 
+    public static Task<string> NextRubcodAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
+        => NextAsync(db.Rubriques.Where(r => r.Soccod == soccod).Select(r => r.Rubcod), width: 4, ct);
+
     /// <summary>
     /// Génère le prochain code employé en combinant :
     ///   - un préfixe optionnel (2 caractères) selon le mode paramétré côté Parametre.Parmodemp :

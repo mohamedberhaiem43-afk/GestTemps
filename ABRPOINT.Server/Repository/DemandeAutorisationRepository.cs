@@ -246,20 +246,18 @@ namespace ABRPOINT.Server.Repository
                 await _dbContext.Autorisers.AddAsync(autoriser);
                 await _dbContext.SaveChangesAsync();
 
-                // Notify Employee
-                _ = Task.Run(async () =>
+                // Notify Employee — synchrone : Task.Run capturait le DbContext scopé
+                // qui était disposé avant l'exécution → l'email n'était jamais envoyé.
+                try
                 {
-                    try
+                    var user = await _dbContext.Utilisateurs.FindAsync(demande.Empcod);
+                    if (user != null && !string.IsNullOrEmpty(user.Utimail))
                     {
-                        var user = await _dbContext.Utilisateurs.FindAsync(demande.Empcod);
-                        if (user != null && !string.IsNullOrEmpty(user.Utimail))
-                        {
-                            await _emailService.SendEmailAsync(user.Utimail, "Demande d'Autorisation Approuvée",
-                                $"Votre demande d'autorisation pour le {demande.Condat:dd/MM/yyyy} ({demande.Condep:HH:mm} à {demande.Conret:HH:mm}) a été <b>approuvée</b>.");
-                        }
+                        await _emailService.SendEmailAsync(user.Utimail, "Demande d'Autorisation Approuvée",
+                            $"Bonjour,<br/><br/>Votre demande d'autorisation pour le <b>{demande.Condat:dd/MM/yyyy}</b> ({demande.Condep:HH:mm} à {demande.Conret:HH:mm}) a été <b>approuvée</b>.<br/><br/>Cordialement,<br/>L'équipe GestTemps");
                     }
-                    catch { /* ignore */ }
-                });
+                }
+                catch { /* ne pas casser l'approbation si l'email échoue */ }
 
                 return (true, $"Demande d'autorisation approuvée avec succès.");
             }
@@ -287,20 +285,17 @@ namespace ABRPOINT.Server.Repository
 
                 await _dbContext.SaveChangesAsync();
 
-                // Notify Employee
-                _ = Task.Run(async () =>
+                // Notify Employee — synchrone (cf. ApproveAsync).
+                try
                 {
-                    try
+                    var user = await _dbContext.Utilisateurs.FindAsync(demande.Empcod);
+                    if (user != null && !string.IsNullOrEmpty(user.Utimail))
                     {
-                        var user = await _dbContext.Utilisateurs.FindAsync(demande.Empcod);
-                        if (user != null && !string.IsNullOrEmpty(user.Utimail))
-                        {
-                            await _emailService.SendEmailAsync(user.Utimail, "Demande d'Autorisation Refusée",
-                                $"Votre demande d'autorisation pour le {demande.Condat:dd/MM/yyyy} ({demande.Condep:HH:mm} à {demande.Conret:HH:mm}) a été <b>refusée</b>.");
-                        }
+                        await _emailService.SendEmailAsync(user.Utimail, "Demande d'Autorisation Refusée",
+                            $"Bonjour,<br/><br/>Votre demande d'autorisation pour le <b>{demande.Condat:dd/MM/yyyy}</b> ({demande.Condep:HH:mm} à {demande.Conret:HH:mm}) a été <b>refusée</b>.{(string.IsNullOrWhiteSpace(commentaire) ? string.Empty : $"<br/><br/><i>Motif :</i> {System.Net.WebUtility.HtmlEncode(commentaire)}")}<br/><br/>Cordialement,<br/>L'équipe GestTemps");
                     }
-                    catch { /* ignore */ }
-                });
+                }
+                catch { /* ne pas casser le refus si l'email échoue */ }
 
                 return (true, $"Demande d'autorisation refusée avec succès.");
             }

@@ -9,6 +9,7 @@ import useGetRubrique from "../../../hooks/rubriqueHooks/useGetRubrique";
 import { Rubrique } from "../../../models/Rubrique";
 import { useAuth } from "../../helper/AuthProvider";
 import useGetRubriques from "../../../hooks/rubriqueHooks/useGetRubriques";
+import apiInstance from "../../API/apiInstance";
 
 interface RubriqueFormProps {
   editingRubrique: Rubrique | null;
@@ -46,6 +47,17 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
       setRubReg(rubrique.rubregime || '');
     }
   }, [fetchedRubrique]);
+
+  // Pré-charge le prochain code auto-généré quand le formulaire est en création.
+  useEffect(() => {
+    if (editingRubrique || !soccod || rubcod) return;
+    let cancelled = false;
+    apiInstance
+      .get(`/Rubriques/next-code/${soccod}`)
+      .then(res => { if (!cancelled) setRubCod(prev => (prev ? prev : res.data?.code ?? '')); })
+      .catch(() => { /* silencieux : le backend auto-génère aussi à la POST */ });
+    return () => { cancelled = true; };
+  }, [soccod, editingRubrique, rubcod]);
 
   const regimeOptions = {
     'M': 'Mensuelle',
@@ -147,11 +159,12 @@ function RubriqueForm({ editingRubrique, setEditingRubrique }: RubriqueFormProps
     <Box>
       <Grid container spacing={2} alignItems="center">
   <Grid item xs={4}>
-    <InputComponent 
-      type="text" 
-      label={t('common.code')} 
-      value={rubcod} 
+    <InputComponent
+      type="text"
+      label={t('common.code')}
+      value={rubcod}
       setValue={setRubCod}
+      readOnly
     />
   </Grid>
 
