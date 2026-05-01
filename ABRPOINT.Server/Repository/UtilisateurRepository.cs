@@ -125,16 +125,55 @@ namespace ABRPOINT.Server.Repository
                 if (utilisateur != null)
                 {
                     utilisateur.Utimps = BCrypt.Net.BCrypt.HashPassword(utilisateur.Utimps);
-                    
+
                     // Set default role if not provided
                     if (string.IsNullOrEmpty(utilisateur.Utirole))
                     {
                         utilisateur.Utirole = "Utilisateur Standard";
                     }
 
-                    await _dbContext.Utilisateurs.AddAsync(utilisateur);
+                    // ⚠ IgnoreQueryFilters() : si l'employé portant ce code a été soft-deleted,
+                    // la ligne Utilisateur (et Socuser) reste physiquement en base avec DeletedAt set.
+                    // Sans ce bypass, AddAsync échoue en violation PK car la ligne soft-deleted est
+                    // invisible aux requêtes filtrées mais bien présente côté SQL.
+                    var existingUser = await _dbContext.Utilisateurs
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(u => u.Uticod == utilisateur.Uticod);
+                    if (existingUser != null)
+                    {
+                        if (existingUser.DeletedAt == null)
+                            throw new InvalidOperationException($"Utilisateur {utilisateur.Uticod} existe déjà.");
+                        existingUser.DeletedAt = null;
+                        existingUser.Utiactif = utilisateur.Utiactif;
+                        existingUser.Utiadm = utilisateur.Utiadm;
+                        existingUser.Utinom = utilisateur.Utinom;
+                        existingUser.Utiprn = utilisateur.Utiprn;
+                        existingUser.Utimps = utilisateur.Utimps;
+                        existingUser.Utimail = utilisateur.Utimail;
+                        existingUser.Utirole = utilisateur.Utirole;
+                    }
+                    else
+                    {
+                        await _dbContext.Utilisateurs.AddAsync(utilisateur);
+                    }
                     await _dbContext.SaveChangesAsync();
-                    await _dbContext.Socusers.AddAsync(socuser);
+
+                    var existingSocuser = await _dbContext.Socusers
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(s => s.Soccod == socuser.Soccod
+                                              && s.Sitcod == socuser.Sitcod
+                                              && s.Uticod == socuser.Uticod);
+                    if (existingSocuser != null)
+                    {
+                        if (existingSocuser.DeletedAt == null)
+                            throw new InvalidOperationException(
+                                $"Socuser {socuser.Soccod}/{socuser.Sitcod}/{socuser.Uticod} existe déjà.");
+                        existingSocuser.DeletedAt = null;
+                    }
+                    else
+                    {
+                        await _dbContext.Socusers.AddAsync(socuser);
+                    }
                     await _dbContext.SaveChangesAsync();
 
                     // Fetch permissions for the assigned role

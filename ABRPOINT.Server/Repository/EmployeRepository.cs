@@ -7,6 +7,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 
@@ -57,21 +58,36 @@ namespace ABRPOINT.Server.Repository
             {
                 if (!string.IsNullOrEmpty(employe.Soccod))
                 {
-                    bool exists = await _dbContext.Employes.AnyAsync(e => e.Soccod == employe.Soccod &&
-                                                                             e.Empcod == employe.Empcod &&
-                                                                             e.Sitcod == employe.Sitcod);
-                    if (exists)
+                    employe.Empcod = employe.Empcod?.Trim();
+                    employe.Soccod = employe.Soccod?.Trim();
+                    employe.Sitcod = employe.Sitcod?.Trim();
+
+                    // ⚠ IgnoreQueryFilters() : ApplicationDbContext applique un soft-delete global
+                    // (DeletedAt IS NULL) sur Employe (BaseEntity). Sans ce bypass on rate les lignes
+                    // soft-deleted ayant la même PK → INSERT en violation PK.
+                    var existing = await _dbContext.Employes
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(e =>
+                            e.Soccod == employe.Soccod &&
+                            e.Empcod == employe.Empcod &&
+                            e.Sitcod == employe.Sitcod);
+
+                    if (existing != null)
                     {
-                        throw new InvalidOperationException($"Employe {employe.Empcod}-{employe.Soccod}-{employe.Sitcod} existe déjà.");
+                        if (existing.DeletedAt == null)
+                        {
+                            throw new InvalidOperationException(
+                                $"Employe {employe.Empcod}-{employe.Soccod}-{employe.Sitcod} existe déjà.");
+                        }
+
+                        // Résurrection : la PK est libre côté logique mais occupée côté SQL.
+                        // On réutilise la ligne soft-deleted en remettant DeletedAt à null et
+                        // en écrasant les champs métier avec ceux de la nouvelle saisie.
+                        existing.DeletedAt = null;
+                        CopyEmployeFields(source: employe, target: existing);
+                        await _dbContext.SaveChangesAsync();
+                        return;
                     }
-
-                    //short? longbdg = await _parametreRepository.GetLongbdg(employe.Soccod);
-
-                    // Parse longbdg to get the required number of digits
-                    //if (longbdg > 0)
-                    //{
-                    //    employe.Empmat = GenericMethodes.FormatEmpmat(employe.Empmat, longbdg);
-                    //}
 
                     await _dbContext.Employes.AddAsync(employe);
                     await _dbContext.SaveChangesAsync();
@@ -81,6 +97,68 @@ namespace ABRPOINT.Server.Repository
             {
                 throw;
             }
+        }
+
+        // Copie tous les champs "métier" d'un Employe sur un autre, sans toucher à la PK
+        // ni aux champs d'audit BaseEntity (CreatedAt, DeletedAt). Utilisé lors de la résurrection
+        // d'une ligne soft-deleted pour réinitialiser ses données avec celles de la nouvelle saisie.
+        private static void CopyEmployeFields(Employe source, Employe target)
+        {
+            target.Emplib = source.Emplib;
+            target.Empmat = source.Empmat;
+            target.Empsexe = source.Empsexe;
+            target.Sercod = source.Sercod;
+            target.Empfonc = source.Empfonc;
+            target.Empreg = source.Empreg;
+            target.Catcod = source.Catcod;
+            target.Empnbp = source.Empnbp;
+            target.Natcod = source.Natcod;
+            target.Vilcod = source.Vilcod;
+            target.Empadr = source.Empadr;
+            target.Emptel = source.Emptel;
+            target.Empmob = source.Empmob;
+            target.Empemb = source.Empemb;
+            target.Empsort = source.Empsort;
+            target.Empmotif = source.Empmotif;
+            target.Actif = source.Actif;
+            target.Empdnais = source.Empdnais;
+            target.Emplnais = source.Emplnais;
+            target.Empcin = source.Empcin;
+            target.Empdcin = source.Empdcin;
+            target.Empacin = source.Empacin;
+            target.Empsbase = source.Empsbase;
+            target.Empsbrut = source.Empsbrut;
+            target.Empdir = source.Empdir;
+            target.Emptype = source.Emptype;
+            target.Empniv = source.Empniv;
+            target.Emplibar = source.Emplibar;
+            target.Empadrar = source.Empadrar;
+            target.Empfoncar = source.Empfoncar;
+            target.Foncod = source.Foncod;
+            target.Quacod = source.Quacod;
+            target.Empmaxhre = source.Empmaxhre;
+            target.Empoptim = source.Empoptim;
+            target.Dircod = source.Dircod;
+            target.Empretraite = source.Empretraite;
+            target.Caltype = source.Caltype;
+            target.Empmaxjour = source.Empmaxjour;
+            target.Empretard = source.Empretard;
+            target.Empemail = source.Empemail;
+            target.Empresp = source.Empresp;
+            target.Empsnet = source.Empsnet;
+            target.Empcontrat = source.Empcontrat;
+            target.Empsitfam = source.Empsitfam;
+            target.Empech = source.Empech;
+            target.Empelon = source.Empelon;
+            target.Empcat = source.Empcat;
+            target.Empscat = source.Empscat;
+            target.Empnuit = source.Empnuit;
+            target.Empminhjour = source.Empminhjour;
+            target.Emppanier = source.Emppanier;
+            target.Seccod = source.Seccod;
+            target.Poscod = source.Poscod;
+            target.Empferepos = source.Empferepos;
+            target.Empcmp = source.Empcmp;
         }
 
         public async Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod)

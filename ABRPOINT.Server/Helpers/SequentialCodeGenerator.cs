@@ -19,38 +19,42 @@ namespace ABRPOINT.Server.Helpers;
 /// </summary>
 public static class SequentialCodeGenerator
 {
+    // ⚠ IgnoreQueryFilters() est CRITIQUE : ApplicationDbContext applique un filtre global
+    // soft-delete sur tous les BaseEntity (DeletedAt IS NULL). Sans ce bypass, le générateur
+    // ne voit pas les lignes soft-deleted, propose un code dont la PK existe physiquement
+    // en base, et l'INSERT explose en violation PK.
     public static Task<string> NextDirectionCodeAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Directions.Where(d => d.Soccod == soccod).Select(d => d.Dircod), width: 4, ct);
+        => NextAsync(db.Directions.IgnoreQueryFilters().Where(d => d.Soccod == soccod).Select(d => d.Dircod), width: 4, ct);
 
     public static Task<string> NextServiceCodeAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Services.Where(s => s.Soccod == soccod).Select(s => s.Sercod), width: 4, ct);
+        => NextAsync(db.Services.IgnoreQueryFilters().Where(s => s.Soccod == soccod).Select(s => s.Sercod), width: 4, ct);
 
     public static Task<string> NextFonctionCodeAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Fonctions.Where(f => f.Soccod == soccod).Select(f => f.Foncod), width: 6, ct);
+        => NextAsync(db.Fonctions.IgnoreQueryFilters().Where(f => f.Soccod == soccod).Select(f => f.Foncod), width: 6, ct);
 
     public static Task<string> NextSectionCodeAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Sections.Where(s => s.Soccod == soccod).Select(s => s.Seccod), width: 4, ct);
+        => NextAsync(db.Sections.IgnoreQueryFilters().Where(s => s.Soccod == soccod).Select(s => s.Seccod), width: 4, ct);
 
     public static Task<string> NextCodposteAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Postes.Where(p => p.Soccod == soccod).Select(p => p.Codposte), width: 4, ct);
+        => NextAsync(db.Postes.IgnoreQueryFilters().Where(p => p.Soccod == soccod).Select(p => p.Codposte), width: 4, ct);
 
     public static Task<string> NextCatcodAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Lcategories.Where(l => l.Soccod == soccod).Select(l => l.Catcod), width: 2, ct);
+        => NextAsync(db.Lcategories.IgnoreQueryFilters().Where(l => l.Soccod == soccod).Select(l => l.Catcod), width: 2, ct);
 
     public static Task<string> NextAbscodAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Absences.Where(a => a.Soccod == soccod).Select(a => a.Abscod), width: 4, ct);
+        => NextAsync(db.Absences.IgnoreQueryFilters().Where(a => a.Soccod == soccod).Select(a => a.Abscod), width: 4, ct);
 
     public static Task<string> NextNationCodeAsync(ApplicationDbContext db, CancellationToken ct = default)
-        => NextAsync(db.Nations.Select(n => n.Natcod), width: 3, ct);
+        => NextAsync(db.Nations.IgnoreQueryFilters().Select(n => n.Natcod), width: 3, ct);
 
     public static Task<string> NextVilleCodeAsync(ApplicationDbContext db, CancellationToken ct = default)
-        => NextAsync(db.Villes.Select(v => v.Vilcod), width: 6, ct);
+        => NextAsync(db.Villes.IgnoreQueryFilters().Select(v => v.Vilcod), width: 6, ct);
 
     public static Task<string> NextQualifCodeAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Qualifs.Where(q => q.Soccod == soccod).Select(q => q.Quacod), width: 4, ct);
+        => NextAsync(db.Qualifs.IgnoreQueryFilters().Where(q => q.Soccod == soccod).Select(q => q.Quacod), width: 4, ct);
 
     public static Task<string> NextRubcodAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Rubriques.Where(r => r.Soccod == soccod).Select(r => r.Rubcod), width: 4, ct);
+        => NextAsync(db.Rubriques.IgnoreQueryFilters().Where(r => r.Soccod == soccod).Select(r => r.Rubcod), width: 4, ct);
 
     /// <summary>
     /// Génère le prochain code employé en combinant :
@@ -91,16 +95,19 @@ public static class SequentialCodeGenerator
             _ => string.Empty,
         };
 
-        // On considère TOUS les codes potentiellement réservés, pas seulement Employes :
-        // une suppression d'employé pouvait laisser des orphelins dans Utilisateur(Uticod=Empcod)
-        // et Socuser, et le séquentiel renvoyait alors un code déjà pris → violation PK à l'INSERT.
-        // L'union ci-dessous garantit qu'on saute toujours les codes déjà occupés ailleurs.
-        var empCodes = await db.Employes
+        // On considère TOUS les codes potentiellement réservés, pas seulement Employes vivants :
+        // une suppression d'employé est SOFT (DeletedAt set) — la ligne reste physiquement en base
+        // mais le filtre global la masque. IgnoreQueryFilters() est donc requis pour voir les lignes
+        // soft-deleted, sinon le séquentiel renvoie un code dont la PK existe encore physiquement
+        // → violation PK à l'INSERT. On unionne aussi Utilisateur(Uticod) et Socuser pour bloquer
+        // les autres réservations historiques.
+        var empCodes = await db.Employes.IgnoreQueryFilters()
             .Where(e => e.Soccod == soccod && e.Sitcod == sitcod)
             .Select(e => e.Empcod)
             .ToListAsync(ct);
-        var userCodes = await db.Utilisateurs.Select(u => u.Uticod).ToListAsync(ct);
-        var socuserCodes = await db.Socusers
+        var userCodes = await db.Utilisateurs.IgnoreQueryFilters()
+            .Select(u => u.Uticod).ToListAsync(ct);
+        var socuserCodes = await db.Socusers.IgnoreQueryFilters()
             .Where(s => s.Soccod == soccod && s.Sitcod == sitcod)
             .Select(s => s.Uticod)
             .ToListAsync(ct);

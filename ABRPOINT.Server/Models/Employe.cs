@@ -18,6 +18,7 @@ public partial class Employe : BaseEntity
     [StringLength(6)]
     public string Soccod { get; set; } = null!;
 
+    [Required]
     [Column("sitcod")]
     [StringLength(2)]
     public string Sitcod { get; set; } = null!;
