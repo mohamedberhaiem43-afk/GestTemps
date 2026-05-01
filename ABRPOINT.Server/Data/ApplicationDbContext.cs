@@ -261,6 +261,12 @@ public partial class ApplicationDbContext : DbContext
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
+        // Ressuscite les éventuelles lignes soft-deleted avant l'INSERT (cf.
+        // ApplicationDbContext.SoftDeleteResurrection.cs). On utilise GetAwaiter().GetResult()
+        // ici parce que la méthode chemin async est plus simple à écrire (FirstOrDefaultAsync)
+        // et que l'opération synchrone reste dans un appel sync existant.
+        ResurrectSoftDeletedConflictsAsync(CancellationToken.None).GetAwaiter().GetResult();
+
         var auditEntries = CollectAuditEntries();
         OnBeforeSave();
         var result = base.SaveChanges(acceptAllChangesOnSuccess);
@@ -270,6 +276,8 @@ public partial class ApplicationDbContext : DbContext
 
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
+        await ResurrectSoftDeletedConflictsAsync(cancellationToken);
+
         var auditEntries = CollectAuditEntries();
         OnBeforeSave();
         var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
