@@ -29,9 +29,6 @@ import {
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // Slug du tenant SaaS (ex: "acme") — sert au header X-Tenant-Slug pour router vers la bonne base.
-  // Persisté dans SecureStore après le 1er login pour ne plus avoir à le retaper.
-  const [tenantSlug, setTenantSlug] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
@@ -111,9 +108,9 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await login(email, password, undefined, tenantSlug || undefined);
+      await login(email, password);
       // Après un login classique réussi, on propose d'activer la biométrie pour la prochaine fois.
-      await offerBiometricEnrollment(email, password, tenantSlug || undefined);
+      await offerBiometricEnrollment(email, password);
     } catch (error: any) {
       console.log('Login error catch:', error);
       if (error.response) {
@@ -209,19 +206,6 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
-                  placeholderTextColor={COLORS.textSecondary}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Code espace</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="ex: acme  (laissez vide en mono-tenant)"
-                  value={tenantSlug}
-                  onChangeText={setTenantSlug}
-                  autoCapitalize="none"
-                  autoCorrect={false}
                   placeholderTextColor={COLORS.textSecondary}
                 />
               </View>

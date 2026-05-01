@@ -127,7 +127,7 @@ function PosteCard({ code, label, selected, onClick }: { code: string; label: st
 // Pour Non Périodique (frequence !== 'S') : 1 seul poste par période (codposte), catsem2..6 = null
 // Pour Selon Pointeuse (frequence === 'S') : rotation hebdomadaire, jusqu'à 6 postes
 function PeriodFormDialog({
-  open, onClose, onSave, editData, postesMap, inheritCatcod, inheritCatlib, frequence,
+  open, onClose, onSave, editData, postesMap, inheritCatcod, inheritCatlib, frequence, classeExists,
 }: {
   open: boolean;
   onClose: () => void;
@@ -137,6 +137,7 @@ function PeriodFormDialog({
   inheritCatcod?: string;
   inheritCatlib?: string;
   frequence: string;
+  classeExists?: boolean;
 }) {
   const [catcod, setCatcod] = useState('');
   const [catlib, setCatlib] = useState('');
@@ -221,8 +222,10 @@ function PeriodFormDialog({
     },
   };
 
-  // Quand on ajoute une période à une classe existante, on hérite du code/lib sans les afficher
-  const isNewWithInherit = !editData && !!inheritCatcod;
+  // Quand on ajoute une période à une classe DÉJÀ existante, on hérite du code/lib sans les afficher.
+  // Pour une nouvelle classe (code auto-généré pré-rempli mais pas encore en base), on affiche
+  // les champs pour permettre la saisie du libellé.
+  const isNewWithInherit = !editData && !!inheritCatcod && !!classeExists;
 
   return (
     <Dialog
@@ -470,6 +473,10 @@ function ClasseHoraireModernInner() {
     setSnackbar({ open: true, message: msg, severity: sev });
 
   const handleSavePeriod = async (data: Partial<Lcategorie>) => {
+    if (!data.catcod || !data.catlib) {
+      showSnack('Veuillez renseigner le code et le libellé de la classe', 'warning');
+      return;
+    }
     // On force la fréquence résolue et on garantit la cohérence des catsem*
     // pour le mode Non Périodique
     const isNonPeriodique = resolvedFreq !== 'S';
@@ -491,6 +498,10 @@ function ClasseHoraireModernInner() {
       showSnack('Période enregistrée avec succès', 'success');
       setPeriodDialogOpen(false);
       setEditPeriod(null);
+      // Synchronise le code/libellé de la classe active pour que le filtre du sidebar
+      // affiche bien la nouvelle entrée.
+      if (data.catcod) setClasseCode(data.catcod);
+      if (data.catlib) setClasseLib(data.catlib);
       refetchClasses();
     } catch {
       showSnack("Erreur lors de l'enregistrement", 'error');
@@ -796,6 +807,7 @@ function ClasseHoraireModernInner() {
         frequence={resolvedFreq}
         inheritCatcod={!editPeriod ? classeCode : undefined}
         inheritCatlib={!editPeriod ? classeLib : undefined}
+        classeExists={!!classeCode && classesList.some((r: any) => r.catcod === classeCode)}
       />
 
       <AlertModal

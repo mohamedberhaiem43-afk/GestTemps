@@ -3,7 +3,7 @@
 // For Android emulator: 'http://10.0.2.2:5125/api'
 // For web: 'http://localhost:5125/api'
 // export const API_BASE_URL = 'http://192.168.1.57:5125/api';
-export const API_BASE_URL = 'https://141.94.42.138/api';
+export const API_BASE_URL = 'https://concorde-work-force.com/api';
 
 export const COLORS = {
   primary: '#0040a1',
