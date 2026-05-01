@@ -86,16 +86,13 @@ public class SignupController : ControllerBase
             return BadRequest(new { error = "Nom d'entreprise requis." });
 
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
-        try
-        {
-            // Vérification atomique de l'unicité du slug.
-            if (await master.Tenants.AsNoTracking().AnyAsync(t => t.Slug == slug && t.Status != "Failed", ct))
-                return Conflict(new { error = "Ce slug est déjà utilisé." });
-        }
-        catch (Exception)
-        {
-            throw;
-        }
+
+        // Une éventuelle ligne existante pour ce slug : si elle est active, on refuse ;
+        // si elle est en 'Failed' (tentative précédente échouée), on la réutilise pour
+        // éviter une violation de IX_Tenants_Slug — l'index unique ne filtre pas par statut.
+        var existing = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (existing != null && existing.Status != "Failed")
+            return Conflict(new { error = "Ce slug est déjà utilisé." });
 
         // Génération du DbName : tenant_<slug>_<8hex>. Limite 64 caractères enforce par Tenant entity.
         // Les hyphens du slug (autorisés dans l'URL) sont remplacés par '_' pour rester compatibles
@@ -105,20 +102,40 @@ public class SignupController : ControllerBase
         var dbName = $"tenant_{dbSafeSlug}_{suffix}";
         if (dbName.Length > 64) dbName = dbName.Substring(0, 64);
 
-        var tenant = new Tenant
+        Tenant tenant;
+        if (existing != null)
         {
-            Id = Guid.NewGuid(),
-            Slug = slug,
-            CompanyName = req.CompanyName.Trim(),
-            DbName = dbName,
-            Status = "Provisioning",
-            AdminEmail = req.AdminEmail.Trim(),
-            CreatedAt = DateTime.UtcNow,
-            TrialEndsAt = DateTime.UtcNow.AddDays(14),
-            Region = "eu-fr",
-            LegacySoccod = "01",
-        };
-        master.Tenants.Add(tenant);
+            // Recyclage de la ligne 'Failed' : on remet à neuf les champs métier.
+            tenant = existing;
+            tenant.CompanyName = req.CompanyName.Trim();
+            tenant.DbName = dbName;
+            tenant.Status = "Provisioning";
+            tenant.AdminEmail = req.AdminEmail.Trim();
+            tenant.CreatedAt = DateTime.UtcNow;
+            tenant.TrialEndsAt = DateTime.UtcNow.AddDays(14);
+            tenant.Region = "eu-fr";
+            tenant.LegacySoccod = "01";
+            tenant.StripeCustomerId = null;
+            tenant.StripeSubscriptionId = null;
+            tenant.OnboardingCompleted = false;
+        }
+        else
+        {
+            tenant = new Tenant
+            {
+                Id = Guid.NewGuid(),
+                Slug = slug,
+                CompanyName = req.CompanyName.Trim(),
+                DbName = dbName,
+                Status = "Provisioning",
+                AdminEmail = req.AdminEmail.Trim(),
+                CreatedAt = DateTime.UtcNow,
+                TrialEndsAt = DateTime.UtcNow.AddDays(14),
+                Region = "eu-fr",
+                LegacySoccod = "01",
+            };
+            master.Tenants.Add(tenant);
+        }
         await master.SaveChangesAsync(ct);
 
         try
