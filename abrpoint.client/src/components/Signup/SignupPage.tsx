@@ -142,28 +142,21 @@ export default function SignupPage() {
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();
       // L'utilisateur arrive depuis PlanConfigurationPage (visiteur) avec plan + userCount + packageType :
-      //   → on déclenche /billing/checkout pour Stripe directement.
+      //   → signup d'abord, puis on l'envoie sur /dashboard/payment (récap + carte) avant Stripe.
       // Avec uniquement plan/cycle (PricingPage → signup direct) :
       //   → on l'envoie sur /dashboard/plan-configuration pour finaliser la config.
       // Sans plan choisi : dashboard + trial 14j.
       if (planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType) {
-        try {
-          const { data: billing } = await apiInstance.post('/billing/checkout', {
-            planCode: planFromPricing.plan,
-            billingCycle: planFromPricing.cycle ?? 'annual',
+        navigate('/dashboard/payment', {
+          state: {
+            plan: planFromPricing.plan,
+            price: planFromPricing.price,
+            cycle: planFromPricing.cycle ?? 'annual',
             userCount: planFromPricing.userCount,
             packageType: planFromPricing.packageType,
-            successUrl: `${window.location.origin}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancelUrl: `${window.location.origin}/dashboard/plan-configuration?checkout=cancelled`,
-          });
-          if (billing?.url) {
-            window.location.href = billing.url;
-            return;
-          }
-        } catch {
-          // En cas d'échec Stripe, on bascule sur la page de configuration pour réessayer.
-        }
-        navigate('/dashboard/plan-configuration', { state: { ...planFromPricing, signupRedirectUrl: data.redirectUrl } });
+            signupRedirectUrl: data.redirectUrl,
+          },
+        });
       } else if (planFromPricing?.plan) {
         navigate('/dashboard/plan-configuration', { state: { ...planFromPricing, signupRedirectUrl: data.redirectUrl } });
       } else {
@@ -188,12 +181,27 @@ export default function SignupPage() {
     }}>
       <Paper elevation={2} sx={{ maxWidth: 560, width: '100%', p: { xs: 3, md: 5 }, borderRadius: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
-            Démarrer mon essai gratuit
-          </Typography>
-          <Typography color="text.secondary">
-            14 jours, sans carte bancaire — Concorde Workforce
-          </Typography>
+          {/* Le titre/sous-titre s'adapte : signup direct = essai gratuit ;
+              signup post-PlanConfiguration = étape avant paiement. */}
+          {planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType ? (
+            <>
+              <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
+                Créer mon compte
+              </Typography>
+              <Typography color="text.secondary">
+                Étape 1 sur 2 — votre paiement sera confirmé à l'étape suivante.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
+                Démarrer mon essai gratuit
+              </Typography>
+              <Typography color="text.secondary">
+                14 jours, sans carte bancaire — Concorde Workforce
+              </Typography>
+            </>
+          )}
           {planFromPricing?.plan && (
             <Chip
               sx={{ mt: 2 }}
@@ -283,7 +291,13 @@ export default function SignupPage() {
             onClick={submit}
             sx={{ py: 1.5, fontWeight: 700 }}
           >
-            {submitting ? <CircularProgress size={22} /> : 'Démarrer mon essai gratuit'}
+            {submitting ? (
+              <CircularProgress size={22} />
+            ) : planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType ? (
+              'Continuer vers le paiement'
+            ) : (
+              'Démarrer mon essai gratuit'
+            )}
           </Button>
 
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>

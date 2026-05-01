@@ -181,7 +181,7 @@ const ContactSalesPage: React.FC = () => {
                   'SSO Azure AD / Google Workspace',
                   'Audit & sécurité avancée (RGPD, ISO 27001)',
                   'Account Manager dédié',
-                  'SLA 2h garanti',
+                  'SAV 2h garanti',
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-on-surface">
                     <CheckCircle2 className="text-tertiary flex-shrink-0 mt-0.5" size={18} />

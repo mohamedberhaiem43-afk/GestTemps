@@ -23,18 +23,20 @@ const PlanConfigurationPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleConfirmCheckout = () => {
-    // Étape suivante = page de paiement (récapitulatif + formulaire carte).
-    // /payment (visiteur, plein écran) ou /dashboard/payment (utilisateur connecté).
-    const target = isAuthenticated ? '/dashboard/payment' : '/payment';
-    navigate(target, {
-      state: {
-        plan: planCode,
-        price: pricePerUser,
-        cycle: billingCycle,
-        userCount,
-        packageType,
-      },
-    });
+    // Étape suivante :
+    //  - utilisateur connecté → directement la page de paiement (récap + carte)
+    //  - visiteur → on bascule sur /signup AVANT /payment, pour qu'il crée son tenant
+    //    avant de saisir sa carte. Le plan est conservé dans location.state pour que
+    //    SignupPage le forwarde ensuite à /dashboard/payment.
+    const state = {
+      plan: planCode,
+      price: pricePerUser,
+      cycle: billingCycle,
+      userCount,
+      packageType,
+    };
+    const target = isAuthenticated ? '/dashboard/payment' : '/signup';
+    navigate(target, { state });
   };
 
   const pricePerUser = 8.00;
