@@ -112,7 +112,7 @@ export default function SaisieRepos() {
         onError: (error) => onError("Erreur lors de l'enregistrement des données", error),
       });
     } else if (mode === 'edit') {
-      editRepos(formData, {
+      editRepos({ ferier: formData }, {
         onSuccess: () => onSuccess('Jour de repos modifié avec succès!'),
         onError: (error) => onError("Erreur lors de modification des données", error),
       });
