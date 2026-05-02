@@ -21,7 +21,7 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
             try
             {
                 ParametreNuitDto parametreNuit = await _parametreRepository.GetParametresNuitAsync(presence.Soccod);
-                if (parametreNuit.CompterNuit == "0")
+                if (parametreNuit?.CompterNuit == "0")
                     return 0;
                 var (nuitDebut, nuitFin) = await _employeRepository.GetEmpNuitIntervalle(presence.Soccod, presence.Empcod);
 
@@ -36,7 +36,7 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
                 };
 
                  // Si la présence est de jour, ne pas compter les heures de nuit
-                if (parametreNuit.PasCompterNuitSiSortieJour == 1)
+                if (parametreNuit?.PasCompterNuitSiSortieJour == 1)
                 {
                     if (presence.Presortmatup != null && TimeSpan.TryParse(presence.Presortmatup, out var sortieMatin) && sortieMatin < nuitDebut)
                         return 0;
@@ -62,14 +62,14 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
                     }
                 }
 
-                if (parametreNuit.RepasNuit == "1")
+                if (parametreNuit?.RepasNuit == "1")
                 {
                     double? prerepas = await _dbContext.Presences.Where(p => p.Empcod == presence.Empcod && p.Predat == presence.Predat).Select(p => p.Prerepas)
                     .FirstOrDefaultAsync();
                     if (prerepas == null) prerepas = 0;
                     totalHeuresNuit -= (float)prerepas / 60;
                 }
-                if (totalHeuresNuit < parametreNuit.MinHeureNuit)
+                if (totalHeuresNuit < parametreNuit?.MinHeureNuit)
                     return 0;
 
                 return totalHeuresNuit;
