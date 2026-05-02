@@ -15,7 +15,16 @@ i18n
       fr: { translation: frTranslation },
       ar: { translation: arTranslation }
     },
-    fallbackLng: 'fr', // Default to French since your app is currently in French
+    // Français par défaut au premier chargement : on ignore la langue du navigateur
+    // et on ne consulte que localStorage. Sans choix mémorisé → fallback sur 'fr'.
+    fallbackLng: 'fr',
+    supportedLngs: ['fr', 'en', 'ar'],
+    nonExplicitSupportedLngs: false,
+    detection: {
+      order: ['localStorage'],
+      lookupLocalStorage: 'i18nextLng',
+      caches: ['localStorage']
+    },
     debug: false,
     interpolation: {
       escapeValue: false

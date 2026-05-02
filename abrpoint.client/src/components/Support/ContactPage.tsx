@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, TextField, MenuItem, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button, TextField, MenuItem, Snackbar, Alert, CircularProgress } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 import SendIcon from '@mui/icons-material/Send';
+import { sendSupportMessage } from '../../services/ContactService';
 
 const subjects = [
   'Question technique',
@@ -23,17 +24,27 @@ const ContactPage: React.FC = () => {
   const [subject, setSubject] = useState(subjects[0]);
   const [message, setMessage] = useState('');
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as 'success' | 'error' });
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || !message.trim()) {
       setSnack({ open: true, msg: 'Tous les champs sont requis.', sev: 'error' });
       return;
     }
-    // Front-only pour l'instant : ouverture du client mail. Un endpoint /support/ticket pourra
-    // être branché plus tard côté serveur (envoi via Brevo/SMTP déjà configuré).
-    const body = encodeURIComponent(`Nom : ${name}\nEmail : ${email}\nSujet : ${subject}\n\n${message}`);
-    window.location.href = `mailto:contact@concorde-tech.fr?subject=${encodeURIComponent('[Support] ' + subject)}&body=${body}`;
-    setSnack({ open: true, msg: 'Votre client mail va s\'ouvrir avec le message pré-rempli.', sev: 'success' });
+    setSending(true);
+    try {
+      await sendSupportMessage({ name: name.trim(), email: email.trim(), subject, message: message.trim() });
+      setSnack({ open: true, msg: 'Votre message a bien été envoyé. Notre équipe revient vers vous rapidement.', sev: 'success' });
+      setName('');
+      setEmail('');
+      setSubject(subjects[0]);
+      setMessage('');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Échec de l'envoi. Réessayez plus tard.";
+      setSnack({ open: true, msg, sev: 'error' });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -73,8 +84,14 @@ const ContactPage: React.FC = () => {
           <TextField label="Message" size="small" value={message} onChange={(e) => setMessage(e.target.value)} multiline minRows={5} sx={{ gridColumn: { md: 'span 2' } }} />
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-          <Button variant="contained" startIcon={<SendIcon />} onClick={handleSubmit} sx={{ bgcolor: '#16a34a', textTransform: 'none', fontWeight: 700, px: 4, py: 1.2, '&:hover': { bgcolor: '#15803d' } }}>
-            Envoyer
+          <Button
+            variant="contained"
+            startIcon={sending ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <SendIcon />}
+            onClick={handleSubmit}
+            disabled={sending}
+            sx={{ bgcolor: '#16a34a', textTransform: 'none', fontWeight: 700, px: 4, py: 1.2, '&:hover': { bgcolor: '#15803d' } }}
+          >
+            {sending ? 'Envoi…' : 'Envoyer'}
           </Button>
         </Box>
       </Box>

@@ -187,12 +187,12 @@ export default function CredentialsSignInPage() {
     if (!forgotEmail) { setError('Veuillez entrer votre email.'); return; }
     setForgotLoading(true);
     setError(null);
-    apiInstance.post('/Utilisateurs/forgot-password', { Utimail: forgotEmail })
+    apiInstance.post('/auth/forgot-password', { Email: forgotEmail })
       .then(res => {
-        setSuccess(res.data.Message || 'Code envoyé.');
+        setSuccess(res.data.message || 'Si un compte existe avec cet email, un code vous a été envoyé.');
         setForgotStep('code');
       })
-      .catch(err => setError(err.response?.data?.Message || 'Erreur lors de l\'envoi du code.'))
+      .catch(err => setError(err.response?.data?.message || 'Erreur lors de l\'envoi du code.'))
       .finally(() => setForgotLoading(false));
   };
 
@@ -202,9 +202,9 @@ export default function CredentialsSignInPage() {
     if (newPassword.length < 6) { setError('Le mot de passe doit contenir au moins 6 caractères.'); return; }
     setForgotLoading(true);
     setError(null);
-    apiInstance.post('/Utilisateurs/reset-password-with-code', { Utimail: forgotEmail, Code: resetCode, NewPassword: newPassword })
+    apiInstance.post('/auth/reset-password', { Email: forgotEmail, Code: resetCode, NewPassword: newPassword })
       .then(res => {
-        setSuccess(res.data.Message || 'Mot de passe réinitialisé.');
+        setSuccess(res.data.message || 'Mot de passe réinitialisé.');
         setShowForgotPassword(false);
         setForgotStep('email');
         setForgotEmail('');
@@ -212,7 +212,7 @@ export default function CredentialsSignInPage() {
         setNewPassword('');
         setConfirmPassword('');
       })
-      .catch(err => setError(err.response?.data?.Message || 'Erreur lors de la réinitialisation.'))
+      .catch(err => setError(err.response?.data?.message || 'Erreur lors de la réinitialisation.'))
       .finally(() => setForgotLoading(false));
   };
 

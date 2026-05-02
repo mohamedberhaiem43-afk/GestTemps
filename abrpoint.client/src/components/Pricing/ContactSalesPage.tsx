@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Building2, Users, Phone, Mail, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Building2, Users, Phone, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import './PricingPage.css';
+import { sendSalesRequest } from '../../services/ContactService';
 
 const ContactSalesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,26 +14,31 @@ const ContactSalesPage: React.FC = () => {
   const [needs, setNeeds] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError(null);
     if (!company.trim() || !contactName.trim() || !email.trim()) {
       setError('Société, nom et email sont obligatoires.');
       return;
     }
-    // Front-only : on ouvre le client mail avec un message pré-rempli vers les ventes.
-    // Brancher /api/sales/lead côté serveur quand le pipeline CRM sera prêt.
-    const subject = encodeURIComponent('[Ventes] Demande Premium — ' + company);
-    const body = encodeURIComponent(
-      `Société : ${company}\n` +
-      `Contact : ${contactName}\n` +
-      `Email : ${email}\n` +
-      `Téléphone : ${phone || '—'}\n` +
-      `Effectif : ${headcount}\n\n` +
-      `Besoins :\n${needs || '—'}\n`
-    );
-    window.location.href = `mailto:ventes@concorde-tech.fr?subject=${subject}&body=${body}`;
-    setSubmitted(true);
+    setSending(true);
+    try {
+      await sendSalesRequest({
+        company: company.trim(),
+        contactName: contactName.trim(),
+        email: email.trim(),
+        phone: phone.trim() || undefined,
+        headcount,
+        needs: needs.trim() || undefined,
+      });
+      setSubmitted(true);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Échec de l'envoi. Réessayez plus tard.";
+      setError(msg);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -69,7 +75,7 @@ const ContactSalesPage: React.FC = () => {
                 <CheckCircle2 className="text-tertiary mx-auto mb-4" size={56} />
                 <h3 className="text-2xl font-black mb-3 font-headline">Demande envoyée</h3>
                 <p className="text-on-surface-variant mb-6 leading-relaxed">
-                  Votre client mail s'est ouvert avec le message pré-rempli. Sinon, écrivez-nous directement à <strong className="text-primary">ventes@concorde-tech.fr</strong>.
+                  Merci, notre équipe commerciale a bien reçu votre demande et revient vers vous sous 24h ouvrées. Pour toute question complémentaire : <strong className="text-primary">ventes@concorde-tech.fr</strong>.
                 </p>
                 <button
                   onClick={() => navigate('/')}
@@ -158,9 +164,11 @@ const ContactSalesPage: React.FC = () => {
 
                 <button
                   onClick={handleSubmit}
-                  className="mt-6 w-full py-4 bg-primary text-white font-black text-sm uppercase tracking-[0.2em] rounded-2xl shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all"
+                  disabled={sending}
+                  className="mt-6 w-full py-4 bg-primary text-white font-black text-sm uppercase tracking-[0.2em] rounded-2xl shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
                 >
-                  Envoyer ma demande
+                  {sending && <Loader2 size={16} className="animate-spin" />}
+                  {sending ? 'Envoi…' : 'Envoyer ma demande'}
                 </button>
                 <p className="text-[10px] text-center text-outline mt-4 font-bold leading-relaxed">
                   Vos données restent confidentielles et ne sont pas partagées avec des tiers.

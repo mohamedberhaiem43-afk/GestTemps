@@ -17,6 +17,7 @@
     "country": "Country",
     "city": "City",
     "function": "Function",
+    "qualification": "Qualification",
     "rubric": "Rubric",
     "users": "Users",
     "accessRights": "Access Rights",
@@ -250,7 +251,63 @@
   "pointageDuMois": {
     "errorLoading": "Error loading data.",
     "total": "TOTAL",
-    "weekDetails": "Week details {{numSem}}"
+    "weekDetails": "Week details {{numSem}}",
+    "majorHolidayAndLeave": "Public holiday and leave premium on regular hours"
+  },
+  "posteHoraire": {
+    "day": "Day",
+    "startEntry": "Entry start",
+    "entry": "Entry",
+    "endEntry": "Entry end",
+    "exit": "Exit",
+    "mealBonus": "Meal bonus",
+    "rest": "Rest",
+    "maxHours": "Max hours",
+    "minHoursDay": "Min hours/day",
+    "minHalfDay": "Min hours half-day",
+    "shower": "Shower",
+    "yes": "Yes",
+    "no": "No",
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    }
+  },
+  "lcategorie": {
+    "from": "From",
+    "to": "To",
+    "fixed": "Fixed?",
+    "postCode": "Post Code",
+    "designation": "Designation"
+  },
+  "classeHoraire": {
+    "code": "Code",
+    "label": "Label",
+    "frequency": "Frequency",
+    "overtime": "Overtime",
+    "post": "Post",
+    "new": "New",
+    "save": "Save",
+    "delete": "Delete",
+    "saved": "Time class saved successfully",
+    "deleted": "Time class deleted successfully",
+    "saveError": "Error while saving",
+    "deleteError": "Error while deleting",
+    "required": "Please fill in code and label",
+    "confirmDelete": "Do you really want to delete this time class?",
+    "updateTitle": "Update Time Class",
+    "recalculate": "Recalculate",
+    "flags": {
+      "late": "Late",
+      "tolerance": "Tolerance",
+      "presence": "Presence",
+      "meal": "Meal"
+    }
   },
   "dailyHours": {
     "noData": "No daily hours data available",
@@ -274,10 +331,19 @@
     "current": "Current",
     "seniority": "Seniority",
     "edit": "Edit",
+    "update": "Edit",
     "save": "Save",
     "saving": "Saving...",
     "cancel": "Cancel",
     "delete": "Delete",
+    "actions": "Actions",
+    "section": "Section",
+    "address": "Address",
+    "day": "Day",
+    "days": "Days",
+    "hours": "Hours",
+    "decreaseMealsFrom": "Decrease meal bonus from",
+    "countMealBonus": "Count meal bonus",
     "month": "Month",
     "year": "Year",
     "everyDay": "Every day",
@@ -390,7 +456,8 @@
       "absence": "Absence",
       "conge": "Leave",
       "autorisation": "Exit authorization",
-      "optimisation": "Pointing optimization (day)"
+      "optimisation": "Pointing optimization (day)",
+      "compensation": "Compensation"
     },
     "filters": {
       "branch": "Branch",
@@ -446,7 +513,8 @@
       "shower": "Shower",
       "nbjours": "Nb. Days",
       "totret": "Total delay.",
-      "tothre": "Total Hours"
+      "tothre": "Total Hours",
+      "totalNightHour": "Total Night Hours"
     },
     "actions": {
       "more": "More"
@@ -483,6 +551,9 @@
       "fiveYears": "5 Years",
       "saisieConge": "Leave entry",
       "daysBeforeOrAfter": "Days before or after"
+    },
+    "common": {
+      "month": "Month"
     }
   },
   "app": {
@@ -530,7 +601,8 @@
   "donneeSociete": {
     "requiredFields": "Code and Label are required!",
     "added": "Company added successfully!",
-    "addError": "Failed to add Company. Please try again."
+    "addError": "Failed to add Company. Please try again.",
+    "updated": "Company updated successfully!"
   },
   "profile": {
     "imageSaved": "Image saved successfully.",

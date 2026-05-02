@@ -815,7 +815,9 @@ namespace GestionDesTickets.Server.Controllers
                 user.UtiResetCodeExpiry = DateTime.UtcNow.AddMinutes(15);
                 await _dbContext.SaveChangesAsync();
 
-                return Ok(new { Message = "Code de réinitialisation généré.", Code = resetCode });
+                // Le code n'est plus renvoyé dans la réponse : il est envoyé par email via /api/auth/forgot-password
+                // (route publique qui résout le tenant). Cet endpoint reste pour compat mais ne doit plus être appelé.
+                return Ok(new { Message = "Si un compte existe avec cet email, un code de réinitialisation a été envoyé." });
             }
             catch (Exception ex)
             {

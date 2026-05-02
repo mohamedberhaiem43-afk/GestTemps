@@ -375,6 +375,8 @@
     "startTime": "Heure de début",
     "endTime": "Heure de fin",
     "exception": "Exception",
+    "presence": "Présence",
+    "restDay": "Jour de repos",
     "yes": "Oui",
     "no": "Non",
     "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?"
@@ -507,7 +509,10 @@
       "employee": "Employé",
       "nbDays": "Nb. Jours",
       "actions": "Actions",
-      "shower": "douche"
+      "shower": "douche",
+      "nbjours": "Nb. Jours",
+      "totret": "Total retard",
+      "tothre": "Total Heures"
     },
     "actions": {
       "more": "Plus"

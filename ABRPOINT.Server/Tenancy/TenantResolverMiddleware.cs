@@ -37,6 +37,7 @@ public sealed class TenantResolverMiddleware
         "/api/health",
         "/api/master",
         "/api/auth",
+        "/api/contact",
         "/swagger",
         "/api/uploads",
     };
