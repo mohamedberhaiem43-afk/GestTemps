@@ -69,6 +69,7 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IModuleRepository, ModuleRepository>();
             builder.Services.AddScoped<IModuserRepository, ModuserRepository>();
             builder.Services.AddScoped<INoteDeFraisRepository, NoteDeFraisRepository>();
+            builder.Services.AddScoped<IMissionRepository, MissionRepository>();
             builder.Services.AddScoped<IVaultRepository, VaultRepository>();
             builder.Services.AddScoped<IDemandeAutorisationRepository, DemandeAutorisationRepository>();
             builder.Services.AddScoped<IAiService, AiService>();

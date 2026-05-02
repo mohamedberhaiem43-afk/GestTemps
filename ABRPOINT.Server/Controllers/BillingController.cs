@@ -71,6 +71,14 @@ public class BillingController : ControllerBase
         if (tenant is null)
             return NotFound(new { error = "Tenant introuvable." });
 
+        // Persiste le plan sélectionné dès la création du checkout : sans attendre le webhook,
+        // les quotas TrialPolicy.GetLimits(tenant) reflètent le plan choisi pour ce tenant.
+        if (!string.Equals(tenant.PlanCode, req.PlanCode, StringComparison.OrdinalIgnoreCase))
+        {
+            tenant.PlanCode = req.PlanCode;
+            await master.SaveChangesAsync(ct);
+        }
+
         StripeConfiguration.ApiKey = secretKey;
 
         // URLs de retour : si le client n'en fournit pas, on retombe sur l'origin de la requête.

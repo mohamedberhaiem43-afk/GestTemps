@@ -50,4 +50,8 @@ public class Tenant
     /// <summary>Soccod hérité (pour compat avec le code existant qui filtre toujours par Soccod). Court (≤6).</summary>
     [MaxLength(6)]
     public string? LegacySoccod { get; set; }
+
+    /// <summary>Code du plan souscrit : Essentiel | Standard | Premium. null = pas encore choisi (legacy/dev).</summary>
+    [MaxLength(20)]
+    public string? PlanCode { get; set; }
 }

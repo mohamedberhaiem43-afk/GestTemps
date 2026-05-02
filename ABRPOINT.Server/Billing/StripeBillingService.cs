@@ -123,16 +123,18 @@ public sealed class StripeBillingService : IBillingService
 
         foreach (var tenant in expired)
         {
-            // Sans Stripe : on bascule directement en PastDue (le SaaS bloque l'accès jusqu'au paiement).
-            // Avec Stripe : Stripe déclenche automatiquement la première facture à fin de trial,
-            // donc l'état réel viendra du webhook. Ce job ne fait que purger les tenants restés en limbo.
-            tenant.Status = "PastDue";
+            // À la fin de l'essai, on bascule en PendingPayment : statut bloqué par
+            // TenantResolverMiddleware (sauf /api/billing/*) → l'utilisateur est forcé de payer.
+            // Avant ce changement on flippait en PastDue, mais le middleware ne le bloquait pas
+            // → fenêtre d'accès gratuit illimité après expiration. Les tenants avec Stripe seront
+            // re-flipés en Active par le webhook checkout.session.completed dès paiement.
+            tenant.Status = "PendingPayment";
         }
         if (expired.Count > 0)
         {
             await master.SaveChangesAsync(ct);
             foreach (var t in expired) _store.Invalidate(t.Slug);
-            _log.LogInformation("ProcessTrialExpirations : {Count} tenant(s) basculé(s) en PastDue.", expired.Count);
+            _log.LogInformation("ProcessTrialExpirations : {Count} tenant(s) basculé(s) en PendingPayment.", expired.Count);
         }
     }
 

@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +11,12 @@ namespace ABRPOINT.Server.Controllers
     public class SitesController : ControllerBase
     {
         private readonly ISiteRepository _siteRepository;
+        private readonly ICurrentTenant _currentTenant;
 
-        public SitesController(ISiteRepository siteRepository)
+        public SitesController(ISiteRepository siteRepository, ICurrentTenant currentTenant)
         {
             _siteRepository = siteRepository;
+            _currentTenant = currentTenant;
         }
 
         // GET: api/Sites/SOC01
@@ -124,6 +127,25 @@ namespace ABRPOINT.Server.Controllers
                 if (string.IsNullOrEmpty(site.Sitcod) || string.IsNullOrEmpty(site.Soccod))
                 {
                     return BadRequest(new { isValid = false, message = "Le code site et le code société sont obligatoires" });
+                }
+
+                // Quota plan : essai gratuit, Essentiel et Standard sont mono-filiale. Premium = illimité.
+                var limits = TrialPolicy.GetLimits(_currentTenant.Current);
+                if (limits.MaxSites.HasValue)
+                {
+                    var existing = (await _siteRepository.GetAllAsync(site.Soccod)).Count();
+                    if (existing >= limits.MaxSites.Value)
+                    {
+                        var planLabel = TrialPolicy.IsTrialing(_currentTenant.Current)
+                            ? "l'essai gratuit"
+                            : $"votre plan {_currentTenant.Current?.PlanCode}";
+                        return StatusCode(402, new
+                        {
+                            code = "plan_limit_sites",
+                            isValid = false,
+                            message = $"Limite de {planLabel} atteinte ({limits.MaxSites.Value} filiale maximum). Passez au plan Premium pour gérer plusieurs filiales."
+                        });
+                    }
                 }
 
                 await _siteRepository.AddAsync(site);

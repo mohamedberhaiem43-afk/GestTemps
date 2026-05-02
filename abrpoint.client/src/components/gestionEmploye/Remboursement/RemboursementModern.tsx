@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import './RemboursementModern.css';
 import { useAuth } from '../../helper/AuthProvider';
+import { useMissionsByEmp } from '../../../hooks/missionHooks/useMissions';
 
 const queryClient = new QueryClient();
 
@@ -95,7 +96,13 @@ function RemboursementModernContent() {
     const [categorie, setCategorie] = useState('Transport');
     const [montant, setMontant] = useState<number | ''>('');
     const [projet, setProjet] = useState('');
+    const [missionId, setMissionId] = useState<number | ''>('');
     const [file, setFile] = useState<File | null>(null);
+
+    // Missions du collaborateur courant — la note de frais doit obligatoirement
+    // pointer sur l'une d'elles (la mission porte la nature d'absence "Formation
+    // et mission" abscng=6 nécessaire au rapprochement paie).
+    const { data: missions = [], isLoading: missionsLoading } = useMissionsByEmp(currentSoccod, currentEmpcod);
     const [dateDepense, setDateDepense] = useState(dayjs().format('YYYY-MM-DD'));
     const [formSuccess, setFormSuccess] = useState(false);
 
@@ -142,6 +149,10 @@ function RemboursementModernContent() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!titre || !categorie || montant === '') return;
+        if (!missionId) {
+            showSnack('Sélectionnez une mission avant de soumettre la dépense.', 'error');
+            return;
+        }
 
         try {
             await addMutation.mutateAsync({
@@ -151,20 +162,23 @@ function RemboursementModernContent() {
                 categorie,
                 montant: Number(montant),
                 projet,
+                missionId: Number(missionId),
                 dateDepense,
                 file: file || undefined
             });
             setTitre('');
             setMontant('');
             setProjet('');
+            setMissionId('');
             setFile(null);
             setDateDepense(dayjs().format('YYYY-MM-DD'));
             setFormSuccess(true);
             setTimeout(() => setFormSuccess(false), 600);
             setIsFormOpen(false);
             showSnack('Dépense soumise avec succès !', 'success');
-        } catch {
-            showSnack('Erreur lors de la soumission.', 'error');
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || 'Erreur lors de la soumission.';
+            showSnack(msg, 'error');
         }
     };
 
@@ -838,10 +852,33 @@ function RemboursementModernContent() {
                                 </div>
                             </div>
                             <div className="rmb-form-group">
-                                <label className="rmb-form-label">Projet / Mission</label>
+                                <label className="rmb-form-label">Mission rattachée *</label>
+                                <select
+                                    className="rmb-form-select"
+                                    value={missionId === '' ? '' : String(missionId)}
+                                    onChange={e => setMissionId(e.target.value === '' ? '' : Number(e.target.value))}
+                                    required
+                                    disabled={missionsLoading || missions.length === 0}
+                                >
+                                    <option value="">
+                                        {missionsLoading
+                                            ? 'Chargement…'
+                                            : missions.length === 0
+                                                ? 'Aucune mission — créez-en une dans Employés > Missions'
+                                                : 'Sélectionnez une mission'}
+                                    </option>
+                                    {missions.map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.misobj} ({dayjs(m.misdatedeb).format('DD/MM/YY')} → {dayjs(m.misdatefin).format('DD/MM/YY')})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="rmb-form-group">
+                                <label className="rmb-form-label">Projet (libellé libre)</label>
                                 <input
                                     className="rmb-form-input"
-                                    placeholder="Nom du projet (Optionnel)"
+                                    placeholder="Référence interne (Optionnel)"
                                     type="text"
                                     value={projet}
                                     onChange={e => setProjet(e.target.value)}

@@ -118,6 +118,7 @@ public class SignupController : ControllerBase
             tenant.StripeCustomerId = null;
             tenant.StripeSubscriptionId = null;
             tenant.OnboardingCompleted = false;
+            tenant.PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim();
         }
         else
         {
@@ -133,6 +134,7 @@ public class SignupController : ControllerBase
                 TrialEndsAt = DateTime.UtcNow.AddDays(14),
                 Region = "eu-fr",
                 LegacySoccod = "01",
+                PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim(),
             };
             master.Tenants.Add(tenant);
         }

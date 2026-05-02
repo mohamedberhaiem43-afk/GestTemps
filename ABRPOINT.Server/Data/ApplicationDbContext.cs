@@ -456,7 +456,8 @@ public partial class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Mission>(entity =>
         {
-            entity.Property(e => e.Condepense).IsFixedLength();
+            entity.HasIndex(e => new { e.Soccod, e.Empcod });
+            entity.Property(e => e.Misetat).HasDefaultValue("Pending");
         });
 
         modelBuilder.Entity<Motifpoint>(entity =>

@@ -37,6 +37,18 @@ namespace ABRPOINT.Server.Models
         [StringLength(100)]
         public string? Projet { get; set; }
 
+        /// <summary>
+        /// Mission rattachée (FK vers gt_mission.id). Toute note de frais doit pointer
+        /// sur une mission validée — c'est elle qui porte la nature d'absence
+        /// "Formation et mission" (abscng="6") qui sert au rapprochement paie.
+        /// </summary>
+        [Required]
+        [Column("missionid")]
+        public int MissionId { get; set; }
+
+        [ForeignKey(nameof(MissionId))]
+        public virtual Mission? Mission { get; set; }
+
         [Column("datedepense", TypeName = "datetime")]
         public DateTime DateDepense { get; set; }
 

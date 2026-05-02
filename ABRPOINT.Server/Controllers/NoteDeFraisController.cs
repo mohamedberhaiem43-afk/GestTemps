@@ -12,10 +12,12 @@ namespace ABRPOINT.Server.Controllers
     public class NoteDeFraisController : ControllerBase
     {
         private readonly INoteDeFraisRepository _repository;
+        private readonly IMissionRepository _missionRepository;
 
-        public NoteDeFraisController(INoteDeFraisRepository repository)
+        public NoteDeFraisController(INoteDeFraisRepository repository, IMissionRepository missionRepository)
         {
             _repository = repository;
+            _missionRepository = missionRepository;
         }
 
         [HttpGet("by-soc/{soccod}")]
@@ -57,6 +59,23 @@ namespace ABRPOINT.Server.Controllers
         {
             if (request == null) return BadRequest();
 
+            // La note de frais doit obligatoirement être rattachée à une mission existante,
+            // dont la nature d'absence est "Formation et mission" (Abscng="6"). Sans ce lien,
+            // on ne pourrait pas rapprocher la dépense de la période d'absence en paie.
+            if (request.MissionId <= 0)
+                return BadRequest(new { message = "Une mission doit être sélectionnée." });
+
+            var mission = await _missionRepository.GetByIdAsync(request.MissionId);
+            if (mission == null)
+                return BadRequest(new { message = "Mission introuvable." });
+            if (!string.Equals(mission.Soccod, request.Soccod, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(mission.Empcod, request.Empcod, StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "La mission sélectionnée n'appartient pas à ce collaborateur." });
+            // On revérifie côté serveur : un manager pourrait essayer d'attacher une note
+            // de frais à une mission dont la nature d'absence ne serait plus de catégorie 6.
+            if (!await _missionRepository.AbsenceCodeIsFormationMissionAsync(mission.Soccod, mission.Abscod))
+                return BadRequest(new { message = "La mission sélectionnée n'est pas rattachée à une nature 'Formation et mission'." });
+
             string? justificatifPath = null;
             if (request.File != null)
             {
@@ -73,6 +92,7 @@ namespace ABRPOINT.Server.Controllers
                 Categorie = request.Categorie,
                 Montant = request.Montant,
                 Projet = request.Projet,
+                MissionId = request.MissionId,
                 DateDepense = request.DateDepense,
                 Justificatif = justificatifPath,
                 Etat = "Pending",
@@ -110,6 +130,7 @@ namespace ABRPOINT.Server.Controllers
         public string Categorie { get; set; } = null!;
         public double Montant { get; set; }
         public string? Projet { get; set; }
+        public int MissionId { get; set; }
         public DateTime DateDepense { get; set; }
         public IFormFile? File { get; set; }
     }

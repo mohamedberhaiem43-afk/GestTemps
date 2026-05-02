@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public static class BaseDataSchemaMigrator
 {
-    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded);
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded);
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
@@ -36,7 +36,49 @@ public static class BaseDataSchemaMigrator
         var vilFkContrat2 = await ExpandColumnIfNeededAsync(db, "contrat2", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
         var vilFkEmpaff = await ExpandColumnIfNeededAsync(db, "empaff", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
         var vilFkExpanded = vilFkEmploye || vilFkContrat || vilFkContrat2 || vilFkEmpaff;
-        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded);
+
+        // mission : ancienne table keyless (colonnes Concod/Condat/... héritées d'une vue
+        // legacy de conge) → on la remplace par la vraie table métier. Détection par la
+        // présence de la colonne 'id' qui n'existe pas dans le legacy. Sans clients en prod,
+        // on peut DROP+CREATE sans perte de données.
+        var missionTable = await EnsureMissionTableAsync(db, ct);
+        // NoteDeFrais.MissionId : ajouté en NULL pour ne pas casser les lignes existantes ;
+        // côté contrôleur, on exige la valeur sur les nouvelles saisies. La migration ne
+        // peut pas remplir rétroactivement les missions des notes déjà saisies.
+        var nfMission = await AddColumnIfMissingAsync(db, "notedefrais", "missionid", "INT NULL", ct);
+
+        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission);
+    }
+
+    private static async Task<bool> EnsureMissionTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var tableExists = await TableExistsAsync(db, "mission", ct);
+        var hasIdColumn = tableExists && await ColumnExistsAsync(db, "mission", "id", ct);
+        // Si la table existe avec le bon schéma (colonne id), rien à faire.
+        if (tableExists && hasIdColumn) return false;
+        // Si la table existe mais sans 'id', c'est le legacy keyless — on le drop.
+        if (tableExists)
+            await db.Database.ExecuteSqlRawAsync("DROP TABLE [mission];", ct);
+
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE [mission] (
+    [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_mission] PRIMARY KEY,
+    [soccod] NVARCHAR(6) NOT NULL,
+    [empcod] NVARCHAR(12) NOT NULL,
+    [misobj] NVARCHAR(150) NOT NULL,
+    [misdest] NVARCHAR(150) NULL,
+    [misdatedeb] DATETIME NOT NULL,
+    [misdatefin] DATETIME NOT NULL,
+    [misnote] NVARCHAR(500) NULL,
+    [misetat] NVARCHAR(20) NOT NULL CONSTRAINT [DF_mission_misetat] DEFAULT 'Pending',
+    [misbudget] FLOAT NULL,
+    [abscod] NVARCHAR(4) NOT NULL,
+    [created_at] DATETIME NULL,
+    [deleted_at] DATETIME NULL,
+    [retention_date] DATETIME NULL
+);
+CREATE INDEX [IX_mission_soccod_empcod] ON [mission]([soccod], [empcod]);", ct);
+        return true;
     }
 
     /// <summary>

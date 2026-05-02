@@ -1,6 +1,7 @@
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,11 +20,13 @@ namespace ABRPOINT.Server.Controllers;
 public class BulkImportController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly ICurrentTenant _currentTenant;
     private readonly ILogger<BulkImportController> _log;
 
-    public BulkImportController(ApplicationDbContext db, ILogger<BulkImportController> log)
+    public BulkImportController(ApplicationDbContext db, ICurrentTenant currentTenant, ILogger<BulkImportController> log)
     {
         _db = db;
+        _currentTenant = currentTenant;
         _log = log;
     }
 
@@ -148,6 +151,24 @@ public class BulkImportController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Soccod)) return BadRequest(new { error = "Soccod requis." });
         var soccod = req.Soccod;
         var sitcod = string.IsNullOrWhiteSpace(req.Sitcod) ? "01" : req.Sitcod;
+
+        // Quota plan : essai gratuit (10), Essentiel (25), Standard (50), Premium (illimité).
+        var limits = TrialPolicy.GetLimits(_currentTenant.Current);
+        if (limits.MaxEmployees.HasValue)
+        {
+            var current = await _db.Employes.CountAsync();
+            if (current + req.Rows.Count > limits.MaxEmployees.Value)
+            {
+                var planLabel = TrialPolicy.IsTrialing(_currentTenant.Current)
+                    ? "l'essai gratuit"
+                    : $"votre plan {_currentTenant.Current?.PlanCode}";
+                return StatusCode(402, new
+                {
+                    code = "plan_limit_employees",
+                    message = $"Limite de {planLabel} atteinte ({limits.MaxEmployees.Value} collaborateurs maximum). Vous avez {current} collaborateurs et tentez d'en ajouter {req.Rows.Count}."
+                });
+            }
+        }
 
         // Maps libellé → code (insensible à la casse).
         var serviceMap = (await _db.Services

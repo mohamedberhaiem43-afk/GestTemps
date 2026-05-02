@@ -441,6 +441,24 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                // Quota plan : essai gratuit (10), Essentiel (25), Standard (50), Premium (illimité).
+                var limits = ABRPOINT.Server.Tenancy.TrialPolicy.GetLimits(_currentTenant.Current);
+                if (limits.MaxEmployees.HasValue)
+                {
+                    var current = await _db.Employes.CountAsync();
+                    if (current >= limits.MaxEmployees.Value)
+                    {
+                        var planLabel = ABRPOINT.Server.Tenancy.TrialPolicy.IsTrialing(_currentTenant.Current)
+                            ? "l'essai gratuit"
+                            : $"votre plan {_currentTenant.Current?.PlanCode}";
+                        return StatusCode(402, new
+                        {
+                            code = "plan_limit_employees",
+                            message = $"Limite de {planLabel} atteinte ({limits.MaxEmployees.Value} collaborateurs maximum). Passez à un plan supérieur pour en ajouter plus."
+                        });
+                    }
+                }
+
                 if(employe != null && !string.IsNullOrEmpty(employe.Empcod))
                 {
                     // Defense in depth : si une chaîne vide arrive sur un champ FK (cas

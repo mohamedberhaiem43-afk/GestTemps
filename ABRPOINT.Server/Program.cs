@@ -230,6 +230,14 @@ BEGIN
     );
     CREATE INDEX [IX_TenantEmailIndex_Slug] ON [TenantEmailIndex]([Slug]);
 END");
+
+                // PlanCode ajouté post-déploiement : idempotent. Sans cet ALTER, les bases master
+                // existantes ne connaîtraient pas la colonne et les SELECT EF échoueraient.
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'PlanCode' AND Object_ID = Object_ID(N'Tenants'))
+BEGIN
+    ALTER TABLE [Tenants] ADD [PlanCode] NVARCHAR(20) NULL;
+END");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }

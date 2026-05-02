@@ -6,6 +6,7 @@ export interface NoteDeFrais {
     categorie: string;
     montant: number;
     projet?: string;
+    missionId: number;
     dateDepense: string;
     justificatif?: string;
     etat: string;
@@ -19,6 +20,7 @@ export interface NoteDeFraisRequest {
     categorie: string;
     montant: number;
     projet?: string;
+    missionId: number;
     dateDepense: string;
     file?: File;
 }

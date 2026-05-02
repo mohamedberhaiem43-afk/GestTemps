@@ -528,6 +528,11 @@ namespace GestionDesTickets.Server.Controllers
             var isManager = string.Equals(roleName, ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Manager, StringComparison.OrdinalIgnoreCase)
                             || (roleName?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false);
 
+            var tenant = _currentTenant.Current;
+            var isTrialing = ABRPOINT.Server.Tenancy.TrialPolicy.IsTrialing(tenant);
+            var trialDaysRemaining = ABRPOINT.Server.Tenancy.TrialPolicy.DaysRemaining(tenant);
+            var limits = ABRPOINT.Server.Tenancy.TrialPolicy.GetLimits(tenant);
+
             return Ok(new
             {
                 uticod = user.Uticod,
@@ -541,6 +546,17 @@ namespace GestionDesTickets.Server.Controllers
                 soccod,
                 sitcod,
                 soclib,
+                tenantStatus = tenant?.Status,
+                planCode = tenant?.PlanCode,
+                isTrialing,
+                trialEndsAt = tenant?.TrialEndsAt,
+                trialDaysRemaining,
+                planLimits = new
+                {
+                    maxEmployees = limits.MaxEmployees,
+                    maxSocietes = limits.MaxSocietes,
+                    maxSites = limits.MaxSites,
+                },
                 permissions = user.Role?.Permissions ?? new List<RolePermission>()
             });
         }

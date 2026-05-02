@@ -22,6 +22,7 @@ const NoteDeFraisService = {
         formData.append('categorie', request.categorie);
         formData.append('montant', request.montant.toString());
         if (request.projet) formData.append('projet', request.projet);
+        formData.append('missionId', String(request.missionId));
         formData.append('dateDepense', request.dateDepense);
         if (request.file) formData.append('file', request.file);
 

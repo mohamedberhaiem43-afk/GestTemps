@@ -1,6 +1,7 @@
 ﻿using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -12,10 +13,12 @@ namespace ABRPOINT.Server.Controllers
     public class SocietesController : ControllerBase
     {
         private readonly ISocieteRepository _societeRepository;
+        private readonly ICurrentTenant _currentTenant;
 
-        public SocietesController(ISocieteRepository societeRepository)
+        public SocietesController(ISocieteRepository societeRepository, ICurrentTenant currentTenant)
         {
             _societeRepository = societeRepository;
+            _currentTenant = currentTenant;
         }
 
         // GET: api/Services
@@ -84,6 +87,24 @@ namespace ABRPOINT.Server.Controllers
             if (societe == null)
             {
                 return BadRequest();
+            }
+
+            // Quota plan : essai gratuit, Essentiel et Standard sont mono-société. Premium = illimité.
+            var limits = TrialPolicy.GetLimits(_currentTenant.Current);
+            if (limits.MaxSocietes.HasValue)
+            {
+                var existing = (await _societeRepository.GetAllAsync()).Count();
+                if (existing >= limits.MaxSocietes.Value)
+                {
+                    var planLabel = TrialPolicy.IsTrialing(_currentTenant.Current)
+                        ? "l'essai gratuit"
+                        : $"votre plan {_currentTenant.Current?.PlanCode}";
+                    return StatusCode(402, new
+                    {
+                        code = "plan_limit_societes",
+                        message = $"Limite de {planLabel} atteinte ({limits.MaxSocietes.Value} société maximum). Passez au plan Premium pour gérer plusieurs sociétés."
+                    });
+                }
             }
 
             try

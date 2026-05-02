@@ -46,6 +46,7 @@ import EmployeModern from '../gestionEmploye/EmployeModern';
 import EffectifsGlobaux from '../gestionEmploye/EffectifsGlobaux';
 import CahierConge from '../Etats/CahierConge/CahierConge';
 import RemboursementModern from '../gestionEmploye/Remboursement/RemboursementModern';
+import MissionPage from '../gestionEmploye/Mission/MissionPage';
 import MainModern from '../PosteTravail/MainModern';
 import DroitAccessPointeuse from '../Admin/PointeuseAccees/DroitAcceesPointeuse';
 import Profile from '../ParamSoc/Profile/Profile';
@@ -68,6 +69,7 @@ import ContactPage from '../Support/ContactPage';
 import NotificationCenter from './NotificationCenter';
 import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './SidebarNavigationDualTier';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
+import TrialBanner from '../helper/TrialBanner';
 
 /* ── Lucide icons ── */
 import {
@@ -139,7 +141,7 @@ interface OpenedTab {
 /* ══════════════════════════════════════════════════════ */
 const useNavigationItems = (): NavGroup[] => {
   const { t } = useTranslation();
-  const { authReady, isAdmin, isEmp, isManager, hasPermission, utiadm } = useAuth();
+  const { authReady, isAdmin, isEmp, isManager, hasPermission, utiadm, isTrialing } = useAuth();
 
   // utiadm='1' est un fallback admin — utile pendant la fenêtre où /me n'a pas encore
   // répondu mais où sessionStorage a hydraté utiadm. Évite que le sidebar perde la
@@ -221,6 +223,7 @@ const useNavigationItems = (): NavGroup[] => {
         items: [
           { label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX },
           { label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck },
+          { label: 'Mes Missions', href: '/dashboard/missions', icon: Briefcase },
           { label: "Notes de Frais", href: '/dashboard/remboursement', icon: Receipt },
           { label: "Demande d'Autorisation", href: '/dashboard/demande-autorisation', icon: Timer },
           { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
@@ -261,7 +264,9 @@ const useNavigationItems = (): NavGroup[] => {
       icon: Fingerprint,
       items: [
         ...(canSee('liste-pointeuse') ? [{ label: t('navigation.clockingList'), href: '/dashboard/liste-pointeuse', icon: MonitorDot }] : []),
-        ...(canSee('etat-periodique') ? [{ label: t('navigation.periodicReport'), href: '/dashboard/etat-periodique', icon: Activity }] : []),
+        // L'état périodique expose le détail des heures supp / retards / absences :
+        // masqué pendant l'essai gratuit (cf. limites trial dans /me).
+        ...(canSee('etat-periodique') && !isTrialing ? [{ label: t('navigation.periodicReport'), href: '/dashboard/etat-periodique', icon: Activity }] : []),
       ],
     }] : []),
     {
@@ -272,6 +277,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
         ...(canSee('profil-employe') ? [{ label: 'Profil Employé', href: '/dashboard/profil-employe', icon: User }] : []),
         ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat/contrat', icon: FileText }] : []),
+        { label: 'Missions', href: '/dashboard/missions', icon: Briefcase },
         // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
         // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
         ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
@@ -313,7 +319,10 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('saisie-poste-de-travail') ? [{ label: t('navigation.workStation'), href: '/dashboard/saisie-poste-de-travail', icon: Briefcase }] : []),
       ],
     },
-    {
+    // Préparation paie & rapports analytiques : non inclus dans l'essai gratuit.
+    // Ces sections affichent les calculs (heures supp, retards, absences détaillés)
+    // qui sont précisément la valeur ajoutée payante. Hors trial, comportement standard.
+    ...(!isTrialing ? [{
       label: t('navigation.payrollPreparation'),
       href: '/dashboard/paie',
       icon: Banknote,
@@ -323,8 +332,8 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('droit-de-conge') ? [{ label: t('navigation.leaveRights'), href: '/dashboard/droit-de-conge', icon: CalendarCheck }] : []),
         ...(canSee('remboursement') ? [{ label: 'Notes de Frais', href: '/dashboard/remboursement', icon: Receipt }] : []),
       ],
-    },
-    {
+    }] : []),
+    ...(!isTrialing ? [{
       label: t('navigation.reports'),
       href: '/dashboard/rapports',
       icon: BarChart2,
@@ -335,7 +344,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('echeance-contrat') ? [{ label: t('navigation.contractExpiry'), href: '/dashboard/echeance-contrat', icon: FileText }] : []),
         ...(canSee('cahier-conge') ? [{ label: t('navigation.leaveBook'), href: '/dashboard/cahier-conge', icon: BookOpen }] : []),
       ],
-    },
+    }] : []),
     ...(isAdminEffective ? [{
       label: t('navigation.administrator'),
       href: '/dashboard/admin',
@@ -400,6 +409,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/gestion-employe': content = <EffectifsGlobaux />; break;
     case '/dashboard/profil-employe': content = <EmployeModern />; break;
     case '/dashboard/remboursement': content = <RemboursementModern />; break;
+    case '/dashboard/missions': content = <MissionPage />; break;
     case '/dashboard/gestion-utilisateur': content = <Utilisateur />; break;
     case '/dashboard/droit-accees': content = <DroitAccessPointeuse />; break;
     case '/dashboard/gestion-societe': content = <SocieteModern />; break;
@@ -843,6 +853,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
         isAdmin={isAdmin}
         toolbarActions={<ToolbarActions />}
       >
+        <TrialBanner />
         {/* Dynamic Tab Bar */}
         <Box sx={{
           position: 'sticky',

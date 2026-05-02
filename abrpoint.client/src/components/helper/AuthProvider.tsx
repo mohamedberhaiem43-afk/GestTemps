@@ -18,6 +18,13 @@ interface AuthContextType {
   isEmp: boolean;
   isManager: boolean;
   sercod: string | null;
+  // État de l'abonnement / essai gratuit. isTrialing === true ⇒ limites Trial actives
+  // (10 collaborateurs, 1 société/filiale, états & paie masqués). Source : /Utilisateurs/me.
+  isTrialing: boolean;
+  trialEndsAt: string | null;
+  trialDaysRemaining: number | null;
+  planCode: string | null;
+  planLimits: { maxEmployees: number | null; maxSocietes: number | null; maxSites: number | null } | null;
   authReady: boolean;
   permissions: RolePermission[];
   hasPermission: (module: string, action: 'consult' | 'add' | 'modify' | 'delete') => boolean;
@@ -38,6 +45,11 @@ const AuthContext = createContext<AuthContextType>({
   isEmp: false,
   isManager: false,
   sercod: null,
+  isTrialing: false,
+  trialEndsAt: null,
+  trialDaysRemaining: null,
+  planCode: null,
+  planLimits: null,
   authReady: false,
   permissions: [],
   hasPermission: () => false,
@@ -71,6 +83,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isEmp: false,
     isManager: false,
     sercod: null as string | null,
+    isTrialing: false,
+    trialEndsAt: null as string | null,
+    trialDaysRemaining: null as number | null,
+    planCode: null as string | null,
+    planLimits: null as { maxEmployees: number | null; maxSocietes: number | null; maxSites: number | null } | null,
     permissions: [] as RolePermission[],
   });
 
@@ -102,6 +119,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         soccod: response.data.soccod ?? prev.soccod ?? null,
         sitcod: response.data.sitcod ?? prev.sitcod ?? null,
         soclib: response.data.soclib ?? prev.soclib ?? null,
+        isTrialing: Boolean(response.data.isTrialing),
+        trialEndsAt: response.data.trialEndsAt ?? null,
+        trialDaysRemaining: response.data.trialDaysRemaining ?? null,
+        planCode: response.data.planCode ?? null,
+        planLimits: response.data.planLimits ?? null,
       }));
 
       // Persist société/site/userName dans sessionStorage : le dashboard et les autres pages
@@ -126,6 +148,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isEmp: false,
         isManager: false,
         sercod: null,
+        isTrialing: false,
+        trialEndsAt: null,
+        trialDaysRemaining: null,
+        planCode: null,
+        planLimits: null,
         permissions: [],
       }));
     } finally {
@@ -173,6 +200,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isEmp: false,
       isManager: false,
       sercod: null,
+      isTrialing: false,
+      trialEndsAt: null,
+      trialDaysRemaining: null,
+      planCode: null,
+      planLimits: null,
       permissions: [],
     });
   };
