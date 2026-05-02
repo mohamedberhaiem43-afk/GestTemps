@@ -54,6 +54,19 @@ namespace ABRPOINT.Server.Controllers
                 if (dbUser == null || !BCrypt.Net.BCrypt.Verify(model.Password, dbUser.Utimps))
                     return Unauthorized(new { message = "Identifiants invalides" });
 
+                // Garde "compte désactivé" : Utilisateur.Utiactif="0" OU Employe.Actif="N" → connexion refusée.
+                // Mêmes règles que le login web (UtilisateursController.Connect) — sans ça un employé
+                // sortant pourrait continuer à s'authentifier depuis l'app mobile après désactivation web.
+                if (dbUser.Utiactif != "1" ||
+                    await _dbContext.Employes.AnyAsync(e => e.Empcod == dbUser.Uticod && e.Actif != null && e.Actif != "A"))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new
+                    {
+                        message = "Compte désactivé. Contactez votre administrateur pour réactiver l'accès.",
+                        accountDisabled = true,
+                    });
+                }
+
                 var isEmp = await _dbContext.Employes.AnyAsync(e => e.Empcod == dbUser.Uticod);
 
                 // Get user's society/site info - auto-detect if not provided
@@ -150,6 +163,20 @@ namespace ABRPOINT.Server.Controllers
             var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == refreshToken.Uticod);
             if (user == null)
                 return Unauthorized(new { message = "Utilisateur non trouvé" });
+
+            // Si le compte a été désactivé entre-temps (Utiactif="0" ou employé sortant Actif="N"),
+            // on révoque le refresh token et on refuse — l'app mobile devra repasser par un login.
+            if (user.Utiactif != "1" ||
+                await _dbContext.Employes.AnyAsync(e => e.Empcod == user.Uticod && e.Actif != null && e.Actif != "A"))
+            {
+                refreshToken.Revoked = true;
+                await _dbContext.SaveChangesAsync();
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    message = "Compte désactivé. Contactez votre administrateur pour réactiver l'accès.",
+                    accountDisabled = true,
+                });
+            }
 
             var newToken = GenerateJwtToken(user.Uticod);
             var newRefreshToken = GenerateRefreshToken();

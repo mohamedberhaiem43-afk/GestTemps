@@ -204,6 +204,19 @@ namespace GestionDesTickets.Server.Controllers
                 {
                     return Unauthorized("Invalid credentials.");
                 }
+
+                // Garde "compte désactivé" : Utilisateur.Utiactif="0" OU Employe.Actif="N" → connexion refusée.
+                // On vérifie les deux car la désactivation peut venir soit du toggle utilisateur,
+                // soit de la fiche employé (champ `actif` mis à "N" lors d'une sortie/licenciement),
+                // et les deux flags ne sont pas synchronisés automatiquement.
+                if (await IsAccountDisabledAsync(dbUser))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new
+                    {
+                        message = "Compte désactivé. Contactez votre administrateur pour réactiver l'accès.",
+                        accountDisabled = true,
+                    });
+                }
                 var isManager = dbUser.Utirole?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false;
 
                 // Résolution Soccod/Sitcod simplifiée pour l'UX :
@@ -223,6 +236,25 @@ namespace GestionDesTickets.Server.Controllers
             {
                 return StatusCode(500, "An error occurred while processing your request.");
             }
+        }
+
+        /// <summary>
+        /// Vrai si l'utilisateur est désactivé : `Utilisateur.Utiactif != "1"` OU, s'il est
+        /// aussi salarié, `Employe.Actif != "A"`. Les deux flags peuvent être désynchronisés
+        /// (la désactivation peut venir du toggle utilisateur ou de la fiche employé), donc on
+        /// consulte les deux pour bloquer toute tentative de connexion d'un compte inactif.
+        /// </summary>
+        private async Task<bool> IsAccountDisabledAsync(Utilisateur dbUser)
+        {
+            if (dbUser.Utiactif != "1") return true;
+
+            // L'employé partage son Uticod avec son matricule (Empcod). On regarde toutes les
+            // fiches portant ce code : si une seule existe et est marquée "N", on bloque.
+            // (En pratique il y en a au plus une, mais on évite SingleOrDefault pour ne pas
+            // jeter sur une donnée corrompue.)
+            var hasInactiveEmploye = await _dbContext.Employes
+                .AnyAsync(e => e.Empcod == dbUser.Uticod && e.Actif != null && e.Actif != "A");
+            return hasInactiveEmploye;
         }
 
         /// <summary>
@@ -263,6 +295,17 @@ namespace GestionDesTickets.Server.Controllers
                 if (!totp.VerifyTotp(request.Code, out _, new VerificationWindow(1, 1)))
                 {
                     return BadRequest("Code invalide");
+                }
+
+                // Réplique la garde de Connect : impossible de contourner la désactivation
+                // en passant directement par /complete-2fa-login.
+                if (await IsAccountDisabledAsync(dbUser))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new
+                    {
+                        message = "Compte désactivé. Contactez votre administrateur pour réactiver l'accès.",
+                        accountDisabled = true,
+                    });
                 }
 
                 var (societe, resolvedCompany) = await ResolveSocuserAsync(dbUser.Uticod!, request.Company, request.Usersit);

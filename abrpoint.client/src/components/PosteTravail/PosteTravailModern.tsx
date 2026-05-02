@@ -145,7 +145,7 @@ export default function PosteTravailModern() {
           queryClient.invalidateQueries(["postes", soccod]);
           queryClient.invalidateQueries(["all-postes", soccod]);
           if (res.success && mergedData.codposte) {
-            setSelectedPoste({ codposte: mergedData.codposte, libposte: mergedData.libposte || '' });
+            setSelectedPoste({ codposte: mergedData.codposte || '', libposte: mergedData.libposte || '', soccod: soccod || '' });
           }
         },
         onError: (err: any) => showSnackbar(err?.response?.data?.message || "Erreur lors de l'ajout", "error")
