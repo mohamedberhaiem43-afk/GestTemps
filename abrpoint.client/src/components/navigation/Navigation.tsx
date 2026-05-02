@@ -682,6 +682,28 @@ function DashboardLayoutAccount(_props: DemoProps) {
   const isDark = outerTheme.palette.mode === 'dark';
   const pathname = location.pathname;
 
+  // Réécriture transparente des URLs : on supprime le préfixe `/dashboard/` de toutes les pages
+  // sauf `/dashboard` lui-même. Cela couvre :
+  //   - Les clics sidebar (les hrefs sont gardés en /dashboard/X côté config pour ne pas casser
+  //     les checks `pathname === '/dashboard/X'` éparpillés dans la codebase) → redirigés vers /X.
+  //   - Les `navigate('/dashboard/X')` déclenchés depuis d'autres composants (chatbot, dashboards,
+  //     liens Coffre-fort, etc.) → idem.
+  // L'utilisateur voit donc /employes au lieu de /dashboard/employes dans la barre d'URL.
+  React.useEffect(() => {
+    if (pathname.startsWith('/dashboard/') && pathname !== '/dashboard') {
+      const stripped = pathname.replace(/^\/dashboard/, '');
+      navigate(stripped + location.search + location.hash, { replace: true });
+    }
+  }, [pathname, location.search, location.hash, navigate]);
+
+  // Pour le rendu (tabs, breadcrumb, switch de la page courante), on raisonne toujours sur la
+  // forme canonique avec /dashboard/ préfixée : la nav config et les case '/dashboard/X' du
+  // switch restent inchangées. La barre d'URL, elle, montre la version courte.
+  const PUBLIC_PATHS = ['/', '/about', '/login', '/signup', '/plan-configuration', '/payment', '/contact-sales'];
+  const canonicalPathname = (pathname === '/dashboard' || pathname.startsWith('/dashboard/') || PUBLIC_PATHS.includes(pathname))
+    ? pathname
+    : `/dashboard${pathname}`;
+
   const [societeImage, setSocieteImage] = React.useState<string>(
     localStorage.getItem('societeImage')
       ? `${BASE_URL}${localStorage.getItem('societeImage')}`
@@ -710,11 +732,11 @@ function DashboardLayoutAccount(_props: DemoProps) {
   React.useEffect(() => {
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
-    const matched = navItems.find(n => n.href === pathname);
+    const matched = navItems.find(n => n.href === canonicalPathname);
 
     if (matched) {
       document.title = `${matched.label} | Concorde Workforce`;
-    } else if (pathname === '/dashboard') {
+    } else if (canonicalPathname === '/dashboard') {
       document.title = `Tableau de bord | Concorde Workforce`;
     } else if (pathname === '/login') {
       document.title = `Connexion | Concorde Workforce`;
@@ -725,7 +747,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
     } else {
       document.title = `Concorde Workforce`;
     }
-  }, [pathname, NAVIGATION]);
+  }, [pathname, canonicalPathname, NAVIGATION]);
 
   // ── Tab Management State ──
   const [openedTabs, setOpenedTabs] = React.useState<OpenedTab[]>(() => {
@@ -740,36 +762,36 @@ function DashboardLayoutAccount(_props: DemoProps) {
     // Find the item in flattened navigation to get title and icon
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
-    const matched = navItems.find(n => n.href === pathname);
+    const matched = navItems.find(n => n.href === canonicalPathname);
 
     if (matched) {
       setOpenedTabs(prev => {
-        if (prev.some(t => t.href === pathname)) return prev;
+        if (prev.some(t => t.href === matched.href)) return prev;
         const newTabs = [...prev, { label: matched.label, href: matched.href, icon: matched.icon?.name || 'LayoutGrid' }];
         localStorage.setItem('openedTabs', JSON.stringify(newTabs));
         return newTabs;
       });
     }
-  }, [pathname, NAVIGATION]);
+  }, [pathname, canonicalPathname, NAVIGATION]);
 
   // ── Recent Pages Tracking ──
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/dashboard') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || canonicalPathname === '/dashboard') return;
 
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
-    const matched = navItems.find(n => n.href === pathname);
+    const matched = navItems.find(n => n.href === canonicalPathname);
 
     if (matched) {
       const saved = localStorage.getItem('recentPages');
       let recent: RecentItem[] = saved ? JSON.parse(saved) : [];
       // Remove if exists and put at start
-      recent = recent.filter(r => r.href !== pathname);
+      recent = recent.filter(r => r.href !== matched.href);
       recent.unshift({ label: matched.label, href: matched.href });
       recent = recent.slice(0, 5);
       localStorage.setItem('recentPages', JSON.stringify(recent));
     }
-  }, [pathname, NAVIGATION]);
+  }, [pathname, canonicalPathname, NAVIGATION]);
 
 
   const handleCloseTab = (e: React.MouseEvent, href: string) => {
@@ -807,7 +829,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
   const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales';
-  const isProfilePage = pathname === '/dashboard/profil-employe';
+  const isProfilePage = canonicalPathname === '/dashboard/profil-employe';
 
   if (!authReady) {
     return (
@@ -822,7 +844,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   if (isPublicPage || isProfilePage) {
     return (
       <>
-        <DemoPageContent pathname={pathname} />
+        <DemoPageContent pathname={canonicalPathname} />
         {/* L'assistant IA reste accessible aussi sur la landing publique pour aider
             les visiteurs à se renseigner sur les fonctionnalités / tarifs / inscription. */}
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
@@ -846,7 +868,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
       <SidebarNavigationDualTier
         items={NAVIGATION}
         footerItems={footerItems}
-        pathname={pathname}
+        pathname={canonicalPathname}
         onNavigate={(to) => navigate(to)}
         title={title}
         logo={logo}
@@ -871,7 +893,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
           '&::-webkit-scrollbar': { display: 'none' }
         }}>
           {openedTabs.map((tab) => {
-            const active = pathname === tab.href;
+            const active = canonicalPathname === tab.href;
             return (
               <Box
                 key={tab.href}
@@ -986,7 +1008,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
           )}
         </Box>
 
-        <DemoPageContent pathname={pathname} />
+        <DemoPageContent pathname={canonicalPathname} />
       </SidebarNavigationDualTier>
 
       {pathname !== '/' && (

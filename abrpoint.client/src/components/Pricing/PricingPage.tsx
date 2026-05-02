@@ -28,8 +28,8 @@ const PricingPage: React.FC = () => {
     {
       name: 'Standard',
       target: 'PME en croissance',
-      price: billingCycle === 'monthly' ? 7.5 : 6.0,
-      period: '/ utilisateur / mois',
+      price: billingCycle === 'monthly' ? 7.5 : 6.0 * 12,
+      period: billingCycle === 'monthly' ? '/ utilisateur / mois' : '/ utilisateur / an',
       description: 'Suite complète : pointage, congés et gestion du temps pour les équipes structurées.',
       features: [
         'Utilisateurs illimités',
@@ -45,8 +45,8 @@ const PricingPage: React.FC = () => {
     {
       name: 'Premium',
       target: 'Entreprises',
-      price: billingCycle === 'monthly' ? 11.0 : 8.8,
-      period: '/ utilisateur / mois',
+      price: billingCycle === 'monthly' ? 11.0 : 8.8 * 12,
+      period: billingCycle === 'monthly' ? '/ utilisateur / mois' : '/ utilisateur / an',
       description: "Analytique avancée et accompagnement dédié pour les organisations multi-sites.",
       features: [
         'Tout le plan Standard',
