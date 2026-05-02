@@ -146,15 +146,14 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             {
                 int previousMonth = month == 1 ? 12 : month - 1;
                 int previousYear = month == 1 ? year - 1 : year;
-                debutReelDate = new DateTime(previousYear, previousMonth, param.DebutReel);
+                debutReelDate = MakeDate(previousYear, previousMonth, param.DebutReel);
             }
             else // Mois courant
             {
-                debutReelDate = new DateTime(year, month, param.DebutReel);
+                debutReelDate = MakeDate(year, month, param.DebutReel);
             }
 
-            // Ajuster si le jour dépasse le nombre de jours du mois
-            return AdjustDayToMonth(debutReelDate);
+            return debutReelDate;
         }
         private async Task<DataCache> LoadAllDataAsync(string soccod, string empcod, DateTime startDate, DateTime endDate, List<DateTime> allDates,
             DateTime? empemb, DateTime? empsort, string? defaultPoscod)
@@ -709,15 +708,18 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 DateTime endMonth;
 
                 // ---- Jour réel (Joudeb)
+                // ⚠ MakeDate clamp le jour ([1, DaysInMonth]) pour éviter
+                // ArgumentOutOfRangeException quand DebutReel/DebutCalc/Joufin > nb de jours
+                // du mois (typiquement 31 sur février → throw avant AdjustDayToMonth).
                 if (paramMois.Moisdeb == "P")
                 {
                     int pm = month == 1 ? 12 : month - 1;
                     int py = month == 1 ? year - 1 : year;
-                    startMonthReal = new DateTime(py, pm, paramMois.DebutReel);
+                    startMonthReal = MakeDate(py, pm, paramMois.DebutReel);
                 }
                 else
                 {
-                    startMonthReal = new DateTime(year, month, paramMois.DebutCalc);
+                    startMonthReal = MakeDate(year, month, paramMois.DebutCalc);
                 }
 
                 // ---- Jour calcul (peut être déplacé au lundi)
@@ -730,20 +732,21 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 }
 
                 // ---- Fin mois
+                int joufin = int.TryParse(paramMois.Joufin, out var jf) ? jf : 31;
                 if (paramMois.Moisfin == "P")
                 {
                     int pm = month == 1 ? 12 : month - 1;
                     int py = month == 1 ? year - 1 : year;
-                    endMonth = new DateTime(py, pm, int.Parse(paramMois.Joufin));
+                    endMonth = MakeDate(py, pm, joufin);
                 }
                 else
                 {
-                    endMonth = new DateTime(year, month, int.Parse(paramMois.Joufin));
+                    endMonth = MakeDate(year, month, joufin);
                 }
-
-                startMonthReal = AdjustDayToMonth(startMonthReal);
-                startMonthCalc = AdjustDayToMonth(startMonthCalc);
-                endMonth = AdjustDayToMonth(endMonth);
+                // AdjustDayToMonth devient redondant (MakeDate clamp déjà), conservé pour
+                // les cas où startMonthCalc a été décalé négativement (théoriquement non,
+                // car AddDays(-delta) reste dans le mois courant ou recule au mois précédent
+                // qui a son propre nombre de jours valide).
                 #endregion
 
                 #region Chargement calendrier
@@ -921,8 +924,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 float nbHeuresJour = (float)h.TotalHours;
 
                 DateTime startMonthReal = date.Month == 1
-                    ? new DateTime(date.Year - 1, 12, paramMois.DebutReel)
-                    : new DateTime(date.Year, date.Month - 1, paramMois.DebutReel);
+                    ? MakeDate(date.Year - 1, 12, paramMois.DebutReel)
+                    : MakeDate(date.Year, date.Month - 1, paramMois.DebutReel);
                 if (startMonthReal <= presence.Dmdate)
                 {
                     if ((emppanier == "1" && nbHeuresJour >= 7) || (emppanier == "2" && nbHeuresJour >= 6))
@@ -1064,33 +1067,30 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         {
             DateTime startDate, endDate;
 
-            // For the start date
+            // For the start date — MakeDate clamp à DaysInMonth, idem ci-dessus.
             if (param.Moisdeb == "P") // Previous month
             {
                 var previousMonth = month == 1 ? 12 : month - 1;
                 var previousYear = month == 1 ? year - 1 : year;
-                startDate = new DateTime(previousYear, previousMonth, param.DebutCalc);
+                startDate = MakeDate(previousYear, previousMonth, param.DebutCalc);
             }
             else // Current month
             {
-                startDate = new DateTime(year, month, param.DebutCalc);
+                startDate = MakeDate(year, month, param.DebutCalc);
             }
 
             // For the end date
+            int joufin = int.TryParse(param.Joufin, out var jf) ? jf : 31;
             if (param.Moisfin == "P") // Previous month
             {
                 var previousMonth = month == 1 ? 12 : month - 1;
                 var previousYear = month == 1 ? year - 1 : year;
-                endDate = new DateTime(previousYear, previousMonth, int.Parse(param.Joufin));
+                endDate = MakeDate(previousYear, previousMonth, joufin);
             }
             else // Current month
             {
-                endDate = new DateTime(year, month, int.Parse(param.Joufin));
+                endDate = MakeDate(year, month, joufin);
             }
-
-            // Adjust for month boundaries
-            startDate = AdjustDayToMonth(startDate);
-            endDate = AdjustDayToMonth(endDate);
 
             // If specific week requested, calculate week boundaries
             if (semaine != "0" && int.TryParse(semaine, out int weekNumber) && weekNumber > 0)
@@ -1153,6 +1153,18 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 return new DateTime(date.Year, date.Month, daysInMonth);
             }
             return date;
+        }
+
+        /// <summary>
+        /// Construit un DateTime en clampant le jour à [1, DaysInMonth(y, m)].
+        /// Sans ce wrapper, `new DateTime(2026, 2, 31)` (DebutCalc=31 sur février) lève
+        /// ArgumentOutOfRangeException avant qu'AdjustDayToMonth n'ait pu corriger.
+        /// </summary>
+        private static DateTime MakeDate(int year, int month, int day)
+        {
+            int dim = DateTime.DaysInMonth(year, month);
+            int safeDay = day < 1 ? 1 : (day > dim ? dim : day);
+            return new DateTime(year, month, safeDay);
         }
 
        
