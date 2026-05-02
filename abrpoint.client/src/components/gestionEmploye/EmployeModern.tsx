@@ -337,7 +337,10 @@ const EmployeModernInner = () => {
     };
     const handleAddClasseHoraire = async (code: string, lib: string) => {
         try {
-            await apiInstance.post('/Lcategories', { soccod, catcod: code, catlib: lib, catperiode: 'N', catfixe: '0' });
+            // catfixe:'1' = classe "toujours active" (sans plage temporelle Catdu/Catau).
+            // Sinon `GetHorLibs` la filtre, et après l'enregistrement de l'employé elle ne réapparaît
+            // pas dans le dropdown — l'utilisateur croit alors que l'affectation n'a pas été persistée.
+            await apiInstance.post('/Lcategories', { soccod, catcod: code, catlib: lib, catperiode: 'N', catfixe: '1' });
             setClasseHoraireLibs(prev => ({ ...prev, [code]: lib }));
             showSnackbar("Classe horaire ajoutée avec succès", 'success');
         } catch (err) {
@@ -552,12 +555,13 @@ const EmployeModernInner = () => {
             empsort: formatDate(formData.empsort), empdcin: formatDate(formData.empdcin) || new Date(),
             empoptim: formatDate(formData.empoptim),
         };
+        const sentCatcod = payload.catcod ?? '';
         const onSuccess = async (res: any) => {
-            showSnackbar(res?.message || 'Employé créé avec succès', 'success');
             queryClient.invalidateQueries('employe');
             queryClient.invalidateQueries(['employee-horaires', soccod, formData.empcod]);
             setIsSaving(false);
             if (mode === 'save') {
+                showSnackbar(res?.message || 'Employé créé avec succès', 'success');
                 setMode('update');
                 navigate(`/dashboard/gestion-employe?id=${formData.empcod}&new=false`);
                 return;
@@ -566,11 +570,27 @@ const EmployeModernInner = () => {
             // exactement ce qui est en base (catcod, classe horaire, etc.) — sinon une affectation
             // de classe horaire échouée silencieusement passerait inaperçue, et le planning resterait
             // sur l'ancien horaire malgré le snackbar de succès.
+            let persistedCatcod: string | null | undefined;
             try {
                 const reloaded = await apiInstance.get(`/Employes/get-employe/${soccod}/${formData.empcod}`);
-                if (reloaded.data) setFormData(reloaded.data);
+                if (reloaded.data) {
+                    setFormData(reloaded.data);
+                    persistedCatcod = reloaded.data?.catcod;
+                }
             } catch { /* on garde formData courant en cas d'erreur réseau */ }
             await refreshEmpHoraires(formData.empcod);
+
+            // Vérification explicite : si on voulait changer la classe horaire mais qu'elle n'est
+            // pas réellement persistée, on l'annonce clairement plutôt qu'afficher un faux succès.
+            const persisted = (persistedCatcod ?? '') as string;
+            if (sentCatcod && persisted !== sentCatcod) {
+                showSnackbar(
+                    `Modifications enregistrées, mais la classe horaire "${sentCatcod}" n'a pas été persistée (valeur en base : "${persisted || '—'}"). Vérifiez vos droits ou recommencez.`,
+                    'error'
+                );
+            } else {
+                showSnackbar(res?.message || 'Modifications enregistrées', 'success');
+            }
         };
         const onError = (err: any) => { showSnackbar(err?.response?.data?.message || 'Erreur lors de la sauvegarde', 'error'); setIsSaving(false); };
         mode === 'save' ? addEmploye(payload, { onSuccess, onError }) : updateEmploye(payload, { onSuccess, onError });
@@ -613,10 +633,96 @@ const EmployeModernInner = () => {
         );
     }
 
+    // Rendu de la liste des collaborateurs (annuaire) — extrait pour pouvoir le placer
+    // à gauche en mode update et le masquer en mode création.
+    const renderAnnuaire = () => (
+        <Box sx={{
+            width: 320,
+            backgroundColor: '#fff',
+            borderRight: '1px solid #edf0f5',
+            display: { xs: 'none', lg: 'flex' },
+            flexDirection: 'column',
+            height: '100vh',
+            position: 'sticky',
+            top: 0,
+            flexShrink: 0,
+        }}>
+            <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9' }}>
+                <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#0d1f3c', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <GroupsIcon sx={{ fontSize: 18, color: '#0040a1' }} />
+                    Annuaire Collaborateurs
+                </Typography>
+                <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="Rechercher nom, matricule, position..."
+                    value={empSearchQuery}
+                    onChange={e => setEmpSearchQuery(e.target.value)}
+                    sx={{
+                        '& .MuiOutlinedInput-root': { borderRadius: '10px', backgroundColor: '#f8fafc' },
+                        '& .MuiInputBase-input': { fontSize: '13px' }
+                    }}
+                    InputProps={{
+                        startAdornment: <SearchIcon sx={{ fontSize: 18, color: '#94a3b8', mr: 1 }} />
+                    }}
+                />
+            </Box>
+            <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {isListLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} /></Box>
+                ) : filteredEmployees.map(emp => (
+                    <Box
+                        key={emp.empcod}
+                        onClick={() => navigate(`/dashboard/profil-employe?id=${emp.empcod}`)}
+                        sx={{
+                            p: 1.5,
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : 'transparent',
+                            border: formData.empcod === emp.empcod ? '1px solid #cce0ff' : '1px solid transparent',
+                            '&:hover': { backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : '#f8fafc' }
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Avatar sx={{ width: 32, height: 32, fontSize: '14px', bgcolor: formData.empcod === emp.empcod ? '#0040a1' : '#e2e8f0', color: formData.empcod === emp.empcod ? '#fff' : '#475569' }}>
+                                {emp.emplib?.charAt(0)}
+                            </Avatar>
+                            <Box sx={{ minWidth: 0 }}>
+                                <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {emp.emplib}
+                                </Typography>
+                                <Typography sx={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <BadgeIcon sx={{ fontSize: 12 }} /> {emp.empcod} • {fonMap[emp.foncod || ''] || fonMap[emp.empfonc || ''] || emp.empfonc || 'Sans poste'}
+                                    {(() => {
+                                      const c = (emp.empcontrat || '').toUpperCase();
+                                      if (!c) return null;
+                                      const colors: Record<string, { bg: string; color: string }> = {
+                                        CDI: { bg: '#d1fae5', color: '#047857' },
+                                        CDD: { bg: '#dbeafe', color: '#1d4ed8' },
+                                        STAGE: { bg: '#fef3c7', color: '#b45309' },
+                                        FREELANCE: { bg: '#ede9fe', color: '#6d28d9' },
+                                      };
+                                      const col = colors[c] || { bg: '#f1f5f9', color: '#475569' };
+                                      const label = c === 'STAGE' ? 'Stage' : c === 'FREELANCE' ? 'Freelance' : emp.empcontrat;
+                                      return <Chip label={label} size="small" sx={{ ml: 0.5, height: 16, fontSize: '9px', fontWeight: 700, backgroundColor: col.bg, color: col.color, borderRadius: '4px' }} />;
+                                    })()}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Box>
+                ))}
+            </Box>
+        </Box>
+    );
+
     return (
         // Pas de `overflowX: hidden` ici : ça crée un contexte de scroll qui casse `position: sticky`
         // sur le Top bar. On garde le scroll au niveau du body pour que le header reste collé en haut.
         <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', width: '100%', maxWidth: '100vw' }}>
+
+            {/* ── Annuaire (sidebar gauche, mode update uniquement) ── */}
+            {mode === 'update' && canConsult && renderAnnuaire()}
 
             {/* ── Main content area ── */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -936,7 +1042,19 @@ const EmployeModernInner = () => {
                                                 <Typography sx={labelStyle}>Classe Horaire</Typography>
                                                 <SelectWithAdd value={formData.catcod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, catcod: v }))}
-                                                    options={classeHoraireLibs} onAdd={handleAddClasseHoraire} addTitle="Nouvelle Classe Horaire" />
+                                                    options={(() => {
+                                                        // Si l'employé est déjà affecté à une classe qui n'apparaît plus dans
+                                                        // `get-horlibs` (ex : Lcategorie hors plage temporelle ou supprimée),
+                                                        // on l'injecte en fallback pour que la valeur courante reste visible.
+                                                        // Sans ça, le dropdown affiche "—" et l'utilisateur croit qu'aucune
+                                                        // classe n'a été assignée — alors qu'elle l'est en base.
+                                                        const cur = formData.catcod || '';
+                                                        if (cur && !classeHoraireLibs[cur]) {
+                                                            return { ...classeHoraireLibs, [cur]: `${cur} (hors plage active)` };
+                                                        }
+                                                        return classeHoraireLibs;
+                                                    })()}
+                                                    onAdd={handleAddClasseHoraire} addTitle="Nouvelle Classe Horaire" />
                                             </Box>
                                             <Box>
                                                 <Typography sx={labelStyle}>Calendrier</Typography>
@@ -1209,84 +1327,6 @@ const EmployeModernInner = () => {
                             </Box>
                         </Box>
 
-                        {/* ── Right Sidebar (Employees List) ── */}
-                        <Box sx={{
-                            width: 320,
-                            backgroundColor: '#fff',
-                            borderLeft: '1px solid #edf0f5',
-                            display: { xs: 'none', lg: 'flex' },
-                            flexDirection: 'column',
-                            height: 'calc(100vh - 64px)',
-                            position: 'sticky',
-                            top: 64,
-                        }}>
-                            <Box sx={{ p: 2, borderBottom: '1px solid #f1f5f9' }}>
-                                <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#0d1f3c', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <GroupsIcon sx={{ fontSize: 18, color: '#0040a1' }} />
-                                    Annuaire Collaborateurs
-                                </Typography>
-                                <TextField
-                                    size="small"
-                                    fullWidth
-                                    placeholder="Rechercher nom, matricule, position..."
-                                    value={empSearchQuery}
-                                    onChange={e => setEmpSearchQuery(e.target.value)}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': { borderRadius: '10px', backgroundColor: '#f8fafc' },
-                                        '& .MuiInputBase-input': { fontSize: '13px' }
-                                    }}
-                                    InputProps={{
-                                        startAdornment: <SearchIcon sx={{ fontSize: 18, color: '#94a3b8', mr: 1 }} />
-                                    }}
-                                />
-                            </Box>
-                            <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                {isListLoading ? (
-                                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} /></Box>
-                                ) : filteredEmployees.map(emp => (
-                                    <Box
-                                        key={emp.empcod}
-                                        onClick={() => navigate(`/dashboard/profil-employe?id=${emp.empcod}`)}
-                                        sx={{
-                                            p: 1.5,
-                                            borderRadius: '12px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                            backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : 'transparent',
-                                            border: formData.empcod === emp.empcod ? '1px solid #cce0ff' : '1px solid transparent',
-                                            '&:hover': { backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : '#f8fafc' }
-                                        }}
-                                    >
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                            <Avatar sx={{ width: 32, height: 32, fontSize: '14px', bgcolor: formData.empcod === emp.empcod ? '#0040a1' : '#e2e8f0', color: formData.empcod === emp.empcod ? '#fff' : '#475569' }}>
-                                                {emp.emplib?.charAt(0)}
-                                            </Avatar>
-                                            <Box sx={{ minWidth: 0 }}>
-                                                <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    {emp.emplib}
-                                                </Typography>
-                                                <Typography sx={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                    <BadgeIcon sx={{ fontSize: 12 }} /> {emp.empcod} • {fonMap[emp.foncod || ''] || fonMap[emp.empfonc || ''] || emp.empfonc || 'Sans poste'}
-                                                    {(() => {
-                                                      const c = (emp.empcontrat || '').toUpperCase();
-                                                      if (!c) return null;
-                                                      const colors: Record<string, { bg: string; color: string }> = {
-                                                        CDI: { bg: '#d1fae5', color: '#047857' },
-                                                        CDD: { bg: '#dbeafe', color: '#1d4ed8' },
-                                                        STAGE: { bg: '#fef3c7', color: '#b45309' },
-                                                        FREELANCE: { bg: '#ede9fe', color: '#6d28d9' },
-                                                      };
-                                                      const col = colors[c] || { bg: '#f1f5f9', color: '#475569' };
-                                                      const label = c === 'STAGE' ? 'Stage' : c === 'FREELANCE' ? 'Freelance' : emp.empcontrat;
-                                                      return <Chip label={label} size="small" sx={{ ml: 0.5, height: 16, fontSize: '9px', fontWeight: 700, backgroundColor: col.bg, color: col.color, borderRadius: '4px' }} />;
-                                                    })()}
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-                                    </Box>
-                                ))}
-                            </Box>
-                        </Box>
                     </>
                 )}
             </Box>
