@@ -32,23 +32,40 @@ const CoffreFortModern = () => {
     return Object.entries(empMap as Record<string, string>).map(([code, lib]) => ({ code, lib }));
   }, [empMap]);
 
+  // Empcod du coffre actuellement consulté. Pour un employé : toujours soi-même.
+  // Pour un admin/manager : peut être un employé sélectionné (consultation), ou soi-même
+  // (par défaut). Le backend (VaultController.GetDocuments) vérifie déjà les droits :
+  // admin → tous, manager → employés de son service, employé → uniquement le sien.
+  const effectiveEmpcod = canDepositForOthers && targetEmpcod ? targetEmpcod : uticod;
+  const isViewingOther = canDepositForOthers && !!targetEmpcod && targetEmpcod !== uticod;
+  const targetLabel = useMemo(() => {
+    if (!isViewingOther) return '';
+    return employeeOptions.find(o => o.code === targetEmpcod)?.lib || targetEmpcod;
+  }, [isViewingOther, targetEmpcod, employeeOptions]);
+
   useEffect(() => {
     if (authReady) {
-      if (soccod && uticod) {
+      if (soccod && effectiveEmpcod) {
         fetchDocuments();
       } else {
         setIsLoading(false);
       }
     }
-  }, [soccod, uticod, authReady]);
+    // effectiveEmpcod recalcule à chaque changement de targetEmpcod → recharge auto.
+  }, [soccod, effectiveEmpcod, authReady]);
 
   const fetchDocuments = async () => {
     try {
       setIsLoading(true);
-      const res = await apiInstance.get(`/Vault/${soccod}/${uticod}`);
+      const res = await apiInstance.get(`/Vault/${soccod}/${effectiveEmpcod}`);
       setDocuments(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur lors de la récupération des documents", err);
+      // 403 : le backend a refusé (manager hors service, etc.) — on retombe sur une liste vide.
+      if (err?.response?.status === 403) {
+        setDocuments([]);
+        setSnack({ open: true, sev: 'error', msg: "Vous n'avez pas le droit de consulter ce coffre-fort." });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -97,11 +114,13 @@ const CoffreFortModern = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setSnack({ open: true, sev: 'success', msg: isDepositForOther ? 'Document déposé et employé notifié.' : 'Document ajouté.' });
-      // Rafraîchir la liste : si on dépose chez quelqu'un d'autre, le coffre courant n'a pas
-      // changé — pas besoin de refetch ici. Sinon on rafraîchit la liste personnelle.
-      if (!isDepositForOther) fetchDocuments();
-      // Reset cible/message pour éviter dépôt accidentel suivant.
-      if (isDepositForOther) { setTargetEmpcod(''); setUploadMessage(''); }
+      // On rafraîchit toujours : en mode consultation d'un autre employé (targetEmpcod défini),
+      // c'est ce coffre qui est affiché, donc le nouveau document doit y apparaître.
+      // En mode personnel (cible vide), on recharge sa propre liste.
+      // Le message d'accompagnement est uniquement reset après un dépôt — la cible elle-même est
+      // conservée pour rester en consultation du même coffre.
+      fetchDocuments();
+      if (isDepositForOther) { setUploadMessage(''); }
     } catch (err: any) {
       console.error("Erreur d'upload", err);
       setSnack({ open: true, sev: 'error', msg: err?.response?.data?.message || err?.response?.data || "Erreur lors du dépôt du document." });
@@ -157,11 +176,14 @@ const CoffreFortModern = () => {
       {/* Page Header */}
       <section className="vault-header">
         <div className="vault-title-section">
-          <label className="vault-badge">Session Authentifiée Active</label>
-          <h1 className="vault-title">Coffre-fort Numérique</h1>
+          <label className="vault-badge">{isViewingOther ? 'Consultation Administrateur' : 'Session Authentifiée Active'}</label>
+          <h1 className="vault-title">
+            {isViewingOther ? `Coffre-fort de ${targetLabel}` : 'Coffre-fort Numérique'}
+          </h1>
           <p className="vault-description">
-            Votre archive sécurisée et cryptée pour vos actifs administratifs personnels. 
-            Tous les documents sont stockés avec un cryptage de bout en bout et une validation d'horodatage.
+            {isViewingOther
+              ? "Vous consultez le coffre-fort numérique de cet employé. Vous pouvez y ajouter de nouveaux documents — l'employé sera notifié à chaque dépôt."
+              : "Votre archive sécurisée et cryptée pour vos actifs administratifs personnels. Tous les documents sont stockés avec un cryptage de bout en bout et une validation d'horodatage."}
           </p>
         </div>
 
@@ -182,15 +204,24 @@ const CoffreFortModern = () => {
         </div>
       </section>
 
-      {/* Admin/Manager — déposer un document pour un employé spécifique */}
+      {/* Admin/Manager — consulter le coffre d'un employé et y déposer des documents */}
       {canDepositForOthers && (
         <section style={{ marginBottom: '2rem', padding: '1rem 1.25rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
             <span className="material-symbols-outlined" style={{ color: '#0040a1' }}>admin_panel_settings</span>
-            <strong style={{ fontSize: '0.9rem' }}>Déposer un document pour un employé</strong>
+            <strong style={{ fontSize: '0.9rem' }}>Consulter / déposer dans le coffre d'un employé</strong>
             <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
               {isAdmin ? '(tous les employés)' : '(employés de votre service uniquement)'}
             </span>
+            {isViewingOther && (
+              <Button
+                size="small"
+                onClick={() => { setTargetEmpcod(''); setUploadMessage(''); }}
+                sx={{ ml: 'auto', textTransform: 'none', fontSize: '0.75rem' }}
+              >
+                ← Revenir à mon coffre
+              </Button>
+            )}
           </div>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' }, gap: 1.5 }}>
             <Autocomplete
@@ -200,19 +231,19 @@ const CoffreFortModern = () => {
               isOptionEqualToValue={(a, b) => a.code === b.code}
               value={employeeOptions.find(o => o.code === targetEmpcod) || null}
               onChange={(_, val) => setTargetEmpcod(val?.code || '')}
-              renderInput={(params) => <TextField {...params} placeholder="Sélectionner un employé…" />}
+              renderInput={(params) => <TextField {...params} placeholder="Sélectionner un employé pour consulter son coffre…" />}
             />
             <MuiTextField
               size="small"
-              placeholder="Message (optionnel) — sera affiché dans la notification"
+              placeholder="Message (optionnel) — joint à la notification de dépôt"
               value={uploadMessage}
               onChange={(e) => setUploadMessage(e.target.value)}
               disabled={!targetEmpcod}
             />
           </Box>
-          {targetEmpcod && (
+          {isViewingOther && (
             <p style={{ marginTop: 8, fontSize: '0.75rem', color: '#0f5132' }}>
-              Le prochain document que vous ajouterez sera déposé dans le coffre de cet employé et celui-ci sera notifié.
+              Vous consultez le coffre de <strong>{targetLabel}</strong>. Tout document que vous y ajouterez sera déposé dans ce coffre et l'employé sera notifié.
             </p>
           )}
         </section>
@@ -402,23 +433,6 @@ const CoffreFortModern = () => {
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
         <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))}>{snack.msg}</Alert>
       </Snackbar>
-
-      {/* Floating Privacy Guard */}
-      <div className="privacy-guard-bar">
-        <div className="guard-info">
-          <div className="guard-icon-circle">
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>lock</span>
-          </div>
-          <div className="guard-text">
-            <p>Protection de la Vie Privée Active</p>
-            <p>Votre écran est automatiquement masqué en cas d'inactivité.</p>
-          </div>
-        </div>
-        <div className="guard-actions">
-          <button className="guard-btn-secondary">Journal d'activité</button>
-          <button className="guard-btn-primary">Synchro Master Key</button>
-        </div>
-      </div>
     </Box>
   );
 };
