@@ -1,6 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import MissionService from '../../services/MissionService';
 import { MissionUpsertRequest } from '../../models/Mission';
+
+// react-query v3 (provider global dans App.tsx). Les autres usages v5 (@tanstack/react-query)
+// montent leur propre QueryClientProvider local — ce module reste sur v3 pour ne pas avoir
+// besoin de wrapper MissionPage.
 
 export const useMissionsBySoc = (soccod: string | null | undefined) =>
   useQuery({
@@ -25,24 +29,22 @@ export const useFormationMissionNatures = (soccod: string | null | undefined) =>
 
 export const useCreateMission = () => {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (req: MissionUpsertRequest) => MissionService.create(req),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['missions'] }),
+  return useMutation((req: MissionUpsertRequest) => MissionService.create(req), {
+    onSuccess: () => qc.invalidateQueries(['missions']),
   });
 };
 
 export const useUpdateMission = () => {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, req }: { id: number; req: MissionUpsertRequest }) => MissionService.update(id, req),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['missions'] }),
-  });
+  return useMutation(
+    ({ id, req }: { id: number; req: MissionUpsertRequest }) => MissionService.update(id, req),
+    { onSuccess: () => qc.invalidateQueries(['missions']) },
+  );
 };
 
 export const useDeleteMission = () => {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => MissionService.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['missions'] }),
+  return useMutation((id: number) => MissionService.remove(id), {
+    onSuccess: () => qc.invalidateQueries(['missions']),
   });
 };
