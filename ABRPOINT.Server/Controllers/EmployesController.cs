@@ -53,11 +53,11 @@ namespace ABRPOINT.Server.Controllers
 
         private string BuildLoginUrl()
         {
+            // On vise toujours le domaine racine : la page de login retrouve le tenant
+            // à partir de l'email saisi (TenantEmailIndex). Le déploiement actuel n'a pas
+            // de wildcard DNS pour les sous-domaines tenant.
             var rootDomain = _configuration["Hosting:RootDomain"] ?? "concorde.com";
-            var slug = _currentTenant.Current?.Slug;
-            return string.IsNullOrWhiteSpace(slug)
-                ? $"https://{rootDomain}/login"
-                : $"https://{slug}.{rootDomain}/login";
+            return $"https://{rootDomain}/login";
         }
 
         private async Task SendWelcomeEmailAsync(string toEmail, string fullName, string login, string password)
