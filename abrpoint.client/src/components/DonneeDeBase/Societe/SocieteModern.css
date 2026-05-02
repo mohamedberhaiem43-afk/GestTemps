@@ -371,6 +371,32 @@ table.soc-table {
 @media (max-width: 768px) {
   .soc-header { flex-direction: column; align-items: flex-start; }
   .soc-title { font-size: 24px; }
+  .soc-container { padding: 16px 12px 32px; }
+  .soc-card { padding: 16px; gap: 14px; }
+  .soc-bento-grid { gap: 14px; margin-bottom: 16px; }
+  .soc-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .soc-export-btn, .soc-save-btn {
+    flex: 1 1 auto;
+    padding: 10px 12px !important;
+    font-size: 12px !important;
+  }
+  .soc-table-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  /* Scroll horizontal sur la table — préserve la lisibilité plutôt que d'écraser
+     les colonnes sur des écrans étroits. */
+  .soc-table-section { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.soc-table { min-width: 560px; }
+}
+@media (max-width: 480px) {
+  .soc-title { font-size: 20px; }
+  .soc-container { padding: 12px 10px 24px; }
 }
 /* ── Selected row + Contextual details header (mockup pattern) ───────────── */
 .soc-row--selected {

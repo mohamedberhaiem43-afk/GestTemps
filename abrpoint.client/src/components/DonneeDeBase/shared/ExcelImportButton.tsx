@@ -86,7 +86,17 @@ export default function ExcelImportButton({
         startIcon={importing ? <CircularProgress size={16} /> : <UploadFileIcon />}
         onClick={handlePick}
         disabled={importing}
-        sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+        // Mobile : pleine largeur (le label long "Importer Directions (Excel)"
+        // débordait sur petits écrans). Desktop : largeur auto.
+        sx={{
+          borderRadius: '10px',
+          textTransform: 'none',
+          fontWeight: 600,
+          width: { xs: '100%', sm: 'auto' },
+          fontSize: { xs: '12px', sm: '13px' },
+          whiteSpace: 'nowrap',
+          minHeight: 36,
+        }}
       >
         {importing ? 'Import…' : label}
       </Button>

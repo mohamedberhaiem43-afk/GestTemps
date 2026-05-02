@@ -154,7 +154,7 @@ function SoldeCongeAdminInner() {
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto', fontFamily: 'Manrope, sans-serif' }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3 }, maxWidth: 1200, margin: '0 auto', fontFamily: 'Manrope, sans-serif' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
@@ -195,8 +195,8 @@ function SoldeCongeAdminInner() {
         </Stack>
       </Box>
 
-      {/* Stats Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, mb: 3 }}>
+      {/* Stats Cards — 1 col mobile, 3 cols desktop */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
         <Paper sx={{ p: 2.5, borderRadius: '16px', border: '1px solid #e2e8f0' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box sx={{ p: 1, borderRadius: '10px', bgcolor: 'rgba(0,64,161,0.1)', color: '#0040a1' }}>
@@ -249,7 +249,7 @@ function SoldeCongeAdminInner() {
             ),
           }}
           sx={{
-            width: 320,
+            width: { xs: '100%', sm: 320 },
             '& .MuiOutlinedInput-root': {
               borderRadius: '12px',
               fontSize: '13px',

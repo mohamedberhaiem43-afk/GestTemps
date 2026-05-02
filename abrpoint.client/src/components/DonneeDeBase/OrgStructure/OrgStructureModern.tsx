@@ -315,21 +315,10 @@ function OrgStructureContent() {
         </Box>
       </Box>
 
-      {/* Bottom Cards */}
+      {/* Bottom Cards — seul "Unités en Création" reste (les 2 autres cartes étaient
+          des chiffres placeholder non branchés à de la donnée réelle). */}
       <Box className="org-bottom-cards">
-        <Box className="org-focus-card">
-          <Box>
-            <span className="org-focus-label">Focus Organisationnel</span>
-            <h4 className="org-focus-title">Optimisation des<br/>Unités de Service 2024</h4>
-            <p className="org-focus-text">La restructuration vise à centraliser les fonctions de support pour améliorer l'agilité opérationnelle de 15%.</p>
-          </Box>
-          <Box><button className="org-focus-btn">Consulter le Plan</button></Box>
-        </Box>
         <Box className="org-side-cards">
-          <Box className="org-stat-card org-stat-card--tertiary">
-            <p className="org-stat-label">Taux d'Occupation</p>
-            <Box className="org-stat-row"><span className="org-stat-value">88%</span><TrendingUpIcon sx={{fontSize:24,color:'#4edea3'}}/></Box>
-          </Box>
           <Box className="org-stat-card org-stat-card--secondary">
             <p className="org-stat-label">Unités en Création</p>
             <Box className="org-stat-row"><span className="org-stat-value">{String(total).padStart(2,'0')}</span></Box>

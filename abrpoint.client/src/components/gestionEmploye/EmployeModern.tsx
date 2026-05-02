@@ -1137,7 +1137,7 @@ const EmployeModernInner = () => {
                                                     </Select>
                                                 </FormControl>
                                             </Box>
-                                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2, mt: 0.5 }}>
+                                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2, mt: 0.5 }}>
                                                 <Box>
                                                     <Typography sx={labelStyle}>Jour Max / Mois</Typography>
                                                     <TextField name="empmaxjour" type="number" value={formData.empmaxjour ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="0 = illimité" />
@@ -1151,7 +1151,7 @@ const EmployeModernInner = () => {
                                                     <TextField name="empminhjour" type="number" value={formData.empminhjour ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="0" />
                                                 </Box>
                                             </Box>
-                                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                                                 <Box>
                                                     <Typography sx={labelStyle}>Compter Repos</Typography>
                                                     <FormControl fullWidth size="small">
@@ -1174,7 +1174,7 @@ const EmployeModernInner = () => {
                                                     </FormControl>
                                                 </Box>
                                             </Box>
-                                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                                                 <Box>
                                                     <Typography sx={labelStyle}>Heures Nuit</Typography>
                                                     <FormControl fullWidth size="small">
@@ -1214,7 +1214,7 @@ const EmployeModernInner = () => {
                                         </Typography>
                                         <Chip label="Confidentiel" size="small" sx={{ ml: 'auto', backgroundColor: 'rgba(251,191,36,0.12)', color: '#fbbf24', fontWeight: 700, fontSize: '9px', height: 22, letterSpacing: '0.04em' }} />
                                     </Box>
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2.5, px: 3, py: 3 }}>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: '1fr 1fr 1fr' }, gap: 2.5, px: { xs: 1.5, md: 3 }, py: 3 }}>
                                         {[
                                             { label: 'Salaire de Base', name: 'empsbase', value: formData.empsbase, icon: <TrendingUpIcon sx={{ fontSize: 14, color: '#60a5fa' }} /> },
                                             { label: 'Salaire Brut', name: 'empsbrut', value: formData.empsbrut, icon: <AccountBalanceWalletIcon sx={{ fontSize: 14, color: '#34d399' }} /> },
@@ -1269,8 +1269,11 @@ const EmployeModernInner = () => {
                                         />
                                     </Box>
 
-                                    {/* Table header */}
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr 1fr 1fr 100px', gap: 0, mb: 1 }}>
+                                    {/* Table header — wrapper scrollable horizontalement
+                                        sur mobile pour préserver les 6 colonnes au lieu
+                                        d'écraser leur contenu sur 320px de large. */}
+                                    <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr 1fr 1fr 100px', gap: 0, mb: 1, minWidth: { xs: 700, md: 'auto' } }}>
                                         {['POSTE', 'ENTRÉE MATIN', 'SORTIE MATIN', 'ENTRÉE AM', 'SORTIE AM', 'STATUT'].map(h => (
                                             <Typography key={h} sx={{ fontSize: '9px', fontWeight: 700, color: '#8896a8', textTransform: 'uppercase', letterSpacing: '0.1em', px: 1.5, py: 1 }}>
                                                 {h}
@@ -1283,6 +1286,7 @@ const EmployeModernInner = () => {
                                     {empHoraires.length > 0 ? empHoraires.map((h, i) => (
                                         <Box key={i} sx={{
                                             display: 'grid', gridTemplateColumns: '160px 1fr 1fr 1fr 1fr 100px',
+                                            minWidth: { xs: 700, md: 'auto' },
                                             alignItems: 'center',
                                             backgroundColor: i % 2 === 0 ? '#fafbfc' : '#fff',
                                             borderRadius: '8px', mb: 0.5,
@@ -1325,6 +1329,7 @@ const EmployeModernInner = () => {
                                             <Typography sx={{ fontSize: '13px' }}>Aucun horaire défini pour cet employé</Typography>
                                         </Box>
                                     )}
+                                    </Box>
                                 </Paper>
                             </Box>
                         </Box>

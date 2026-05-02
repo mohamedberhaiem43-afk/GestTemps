@@ -412,10 +412,23 @@
 
 @media (max-width: 768px) {
   .chm-container { padding: 12px; }
-  .chm-preview-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .chm-preview-bar { flex-direction: column; align-items: stretch; gap: 16px; padding: 14px; }
+  /* Boutons preview-bar (Ajuster pointage / Nouveau / Supprimer) en wrap pleine
+     largeur — sinon ils débordent à droite sur mobile portrait. */
+  .chm-preview-bar > div:last-child {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .chm-preview-bar > div:last-child > .MuiButton-root {
+    flex: 1 1 auto;
+    font-size: 11px !important;
+  }
   .chm-week-grid { grid-template-columns: repeat(3, 1fr); }
   .chm-poste-cards-grid { grid-template-columns: 1fr 1fr; }
   .chm-poste-selector { padding: 16px !important; }
+  .chm-sidebar { padding: 12px !important; }
+  .chm-summary { padding: 12px !important; }
+  .chm-timeline-scroll { max-height: 360px; overflow-y: auto; }
 }
 
 @media (max-width: 550px) {
@@ -423,4 +436,20 @@
   .chm-poste-cards-grid { grid-template-columns: 1fr; }
   .chm-poste-selector-actions { flex-direction: column; }
   .chm-poste-selector-actions button { width: 100%; }
+  .chm-preview-title { font-size: 14px !important; }
+  .chm-preview-sub { font-size: 11px !important; }
+  .chm-sidebar-title { font-size: 13px !important; }
+  /* La grille des jours sur très petit écran : 2 colonnes max — au-delà les cellules
+     deviennent illisibles (heures tronquées). */
+  .chm-day-card { padding: 8px !important; }
+  .chm-slot { padding: 4px 6px !important; }
+  .chm-slot-time { font-size: 11px !important; }
+  /* Le wrapper Box pour les Chips/Boutons à droite du preview bar passe en colonne */
+  .chm-preview-bar > div:last-child {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .chm-preview-bar > div:last-child > * {
+    width: 100%;
+  }
 }

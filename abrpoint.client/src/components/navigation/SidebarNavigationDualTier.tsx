@@ -264,7 +264,12 @@ export default function SidebarNavigationDualTier({
         <div className="sndt-main">
           {/* Top bar */}
           <header className="sndt-topbar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* flex: 1 + min-width: 0 + overflow: hidden : sans ces 3 contraintes,
+                text-overflow: ellipsis sur .sndt-topbar-title ne s'applique pas car
+                le parent flex grandit à la taille du contenu. Avec un soclib long
+                ("Société Internationale de Maintenance Industrielle"), la barre
+                débordait et masquait les actions à droite. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
               <div className="sndt-mobile-menu-trigger">
                 <IconButton
                   size="small"
@@ -274,7 +279,7 @@ export default function SidebarNavigationDualTier({
                   <Menu size={24} />
                 </IconButton>
               </div>
-              <span className="sndt-topbar-title">{title}</span>
+              <span className="sndt-topbar-title" title={title}>{title}</span>
             </div>
             <div className="sndt-topbar-actions">{toolbarActions}</div>
           </header>
@@ -755,6 +760,15 @@ const styles = `
   top: 0;
   z-index: 30;
   flex-shrink: 0;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .sndt-topbar { padding: 0 12px; gap: 6px; }
+  .sndt-topbar-title { font-size: 13px; }
+}
+@media (max-width: 480px) {
+  .sndt-topbar-title { font-size: 12px; }
 }
 
 /* ── Mobile Bottom Nav ── */

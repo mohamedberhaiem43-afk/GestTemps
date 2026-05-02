@@ -108,14 +108,10 @@ function RubriqueModernContent() {
                 <option value="F">Forfaitaire</option>
               </select>
             </Box>
-            <Box className="ref-field">
-              <label>Taux</label>
-              <input type="number" value={form.rubtaux || 0} onChange={e => setForm(p => ({ ...p, rubtaux: Number(e.target.value) || 0 }))} />
-            </Box>
-            <Box className="ref-field">
-              <label>Régime</label>
-              <input type="text" value={form.rubregime || ''} onChange={e => setForm(p => ({ ...p, rubregime: e.target.value }))} placeholder="CNSS" />
-            </Box>
+            {/* Champs Taux et Régime retirés : non utilisés par l'export du fichier
+                d'intégration paie (cf. IntegrationPaieButton.generateExcelData).
+                Type (vartype) conservé : il pilote le mapping rubrique → propriété
+                dans l'export. */}
             <Box className="ref-field">
               <label>Type</label>
               <select value={form.vartype || ''} onChange={e => setForm(p => ({ ...p, vartype: e.target.value }))}>

@@ -57,17 +57,44 @@
   .jc-header-title {
     font-size: 20px;
   }
+  .jc-header { padding: 12px 14px; }
+  .jc-header > div:last-child {
+    /* Boutons "Nouveau" + "Enregistrer" en pleine largeur sur mobile */
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .jc-header > div:last-child > .MuiButton-root {
+    flex: 1 1 auto;
+    font-size: 12px !important;
+  }
   .jc-list-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
+  .jc-card { padding: 16px; gap: 14px; }
   .jc-table-wrap {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .jc-table {
     min-width: 500px;
   }
+  /* La barre de recherche du registre prend toute la largeur sous le titre. */
+  .jc-list-header > div:last-child {
+    width: 100%;
+  }
+  .jc-list-header > div:last-child > div {
+    width: 100%;
+  }
+  .jc-list-header input[type="text"] {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .jc-body { padding: 12px; }
+  .jc-card { padding: 12px; }
 }
 
 /* Form Card */

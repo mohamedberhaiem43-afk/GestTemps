@@ -186,7 +186,9 @@ export default function Pointeuse() {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1400, mx: "auto" }}>
+    // Padding responsive : sur mobile on serre pour gagner de la place horizontale
+    // (sinon p:3 = 24px de marge gauche+droite consomment ~10% de la largeur).
+    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3 }, maxWidth: 1400, mx: "auto" }}>
       <BreadcrumbNavigation />
 
       {/* ── Stats Cards ── */}
@@ -268,11 +270,18 @@ export default function Pointeuse() {
 
       {/* ── Configuration Section ── */}
       <Paper elevation={0} sx={{
-        p: 4, borderRadius: 3, mb: 4,
+        p: { xs: 2, sm: 3, md: 4 }, borderRadius: 3, mb: { xs: 2, sm: 4 },
         bgcolor: colors.surfaceLow,
         border: `1px solid ${colors.border}`,
       }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+        <Box sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "center" },
+          justifyContent: "space-between",
+          gap: { xs: 1.5, sm: 0 },
+          mb: 3,
+        }}>
           <Box>
             <Typography sx={{ fontSize: 22, fontWeight: 700, fontFamily: "'Manrope', sans-serif", color: isDark ? "#93c5fd" : "#0040a1" }}>
               {selected ? "Modifier Terminal" : t("navigation.clockingList") || "Configuration Terminal"}
@@ -317,7 +326,7 @@ export default function Pointeuse() {
       }}>
         {/* Table Header */}
         <Box sx={{
-          px: 4, py: 3,
+          px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 },
           display: "flex", justifyContent: "space-between", alignItems: "center",
           borderBottom: `1px solid ${colors.border}`,
         }}>

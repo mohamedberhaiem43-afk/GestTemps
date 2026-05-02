@@ -524,4 +524,23 @@
   .stats-number {
     font-size: 2rem;
   }
+
+  .coffre-fort-container { padding: 0.75rem; }
+  .vault-header { margin-bottom: 1.5rem; gap: 1rem; }
+  .vault-description { font-size: 0.85rem; }
+  .vault-stats-card { padding: 1rem; }
+
+  /* Le bandeau admin "Consulter / déposer" passe en colonne, sinon les deux
+     champs de l'Autocomplete + message débordent. */
+  .vault-table th, .vault-table td { padding: 0.6rem; font-size: 0.75rem; min-width: 100px; }
+  .vault-table th:first-child, .vault-table td:first-child { min-width: 160px; }
+
+  /* Cache "Voir tout l'archive" sur très petit pour libérer la place. */
+  .section-header-flex .MuiButton-root { font-size: 0.7rem !important; padding: 4px 8px !important; }
 }
+
+/* Scroll horizontal dispo dès le départ pour la table de documents — sans cette
+   règle, sur tablette portrait (≤900px) la table dépassait du conteneur sans
+   scrollbar visible. */
+.vault-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.vault-table { min-width: 600px; }

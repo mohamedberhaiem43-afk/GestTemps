@@ -440,21 +440,8 @@ export default function PosteTravailModern() {
             </Box>
           </Paper>
 
-          {/* Stats Card */}
-          <Box className="stats-card-modern">
-            <Box className="stats-card-header">
-              <span className="material-symbols-outlined">analytics</span>
-              <span className="stats-card-label">Aperçu Impact</span>
-            </Box>
-            <Box>
-              <Typography className="stats-value-lg">{postesArray.length * 12}</Typography>
-              <Typography className="stats-subtext">Estimations employés assignés</Typography>
-            </Box>
-            <Box className="progress-bar-bg">
-              <Box className="progress-bar-fill" sx={{ width: '78%' }} />
-            </Box>
-            <Typography className="progress-footer-text">78% de la capacité totale estimée</Typography>
-          </Box>
+          {/* Carte "Aperçu Impact" retirée : les valeurs étaient des estimations
+              fictives (postes × 12, 78% en dur) sans rattachement à de la donnée réelle. */}
         </Box>
       </Box>
 

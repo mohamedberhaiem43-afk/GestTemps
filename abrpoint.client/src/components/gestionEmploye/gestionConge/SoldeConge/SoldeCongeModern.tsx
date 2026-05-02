@@ -175,12 +175,6 @@ function SoldeCongeModernInner() {
 
   const totalTaken = takenStats.paye;
 
-  // Projection: current balance + estimated monthly accrual for remaining months
-  const currentMonth = new Date().getMonth();
-  const remainingMonths = 12 - currentMonth;
-  const monthlyAccrual = totalAcquired > 0 ? totalAcquired / 12 : 2.08;
-  const projection = totalBalance + monthlyAccrual * remainingMonths;
-
   const currentYear = new Date().getFullYear();
   const refPeriod = `01 Juin ${currentYear - 1} - 31 Mai ${currentYear}`;
 
@@ -254,18 +248,10 @@ function SoldeCongeModernInner() {
             </Box>
           )}
         </Box>
-        {/* La projection n'a pas de sens tant qu'aucun employé n'est ciblé côté admin. */}
-        {!adminMustPickFirst && (
-          <Paper className="scm-projection-card">
-            <Box className="scm-projection-icon"><AutoAwesomeIcon /></Box>
-            <Box>
-              <Typography className="scm-projection-label">Projection fin d'année</Typography>
-              <Typography className="scm-projection-value">
-                {projection.toFixed(1)} <span className="scm-projection-unit">jours estimés</span>
-              </Typography>
-            </Box>
-          </Paper>
-        )}
+        {/* KPI "Projection fin d'année" retiré : le calcul reposait sur des estimations
+            (2.08 j/mois fallback, totalAcquired YTD divisé par 12) qui ne reflètent pas
+            la politique RH réelle de chaque société. Pour le rétablir, il faudrait
+            l'entitlement annuel exact + la formule d'acquisition tenant côté backend. */}
       </Box>
 
       {/* Admin sans sélection : invite explicite, on n'affiche pas le reste du dashboard. */}

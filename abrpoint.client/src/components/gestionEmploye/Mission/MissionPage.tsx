@@ -218,8 +218,11 @@ const MissionPage: React.FC = () => {
         </TextField>
       </Box>
 
-      <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '2.5fr 1.8fr 1.4fr 1.4fr 1fr 1fr 90px', gap: 0, bgcolor: 'background.paper' }}>
+      {/* overflow-x scroll au lieu de overflow:hidden — sur mobile (<700px) la grille
+          7 colonnes débordait silencieusement. Le wrapper scrollable préserve la
+          lisibilité en gardant la min-width de la grille. */}
+      <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '2.5fr 1.8fr 1.4fr 1.4fr 1fr 1fr 90px', gap: 0, bgcolor: 'background.paper', minWidth: { xs: 700, md: 'auto' } }}>
           {['Objet', 'Collaborateur', 'Destination', 'Période', 'Budget', 'État', ''].map((h, i) => (
             <Typography key={i} sx={{ p: 1.5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'text.secondary', borderBottom: '1px solid', borderColor: 'divider' }}>
               {h}

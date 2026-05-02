@@ -108,7 +108,6 @@ function IntituleDesAbsencesModernInner() {
   const [mode, setMode] = useState<'save' | 'edit'>('save');
 
   // Table state
-  const [filterTab, setFilterTab] = useState<'all' | 'active' | 'archived'>('all');
   const [searchQ, setSearchQ] = useState('');
   const [page, setPage] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Absence | null>(null);
@@ -211,7 +210,7 @@ function IntituleDesAbsencesModernInner() {
       const matchSearch = !searchQ || a.abslib?.toLowerCase().includes(searchQ.toLowerCase()) || a.abscod?.toLowerCase().includes(searchQ.toLowerCase());
       return matchSearch;
     });
-  }, [absences, searchQ, filterTab]);
+  }, [absences, searchQ]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -315,14 +314,6 @@ function IntituleDesAbsencesModernInner() {
             <Typography className="ia-table-sub">{filtered.length} types d'absences configurés</Typography>
           </Box>
           <Box className="ia-table-actions">
-            <Box className="ia-filter-tabs">
-              {(['all', 'active', 'archived'] as const).map(tab => (
-                <button key={tab} className={`ia-filter-tab ${filterTab === tab ? 'ia-filter-tab-active' : ''}`}
-                  onClick={() => setFilterTab(tab)}>
-                  {tab === 'all' ? 'Toutes' : tab === 'active' ? 'Actives' : 'Archivées'}
-                </button>
-              ))}
-            </Box>
             <TextField size="small" placeholder="Rechercher une nature..." value={searchQ}
               onChange={e => { setSearchQ(e.target.value); setPage(0); }}
               sx={{ width: 220, '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '12px', backgroundColor: '#f8fafc' } }} />
