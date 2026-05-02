@@ -224,9 +224,27 @@ namespace ABRPOINT.Server.Controllers
 
                 return Ok(result);
             }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                // Cas typique : double-tap utilisateur ou requête réseau rejouée → la fiche
+                // Presence/Employe a déjà été modifiée par le premier appel pendant que le
+                // second la traitait. Retourne 409 plutôt que 500 ; le front peut alors
+                // afficher "déjà pointé" sans alarmer l'utilisateur.
+                _logger?.LogWarning(ex, "Concurrence sur mark-presence soccod={Soccod} empcod={Empcod}", soccod, empcod);
+                return Conflict(new { message = "Pointage déjà pris en compte. Réessayez dans quelques secondes si nécessaire." });
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors du marquage de présence", details = ex.Message });
+                // Log structuré côté serveur (avec stack) + remontée du message racine au
+                // client pour que l'utilisateur ait un indice actionnable au lieu d'un
+                // simple "Erreur lors du pointage".
+                _logger?.LogError(ex, "Échec mark-presence soccod={Soccod} empcod={Empcod}", soccod, empcod);
+                var rootMessage = ex.GetBaseException().Message;
+                return StatusCode(500, new
+                {
+                    message = $"Erreur lors du pointage : {rootMessage}",
+                    details = ex.Message
+                });
             }
         }
         

@@ -84,22 +84,28 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                //string formattedEmpcod = await FormatEmpcodCached(soccod, empcod);
-                var emp = await _employeRepository.GetByEmpcod(soccod, empcod);
+                // ⚠ AsNoTracking : on lit la fiche employé en lecture seule pour éviter qu'EF
+                // ne renvoie en base les modifications faites localement (typiquement
+                // emp.Poscod = effectivePoste plus bas) à chaque pointage. Sans ça, chaque
+                // mark-presence tentait de réécrire la ligne Employes ; en cas de modification
+                // concurrente (autre flux RH, soft-delete) ça déclenche un DbUpdateException
+                // intermittent qui remontait au front comme "erreur de pointage".
+                var emp = await _dbContext.Employes
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(e => e.Soccod == soccod && e.Empcod == empcod);
                 if (emp == null)
                     return null;
-                var effectivePoste = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date, emp.Catcod);
-                if (!string.IsNullOrEmpty(effectivePoste))
-                {
-                    emp.Poscod = effectivePoste;
-                }
-                else if (emp.Poscod == null)
-                {
-                    // Fallback to GetEmpPoste if Poscod is null (legacy logic)
-                    emp.Poscod = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date, emp.Catcod);
-                }
 
-                var poste = await _posteRepository.GetPoste(soccod, emp.Poscod);
+                // Code poste effectif : priorité au poste planifié pour la date (LPoste sur
+                // catégorie/date), fallback sur Poscod fixe de la fiche.
+                var effectivePoste = await _posteRepository.GetEmpPoste(emp.Soccod, emp.Empcod, date, emp.Catcod);
+                if (string.IsNullOrEmpty(effectivePoste))
+                    effectivePoste = emp.Poscod;
+
+                Poste? poste = null;
+                if (!string.IsNullOrEmpty(effectivePoste))
+                    poste = await _posteRepository.GetPoste(soccod, effectivePoste);
+
                 var dbpresence = await _dbContext.Presences
                     .FirstOrDefaultAsync(p =>
                         p.Soccod == soccod &&
@@ -109,13 +115,17 @@ namespace ABRPOINT.Server.Repository
 
                 if (dbpresence == null)
                 {
-                    dbpresence = await CreateNewPresence(soccod, empcod, date, emp, poste);
+                    // Snapshot non-tracké de l'employé pour CreateNewPresence — passe la valeur
+                    // de poste effective sans repolluer le change tracker.
+                    var empSnapshot = emp;
+                    empSnapshot.Poscod = effectivePoste;
+                    dbpresence = await CreateNewPresence(soccod, empcod, date, empSnapshot, poste);
                     await _dbContext.Presences.AddAsync(dbpresence);
                 }
                 else
                 {
-                    dbpresence.Codposte = emp.Poscod; // Update existing presence with current effective poste
-                    await UpdateExistingPresence(dbpresence, date,poste);
+                    dbpresence.Codposte = effectivePoste; // Update existing presence with current effective poste
+                    await UpdateExistingPresence(dbpresence, date, poste);
                 }
                 // ✅ VALIDATION DE TOUTES LES DATES
                 ValidatePresenceDates(dbpresence);
