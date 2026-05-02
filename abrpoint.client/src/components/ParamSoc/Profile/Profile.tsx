@@ -22,10 +22,10 @@ import useChangePasswordHook from '../../../hooks/profileHooks/useChangePassword
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import apiInstance from '../../API/apiInstance';
 import { useAuth } from '../../helper/AuthProvider';
+import { resolveAssetUrl } from '../../../helpers/assetUrl';
 import './Profile.css';
 import NotificationPreferences from '../../Profil/NotificationPreferences';
 
-const BASE_URL = import.meta.env.VITE_REACT_APP_API_URL || '';
 const queryClient = new QueryClient();
 
 function getInitials(nom: string | null, prn: string | null) {
@@ -78,7 +78,7 @@ function ProfilePage() {
   useEffect(() => {
     const stored = localStorage.getItem('profileImage');
     if (stored) {
-      setProfileImage(`${BASE_URL}${stored}`);
+      setProfileImage(resolveAssetUrl(stored));
     }
   }, []);
 
@@ -120,10 +120,12 @@ function ProfilePage() {
       const response = await apiInstance.post(`/Utilisateurs/upload-profile?uticod=${uticod}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const filePath = response.data;
+      // Le backend retourne `{ filePath }` (objet) — ne pas passer `response.data` directement à
+      // `localStorage.setItem`, qui sérialiserait `[object Object]` et casserait l'affichage.
+      const filePath = response.data?.filePath;
       if (filePath) {
         localStorage.setItem('profileImage', filePath);
-        setProfileImage(`${BASE_URL}${filePath}`);
+        setProfileImage(resolveAssetUrl(filePath));
         window.dispatchEvent(new Event('imageUpdated'));
         setSnackbar({ open: true, message: 'Photo de profil mise à jour !', severity: 'success' });
       }

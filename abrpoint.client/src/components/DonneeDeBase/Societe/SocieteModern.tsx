@@ -18,6 +18,7 @@ import useGetUsers from '../../../hooks/userHooks/useGetUsers';
 import { Societe as SocieteModel } from '../../../models/Societe';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
+import { resolveAssetUrl } from '../../../helpers/assetUrl';
 import apiInstance from '../../API/apiInstance';
 import './SocieteModern.css';
 
@@ -297,10 +298,10 @@ function SocieteModernContent() {
               <label>Logo de la Société</label>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
                  {localStorage.getItem('societeImage') && (
-                    <img 
-                       src={`${import.meta.env.VITE_REACT_APP_API_URL}${localStorage.getItem('societeImage')}`} 
-                       alt="Logo" 
-                       style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '8px', border: '1px solid #eee' }} 
+                    <img
+                       src={resolveAssetUrl(localStorage.getItem('societeImage'))}
+                       alt="Logo"
+                       style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '8px', border: '1px solid #eee' }}
                     />
                  )}
                  <input

@@ -1,5 +1,6 @@
 import { Box, Typography, Switch, Paper } from "@mui/material";
 import { useContext, useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "react-query";
 import { PosteContext } from "../helper/PostProvider/PostContext";
 import { Poste } from "../../models/Poste";
 import useGetAllPostes from "../../hooks/posteHooks/useGetAllPostes";
@@ -43,6 +44,7 @@ export default function PosteTravailModern() {
   const [bonusPresence, setBonusPresence] = useState(false);
 
   const { soccod, hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const context = useContext(PosteContext);
   if (!context) throw new Error("PosteContext must be used within a PostProvider");
   const { selectedPoste, setSelectedPoste } = context;
@@ -127,12 +129,25 @@ export default function PosteTravailModern() {
 
     if (mode === "update") {
       updatePoste(mergedData, {
-        onSuccess: () => showSnackbar("Poste mis à jour avec succès", "success"),
+        onSuccess: () => {
+          showSnackbar("Poste mis à jour avec succès", "success");
+          queryClient.invalidateQueries(["postes", soccod]);
+          queryClient.invalidateQueries(["all-postes", soccod]);
+        },
         onError: (err: any) => showSnackbar(err?.response?.data?.message || "Erreur lors de la mise à jour", "error")
       });
     } else {
       addPoste(mergedData, {
-        onSuccess: (res: any) => showSnackbar(res.message, res.success ? "success" : "warning"),
+        onSuccess: (res: any) => {
+          showSnackbar(res.message, res.success ? "success" : "warning");
+          // Le poste n'apparaît pas dans la liste tant que la query [postes, soccod] reste cachée :
+          // on invalide pour que useGetPoste refasse la requête et affiche le nouveau poste.
+          queryClient.invalidateQueries(["postes", soccod]);
+          queryClient.invalidateQueries(["all-postes", soccod]);
+          if (res.success && mergedData.codposte) {
+            setSelectedPoste({ codposte: mergedData.codposte, libposte: mergedData.libposte || '' });
+          }
+        },
         onError: (err: any) => showSnackbar(err?.response?.data?.message || "Erreur lors de l'ajout", "error")
       });
     }
@@ -145,6 +160,8 @@ export default function PosteTravailModern() {
       {
         onSuccess: (res) => {
           showSnackbar(res.message, res.success ? "success" : "warning");
+          queryClient.invalidateQueries(["postes", soccod]);
+          queryClient.invalidateQueries(["all-postes", soccod]);
           setModalOpen(false);
           resetForm();
         },
@@ -358,7 +375,7 @@ export default function PosteTravailModern() {
                     <th>Entrée Midi</th>
                     <th>Sortie PM</th>
                     <th>Fin PM</th>
-                    <th>Bonus</th>
+                    <th>Repas</th>
                     <th>Repos</th>
                   </tr>
                 </thead>
@@ -370,17 +387,17 @@ export default function PosteTravailModern() {
                         <td colSpan={9} className="weekend-text">Repos hebdomadaire</td>
                       ) : (
                         <>
-                          <td><input className="modern-input" style={{ width: 65 }} value={row.DebEntree || ''} onChange={e => handleScheduleChange(idx, 'DebEntree', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
-                          <td><input className="modern-input" style={{ width: 65 }} value={row.Entrée || ''} onChange={e => handleScheduleChange(idx, 'Entrée', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
-                          <td><input className="modern-input" style={{ width: 65 }} value={row.FinEntree || ''} onChange={e => handleScheduleChange(idx, 'FinEntree', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
-                          <td><input className="modern-input" style={{ width: 65 }} value={row.Sortie || ''} onChange={e => handleScheduleChange(idx, 'Sortie', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.DebEntree || ''} onChange={e => handleScheduleChange(idx, 'DebEntree', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.Entrée || ''} onChange={e => handleScheduleChange(idx, 'Entrée', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.FinEntree || ''} onChange={e => handleScheduleChange(idx, 'FinEntree', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.Sortie || ''} onChange={e => handleScheduleChange(idx, 'Sortie', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
 
-                          <td><input className="modern-input" style={{ width: 65 }} value={row.DebEntree2 || ''} onChange={e => handleScheduleChange(idx, 'DebEntree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
-                          <td><input className="modern-input" style={{ width: 65 }} value={row.Entree2 || ''} onChange={e => handleScheduleChange(idx, 'Entree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
-                          <td><input className="modern-input" style={{ width: 65 }} value={row.Sortie2 || ''} onChange={e => handleScheduleChange(idx, 'Sortie2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
-                          <td><input className="modern-input" style={{ width: 65 }} value={row.FinEntree2 || ''} onChange={e => handleScheduleChange(idx, 'FinEntree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.DebEntree2 || ''} onChange={e => handleScheduleChange(idx, 'DebEntree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.Entree2 || ''} onChange={e => handleScheduleChange(idx, 'Entree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.Sortie2 || ''} onChange={e => handleScheduleChange(idx, 'Sortie2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.FinEntree2 || ''} onChange={e => handleScheduleChange(idx, 'FinEntree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
 
-                          <td><input className="modern-input" style={{ width: 45 }} value={row.repasBonus || '0'} onChange={e => handleScheduleChange(idx, 'repasBonus', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input className="modern-input" style={{ width: 55 }} type="number" min="0" value={row.repasBonus || '0'} onChange={e => handleScheduleChange(idx, 'repasBonus', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
                         </>
                       )}
                       <td>

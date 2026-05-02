@@ -670,7 +670,7 @@ function makeToolbarActions(
 /* ══════════════════════════════════════════════════════ */
 /*  Main Layout                                           */
 /* ══════════════════════════════════════════════════════ */
-const BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
+import { resolveAssetUrl } from '../../helpers/assetUrl';
 
 function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
@@ -704,16 +704,15 @@ function DashboardLayoutAccount(_props: DemoProps) {
     ? pathname
     : `/dashboard${pathname}`;
 
-  const [societeImage, setSocieteImage] = React.useState<string>(
-    localStorage.getItem('societeImage')
-      ? `${BASE_URL}${localStorage.getItem('societeImage')}`
-      : '/Concorde.png'
-  );
+  const [societeImage, setSocieteImage] = React.useState<string>(() => {
+    const stored = localStorage.getItem('societeImage');
+    return stored ? resolveAssetUrl(stored) : '/Concorde.png';
+  });
 
   React.useEffect(() => {
     const handleStorageChange = () => {
       const societe = localStorage.getItem('societeImage');
-      if (societe) setSocieteImage(`${BASE_URL}${societe}`);
+      setSocieteImage(societe ? resolveAssetUrl(societe) : '/Concorde.png');
     };
     globalThis.window.addEventListener('storage', handleStorageChange);
     globalThis.window.addEventListener('imageUpdated', handleStorageChange);

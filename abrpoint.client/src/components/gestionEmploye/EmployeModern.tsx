@@ -437,39 +437,47 @@ const EmployeModernInner = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, soccod]);
 
+    const refreshEmpHoraires = React.useCallback(async (empcodArg?: string) => {
+        const empcod = empcodArg || formData.empcod;
+        if (!empcod || !soccod) { setEmpHoraires([]); return; }
+        try {
+            const res = await apiInstance.get(`/Employes/get-emp-horaires/${soccod}/${empcod}`);
+            const data = res.data?.[0]; // On prend le premier poste assigné
+            if (data) {
+                const days = [
+                    { label: 'Lundi', prefix: 'lun' },
+                    { label: 'Mardi', prefix: 'mar' },
+                    { label: 'Mercredi', prefix: 'mer' },
+                    { label: 'Jeudi', prefix: 'jeu' },
+                    { label: 'Vendredi', prefix: 'ven' },
+                    { label: 'Samedi', prefix: 'sam' },
+                    { label: 'Dimanche', prefix: 'dim' },
+                ];
+                const rows = days.map(d => ({
+                    poste: data.libposte || data.codposte || 'Poste',
+                    jour: d.label,
+                    entreeM: data[`${d.prefix}hdmat`] || '—',
+                    sortieM: data[`${d.prefix}hfmat`] || '—',
+                    entreeAM: data[`${d.prefix}hdam`] || '—',
+                    sortieAM: data[`${d.prefix}hfam`] || '—',
+                    statut: (data[`${d.prefix}repos`] === '1' || data[`${d.prefix}repos`] === 'O') ? 'repos' : 'valide',
+                }));
+                setEmpHoraires(rows);
+            } else {
+                setEmpHoraires([]);
+            }
+        } catch {
+            setEmpHoraires([]);
+        }
+    }, [formData.empcod, soccod]);
+
     useEffect(() => {
         if (formData.empcod && soccod && mode === 'update') {
-            apiInstance.get(`/Employes/get-emp-horaires/${soccod}/${formData.empcod}`)
-                .then(res => {
-                    const data = res.data?.[0]; // On prend le premier poste assigné
-                    if (data) {
-                        const days = [
-                            { label: 'Lundi', prefix: 'lun' },
-                            { label: 'Mardi', prefix: 'mar' },
-                            { label: 'Mercredi', prefix: 'mer' },
-                            { label: 'Jeudi', prefix: 'jeu' },
-                            { label: 'Vendredi', prefix: 'ven' },
-                            { label: 'Samedi', prefix: 'sam' },
-                            { label: 'Dimanche', prefix: 'dim' },
-                        ];
-                        const rows = days.map(d => ({
-                            poste: data.libposte || data.codposte || 'Poste',
-                            jour: d.label,
-                            entreeM: data[`${d.prefix}hdmat`] || '—',
-                            sortieM: data[`${d.prefix}hfmat`] || '—',
-                            entreeAM: data[`${d.prefix}hdam`] || '—',
-                            sortieAM: data[`${d.prefix}hfam`] || '—',
-                            statut: (data[`${d.prefix}repos`] === '1' || data[`${d.prefix}repos`] === 'O') ? 'repos' : 'valide',
-                        }));
-                        setEmpHoraires(rows);
-                    } else {
-                        setEmpHoraires([]);
-                    }
-                })
-                .catch(() => setEmpHoraires([]));
+            refreshEmpHoraires();
         } else {
             setEmpHoraires([]);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.empcod, soccod, mode]);
 
     const showSnackbar = (msg: string, sev: 'success' | 'error') => {
@@ -547,11 +555,22 @@ const EmployeModernInner = () => {
         const onSuccess = async (res: any) => {
             showSnackbar(res?.message || 'Employé créé avec succès', 'success');
             queryClient.invalidateQueries('employe');
+            queryClient.invalidateQueries(['employee-horaires', soccod, formData.empcod]);
             setIsSaving(false);
             if (mode === 'save') {
                 setMode('update');
                 navigate(`/dashboard/gestion-employe?id=${formData.empcod}&new=false`);
+                return;
             }
+            // En mode update : on recharge l'employé persisté pour que le formulaire reflète
+            // exactement ce qui est en base (catcod, classe horaire, etc.) — sinon une affectation
+            // de classe horaire échouée silencieusement passerait inaperçue, et le planning resterait
+            // sur l'ancien horaire malgré le snackbar de succès.
+            try {
+                const reloaded = await apiInstance.get(`/Employes/get-employe/${soccod}/${formData.empcod}`);
+                if (reloaded.data) setFormData(reloaded.data);
+            } catch { /* on garde formData courant en cas d'erreur réseau */ }
+            await refreshEmpHoraires(formData.empcod);
         };
         const onError = (err: any) => { showSnackbar(err?.response?.data?.message || 'Erreur lors de la sauvegarde', 'error'); setIsSaving(false); };
         mode === 'save' ? addEmploye(payload, { onSuccess, onError }) : updateEmploye(payload, { onSuccess, onError });
