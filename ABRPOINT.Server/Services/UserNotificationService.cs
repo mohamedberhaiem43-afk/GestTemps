@@ -23,45 +23,66 @@ public interface IUserNotificationService
 
 public sealed class UserNotificationService : IUserNotificationService
 {
-    private readonly ApplicationDbContext _db;
-    private readonly IExpoPushService _push;
+    // Les controllers appellent fréquemment `_ = _notify.X(...)` (fire-and-forget) pour ne pas
+    // bloquer la réponse HTTP. Or le DbContext et le push service sont tous deux scoped à la
+    // requête : sans nouveau scope, l'INSERT et le HTTP push s'exécutent contre des objets
+    // disposés et échouent silencieusement → bell vide en prod. On ouvre donc un scope dédié
+    // pour chaque envoi : self-contained, indépendant du cycle de vie de la requête appelante.
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<UserNotificationService> _log;
 
-    public UserNotificationService(ApplicationDbContext db, IExpoPushService push, ILogger<UserNotificationService> log)
+    public UserNotificationService(IServiceScopeFactory scopeFactory, ILogger<UserNotificationService> log)
     {
-        _db = db;
-        _push = push;
+        _scopeFactory = scopeFactory;
         _log = log;
     }
 
     public Task<int> NotifyUserAsync(string uticod, string title, string body, object? data = null, CancellationToken ct = default)
-        => SendToUsersAsync(new[] { uticod }, title, body, data, ct);
+        => RunInScopeAsync((db, push) => SendToUsersAsync(db, push, new[] { uticod }, title, body, data, ct));
 
-    public async Task<int> NotifyManagersAsync(string title, string body, object? data = null, CancellationToken ct = default)
+    public Task<int> NotifyManagersAsync(string title, string body, object? data = null, CancellationToken ct = default)
+        => RunInScopeAsync(async (db, push) =>
+        {
+            var managerCode = PermissionCatalog.Roles.Manager;
+            var uticods = await db.Utilisateurs
+                .AsNoTracking()
+                .Where(u => u.Utiactif == "1" &&
+                            (u.Utirole == managerCode ||
+                             (u.Utirole != null && EF.Functions.Like(u.Utirole, "%manager%"))))
+                .Select(u => u.Uticod!)
+                .ToListAsync(ct);
+            return await SendToUsersAsync(db, push, uticods, title, body, data, ct);
+        });
+
+    public Task<int> NotifyAdminsAsync(string title, string body, object? data = null, CancellationToken ct = default)
+        => RunInScopeAsync(async (db, push) =>
+        {
+            var adminCode = PermissionCatalog.Roles.Administrator;
+            var uticods = await db.Utilisateurs
+                .AsNoTracking()
+                .Where(u => u.Utiactif == "1" && (u.Utiadm == "1" || u.Utirole == adminCode))
+                .Select(u => u.Uticod!)
+                .ToListAsync(ct);
+            return await SendToUsersAsync(db, push, uticods, title, body, data, ct);
+        });
+
+    private async Task<int> RunInScopeAsync(Func<ApplicationDbContext, IExpoPushService, Task<int>> work)
     {
-        var managerCode = PermissionCatalog.Roles.Manager;
-        var uticods = await _db.Utilisateurs
-            .AsNoTracking()
-            .Where(u => u.Utiactif == "1" &&
-                        (u.Utirole == managerCode ||
-                         (u.Utirole != null && EF.Functions.Like(u.Utirole, "%manager%"))))
-            .Select(u => u.Uticod!)
-            .ToListAsync(ct);
-        return await SendToUsersAsync(uticods, title, body, data, ct);
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var push = scope.ServiceProvider.GetRequiredService<IExpoPushService>();
+            return await work(db, push);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Notification dispatch failed (silently swallowed).");
+            return 0;
+        }
     }
 
-    public async Task<int> NotifyAdminsAsync(string title, string body, object? data = null, CancellationToken ct = default)
-    {
-        var adminCode = PermissionCatalog.Roles.Administrator;
-        var uticods = await _db.Utilisateurs
-            .AsNoTracking()
-            .Where(u => u.Utiactif == "1" && (u.Utiadm == "1" || u.Utirole == adminCode))
-            .Select(u => u.Uticod!)
-            .ToListAsync(ct);
-        return await SendToUsersAsync(uticods, title, body, data, ct);
-    }
-
-    private async Task<int> SendToUsersAsync(IEnumerable<string> uticods, string title, string body, object? data, CancellationToken ct)
+    private async Task<int> SendToUsersAsync(ApplicationDbContext _db, IExpoPushService _push, IEnumerable<string> uticods, string title, string body, object? data, CancellationToken ct)
     {
         var allRecipients = uticods.Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
         if (allRecipients.Count == 0) return 0;

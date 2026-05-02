@@ -42,8 +42,11 @@ export default function EmployeeDashboard() {
     solde: kpiData?.soldeConge ?? 0,
     acquired: kpiData?.congeAcquis ?? 0,
     worked: kpiData?.heuresTravailleesSemaine ?? 0,
+    // Objectif hebdo recalculé côté backend selon le poste de l'employé pour la semaine
+    // courante, déduction faite des jours fériés et congés validés.
+    objective: kpiData?.objectifHebdomadaire ?? 0,
     pending: kpiData?.demandesEnAttente ?? 0,
-    workedPercent: kpiData?.pourcentageObjectif ?? 0
+    workedPercent: kpiData?.pourcentageObjectif ?? 0,
   }), [kpiData]);
 
   // Chart data from KPI endpoint's weekly tracking
@@ -62,6 +65,15 @@ export default function EmployeeDashboard() {
     }
     return data;
   }, [kpiData]);
+
+  // Heures cibles par jour ouvré pour la ligne pointillée. Calculé à partir de l'objectif
+  // hebdo réel et du nombre de jours planifiés (jours sans repos/férié/congé). Fallback 7h.
+  const dailyTargetHours = useMemo(() => {
+    if (!kpiData?.objectifHebdomadaire) return 7;
+    const plannedDays = chartData.filter(d => d.hours > 0).length;
+    const days = plannedDays > 0 ? plannedDays : 5;
+    return Math.max(1, Math.round((kpiData.objectifHebdomadaire / days) * 10) / 10);
+  }, [kpiData?.objectifHebdomadaire, chartData]);
 
   // Monthly chart data
   const monthChartData = useMemo(() => {
@@ -133,7 +145,7 @@ export default function EmployeeDashboard() {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{kpis.worked.toFixed(1)}</span>
-            <span className="text-slate-400 font-medium">h / 35h</span>
+            <span className="text-slate-400 font-medium">h / {kpis.objective ? `${kpis.objective.toFixed(1)}h` : '—'}</span>
           </div>
           <p className="mt-4 text-xs text-emerald-600 font-semibold flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">trending_up</span>
@@ -212,9 +224,11 @@ export default function EmployeeDashboard() {
               </BarChart>
             </ResponsiveContainer>
             
-            {/* Goal Line Overlay */}
+            {/* Goal Line Overlay — libellé tiré de l'objectif réel du poste */}
             <div className="absolute top-[35%] left-0 w-full border-t border-dashed border-slate-200 pointer-events-none">
-              <span className="absolute right-0 -top-5 text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-white px-2">Objectif 7h/jour</span>
+              <span className="absolute right-0 -top-5 text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-white px-2">
+                Objectif {dailyTargetHours}h/jour
+              </span>
             </div>
           </div>
         </section>

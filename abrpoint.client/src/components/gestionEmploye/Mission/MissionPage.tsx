@@ -12,6 +12,7 @@ import { useQuery } from 'react-query';
 import EmployeService from '../../../services/EmployeService/EmployeService';
 import {
   useMissionsBySoc,
+  useMissionsByEmp,
   useFormationMissionNatures,
   useCreateMission,
   useUpdateMission,
@@ -28,9 +29,9 @@ const STATE_COLORS: Record<string, string> = {
   Cancelled: '#ef4444',
 };
 
-const emptyForm = (soccod: string): MissionUpsertRequest => ({
+const emptyForm = (soccod: string, defaultEmpcod = ''): MissionUpsertRequest => ({
   soccod,
-  empcod: '',
+  empcod: defaultEmpcod,
   misobj: '',
   misdest: '',
   misdatedeb: dayjs().format('YYYY-MM-DD'),
@@ -42,15 +43,22 @@ const emptyForm = (soccod: string): MissionUpsertRequest => ({
 });
 
 const MissionPage: React.FC = () => {
-  const { soccod, uticod } = useAuth();
+  const { soccod, uticod, isEmp, isAdmin, isManager } = useAuth();
   const sc = soccod || '';
+  // Un collaborateur (sans rôle manager/admin) ne peut créer une mission que pour lui-même.
+  // Le selector "Collaborateur" est masqué et empcod est pré-affecté à son propre uticod.
+  const selfOnly = isEmp && !isAdmin && !isManager;
+  const defaultEmpcod = selfOnly ? (uticod ?? '') : '';
 
-  const missionsQ = useMissionsBySoc(sc);
+  // Admin/Manager voient toutes les missions de la société ; un employé ne voit que les siennes.
+  const missionsBySocQ = useMissionsBySoc(selfOnly ? null : sc);
+  const missionsByEmpQ = useMissionsByEmp(selfOnly ? sc : null, selfOnly ? (uticod ?? null) : null);
+  const missionsQ = selfOnly ? missionsByEmpQ : missionsBySocQ;
   const naturesQ = useFormationMissionNatures(sc);
   const employesQ = useQuery({
     queryKey: ['employees', sc, uticod],
     queryFn: () => EmployeService.getAllWithParams(`${sc}/${uticod}`),
-    enabled: !!sc && !!uticod,
+    enabled: !!sc && !!uticod && !selfOnly,
   });
 
   const createMut = useCreateMission();
@@ -61,7 +69,7 @@ const MissionPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('Tous');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<MissionUpsertRequest>(emptyForm(sc));
+  const [form, setForm] = useState<MissionUpsertRequest>(emptyForm(sc, defaultEmpcod));
   const [confirmDelete, setConfirmDelete] = useState<Mission | null>(null);
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as 'success' | 'error' });
   const showSnack = (msg: string, sev: 'success' | 'error' = 'success') =>
@@ -93,7 +101,7 @@ const MissionPage: React.FC = () => {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(emptyForm(sc));
+    setForm(emptyForm(sc, defaultEmpcod));
     setDialogOpen(true);
   };
 
@@ -271,18 +279,29 @@ const MissionPage: React.FC = () => {
         <DialogTitle sx={{ fontWeight: 700 }}>{editingId == null ? 'Nouvelle mission' : 'Modifier la mission'}</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, pt: 1 }}>
-            <TextField
-              label="Collaborateur"
-              size="small"
-              select
-              required
-              value={form.empcod}
-              onChange={e => setForm({ ...form, empcod: e.target.value })}
-            >
-              {employesList.map((e: any) => (
-                <MenuItem key={e.empcod} value={e.empcod}>{e.empcod} — {e.emplib}</MenuItem>
-              ))}
-            </TextField>
+            {selfOnly ? (
+              // Employé : auto-affecté à lui-même, champ en lecture seule pour clarifier l'intention.
+              <TextField
+                label="Collaborateur"
+                size="small"
+                value={uticod ?? ''}
+                InputProps={{ readOnly: true }}
+                helperText="Mission créée pour vous-même."
+              />
+            ) : (
+              <TextField
+                label="Collaborateur"
+                size="small"
+                select
+                required
+                value={form.empcod}
+                onChange={e => setForm({ ...form, empcod: e.target.value })}
+              >
+                {employesList.map((e: any) => (
+                  <MenuItem key={e.empcod} value={e.empcod}>{e.empcod} — {e.emplib}</MenuItem>
+                ))}
+              </TextField>
+            )}
             <TextField
               label="Nature d'absence (Formation et mission)"
               size="small"
