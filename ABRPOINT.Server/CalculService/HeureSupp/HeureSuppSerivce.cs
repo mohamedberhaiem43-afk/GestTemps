@@ -33,6 +33,15 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 if (cathsup == "0")
                     return 0;
 
+                // 🛌 JOUR DE REPOS — toute heure pointée est par définition supplémentaire,
+                // puisque l'employé n'avait aucun poste prévu. On retombe sur le total
+                // travaillé (Tothre déjà calculé en amont) plutôt que de dérouler des
+                // comparaisons morning/evening qui n'ont aucun sens un dimanche/jour férié.
+                if (presence.Prerepos == "1")
+                {
+                    return GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
+                }
+
                 int nbHeurSupp = 0;
 
                 var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) =
@@ -72,19 +81,24 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 }
 
                 // 2️⃣ SORTIE MATIN TARDIVE — ne s'applique QUE quand il y a une session soir.
-                // Sans session soir, c'est la section 4️⃣ qui mesure le débordement final
-                // (ne pas dupliquer ici sinon on compte 2× le supplément après morningEnd).
+                // ⚠ On PLAFONNE à eveningStart pour ne pas recouvrir l'après-midi/fin de journée
+                // que la section 4️⃣ recompte ensuite. Ancien bug : quand actualMorningEnd dépassait
+                // eveningEnd (sortie tardive après tout l'après-midi), on ajoutait toute la plage
+                // morningEnd → actualMorningEnd, puis la section 4 ajoutait encore eveningEnd →
+                // actualMorningEnd. Sur un pointage 18:23 → 20:42 avec poste 08-12/14-17, ça
+                // donnait 8h42 + 3h42 = 12h24 d'H.Sup pour 2h19 réellement travaillées.
                 if (hasEveningSession && actualMorningEnd > morningEnd)
                 {
                     int morningEndMinutes = (int)morningEnd.TotalMinutes;
                     int actualMorningEndMinutes = (int)actualMorningEnd.TotalMinutes;
                     int eveningStartMinutes = (int)eveningStart.TotalMinutes;
 
-                    // Heures supp pendant la pause déjeuner : entre morningEnd et eveningStart
-                    // (ou jusqu'à actualMorningEnd si l'employé est sorti dans la pause).
-                    nbHeurSupp += (int)(eveningStartMinutes < actualMorningEndMinutes
-                        ? actualMorningEndMinutes - morningEndMinutes
-                        : eveningStartMinutes - morningEndMinutes);
+                    // Débordement strictement dans la pause déjeuner : entre morningEnd et
+                    // min(actualMorningEnd, eveningStart). Au-delà d'eveningStart, c'est du
+                    // temps de poste de l'après-midi (déjà compté dans Tothre, pas en H.Sup).
+                    int upperBound = Math.Min(actualMorningEndMinutes, eveningStartMinutes);
+                    if (upperBound > morningEndMinutes)
+                        nbHeurSupp += upperBound - morningEndMinutes;
                 }
 
                 // 3️⃣ SESSION APRÈS-MIDI/SOIR
@@ -168,6 +182,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 if (cathsup == "0")
                     return 0;
 
+                // 🛌 JOUR DE REPOS — cf. CalculateHeureSuppOptimise plus haut.
+                if (presence.Prerepos == "1")
+                {
+                    return GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
+                }
+
                 int nbHeurSupp = 0;
 
                 var (morningStartTime, morningEndTime, eveningStartTime, eveningEndTime) =
@@ -206,17 +226,17 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     // ne génère pas d'heures supp (la diff est traitée par CalculateHeureRetard).
                 }
 
-                // 2️⃣ SORTIE MATIN TARDIVE — ne s'applique QUE quand il y a une session soir.
-                // Sans session soir, c'est la section 4️⃣ qui mesure le débordement final.
+                // 2️⃣ SORTIE MATIN TARDIVE — plafonnée à eveningStart pour ne pas recouvrir
+                // l'après-midi (recomptée par la section 4). Cf. CalculateHeureSuppOptimise.
                 if (hasEveningSession && actualMorningEnd > morningEnd)
                 {
                     int morningEndMinutes = (int)morningEnd.TotalMinutes;
                     int actualMorningEndMinutes = (int)actualMorningEnd.TotalMinutes;
                     int eveningStartMinutes = (int)eveningStart.TotalMinutes;
 
-                    nbHeurSupp += (int)(eveningStartMinutes < actualMorningEndMinutes
-                        ? actualMorningEndMinutes - morningEndMinutes
-                        : eveningStartMinutes - morningEndMinutes);
+                    int upperBound = Math.Min(actualMorningEndMinutes, eveningStartMinutes);
+                    if (upperBound > morningEndMinutes)
+                        nbHeurSupp += upperBound - morningEndMinutes;
                 }
 
                 // 3️⃣ SESSION APRÈS-MIDI/SOIR

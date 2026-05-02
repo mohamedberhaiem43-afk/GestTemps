@@ -187,14 +187,26 @@ function PeriodFormDialog({
     }
   }, [editData, open, inheritCatcod, inheritCatlib, frequence]);
 
+  // ⚠ TZ : `new Date("YYYY-MM-DD")` est interprété en UTC minuit. À la sérialisation JSON
+  // (toISOString()), ça reste UTC. Le backend désérialise en heure locale ; sur n'importe
+  // quel fuseau ouest de UTC (ou simplement UTC), la date bascule au jour précédent.
+  // On crée donc un Date local-midi (12h) du jour saisi : la portion DATE est la même
+  // pour tout fuseau positif comme négatif (>±12h hors zones tropicales extrêmes).
+  const toLocalNoon = (s: string): Date | null => {
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d, 12, 0, 0);
+  };
+
   const handleSave = () => {
     const payload: Partial<Lcategorie> = {
       catcod,
       catlib,
       cathsup,
       catfixe: '0',
-      catdu: catdu ? new Date(catdu) : null,
-      catau: catau ? new Date(catau) : null,
+      catdu: toLocalNoon(catdu),
+      catau: toLocalNoon(catau),
       ordre: (editData as any)?.ordre,
     };
 

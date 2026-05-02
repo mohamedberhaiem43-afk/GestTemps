@@ -38,7 +38,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
         const [utimail, setUtimail] = useState("");
         const [utimps, setMotPasse] = useState("");
         const [utiadm, setIsAdmin] = useState(false);
-        // Rôle par défaut "Employee" (= Utilisateur Standard côté UI). Aligné avec
+        // Rôle par défaut "Employee" (libellé UI : "Employé"). Aligné avec
         // ROLE_OPTIONS et avec le défaut backend (PermissionCatalog.Roles.Employee).
         const [utirole, setRole] = useState("Employee");
         const [societe, setSociete] = useState("");

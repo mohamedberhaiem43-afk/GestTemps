@@ -49,6 +49,7 @@ import useGetSiteLibs from '../../hooks/siteHooks/useGetSiteLibs';
 import useGetPaysLibs from '../../hooks/paysHooks/useGetPaysLibs';
 import DocumentScanEmploye from './DocumentScanEmploye/DocumentScanEmploye';
 import RolesService from '../../services/RolesService/RolesService';
+import { ROLE_LABELS } from '../../models/Utilisateur';
 import { SxProps, Theme } from '@mui/material';
 import { Role } from '../../models/Role';
 import './EmployeModern.css';
@@ -130,7 +131,10 @@ const getDefaultEmployeData = (soccod: string, sitcod: string): Employe => ({
     empresp: '', empsnet: '', empcontrat: '', empsitfam: '', empech: '',
     empcat: '', empscat: '', empnuit: '', empminhjour: 0, emppanier: '',
     seccod: '', poscod: '', parmois: '',
-    utirole: 'Utilisateur Standard',
+    // Rôle système "Employee" par défaut (libellé UI : "Employé"). On stocke le nom
+    // officiel pour que la jointure RolePermissions retrouve les droits associés ;
+    // un libellé libre comme "Utilisateur Standard" n'a aucun mapping de permissions.
+    utirole: 'Employee',
 });
 
 // ── SelectWithAdd: dropdown + quick-add popup ─────────────────────────────────
@@ -562,7 +566,6 @@ const EmployeModernInner = () => {
             empsort: formatDate(formData.empsort), empdcin: formatDate(formData.empdcin) || new Date(),
             empoptim: formatDate(formData.empoptim),
         };
-        const sentCatcod = payload.catcod ?? '';
         const onSuccess = async (res: any) => {
             queryClient.invalidateQueries('employe');
             queryClient.invalidateQueries(['employee-horaires', soccod, formData.empcod]);
@@ -573,31 +576,13 @@ const EmployeModernInner = () => {
                 navigate(`/dashboard/gestion-employe?id=${formData.empcod}&new=false`);
                 return;
             }
-            // En mode update : on recharge l'employé persisté pour que le formulaire reflète
-            // exactement ce qui est en base (catcod, classe horaire, etc.) — sinon une affectation
-            // de classe horaire échouée silencieusement passerait inaperçue, et le planning resterait
-            // sur l'ancien horaire malgré le snackbar de succès.
-            let persistedCatcod: string | null | undefined;
-            try {
-                const reloaded = await apiInstance.get(`/Employes/get-employe/${soccod}/${formData.empcod}`);
-                if (reloaded.data) {
-                    setFormData(reloaded.data);
-                    persistedCatcod = reloaded.data?.catcod;
-                }
-            } catch { /* on garde formData courant en cas d'erreur réseau */ }
+            // Mode update : le backend lève désormais une 404 explicite (KeyNotFoundException
+            // côté UpdateEmployeAsync) si la ligne ciblée n'existe pas — donc un succès ici =
+            // persistance garantie. On ne refait plus de reload de vérification : ça produisait
+            // un 404 parasite dans la console pour rien (le GET a son propre filtre soft-delete
+            // qui peut diverger du UPDATE) et un faux snackbar d'erreur.
             await refreshEmpHoraires(formData.empcod);
-
-            // Vérification explicite : si on voulait changer la classe horaire mais qu'elle n'est
-            // pas réellement persistée, on l'annonce clairement plutôt qu'afficher un faux succès.
-            const persisted = (persistedCatcod ?? '') as string;
-            if (sentCatcod && persisted !== sentCatcod) {
-                showSnackbar(
-                    `Modifications enregistrées, mais la classe horaire "${sentCatcod}" n'a pas été persistée (valeur en base : "${persisted || '—'}"). Vérifiez vos droits ou recommencez.`,
-                    'error'
-                );
-            } else {
-                showSnackbar(res?.message || 'Modifications enregistrées', 'success');
-            }
+            showSnackbar(res?.message || 'Modifications enregistrées', 'success');
         };
         const onError = (err: any) => { showSnackbar(err?.response?.data?.message || 'Erreur lors de la sauvegarde', 'error'); setIsSaving(false); };
         mode === 'save' ? addEmploye(payload, { onSuccess, onError }) : updateEmploye(payload, { onSuccess, onError });
@@ -1131,13 +1116,18 @@ const EmployeModernInner = () => {
                                             <Box>
                                                 <Typography sx={labelStyle}>Rôle Utilisateur</Typography>
                                                 <FormControl fullWidth size="small">
-                                                    <Select value={formData.utirole || 'Utilisateur Standard'} onChange={handleSelect('utirole')} sx={selectStyle}>
+                                                    <Select value={formData.utirole || 'Employee'} onChange={handleSelect('utirole')} sx={selectStyle}>
                                                         {roles.length > 0 ? (
                                                             roles.map(r => (
-                                                                <MenuItem key={r.roleId} value={r.roleName}>{r.roleName}</MenuItem>
+                                                                <MenuItem key={r.roleId} value={r.roleName}>
+                                                                    {/* Affiche le libellé FR mappé (Employee → Employé,
+                                                                        Administrator → Administrateur…), fallback sur le
+                                                                        roleName brut pour les rôles custom créés en base. */}
+                                                                    {ROLE_LABELS[r.roleName] ?? r.roleName}
+                                                                </MenuItem>
                                                             ))
                                                         ) : (
-                                                            <MenuItem value="Utilisateur Standard">Utilisateur Standard</MenuItem>
+                                                            <MenuItem value="Employee">Employé</MenuItem>
                                                         )}
                                                     </Select>
                                                 </FormControl>

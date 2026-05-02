@@ -245,7 +245,14 @@ useEffect(() => {
                 type='date'
                 label='Du'
                 value={catdu ? formatDate(catdu) : ''}
-                onChange={(e) => setCatdu(e.target.value ? new Date(e.target.value) : null)}
+                onChange={(e) => {
+                  // TZ-safe : voir handleSave dans ClasseHoraireModern.tsx. `new Date("YYYY-MM-DD")`
+                  // = UTC minuit ; on construit un local-midi à la place pour ne pas perdre 1 jour.
+                  const v = e.target.value;
+                  if (!v) { setCatdu(null); return; }
+                  const [y, m, d] = v.split('-').map(Number);
+                  setCatdu(new Date(y, m - 1, d, 12, 0, 0));
+                }}
               />
             </Grid>
             <Grid item xs={2.5}>
@@ -253,7 +260,12 @@ useEffect(() => {
                 type='date'
                 label='Au'
                 value={catau ? formatDate(catau) : ''}
-                onChange={(e) => setCatau(e.target.value ? new Date(e.target.value) : null)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) { setCatau(null); return; }
+                  const [y, m, d] = v.split('-').map(Number);
+                  setCatau(new Date(y, m - 1, d, 12, 0, 0));
+                }}
               />
             </Grid>
             <Grid item xs={3}>

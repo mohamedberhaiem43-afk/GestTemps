@@ -1114,10 +1114,19 @@ namespace ABRPOINT.Server.Repository
                 if(poste == null)
                 {
                     var codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat,presence.Catcod);
-                    presence.Codposte = codpost;
-                    poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+                    if (!string.IsNullOrEmpty(codpost))
+                    {
+                        presence.Codposte = codpost;
+                        poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+                    }
                 }
-                presence.Codposte = poste.Codposte;
+                // ⚠ poste peut rester null si aucun poste n'est planifié pour la date/catégorie.
+                // Dans ce cas on garde le presence.Codposte courant (peut venir de la fiche employé)
+                // au lieu de NRE sur poste.Codposte. Tothre sera 00:00 et l'employé est traité
+                // comme "hors planning" — c'est cohérent avec la branche `if (poste == null) return 0`
+                // qu'on trouve dans HeureSuppService et HeureRetardService.
+                if (poste != null)
+                    presence.Codposte = poste.Codposte;
                 float? totalPosteJourHeures = await _posteRepository.GetJourHeures(presence.Soccod, presence.Dmdate, presence.Codposte);
                 var (nbHeurSupp, nbRetard) = await CalculateDayWorkMetrics(presence);
 
@@ -1180,7 +1189,11 @@ namespace ABRPOINT.Server.Repository
                     // Étape 4 : Contrôle des plafonds
                     EtatPresenceParametreDto param = await _parametreRepository.GetEtatPresenceParametresAsync(presence.Soccod);
 
-                if (!string.IsNullOrEmpty(presence.Tothre) &&
+                // ⚠ param peut être null si la société n'a aucun paramétrage EtatPresence
+                // (cas typique : tenant fraîchement provisionné, ou société importée sans seed).
+                // On saute alors le contrôle de plafond — pas de NRE sur param.Nbhtr3M.
+                if (param != null &&
+                    !string.IsNullOrEmpty(presence.Tothre) &&
                     TimeSpan.TryParse(presence.Tothre, out TimeSpan tothreTime) &&
                     param.Nbhtr3M.HasValue)
                 {
@@ -1215,10 +1228,15 @@ namespace ABRPOINT.Server.Repository
                 if (poste == null)
                 {
                     var codpost = await _posteRepository.GetEmpPoste(presence.Soccod, presence.Empcod, presence.Predat,presence.Catcod);
-                    presence.Codposte = codpost;
-                    poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+                    if (!string.IsNullOrEmpty(codpost))
+                    {
+                        presence.Codposte = codpost;
+                        poste = await _posteRepository.GetPoste(presence.Soccod, codpost);
+                    }
                 }
-                presence.Codposte = poste.Codposte;
+                // Cf. CalcHreTrav : on tolère poste == null (employé hors planning).
+                if (poste != null)
+                    presence.Codposte = poste.Codposte;
                 float? totalPosteJourHeures = await _posteRepository.GetJourHeures(presence.Soccod, presence.Dmdate, presence.Codposte);
                 var (nbHeurSupp, nbRetard) = await CalculateDayWorkMetrics(presence);
 
@@ -1281,7 +1299,9 @@ namespace ABRPOINT.Server.Repository
                 // Étape 4 : Contrôle des plafonds
                 EtatPresenceParametreDto param = await _parametreRepository.GetEtatPresenceParametresAsync(presence.Soccod);
 
-                if (!string.IsNullOrEmpty(presence.Tothre) &&
+                // Cf. CalcHreTrav : tolère param == null (tenant sans paramétrage EtatPresence).
+                if (param != null &&
+                    !string.IsNullOrEmpty(presence.Tothre) &&
                     TimeSpan.TryParse(presence.Tothre, out TimeSpan tothreTime) &&
                     param.Nbhtr3M.HasValue)
                 {

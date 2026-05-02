@@ -48,13 +48,16 @@ export interface TwoFAResponse {
 export const ROLE_LABELS: Record<string, string> = {
   Administrator: "Administrateur",
   Manager: "Manager",
-  Employee: "Utilisateur Standard",
+  Employee: "Employé",
   // Aliases legacy
   admin: "Administrateur",
   rh: "Responsable RH",
   superviseur: "Superviseur Pointage",
   manager: "Manager",
-  standard: "Utilisateur Standard",
+  standard: "Employé",
+  // Ancien libellé "Utilisateur Standard" stocké en base sur des fiches existantes :
+  // on continue de l'afficher comme "Employé" dans l'UI sans toucher à la donnée.
+  "Utilisateur Standard": "Employé",
 };
 
 // Options proposées dans les dropdowns de création/édition d'utilisateur :
@@ -62,5 +65,5 @@ export const ROLE_LABELS: Record<string, string> = {
 export const ROLE_OPTIONS = [
   { value: "Administrator", label: "Administrateur" },
   { value: "Manager", label: "Manager" },
-  { value: "Employee", label: "Utilisateur Standard" },
+  { value: "Employee", label: "Employé" },
 ];
