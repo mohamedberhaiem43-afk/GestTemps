@@ -38,7 +38,9 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
         const [utimail, setUtimail] = useState("");
         const [utimps, setMotPasse] = useState("");
         const [utiadm, setIsAdmin] = useState(false);
-        const [utirole, setRole] = useState("standard");
+        // Rôle par défaut "Employee" (= Utilisateur Standard côté UI). Aligné avec
+        // ROLE_OPTIONS et avec le défaut backend (PermissionCatalog.Roles.Employee).
+        const [utirole, setRole] = useState("Employee");
         const [societe, setSociete] = useState("");
         const [site, setSite] = useState("");
         const { data: socLibs = [] } = useGetSocLibs();
@@ -74,7 +76,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                 setNom(result.utinom || "");
                 setPrenom(result.utiprn || "");
                 setIsAdmin(result.utiadm === "1");
-                setRole(result.utirole || (result.utiadm === "1" ? "admin" : "standard"));
+                setRole(result.utirole || (result.utiadm === "1" ? "Administrator" : "Employee"));
                 setSociete(result.soccod || "");
                 setSite(result.sitcod || "");
                 return Array.isArray(result) ? result : [result];
@@ -96,16 +98,16 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
             setSnackbarOpen(false);
         };
 
-        // Sync role with admin checkbox
+        // Sync role with admin checkbox (utilise les noms officiels PermissionCatalog.Roles)
         useEffect(() => {
-            if (utiadm && utirole !== 'admin') {
-                setRole('admin');
+            if (utiadm && utirole !== 'Administrator') {
+                setRole('Administrator');
             }
         }, [utiadm]);
 
         const handleRoleChange = (newRole: string) => {
             setRole(newRole);
-            if (newRole === 'admin') {
+            if (newRole === 'Administrator') {
                 setIsAdmin(true);
             } else if (utiadm) {
                 setIsAdmin(false);

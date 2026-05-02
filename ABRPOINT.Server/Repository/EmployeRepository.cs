@@ -1378,10 +1378,23 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                // Recherche stricte (Soccod, Sitcod, Empcod). Si le frontend a envoyé un Sitcod
+                // qui ne correspond pas à la fiche réelle (cas typique : manager dont auth.sitcod
+                // ≠ sitcod de l'employé édité, ou fiche créée avec Sitcod vide), on retombe sur
+                // (Soccod, Empcod) — Empcod identifie l'employé de manière unique en pratique.
+                // Sans ce fallback l'UPDATE ne matchait aucune ligne et toutes les modifs (dont
+                // catcod, caltype) étaient silencieusement perdues.
                 var existing = await _dbContext.Employes
                     .FirstOrDefaultAsync(e => e.Empcod == employe.Empcod
                         && e.Soccod == employe.Soccod
                         && e.Sitcod == employe.Sitcod);
+
+                if (existing == null)
+                {
+                    existing = await _dbContext.Employes
+                        .FirstOrDefaultAsync(e => e.Empcod == employe.Empcod
+                            && e.Soccod == employe.Soccod);
+                }
 
                 if (existing != null)
                 {

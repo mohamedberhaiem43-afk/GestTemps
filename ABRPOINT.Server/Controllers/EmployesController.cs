@@ -495,7 +495,12 @@ namespace ABRPOINT.Server.Controllers
                             Utinom = employe.Emplib,
                             Utimps = plainCin,
                             Utimail = employe.Empemail,
-                            Utirole = employe.Utirole ?? "Utilisateur Standard"
+                            // Si aucun rôle n'a été choisi par l'utilisateur RH lors de la création
+                            // du collaborateur, on retombe sur le rôle système "Employee" (= rôle
+                            // employé : consultation de son propre dossier uniquement).
+                            Utirole = string.IsNullOrWhiteSpace(employe.Utirole)
+                                ? Authorization.PermissionCatalog.Roles.Employee
+                                : employe.Utirole
                         };
                         Socuser socuser = new Socuser()
                         {
@@ -604,7 +609,10 @@ namespace ABRPOINT.Server.Controllers
                             Utinom = emp.Emplib,
                             Utimps = emp._plainCin ?? emp.Empcin,
                             Utimail = emp.Empemail,
-                            Utirole = emp.Utirole ?? "Utilisateur Standard"
+                            // Rôle système "Employee" par défaut (cf. POST single ci-dessus).
+                            Utirole = string.IsNullOrWhiteSpace(emp.Utirole)
+                                ? Authorization.PermissionCatalog.Roles.Employee
+                                : emp.Utirole
                         };
                         Socuser socuser = new Socuser()
                         {

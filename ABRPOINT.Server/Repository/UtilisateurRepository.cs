@@ -126,10 +126,13 @@ namespace ABRPOINT.Server.Repository
                 {
                     utilisateur.Utimps = BCrypt.Net.BCrypt.HashPassword(utilisateur.Utimps);
 
-                    // Set default role if not provided
+                    // Rôle par défaut si non fourni : "Employee" (rôle système employé).
+                    // Important : utiliser le nom officiel du rôle (PermissionCatalog.Roles.Employee)
+                    // afin que la jointure RolePermissions retrouve les droits associés ; un rôle
+                    // libre comme "Utilisateur Standard" n'a aucun mapping et donne 0 permission.
                     if (string.IsNullOrEmpty(utilisateur.Utirole))
                     {
-                        utilisateur.Utirole = "Utilisateur Standard";
+                        utilisateur.Utirole = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Employee;
                     }
 
                     // ⚠ IgnoreQueryFilters() : si l'employé portant ce code a été soft-deleted,
@@ -290,17 +293,27 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                // 1. Update base properties (always)
-                await _dbContext.Utilisateurs
-                    .Where(u => u.Uticod == utilisateur.Utilisateur.Uticod)
-                    .ExecuteUpdateAsync(setters => setters
-                        .SetProperty(u => u.Utinom, utilisateur.Utilisateur.Utinom)
-                        .SetProperty(u => u.Utiprn, utilisateur.Utilisateur.Utiprn)
-                        .SetProperty(u => u.Utimail, utilisateur.Utilisateur.Utimail)
-                        .SetProperty(u => u.Utiactif, utilisateur.Utilisateur.Utiactif)
-                        .SetProperty(u => u.Utirole, utilisateur.Utilisateur.Utirole)
-                        .SetProperty(u => u.Utiadm, utilisateur.Utilisateur.Utiadm)
-                    );
+                // 1. Mise à jour des propriétés de base.
+                // ⚠ Le frontend (SaisieUtilisateur.tsx, profile, etc.) n'envoie PAS toujours
+                // tous les champs (Utiactif/Utirole/Utiadm sont souvent omis). Avec un
+                // ExecuteUpdate qui SetProperty(... null), le compte se retrouvait désactivé
+                // (Utiactif = NULL) après la moindre modification de mail/nom. On bascule donc
+                // sur un Load → patch sélectif → SaveChanges, en ne touchant un champ que si
+                // une valeur a été explicitement fournie.
+                var existing = await _dbContext.Utilisateurs
+                    .FirstOrDefaultAsync(u => u.Uticod == utilisateur.Utilisateur.Uticod);
+                if (existing == null) return false;
+
+                if (utilisateur.Utilisateur.Utinom  != null) existing.Utinom  = utilisateur.Utilisateur.Utinom;
+                if (utilisateur.Utilisateur.Utiprn  != null) existing.Utiprn  = utilisateur.Utilisateur.Utiprn;
+                if (utilisateur.Utilisateur.Utimail != null) existing.Utimail = utilisateur.Utilisateur.Utimail;
+                if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiactif))
+                    existing.Utiactif = utilisateur.Utilisateur.Utiactif;
+                if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utirole))
+                    existing.Utirole = utilisateur.Utilisateur.Utirole;
+                if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiadm))
+                    existing.Utiadm = utilisateur.Utilisateur.Utiadm;
+                await _dbContext.SaveChangesAsync();
 
                 // 2. Update password separately only if provided
                 if (!string.IsNullOrEmpty(utilisateur.Utilisateur.Utimps))
@@ -319,10 +332,10 @@ namespace ABRPOINT.Server.Repository
                 {
                     foreach (var mod in utilisateur.Moduser)
                     {
-                        var existing = await _dbContext.Modusers
+                        var existingMod = await _dbContext.Modusers
                             .FirstOrDefaultAsync(m => m.Uticod == utilisateur.Utilisateur.Uticod
                                                    && m.Modcod == mod.Modcod);
-                        if (existing != null)
+                        if (existingMod != null)
                         {
                             await _dbContext.Modusers
                                 .Where(m => m.Uticod == utilisateur.Utilisateur.Uticod
