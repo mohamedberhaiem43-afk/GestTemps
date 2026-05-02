@@ -684,6 +684,12 @@ namespace ABRPOINT.Server.Controllers
                 addEmp.Empsnet = _encryptionService.Decrypt(addEmp.Empsnet);
                 return Ok(new { message = "employé modifié avec succès", addEmp });
             }
+            catch (KeyNotFoundException ex)
+            {
+                // La ligne (Soccod, Sitcod, Empcod) n'existe pas : 404 explicite plutôt que
+                // 500, pour que le frontend affiche un message clair au lieu d'un faux succès.
+                return NotFound(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Erreur lors de la modification de l'employé", details = ex.Message });

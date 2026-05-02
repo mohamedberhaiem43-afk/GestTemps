@@ -549,8 +549,15 @@ const EmployeModernInner = () => {
         }
 
         setIsSaving(true);
+        // sitcod : on prend celui chargé sur la fiche (formData.sitcod), pas celui de l'utilisateur
+        // connecté. Sinon un manager dont auth.sitcod ≠ sitcod de l'employé édité provoque un
+        // UPDATE sur (Soccod, Sitcod, Empcod) qui ne matche aucune ligne, et toutes les modifs
+        // (dont catcod) sont silencieusement perdues alors que le GET (filtré sur Soccod+Empcod)
+        // continue de renvoyer la ligne intacte.
         const payload: Employe = {
-            ...formData, soccod: soccod || '', sitcod: sitcod || '',
+            ...formData,
+            soccod: soccod || '',
+            sitcod: formData.sitcod || sitcod || '',
             empemb: formatDate(formData.empemb), empretraite: formatDate(formData.empretraite),
             empsort: formatDate(formData.empsort), empdcin: formatDate(formData.empdcin) || new Date(),
             empoptim: formatDate(formData.empoptim),
