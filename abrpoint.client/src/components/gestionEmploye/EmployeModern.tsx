@@ -437,12 +437,17 @@ const EmployeModernInner = () => {
     }, [soccod, sitcod, formData.emplib]);
 
     // Pré-remplissage à l'ouverture en mode création (si le matricule est encore vide).
+    // ⚠ Ne PAS générer si l'URL contient un `id` : on est en mode édition mais `mode`
+    // est encore 'save' tant que le GET get-employe n'est pas résolu. Sans cette garde,
+    // l'auto-génération race avec le chargement et peut écraser le matricule existant
+    // (ex: l'employé 000003 voyait un nouveau matricule apparaître dans le formulaire).
     useEffect(() => {
+        if (empIdFromUrl) return;
         if (mode === 'save' && !formData.empcod && soccod) {
             fetchNextEmpcod();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode, soccod]);
+    }, [mode, soccod, empIdFromUrl]);
 
     const refreshEmpHoraires = React.useCallback(async (empcodArg?: string) => {
         const empcod = empcodArg || formData.empcod;

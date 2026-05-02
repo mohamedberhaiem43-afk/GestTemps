@@ -294,5 +294,217 @@ namespace ABRPOINT.Server.Tests.CalculService
         }
 
         #endregion
+
+        #region Régression — jour de repos (Prerepos = "1")
+
+        // Sur un jour de repos l'employé n'a aucun poste prévu, donc TOUT temps pointé est
+        // par définition supplémentaire. Le service doit retomber sur Tothre déjà calculé en
+        // amont au lieu de comparer au planning d'un jour ouvré (ce qui produisait des
+        // résultats absurdes : voir le scénario 12:24 sur 2h19 ci-dessous).
+
+        [Fact]
+        public async Task CalculateHeureSupp_RestDay_ReturnsAllWorkedHoursAsOvertime()
+        {
+            // Repos, pointage 18:23 → 20:42, Tothre = 01:31 (déjà calculé en amont par
+            // CalcHreTrav avec déduction du repas). H.Sup attendu = 1.5167 (≈ 1h31m).
+            var poste = PosteFixtures.CreateStandardPoste();
+            var presence = PresenceDtoFixtures.CreateStandardPresence();
+            presence.Prerepos = "1";
+            presence.Preentmatup = "18:23";
+            presence.Presortmatup = "20:42";
+            presence.Preentamidiup = null;
+            presence.Presortamidiup = null;
+            presence.Tothre = "01:31";
+            SetupMocks(poste);
+
+            var result = await _service.CalculateHeureSuppOptimise(presence, poste);
+
+            // 1h31 = 1 + 31/60 ≈ 1.5167
+            Assert.Equal(1.5167, result, 3);
+        }
+
+        [Fact]
+        public async Task CalculateHeureSupp_RestDay_WithoutTothre_ReturnsZero()
+        {
+            // Edge case : Prerepos = "1" mais Tothre vide (pointage non encore calculé).
+            // ConvertHHmmToDouble retourne null → on doit retomber sur 0 sans NRE.
+            var poste = PosteFixtures.CreateStandardPoste();
+            var presence = PresenceDtoFixtures.CreateStandardPresence();
+            presence.Prerepos = "1";
+            presence.Tothre = null;
+            SetupMocks(poste);
+
+            var result = await _service.CalculateHeureSuppOptimise(presence, poste);
+
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
+        public async Task CalculateHeureSupp_RestDay_FullEightHours_ReturnsEight()
+        {
+            // Repos avec une journée complète travaillée (cas heures supp planifiées) →
+            // les 8h doivent intégralement remonter en H.Sup.
+            var poste = PosteFixtures.CreateStandardPoste();
+            var presence = PresenceDtoFixtures.CreateStandardPresence();
+            presence.Prerepos = "1";
+            presence.Tothre = "08:00";
+            SetupMocks(poste);
+
+            var result = await _service.CalculateHeureSuppOptimise(presence, poste);
+
+            Assert.Equal(8.0, result, 2);
+        }
+
+        #endregion
+
+        #region Régression — bug "12:24 sur 2h19" (double-comptage section 2 / section 4)
+
+        // Bug initial : sur un poste 08-12 / 14-17, un pointage tardif unique 18:23 → 20:42
+        // produisait 12h24 d'H.Sup. Cause : la section "sortie matin tardive" comptait toute
+        // la plage [12:00 → 20:42] sans plafond, puis la section "fin de journée" recomptait
+        // [17:00 → 20:42] par-dessus → 8h42 + 3h42 = 12h24.
+        //
+        // Fix : section 2 plafonnée à eveningStart (14:00). Pour le scénario ci-dessous
+        // (Prerepos non défini, journée ouvrée), le résultat doit rester borné par le temps
+        // réellement travaillé (≈ 2h19 ici, hors déduction repas — le service H.Sup ne
+        // retire pas le repas, il compte les bornes du planning).
+
+        [Fact]
+        public async Task CalculateHeureSupp_LateClockOutWithoutAfternoonPunch_DoesNotDoubleCount()
+        {
+            // Reproduction fidèle du bug terrain : poste 08-12 / 14-17 (eveningStart = 14:00,
+            // donc différent du fixture standard qui utilise 13:00). Pointage tardif unique
+            // 18:23 → 20:42, jour ouvré (pas de Prerepos).
+            // Avant fix : 8h42 (section 2 sans cap) + 3h42 (section 4) = 12h24 ≈ 12.4h ❌
+            // Après fix :
+            //   • section 1 : 0 (arrivée pas en avance)
+            //   • section 2 : min(20:42, 14:00) − 12:00 = 2h00 (lunch worked, plafonné)
+            //   • section 3 : 0 (pas de Preentamidi)
+            //   • section 4 : 20:42 − 17:00 = 3h42
+            //   total : 5h42 ≈ 5.7h
+            var poste = new ABRPOINT.Server.Models.Poste
+            {
+                Codposte = "BUG12H24",
+                Soccod = "SOC001",
+                Avantent = 5, Apresent = 5, Avantsort = 5, Apressort = 5,
+                Lunhdmat = "08:00", Lunhfmat = "12:00", Lunhdam = "14:00", Lunhfam = "17:00",
+                Marhdmat = "08:00", Marhfmat = "12:00", Marhdam = "14:00", Marhfam = "17:00",
+                Merhdmat = "08:00", Merhfmat = "12:00", Merhdam = "14:00", Merhfam = "17:00",
+                Jeuhdmat = "08:00", Jeuhfmat = "12:00", Jeuhdam = "14:00", Jeuhfam = "17:00",
+                Venhdmat = "08:00", Venhfmat = "12:00", Venhdam = "14:00", Venhfam = "17:00",
+                Samhdmat = "08:00", Samhfmat = "12:00", Samhdam = "14:00", Samhfam = "17:00",
+                Dimhdmat = "08:00", Dimhfmat = "12:00", Dimhdam = "14:00", Dimhfam = "17:00",
+            };
+            var presence = PresenceDtoFixtures.CreateStandardPresence();
+            presence.Preentmatup = "18:23";
+            presence.Presortmatup = "20:42";
+            presence.Preentamidiup = null;
+            presence.Presortamidiup = null;
+            SetupMocks(poste);
+
+            var result = await _service.CalculateHeureSuppOptimise(presence, poste);
+
+            // Garde-fou anti-régression du bug 12:24 : surtout NE JAMAIS dépasser ~6h ici.
+            // Sans le cap section 2, on obtenait 12.4. Avec le cap : 5.7.
+            Assert.True(result < 7.0,
+                $"Régression : double-comptage section 2 / section 4 (résultat = {result}).");
+            Assert.Equal(5.7, result, 1);
+        }
+
+        [Fact]
+        public async Task CalculateHeureSupp_WorkedThroughLunch_CapsAtEveningStart()
+        {
+            // Sortie matin 13:30 sur poste fixture 08-12 / 13-17 (eveningStart = 13:00).
+            // section 2 = min(13:30, 13:00) − 12:00 = 1h00 (capped). Pas de section 4.
+            var poste = PosteFixtures.CreateStandardPoste();
+            var presence = PresenceDtoFixtures.CreateStandardPresence();
+            presence.Preentmatup = "08:00";
+            presence.Presortmatup = "13:30";
+            presence.Preentamidiup = null;
+            presence.Presortamidiup = null;
+            SetupMocks(poste);
+
+            var result = await _service.CalculateHeureSuppOptimise(presence, poste);
+
+            Assert.Equal(1.0, result, 2);
+        }
+
+        [Fact]
+        public async Task CalculateHeureSupp_LunchOverrunUnderEveningStart_NotCapped()
+        {
+            // Sortie matin 12:45 (overrun lunch dans la zone < eveningStart) :
+            // section 2 = 12:45 − 12:00 = 45 min. Cap inactif (12:45 < 14:00).
+            var poste = PosteFixtures.CreateStandardPoste();
+            var presence = PresenceDtoFixtures.CreateStandardPresence();
+            presence.Preentmatup = "08:00";
+            presence.Presortmatup = "12:45";
+            presence.Preentamidiup = null;
+            presence.Presortamidiup = null;
+            SetupMocks(poste);
+
+            var result = await _service.CalculateHeureSuppOptimise(presence, poste);
+
+            Assert.Equal(0.75, result, 2);
+        }
+
+        [Fact]
+        public async Task CalculateHeureSupp_ContinuousWorkAcrossLunch_CountsLunchPlusEndOfDay()
+        {
+            // Présence continue 08:00 → 18:00 sur fixture 08-12 / 13-17.
+            // section 2 = min(18:00, 13:00) − 12:00 = 1h (lunch worked, plafonné à 13:00)
+            // section 4 = 18:00 − 17:00 = 1h
+            // total = 2h. Sans le cap on aurait 18:00−12:00 = 6h section 2, soit 7h total.
+            var poste = PosteFixtures.CreateStandardPoste();
+            var presence = PresenceDtoFixtures.CreateStandardPresence();
+            presence.Preentmatup = "08:00";
+            presence.Presortmatup = "18:00";
+            presence.Preentamidiup = null;
+            presence.Presortamidiup = null;
+            SetupMocks(poste);
+
+            var result = await _service.CalculateHeureSuppOptimise(presence, poste);
+
+            // Anti-régression : sans le cap on aurait ≥ 7h. On vérifie le cap actif.
+            Assert.True(result < 7.0,
+                $"Régression : section 2 non plafonnée (résultat = {result}).");
+            Assert.Equal(2.0, result, 2);
+        }
+
+        #endregion
+
+        #region Catégorie & garde sur la session du soir
+
+        [Fact]
+        public async Task CalculateHeureSupp_NoEveningSession_OnlyEndOfDayCounted()
+        {
+            // Demi-journée (poste sans afternoon), arrivée 08:00, sortie 13:00.
+            // hasEveningSession = false → section 2 sautée par la garde, section 4 :
+            // scheduledEnd = morningEnd (12:00), 13:00 > 12:00 → 1h.
+            var poste = new ABRPOINT.Server.Models.Poste
+            {
+                Codposte = "HALF",
+                Soccod = "SOC001",
+                Avantent = 5, Apresent = 5, Avantsort = 5, Apressort = 5,
+                Lunhdmat = "08:00", Lunhfmat = "12:00", Lunhdam = null, Lunhfam = null,
+                Marhdmat = "08:00", Marhfmat = "12:00", Marhdam = null, Marhfam = null,
+                Merhdmat = "08:00", Merhfmat = "12:00", Merhdam = null, Merhfam = null,
+                Jeuhdmat = "08:00", Jeuhfmat = "12:00", Jeuhdam = null, Jeuhfam = null,
+                Venhdmat = "08:00", Venhfmat = "12:00", Venhdam = null, Venhfam = null,
+                Samhdmat = "08:00", Samhfmat = "12:00", Samhdam = null, Samhfam = null,
+                Dimhdmat = "08:00", Dimhfmat = "12:00", Dimhdam = null, Dimhfam = null,
+            };
+            var presence = PresenceDtoFixtures.CreateStandardPresence();
+            presence.Preentmatup = "08:00";
+            presence.Presortmatup = "13:00";
+            presence.Preentamidiup = null;
+            presence.Presortamidiup = null;
+            SetupMocks(poste);
+
+            var result = await _service.CalculateHeureSuppOptimise(presence, poste);
+
+            Assert.Equal(1.0, result, 2);
+        }
+
+        #endregion
     }
 }
