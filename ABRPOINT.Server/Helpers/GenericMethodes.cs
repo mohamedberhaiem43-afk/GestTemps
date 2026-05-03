@@ -154,6 +154,9 @@ namespace ABRPOINT.Helper
                 actualHours = MathF.Min(actualHours, maxPosteHours);
             }
 
+            // Plancher à 0 : si la donnée stockée est négative (corruption d'un ancien calcul)
+            // on évite de la propager au PDF et à l'affichage état périodique.
+            if (actualHours < 0) actualHours = 0;
             return actualHours;
         }
         public static string GetElementText(byte? element)

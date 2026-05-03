@@ -4,6 +4,8 @@ using ABRPOINT.Server.Exceptions;
 using ABRPOINT.Helper;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.CalculService.HeureRetard;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
@@ -15,12 +17,24 @@ namespace ABRPOINT.Server.Repository
         private readonly IEmployeRepository _employeRepository;
         private readonly ISanctionRepository _sanctionRepository;
         private readonly IParametreRepository _parametreRepository;
-        public AbsenceRepository(ApplicationDbContext dbContext,IEmployeRepository employeRepository,ISanctionRepository sanctionRepository,IParametreRepository parametreRepository)
+        // Dépendances ajoutées pour recalculer le retard via le même chemin que l'État
+        // Périodique (sinon les colonnes brutes Preretmat/amup périmées donnent un total
+        // qui diverge de ce que l'utilisateur voit dans le détail journée).
+        private readonly IPosteRepository _posteRepository;
+        private readonly IautoriserRepository _autorisationRepository;
+        private readonly IHeureRetardService _retardService;
+        private readonly IMapper _mapper;
+        public AbsenceRepository(ApplicationDbContext dbContext,IEmployeRepository employeRepository,ISanctionRepository sanctionRepository,IParametreRepository parametreRepository,
+            IPosteRepository posteRepository, IautoriserRepository autorisationRepository, IHeureRetardService retardService, IMapper mapper)
         {
             _dbContext = dbContext;
             _employeRepository = employeRepository;
             _sanctionRepository = sanctionRepository;
             _parametreRepository = parametreRepository;
+            _posteRepository = posteRepository;
+            _autorisationRepository = autorisationRepository;
+            _retardService = retardService;
+            _mapper = mapper;
 
         }
         public async Task AddAsync(Absence absence)
@@ -233,6 +247,28 @@ namespace ABRPOINT.Server.Repository
 
             if (absret)
             {
+                // Pré-charge poste + autorisations en batch, puis recalcule chaque retard via
+                // _retardService — cohérent avec EtatPériodique. Les colonnes Preretmat/amup
+                // brutes ne sont pas réécrites lors d'un changement de poste/autorisation, on
+                // ne peut donc pas les sommer aveuglément ici.
+                var posteCacheAbs = await _dbContext.Postes
+                    .Where(po => po.Soccod == soccod)
+                    .AsNoTracking()
+                    .ToDictionaryAsync(po => po.Codposte!);
+                var demandesAutAbs = presences
+                    .Where(x => x.Predat.HasValue && !string.IsNullOrWhiteSpace(x.Empcod))
+                    .Select(x => (Empcod: x.Empcod!, Date: x.Predat!.Value.Date))
+                    .Distinct()
+                    .ToList();
+                var autorisationsAbs = demandesAutAbs.Count > 0
+                    ? await _autorisationRepository.GetAutLibBatch(soccod, demandesAutAbs)
+                    : new Dictionary<(string Empcod, DateTime Date), AutDto>();
+                var postesByEmpAbs = new Dictionary<string, Dictionary<(string Empcod, DateTime Date), string?>>();
+                foreach (var emp in empcods)
+                {
+                    postesByEmpAbs[emp] = await _posteRepository.GetEmployePosteBatch(soccod, emp, datedebut, datefin);
+                }
+
                 foreach (var presence in presences)
                 {
                     if (!presence.Predat.HasValue || string.IsNullOrWhiteSpace(presence.Empcod))
@@ -253,6 +289,28 @@ namespace ABRPOINT.Server.Repository
                         GetMinutes(presence.Preretmatsup) +
                         GetMinutes(presence.Preretameup) +
                         GetMinutes(presence.Preretamsup);
+
+                    if (postesByEmpAbs.TryGetValue(presence.Empcod, out var posteMapAbs))
+                    {
+                        var codposteAbs = posteMapAbs.GetValueOrDefault((presence.Empcod, presenceDate)) ?? presence.Codposte;
+                        if (!string.IsNullOrEmpty(codposteAbs) && posteCacheAbs.TryGetValue(codposteAbs, out var poste) && poste != null)
+                        {
+                            var dto = _mapper.Map<PresenceDto>(presence);
+                            dto.Soccod = soccod;
+                            dto.Codposte = codposteAbs;
+                            dto.Dmdate ??= presenceDate;
+                            var aut = autorisationsAbs.GetValueOrDefault((presence.Empcod, presenceDate));
+                            try
+                            {
+                                var calc = await _retardService.CalculateHeureRetard(dto, poste, aut);
+                                totalRetard = calc.nbRetard;
+                            }
+                            catch
+                            {
+                                // En cas d'erreur, on retombe sur la somme brute calculée plus haut.
+                            }
+                        }
+                    }
 
                     bool hasAbsenceHours = !string.IsNullOrWhiteSpace(presence.Tothabs) && presence.Tothabs != "00:00";
                     if (totalRetard == 0 && !hasAbsenceHours)

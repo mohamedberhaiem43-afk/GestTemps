@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Avatar } from '@mui/material';
+import { Box, Typography, CircularProgress, Avatar, Snackbar, Alert } from '@mui/material';
 import { useContext, useEffect, useState, useMemo } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import PrintIcon from '@mui/icons-material/Print';
@@ -7,6 +7,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import TimerIcon from '@mui/icons-material/Timer';
+import TuneIcon from '@mui/icons-material/Tune';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { EmployeeProvider, EmployeeContext } from './EmployeeContext';
 import { DateRangeProvider, useDateRange } from './FilterContext';
@@ -17,6 +18,7 @@ import useGetEmpEtat from '../../../hooks/presenceHooks/useGetEmpEtat';
 import useGetEmployePosteByDate from '../../../hooks/employeHooks/useGetEmpPoste';
 import useGetEmployeesLibs from '../../../hooks/employeHooks/useGetEmployeesLibs';
 import EmployeeMultiSelectDropdown from '../../helper/EmployeeMultiSelectDropdown';
+import PointageAdjustDialog from '../Adjustment/PointageAdjustDialog';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 import EmpEtat from '../../../models/EmpEtat';
@@ -450,8 +452,11 @@ function EmpSidebarRow({ row, active, onClick, index }: {
 
 // ── Main inner ────────────────────────────────────────────────────────────────
 function EtatPeriodiqueModernInner() {
-  const { soccod, uticod, isManager, sercod: managerSercod } = useAuth();
+  const { soccod, uticod, isManager, sercod: managerSercod, hasPermission } = useAuth();
   const isManagerScoped = Boolean(isManager && managerSercod);
+  // Permissions pour l'ajustement de pointage (module distinct des classes horaires).
+  const canConsultPointage = hasPermission('Pointage et Temps', 'consult');
+  const canModifyPointage = hasPermission('Pointage et Temps', 'modify');
   const {
     setSelectedEmpMat, setSelectedEmpLib, selectedEmpMat, selectedEmpLib, empEtatData,
     setSelectedEmpPoste, setDate, setSelectedEmp, setArrondi, setArrondiSup,
@@ -474,6 +479,14 @@ function EtatPeriodiqueModernInner() {
   const [selectedDay, setSelectedDay] = useState<EmpEtat | null>(null);
   const [showTable, setShowTable] = useState(false);
   const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
+  // Dialog "Ajuster un pointage" — pré-rempli avec l'employé sélectionné dans la
+  // sidebar et la journée actuellement ouverte dans le panneau de détail.
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' | 'warning' }>({
+    open: false, msg: '', sev: 'success',
+  });
+  const showSnack = (msg: string, sev: 'success' | 'error' | 'warning') =>
+    setSnack({ open: true, msg, sev });
 
   // Employee multi-select dropdown — list filtered by current filiale/service/regime selection.
   const { data: employeesLibs = {} } = useGetEmployeesLibs(
@@ -551,17 +564,6 @@ function EtatPeriodiqueModernInner() {
 
   const handleSearch = () => {
     if (!soccod || !uticod) return;
-
-    // Block future dates
-    const todayStr = dayjs().format('YYYY-MM-DD');
-    if (dateDebut > todayStr) {
-      alert('La date de début ne peut pas être dans le futur.');
-      return;
-    }
-    if (dateFin > todayStr) {
-      alert('La date de fin ne peut pas être dans le futur.');
-      return;
-    }
 
     setLoadingEmps(true);
     const params = new URLSearchParams();
@@ -718,11 +720,11 @@ function EtatPeriodiqueModernInner() {
           </Box>
           <Box className="ep-filter-field">
             <span className="ep-filter-label">Date début</span>
-            <input className="ep-input-date" type="date" value={dateDebut} max={dayjs().format('YYYY-MM-DD')} onChange={e => setDateDebut(e.target.value)} />
+            <input className="ep-input-date" type="date" value={dateDebut} onChange={e => setDateDebut(e.target.value)} />
           </Box>
           <Box className="ep-filter-field">
             <span className="ep-filter-label">Date fin</span>
-            <input className="ep-input-date" type="date" value={dateFin} max={dayjs().format('YYYY-MM-DD')} onChange={e => setDateFin(e.target.value)} />
+            <input className="ep-input-date" type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} />
           </Box>
           <Box className="ep-filter-field ep-filter-search-btn">
             <button className="ep-search-btn" onClick={handleSearch} disabled={loadingEmps} title="Rechercher">
@@ -832,7 +834,18 @@ function EtatPeriodiqueModernInner() {
                             {dayjs(selectedDay.predat).format('dddd D MMMM YYYY')}
                           </Typography>
                         </Box>
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          {(canConsultPointage || canModifyPointage) && (
+                            <button
+                              type="button"
+                              className="ep-btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                              onClick={() => setAdjustOpen(true)}
+                              title="Corriger les heures d'entrée/sortie pour cette journée"
+                            >
+                              <TuneIcon sx={{ fontSize: 14 }} /> Ajuster pointage
+                            </button>
+                          )}
                           {/* Status badge using our classifier */}
                           {(() => {
                             const s = classifyDayStatus(selectedDay);
@@ -990,6 +1003,29 @@ function EtatPeriodiqueModernInner() {
           </Box>
         </Box>
       </Box>
+
+      <PointageAdjustDialog
+        open={adjustOpen}
+        onClose={() => setAdjustOpen(false)}
+        canModify={canModifyPointage}
+        showSnack={showSnack}
+        initialEmpcod={selectedEmpMat || ''}
+        initialDate={selectedDay ? dayjs(selectedDay.predat).format('YYYY-MM-DD') : ''}
+      />
+
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={4000}
+        onClose={() => setSnack(s => ({ ...s, open: false }))}
+      >
+        <Alert
+          severity={snack.sev}
+          onClose={() => setSnack(s => ({ ...s, open: false }))}
+          sx={{ borderRadius: '10px' }}
+        >
+          {snack.msg}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

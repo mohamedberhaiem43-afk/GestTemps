@@ -277,7 +277,12 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500,ex);
+                // Sérialiser `ex` directement provoque une NotSupportedException sur la
+                // propriété TargetSite (System.Reflection.MethodBase non sérialisable par
+                // System.Text.Json) — le client recevait une erreur opaque qui masquait
+                // le vrai problème. On renvoie le message + l'éventuelle inner exception.
+                var message = ex.InnerException?.Message ?? ex.Message;
+                return StatusCode(500, new { message });
             }
         }
         [HttpPut("update-compensation/{soccod}/{empcod}/{date}/{totcmp}")]

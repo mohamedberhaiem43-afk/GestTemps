@@ -50,17 +50,23 @@ export const fetchJoursFeriesFr = async (year: number | string): Promise<FerieFr
  *   - fertype  = 'F' (férié — pas un repos hebdomadaire)
  *   - fernpaye = '0' (payé : tous les fériés métropole sont payés sauf cas conventionnel)
  *   - ferfixe  = '1' si la date est fixe (mêmes mois-jour chaque année), '0' sinon (Pâques etc.)
- *   - fertrv   = ferdate (pas de jour de retour différent par défaut)
+ *   - fertrv   = ferdate + 1 jour (date de retour = lendemain du férié, contrainte back)
+ *
+ * Construction des dates : on passe par Date.UTC à midi UTC pour que la sérialisation JSON
+ * (toISOString) conserve la date civile attendue quel que soit le fuseau du navigateur.
+ * Sans ça, `new Date('2025-05-01T00:00:00')` était interprété comme minuit local et, en
+ * UTC+1/+2, sérialisé en `2025-04-30T22:00:00Z` → le back-end enregistrait le 30 avril.
  */
 export const toFerier = (item: FerieFromApi, soccod: string): Ferier => {
-  const dateObj = new Date(item.date + 'T00:00:00');
-  const annee = String(dateObj.getFullYear());
+  const [yyyy, mm, dd] = item.date.split('-').map(Number);
+  const ferdate = new Date(Date.UTC(yyyy, mm - 1, dd, 12, 0, 0));
+  const fertrv = new Date(Date.UTC(yyyy, mm - 1, dd + 1, 12, 0, 0));
   return {
     soccod,
-    annee,
+    annee: String(yyyy),
     fermotif: item.label,
-    ferdate: dateObj,
-    fertrv: dateObj,
+    ferdate,
+    fertrv,
     ferheure: 8,
     fertype: 'F',
     ferfixe: item.isFixed ? '1' : '0',

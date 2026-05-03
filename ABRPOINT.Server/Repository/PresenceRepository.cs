@@ -525,6 +525,38 @@ namespace ABRPOINT.Server.Repository
                 // =========================
                 // 5️⃣ Construction mémoire
                 // =========================
+                // ── Recalcul live des retards ─────────────────────────────────────────
+                // Les colonnes brutes Preretmat/amup/sup peuvent être périmées (un changement
+                // de poste, d'autorisation ou la migration vers une nouvelle tolérance n'écrit
+                // pas rétroactivement ces colonnes). EtatPériodique appelle systématiquement
+                // _retardService.CalculateHeureRetard à la lecture ; on fait pareil ici pour
+                // que l'État de Retards/Absences affiche les mêmes minutes que l'EtatPériodique.
+                // Lookups poste + autorisation batchés pour rester en O(employés) au lieu de
+                // O(présences) sur les requêtes externes.
+                var demandesAut = presences
+                    .Where(x => x.p.Predat.HasValue && !string.IsNullOrEmpty(x.p.Empcod))
+                    .Select(x => (Empcod: x.p.Empcod!, Date: x.p.Predat!.Value.Date))
+                    .Distinct()
+                    .ToList();
+                var autorisationsBatch = demandesAut.Count > 0
+                    ? await _autorisationRepository.GetAutLibBatch(soccod, demandesAut)
+                    : new Dictionary<(string Empcod, DateTime Date), AutDto>();
+
+                var distinctEmps = presences
+                    .Select(x => x.p.Empcod)
+                    .Where(c => !string.IsNullOrEmpty(c))
+                    .Distinct()
+                    .ToList();
+                var postesByEmp = new Dictionary<string, Dictionary<(string Empcod, DateTime Date), string?>>();
+                foreach (var emp in distinctEmps)
+                {
+                    postesByEmp[emp!] = await _posteRepository.GetEmployePosteBatch(soccod, emp!, dateDebut, dateFin);
+                }
+                var posteCache = await _dbContext.Postes
+                    .Where(po => po.Soccod == soccod)
+                    .AsNoTracking()
+                    .ToDictionaryAsync(po => po.Codposte!);
+
                 var result = new List<EtatEmpPresence>();
 
                 foreach (var item in presences)
@@ -544,6 +576,41 @@ namespace ABRPOINT.Server.Repository
                             date.Date >= s.Condep.Date &&
                             date.Date <= s.Conret.Date)
                         ?.Abslib ?? "";
+
+                    // Recompute retard via le même service que l'EtatPériodique. Si poste
+                    // introuvable, on retombe sur les valeurs brutes pour ne rien casser.
+                    TimeSpan retMatEup = p.Preretmateup?.TimeOfDay ?? TimeSpan.Zero;
+                    TimeSpan retMatSup = p.Preretmatsup?.TimeOfDay ?? TimeSpan.Zero;
+                    TimeSpan retAmEup = p.Preretameup?.TimeOfDay ?? TimeSpan.Zero;
+                    TimeSpan retAmSup = p.Preretamsup?.TimeOfDay ?? TimeSpan.Zero;
+                    int totRetMinutes = (int)(retMatEup + retMatSup + retAmEup + retAmSup).TotalMinutes;
+
+                    if (!string.IsNullOrEmpty(p.Empcod) && postesByEmp.TryGetValue(p.Empcod, out var posteMap))
+                    {
+                        var codposte = posteMap.GetValueOrDefault((p.Empcod, date)) ?? p.Codposte;
+                        if (!string.IsNullOrEmpty(codposte) && posteCache.TryGetValue(codposte, out var poste) && poste != null)
+                        {
+                            var dto = _mapper.Map<PresenceDto>(p);
+                            dto.Soccod = soccod;
+                            dto.Codposte = codposte;
+                            dto.Dmdate ??= date;
+                            var aut = autorisationsBatch.GetValueOrDefault((p.Empcod, date));
+                            try
+                            {
+                                var calc = await _retardService.CalculateHeureRetard(dto, poste, aut);
+                                totRetMinutes = calc.nbRetard;
+                                retMatEup = calc.Preretmateup?.TimeOfDay ?? TimeSpan.Zero;
+                                retMatSup = calc.Preretmatsup?.TimeOfDay ?? TimeSpan.Zero;
+                                retAmEup = calc.Preretameup?.TimeOfDay ?? TimeSpan.Zero;
+                                retAmSup = calc.Preretamsup?.TimeOfDay ?? TimeSpan.Zero;
+                            }
+                            catch
+                            {
+                                // En cas d'erreur de calcul (données partielles), on garde les valeurs brutes.
+                            }
+                        }
+                    }
+
                     result.Add(new EtatEmpPresence
                     {
                         Predat = date,
@@ -559,16 +626,11 @@ namespace ABRPOINT.Server.Repository
                         Entree2 = p.Preentamidiup,
                         Sortie1 = p.Presortmatup,
                         Sortie2 = p.Presortamidiup,
-                        Preretmateup = p.Preretmateup?.TimeOfDay ?? TimeSpan.Zero,
-                        Preretmatsup = p.Preretmatsup?.TimeOfDay ?? TimeSpan.Zero,
-                        Preretameup = p.Preretameup?.TimeOfDay ?? TimeSpan.Zero,
-                        Preretamsup = p.Preretamsup?.TimeOfDay ?? TimeSpan.Zero,
-                        TotalRetard =
-                            (p.Preretmateup?.TimeOfDay ?? TimeSpan.Zero)
-                            .Add(p.Preretmatsup?.TimeOfDay ?? TimeSpan.Zero)
-                            .Add(p.Preretameup?.TimeOfDay ?? TimeSpan.Zero)
-                            .Add(p.Preretamsup?.TimeOfDay ?? TimeSpan.Zero)
-                            .ToString(@"hh\:mm"),
+                        Preretmateup = retMatEup,
+                        Preretmatsup = retMatSup,
+                        Preretameup = retAmEup,
+                        Preretamsup = retAmSup,
+                        TotalRetard = $"{totRetMinutes / 60:D2}:{totRetMinutes % 60:D2}",
 
                         HasConge = hasConge.ToString(),
                         Allaitement = hasAllaitement,
@@ -802,6 +864,22 @@ namespace ABRPOINT.Server.Repository
                         // lateness amount as Tothre on incomplete pointages).
                         presence.Tothre = null;
                         presence.Tothre = await CalcHreTrav(presence, poste, empparam);
+                        // Idem pour Tothsup : la colonne en base peut avoir été persistée avec une
+                        // valeur négative ou périmée (même cause que pour Tothre). On recalcule
+                        // depuis le Tothre frais ci-dessus pour que H. Suppl. reste cohérent avec
+                        // ce qui est affiché à l'utilisateur.
+                        if (poste != null)
+                        {
+                            try
+                            {
+                                presence.Tothsup = GenericMethodes.ConvertDoubleToHHmm(
+                                    (float)await _heureSuppService.CalculateHeureSuppOptimise(presence, poste));
+                            }
+                            catch
+                            {
+                                // Si le recalcul échoue, on garde la valeur DB (mais elle peut être périmée).
+                            }
+                        }
 
                         // 🔴 CAS JOUR FÉRIÉ : forcer les heures et ignorer le calcul normal
                         if (ferier != null)
@@ -1291,6 +1369,11 @@ namespace ABRPOINT.Server.Repository
                     // Reconvertir en heures
                     hretrv = totalMinutes / 60f;
                 }
+                // ⚠ Plancher à 0 : un Tothre négatif (cas pathologique pointage incomplet où la
+                // ligne `hretrv += (HS - Retard)/60` retranche plus que les heures travaillées)
+                // se répercutait sur l'affichage (-00:02 / -03:56) et faussait HS qui dépend de
+                // Tothre côté CalculateHeureSuppOptimise.
+                if (hretrv < 0) hretrv = 0;
                 // ✅ Convertir des heures (double) en TimeSpan
                 TimeSpan totalHeureTimeSpan = TimeSpan.FromHours(hretrv);
 

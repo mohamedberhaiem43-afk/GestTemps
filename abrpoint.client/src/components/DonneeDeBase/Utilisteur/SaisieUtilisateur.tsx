@@ -66,6 +66,21 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
             });
         }, [uticod, utinom, utiprn, utimail, utimps, utiadm, utirole, societe, site]);
 
+        // Pré-sélection du premier élément en mode création : évite à l'utilisateur de devoir
+        // ouvrir le dropdown quand une seule (ou une évidente) société/filiale est attendue.
+        // En mode édition (selectedUser présent), on laisse la valeur chargée depuis l'API.
+        useEffect(() => {
+            if (selectedUser) return;
+            if (!societe) {
+                const firstSoc = Object.keys(socLibs || {})[0];
+                if (firstSoc) setSociete(firstSoc);
+            }
+            if (!site) {
+                const firstSite = Object.keys(sitLibs || {})[0];
+                if (firstSite) setSite(firstSite);
+            }
+        }, [socLibs, sitLibs, selectedUser]);
+
         useQuery<Utilisateur[]>({
             queryKey: ['utilisateur', selectedUser],
             queryFn: async () => {

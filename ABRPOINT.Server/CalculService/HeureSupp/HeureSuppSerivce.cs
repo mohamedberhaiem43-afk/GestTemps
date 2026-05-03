@@ -37,9 +37,13 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 // puisque l'employé n'avait aucun poste prévu. On retombe sur le total
                 // travaillé (Tothre déjà calculé en amont) plutôt que de dérouler des
                 // comparaisons morning/evening qui n'ont aucun sens un dimanche/jour férié.
+                // ⚠ Tothre peut être négatif si une donnée corrompue (ancienne version du calcul
+                // qui retranchait le repas sans clamp, ou pointage incomplet) a été persistée :
+                // sur un jour de repos, des HS négatives n'ont aucun sens — on plancheà 0.
                 if (presence.Prerepos == "1")
                 {
-                    return GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
+                    var t = GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
+                    return t > 0 ? t : 0;
                 }
 
                 int nbHeurSupp = 0;
@@ -182,10 +186,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 if (cathsup == "0")
                     return 0;
 
-                // 🛌 JOUR DE REPOS — cf. CalculateHeureSuppOptimise plus haut.
+                // 🛌 JOUR DE REPOS — cf. CalculateHeureSuppOptimise plus haut. Plancher à 0
+                // pour neutraliser un Tothre négatif issu d'un ancien calcul.
                 if (presence.Prerepos == "1")
                 {
-                    return GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
+                    var t = GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
+                    return t > 0 ? t : 0;
                 }
 
                 int nbHeurSupp = 0;
