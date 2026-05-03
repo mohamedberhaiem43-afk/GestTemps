@@ -15,28 +15,24 @@ const { width } = Dimensions.get('window');
 export default function ProfileScreen({ navigation, route }: any) {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<any>(null);
-  const [employee, setEmployee] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [is2FAEnabled, setIs2FAEnabled] = useState(true);
 
   const viewEmpcod = route?.params?.empcod || user?.uticod;
   const viewSoccod = route?.params?.soccod || user?.soccod;
-  // const isOwnProfile = !route?.params?.empcod || route?.params?.empcod === user?.uticod;
-  const isOwnProfile = true;
 
   useEffect(() => { loadAll(); }, [user, route?.params]);
 
+  // get-profile renvoie déjà l'employé (UtiProfile.Employee côté serveur),
+  // ce qui évite d'appeler /Employes/get-employe — endpoint réservé à la
+  // gestion des employés et inaccessible à un utilisateur standard.
   const loadAll = async () => {
     if (!viewSoccod || !viewEmpcod) return;
     setLoading(true);
     try {
-      const [profileData, empData] = await Promise.all([
-        isOwnProfile ? apiService.getProfile(viewSoccod, viewEmpcod) : Promise.resolve(null),
-        apiService.getEmployee(viewSoccod, viewEmpcod)
-      ]);
+      const profileData = await apiService.getProfile(viewSoccod, viewEmpcod);
       setProfile(profileData);
-      setEmployee(empData);
     } catch (e) {
       console.log('Profile load error:', e);
     } finally {
@@ -66,7 +62,7 @@ export default function ProfileScreen({ navigation, route }: any) {
   }
 
   const d = profile || user;
-  const emp = employee || {};
+  const emp = profile?.employee || profile?.Employee || {};
   const fullName = emp?.emplib || d?.utilib || 'Collaborateur';
   const names = fullName.split(' ');
   const firstName = names[0];

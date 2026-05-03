@@ -291,16 +291,25 @@ namespace ABRPOINT.Server.Repository
                 })
                 .ToListAsync();
 
-            return result.ToDictionary(
-                x => (x.Empcod, x.Condep.Value.Date), // clé = (employé, date)
-                x => new AutDto
-                {
-                    Abslib = x.Abslib,
-                    Connbjour = x.Connbjour,
-                    Condep = x.Condep,
-                    Conret = x.Conret,
-                    Abspayer = x.Abspayer
-                });
+            // Plusieurs autorisations peuvent partager la même clé (Empcod, Date) lorsqu'un employé
+            // possède plus d'une autorisation le même jour. On regroupe pour éviter une exception
+            // "duplicate key" dans ToDictionary et on retient la première occurrence.
+            return result
+                .GroupBy(x => (x.Empcod, Date: x.Condep.Value.Date))
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var x = g.First();
+                        return new AutDto
+                        {
+                            Abslib = x.Abslib,
+                            Connbjour = x.Connbjour,
+                            Condep = x.Condep,
+                            Conret = x.Conret,
+                            Abspayer = x.Abspayer
+                        };
+                    });
         }
 
         public async Task<IEnumerable<Autoriser>> GetAllAsync()
