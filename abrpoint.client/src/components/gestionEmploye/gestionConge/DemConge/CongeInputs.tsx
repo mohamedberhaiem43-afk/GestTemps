@@ -32,6 +32,7 @@ import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOn
 import { useAuth } from '../../../helper/AuthProvider';
 import generateNumeroOrdre from '../../../helper/GenerateNumOrdre';
 import { useTranslation } from 'react-i18next';
+import apiInstance from '../../../API/apiInstance';
 
 export default function CongeForm() {
   const { selectedConge } = useCongeContext();
@@ -85,6 +86,19 @@ export default function CongeForm() {
       setMode('edit');
     }
   }, [selectedConge]);
+
+  // Auto-fill phone from selected employee in add mode.
+  useEffect(() => {
+    if (!empcod || mode !== 'save') return;
+    apiInstance.get(`/Employes/${empcod}`)
+      .then((res) => {
+        const tel = res.data?.emptel || res.data?.empmob || '';
+        setTelephones(tel);
+      })
+      .catch(() => {
+        setTelephones('');
+      });
+  }, [empcod, mode]);
   
 
   // Effect to calculate number of days between condep and conret

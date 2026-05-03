@@ -6,6 +6,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import WorkIcon from '@mui/icons-material/Work';
 import SearchIcon from '@mui/icons-material/Search';
+import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 import { FonctionModel } from '../../../models/Fonction';
 import useGetFonctions from '../../../hooks/fonctionHooks/useGetFonctions';
@@ -17,6 +18,7 @@ import '../shared/RefModern.css';
 const emptyForm: FonctionModel = { foncod: '', soccod: '', fonlib: '', fontype: '', fonpqual: '', fonpchoix: '' };
 
 function FonctionModernContent() {
+  const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
   const [form, setForm] = useState<FonctionModel>({ ...emptyForm, soccod: soccod || '' });
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
@@ -30,7 +32,7 @@ function FonctionModernContent() {
   const canDelete = hasPermission('Données de Base', 'delete');
 
   if (!hasPermission('Données de Base', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter les fonctions." />;
+    return <AccessDenied message={t('donneeBase.fonction.noConsultRight')} />;
   }
 
   const filtered = useMemo(() => {
@@ -41,11 +43,10 @@ function FonctionModernContent() {
 
   const handleSubmit = async () => {
     if (!form.fonlib) {
-      setSnack({ open: true, msg: 'Le libellé est obligatoire.', sev: 'error' });
+      setSnack({ open: true, msg: t('donneeBase.common.labelRequired'), sev: 'error' });
       return;
     }
     try {
-      // En création, on laisse le backend générer le code séquentiel (foncod vide).
       const payload = isEditMode
         ? { ...form, soccod: soccod || '' }
         : { ...form, foncod: '', soccod: soccod || '' };
@@ -54,17 +55,17 @@ function FonctionModernContent() {
       } else {
         await apiInstance.post('/Fonctions', payload);
       }
-      setSnack({ open: true, msg: isEditMode ? 'Fonction mise à jour.' : 'Fonction ajoutée.', sev: 'success' });
+      setSnack({ open: true, msg: isEditMode ? t('donneeBase.fonction.msgUpdated') : t('donneeBase.fonction.msgAdded'), sev: 'success' });
       setForm({ ...emptyForm, soccod: soccod || '' });
       refetch();
     } catch {
-      setSnack({ open: true, msg: 'Erreur lors de l\'enregistrement.', sev: 'error' });
+      setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
     }
   };
 
   const handleEdit = (row: FonctionModel) => { setForm(row); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleDelete = async (row: FonctionModel) => {
-    if (window.confirm('Supprimer cette fonction ?')) {
+    if (window.confirm(t('donneeBase.fonction.deleteConfirm'))) {
       try { await apiInstance.delete(`/Fonctions/${row.foncod}`); refetch(); } catch { console.error('Erreur'); }
     }
   };
@@ -73,9 +74,9 @@ function FonctionModernContent() {
     <Box className="ref-container">
       <Box className="ref-header">
         <Box>
-          <Typography className="ref-header-title">Données de base</Typography>
-          <Typography className="ref-header-heading">Gestion des Fonctions</Typography>
-          <Typography className="ref-header-sub">Configurer les fonctions disponibles</Typography>
+          <Typography className="ref-header-title">{t('donneeBase.breadcrumb')}</Typography>
+          <Typography className="ref-header-heading">{t('donneeBase.fonction.heading')}</Typography>
+          <Typography className="ref-header-sub">{t('donneeBase.fonction.subtitle')}</Typography>
         </Box>
         <Box className="ref-header-actions">
           {!isEditMode && canAdd && (
@@ -84,13 +85,13 @@ function FonctionModernContent() {
               extraBody={{ Soccod: soccod }}
               columnMap={{ Fonlib: ['fonlib', 'libelle', 'libellé', 'fonction', 'nom'], Fontype: ['fontype', 'type'] }}
               onImported={() => refetch()}
-              label="Importer Excel"
+              label={t('donneeBase.fonction.importExcel')}
             />
           )}
-          {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>Annuler</Button>}
+          {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>{t('donneeBase.common.cancel')}</Button>}
           {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
             <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>
-              {isEditMode ? 'Mettre à jour' : 'Enregistrer'}
+              {isEditMode ? t('donneeBase.common.update') : t('donneeBase.common.save')}
             </Button>
           )}
         </Box>
@@ -99,48 +100,48 @@ function FonctionModernContent() {
         <Box className="ref-card">
           <Box className="ref-card-header">
             <Box className="ref-card-icon"><WorkIcon fontSize="small" /></Box>
-            <Typography className="ref-card-title">{isEditMode ? 'Modifier la fonction' : 'Nouvelle fonction'}</Typography>
+            <Typography className="ref-card-title">{isEditMode ? t('donneeBase.fonction.editTitle') : t('donneeBase.fonction.newTitle')}</Typography>
           </Box>
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field">
-              <label>Code {!isEditMode && <span style={{ color: '#8896a8', fontWeight: 400 }}>(auto-généré)</span>}</label>
+              <label>{t('donneeBase.common.code')} {!isEditMode && <span style={{ color: '#8896a8', fontWeight: 400 }}>{t('donneeBase.pays.autoGenerated')}</span>}</label>
               <input
                 type="text"
                 value={isEditMode ? form.foncod : ''}
                 readOnly
-                placeholder={isEditMode ? '' : 'Auto'}
+                placeholder={isEditMode ? '' : t('donneeBase.pays.autoPlaceholder')}
                 style={{ background: '#f5f7fa', color: '#8896a8' }}
               />
             </Box>
             <Box className="ref-field">
-              <label>Libellé</label>
-              <input type="text" value={form.fonlib} onChange={e => setForm(p => ({ ...p, fonlib: e.target.value }))} placeholder="Directeur" />
+              <label>{t('donneeBase.common.label')}</label>
+              <input type="text" value={form.fonlib} onChange={e => setForm(p => ({ ...p, fonlib: e.target.value }))} placeholder={t('donneeBase.fonction.labelPlaceholder')} />
             </Box>
             <Box className="ref-field">
-              <label>Type</label>
+              <label>{t('donneeBase.fonction.typeLabel')}</label>
               <select value={form.fontype || ''} onChange={e => setForm(p => ({ ...p, fontype: e.target.value }))}>
                 <option value="">—</option>
-                <option value="A">Administration</option>
-                <option value="T">Technique</option>
-                <option value="O">Opérationnel</option>
+                <option value="A">{t('donneeBase.fonction.type.admin')}</option>
+                <option value="T">{t('donneeBase.fonction.type.technical')}</option>
+                <option value="O">{t('donneeBase.fonction.type.operational')}</option>
               </select>
             </Box>
           </Box>
         </Box>
         <Box className="ref-table-section">
           <Box className="ref-table-header">
-            <Typography className="ref-table-title">Liste des Fonctions ({filtered.length})</Typography>
+            <Typography className="ref-table-title">{t('donneeBase.fonction.tableTitle', { count: filtered.length })}</Typography>
             <Box className="ref-table-search">
               <SearchIcon sx={{ fontSize: 16, color: '#8896a8' }} />
-              <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input type="text" placeholder={t('donneeBase.common.search')} value={search} onChange={e => setSearch(e.target.value)} />
             </Box>
           </Box>
           <Box className="ref-table-container">
             <table className="ref-table">
-              <thead><tr><th style={{ width: 80 }}>Actions</th><th>Code</th><th>Libellé</th><th>Type</th></tr></thead>
+              <thead><tr><th style={{ width: 80 }}>{t('donneeBase.common.actions')}</th><th>{t('donneeBase.common.code')}</th><th>{t('donneeBase.common.label')}</th><th>{t('donneeBase.fonction.typeLabel')}</th></tr></thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={4} className="ref-empty">Aucune fonction trouvée.</td></tr>
+                  <tr><td colSpan={4} className="ref-empty">{t('donneeBase.fonction.noResults')}</td></tr>
                 ) : filtered.map(f => (
                   <tr key={f.foncod}>
                     <td><Box sx={{ display: 'flex', gap: '4px' }}>
@@ -160,7 +161,7 @@ function FonctionModernContent() {
               </tbody>
             </table>
           </Box>
-          <Box className="ref-table-footer"><span>Affichage de {filtered.length} fonctions</span></Box>
+          <Box className="ref-table-footer"><span>{t('donneeBase.fonction.footerCount', { count: filtered.length })}</span></Box>
         </Box>
       </Box>
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>

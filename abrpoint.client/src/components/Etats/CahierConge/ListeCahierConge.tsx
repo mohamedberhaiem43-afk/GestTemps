@@ -3,10 +3,12 @@ import { MRT_ColumnDef } from "material-react-table";
 import DataList from "../../lists/list";
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import CahierConge from "../../../models/CahierConge";
 import useGetCahierConge from "../../../hooks/congeHooks/useGetCahierConge";
 
 function ListeCahierConge() {
+  const { t } = useTranslation();
   const round4 = (num: number) => Math.round(num * 10000) / 10000;
   const { dateRange } = useDateRange();
 
@@ -22,9 +24,9 @@ function ListeCahierConge() {
       id: "cahier-conge",
       header: "",
       columns: [
-        { accessorKey: "empmat", header: "Matricule", size: 60 },
-        { accessorKey: "emplib", header: "Nom et Prénom", size: 180 },
-        { accessorKey: "empdnais", header: "Date Naissance", size: 60 },
+        { accessorKey: "empmat", header: t('cahierConge.list.headers.matricule'), size: 60 },
+        { accessorKey: "emplib", header: t('cahierConge.list.headers.name'), size: 180 },
+        { accessorKey: "empdnais", header: t('cahierConge.list.headers.birthDate'), size: 60 },
         {
           accessorFn: (row: CahierConge) => {
             if (!row.empemb) return "";
@@ -32,13 +34,13 @@ function ListeCahierConge() {
             return !isNaN(date.getTime()) ? date.toISOString().split("T")[0] : "";
           },
           accessorKey: "empemb",
-          header: "Date Embauche",
+          header: t('cahierConge.list.headers.hireDate'),
           size: 60,
         },
-        { accessorKey: "empreg", header: "Régime", size: 60 },
+        { accessorKey: "empreg", header: t('cahierConge.list.headers.regime'), size: 60 },
         {
           accessorKey: "saljou",
-          header: "Salaire Journalier",
+          header: t('cahierConge.list.headers.salaryDaily'),
           size: 60,
           Cell: ({ cell }) => {
             const val = cell.getValue<number>();
@@ -47,7 +49,7 @@ function ListeCahierConge() {
         },
         {
           accessorKey: "somper",
-          header: "Somme Percue",
+          header: t('cahierConge.list.headers.sumReceived'),
           size: 60,
           Cell: ({ cell }) => {
             const val = cell.getValue<number>();
@@ -56,24 +58,24 @@ function ListeCahierConge() {
         },
         {
           accessorKey: "pretemps",
-          header: "Temps de présence",
+          header: t('cahierConge.list.headers.presenceTime'),
           size: 10,
           Cell: ({ cell }) => {
             const val = cell.getValue<number>();
             return val != null ? round4(val).toFixed(4) : "";
           },
         },
-        { accessorKey: "soldini", header: "Solde Initial", size: 10 },
-        { accessorKey: "congedu", header: "Jours Congé dû", size: 10 },
-        { accessorKey: "indemdu", header: "Indemnité Congé dû", size: 10 },
-        { accessorKey: "jouanc", header: "Jour Ancien.", size: 10 },
-        { accessorKey: "montanc", header: "Montant Ancienneté", size: 10 },
-        { accessorKey: "conjeutrv", header: "Congé Jeune Trv", size: 10 },
-        { accessorKey: "montjeutrv", header: "Montant Jeune Trv", size: 10 },
-        { accessorKey: "jourjeutrv", header: "Jour Jeune Trv", size: 10 },
-        { accessorKey: "montjourjeutrv", header: "Montant Jeune Trv", size: 10 },
-        { accessorKey: "totdupres", header: "Total dû Présence", size: 10 },
-        { accessorKey: "indemcong", header: "Indemnité Congé", size: 10 },
+        { accessorKey: "soldini", header: t('cahierConge.list.headers.initialBalance'), size: 10 },
+        { accessorKey: "congedu", header: t('cahierConge.list.headers.leaveDueDays'), size: 10 },
+        { accessorKey: "indemdu", header: t('cahierConge.list.headers.leaveDueIndemnity'), size: 10 },
+        { accessorKey: "jouanc", header: t('cahierConge.list.headers.seniorityDays'), size: 10 },
+        { accessorKey: "montanc", header: t('cahierConge.list.headers.seniorityAmount'), size: 10 },
+        { accessorKey: "conjeutrv", header: t('cahierConge.list.headers.youngWorkerLeave'), size: 10 },
+        { accessorKey: "montjeutrv", header: t('cahierConge.list.headers.youngWorkerLeaveAmount'), size: 10 },
+        { accessorKey: "jourjeutrv", header: t('cahierConge.list.headers.youngWorkerDays'), size: 10 },
+        { accessorKey: "montjourjeutrv", header: t('cahierConge.list.headers.youngWorkerDaysAmount'), size: 10 },
+        { accessorKey: "totdupres", header: t('cahierConge.list.headers.totalDuePresence'), size: 10 },
+        { accessorKey: "indemcong", header: t('cahierConge.list.headers.leaveIndemnity'), size: 10 },
         {
           accessorFn: (row: CahierConge) => {
             if (!row.datdep) return "";
@@ -81,10 +83,10 @@ function ListeCahierConge() {
             return !isNaN(date.getTime()) ? date.toISOString().split("T")[0] : "";
           },
           accessorKey: "datdep",
-          header: "Date Départ",
+          header: t('cahierConge.list.headers.departureDate'),
           size: 60,
         },
-        { accessorKey: "depam", header: "AM", size: 10 },
+        { accessorKey: "depam", header: t('cahierConge.list.headers.am'), size: 10 },
         {
           accessorFn: (row: CahierConge) => {
             if (!row.datret) return "";
@@ -92,13 +94,13 @@ function ListeCahierConge() {
             return !isNaN(date.getTime()) ? date.toISOString().split("T")[0] : "";
           },
           accessorKey: "datret",
-          header: "Date Retour",
+          header: t('cahierConge.list.headers.returnDate'),
           size: 60,
         },
-        { accessorKey: "retam", header: "AM", size: 10 },
+        { accessorKey: "retam", header: t('cahierConge.list.headers.am'), size: 10 },
       ],
     },
-  ], []);
+  ], [t]);
 
   // 🦴 Skeleton loading view
   if (isLoading) {

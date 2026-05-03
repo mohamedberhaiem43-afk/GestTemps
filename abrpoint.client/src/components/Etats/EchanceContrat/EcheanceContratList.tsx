@@ -1,11 +1,13 @@
 import { Grid } from '@mui/material'
 import DataList from '../../lists/list'
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import EchContrat from '../../../models/EcheanceContrat';
 import { MRT_ColumnDef } from 'material-react-table';
 import useGetEchContrats from '../../../hooks/contratHooks/useGetEchContrats';
 
 function EcheanceContratList() {
+    const { t } = useTranslation();
     const formatDate = (date: Date) => date.toISOString().split('T')[0];
     const today = new Date();
     const sixMonthsLater = new Date();
@@ -14,21 +16,21 @@ function EcheanceContratList() {
     const columns = useMemo<MRT_ColumnDef<EchContrat>[]>(() => [
         {
         id: 'echeance-contrats',
-        header: 'Liste des écheances contrats',
+        header: t('echeanceContrat.list.title'),
         columns: [
             {
             accessorKey: 'empmat',
-            header: 'Matricule',
+            header: t('echeanceContrat.list.headers.matricule'),
             size: 60,
             },
             {
             accessorKey: 'emplib',
-            header: 'Nom et Prénom',
+            header: t('echeanceContrat.list.headers.name'),
             size: 100,
             },
             {
             accessorKey: 'condat',
-            header: 'Date Contrat',
+            header: t('echeanceContrat.list.headers.contractDate'),
             size: 60,
             Cell: ({ cell }) => {
                 const value = cell.getValue<Date>();
@@ -37,12 +39,12 @@ function EcheanceContratList() {
             },
             {
             accessorKey: 'concod',
-            header: 'N°Contrat',
+            header: t('echeanceContrat.list.headers.contractNo'),
             size: 60,
             },
             {
             accessorKey: 'empemb',
-            header: 'Date Début',
+            header: t('echeanceContrat.list.headers.startDate'),
             size: 60,
             Cell: ({ cell }) => {
                 const value = cell.getValue<Date>();
@@ -51,7 +53,7 @@ function EcheanceContratList() {
             },
             {
             accessorKey: 'empsort',
-            header: 'Date Fin',
+            header: t('echeanceContrat.list.headers.endDate'),
             size: 60,
             Cell: ({ cell }) => {
                 const value = cell.getValue<Date>();
@@ -60,7 +62,7 @@ function EcheanceContratList() {
             },
         ],
         },
-    ], []);
+    ], [t]);
   return (
     <>
         <Grid mt={3}>

@@ -2,10 +2,12 @@ import { Grid } from "@mui/material";
 import './Part1.css';
 import AffichageProps from "../../../../models/AffichageProps";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import InputComponent from "../../../Inputs/Input";
 import CheckboxComponent from "../../../CheckboxComponent/CheckboxComponent";
 
 const Part1: React.FC<AffichageProps> = ({ parametre, onChange }) => {
+    const { t } = useTranslation();
     const [affech, setAffech] = useState(String(parametre?.affech ?? '0'));
     const [parsem, setParsem] = useState(String(parametre?.parsem ?? '0'));
     const [planhoraire, setPlanhoraire] = useState(String(parametre?.planhoraire ?? '0'));
@@ -28,7 +30,7 @@ const Part1: React.FC<AffichageProps> = ({ parametre, onChange }) => {
     <Grid container spacing={2}>
       <Grid item xs={5}>
         <CheckboxComponent
-          label={"Afficher Echéance Contrat à l'accueil"}
+          label={t('paramSoc.general.part1.afficherEcheance')}
           value={affech == "1"}
           setValue={(checked) => setAffech(checked ? "1" : "0")}
         />
@@ -36,7 +38,7 @@ const Part1: React.FC<AffichageProps> = ({ parametre, onChange }) => {
 
       <Grid item xs={6}>
         <CheckboxComponent
-          label={"Calcul Heures Semaine selon définition non calendrier"}
+          label={t('paramSoc.general.part1.calculSemaine')}
           value={parsem == "1"}
           setValue={(checked) => setParsem(checked ? "1" : "0")}
         />
@@ -44,7 +46,7 @@ const Part1: React.FC<AffichageProps> = ({ parametre, onChange }) => {
 
       <Grid item xs={5}>
         <CheckboxComponent
-          label={"Utilisation de plan Calendrier"}
+          label={t('paramSoc.general.part1.utilisationPlan')}
           value={planhoraire == "1"}
           setValue={(checked) => setPlanhoraire(checked ? "1" : "0")}
         />
@@ -53,17 +55,17 @@ const Part1: React.FC<AffichageProps> = ({ parametre, onChange }) => {
       <Grid item xs={4}>
         <InputComponent
           type={"number"}
-          label={"Longueur Matricule"}
+          label={t('paramSoc.general.part1.longueurMatricule')}
           value={longbdg}
           setValue={setLongbdg}
         />
       </Grid>
 
-      
+
 
       <Grid item xs={5}>
         <CheckboxComponent
-          label={"Même série d'absence et de congé"}
+          label={t('paramSoc.general.part1.memeSerie')}
           value={parabsconge == "1"}
           setValue={(checked) => setParabsconge(checked ? "1" : "0")}
         />
@@ -71,7 +73,7 @@ const Part1: React.FC<AffichageProps> = ({ parametre, onChange }) => {
       <Grid item xs={4}>
         <InputComponent
           type={"text"}
-          label={"Code Absence Allaitement"}
+          label={t('paramSoc.general.part1.codeAbsenceAllaitement')}
           value={parallaite}
           setValue={setParallaite}
         />

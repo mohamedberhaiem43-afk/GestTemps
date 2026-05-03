@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Alert, Snackbar } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { useTranslation } from 'react-i18next';
 import {
   Badge,
   Security,
@@ -38,6 +39,7 @@ function getInitials(nom: string | null, prn: string | null) {
 }
 
 function ProfilePage() {
+  const { t } = useTranslation();
   const { uticod } = useAuth();
   const [userData, setUserData] = useState<User | null>(null);
   const [profileImage, setProfileImage] = useState<string>('');
@@ -98,12 +100,12 @@ function ProfilePage() {
       onSuccess: (response: any) => {
         setSnackbar({
           open: true,
-          message: response ? 'Profil mis à jour avec succès !' : 'Aucune modification apportée.',
+          message: response ? t('paramSoc.profile.msg.profileUpdated') : t('paramSoc.profile.msg.noChanges'),
           severity: response ? 'success' : 'info',
         });
       },
       onError: () => {
-        setSnackbar({ open: true, message: 'Erreur lors de la mise à jour.', severity: 'error' });
+        setSnackbar({ open: true, message: t('paramSoc.profile.msg.updateError'), severity: 'error' });
       },
     });
   };
@@ -127,17 +129,17 @@ function ProfilePage() {
         localStorage.setItem('profileImage', filePath);
         setProfileImage(resolveAssetUrl(filePath));
         window.dispatchEvent(new Event('imageUpdated'));
-        setSnackbar({ open: true, message: 'Photo de profil mise à jour !', severity: 'success' });
+        setSnackbar({ open: true, message: t('paramSoc.profile.msg.photoUpdated'), severity: 'success' });
       }
     } catch (error) {
       console.error('Erreur image:', error);
-      setSnackbar({ open: true, message: "Erreur lors de la sauvegarde de l'image.", severity: 'error' });
+      setSnackbar({ open: true, message: t('paramSoc.profile.msg.photoSaveError'), severity: 'error' });
     }
   };
 
   const handleChangePassword = () => {
     if (!userData?.uticod || !currentPassword || !newPassword) {
-      setSnackbar({ open: true, message: 'Veuillez remplir tous les champs.', severity: 'error' });
+      setSnackbar({ open: true, message: t('paramSoc.profile.msg.fillAllFields'), severity: 'error' });
       return;
     }
     const payload: PasswordUpdate = {
@@ -147,13 +149,13 @@ function ProfilePage() {
     };
     updatePasswordMutation.mutate(payload, {
       onSuccess: () => {
-        setSnackbar({ open: true, message: 'Mot de passe modifié avec succès !', severity: 'success' });
+        setSnackbar({ open: true, message: t('paramSoc.profile.msg.passwordChanged'), severity: 'success' });
         setCurrentPassword('');
         setNewPassword('');
         setPwdDialogOpen(false);
       },
       onError: () => {
-        setSnackbar({ open: true, message: 'Erreur lors du changement de mot de passe.', severity: 'error' });
+        setSnackbar({ open: true, message: t('paramSoc.profile.msg.passwordChangeError'), severity: 'error' });
       },
     });
   };
@@ -170,7 +172,7 @@ function ProfilePage() {
         setTwoFADialogOpen(true);
       }
     } catch (err) {
-      setSnackbar({ open: true, message: "Erreur lors de l'activation de la 2FA.", severity: 'error' });
+      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFAEnableError'), severity: 'error' });
     } finally {
       setTwoFALoading(false);
     }
@@ -185,9 +187,9 @@ function ProfilePage() {
       setTwoFADialogOpen(false);
       setTwoFACode('');
       setTwoFAQRUrl('');
-      setSnackbar({ open: true, message: '2FA activée avec succès !', severity: 'success' });
+      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFAEnabled'), severity: 'success' });
     } catch (err) {
-      setSnackbar({ open: true, message: 'Code invalide. Veuillez réessayer.', severity: 'error' });
+      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFAInvalidCode'), severity: 'error' });
     } finally {
       setTwoFALoading(false);
     }
@@ -199,9 +201,9 @@ function ProfilePage() {
     try {
       await apiInstance.post(`/Utilisateurs/disable-2fa/${userData.uticod}`);
       setTwoFAEnabled(false);
-      setSnackbar({ open: true, message: '2FA désactivée.', severity: 'info' });
+      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFADisabled'), severity: 'info' });
     } catch (err) {
-      setSnackbar({ open: true, message: 'Erreur lors de la désactivation.', severity: 'error' });
+      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFADisableError'), severity: 'error' });
     } finally {
       setTwoFALoading(false);
     }
@@ -237,24 +239,24 @@ function ProfilePage() {
         </div>
         <div className="profile-header-info">
           <div className="profile-header-row">
-            <h1 className="profile-header-name">{fullName || 'Utilisateur'}</h1>
+            <h1 className="profile-header-name">{fullName || t('paramSoc.profile.user')}</h1>
             {userData?.utiactif === 'Oui' && (
               <span className="profile-status-badge">
                 <span className="profile-status-dot" />
-                Actif
+                {t('paramSoc.profile.active')}
               </span>
             )}
           </div>
           <p className="profile-header-subtitle">
-            {userData?.utiadm === 'Oui' ? 'Administrateur' : 'Utilisateur'} • {userData?.utimail || ''}
+            {userData?.utiadm === 'Oui' ? t('paramSoc.profile.admin') : t('paramSoc.profile.user')} • {userData?.utimail || ''}
           </p>
           <div className="profile-header-actions">
             <button className="profile-btn-primary" onClick={handleUpdate}>
               <Edit sx={{ fontSize: 16 }} />
-              Modifier le Profil
+              {t('paramSoc.profile.modifyProfile')}
             </button>
             <button className="profile-btn-secondary" onClick={() => setPwdDialogOpen(true)}>
-              Changer le mot de passe
+              {t('paramSoc.profile.changePassword')}
             </button>
           </div>
         </div>
@@ -269,12 +271,12 @@ function ProfilePage() {
             <div className="profile-card-header">
               <h2 className="profile-card-title">
                 <Badge sx={{ fontSize: 24, color: '#0056d2' }} />
-                Informations de base
+                {t('paramSoc.profile.basicInfo')}
               </h2>
             </div>
             <div className="profile-form-grid">
               <div className="profile-field">
-                <label className="profile-field-label">Nom</label>
+                <label className="profile-field-label">{t('paramSoc.profile.lastName')}</label>
                 <div className="profile-field-input-wrap">
                   <input
                     className="profile-field-input"
@@ -285,7 +287,7 @@ function ProfilePage() {
                 </div>
               </div>
               <div className="profile-field">
-                <label className="profile-field-label">Prénom</label>
+                <label className="profile-field-label">{t('paramSoc.profile.firstName')}</label>
                 <div className="profile-field-input-wrap">
                   <input
                     className="profile-field-input"
@@ -296,7 +298,7 @@ function ProfilePage() {
                 </div>
               </div>
               <div className="profile-field">
-                <label className="profile-field-label">Email Professionnel</label>
+                <label className="profile-field-label">{t('paramSoc.profile.professionalEmail')}</label>
                 <div className="profile-field-input-wrap">
                   <input
                     className="profile-field-input"
@@ -308,7 +310,7 @@ function ProfilePage() {
                 </div>
               </div>
               <div className="profile-field">
-                <label className="profile-field-label">Code Utilisateur</label>
+                <label className="profile-field-label">{t('paramSoc.profile.userCode')}</label>
                 <div className="profile-field-input-wrap">
                   <input
                     className="profile-field-input"
@@ -320,24 +322,24 @@ function ProfilePage() {
                 </div>
               </div>
               <div className="profile-field">
-                <label className="profile-field-label">Rôle</label>
+                <label className="profile-field-label">{t('paramSoc.profile.role')}</label>
                 <div className="profile-field-input-wrap">
                   <input
                     className="profile-field-input"
                     type="text"
-                    value={userData?.utiadm === 'Oui' ? 'Administrateur' : 'Utilisateur'}
+                    value={userData?.utiadm === 'Oui' ? t('paramSoc.profile.admin') : t('paramSoc.profile.user')}
                     readOnly
                     style={{ color: '#737785', cursor: 'default' }}
                   />
                 </div>
               </div>
               <div className="profile-field">
-                <label className="profile-field-label">Statut</label>
+                <label className="profile-field-label">{t('paramSoc.profile.status')}</label>
                 <div className="profile-field-input-wrap">
                   <input
                     className="profile-field-input"
                     type="text"
-                    value={userData?.utiactif === 'Oui' ? 'Actif' : 'Inactif'}
+                    value={userData?.utiactif === 'Oui' ? t('paramSoc.profile.active') : t('paramSoc.profile.inactive')}
                     readOnly
                     style={{ color: '#737785', cursor: 'default' }}
                   />
@@ -351,7 +353,7 @@ function ProfilePage() {
             <div className="profile-card-header">
               <h2 className="profile-card-title">
                 <Security sx={{ fontSize: 24, color: '#0056d2' }} />
-                Sécurité du compte
+                {t('paramSoc.profile.accountSecurity')}
               </h2>
             </div>
 
@@ -362,12 +364,12 @@ function ProfilePage() {
                   <Password />
                 </div>
                 <div className="profile-security-text">
-                  <h4>Mot de passe</h4>
-                  <p>Dernière modification récemment</p>
+                  <h4>{t('paramSoc.profile.password')}</h4>
+                  <p>{t('paramSoc.profile.passwordSubtitle')}</p>
                 </div>
               </div>
               <button className="profile-security-btn profile-security-btn-outline" onClick={() => setPwdDialogOpen(true)}>
-                Changer le mot de passe
+                {t('paramSoc.profile.changePassword')}
               </button>
             </div>
 
@@ -378,8 +380,8 @@ function ProfilePage() {
                   <FactCheck />
                 </div>
                 <div className="profile-security-text">
-                  <h4>Double authentification (2FA)</h4>
-                  <p>{twoFAEnabled ? 'Activée ✓' : 'Recommandé pour sécuriser votre accès'}</p>
+                  <h4>{t('paramSoc.profile.twoFA')}</h4>
+                  <p>{twoFAEnabled ? t('paramSoc.profile.twoFAEnabled') : t('paramSoc.profile.twoFARecommended')}</p>
                 </div>
               </div>
               {twoFAEnabled ? (
@@ -389,7 +391,7 @@ function ProfilePage() {
                   onClick={handleDisable2FA}
                   disabled={twoFALoading}
                 >
-                  Désactiver
+                  {t('paramSoc.profile.disable')}
                 </button>
               ) : (
                 <button
@@ -397,7 +399,7 @@ function ProfilePage() {
                   onClick={handleEnable2FA}
                   disabled={twoFALoading}
                 >
-                  Activer la 2FA
+                  {t('paramSoc.profile.enable2FA')}
                 </button>
               )}
             </div>
@@ -409,14 +411,14 @@ function ProfilePage() {
           {/* Photo Upload Card */}
           <div className="profile-card profile-card-accent">
             <h2 className="profile-card-title" style={{ marginBottom: '24px' }}>
-              Photo de profil
+              {t('paramSoc.profile.profilePhoto')}
             </h2>
             <div className="profile-upload-zone" onClick={() => fileInputRef.current?.click()}>
               <div className="profile-upload-icon">
                 <UploadFile sx={{ fontSize: 32 }} />
               </div>
-              <p className="profile-upload-title">Uploader l'image</p>
-              <p className="profile-upload-hint">Glissez-déposez ou cliquez pour parcourir. JPG, PNG (max. 5MB)</p>
+              <p className="profile-upload-title">{t('paramSoc.profile.uploadImage')}</p>
+              <p className="profile-upload-hint">{t('paramSoc.profile.uploadHint')}</p>
             </div>
             {profileImage && (
               <button
@@ -427,45 +429,45 @@ function ProfilePage() {
                   window.dispatchEvent(new Event('imageUpdated'));
                 }}
               >
-                Supprimer la photo actuelle
+                {t('paramSoc.profile.deletePhoto')}
               </button>
             )}
           </div>
 
           {/* Activity Summary Card */}
           <div className="profile-activity-card">
-            <h3 className="profile-activity-label">Résumé de l'activité</h3>
+            <h3 className="profile-activity-label">{t('paramSoc.profile.activitySummary')}</h3>
             <div className="profile-activity-row">
-              <span className="profile-activity-row-label">Code</span>
+              <span className="profile-activity-row-label">{t('paramSoc.profile.code')}</span>
               <span className="profile-activity-row-value">{userData?.uticod || '—'}</span>
             </div>
             <div className="profile-activity-row">
-              <span className="profile-activity-row-label">Rôle</span>
+              <span className="profile-activity-row-label">{t('paramSoc.profile.role')}</span>
               <span className="profile-activity-row-value">
-                {userData?.utiadm === 'Oui' ? 'Administrateur' : 'Utilisateur'}
+                {userData?.utiadm === 'Oui' ? t('paramSoc.profile.admin') : t('paramSoc.profile.user')}
               </span>
             </div>
             <div className="profile-activity-row">
-              <span className="profile-activity-row-label">Statut</span>
+              <span className="profile-activity-row-label">{t('paramSoc.profile.status')}</span>
               <span className="profile-activity-row-value">
-                {userData?.utiactif === 'Oui' ? 'Actif' : 'Inactif'}
+                {userData?.utiactif === 'Oui' ? t('paramSoc.profile.active') : t('paramSoc.profile.inactive')}
               </span>
             </div>
             <div className="profile-activity-row">
-              <span className="profile-activity-row-label">2FA</span>
+              <span className="profile-activity-row-label">{t('paramSoc.profile.twoFAStatus')}</span>
               <span className="profile-activity-row-value" style={{ color: twoFAEnabled ? '#10b981' : '#ef4444' }}>
-                {twoFAEnabled ? 'Activée' : 'Désactivée'}
+                {twoFAEnabled ? t('paramSoc.profile.enabled') : t('paramSoc.profile.disabled')}
               </span>
             </div>
             <div className="profile-activity-divider">
-              <p className="profile-activity-status-label">Statut de sécurité</p>
+              <p className="profile-activity-status-label">{t('paramSoc.profile.securityStatus')}</p>
               <div className="profile-activity-bars">
                 <div className="profile-activity-bar profile-activity-bar-filled" />
                 <div className="profile-activity-bar profile-activity-bar-filled" />
                 <div className="profile-activity-bar profile-activity-bar-filled" />
                 <div className={`profile-activity-bar ${twoFAEnabled ? 'profile-activity-bar-filled' : 'profile-activity-bar-empty'}`} />
               </div>
-              <p className="profile-activity-status-text">{twoFAEnabled ? 'Excellent' : 'Bon'}</p>
+              <p className="profile-activity-status-text">{twoFAEnabled ? t('paramSoc.profile.excellent') : t('paramSoc.profile.good')}</p>
             </div>
           </div>
         </div>
@@ -482,10 +484,10 @@ function ProfilePage() {
           <div className="profile-pwd-dialog" onClick={(e) => e.stopPropagation()}>
             <h3 className="profile-pwd-title">
               <Lock sx={{ fontSize: 20, verticalAlign: 'middle', mr: 1 }} />
-              Changer le mot de passe
+              {t('paramSoc.profile.changePassword')}
             </h3>
             <div className="profile-pwd-field">
-              <label>Mot de passe actuel</label>
+              <label>{t('paramSoc.profile.currentPassword')}</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showCurrentPwd ? 'text' : 'password'}
@@ -513,7 +515,7 @@ function ProfilePage() {
               </div>
             </div>
             <div className="profile-pwd-field">
-              <label>Nouveau mot de passe</label>
+              <label>{t('paramSoc.profile.newPassword')}</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showNewPwd ? 'text' : 'password'}
@@ -545,10 +547,10 @@ function ProfilePage() {
                 className="profile-btn-secondary"
                 onClick={() => setPwdDialogOpen(false)}
               >
-                Annuler
+                {t('paramSoc.profile.cancel')}
               </button>
               <button className="profile-btn-primary" onClick={handleChangePassword}>
-                Confirmer
+                {t('paramSoc.profile.confirm')}
               </button>
             </div>
           </div>
@@ -561,10 +563,10 @@ function ProfilePage() {
           <div className="profile-pwd-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420, textAlign: 'center' }}>
             <h3 className="profile-pwd-title" style={{ justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}>
               <QrCode2 sx={{ fontSize: 24 }} />
-              Activer la Double Authentification
+              {t('paramSoc.profile.twoFADialogTitle')}
             </h3>
             <p style={{ color: '#64748b', fontSize: 13, margin: '12px 0' }}>
-              1. Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy, etc.)
+              {t('paramSoc.profile.twoFAStep1')}
             </p>
             {twoFAQRUrl && (
               <div style={{ margin: '16px auto', padding: 16, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', display: 'inline-block' }}>
@@ -572,7 +574,7 @@ function ProfilePage() {
               </div>
             )}
             <p style={{ color: '#64748b', fontSize: 13, margin: '12px 0' }}>
-              2. Entrez le code à 6 chiffres affiché dans l'application
+              {t('paramSoc.profile.twoFAStep2')}
             </p>
             <input
               type="text"
@@ -595,7 +597,7 @@ function ProfilePage() {
             />
             <div className="profile-pwd-actions" style={{ marginTop: 16 }}>
               <button className="profile-btn-secondary" onClick={() => { setTwoFADialogOpen(false); setTwoFACode(''); }}>
-                Annuler
+                {t('paramSoc.profile.cancel')}
               </button>
               <button
                 className="profile-btn-primary"
@@ -604,7 +606,7 @@ function ProfilePage() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 <VerifiedUser sx={{ fontSize: 16 }} />
-                {twoFALoading ? 'Vérification...' : 'Vérifier & Activer'}
+                {twoFALoading ? t('paramSoc.profile.verifying') : t('paramSoc.profile.verifyAndEnable')}
               </button>
             </div>
           </div>

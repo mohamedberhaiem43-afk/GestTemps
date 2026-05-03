@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Image, Switch, Dimensions,
 } from 'react-native';
@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS, THEME } from '../config/env';
+import { COLORS } from '../config/env';
 import BottomTabBar from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
@@ -22,7 +22,8 @@ export default function ProfileScreen({ navigation, route }: any) {
 
   const viewEmpcod = route?.params?.empcod || user?.uticod;
   const viewSoccod = route?.params?.soccod || user?.soccod;
-  const isOwnProfile = !route?.params?.empcod || route?.params?.empcod === user?.uticod;
+  // const isOwnProfile = !route?.params?.empcod || route?.params?.empcod === user?.uticod;
+  const isOwnProfile = true;
 
   useEffect(() => { loadAll(); }, [user, route?.params]);
 

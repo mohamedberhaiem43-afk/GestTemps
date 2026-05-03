@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircularProgress } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import EmployeeMultiSelectDropdown from '../../helper/EmployeeMultiSelectDropdown';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useAuth } from '../../helper/AuthProvider';
@@ -60,10 +61,11 @@ const parseRetardMinutes = (val: string | number | null | undefined) => {
 };
 // ─────────────────────────────────────────────
 function EtatAbsence() {
+  const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
 
   if (!hasPermission('Rapports et Statistiques', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter l'état d'absence." />;
+    return <AccessDenied message={t('etats.absence.noConsultRight')} />;
   }
 
   const {
@@ -283,8 +285,8 @@ function EtatAbsence() {
       <div className="ea-header">
         <div className="ea-header-left">
           <div>
-            <h2 className="ea-title">État des Absences</h2>
-            <p className="ea-subtitle">Analyse et suivi des absences du personnel</p>
+            <h2 className="ea-title">{t('etats.absence.title')}</h2>
+            <p className="ea-subtitle">{t('etats.absence.subtitle')}</p>
           </div>
           <div className="ea-header-divider" />
           <div className="ea-year-select">
@@ -299,7 +301,7 @@ function EtatAbsence() {
               }}
             >
               {['2026', '2025', '2024', '2023'].map((y) => (
-                <option key={y} value={y}>Année {y}</option>
+                <option key={y} value={y}>{t('etats.absence.yearLabel', { year: y })}</option>
               ))}
             </select>
           </div>
@@ -311,13 +313,13 @@ function EtatAbsence() {
         <div className="ea-filter-row">
           {filiale && Object.keys(filiale).length > 0 && (
             <div className="ea-filter-field">
-              <label className="ea-filter-label">Filiale</label>
+              <label className="ea-filter-label">{t('etats.filter.branch')}</label>
               <select
                 className="ea-filter-select"
                 value={selectedFiliale}
                 onChange={(e) => setSelectedFiliale(e.target.value)}
               >
-                <option value="">Toutes</option>
+                <option value="">{t('etats.filter.all')}</option>
                 {Object.entries(filiale).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
@@ -326,14 +328,14 @@ function EtatAbsence() {
           )}
           {services && Object.keys(services).length > 0 && (
             <div className="ea-filter-field">
-              <label className="ea-filter-label">Service</label>
+              <label className="ea-filter-label">{t('etats.filter.service')}</label>
               <select
                 className="ea-filter-select"
                 value={selectedService}
                 onChange={(e) => setSelectedService(e.target.value)}
                 disabled={isServiceLocked}
               >
-                <option value="">{isServiceLocked ? 'Mon service' : 'Tous'}</option>
+                <option value="">{isServiceLocked ? t('etats.filter.myService') : t('etats.filter.allService')}</option>
                 {Object.entries(services).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
@@ -341,19 +343,19 @@ function EtatAbsence() {
             </div>
           )}
           <div className="ea-filter-field">
-            <label className="ea-filter-label">Régime</label>
+            <label className="ea-filter-label">{t('etats.absence.regime')}</label>
             <select
               className="ea-filter-select"
               value={selectedRegime}
               onChange={(e) => setSelectedRegime(e.target.value)}
             >
               {Object.entries(regimeOptions).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+                <option key={k} value={k}>{k === '' ? t('etats.filter.regimeAll') : v}</option>
               ))}
             </select>
           </div>
           <div className="ea-filter-field-narrow">
-            <label className="ea-filter-label">Date Début</label>
+            <label className="ea-filter-label">{t('etats.absence.dateStart')}</label>
             <input
               type="date"
               className="ea-filter-input"
@@ -362,7 +364,7 @@ function EtatAbsence() {
             />
           </div>
           <div className="ea-filter-field-narrow">
-            <label className="ea-filter-label">Date Fin</label>
+            <label className="ea-filter-label">{t('etats.absence.dateEnd')}</label>
             <input
               type="date"
               className="ea-filter-input"
@@ -371,7 +373,7 @@ function EtatAbsence() {
             />
           </div>
           <div className="ea-filter-field" style={{ minWidth: 250, flexGrow: 1 }}>
-            <label className="ea-filter-label">Employés</label>
+            <label className="ea-filter-label">{t('etats.absence.employees')}</label>
             <EmployeeMultiSelectDropdown
               options={accessibleEmployees.map(e => ({ code: e.empcod, label: `${e.empcod} - ${e.emplib}` }))}
               value={selectedEmpCodes}
@@ -381,14 +383,14 @@ function EtatAbsence() {
           </div>
           <button className="ea-search-btn" onClick={handleSearch} disabled={!hasEffectiveEmployees || isLoading}>
             {isLoading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon sx={{ fontSize: 15 }} />}
-            RECHERCHE
+            {t('etats.absence.search')}
           </button>
         </div>
         <div className="ea-status-msg" style={{ marginLeft: 4 }}>
           <span className={hasEffectiveEmployees ? 'ea-status-msg-ok' : 'ea-status-msg-warn'}>
             {hasEffectiveEmployees
-              ? `${effectiveEmployeesLabel} — ${effectiveEmpcods.length} employé(s) sélectionné(s)`
-              : 'Aucun employé actif ne correspond aux filtres.'}
+              ? t('etats.absence.selectedLabel', { label: effectiveEmployeesLabel, count: effectiveEmpcods.length })
+              : t('etats.absence.noEmpFilter')}
           </span>
         </div>
       </div>
@@ -397,57 +399,57 @@ function EtatAbsence() {
       <div className="ea-summary-grid">
         <div className="ea-summary-card ea-card-border-blue">
           <div className="ea-summary-card-top">
-            <span className="ea-summary-label">Employés Concernés</span>
+            <span className="ea-summary-label">{t('etats.absence.summary.employees')}</span>
             <div className="ea-summary-icon ea-icon-bg-blue">
               <GroupIcon sx={{ fontSize: 19 }} />
             </div>
           </div>
           <div className="ea-summary-value">{totalEmployes}</div>
-          <div className="ea-summary-footer">Employés avec absences</div>
+          <div className="ea-summary-footer">{t('etats.absence.summary.employeesFooter')}</div>
         </div>
 
         <div className="ea-summary-card ea-card-border-red">
           <div className="ea-summary-card-top">
-            <span className="ea-summary-label">Total Absences</span>
+            <span className="ea-summary-label">{t('etats.absence.summary.totalAbs')}</span>
             <div className="ea-summary-icon ea-icon-bg-red">
               <EventBusyIcon sx={{ fontSize: 19 }} />
             </div>
           </div>
           <div className="ea-summary-value">
             {absenceData.length}
-            <span className="ea-summary-unit">Lignes</span>
+            <span className="ea-summary-unit">{t('etats.absence.summary.rows')}</span>
           </div>
-          <div className="ea-summary-footer">Enregistrements sur la période</div>
+          <div className="ea-summary-footer">{t('etats.absence.summary.rowsFooter')}</div>
         </div>
 
         <div className="ea-summary-card ea-card-border-amber">
           <div className="ea-summary-card-top">
-            <span className="ea-summary-label">Abs. Non Justifiées</span>
+            <span className="ea-summary-label">{t('etats.absence.summary.absNonJust')}</span>
             <div className="ea-summary-icon ea-icon-bg-orange">
               <AssignmentLateIcon sx={{ fontSize: 19 }} />
             </div>
           </div>
           <div className="ea-summary-value">
             {totalAbsNonJustifiees.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
-            <span className="ea-summary-unit">Jrs</span>
+            <span className="ea-summary-unit">{t('etats.absence.summary.days')}</span>
           </div>
           <div className="ea-summary-footer">
-            Justifiées: {totalAbsJustifiees.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} Jrs
+            {t('etats.absence.summary.justifiedFooter', { value: totalAbsJustifiees.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) })}
           </div>
         </div>
 
         <div className="ea-summary-card ea-card-border-green">
           <div className="ea-summary-card-top">
-            <span className="ea-summary-label">Total Jours d'Absence</span>
+            <span className="ea-summary-label">{t('etats.absence.summary.totalDays')}</span>
             <div className="ea-summary-icon ea-icon-bg-green">
               <HourglassEmptyIcon sx={{ fontSize: 19 }} />
             </div>
           </div>
           <div className="ea-summary-value">
             {totalJoursAbsence.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
-            <span className="ea-summary-unit">Jrs</span>
+            <span className="ea-summary-unit">{t('etats.absence.summary.days')}</span>
           </div>
-          <div className="ea-summary-footer">Cumulatif sur la période</div>
+          <div className="ea-summary-footer">{t('etats.absence.summary.cumulative')}</div>
         </div>
       </div>
 
@@ -457,22 +459,22 @@ function EtatAbsence() {
           <div>
             <div className="ea-table-title">
               <CheckCircleOutlineIcon />
-              Registre des Absences
+              {t('etats.absence.table.title')}
             </div>
             <div className="ea-table-subtitle">
-              Période du {formatDate(dateDebut)} au {formatDate(dateFin)}
+              {t('etats.absence.table.period', { start: formatDate(dateDebut), end: formatDate(dateFin) })}
             </div>
           </div>
           <div className="ea-table-actions">
             <button className="ea-export-btn" onClick={handleExportExcel} disabled={!filteredData.length}>
               <DownloadIcon sx={{ fontSize: 13 }} />
-              EXPORTER EXCEL
+              {t('etats.absence.table.exportExcel')}
             </button>
             <button className="ea-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
               <PrintIcon sx={{ fontSize: 13 }} />
-              IMPRIMER PDF
+              {t('etats.absence.table.printPdf')}
             </button>
-            <button className="ea-filter-toggle" title="Filtrer">
+            <button className="ea-filter-toggle" title={t('etats.absence.table.filterBtn')}>
               <FilterListIcon sx={{ fontSize: 16 }} />
             </button>
           </div>
@@ -488,15 +490,15 @@ function EtatAbsence() {
               <table className="ea-table">
                 <thead>
                   <tr>
-                    <th>Matricule</th>
-                    <th>Collaborateur</th>
-                    <th>Date</th>
-                    <th>Code Abs.</th>
-                    <th>Motif</th>
-                    <th>Régime</th>
-                    <th className="ea-th-right">Abs. NJ</th>
-                    <th className="ea-th-right">Abs. Just.</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th>{t('etats.absence.table.matricule')}</th>
+                    <th>{t('etats.absence.table.collaborator')}</th>
+                    <th>{t('etats.absence.table.date')}</th>
+                    <th>{t('etats.absence.table.absCode')}</th>
+                    <th>{t('etats.absence.table.motif')}</th>
+                    <th>{t('etats.absence.table.regime')}</th>
+                    <th className="ea-th-right">{t('etats.absence.table.absNJShort')}</th>
+                    <th className="ea-th-right">{t('etats.absence.table.absJustShort')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('etats.absence.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -504,8 +506,8 @@ function EtatAbsence() {
                     <tr>
                       <td colSpan={9} className="ea-no-data">
                         {searchTriggered
-                          ? 'Aucune absence enregistrée pour cette période.'
-                          : 'Cliquez sur RECHERCHE pour charger les données.'}
+                          ? t('etats.absence.table.noData')
+                          : t('etats.absence.table.clickSearch')}
                       </td>
                     </tr>
                   ) : (
@@ -533,9 +535,9 @@ function EtatAbsence() {
                           {item.absjust != null ? Number(item.absjust).toFixed(2) : '—'}
                         </td>
                         <td className="ea-actions">
-                          <button className="ea-action-btn" onClick={() => openDrawer(item)} title="Détails">
+                          <button className="ea-action-btn" onClick={() => openDrawer(item)} title={t('etats.absence.table.details')}>
                             <VisibilityIcon sx={{ fontSize: 13 }} />
-                            <span className="ea-action-label">Détails</span>
+                            <span className="ea-action-label">{t('etats.absence.table.details')}</span>
                           </button>
                         </td>
                       </tr>
@@ -548,8 +550,11 @@ function EtatAbsence() {
             {filteredData.length > 0 && (
               <div className="ea-table-footer">
                 <span className="ea-table-footer-info">
-                  Affichage de {Math.min((currentPage - 1) * pageSize + 1, filteredData.length)} à{' '}
-                  {Math.min(currentPage * pageSize, filteredData.length)} sur {filteredData.length} enregistrements
+                  {t('etats.absence.table.pagination', {
+                    start: Math.min((currentPage - 1) * pageSize + 1, filteredData.length),
+                    end: Math.min(currentPage * pageSize, filteredData.length),
+                    total: filteredData.length,
+                  })}
                 </span>
                 <div className="ea-pagination">
                   <button
@@ -591,8 +596,8 @@ function EtatAbsence() {
       <div className={`ea-drawer ${drawerOpen ? 'ea-drawer-open' : ''}`}>
         <div className="ea-drawer-header">
           <div>
-            <h3 className="ea-drawer-title">Détail d'Absence</h3>
-            <p className="ea-drawer-subtitle">Fiche complète de l'enregistrement</p>
+            <h3 className="ea-drawer-title">{t('etats.absence.drawer.title')}</h3>
+            <p className="ea-drawer-subtitle">{t('etats.absence.drawer.subtitle')}</p>
           </div>
           <button className="ea-drawer-close" onClick={closeDrawer}>
             <CloseIcon sx={{ fontSize: 16 }} />
@@ -609,24 +614,24 @@ function EtatAbsence() {
                   <div className="ea-drawer-avatar">{getInitials(selectedRow.emplib)}</div>
                   <div>
                     <div className="ea-drawer-name">{selectedRow.emplib}</div>
-                    <span className="ea-drawer-matricule">Matricule: {selectedRow.empmat}</span>
+                    <span className="ea-drawer-matricule">{t('etats.absence.drawer.matriculeLabel', { value: selectedRow.empmat })}</span>
                   </div>
                 </div>
                 <div className="ea-drawer-grid">
                   <div className="ea-drawer-field">
-                    <div className="ea-drawer-field-label">Code Employé</div>
+                    <div className="ea-drawer-field-label">{t('etats.absence.drawer.empCode')}</div>
                     <div className="ea-drawer-field-value">{selectedRow.empcod || '—'}</div>
                   </div>
                   <div className="ea-drawer-field">
-                    <div className="ea-drawer-field-label">Régime</div>
+                    <div className="ea-drawer-field-label">{t('etats.absence.drawer.regime')}</div>
                     <div className="ea-drawer-field-value">{selectedRow.empreg || '—'}</div>
                   </div>
                   <div className="ea-drawer-field">
-                    <div className="ea-drawer-field-label">Date</div>
+                    <div className="ea-drawer-field-label">{t('etats.absence.drawer.date')}</div>
                     <div className="ea-drawer-field-value">{formatDate(selectedRow.date) || '—'}</div>
                   </div>
                   <div className="ea-drawer-field">
-                    <div className="ea-drawer-field-label">Code Absence</div>
+                    <div className="ea-drawer-field-label">{t('etats.absence.drawer.absCode')}</div>
                     <div className="ea-drawer-field-value">
                       <span className={`ea-abs-badge ${getAbsBadgeClass(selectedRow.abscod)}`}>
                         {selectedRow.abscod || '—'}
@@ -637,7 +642,7 @@ function EtatAbsence() {
                 {selectedRow.motif && (
                   <div style={{ marginTop: 10 }}>
                     <div className="ea-drawer-field">
-                      <div className="ea-drawer-field-label">Motif</div>
+                      <div className="ea-drawer-field-label">{t('etats.absence.drawer.motif')}</div>
                       <div className="ea-drawer-field-value" style={{ fontWeight: 500 }}>{selectedRow.motif}</div>
                     </div>
                   </div>
@@ -648,23 +653,23 @@ function EtatAbsence() {
               <div className="ea-drawer-section">
                 <h5 className="ea-drawer-section-title">
                   <span className="ea-drawer-bar ea-drawer-bar-blue" />
-                  Absences Autorisées / Justifiées
+                  {t('etats.absence.drawer.justifiedSection')}
                 </h5>
                 <div className="ea-drawer-row">
-                  <span className="ea-drawer-row-label">Congé Payé</span>
+                  <span className="ea-drawer-row-label">{t('etats.absence.drawer.paidLeave')}</span>
                   <span className="ea-drawer-row-value">{selectedRow.congepaye ?? '—'}</span>
                 </div>
                 <div className="ea-drawer-row">
-                  <span className="ea-drawer-row-label">Accident de Travail</span>
+                  <span className="ea-drawer-row-label">{t('etats.absence.drawer.workAccident')}</span>
                   <span className="ea-drawer-row-value">{selectedRow.acctrav ?? '—'}</span>
                 </div>
                 <div className="ea-drawer-row">
-                  <span className="ea-drawer-row-label">C.S.F</span>
+                  <span className="ea-drawer-row-label">{t('etats.absence.drawer.csf')}</span>
                   <span className="ea-drawer-row-value">{selectedRow.csf ?? '—'}</span>
                 </div>
                 <div className="ea-drawer-row ea-drawer-row-highlight">
                   <span className="ea-drawer-row-value" style={{ fontWeight: 700, color: '#1d4ed8' }}>
-                    Abs. Justifiée
+                    {t('etats.absence.drawer.absJust')}
                   </span>
                   <span className="ea-drawer-row-value" style={{ fontWeight: 900, color: '#1d4ed8' }}>
                     {selectedRow.absjust != null ? Number(selectedRow.absjust).toFixed(2) : '—'}
@@ -676,15 +681,15 @@ function EtatAbsence() {
               <div className="ea-drawer-section">
                 <h5 className="ea-drawer-section-title">
                   <span className="ea-drawer-bar ea-drawer-bar-red" />
-                  Absences Non Justifiées
+                  {t('etats.absence.drawer.nonJustifiedSection')}
                 </h5>
                 <div className="ea-drawer-row">
-                  <span className="ea-drawer-row-label">Abs. Maladie</span>
+                  <span className="ea-drawer-row-label">{t('etats.absence.drawer.absSick')}</span>
                   <span className="ea-drawer-row-value">{selectedRow.absmal ?? '—'}</span>
                 </div>
                 <div className="ea-drawer-row ea-drawer-row-highlight">
                   <span className="ea-drawer-row-value" style={{ fontWeight: 700, color: '#b91c1c' }}>
-                    Abs. Non Just.
+                    {t('etats.absence.drawer.absNJ')}
                   </span>
                   <span className="ea-drawer-row-value" style={{ fontWeight: 900, color: '#b91c1c' }}>
                     {selectedRow.absnj != null ? Number(selectedRow.absnj).toFixed(2) : '—'}
@@ -696,17 +701,17 @@ function EtatAbsence() {
               <div className="ea-drawer-section">
                 <h5 className="ea-drawer-section-title">
                   <span className="ea-drawer-bar ea-drawer-bar-orange" />
-                  Autres Types
+                  {t('etats.absence.drawer.otherTypesSection')}
                 </h5>
                 {[
-                  { label: 'Formation + Mission', value: selectedRow.fm },
-                  { label: 'Arrêt Technique', value: selectedRow.arrtech },
-                  { label: 'MAP', value: selectedRow.map },
-                  { label: 'Aut. Spécial Payé', value: selectedRow.autsp },
-                  { label: 'Aut. Spécial Non Payé', value: selectedRow.autsnp },
-                  { label: 'Congé Sans Solde', value: selectedRow.css },
-                ].map(({ label, value }) => (
-                  <div className="ea-drawer-row" key={label}>
+                  { key: 'fm', label: t('etats.absence.drawer.formationMission'), value: selectedRow.fm },
+                  { key: 'arrtech', label: t('etats.absence.drawer.techStop'), value: selectedRow.arrtech },
+                  { key: 'map', label: t('etats.absence.drawer.map'), value: selectedRow.map },
+                  { key: 'autsp', label: t('etats.absence.drawer.autsp'), value: selectedRow.autsp },
+                  { key: 'autsnp', label: t('etats.absence.drawer.autsnp'), value: selectedRow.autsnp },
+                  { key: 'css', label: t('etats.absence.drawer.css'), value: selectedRow.css },
+                ].map(({ key, label, value }) => (
+                  <div className="ea-drawer-row" key={key}>
                     <span className="ea-drawer-row-label">{label}</span>
                     <span className="ea-drawer-row-value">{value ?? '—'}</span>
                   </div>
@@ -717,15 +722,15 @@ function EtatAbsence() {
               <div className="ea-drawer-section">
                 <h5 className="ea-drawer-section-title">
                   <span className="ea-drawer-bar ea-drawer-bar-purple" />
-                  Totaux
+                  {t('etats.absence.drawer.totalsSection')}
                 </h5>
                 <div className="ea-drawer-row">
-                  <span className="ea-drawer-row-label">Abs. Jour + Retard</span>
+                  <span className="ea-drawer-row-label">{t('etats.absence.drawer.absDayLate')}</span>
                   <span className="ea-drawer-row-value">{selectedRow.absjourretard ?? '—'}</span>
                 </div>
                 <div className="ea-drawer-row ea-drawer-row-highlight">
                   <span className="ea-drawer-row-value" style={{ fontWeight: 700, color: '#6d28d9' }}>
-                    Total Absence
+                    {t('etats.absence.drawer.totalAbs')}
                   </span>
                   <span className="ea-drawer-row-value" style={{ fontWeight: 900, color: '#6d28d9' }}>
                     {selectedRow.absence != null ? Number(selectedRow.absence).toFixed(2) : '—'}
@@ -742,7 +747,7 @@ function EtatAbsence() {
                 style={{ width: '100%', justifyContent: 'center' }}
               >
                 <DownloadIcon sx={{ fontSize: 15 }} />
-                EXPORTER LA FICHE
+                {t('etats.absence.drawer.exportSheet')}
               </button>
             </div>
           </>

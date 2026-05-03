@@ -8,6 +8,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import TimerIcon from '@mui/icons-material/Timer';
 import TuneIcon from '@mui/icons-material/Tune';
+import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { EmployeeProvider, EmployeeContext } from './EmployeeContext';
 import { DateRangeProvider, useDateRange } from './FilterContext';
@@ -167,6 +168,7 @@ function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
   dateDebut: string;
   dateFin: string;
 }) {
+  const { t } = useTranslation();
   // Generate all dates in the range
   const days = useMemo(() => {
     const start = dayjs(dateDebut);
@@ -201,9 +203,19 @@ function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
-            {['Date', 'Statut', 'Entrée', 'Sortie', 'H.Trav', 'Retard', 'H.Abs', 'H.Sup', 'Jours'].map(h => (
-              <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Date' || h === 'Statut' ? 'left' : 'center', fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-                {h}
+            {[
+              { key: 'date', label: t('pointeuse.etatPeriodique.table.date'), align: 'left' as const },
+              { key: 'status', label: t('pointeuse.etatPeriodique.table.status'), align: 'left' as const },
+              { key: 'entry', label: t('pointeuse.etatPeriodique.table.entry'), align: 'center' as const },
+              { key: 'exit', label: t('pointeuse.etatPeriodique.table.exit'), align: 'center' as const },
+              { key: 'workedH', label: t('pointeuse.etatPeriodique.table.workedH'), align: 'center' as const },
+              { key: 'late', label: t('pointeuse.etatPeriodique.table.late'), align: 'center' as const },
+              { key: 'absH', label: t('pointeuse.etatPeriodique.table.absH'), align: 'center' as const },
+              { key: 'supH', label: t('pointeuse.etatPeriodique.table.supH'), align: 'center' as const },
+              { key: 'days', label: t('pointeuse.etatPeriodique.table.days'), align: 'center' as const },
+            ].map(h => (
+              <th key={h.key} style={{ padding: '8px 10px', textAlign: h.align, fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                {h.label}
               </th>
             ))}
           </tr>
@@ -221,9 +233,7 @@ function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
             // Display etat label
             const etatDisplay = e?.etat?.trim()
               ? e.etat.trim()
-              : status === 'absent' ? 'Absent'
-              : status === 'present' ? 'Présent'
-              : cfg.label;
+              : t(`pointeuse.etatPeriodique.status.${status}`);
 
             // Entry/exit highlighting
             const missingEntry = e && !e.preentmatup && status !== 'repos' && status !== 'ferie' && status !== 'conge' && status !== 'autorisation';
@@ -243,7 +253,7 @@ function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
                 {/* Date */}
                 <td style={{ padding: '7px 10px', fontWeight: 600, color: cfg.calText, whiteSpace: 'nowrap' }}>
                   {dateLabel}
-                  {isWeekend && <span style={{ marginLeft: 4, fontSize: 10, color: '#94a3b8', fontWeight: 400 }}>(W-E)</span>}
+                  {isWeekend && <span style={{ marginLeft: 4, fontSize: 10, color: '#94a3b8', fontWeight: 400 }}>{t('pointeuse.etatPeriodique.table.weekend')}</span>}
                 </td>
 
                 {/* Status badge */}
@@ -306,6 +316,7 @@ function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
 
 // ── Summary bar ───────────────────────────────────────────────────────────────
 function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
+  const { t } = useTranslation();
   const counts = useMemo(() => {
     const c: Record<DayStatus, number> = { present: 0, absent: 0, retard: 0, conge: 0, autorisation: 0, ferie: 0, repos: 0, unknown: 0 };
     Object.values(etatByDate).forEach(e => { c[classifyDayStatus(e)]++; });
@@ -329,16 +340,16 @@ function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, p: '10px 14px', background: 'white', borderRadius: '10px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       {shown.filter(s => counts[s] > 0).map(s => {
         const c = STATUS_CFG[s];
-        // Mots invariables (déjà terminés par 's' ou 'x') : pas d'ajout de 's' au pluriel.
-        const needsPlural = counts[s] > 1 && !/[sx]$/i.test(c.label);
+        // Pluralisation déléguée à i18next via les clés `_one` / `_other` —
+        // permet aux locales (FR/EN) d'avoir leurs propres règles sans bricolage.
         return (
           <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: c.badgeBg, color: c.badgeText }}>
-            {c.icon} {counts[s]} {c.label}{needsPlural ? 's' : ''}
+            {c.icon} {t(`pointeuse.etatPeriodique.summary.${s}`, { count: counts[s] })}
           </span>
         );
       })}
       <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: '#f1f5f9', color: '#374151' }}>
-        📅 {totalJours.toFixed(1)} j travaillés
+        {t('pointeuse.etatPeriodique.summary.daysWorked', { value: totalJours.toFixed(1) })}
       </span>
     </Box>
   );
@@ -348,6 +359,7 @@ function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
 function CalCell({ dateKey, etat, onClick, selected }: {
   dateKey: string | null; etat?: EmpEtat; onClick?: () => void; selected?: boolean;
 }) {
+  const { t } = useTranslation();
   if (!dateKey) return <Box className="ep-cal-cell ep-cal-cell-empty" />;
 
   const d = dayjs(dateKey);
@@ -357,9 +369,7 @@ function CalCell({ dateKey, etat, onClick, selected }: {
 
   const etatDisplay = etat?.etat?.trim()
     ? etat.etat.trim()
-    : status === 'absent' ? 'Absent'
-    : status === 'present' ? 'Présent'
-    : cfg.label;
+    : t(`pointeuse.etatPeriodique.status.${status}`);
 
   const totalH = etat?.tothre && etat.tothre !== '00:00' ? etat.tothre : null;
   const [rh, rm] = (etat?.totret ?? '00:00').split(':').map(Number);
@@ -421,6 +431,7 @@ function CalCell({ dateKey, etat, onClick, selected }: {
 function EmpSidebarRow({ row, active, onClick, index }: {
   row: EmpRow; active: boolean; onClick: () => void; index: number;
 }) {
+  const { t } = useTranslation();
   const initials = row.emplib?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
   const hasRetard = row.totalRetards > 0;
@@ -437,13 +448,13 @@ function EmpSidebarRow({ row, active, onClick, index }: {
         </Avatar>
         <Box>
           <Typography className="ep-emp-name">{row.emplib}</Typography>
-          <Typography className="ep-emp-mat">MAT: {row.empcod}</Typography>
+          <Typography className="ep-emp-mat">{t('pointeuse.etatPeriodique.sidebar.mat')}: {row.empcod}</Typography>
         </Box>
       </Box>
       <Box className="ep-emp-row-right">
-        <Typography className="ep-emp-stats">{row.nbJours}j / {fmtMin(row.totalMinutes)}</Typography>
+        <Typography className="ep-emp-stats">{t('pointeuse.etatPeriodique.sidebar.stats', { days: row.nbJours, time: fmtMin(row.totalMinutes) })}</Typography>
         <Typography className={`ep-emp-retard ${hasRetard ? 'ep-retard-error' : 'ep-retard-ok'}`}>
-          {hasRetard ? `${fmtMin(row.totalRetards)} Retard` : 'Aucun retard'}
+          {hasRetard ? t('pointeuse.etatPeriodique.sidebar.retard', { time: fmtMin(row.totalRetards) }) : t('pointeuse.etatPeriodique.sidebar.noRetard')}
         </Typography>
       </Box>
     </Box>
@@ -452,6 +463,7 @@ function EmpSidebarRow({ row, active, onClick, index }: {
 
 // ── Main inner ────────────────────────────────────────────────────────────────
 function EtatPeriodiqueModernInner() {
+  const { t } = useTranslation();
   const { soccod, uticod, isManager, sercod: managerSercod, hasPermission } = useAuth();
   const isManagerScoped = Boolean(isManager && managerSercod);
   // Permissions pour l'ajustement de pointage (module distinct des classes horaires).
@@ -498,7 +510,7 @@ function EtatPeriodiqueModernInner() {
 
   const { mutateAsync: generatePdf } = useGenerateEtatDetaille();
 
-  const { data: etatData = [] } = useGetEmpEtat({
+  const { data: etatData = [], refetch: refetchEmpEtat } = useGetEmpEtat({
     soccod,
     selectedEmpMat,
     dateRange: selectedEmpMat ? { dateDebut: new Date(dateDebut), dateFin: new Date(dateFin) } : null,
@@ -589,7 +601,7 @@ function EtatPeriodiqueModernInner() {
   };
 
   const handlePrint = async () => {
-    if (!empEtatData.length) { alert('Sélectionnez un employé d\'abord.'); return; }
+    if (!empEtatData.length) { alert(t('pointeuse.etatPeriodique.alertSelectEmp')); return; }
     try {
       const blob = await generatePdf({ soccod: soccod || '', empcod: selectedEmpMat, emplib: selectedEmpLib, dateDebut, dateFin, rows: empEtatData });
       const url = URL.createObjectURL(blob);
@@ -597,11 +609,11 @@ function EtatPeriodiqueModernInner() {
       a.download = `EtatDetaille_${selectedEmpMat}_${dateDebut}_${dateFin}.pdf`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch { alert('Erreur lors de la génération du rapport.'); }
+    } catch { alert(t('pointeuse.etatPeriodique.alertReportError')); }
   };
 
   const handleExportExcel = () => {
-    if (!Array.isArray(rows) || !rows.length) { alert('Aucune donnée à exporter'); return; }
+    if (!Array.isArray(rows) || !rows.length) { alert(t('pointeuse.etatPeriodique.alertNoData')); return; }
     const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
       Matricule: r.empcod, Nom: r.emplib,
       'Nb Jours': r.nbJours,
@@ -653,20 +665,34 @@ function EtatPeriodiqueModernInner() {
     }
   };
 
+  useEffect(() => {
+    if (!selectedDay) return;
+    const selectedDateKey = dayjs(selectedDay.predat).format('YYYY-MM-DD');
+    const freshSelectedDay = etatByDate[selectedDateKey];
+    if (freshSelectedDay) {
+      setSelectedDay(freshSelectedDay);
+    }
+  }, [etatByDate, selectedDay]);
+
+  const handlePointageAdjusted = async () => {
+    await refetchEmpEtat();
+    handleSearch();
+  };
+
   return (
     <Box className="ep-container">
       {/* Header */}
       <Box className="ep-header">
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography className="ep-title">État Périodique</Typography>
-          <Typography className="ep-subtitle">Suivi détaillé des présences et horaires des collaborateurs</Typography>
+          <Typography className="ep-title">{t('pointeuse.etatPeriodique.title')}</Typography>
+          <Typography className="ep-subtitle">{t('pointeuse.etatPeriodique.subtitle')}</Typography>
         </Box>
         <Box className="ep-header-actions" sx={{ flexShrink: 0 }}>
           <button className="ep-btn-secondary" onClick={handleExportExcel}>
-            <DownloadIcon sx={{ fontSize: 16 }} /><Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Exporter</Box>
+            <DownloadIcon sx={{ fontSize: 16 }} /><Box sx={{ display: { xs: 'none', sm: 'inline' } }}>{t('pointeuse.etatPeriodique.export')}</Box>
           </button>
           <button className="ep-btn-primary" onClick={handlePrint}>
-            <PrintIcon sx={{ fontSize: 16 }} /><Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Imprimer</Box>
+            <PrintIcon sx={{ fontSize: 16 }} /><Box sx={{ display: { xs: 'none', sm: 'inline' } }}>{t('pointeuse.etatPeriodique.print')}</Box>
           </button>
         </Box>
       </Box>
@@ -675,7 +701,7 @@ function EtatPeriodiqueModernInner() {
       <Box className="ep-filter-bar">
         <Box className="ep-filter-grid">
           <Box className="ep-filter-field" style={{ minWidth: 220 }}>
-            <span className="ep-filter-label">Collaborateurs</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.collaborators')}</span>
             <EmployeeMultiSelectDropdown
               options={Object.entries(employeesLibs as Record<string, string>).map(([code, label]) => ({ code, label: String(label) }))}
               value={selectedEmpcods}
@@ -683,51 +709,51 @@ function EtatPeriodiqueModernInner() {
             />
           </Box>
           <Box className="ep-filter-field">
-            <span className="ep-filter-label">Filiale</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.branch')}</span>
             <select className="ep-select" value={selectedFiliale} onChange={e => setSelectedFiliale(e.target.value)}>
               <option value="">—</option>
               {Object.entries(filiale).map(([k, v]) => <option key={k} value={k}>{String(v)}</option>)}
             </select>
           </Box>
           <Box className="ep-filter-field">
-            <span className="ep-filter-label">Service</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.service')}</span>
             <select className="ep-select" value={selectedService} onChange={e => setSelectedService(e.target.value)} disabled={isManagerScoped}>
-              <option value="">{isManagerScoped ? 'Mon service' : 'Tous'}</option>
+              <option value="">{isManagerScoped ? t('pointeuse.etatPeriodique.myService') : t('pointeuse.etatPeriodique.regimeAll')}</option>
               {Object.entries(services).map(([k, v]) => <option key={k} value={k}>{String(v)}</option>)}
             </select>
           </Box>
           <Box className="ep-filter-field">
-            <span className="ep-filter-label">Régime</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.regime')}</span>
             <select className="ep-select" value={selectedRegime} onChange={e => setSelectedRegime(e.target.value)}>
-              <option value="">Tous</option>
-              <option value="M">Mensuelle</option>
-              <option value="H">Horaire</option>
+              <option value="">{t('pointeuse.etatPeriodique.regimeAll')}</option>
+              <option value="M">{t('pointeuse.etatPeriodique.monthly')}</option>
+              <option value="H">{t('pointeuse.etatPeriodique.hourly')}</option>
             </select>
           </Box>
           <Box className="ep-filter-field">
-            <span className="ep-filter-label">Mois</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.month')}</span>
             <input className="ep-input-sm" type="number" value={mois} min={1} max={12} onChange={e => setMois(e.target.value)} />
           </Box>
           <Box className="ep-filter-field">
-            <span className="ep-filter-label">Année</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.year')}</span>
             <input className="ep-input-sm" type="number" value={annee} onChange={e => setAnnee(e.target.value)} />
           </Box>
           <Box className="ep-filter-field">
-            <span className="ep-filter-label">Période</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.period')}</span>
             <Box className="ep-period-display">
               <CalendarMonthIcon sx={{ fontSize: 14 }} />{periodLabel}
             </Box>
           </Box>
           <Box className="ep-filter-field">
-            <span className="ep-filter-label">Date début</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.dateStart')}</span>
             <input className="ep-input-date" type="date" value={dateDebut} onChange={e => setDateDebut(e.target.value)} />
           </Box>
           <Box className="ep-filter-field">
-            <span className="ep-filter-label">Date fin</span>
+            <span className="ep-filter-label">{t('pointeuse.etatPeriodique.dateEnd')}</span>
             <input className="ep-input-date" type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} />
           </Box>
           <Box className="ep-filter-field ep-filter-search-btn">
-            <button className="ep-search-btn" onClick={handleSearch} disabled={loadingEmps} title="Rechercher">
+            <button className="ep-search-btn" onClick={handleSearch} disabled={loadingEmps} title={t('pointeuse.etatPeriodique.search')}>
               {loadingEmps
                 ? <CircularProgress size={14} sx={{ color: '#0040a1' }} />
                 : <SearchIcon sx={{ fontSize: 16 }} />}
@@ -742,11 +768,11 @@ function EtatPeriodiqueModernInner() {
         <Box className="ep-sidebar">
           <Box className="ep-sidebar-paper">
             <Box className="ep-sidebar-header">
-              <span className="ep-sidebar-title">Récapitulatif Employés</span>
+              <span className="ep-sidebar-title">{t('pointeuse.etatPeriodique.empSummary')}</span>
               {rows.length > 0 && <span className="ep-count-chip">{rows.length}</span>}
             </Box>
             <Box className="ep-sidebar-search">
-              <input type="text" placeholder="Rechercher un matricule..." value={searchQ} onChange={e => setSearchQ(e.target.value)} />
+              <input type="text" placeholder={t('pointeuse.etatPeriodique.searchMatricule')} value={searchQ} onChange={e => setSearchQ(e.target.value)} />
             </Box>
             <Box className="ep-sidebar-list">
               {loadingEmps ? (
@@ -754,7 +780,7 @@ function EtatPeriodiqueModernInner() {
               ) : filteredRows.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
                   <Typography sx={{ fontSize: '12px', color: '#94a3b8' }}>
-                    {rows.length === 0 ? 'Appliquez les filtres pour charger les employés' : 'Aucun résultat'}
+                    {rows.length === 0 ? t('pointeuse.etatPeriodique.applyFilters') : t('pointeuse.etatPeriodique.noResult')}
                   </Typography>
                 </Box>
               ) : filteredRows.map((row, i) => (
@@ -771,7 +797,7 @@ function EtatPeriodiqueModernInner() {
           <Box className="ep-detail-paper">
             <Box className="ep-detail-header">
               <Box>
-                <Typography className="ep-detail-title">Planning Périodique — {periodLabel}</Typography>
+                <Typography className="ep-detail-title">{t('pointeuse.etatPeriodique.planningTitle', { period: periodLabel })}</Typography>
                 {selectedEmpRow && (
                   <Typography className="ep-detail-sub">
                     {selectedEmpRow.emplib} · {selectedEmpRow.nbJours}j · {fmtMin(selectedEmpRow.totalMinutes)}
@@ -780,8 +806,8 @@ function EtatPeriodiqueModernInner() {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <button className="ep-btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }}
-                  onClick={() => setShowTable(t => !t)}>
-                  {showTable ? '📅 Calendrier' : '📋 Tableau'}
+                  onClick={() => setShowTable(s => !s)}>
+                  {showTable ? t('pointeuse.etatPeriodique.viewCalendar') : t('pointeuse.etatPeriodique.viewTable')}
                 </button>
               </Box>
             </Box>
@@ -790,7 +816,7 @@ function EtatPeriodiqueModernInner() {
               <Box className="ep-empty-state">
                 <CalendarMonthIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 1 }} />
                 <Typography sx={{ fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>
-                  Sélectionnez un employé pour afficher son planning
+                  {t('pointeuse.etatPeriodique.selectEmp')}
                 </Typography>
               </Box>
             ) : showTable ? (
@@ -829,7 +855,7 @@ function EtatPeriodiqueModernInner() {
                     <Box className="ep-day-card">
                       <Box className="ep-day-card-top">
                         <Box>
-                          <Typography className="ep-day-card-title">Détails de la journée</Typography>
+                          <Typography className="ep-day-card-title">{t('pointeuse.etatPeriodique.dayDetails')}</Typography>
                           <Typography className="ep-day-card-date">
                             {dayjs(selectedDay.predat).format('dddd D MMMM YYYY')}
                           </Typography>
@@ -841,9 +867,9 @@ function EtatPeriodiqueModernInner() {
                               className="ep-btn-secondary"
                               style={{ padding: '4px 10px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                               onClick={() => setAdjustOpen(true)}
-                              title="Corriger les heures d'entrée/sortie pour cette journée"
+                              title={t('pointeuse.etatPeriodique.adjustPointageTitle')}
                             >
-                              <TuneIcon sx={{ fontSize: 14 }} /> Ajuster pointage
+                              <TuneIcon sx={{ fontSize: 14 }} /> {t('pointeuse.etatPeriodique.adjustPointage')}
                             </button>
                           )}
                           {/* Status badge using our classifier */}
@@ -852,14 +878,14 @@ function EtatPeriodiqueModernInner() {
                             const c = STATUS_CFG[s];
                             return (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700, background: c.badgeBg, color: c.badgeText }}>
-                                {c.icon} {selectedDay.etat?.trim() || c.label}
+                                {c.icon} {selectedDay.etat?.trim() || t(`pointeuse.etatPeriodique.status.${s}`)}
                               </span>
                             );
                           })()}
                           {(() => {
                             const [rh, rm] = (selectedDay.totret ?? '00:00').split(':').map(Number);
                             return ((rh || 0) * 60 + (rm || 0)) > 0
-                              ? <span className="ep-action-badge">Action requise</span>
+                              ? <span className="ep-action-badge">{t('pointeuse.etatPeriodique.actionRequired')}</span>
                               : null;
                           })()}
                         </Box>
@@ -867,12 +893,12 @@ function EtatPeriodiqueModernInner() {
                       <Box className="ep-detail-cols">
                         <Box>
                           {[
-                            { label: 'Entrée Matin', val: fmtTime(selectedDay.preentmatup), warn: !selectedDay.preentmatup },
-                            { label: 'Sortie Matin', val: fmtTime(selectedDay.presortmatup), warn: !selectedDay.presortmatup },
-                            { label: 'Entrée AM', val: fmtTime(selectedDay.preentamidiup) },
-                            { label: 'Sortie AM', val: fmtTime(selectedDay.presortamidiup) },
-                            { label: 'Total Travaillé', val: selectedDay.tothre || '--', primary: true },
-                            { label: 'Repas', val: String(selectedDay.prerepas || 0) },
+                            { label: t('pointeuse.etatPeriodique.fields.entryMorning'), val: fmtTime(selectedDay.preentmatup), warn: !selectedDay.preentmatup },
+                            { label: t('pointeuse.etatPeriodique.fields.exitMorning'), val: fmtTime(selectedDay.presortmatup), warn: !selectedDay.presortmatup },
+                            { label: t('pointeuse.etatPeriodique.fields.entryAm'), val: fmtTime(selectedDay.preentamidiup) },
+                            { label: t('pointeuse.etatPeriodique.fields.exitAm'), val: fmtTime(selectedDay.presortamidiup) },
+                            { label: t('pointeuse.etatPeriodique.fields.totalWorked'), val: selectedDay.tothre || '--', primary: true },
+                            { label: t('pointeuse.etatPeriodique.fields.meal'), val: String(selectedDay.prerepas || 0) },
                           ].map(({ label, val, warn, primary }) => (
                             <Box key={label} className="ep-detail-row">
                               <span className="ep-detail-row-label">{label}</span>
@@ -882,12 +908,12 @@ function EtatPeriodiqueModernInner() {
                         </Box>
                         <Box>
                           {[
-                            { label: 'Retard', val: selectedDay.totret || '0', err: true },
-                            { label: 'H. Suppl.', val: selectedDay.tothsup || '0', tertiary: true },
-                            { label: 'H. Nuits', val: selectedDay.tothnuit || '0' },
-                            { label: 'H. Absences', val: selectedDay.tothabs || '0', err: true },
-                            { label: 'Compensation', val: String(selectedDay.totcmp || 0) },
-                            { label: 'Observation', val: selectedDay.preobs || '—' },
+                            { label: t('pointeuse.etatPeriodique.fields.late'), val: selectedDay.totret || '0', err: true },
+                            { label: t('pointeuse.etatPeriodique.fields.supplementary'), val: selectedDay.tothsup || '0', tertiary: true },
+                            { label: t('pointeuse.etatPeriodique.fields.nightHours'), val: selectedDay.tothnuit || '0' },
+                            { label: t('pointeuse.etatPeriodique.fields.absenceHours'), val: selectedDay.tothabs || '0', err: true },
+                            { label: t('pointeuse.etatPeriodique.fields.compensation'), val: String(selectedDay.totcmp || 0) },
+                            { label: t('pointeuse.etatPeriodique.fields.observation'), val: selectedDay.preobs || '—' },
                           ].map(({ label, val, err, tertiary }) => (
                             <Box key={label} className="ep-detail-row">
                               <span className="ep-detail-row-label">{label}</span>
@@ -901,13 +927,13 @@ function EtatPeriodiqueModernInner() {
                     {/* Autorisation du jour */}
                     {selectedDay.hasAutorisation && selectedDay.autDebut && selectedDay.autFin && (
                       <Box className="ep-horaire-mini" sx={{ borderColor: '#c4b5fd' }}>
-                        <Typography className="ep-horaire-mini-title" sx={{ color: '#6d28d9' }}>📋 Autorisation</Typography>
+                        <Typography className="ep-horaire-mini-title" sx={{ color: '#6d28d9' }}>📋 {t('pointeuse.etatPeriodique.authorization')}</Typography>
                         <Box className="ep-horaire-item">
                           <Box className="ep-horaire-icon" style={{ background: 'rgba(109,40,217,0.08)' }}>
                             <AccessTimeIcon sx={{ fontSize: 16, color: '#6d28d9' }} />
                           </Box>
                           <Box>
-                            <Typography className="ep-horaire-item-label">Plage autorisée</Typography>
+                            <Typography className="ep-horaire-item-label">{t('pointeuse.etatPeriodique.authorizedRange')}</Typography>
                             <Typography className="ep-horaire-item-val" style={{ color: '#6d28d9', fontWeight: 700 }}>
                               {selectedDay.autDebut} → {selectedDay.autFin}
                             </Typography>
@@ -918,9 +944,9 @@ function EtatPeriodiqueModernInner() {
                             <TimerIcon sx={{ fontSize: 16, color: '#6d28d9' }} />
                           </Box>
                           <Box>
-                            <Typography className="ep-horaire-item-label">Motif</Typography>
+                            <Typography className="ep-horaire-item-label">{t('pointeuse.etatPeriodique.motif')}</Typography>
                             <Typography className="ep-horaire-item-val">
-                              {selectedDay.etat?.trim() || 'Autorisation'}
+                              {selectedDay.etat?.trim() || t('pointeuse.etatPeriodique.authorization')}
                             </Typography>
                           </Box>
                         </Box>
@@ -929,13 +955,13 @@ function EtatPeriodiqueModernInner() {
 
                     {/* Poste du jour */}
                     <Box className="ep-horaire-mini">
-                      <Typography className="ep-horaire-mini-title">Poste du jour</Typography>
+                      <Typography className="ep-horaire-mini-title">{t('pointeuse.etatPeriodique.postOfDay')}</Typography>
                       {selectedPoste ? (
                         <>
                           <Box className="ep-horaire-item">
                             <Box className="ep-horaire-icon"><AccessTimeIcon sx={{ fontSize: 16, color: '#0040a1' }} /></Box>
                             <Box>
-                              <Typography className="ep-horaire-item-label">Plage de travail</Typography>
+                              <Typography className="ep-horaire-item-label">{t('pointeuse.etatPeriodique.workRange')}</Typography>
                               <Typography className="ep-horaire-item-val">
                                 {fmtTime(selectedPoste.jourhdmat)} — {fmtTime(selectedPoste.jourhfmat)}
                                 {selectedPoste.jourhdam && selectedPoste.jourhdam !== '00:00' && (
@@ -949,7 +975,7 @@ function EtatPeriodiqueModernInner() {
                           <Box className="ep-horaire-item">
                             <Box className="ep-horaire-icon"><TimerIcon sx={{ fontSize: 16, color: '#0040a1' }} /></Box>
                             <Box>
-                              <Typography className="ep-horaire-item-label">Tolérance Entrée</Typography>
+                              <Typography className="ep-horaire-item-label">{t('pointeuse.etatPeriodique.toleranceEntry')}</Typography>
                               <Typography className="ep-horaire-item-val">
                                 -{selectedPoste.avantent ?? 0} / +{selectedPoste.apresent ?? 0} min
                               </Typography>
@@ -958,7 +984,7 @@ function EtatPeriodiqueModernInner() {
                           <Box className="ep-horaire-item">
                             <Box className="ep-horaire-icon"><TimerIcon sx={{ fontSize: 16, color: '#515f74' }} /></Box>
                             <Box>
-                              <Typography className="ep-horaire-item-label">Tolérance Sortie</Typography>
+                              <Typography className="ep-horaire-item-label">{t('pointeuse.etatPeriodique.toleranceExit')}</Typography>
                               <Typography className="ep-horaire-item-val">
                                 -{selectedPoste.avantsort ?? 0} / +{selectedPoste.apressort ?? 0} min
                               </Typography>
@@ -967,7 +993,7 @@ function EtatPeriodiqueModernInner() {
                           <Box className="ep-horaire-item">
                             <Box className="ep-horaire-icon"><RestaurantIcon sx={{ fontSize: 16, color: '#0040a1' }} /></Box>
                             <Box>
-                              <Typography className="ep-horaire-item-label">Repas</Typography>
+                              <Typography className="ep-horaire-item-label">{t('pointeuse.etatPeriodique.fields.meal')}</Typography>
                               <Typography className="ep-horaire-item-val">
                                 {selectedPoste.jourrepas ? `${selectedPoste.jourrepas} min` : '—'}
                                 {selectedPoste.jourhdrep && selectedPoste.jourhdrep !== '00:00' && (
@@ -984,8 +1010,8 @@ function EtatPeriodiqueModernInner() {
                                 <AccessTimeIcon sx={{ fontSize: 16, color: '#ba1a1a' }} />
                               </Box>
                               <Box>
-                                <Typography className="ep-horaire-item-label">Statut</Typography>
-                                <Typography className="ep-horaire-item-val" style={{ color: '#ba1a1a' }}>Jour de repos</Typography>
+                                <Typography className="ep-horaire-item-label">{t('pointeuse.etatPeriodique.statusLabel')}</Typography>
+                                <Typography className="ep-horaire-item-val" style={{ color: '#ba1a1a' }}>{t('pointeuse.etatPeriodique.restDay')}</Typography>
                               </Box>
                             </Box>
                           )}
@@ -1009,6 +1035,7 @@ function EtatPeriodiqueModernInner() {
         onClose={() => setAdjustOpen(false)}
         canModify={canModifyPointage}
         showSnack={showSnack}
+        onSaved={handlePointageAdjusted}
         initialEmpcod={selectedEmpMat || ''}
         initialDate={selectedDay ? dayjs(selectedDay.predat).format('YYYY-MM-DD') : ''}
       />

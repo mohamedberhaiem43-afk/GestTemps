@@ -5,6 +5,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import { useTranslation } from 'react-i18next';
 
 function createData(
   name: string,
@@ -23,17 +24,18 @@ const rows = [
 ];
 
 export default function MethodeCalcul() {
+  const { t } = useTranslation();
   return (
     <TableContainer component={Paper}>
-        <h3>Méthode de Calcul des heures supplémentaire</h3>
+        <h3>{t('paramSoc.sansClasse.methodeCalculTitle')}</h3>
       <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
         <TableHead>
           <TableRow>
-            <TableCell>Journée</TableCell>
-            <TableCell align="right">Heure Début</TableCell>
-            <TableCell align="right">Heure Fin</TableCell>
-            <TableCell align="right">Taux Normal</TableCell>
-            <TableCell align="right">Taux Repos</TableCell>
+            <TableCell>{t('paramSoc.sansClasse.journee')}</TableCell>
+            <TableCell align="right">{t('paramSoc.sansClasse.heureDebut')}</TableCell>
+            <TableCell align="right">{t('paramSoc.sansClasse.heureFin')}</TableCell>
+            <TableCell align="right">{t('paramSoc.sansClasse.tauxNormal')}</TableCell>
+            <TableCell align="right">{t('paramSoc.sansClasse.tauxRepos')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import SearchIcon from '@mui/icons-material/Search';
 import PrintIcon from '@mui/icons-material/Print';
+import { useTranslation } from "react-i18next";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { EmployeeContext } from "../../Pointeuse/EtatPeriodique/EmployeeContext";
@@ -10,6 +11,7 @@ import { useEmployeeFilter } from "../../../hooks/employeHooks/useEmployeeFilter
 import '../CahierConge/CahierConge.css';
 
 function FilterPresence() {
+  const { t } = useTranslation();
   const { soccod } = useAuth();
   const { setSelectedEmp } = useContext(EmployeeContext);
   const {
@@ -75,7 +77,7 @@ function FilterPresence() {
         setEndDate(initialDateFin);
       })
       .catch((err) => {
-        console.error("Error:", err.response ? err.response.data : err.message);
+        console.error('Error:', err.response ? err.response.data : err.message);
       });
   }, [soccod]);
 
@@ -112,7 +114,7 @@ function FilterPresence() {
       link.click();
       link.remove();
     } catch (error) {
-      console.error("Erreur generation rapport:", error);
+      console.error(t('etats.filter.reportError') + ':', error);
     }
   };
 
@@ -149,9 +151,9 @@ function FilterPresence() {
     <div className="cc-filter-section">
       <div className="cc-filter-row">
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Filiale</label>
+          <label className="cc-filter-label">{t('etats.filter.branch')}</label>
           <select className="cc-filter-select" value={selectedFiliale} onChange={(e) => setSelectedFiliale(e.target.value)}>
-            <option value="">Toutes</option>
+            <option value="">{t('etats.filter.all')}</option>
             {Object.entries(filiale).map(([cod, lib]) => (
               <option key={cod} value={cod}>{lib}</option>
             ))}
@@ -159,9 +161,9 @@ function FilterPresence() {
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Service</label>
+          <label className="cc-filter-label">{t('etats.filter.service')}</label>
           <select className="cc-filter-select" value={selectedService} onChange={(e) => setSelectedService(e.target.value)} disabled={isServiceLocked}>
-            <option value="">{isServiceLocked ? 'Mon service' : 'Tous'}</option>
+            <option value="">{isServiceLocked ? t('etats.filter.myService') : t('etats.filter.allService')}</option>
             {Object.entries(services).map(([cod, lib]) => (
               <option key={cod} value={cod}>{lib}</option>
             ))}
@@ -169,9 +171,9 @@ function FilterPresence() {
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Regime</label>
+          <label className="cc-filter-label">{t('etats.filter.regime')}</label>
           <select className="cc-filter-select" value={selectedRegime} onChange={(e) => setSelectedRegime(e.target.value)}>
-            <option value="">Tous</option>
+            <option value="">{t('etats.filter.regimeAll')}</option>
             {Object.entries(regimeOptions).map(([cod, lib]) => (
               <option key={cod} value={cod}>{lib}</option>
             ))}
@@ -179,22 +181,22 @@ function FilterPresence() {
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Date Debut</label>
+          <label className="cc-filter-label">{t('etats.filter.dateStart')}</label>
           <input className="cc-filter-input" type="date" value={dateDebut} onChange={(e) => setStartDate(e.target.value)} />
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Date Fin</label>
+          <label className="cc-filter-label">{t('etats.filter.dateEnd')}</label>
           <input className="cc-filter-input" type="date" value={dateFin} onChange={(e) => setEndDate(e.target.value)} />
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Annee</label>
+          <label className="cc-filter-label">{t('etats.filter.year')}</label>
           <input className="cc-filter-input" type="number" value={annee} onChange={(e) => setAnnee(e.target.value)} />
         </div>
 
         <div className="cc-filter-field">
-          <label className="cc-filter-label">Employes</label>
+          <label className="cc-filter-label">{t('etats.filter.employees')}</label>
           <select
             className="cc-filter-select"
             multiple
@@ -211,11 +213,11 @@ function FilterPresence() {
         </div>
 
         <button className="cc-search-btn" onClick={handleApplyFilter} disabled={!hasEffectiveEmployees}>
-          <SearchIcon sx={{ fontSize: 16 }} /> FILTRER
+          <SearchIcon sx={{ fontSize: 16 }} /> {t('etats.filter.filterBtn')}
         </button>
 
         <button className="cc-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
-          <PrintIcon sx={{ fontSize: 16 }} /> IMPRIMER
+          <PrintIcon sx={{ fontSize: 16 }} /> {t('etats.filter.printBtn')}
         </button>
       </div>
 

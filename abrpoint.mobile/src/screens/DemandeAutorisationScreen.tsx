@@ -4,11 +4,14 @@ import {
   TextInput, Alert, RefreshControl, Modal, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 import TimePickerModal from '../components/TimePickerModal';
+import BottomTabBar from '../components/BottomTabBar';
 
 // ── Types ──
 interface DemandeAutorisation {
@@ -48,7 +51,7 @@ const getStatus = (d: DemandeAutorisation): 'Approuvé' | 'Refusé' | 'En attent
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   'Approuvé': { bg: '#dcfce7', text: '#166534' },
-  'Refusé': { bg: '#fee2e2', text: '#991b1b' },
+  'Refusé':   { bg: '#fee2e2', text: '#991b1b' },
   'En attente': { bg: '#fef9c3', text: '#854d0e' },
 };
 
@@ -79,7 +82,6 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
   const [showForm, setShowForm] = useState(false);
   const [editDemande, setEditDemande] = useState<DemandeAutorisation | null>(null);
   const [showAbsencePicker, setShowAbsencePicker] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Form state
   const [formCondep, setFormCondep] = useState(new Date());
@@ -100,15 +102,12 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         const data = await apiService.getDemandeAutorisationsByEmp(user.soccod, user.uticod);
         setDemandes(Array.isArray(data) ? data : []);
       } else if (isManager && user.sercod) {
-        // Manager: load all, filter by service
         const data = await apiService.getDemandeAutorisations(user.soccod, user.uticod);
         const all = Array.isArray(data) ? data : [];
-        // Filter: show own + those from same service (if sercod available in response)
         const own = all.filter((d: any) => d.empcod === user.uticod);
         const service = all.filter((d: any) => d.empcod !== user.uticod && (!d.sercod || d.sercod === user.sercod));
         setDemandes([...own, ...service]);
       } else {
-        // Admin: sees all
         const data = await apiService.getDemandeAutorisations(user.soccod, user.uticod);
         setDemandes(Array.isArray(data) ? data : []);
       }
@@ -116,31 +115,30 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
   };
 
   const loadAbsences = async () => {
-  if (!user?.soccod) return;
-  try {
-    // Même backend que le web (useGetAutorisationLibs) — renvoie un array d'AbsenceOption.
-    const data = await apiService.getAutorisationLibs(user.soccod);
+    if (!user?.soccod) return;
+    try {
+      const data = await apiService.getAutorisationLibs(user.soccod);
 
-    let absData: AbsenceOption[] = [];
-    if (Array.isArray(data)) {
-      absData = data as AbsenceOption[];
-    } else if (data && typeof data === 'object') {
-      absData = Object.entries(data).map(([key, value]) => ({
-        abscod: key,
-        soccod: user.soccod!,
-        abslib: value as string,
-        abscng: '',
-      }));
-    }
+      let absData: AbsenceOption[] = [];
+      if (Array.isArray(data)) {
+        absData = data as AbsenceOption[];
+      } else if (data && typeof data === 'object') {
+        absData = Object.entries(data).map(([key, value]) => ({
+          abscod: key,
+          soccod: user.soccod!,
+          abslib: value as string,
+          abscng: '',
+        }));
+      }
 
-    setAbsences(absData);
+      setAbsences(absData);
 
-    const defaultAbs = absData.find((a) => a.abscng === 'B')
-      || absData.find((a) => a.abslib?.toLowerCase().includes('autorisation'));
-    if (defaultAbs) setFormAbscod(defaultAbs.abscod);
-    else if (absData.length > 0) setFormAbscod(absData[0].abscod);
-  } catch (e) { console.log('Load absences error:', e); }
-};
+      const defaultAbs = absData.find((a) => a.abscng === 'B')
+        || absData.find((a) => a.abslib?.toLowerCase().includes('autorisation'));
+      if (defaultAbs) setFormAbscod(defaultAbs.abscod);
+      else if (absData.length > 0) setFormAbscod(absData[0].abscod);
+    } catch (e) { console.log('Load absences error:', e); }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -153,7 +151,6 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
     setFormCondep(new Date());
     setFormConret(new Date());
     setFormConmotif('');
-    // Reset abscod to default
     const defaultAbs = absences.find((a) => a.abscng === 'B');
     if (defaultAbs) setFormAbscod(defaultAbs.abscod);
     else if (absences.length > 0) setFormAbscod(absences[0].abscod);
@@ -170,6 +167,10 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
   };
 
   const handleSubmit = async () => {
+    if (!formAbscod) {
+      Alert.alert('Erreur', 'Veuillez sélectionner un type de sortie');
+      return;
+    }
     if (!formConmotif) {
       Alert.alert('Erreur', 'Veuillez remplir le motif');
       return;
@@ -193,13 +194,13 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         Alert.alert('✅ Succès', 'Demande modifiée avec succès');
       } else {
         await apiService.createDemandeAutorisation(payload);
-        Alert.alert('✅ Succès', 'Demande d\'autorisation envoyée');
+        Alert.alert('✅ Succès', "Demande de sortie envoyée");
       }
       setShowForm(false);
       setEditDemande(null);
       loadDemandes();
     } catch (e) {
-      Alert.alert('Erreur', 'Impossible d\'envoyer la demande');
+      Alert.alert('Erreur', "Impossible d'envoyer la demande");
     }
   };
 
@@ -212,7 +213,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
             await apiService.deleteDemandeAutorisation(d.id);
             loadDemandes();
           } catch { Alert.alert('Erreur', 'Impossible de supprimer'); }
-        }
+        },
       },
     ]);
   };
@@ -226,8 +227,8 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
             await apiService.approveDemandeAutorisation(d.id, user!.uticod!);
             Alert.alert('✅ Succès', 'Demande approuvée');
             loadDemandes();
-          } catch { Alert.alert('Erreur', 'Impossible d\'approuver'); }
-        }
+          } catch { Alert.alert('Erreur', "Impossible d'approuver"); }
+        },
       },
     ]);
   };
@@ -242,7 +243,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
             Alert.alert('Succès', 'Demande refusée');
             loadDemandes();
           } catch { Alert.alert('Erreur', 'Impossible de refuser'); }
-        }
+        },
       },
     ]);
   };
@@ -257,61 +258,159 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
     return Math.max(0, Math.round(diff * 100) / 100);
   };
 
-  const pending = demandes.filter((d) => getStatus(d) === 'En attente');
+  const pending  = demandes.filter((d) => getStatus(d) === 'En attente');
   const approved = demandes.filter((d) => getStatus(d) === 'Approuvé');
-  const refused = demandes.filter((d) => getStatus(d) === 'Refusé');
+  const refused  = demandes.filter((d) => getStatus(d) === 'Refusé');
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>← Retour</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Demande d'Autorisation</Text>
-        <TouchableOpacity onPress={openNewForm}>
-          <Text style={styles.addBtn}>+ Nouveau</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { borderLeftColor: '#22c55e' }]}>
-          <Text style={[styles.statValue, { color: '#22c55e' }]}>{approved.length}</Text>
-          <Text style={styles.statLabel}>Approuvées</Text>
+      {/* ── Top App Bar ── */}
+      <View style={styles.topAppBar}>
+        <View style={styles.topAppLeft}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+            <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
+          </TouchableOpacity>
+          <Text style={styles.logoText}>LEDGER HR</Text>
         </View>
-        <View style={[styles.statCard, { borderLeftColor: '#ef4444' }]}>
-          <Text style={[styles.statValue, { color: '#ef4444' }]}>{refused.length}</Text>
-          <Text style={styles.statLabel}>Refusées</Text>
-        </View>
-        <View style={[styles.statCard, { borderLeftColor: '#f59e0b' }]}>
-          <Text style={[styles.statValue, { color: '#f59e0b' }]}>{pending.length}</Text>
-          <Text style={styles.statLabel}>En attente</Text>
+        <View style={styles.profileImageWrapper}>
+          <MaterialCommunityIcons name="account-circle-outline" size={32} color="#cbd5e1" />
         </View>
       </View>
 
-      {/* Form Modal */}
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Hero Card ── */}
+        <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.heroCard}>
+          <Text style={styles.heroTitle}>Demandes de sortie</Text>
+          <Text style={styles.heroSub}>Gestion et suivi des demandes de sortie</Text>
+          <TouchableOpacity style={styles.addBtn} onPress={openNewForm}>
+            <Text style={styles.addBtnText}>+ Nouvelle sortie</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        {/* ── Stats Row ── */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { borderLeftColor: '#22c55e' }]}>
+            <Text style={[styles.statValue, { color: '#22c55e' }]}>{approved.length}</Text>
+            <Text style={styles.statLabel}>Approuvées</Text>
+          </View>
+          <View style={[styles.statCard, { borderLeftColor: '#ef4444' }]}>
+            <Text style={[styles.statValue, { color: '#ef4444' }]}>{refused.length}</Text>
+            <Text style={styles.statLabel}>Refusées</Text>
+          </View>
+          <View style={[styles.statCard, { borderLeftColor: '#f59e0b' }]}>
+            <Text style={[styles.statValue, { color: '#f59e0b' }]}>{pending.length}</Text>
+            <Text style={styles.statLabel}>En attente</Text>
+          </View>
+        </View>
+
+        {/* ── History ── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Historique des demandes</Text>
+        </View>
+
+        <View style={styles.historyList}>
+          {demandes.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>📋</Text>
+              <Text style={styles.emptyText}>Aucune demande de sortie</Text>
+              <TouchableOpacity style={styles.emptyBtn} onPress={openNewForm}>
+                <Text style={styles.emptyBtnText}>Créer une demande</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            demandes.map((item, i) => {
+              const status = getStatus(item);
+              const statusColors = STATUS_COLORS[status];
+              return (
+                <View key={item.id || i} style={styles.historyItem}>
+                  <View style={styles.historyLeft}>
+                    <View style={styles.historyIcon}>
+                      <MaterialCommunityIcons name="briefcase-outline" size={20} color={COLORS.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.historyTitle}>
+                        {item.conmotif || item.abslib || "Demande de sortie"}
+                      </Text>
+                      <Text style={styles.historyMeta}>
+                        {fmtDate(item.condep)} • {fmtDuration(item.connbjour)}
+                      </Text>
+                      {item.emplib && (
+                        <Text style={styles.historyEmp}>👤 {item.emplib}</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
+                      <Text style={[styles.statusText, { color: statusColors.text }]}>{status}</Text>
+                    </View>
+
+                    {status === 'En attente' && (
+                      <View style={styles.itemActions}>
+                        {/* Employee: edit / delete own requests */}
+                        {isEmployee && item.empcod === user?.uticod && (
+                          <>
+                            <TouchableOpacity style={styles.editBtn} onPress={() => openEditForm(item)}>
+                              {/* BUG FIX: size={16} not size: 16 */}
+                              <MaterialCommunityIcons name="pencil" size={16} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}>
+                              <MaterialCommunityIcons name="delete" size={16} color="#ef4444" />
+                            </TouchableOpacity>
+                          </>
+                        )}
+                        {/* Admin / Manager: approve or refuse */}
+                        {(isAdmin || isManager) && (
+                          <>
+                            <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(item)}>
+                              {/* BUG FIX: size={16} not size: 16 */}
+                              <MaterialCommunityIcons name="check" size={16} color="#22c55e" />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.refuseBtn} onPress={() => handleRefuse(item)}>
+                              {/* BUG FIX: size={16} not size: 16 */}
+                              <MaterialCommunityIcons name="close" size={16} color="#ef4444" />
+                            </TouchableOpacity>
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
+
+      {/* ── Form Modal ── */}
       <Modal visible={showForm} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editDemande ? '✏️ Modifier la demande' : '📝 Nouvelle demande'}
+                {editDemande ? '✏️ Modifier la demande de sortie' : '📝 Nouvelle demande de sortie'}
               </Text>
               <TouchableOpacity onPress={() => { setShowForm(false); setEditDemande(null); }}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
 
+            <View style={styles.modalHero}>
+              <Text style={styles.modalHeroTitle}>Saisie de sortie</Text>
+              <Text style={styles.modalHeroSub}>Remplissez les détails de votre sortie pour une validation rapide.</Text>
+            </View>
+
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-              {/* Type d'autorisation */}
-              <Text style={styles.label}>Type d'autorisation</Text>
+              <Text style={styles.label}>Type de sortie</Text>
               <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowAbsencePicker(true)}>
                 <Text style={styles.pickerBtnText}>{getSelectedAbsenceLabel()}</Text>
                 <Text style={styles.pickerArrow}>▼</Text>
               </TouchableOpacity>
 
-              {/* Début : date + heure séparés */}
               <Text style={styles.label}>Date/Heure début</Text>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowDepDatePicker(true)}>
@@ -322,7 +421,6 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
 
-              {/* Retour : date + heure séparés */}
               <Text style={styles.label}>Date/Heure fin</Text>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowRetDatePicker(true)}>
@@ -333,27 +431,24 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
 
-              {/* Duration */}
               <View style={styles.durationCard}>
                 <Text style={styles.durationLabel}>Durée</Text>
                 <Text style={styles.durationValue}>{fmtDuration(calcDuration())}</Text>
               </View>
 
-              {/* Motif */}
               <Text style={styles.label}>Motif *</Text>
               <TextInput
                 style={[styles.input, { height: 70 }]}
                 value={formConmotif}
                 multiline
                 onChangeText={setFormConmotif}
-                placeholder="Raison de la demande d'autorisation..."
+                placeholder="Raison de la sortie..."
                 placeholderTextColor="#aaa"
               />
 
-              {/* Submit */}
               <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
                 <Text style={styles.submitBtnText}>
-                  {editDemande ? '📤 Modifier la demande' : '📤 Envoyer la demande'}
+                  {editDemande ? '📤 Modifier la sortie' : '📤 Envoyer la sortie'}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -361,12 +456,12 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      {/* Absence Picker Modal */}
+      {/* ── Absence Picker Modal ── */}
       <Modal visible={showAbsencePicker} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.pickerModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Type d'autorisation</Text>
+              <Text style={styles.modalTitle}>Type de sortie</Text>
               <TouchableOpacity onPress={() => setShowAbsencePicker(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -390,7 +485,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      {/* Date pickers (préservent l'heure existante) */}
+      {/* ── Date Pickers ── */}
       <DatePickerModal
         visible={showDepDatePicker}
         value={formCondep}
@@ -416,7 +511,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         title="Date fin"
       />
 
-      {/* Time pickers — heure et minute pour début & retour */}
+      {/* ── Time Pickers ── */}
       <TimePickerModal
         visible={showDepTimePicker}
         value={formCondep}
@@ -432,216 +527,160 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         title="Heure de retour"
       />
 
-      {/* List */}
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
-      >
-        {demandes.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyText}>Aucune demande d'autorisation</Text>
-            <TouchableOpacity style={styles.emptyBtn} onPress={openNewForm}>
-              <Text style={styles.emptyBtnText}>Créer une demande</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          demandes.map((item, i) => {
-            const status = getStatus(item);
-            const statusColors = STATUS_COLORS[status];
-            return (
-              <View key={item.id || i} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.cardDate}>📅 {fmtDate(item.condep)}</Text>
-                    {item.emplib ? <Text style={styles.cardEmp}>👤 {item.emplib}</Text> : null}
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
-                    <Text style={[styles.statusBadgeText, { color: statusColors.text }]}>{status}</Text>
-                  </View>
-                </View>
-
-                {/* Period & Duration */}
-                <View style={styles.cardDetails}>
-                  <Text style={styles.cardTime}>
-                    🕐 {fmtTime(item.condep)} → {fmtTime(item.conret)}
-                  </Text>
-                  <Text style={styles.cardDuration}>⏱️ {fmtDuration(item.connbjour)}</Text>
-                </View>
-
-                {/* Absence type */}
-                {item.abslib ? (
-                  <View style={styles.typeBadge}>
-                    <Text style={styles.typeBadgeText}>{item.abslib}</Text>
-                  </View>
-                ) : null}
-
-                {/* Motif */}
-                {item.conmotif ? (
-                  <Text style={styles.cardMotif} numberOfLines={2}>{item.conmotif}</Text>
-                ) : null}
-
-                {/* Actions */}
-                <View style={styles.cardFooter}>
-                  <Text style={styles.cardRef}>#{item.concod || item.id}</Text>
-                  <View style={styles.cardActions}>
-                    {/* Employee: edit/delete pending */}
-                    {isEmployee && item.empcod === user?.uticod && status === 'En attente' && (
-                      <>
-                        <TouchableOpacity style={styles.editBtn} onPress={() => openEditForm(item)}>
-                          <Text style={styles.editBtnText}>✏️ Modifier</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.deleteBtnSmall} onPress={() => handleDelete(item)}>
-                          <Text style={styles.deleteBtnText}>🗑️</Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
-                    {/* Admin/Manager: approve/refuse pending */}
-                    {(isAdmin || isManager) && status === 'En attente' && (
-                      <>
-                        <TouchableOpacity style={styles.refuseBtn} onPress={() => handleRefuse(item)}>
-                          <Text style={styles.refuseBtnText}>✗ Refuser</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(item)}>
-                          <Text style={styles.approveBtnText}>✓ Approuver</Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
-                  </View>
-                </View>
-              </View>
-            );
-          })
-        )}
-      </ScrollView>
+      <BottomTabBar active="requests" navigation={navigation} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // ── Layout ──
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, backgroundColor: '#fff', elevation: 2,
-  },
-  backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, flex: 1, marginLeft: 12 },
-  addBtn: { fontSize: 14, color: COLORS.primary, fontWeight: 'bold' },
 
-  // Stats
-  statsRow: { flexDirection: 'row', gap: 8, padding: 12 },
+  // ── Top Bar ──
+  topAppBar: {
+    height: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, backgroundColor: COLORS.background,
+  },
+  topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
+  profileImageWrapper: {
+    width: 40, height: 40, borderRadius: 20, overflow: 'hidden',
+    borderWidth: 2, borderColor: COLORS.surfaceContainerHigh,
+    justifyContent: 'center', alignItems: 'center',
+  },
+
+  // ── Scroll ──
+  scrollContent: { padding: 20, paddingBottom: 100 },
+
+  // ── Hero ──
+  heroCard: { borderRadius: 18, padding: 18, marginBottom: 18 },
+  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  heroSub: { color: 'rgba(255,255,255,0.9)', marginTop: 4, fontSize: 12 },
+  // BUG FIX: addBtn & addBtnText were missing from StyleSheet
+  addBtn: {
+    marginTop: 12, backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12, paddingVertical: 10, alignItems: 'center',
+  },
+  addBtnText: { color: '#fff', fontWeight: '700' },
+
+  // ── Stats ──
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
   statCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 12,
-    borderLeftWidth: 4, elevation: 1,
+    flex: 1, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 10,
+    padding: 12, borderLeftWidth: 4, elevation: 1,
   },
   statValue: { fontSize: 22, fontWeight: 'bold' },
-  statLabel: { fontSize: 10, color: COLORS.textSecondary, marginTop: 2 },
+  statLabel: { fontSize: 10, color: COLORS.outline, marginTop: 2 },
 
-  // Modal
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '85%', paddingBottom: 20,
+  // ── Section Header ──
+  sectionHeader: { marginBottom: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.onSurface },
+
+  // ── History List ──
+  historyList: { gap: 10 },
+  historyItem: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 14, padding: 14,
   },
-  modalScroll: { padding: 20 },
+  historyLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  historyIcon: {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: COLORS.primaryFixed, justifyContent: 'center', alignItems: 'center',
+  },
+  historyTitle: { fontSize: 13, fontWeight: '700', color: COLORS.onSurface },
+  // BUG FIX: historyMeta & historyEmp were missing from StyleSheet
+  historyMeta: { fontSize: 11, color: COLORS.outline, marginTop: 2 },
+  historyEmp:  { fontSize: 11, color: COLORS.primary, marginTop: 2 },
+
+  // ── Status Badge ──
+  statusBadge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
+  statusText:  { fontSize: 9, fontWeight: '800' },
+
+  // ── Item Action Buttons ──
+  itemActions: { flexDirection: 'row', gap: 8 },
+  editBtn:    { padding: 6, borderRadius: 6, backgroundColor: '#e0f2fe' },
+  deleteBtn:  { padding: 6, borderRadius: 6, backgroundColor: '#fee2e2' },
+  approveBtn: { padding: 6, borderRadius: 6, backgroundColor: '#dcfce7' },
+  refuseBtn:  { padding: 6, borderRadius: 6, backgroundColor: '#fee2e2' },
+
+  // ── Empty State ──
+  emptyState: { alignItems: 'center', paddingVertical: 60 },
+  emptyIcon:  { fontSize: 48, marginBottom: 12 },
+  emptyText:  { fontSize: 16, color: COLORS.outline, marginBottom: 16 },
+  emptyBtn:   {
+    backgroundColor: COLORS.primary, borderRadius: 10,
+    paddingHorizontal: 20, paddingVertical: 12,
+  },
+  emptyBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+
+  // ── Modal Shared ──
+  // BUG FIX: all modal styles were missing from StyleSheet
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '85%',
+  },
+  pickerModalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '60%',
+  },
   modalHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+    padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerHigh,
   },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
-  modalClose: { fontSize: 20, color: '#999', fontWeight: 'bold' },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
+  modalClose: { fontSize: 18, color: COLORS.outline, padding: 4 },
+  modalScroll: { padding: 16 },
+  modalHero: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16, marginHorizontal: 16, marginBottom: 12 },
+  modalHeroTitle: { fontSize: 16, fontWeight: '800', color: COLORS.onSurface },
+  modalHeroSub: { fontSize: 12, color: COLORS.onSurfaceVariant, marginTop: 6, lineHeight: 18 },
 
-  // Form
-  label: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 4, marginTop: 12 },
-  input: {
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 10,
-    fontSize: 14, backgroundColor: '#fafafa', color: COLORS.text,
+  // ── Form Fields ──
+  label: {
+    fontSize: 12, fontWeight: '700', color: COLORS.outline,
+    marginTop: 12, marginBottom: 6, letterSpacing: 0.5,
   },
   pickerBtn: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 12,
-    backgroundColor: '#fafafa',
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 14,
   },
-  pickerBtnText: { fontSize: 14, color: COLORS.text },
-  pickerArrow: { fontSize: 12, color: '#999' },
-  dateTimeRow: { flexDirection: 'row', gap: 8 },
-  dateTimeBtn: { flex: 1 },
-
-  // Duration
+  pickerBtnText: { fontSize: 14, color: COLORS.onSurface, flex: 1 },
+  pickerArrow:   { fontSize: 12, color: COLORS.outline },
+  dateTimeRow:   { flexDirection: 'row', gap: 8 },
+  dateTimeBtn:   { flex: 1 },
   durationCard: {
-    backgroundColor: '#f0f5ff', borderRadius: 10, padding: 14,
-    alignItems: 'center', marginTop: 12, borderWidth: 1, borderColor: '#bfdbfe',
+    marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: 'rgba(0,86,210,0.06)', borderRadius: 12, padding: 12,
   },
-  durationLabel: { fontSize: 10, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
-  durationValue: { fontSize: 24, fontWeight: '800', color: COLORS.primary, marginTop: 4 },
-
-  // Submit
+  durationLabel: { fontSize: 12, color: COLORS.primary, fontWeight: '700' },
+  durationValue: { fontSize: 16, color: COLORS.primary, fontWeight: '800' },
+  input: {
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
+    padding: 14, fontSize: 14, color: COLORS.onSurface,
+  },
   submitBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 10, padding: 14,
-    alignItems: 'center', marginTop: 20,
+    marginTop: 16, backgroundColor: COLORS.primary,
+    borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 8,
   },
-  submitBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  // BUG FIX: submitBtnText was missing from StyleSheet
+  submitBtnText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 1 },
 
-  // Absence picker modal
-  pickerModalContent: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '60%', paddingBottom: 20,
-  },
+  // ── Absence Picker List ──
   absenceItem: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    padding: 14, borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerHigh,
   },
-  absenceItemActive: { backgroundColor: COLORS.primary + '10' },
-  absenceItemText: { fontSize: 14, color: COLORS.text },
-  absenceItemTextActive: { color: COLORS.primary, fontWeight: 'bold' },
+  absenceItemActive:     { backgroundColor: COLORS.primaryFixed },
+  absenceItemText:       { fontSize: 14, color: COLORS.onSurface },
+  absenceItemTextActive: { color: COLORS.primary, fontWeight: '700' },
   defaultBadge: {
-    fontSize: 10, color: '#fff', backgroundColor: COLORS.primary,
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, overflow: 'hidden',
+    fontSize: 10, fontWeight: '700', color: COLORS.primary,
+    backgroundColor: COLORS.primaryFixed, paddingHorizontal: 8,
+    paddingVertical: 3, borderRadius: 999,
   },
-
-  // Cards
-  card: {
-    backgroundColor: '#fff', marginHorizontal: 4, marginTop: 8, borderRadius: 12,
-    padding: 14, elevation: 1,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardDate: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  cardEmp: { fontSize: 12, color: COLORS.primary, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusBadgeText: { fontSize: 10, fontWeight: '600' },
-  cardDetails: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f5f5f5',
-  },
-  cardTime: { fontSize: 12, color: COLORS.textSecondary },
-  cardDuration: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
-  typeBadge: {
-    alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: 10, backgroundColor: COLORS.primary + '20', marginTop: 8,
-  },
-  typeBadgeText: { fontSize: 10, color: COLORS.primary, fontWeight: '600' },
-  cardMotif: { fontSize: 12, color: COLORS.textSecondary, marginTop: 6, lineHeight: 16 },
-  cardFooter: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f5f5f5',
-  },
-  cardRef: { fontSize: 10, color: '#aaa' },
-  cardActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  editBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#e0f2fe' },
-  editBtnText: { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
-  deleteBtnSmall: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#fee2e2' },
-  deleteBtnText: { fontSize: 12 },
-  refuseBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: '#fee2e2' },
-  refuseBtnText: { fontSize: 11, color: '#991b1b', fontWeight: '600' },
-  approveBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: '#dcfce7' },
-  approveBtnText: { fontSize: 11, color: '#166534', fontWeight: '600' },
-
-  // Empty
-  emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 16 },
-  emptyBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12,
-  },
-  emptyBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 });

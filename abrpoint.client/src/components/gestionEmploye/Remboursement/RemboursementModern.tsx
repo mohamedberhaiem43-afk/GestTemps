@@ -17,22 +17,50 @@ import {
 import './RemboursementModern.css';
 import { useAuth } from '../../helper/AuthProvider';
 import { useMissionsByEmp } from '../../../hooks/missionHooks/useMissions';
+import { useTranslation, Trans } from 'react-i18next';
 
 const queryClient = new QueryClient();
 
 const ROWS_PER_PAGE = 10;
-const CATEGORIES = ['Transport', 'Repas', 'Equipement', 'Logement', 'Autre'];
-const STATUS_FILTERS = ['Tous', 'Pending', 'Approved', 'Reimbursed', 'Rejected'];
-const STATUS_LABELS: Record<string, string> = {
-    'Tous': 'Tous',
-    'Pending': 'En attente',
-    'Approved': 'Approuvé',
-    'Reimbursed': 'Remboursé',
-    'Rejected': 'Refusé',
+
+// Stable enum keys for status (data layer / API values).
+type StatusKey = 'pending' | 'approved' | 'reimbursed' | 'rejected';
+type StatusFilterKey = 'all' | StatusKey;
+
+// Stable enum keys for category (data layer values).
+type CategoryKey = 'transport' | 'meals' | 'equipment' | 'lodging' | 'other';
+
+// Map between stable enum keys and the API string values used by the backend.
+const STATUS_TO_API: Record<StatusKey, string> = {
+    pending: 'Pending',
+    approved: 'Approved',
+    reimbursed: 'Reimbursed',
+    rejected: 'Rejected',
+};
+
+const CATEGORY_TO_API: Record<CategoryKey, string> = {
+    transport: 'Transport',
+    meals: 'Repas',
+    equipment: 'Equipement',
+    lodging: 'Logement',
+    other: 'Autre',
+};
+
+const CATEGORY_KEYS: CategoryKey[] = ['transport', 'meals', 'equipment', 'lodging', 'other'];
+const STATUS_FILTER_KEYS: StatusFilterKey[] = ['all', 'pending', 'approved', 'reimbursed', 'rejected'];
+
+// API status string → stable key
+const apiStatusToKey = (status: string): StatusKey => {
+    switch (status) {
+        case 'Approved': return 'approved';
+        case 'Reimbursed': return 'reimbursed';
+        case 'Rejected': return 'rejected';
+        default: return 'pending';
+    }
 };
 
 function getCategoryClass(cat: string): string {
-    const key = cat?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') || '';
+    const key = cat?.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') || '';
     if (key.includes('transport')) return 'rmb-cat-badge--transport';
     if (key.includes('repas')) return 'rmb-cat-badge--repas';
     if (key.includes('equipement') || key.includes('équipement')) return 'rmb-cat-badge--equipement';
@@ -41,16 +69,12 @@ function getCategoryClass(cat: string): string {
 }
 
 function getStatusClass(status: string): string {
-    switch (status) {
-        case 'Approved': return 'rmb-status--approved';
-        case 'Reimbursed': return 'rmb-status--reimbursed';
-        case 'Rejected': return 'rmb-status--rejected';
+    switch (apiStatusToKey(status)) {
+        case 'approved': return 'rmb-status--approved';
+        case 'reimbursed': return 'rmb-status--reimbursed';
+        case 'rejected': return 'rmb-status--rejected';
         default: return 'rmb-status--pending';
     }
-}
-
-function getStatusLabel(status: string): string {
-    return STATUS_LABELS[status] || status;
 }
 
 function formatMontant(value: number): string {
@@ -66,9 +90,24 @@ function normalizeArray(raw: any): NoteDeFrais[] {
 }
 
 function RemboursementModernContent() {
+    const { t } = useTranslation();
     const { soccod, uticod, isEmp, hasPermission } = useAuth();
     const currentEmpcod = uticod || '';
     const currentSoccod = soccod || '';
+
+    // Localized status label, looked up via stable enum key.
+    const getStatusLabel = (status: string): string =>
+        t(`remboursement.status.${apiStatusToKey(status)}`);
+
+    // Localized category label (display only — the API value is preserved).
+    const getCategoryLabel = (cat: string): string => {
+        const key = cat?.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') || '';
+        if (key.includes('transport')) return t('remboursement.categories.transport');
+        if (key.includes('repas')) return t('remboursement.categories.meals');
+        if (key.includes('equipement') || key.includes('équipement')) return t('remboursement.categories.equipment');
+        if (key.includes('logement')) return t('remboursement.categories.lodging');
+        return t('remboursement.categories.other');
+    };
 
     // Admin sees ALL expenses (by soc), Employee sees only their own
     const { data: rawEmpExpenses, isLoading: loadingEmp } = useGetNoteDeFraisByEmp(currentSoccod, currentEmpcod);
@@ -91,9 +130,9 @@ function RemboursementModernContent() {
     const deleteMutation = useDeleteNoteDeFrais();
     const updateStatusMutation = useUpdateNoteDeFraisStatus();
 
-    // Form state
+    // Form state (categorie holds the API value, e.g. 'Transport')
     const [titre, setTitre] = useState('');
-    const [categorie, setCategorie] = useState('Transport');
+    const [categorie, setCategorie] = useState<string>(CATEGORY_TO_API.transport);
     const [montant, setMontant] = useState<number | ''>('');
     const [projet, setProjet] = useState('');
     const [missionId, setMissionId] = useState<number | ''>('');
@@ -106,18 +145,18 @@ function RemboursementModernContent() {
     const [dateDepense, setDateDepense] = useState(dayjs().format('YYYY-MM-DD'));
     const [formSuccess, setFormSuccess] = useState(false);
 
-    // Table state
+    // Table state — statusFilter holds the stable filter key.
     const [page, setPage] = useState(0);
-    const [statusFilter, setStatusFilter] = useState('Tous');
+    const [statusFilter, setStatusFilter] = useState<StatusFilterKey>('all');
     const [showFilters, setShowFilters] = useState(false);
 
     // Delete confirmation
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [expenseToDelete, setExpenseToDelete] = useState<NoteDeFrais | null>(null);
 
-    // Status update confirmation
+    // Status update confirmation — newStatusKey is the stable enum key.
     const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-    const [statusAction, setStatusAction] = useState<{ expense: NoteDeFrais; newStatus: string } | null>(null);
+    const [statusAction, setStatusAction] = useState<{ expense: NoteDeFrais; newStatusKey: StatusKey } | null>(null);
 
     // Form dialog
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -131,8 +170,9 @@ function RemboursementModernContent() {
 
     // Filtered & paginated data
     const filteredExpenses = useMemo(() => {
-        if (statusFilter === 'Tous') return expenses;
-        return expenses.filter(e => e.etat === statusFilter);
+        if (statusFilter === 'all') return expenses;
+        const apiValue = STATUS_TO_API[statusFilter];
+        return expenses.filter(e => e.etat === apiValue);
     }, [expenses, statusFilter]);
 
     const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / ROWS_PER_PAGE));
@@ -150,7 +190,7 @@ function RemboursementModernContent() {
         e.preventDefault();
         if (!titre || !categorie || montant === '') return;
         if (!missionId) {
-            showSnack('Sélectionnez une mission avant de soumettre la dépense.', 'error');
+            showSnack(t('remboursement.messages.missionRequired'), 'error');
             return;
         }
 
@@ -175,9 +215,9 @@ function RemboursementModernContent() {
             setFormSuccess(true);
             setTimeout(() => setFormSuccess(false), 600);
             setIsFormOpen(false);
-            showSnack('Dépense soumise avec succès !', 'success');
+            showSnack(t('remboursement.messages.submittedSuccess'), 'success');
         } catch (err: any) {
-            const msg = err?.response?.data?.message || 'Erreur lors de la soumission.';
+            const msg = err?.response?.data?.message || t('remboursement.messages.submitError');
             showSnack(msg, 'error');
         }
     };
@@ -197,32 +237,33 @@ function RemboursementModernContent() {
         if (!expenseToDelete) return;
         try {
             await deleteMutation.mutateAsync(expenseToDelete.id);
-            showSnack('Dépense supprimée.', 'success');
+            showSnack(t('remboursement.messages.deletedSuccess'), 'success');
         } catch {
-            showSnack('Erreur lors de la suppression.', 'error');
+            showSnack(t('remboursement.messages.deleteError'), 'error');
         } finally {
             setDeleteDialogOpen(false);
             setExpenseToDelete(null);
         }
     };
 
-    // Admin status update
-    const handleStatusChange = (exp: NoteDeFrais, newStatus: string) => {
-        setStatusAction({ expense: exp, newStatus });
+    // Admin status update — uses stable status key
+    const handleStatusChange = (exp: NoteDeFrais, newStatusKey: StatusKey) => {
+        setStatusAction({ expense: exp, newStatusKey });
         setStatusDialogOpen(true);
     };
 
     const confirmStatusUpdate = async () => {
         if (!statusAction) return;
+        const apiStatus = STATUS_TO_API[statusAction.newStatusKey];
         try {
             await updateStatusMutation.mutateAsync({
                 id: statusAction.expense.id,
-                status: statusAction.newStatus
+                status: apiStatus,
             });
-            const label = getStatusLabel(statusAction.newStatus);
-            showSnack(`Dépense marquée comme "${label}".`, 'success');
+            const label = t(`remboursement.status.${statusAction.newStatusKey}`);
+            showSnack(t('remboursement.messages.statusUpdated', { label }), 'success');
         } catch {
-            showSnack('Erreur lors de la mise à jour.', 'error');
+            showSnack(t('remboursement.messages.statusError'), 'error');
         } finally {
             setStatusDialogOpen(false);
             setStatusAction(null);
@@ -237,8 +278,23 @@ function RemboursementModernContent() {
     const handleExportCSV = () => {
         if (!filteredExpenses.length) return;
         const headers = isAdmin
-            ? ['Employé', 'Titre', 'Catégorie', 'Date', 'Montant', 'Projet', 'État']
-            : ['Titre', 'Catégorie', 'Date', 'Montant', 'Projet', 'État'];
+            ? [
+                t('remboursement.csv.employee'),
+                t('remboursement.csv.title'),
+                t('remboursement.csv.category'),
+                t('remboursement.csv.date'),
+                t('remboursement.csv.amount'),
+                t('remboursement.csv.project'),
+                t('remboursement.csv.status'),
+            ]
+            : [
+                t('remboursement.csv.title'),
+                t('remboursement.csv.category'),
+                t('remboursement.csv.date'),
+                t('remboursement.csv.amount'),
+                t('remboursement.csv.project'),
+                t('remboursement.csv.status'),
+            ];
         const rows = filteredExpenses.map(e => {
             const base = [
                 e.titre,
@@ -251,54 +307,96 @@ function RemboursementModernContent() {
             return isAdmin ? [e.empcod, ...base] : base;
         });
         const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
-        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `notes-de-frais-${dayjs().format('YYYY-MM-DD')}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        showSnack('Export CSV téléchargé.', 'success');
+        showSnack(t('remboursement.messages.csvDownloaded'), 'success');
     };
 
-    const handleFilterChange = (filter: string) => {
+    const handleFilterChange = (filter: StatusFilterKey) => {
         setStatusFilter(filter);
         setPage(0);
     };
 
-    // Status action label and color helpers
-    const getStatusActionInfo = (status: string) => {
-        switch (status) {
-            case 'Approved': return { label: 'Approuver', color: '#059669', bg: '#dcfce7', icon: <ShieldCheck size={16} /> };
-            case 'Rejected': return { label: 'Refuser', color: '#dc2626', bg: '#fee2e2', icon: <Ban size={16} /> };
-            case 'Reimbursed': return { label: 'Marquer Remboursé', color: '#0040a1', bg: '#dbeafe', icon: <Banknote size={16} /> };
-            default: return { label: status, color: '#64748b', bg: '#f1f5f9', icon: null };
+    // Localized title for the status confirmation dialog
+    const getStatusActionTitle = (key: StatusKey): string => {
+        switch (key) {
+            case 'approved': return t('remboursement.statusDialog.approveTitle');
+            case 'rejected': return t('remboursement.statusDialog.rejectTitle');
+            case 'reimbursed': return t('remboursement.statusDialog.reimburseTitle');
+            default: return '';
         }
     };
+
+    const getStatusActionDescription = (key: StatusKey): string => {
+        switch (key) {
+            case 'approved': return t('remboursement.statusDialog.approveDesc');
+            case 'rejected': return t('remboursement.statusDialog.rejectDesc');
+            case 'reimbursed': return t('remboursement.statusDialog.reimburseDesc');
+            default: return '';
+        }
+    };
+
+    // Status action button label (also used for tooltips and confirm button)
+    const getStatusActionInfo = (key: StatusKey) => {
+        switch (key) {
+            case 'approved': return { label: t('remboursement.actions.approve'), color: '#059669', bg: '#dcfce7', icon: <ShieldCheck size={16} /> };
+            case 'rejected': return { label: t('remboursement.actions.reject'), color: '#dc2626', bg: '#fee2e2', icon: <Ban size={16} /> };
+            case 'reimbursed': return { label: t('remboursement.actions.markReimbursed'), color: '#0040a1', bg: '#dbeafe', icon: <Banknote size={16} /> };
+            default: return { label: t(`remboursement.status.${key}`), color: '#64748b', bg: '#f1f5f9', icon: null };
+        }
+    };
+
+    // Filter chip label (handles 'all' specially)
+    const getFilterLabel = (key: StatusFilterKey): string =>
+        key === 'all' ? t('remboursement.filters.all') : t(`remboursement.status.${key}`);
 
     return (
         <div className="rmb-container">
             {/* Header */}
             <div className="rmb-header">
                 <div>
-                    <h1 className="rmb-title">Note de Frais</h1>
+                    <h1 className="rmb-title">{t('remboursement.title')}</h1>
                     <p className="rmb-subtitle">
-                        {isAdmin
-                            ? <>Gestion et validation des notes de frais.
+                        {isAdmin ? (
+                            <>{t('remboursement.subtitleAdmin')}
                                 {pendingCount > 0 && (
-                                    <> <strong style={{ color: '#d97706' }}>{pendingCount} dépense{pendingCount > 1 ? 's' : ''}</strong> en attente de validation.</>
-                                )}</>
-                            : <>Gérez vos dépenses et frais de mission.
+                                    <>
+                                        {' '}
+                                        <Trans
+                                            i18nKey="remboursement.pendingValidation"
+                                            count={pendingCount}
+                                            values={{ count: pendingCount }}
+                                            components={{ 0: <strong style={{ color: '#d97706' }} /> }}
+                                        />
+                                    </>
+                                )}
+                            </>
+                        ) : (
+                            <>{t('remboursement.subtitleEmployee')}
                                 {pendingCount > 0 && (
-                                    <> Vous avez <strong style={{ color: '#d97706' }}>{pendingCount} dépense{pendingCount > 1 ? 's' : ''}</strong> en attente.</>
-                                )}</>
-                        }
+                                    <>
+                                        {' '}
+                                        <Trans
+                                            i18nKey="remboursement.youHavePending"
+                                            count={pendingCount}
+                                            values={{ count: pendingCount }}
+                                            components={{ 0: <strong style={{ color: '#d97706' }} /> }}
+                                        />
+                                    </>
+                                )}
+                            </>
+                        )}
                     </p>
                 </div>
                 {(isEmp || canAdd) && (
                     <button className="rmb-new-btn" onClick={() => setIsFormOpen(true)}>
                         <UploadCloud size={18} />
-                        Nouvelle Dépense
+                        {t('remboursement.newExpense')}
                     </button>
                 )}
             </div>
@@ -310,21 +408,21 @@ function RemboursementModernContent() {
                     {/* Stats */}
                     <div className="rmb-stats-grid">
                         <div className="rmb-stat-card rmb-stat-card--pending">
-                            <div className="rmb-stat-label">En attente</div>
+                            <div className="rmb-stat-label">{t('remboursement.stats.pending')}</div>
                             <div className="rmb-stat-value rmb-stat-value--pending">
                                 {formatMontant(pendingTotal)}
                                 <span className="rmb-stat-currency">€</span>
                             </div>
                         </div>
                         <div className="rmb-stat-card rmb-stat-card--reimbursed">
-                            <div className="rmb-stat-label">Remboursé</div>
+                            <div className="rmb-stat-label">{t('remboursement.stats.reimbursed')}</div>
                             <div className="rmb-stat-value rmb-stat-value--reimbursed">
                                 {formatMontant(reimbursedTotal)}
                                 <span className="rmb-stat-currency">€</span>
                             </div>
                         </div>
                         <div className="rmb-stat-card rmb-stat-card--total">
-                            <div className="rmb-stat-label">Total Année</div>
+                            <div className="rmb-stat-label">{t('remboursement.stats.totalYear')}</div>
                             <div className="rmb-stat-value rmb-stat-value--total">
                                 {formatMontant(ytdTotal)}
                                 <span className="rmb-stat-currency">€</span>
@@ -336,17 +434,17 @@ function RemboursementModernContent() {
                     <div className="rmb-table-card">
                         <div className="rmb-table-toolbar">
                             <span className="rmb-table-title">
-                                {isAdmin ? 'Toutes les Dépenses' : 'Historique des Dépenses'}
+                                {isAdmin ? t('remboursement.table.titleAdmin') : t('remboursement.table.titleEmployee')}
                             </span>
                             <div className="rmb-toolbar-actions">
                                 <button
                                     className={`rmb-toolbar-btn ${showFilters ? 'active' : ''}`}
                                     onClick={() => setShowFilters(!showFilters)}
                                 >
-                                    <Filter size={13} /> Filtrer
+                                    <Filter size={13} /> {t('remboursement.table.filter')}
                                 </button>
                                 <button className="rmb-toolbar-btn" onClick={handleExportCSV}>
-                                    <Download size={13} /> Export CSV
+                                    <Download size={13} /> {t('remboursement.table.exportCsv')}
                                 </button>
                             </div>
                         </div>
@@ -355,13 +453,13 @@ function RemboursementModernContent() {
                         {showFilters && (
                             <div style={{ padding: '12px 24px', borderBottom: '1px solid #f2f4f6', background: '#fafbfc' }}>
                                 <div className="rmb-filter-row">
-                                    {STATUS_FILTERS.map(f => (
+                                    {STATUS_FILTER_KEYS.map(f => (
                                         <button
                                             key={f}
                                             className={`rmb-filter-chip ${statusFilter === f ? 'active' : ''}`}
                                             onClick={() => handleFilterChange(f)}
                                         >
-                                            {STATUS_LABELS[f]}
+                                            {getFilterLabel(f)}
                                         </button>
                                     ))}
                                 </div>
@@ -372,12 +470,12 @@ function RemboursementModernContent() {
                             <table className="rmb-table">
                                 <thead>
                                     <tr>
-                                        {isAdmin && <th>Employé</th>}
-                                        <th>Description</th>
-                                        <th>Catégorie</th>
-                                        <th>Date</th>
-                                        <th>Montant</th>
-                                        <th>État</th>
+                                        {isAdmin && <th>{t('remboursement.table.employee')}</th>}
+                                        <th>{t('remboursement.table.description')}</th>
+                                        <th>{t('remboursement.table.category')}</th>
+                                        <th>{t('remboursement.table.date')}</th>
+                                        <th>{t('remboursement.table.amount')}</th>
+                                        <th>{t('remboursement.table.status')}</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -396,9 +494,9 @@ function RemboursementModernContent() {
                                                 <div className="rmb-empty-state">
                                                     <FileText className="rmb-empty-icon" size={48} strokeWidth={1} />
                                                     <p className="rmb-empty-text">
-                                                        {statusFilter !== 'Tous'
-                                                            ? `Aucune dépense avec le statut "${getStatusLabel(statusFilter)}".`
-                                                            : 'Aucune dépense trouvée.'}
+                                                        {statusFilter !== 'all'
+                                                            ? t('remboursement.table.noExpensesWithStatus', { status: t(`remboursement.status.${statusFilter}`) })
+                                                            : t('remboursement.table.noExpenses')}
                                                     </p>
                                                 </div>
                                             </td>
@@ -423,7 +521,7 @@ function RemboursementModernContent() {
                                                 </td>
                                                 <td>
                                                     <span className={`rmb-cat-badge ${getCategoryClass(exp.categorie)}`}>
-                                                        {exp.categorie}
+                                                        {getCategoryLabel(exp.categorie)}
                                                     </span>
                                                 </td>
                                                 <td>
@@ -446,7 +544,7 @@ function RemboursementModernContent() {
                                                 <td>
                                                     <div className="rmb-row-actions">
                                                         {/* View details */}
-                                                        <Tooltip title="Détails" arrow>
+                                                        <Tooltip title={t('remboursement.actions.details')} arrow>
                                                             <button
                                                                 className="rmb-action-btn rmb-action-btn--receipt"
                                                                 onClick={() => handleDetailClick(exp)}
@@ -458,18 +556,18 @@ function RemboursementModernContent() {
                                                         {/* ── Admin actions on pending expenses ── */}
                                                         {isAdmin && canModify && exp.etat === 'Pending' && (
                                                             <>
-                                                                <Tooltip title="Approuver" arrow>
+                                                                <Tooltip title={t('remboursement.actions.approve')} arrow>
                                                                     <button
                                                                         className="rmb-action-btn rmb-action-btn--approve"
-                                                                        onClick={() => handleStatusChange(exp, 'Approved')}
+                                                                        onClick={() => handleStatusChange(exp, 'approved')}
                                                                     >
                                                                         <ShieldCheck size={16} />
                                                                     </button>
                                                                 </Tooltip>
-                                                                <Tooltip title="Refuser" arrow>
+                                                                <Tooltip title={t('remboursement.actions.reject')} arrow>
                                                                     <button
                                                                         className="rmb-action-btn rmb-action-btn--reject"
-                                                                        onClick={() => handleStatusChange(exp, 'Rejected')}
+                                                                        onClick={() => handleStatusChange(exp, 'rejected')}
                                                                     >
                                                                         <Ban size={16} />
                                                                     </button>
@@ -479,10 +577,10 @@ function RemboursementModernContent() {
 
                                                         {/* Admin can mark approved → reimbursed */}
                                                         {isAdmin && canModify && exp.etat === 'Approved' && (
-                                                            <Tooltip title="Marquer Remboursé" arrow>
+                                                            <Tooltip title={t('remboursement.actions.markReimbursed')} arrow>
                                                                 <button
                                                                     className="rmb-action-btn rmb-action-btn--reimburse"
-                                                                    onClick={() => handleStatusChange(exp, 'Reimbursed')}
+                                                                    onClick={() => handleStatusChange(exp, 'reimbursed')}
                                                                 >
                                                                     <Banknote size={16} />
                                                                 </button>
@@ -491,7 +589,7 @@ function RemboursementModernContent() {
 
                                                         {/* Employee can delete own pending expenses */}
                                                         {isEmp && exp.etat === 'Pending' && exp.empcod === currentEmpcod && (
-                                                            <Tooltip title="Supprimer" arrow>
+                                                            <Tooltip title={t('remboursement.actions.delete')} arrow>
                                                                 <button
                                                                     className="rmb-action-btn rmb-action-btn--delete"
                                                                     onClick={() => handleDeleteClick(exp)}
@@ -503,7 +601,7 @@ function RemboursementModernContent() {
 
                                                         {/* Admin can delete */}
                                                         {isAdmin && canDelete && (
-                                                            <Tooltip title="Supprimer" arrow>
+                                                            <Tooltip title={t('remboursement.actions.delete')} arrow>
                                                                 <button
                                                                     className="rmb-action-btn rmb-action-btn--delete"
                                                                     onClick={() => handleDeleteClick(exp)}
@@ -525,7 +623,11 @@ function RemboursementModernContent() {
                         {filteredExpenses.length > ROWS_PER_PAGE && (
                             <div className="rmb-pagination">
                                 <span className="rmb-pagination-info">
-                                    {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, filteredExpenses.length)} sur {filteredExpenses.length}
+                                    {t('remboursement.table.pagination', {
+                                        from: page * ROWS_PER_PAGE + 1,
+                                        to: Math.min((page + 1) * ROWS_PER_PAGE, filteredExpenses.length),
+                                        total: filteredExpenses.length,
+                                    })}
                                 </span>
                                 <div className="rmb-pagination-controls">
                                     <button
@@ -565,17 +667,22 @@ function RemboursementModernContent() {
                 PaperProps={{ sx: { borderRadius: '16px', minWidth: '380px' } }}
             >
                 <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#dc2626' }}>
-                    Confirmer la suppression
+                    {t('remboursement.delete.title')}
                 </DialogTitle>
                 <Divider />
                 <DialogContent sx={{ pt: 2.5 }}>
                     <Typography sx={{ color: '#475569', fontSize: '14px', mt: 1, lineHeight: 1.6 }}>
-                        Êtes-vous sûr de vouloir supprimer la dépense
-                        <strong> « {expenseToDelete?.titre} »</strong> d'un montant de{' '}
-                        <strong>{expenseToDelete ? formatMontant(expenseToDelete.montant) : '0'} €</strong> ?
+                        <Trans
+                            i18nKey="remboursement.delete.prompt"
+                            values={{
+                                title: expenseToDelete?.titre ?? '',
+                                amount: expenseToDelete ? formatMontant(expenseToDelete.montant) : '0',
+                            }}
+                            components={{ 0: <strong />, 1: <strong /> }}
+                        />
                     </Typography>
                     <Typography sx={{ color: '#94a3b8', fontSize: '12px', mt: 2 }}>
-                        Cette action est irréversible.
+                        {t('remboursement.delete.irreversible')}
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
@@ -583,7 +690,7 @@ function RemboursementModernContent() {
                         onClick={() => setDeleteDialogOpen(false)}
                         sx={{ color: '#64748b', textTransform: 'none', borderRadius: '8px' }}
                     >
-                        Annuler
+                        {t('remboursement.delete.cancel')}
                     </Button>
                     <Button
                         onClick={confirmDelete}
@@ -593,7 +700,7 @@ function RemboursementModernContent() {
                         startIcon={deleteMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <Trash2 size={16} />}
                         sx={{ textTransform: 'none', borderRadius: '8px', fontWeight: 700 }}
                     >
-                        Oui, Supprimer
+                        {t('remboursement.delete.confirm')}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -605,35 +712,30 @@ function RemboursementModernContent() {
                 PaperProps={{ sx: { borderRadius: '16px', minWidth: '400px' } }}
             >
                 {statusAction && (() => {
-                    const info = getStatusActionInfo(statusAction.newStatus);
+                    const info = getStatusActionInfo(statusAction.newStatusKey);
                     return (
                         <>
                             <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: info.color }}>
-                                {info.label} cette dépense ?
+                                {getStatusActionTitle(statusAction.newStatusKey)}
                             </DialogTitle>
                             <Divider />
                             <DialogContent sx={{ pt: 2.5 }}>
                                 <Box sx={{ background: '#f8fafc', borderRadius: '12px', p: 2.5, mb: 2 }}>
                                     <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                        Employé
+                                        {t('remboursement.statusDialog.employeeLabel')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#191c1e', mb: 1.5 }}>
                                         {statusAction.expense.empcod}
                                     </Typography>
                                     <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                        Dépense
+                                        {t('remboursement.statusDialog.expenseLabel')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#191c1e' }}>
                                         {statusAction.expense.titre} — <strong>{formatMontant(statusAction.expense.montant)} €</strong>
                                     </Typography>
                                 </Box>
                                 <Typography sx={{ color: '#475569', fontSize: '13px', lineHeight: 1.6 }}>
-                                    {statusAction.newStatus === 'Approved' &&
-                                        'Cette action approuve la dépense et la rend éligible au remboursement.'}
-                                    {statusAction.newStatus === 'Rejected' &&
-                                        'Cette action refuse la dépense. L\'employé sera informé.'}
-                                    {statusAction.newStatus === 'Reimbursed' &&
-                                        'Cette action confirme que le remboursement a été effectué.'}
+                                    {getStatusActionDescription(statusAction.newStatusKey)}
                                 </Typography>
                             </DialogContent>
                             <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
@@ -641,7 +743,7 @@ function RemboursementModernContent() {
                                     onClick={() => setStatusDialogOpen(false)}
                                     sx={{ color: '#64748b', textTransform: 'none', borderRadius: '8px' }}
                                 >
-                                    Annuler
+                                    {t('remboursement.statusDialog.cancel')}
                                 </Button>
                                 <Button
                                     onClick={confirmStatusUpdate}
@@ -675,7 +777,7 @@ function RemboursementModernContent() {
                 PaperProps={{ sx: { borderRadius: '16px' } }}
             >
                 <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', pb: 1 }}>
-                    Détail de la Dépense
+                    {t('remboursement.detail.title')}
                 </DialogTitle>
                 <Divider />
                 {selectedExpense && (
@@ -684,7 +786,7 @@ function RemboursementModernContent() {
                             {isAdmin && (
                                 <Box>
                                     <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                        Employé
+                                        {t('remboursement.detail.employee')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#191c1e' }}>
                                         {selectedExpense.empcod}
@@ -693,7 +795,7 @@ function RemboursementModernContent() {
                             )}
                             <Box>
                                 <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                    Titre
+                                    {t('remboursement.detail.expenseTitle')}
                                 </Typography>
                                 <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#191c1e' }}>
                                     {selectedExpense.titre}
@@ -701,15 +803,15 @@ function RemboursementModernContent() {
                             </Box>
                             <Box>
                                 <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                    Catégorie
+                                    {t('remboursement.detail.category')}
                                 </Typography>
                                 <span className={`rmb-cat-badge ${getCategoryClass(selectedExpense.categorie)}`}>
-                                    {selectedExpense.categorie}
+                                    {getCategoryLabel(selectedExpense.categorie)}
                                 </span>
                             </Box>
                             <Box>
                                 <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                    Montant
+                                    {t('remboursement.detail.amount')}
                                 </Typography>
                                 <Typography sx={{ fontSize: '22px', fontWeight: 800, color: '#0040a1', fontFamily: 'Manrope, sans-serif' }}>
                                     {formatMontant(selectedExpense.montant)} <span style={{ fontSize: '13px', fontWeight: 600, opacity: 0.5 }}>€</span>
@@ -717,7 +819,7 @@ function RemboursementModernContent() {
                             </Box>
                             <Box>
                                 <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                    État
+                                    {t('remboursement.detail.status')}
                                 </Typography>
                                 <span className={`rmb-status-badge ${getStatusClass(selectedExpense.etat)}`}>
                                     <span className="rmb-status-dot"></span>
@@ -726,7 +828,7 @@ function RemboursementModernContent() {
                             </Box>
                             <Box>
                                 <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                    Date de la dépense
+                                    {t('remboursement.detail.expenseDate')}
                                 </Typography>
                                 <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#475569' }}>
                                     {dayjs(selectedExpense.dateDepense).format('DD MMMM YYYY')}
@@ -734,7 +836,7 @@ function RemboursementModernContent() {
                             </Box>
                             <Box>
                                 <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                    Date de soumission
+                                    {t('remboursement.detail.submissionDate')}
                                 </Typography>
                                 <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#475569' }}>
                                     {dayjs(selectedExpense.createdAt).format('DD MMMM YYYY')}
@@ -743,7 +845,7 @@ function RemboursementModernContent() {
                             {selectedExpense.projet && (
                                 <Box sx={{ gridColumn: '1 / -1' }}>
                                     <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                        Projet / Mission
+                                        {t('remboursement.detail.project')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#475569' }}>
                                         {selectedExpense.projet}
@@ -753,7 +855,7 @@ function RemboursementModernContent() {
                             {selectedExpense.justificatif && (
                                 <Box sx={{ gridColumn: '1 / -1' }}>
                                     <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                                        Justificatif
+                                        {t('remboursement.detail.receipt')}
                                     </Typography>
                                     <a
                                         href={selectedExpense.justificatif}
@@ -773,7 +875,7 @@ function RemboursementModernContent() {
                                             border: '1px solid #bfdbfe',
                                         }}
                                     >
-                                        <FileText size={16} /> Voir le justificatif
+                                        <FileText size={16} /> {t('remboursement.detail.viewReceipt')}
                                     </a>
                                 </Box>
                             )}
@@ -785,30 +887,30 @@ function RemboursementModernContent() {
                         onClick={() => setDetailDialogOpen(false)}
                         sx={{ color: '#64748b', textTransform: 'none', borderRadius: '8px' }}
                     >
-                        Fermer
+                        {t('remboursement.detail.close')}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             {/* ─── Form Dialog (Employee) ─── */}
-            <Dialog 
-                open={isFormOpen} 
+            <Dialog
+                open={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
                 maxWidth="sm"
                 fullWidth
                 PaperProps={{ sx: { borderRadius: '20px' } }}
             >
                 <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '20px', pt: 3 }}>
-                    Nouvelle Dépense
+                    {t('remboursement.form.title')}
                 </DialogTitle>
                 <DialogContent>
                     <div className={`rmb-form-card ${formSuccess ? 'success' : ''}`} style={{ boxShadow: 'none', border: 'none', padding: 0, marginTop: '16px' }}>
                         <form onSubmit={handleSubmit}>
                             <div className="rmb-form-group">
-                                <label className="rmb-form-label">Motif / Titre</label>
+                                <label className="rmb-form-label">{t('remboursement.form.motiveTitle')}</label>
                                 <input
                                     className="rmb-form-input"
-                                    placeholder="Ex: Déplacement Client"
+                                    placeholder={t('remboursement.form.motivePlaceholder')}
                                     type="text"
                                     value={titre}
                                     onChange={e => setTitre(e.target.value)}
@@ -816,7 +918,7 @@ function RemboursementModernContent() {
                                 />
                             </div>
                             <div className="rmb-form-group">
-                                <label className="rmb-form-label">Date de la dépense</label>
+                                <label className="rmb-form-label">{t('remboursement.form.expenseDate')}</label>
                                 <input
                                     className="rmb-form-input"
                                     type="date"
@@ -827,22 +929,24 @@ function RemboursementModernContent() {
                             </div>
                             <div className="rmb-form-row rmb-form-group">
                                 <div>
-                                    <label className="rmb-form-label">Catégorie</label>
+                                    <label className="rmb-form-label">{t('remboursement.form.category')}</label>
                                     <select
                                         className="rmb-form-select"
                                         value={categorie}
                                         onChange={e => setCategorie(e.target.value)}
                                     >
-                                        {CATEGORIES.map(c => (
-                                            <option key={c} value={c}>{c === 'Equipement' ? 'Équipement' : c}</option>
+                                        {CATEGORY_KEYS.map(k => (
+                                            <option key={k} value={CATEGORY_TO_API[k]}>
+                                                {t(`remboursement.categories.${k}`)}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="rmb-form-label">Montant (€)</label>
+                                    <label className="rmb-form-label">{t('remboursement.form.amount')}</label>
                                     <input
                                         className="rmb-form-input"
-                                        placeholder="0.000"
+                                        placeholder={t('remboursement.form.amountPlaceholder')}
                                         type="number"
                                         step="0.001"
                                         value={montant}
@@ -852,7 +956,7 @@ function RemboursementModernContent() {
                                 </div>
                             </div>
                             <div className="rmb-form-group">
-                                <label className="rmb-form-label">Mission rattachée *</label>
+                                <label className="rmb-form-label">{t('remboursement.form.linkedMission')}</label>
                                 <select
                                     className="rmb-form-select"
                                     value={missionId === '' ? '' : String(missionId)}
@@ -862,10 +966,10 @@ function RemboursementModernContent() {
                                 >
                                     <option value="">
                                         {missionsLoading
-                                            ? 'Chargement…'
+                                            ? t('remboursement.form.loading')
                                             : missions.length === 0
-                                                ? 'Aucune mission — créez-en une dans Employés > Missions'
-                                                : 'Sélectionnez une mission'}
+                                                ? t('remboursement.form.noMission')
+                                                : t('remboursement.form.selectMission')}
                                     </option>
                                     {missions.map(m => (
                                         <option key={m.id} value={m.id}>
@@ -875,17 +979,17 @@ function RemboursementModernContent() {
                                 </select>
                             </div>
                             <div className="rmb-form-group">
-                                <label className="rmb-form-label">Projet (libellé libre)</label>
+                                <label className="rmb-form-label">{t('remboursement.form.project')}</label>
                                 <input
                                     className="rmb-form-input"
-                                    placeholder="Référence interne (Optionnel)"
+                                    placeholder={t('remboursement.form.projectPlaceholder')}
                                     type="text"
                                     value={projet}
                                     onChange={e => setProjet(e.target.value)}
                                 />
                             </div>
                             <div className="rmb-form-group">
-                                <label className="rmb-form-label">Justificatif</label>
+                                <label className="rmb-form-label">{t('remboursement.form.receipt')}</label>
                                 <div className={`rmb-upload-zone ${file ? 'has-file' : ''}`}>
                                     <input
                                         type="file"
@@ -895,10 +999,10 @@ function RemboursementModernContent() {
                                     />
                                     <UploadCloud className="rmb-upload-icon" size={28} />
                                     <span className="rmb-upload-text">
-                                        {file ? '' : 'Cliquez ou glissez le fichier'}
+                                        {file ? '' : t('remboursement.form.uploadHint')}
                                     </span>
                                     {file && <span className="rmb-file-name">{file.name}</span>}
-                                    <span className="rmb-upload-hint">PDF, PNG, JPG (Max 10MB)</span>
+                                    <span className="rmb-upload-hint">{t('remboursement.form.uploadConstraints')}</span>
                                 </div>
                             </div>
                             <button
@@ -911,7 +1015,7 @@ function RemboursementModernContent() {
                                 ) : (
                                     <Send size={16} />
                                 )}
-                                {addMutation.isPending ? 'ENVOI EN COURS...' : 'SOUMETTRE'}
+                                {addMutation.isPending ? t('remboursement.form.submitting') : t('remboursement.form.submit')}
                             </button>
                         </form>
                     </div>
@@ -919,13 +1023,13 @@ function RemboursementModernContent() {
                     <div className="rmb-tip-card" style={{ marginTop: '24px' }}>
                         <Info className="rmb-tip-icon" size={20} />
                         <p className="rmb-tip-text">
-                            Les équipements de plus de 500 € nécessitent une pré-autorisation.
+                            {t('remboursement.form.tip')}
                         </p>
                     </div>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 3 }}>
                     <Button onClick={() => setIsFormOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
-                        Annuler
+                        {t('remboursement.form.cancel')}
                     </Button>
                 </DialogActions>
             </Dialog>

@@ -8,6 +8,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { useTranslation } from 'react-i18next';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
 import ScheduleIcon from '@mui/icons-material/Schedule';
@@ -32,6 +33,7 @@ function formatDuration(hours: number): string {
 }
 
 function AutSortieGeneraleContent() {
+  const { t } = useTranslation();
   const { soccod, uticod } = useAuth();
 
   // Form state
@@ -94,7 +96,7 @@ function AutSortieGeneraleContent() {
 
   const handleSubmit = () => {
     if (!abscod) {
-      setSnack({ open: true, msg: 'Imputation est obligatoire.', sev: 'error' });
+      setSnack({ open: true, msg: t('autSortieGenerale.msg.imputationRequired'), sev: 'error' });
       return;
     }
     setIsSaving(true);
@@ -117,12 +119,12 @@ function AutSortieGeneraleContent() {
 
     addBulkSortie(payload, {
       onSuccess: () => {
-        setSnack({ open: true, msg: `${targets.length} autorisations générées avec succès.`, sev: 'success' });
+        setSnack({ open: true, msg: t('autSortieGenerale.msg.bulkSuccess', { count: targets.length }), sev: 'success' });
         resetForm();
         setIsSaving(false);
       },
       onError: () => {
-        setSnack({ open: true, msg: "Erreur lors de l'enregistrement en masse.", sev: 'error' });
+        setSnack({ open: true, msg: t('autSortieGenerale.msg.bulkError'), sev: 'error' });
         setIsSaving(false);
       }
     });
@@ -143,12 +145,12 @@ function AutSortieGeneraleContent() {
       <Box className="aut-header">
         <Box>
           <BreadcrumbNavigation />
-          <Typography className="aut-header-heading" sx={{ mt: 1 }}>Autorisation de Sortie Générale</Typography>
-          <Typography className="aut-header-sub">Émission groupée pour l'ensemble du personnel</Typography>
+          <Typography className="aut-header-heading" sx={{ mt: 1 }}>{t('autSortieGenerale.header.title')}</Typography>
+          <Typography className="aut-header-sub">{t('autSortieGenerale.header.subtitle')}</Typography>
         </Box>
         <Box className="aut-header-actions">
           <Button className="aut-cancel-btn" variant="outlined" startIcon={<RefreshIcon />} onClick={resetForm}>
-            Réinitialiser
+            {t('autSortieGenerale.header.reset')}
           </Button>
           <Button
             className="aut-save-btn"
@@ -157,7 +159,7 @@ function AutSortieGeneraleContent() {
             onClick={handleSubmit}
             disabled={isSaving}
           >
-            {isSaving ? 'Génération...' : 'Émettre en Masse'}
+            {isSaving ? t('autSortieGenerale.header.generating') : t('autSortieGenerale.header.submit')}
           </Button>
         </Box>
       </Box>
@@ -171,8 +173,8 @@ function AutSortieGeneraleContent() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                        <PeopleIcon sx={{ color: '#64748b' }} />
                        <Box>
-                          <Typography sx={{ fontWeight: 800, fontSize: '15px', color: '#1e293b' }}>Exceptions ({checkedEmployees.size})</Typography>
-                          <Typography sx={{ fontSize: '12px', color: '#64748b' }}>Sélectionnez les employés à exclure de cet envoi</Typography>
+                          <Typography sx={{ fontWeight: 800, fontSize: '15px', color: '#1e293b' }}>{t('autSortieGenerale.exceptions.title', { count: checkedEmployees.size })}</Typography>
+                          <Typography sx={{ fontSize: '12px', color: '#64748b' }}>{t('autSortieGenerale.exceptions.desc')}</Typography>
                        </Box>
                     </Box>
                     <Button
@@ -181,7 +183,7 @@ function AutSortieGeneraleContent() {
                       onClick={() => setShowExceptionList(!showExceptionList)}
                       sx={{ borderRadius: '8px', textTransform: 'none' }}
                     >
-                      {showExceptionList ? 'Masquer la liste' : 'Gérer les exceptions'}
+                      {showExceptionList ? t('autSortieGenerale.exceptions.hide') : t('autSortieGenerale.exceptions.show')}
                     </Button>
                  </Box>
 
@@ -212,12 +214,12 @@ function AutSortieGeneraleContent() {
               <Box className="aut-card">
                  <Box className="aut-card-header">
                     <Box className="aut-card-icon"><ScheduleIcon fontSize="small" /></Box>
-                    <Typography className="aut-card-title">Planification Commune</Typography>
+                    <Typography className="aut-card-title">{t('autSortieGenerale.schedule.title')}</Typography>
                  </Box>
                  <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
                     <Box className="aut-form-grid aut-form-grid--4">
                        <Box className="aut-field">
-                          <label>Date de Sortie</label>
+                          <label>{t('autSortieGenerale.schedule.exitDate')}</label>
                           <DatePicker
                              value={condat[0]}
                              onChange={(v) => setCondat([v, condat[1]])}
@@ -226,7 +228,7 @@ function AutSortieGeneraleContent() {
                           />
                        </Box>
                        <Box className="aut-field">
-                          <label>Début</label>
+                          <label>{t('autSortieGenerale.schedule.start')}</label>
                           <TimePicker
                              value={condat[0]}
                              onChange={(v) => setCondat([v, condat[1]])}
@@ -235,7 +237,7 @@ function AutSortieGeneraleContent() {
                           />
                        </Box>
                        <Box className="aut-field">
-                          <label>Fin Prévue</label>
+                          <label>{t('autSortieGenerale.schedule.end')}</label>
                           <TimePicker
                              value={condat[1]}
                              onChange={(v) => setCondat([condat[0], v])}
@@ -244,7 +246,7 @@ function AutSortieGeneraleContent() {
                           />
                        </Box>
                        <Box className="aut-field">
-                          <label>Durée</label>
+                          <label>{t('autSortieGenerale.schedule.duration')}</label>
                           <Box className="aut-duration-badge">{formatDuration(hoursDiff)}</Box>
                        </Box>
                     </Box>
@@ -254,13 +256,13 @@ function AutSortieGeneraleContent() {
               <Box className="aut-card">
                  <Box className="aut-card-header">
                     <Box className="aut-card-icon"><SearchIcon fontSize="small" /></Box>
-                    <Typography className="aut-card-title">Références</Typography>
+                    <Typography className="aut-card-title">{t('autSortieGenerale.references.title')}</Typography>
                  </Box>
                  <Box className="aut-field">
-                    <label>Référence Administrative</label>
+                    <label>{t('autSortieGenerale.references.adminRef')}</label>
                     <input
                        type="text"
-                       placeholder="Note de service N°..."
+                       placeholder={t('autSortieGenerale.references.adminRefPlaceholder')}
                        value={conref}
                        onChange={(e) => setConref(e.target.value)}
                     />
@@ -272,7 +274,7 @@ function AutSortieGeneraleContent() {
               <Box className="aut-card aut-card--full">
                  <Box className="aut-card-header">
                     <Box className="aut-card-icon"><CategoryIcon fontSize="small" /></Box>
-                    <Typography className="aut-card-title">Type d'Imputation</Typography>
+                    <Typography className="aut-card-title">{t('autSortieGenerale.imputation.title')}</Typography>
                  </Box>
                  <Box className="aut-type-section">
                     <Box className="aut-type-list">
@@ -290,10 +292,10 @@ function AutSortieGeneraleContent() {
                     </Box>
                  </Box>
                  <Box className="aut-motif-section">
-                    <label className="aut-section-label">Motif Collectif</label>
+                    <label className="aut-section-label">{t('autSortieGenerale.imputation.collectiveReason')}</label>
                     <textarea
                        className="aut-textarea"
-                       placeholder="Justification pour l'ensemble des employés..."
+                       placeholder={t('autSortieGenerale.imputation.collectiveReasonPlaceholder')}
                        rows={5}
                        value={conmotif}
                        onChange={(e) => setConmotif(e.target.value)}

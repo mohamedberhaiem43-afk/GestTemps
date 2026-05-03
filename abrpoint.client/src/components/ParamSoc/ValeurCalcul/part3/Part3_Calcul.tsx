@@ -3,6 +3,7 @@ import { Parametre } from "../../../../models/Parametre";
 import InputComponent from "../../../Inputs/Input";
 import { useEffect, useState } from 'react';
 import { Grid, Box } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 interface AffichageProps {
   parametre?: Parametre;
@@ -10,6 +11,7 @@ interface AffichageProps {
 }
 
 const Part3_Calcul: React.FC<AffichageProps> = ({ parametre, onChange }) => {
+  const { t } = useTranslation();
   const [parmaxfer, setParmaxfer] = useState(parametre?.parmaxfer);
   const [tauxtr4M, setTauxtr4M] = useState(parametre?.tauxtr4M);
   const [parminhjour, setParminhjour] = useState(parametre?.parminhjour);
@@ -36,7 +38,7 @@ const Part3_Calcul: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={3}>
           <InputComponent
             type="number"
-            label="Max Heures Férié Travaillé"
+            label={t('paramSoc.valeurCalcul.part3.maxHeuresFerie')}
             value={parmaxfer}
             setValue={setParmaxfer}
           />
@@ -44,14 +46,14 @@ const Part3_Calcul: React.FC<AffichageProps> = ({ parametre, onChange }) => {
 
         <Grid item xs={3}>
           <Box display="flex" alignItems="center" height="100%">
-            <span>0 si selon classe horaire</span>
+            <span>{t('paramSoc.valeurCalcul.part3.selonClasse')}</span>
           </Box>
         </Grid>
 
         <Grid item xs={2.5}>
           <InputComponent
             type="number"
-            label="Min Heures = un Jour"
+            label={t('paramSoc.valeurCalcul.part3.minHeuresJour')}
             value={parminhjour}
             setValue={setParminhjour}
           />
@@ -60,7 +62,7 @@ const Part3_Calcul: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={3}>
           <InputComponent
             type="number"
-            label="Min Heures = 1/2 Jour"
+            label={t('paramSoc.valeurCalcul.part3.minHeuresDemi')}
             value={tauxtr4M}
             setValue={setTauxtr4M}
           />
@@ -69,7 +71,7 @@ const Part3_Calcul: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={4}>
           <InputComponent
             type="number"
-            label="Max Heures par jour pour optimisation"
+            label={t('paramSoc.valeurCalcul.part3.maxHeuresJour')}
             value={parmaxhjour}
             setValue={setParmaxhjour}
           />
@@ -78,7 +80,7 @@ const Part3_Calcul: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={4}>
           <InputComponent
             type="number"
-            label="Arrondir nb Heure par jour"
+            label={t('paramSoc.valeurCalcul.part3.arrondirHeure')}
             value={nbhtr3M}
             setValue={setNbhtr3M}
           />
@@ -87,7 +89,7 @@ const Part3_Calcul: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={1}>
           <InputComponent
             type="number"
-            label="à"
+            label={t('paramSoc.valeurCalcul.part3.a')}
             value={tauxtr3M}
             setValue={setTauxtr3M}
           />
@@ -95,14 +97,14 @@ const Part3_Calcul: React.FC<AffichageProps> = ({ parametre, onChange }) => {
 
         <Grid item xs={2}>
           <Box display="flex" alignItems="center" height="100%">
-            <span>pour posté</span>
+            <span>{t('paramSoc.valeurCalcul.part3.pourPoste')}</span>
           </Box>
         </Grid>
 
         <Grid item xs={4}>
           <InputComponent
             type="number"
-            label="Changement de Poste les Lundi"
+            label={t('paramSoc.valeurCalcul.part3.changementPoste')}
             value={parpostlundi}
             setValue={setParpostlundi}
           />

@@ -159,24 +159,24 @@ const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => 
           <InputComponent type="text" label={t('common.code')} value={uticod} setValue={setCode} />
         </Grid>
         <Grid item xs={2}>
-          <InputComponent type="text" label="Email" value={utimail} setValue={setUtimail} />
+          <InputComponent type="text" label={t('utilisateur.form.email')} value={utimail} setValue={setUtimail} />
         </Grid>
         <Grid item xs={1.5}>
-          <InputComponent type="text" label="Nom" value={utinom} setValue={setNom} />
+          <InputComponent type="text" label={t('utilisateur.form.name')} value={utinom} setValue={setNom} />
         </Grid>
         <Grid item xs={1.5}>
-          <InputComponent type="text" label="Prénom" value={utiprn} setValue={setPrenom} />
+          <InputComponent type="text" label={t('utilisateur.form.firstName')} value={utiprn} setValue={setPrenom} />
         </Grid>
 
         {/* password input removed — use the change-password dialog instead */}
         <Grid item xs={1.5} mt={1}>
-          <SelectInputComponent label="Société" value={societe} setValue={setSociete} maplist={socLibs || []} />
+          <SelectInputComponent label={t('utilisateur.form.company')} value={societe} setValue={setSociete} maplist={socLibs || []} />
         </Grid>
         <Grid item xs={1.5} mt={1}>
-          <SelectInputComponent label="Site" value={site} setValue={setSite} maplist={sitLibs || []} />
+          <SelectInputComponent label={t('utilisateur.profile.site')} value={site} setValue={setSite} maplist={sitLibs || []} />
         </Grid>
         <Grid item xs={1.5} mt={1}>
-          <CheckboxComponent label={"Admin"} value={utiadm} setValue={setUtiadm} />
+          <CheckboxComponent label={t('utilisateur.profile.admin')} value={utiadm} setValue={setUtiadm} />
         </Grid>
 
         {/* change password button */}

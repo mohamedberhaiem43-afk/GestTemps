@@ -42,8 +42,77 @@ export default function LeaveRequestScreen({ navigation }: any) {
     conadr: '',
   };
   const [form, setForm] = useState(defaultForm);
+  const [editingConcod, setEditingConcod] = useState<string | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+
+  const isPending = (etat: string | undefined) => {
+    const e = (etat || '').toLowerCase();
+    return !e.includes('accept') && !e.includes('refus');
+  };
+
+  const openEditForm = (req: any) => {
+    setForm({
+      concod: req.concod || '',
+      condep: req.condep ? new Date(req.condep) : new Date(),
+      conamdep: req.conamdep || '1',
+      conret: req.conret ? new Date(req.conret) : new Date(),
+      conamret: req.conamret || '1',
+      abscod: req.abscod || '',
+      conadr: req.conadr || '',
+    });
+    setEditingConcod(req.concod);
+    setShowForm(true);
+  };
+
+  const handleRequestPress = (req: any) => {
+    if (!isPending(req.etat)) {
+      Alert.alert(
+        'Action impossible',
+        'Cette demande a déjà été traitée et ne peut plus être modifiée ou supprimée.'
+      );
+      return;
+    }
+    Alert.alert(
+      'Demande en attente',
+      `Que souhaitez-vous faire avec cette demande ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Modifier', onPress: () => openEditForm(req) },
+        { text: 'Supprimer', style: 'destructive', onPress: () => confirmDelete(req) },
+      ]
+    );
+  };
+
+  const confirmDelete = (req: any) => {
+    Alert.alert(
+      'Supprimer la demande',
+      'Êtes-vous sûr de vouloir supprimer cette demande de congé ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            if (!user?.soccod || !req.concod) return;
+            try {
+              await apiService.deleteLeaveRequest(user.soccod, req.concod);
+              Alert.alert('✅ Succès', 'Demande supprimée');
+              loadRequests();
+            } catch {
+              Alert.alert('Erreur', 'Impossible de supprimer la demande');
+            }
+          }
+        },
+      ]
+    );
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setForm(defaultForm);
+    setEditingConcod(null);
+  };
 
   useEffect(() => {
     if (user?.soccod && user?.uticod) {
@@ -115,24 +184,49 @@ export default function LeaveRequestScreen({ navigation }: any) {
     if (!user?.soccod || !user?.uticod) return;
 
     try {
-      await apiService.createLeaveRequest({
-        soccod: user.soccod,
-        empcod: user.uticod,
-        concod: `DEM${Date.now()}`,
-        condat: fmt(new Date()),
-        condep: fmt(form.condep),
-        conamdep: form.conamdep,
-        conret: fmt(form.conret),
-        conamret: form.conamret,
-        abscod: form.abscod || null,
-        conadr: form.conadr || null,
-        connbjour: calcDays(),
-      });
-      Alert.alert('✅ Succès', 'Demande de congé envoyée');
-      setShowForm(false);
-      setForm(defaultForm);
+      if (editingConcod) {
+        await apiService.updateLeaveRequest({
+          soccod: user.soccod,
+          empcod: user.uticod,
+          concod: editingConcod,
+          condat: fmt(new Date()),
+          condep: fmt(form.condep),
+          conamdep: form.conamdep,
+          conret: fmt(form.conret),
+          conamret: form.conamret,
+          abscod: form.abscod || null,
+          conadr: form.conadr || null,
+          connbjour: calcDays(),
+        });
+        Alert.alert('✅ Succès', 'Demande modifiée avec succès');
+      } else {
+        const nextCode = await apiService.getNextLeaveRequestCode(user.soccod);
+        const concod = (nextCode?.concod || '').trim();
+        if (!concod) {
+          Alert.alert('Erreur', 'Impossible de générer le numéro de demande');
+          return;
+        }
+
+        await apiService.createLeaveRequest({
+          soccod: user.soccod,
+          empcod: user.uticod,
+          concod,
+          condat: fmt(new Date()),
+          condep: fmt(form.condep),
+          conamdep: form.conamdep,
+          conret: fmt(form.conret),
+          conamret: form.conamret,
+          abscod: form.abscod || null,
+          conadr: form.conadr || null,
+          connbjour: calcDays(),
+        });
+        Alert.alert('✅ Succès', 'Demande de congé envoyée');
+      }
+      closeForm();
       loadRequests();
-    } catch (error) { Alert.alert('Erreur', 'Impossible d\'envoyer la demande'); }
+    } catch (error) {
+      Alert.alert('Erreur', editingConcod ? 'Impossible de modifier la demande' : 'Impossible d\'envoyer la demande');
+    }
   };
 
   const fmt = (d: Date) => d.toISOString().split('T')[0];
@@ -148,11 +242,14 @@ export default function LeaveRequestScreen({ navigation }: any) {
   };
 
   const getStatusInfo = (etat: string) => {
-    switch (etat) {
-      case 'Accepté': return { label: 'Validé', color: COLORS.tertiary, bgColor: 'rgba(0, 81, 54, 0.1)' };
-      case 'Refusé': return { label: 'Refusé', color: COLORS.error, bgColor: 'rgba(186, 26, 26, 0.1)' };
-      default: return { label: 'En attente', color: '#a14a00', bgColor: '#ffe0cc' };
+    const e = (etat || '').toLowerCase();
+    if (e.includes('accept') || e.includes('valid')) {
+      return { label: 'Validé', color: COLORS.tertiary, bgColor: 'rgba(0, 81, 54, 0.1)' };
     }
+    if (e.includes('refus') || e.includes('reject')) {
+      return { label: 'Refusé', color: COLORS.error, bgColor: 'rgba(186, 26, 26, 0.1)' };
+    }
+    return { label: 'En attente', color: '#a14a00', bgColor: '#ffe0cc' };
   };
 
   const getIconForType = (type: string) => {
@@ -286,8 +383,15 @@ export default function LeaveRequestScreen({ navigation }: any) {
               const status = getStatusInfo(req.etat);
               const typeLib = getAbsLib(req.abscod);
               const icon = getIconForType(typeLib);
+              const pending = isPending(req.etat);
               return (
-                <View key={req.concod || idx} style={styles.requestItem}>
+                <TouchableOpacity
+                  key={req.concod || idx}
+                  style={styles.requestItem}
+                  activeOpacity={pending ? 0.7 : 1}
+                  onPress={() => pending && handleRequestPress(req)}
+                  disabled={!pending}
+                >
                   <View style={styles.requestLeft}>
                     <View style={[styles.typeIconWrapper, { backgroundColor: icon.bgColor }]}>
                       <MaterialCommunityIcons name={icon.name as any} size={20} color={icon.color} />
@@ -299,10 +403,15 @@ export default function LeaveRequestScreen({ navigation }: any) {
                       </Text>
                     </View>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
-                    <Text style={[styles.statusText, { color: status.color }]}>{status.label.toUpperCase()}</Text>
+                  <View style={styles.requestRight}>
+                    <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
+                      <Text style={[styles.statusText, { color: status.color }]}>{status.label.toUpperCase()}</Text>
+                    </View>
+                    {pending && (
+                      <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.outline} />
+                    )}
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
             {requests.length === 0 && (
@@ -315,9 +424,9 @@ export default function LeaveRequestScreen({ navigation }: any) {
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity 
-        style={styles.fab} 
-        onPress={() => setShowForm(true)}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => { setEditingConcod(null); setForm(defaultForm); setShowForm(true); }}
         activeOpacity={0.9}
       >
         <LinearGradient
@@ -333,8 +442,8 @@ export default function LeaveRequestScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.formCard}>
             <View style={styles.formHeader}>
-              <Text style={styles.formHeaderTitle}>Nouvelle Demande</Text>
-              <TouchableOpacity onPress={() => setShowForm(false)}>
+              <Text style={styles.formHeaderTitle}>{editingConcod ? 'Modifier la demande' : 'Nouvelle Demande'}</Text>
+              <TouchableOpacity onPress={closeForm}>
                 <MaterialCommunityIcons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
@@ -358,16 +467,40 @@ export default function LeaveRequestScreen({ navigation }: any) {
                 <Text style={styles.dateInputText}>{form.condep.toLocaleDateString('fr-FR')}</Text>
                 <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setForm({ ...form, conamdep: form.conamdep === '0' ? '1' : '0' })}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name={form.conamdep === '0' ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                  size={22}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.checkboxLabel}>Après-midi (date départ)</Text>
+              </TouchableOpacity>
 
               <Text style={styles.label}>Date retour</Text>
               <TouchableOpacity style={styles.dateInput} onPress={() => setShowEndPicker(true)}>
                 <Text style={styles.dateInputText}>{form.conret.toLocaleDateString('fr-FR')}</Text>
                 <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setForm({ ...form, conamret: form.conamret === '0' ? '1' : '0' })}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name={form.conamret === '0' ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                  size={22}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.checkboxLabel}>Après-midi (date retour)</Text>
+              </TouchableOpacity>
 
               <View style={styles.formFooter}>
                 <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                  <Text style={styles.submitBtnText}>ENVOYER LA DEMANDE</Text>
+                  <Text style={styles.submitBtnText}>{editingConcod ? 'METTRE À JOUR' : 'ENVOYER LA DEMANDE'}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -431,7 +564,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16,
   },
-  requestLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  requestLeft: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
+  requestRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   typeIconWrapper: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   requestInfo: { gap: 2 },
   requestType: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
@@ -466,6 +600,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 16,
   },
   dateInputText: { fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, marginBottom: 4 },
+  checkboxLabel: { fontSize: 13, fontWeight: '600', color: COLORS.onSurfaceVariant },
   formFooter: { marginTop: 32, marginBottom: 24 },
   submitBtn: { backgroundColor: COLORS.primary, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
   submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1 },

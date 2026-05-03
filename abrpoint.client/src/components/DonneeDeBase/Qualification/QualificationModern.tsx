@@ -6,6 +6,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import BoltIcon from '@mui/icons-material/Bolt';
 import SearchIcon from '@mui/icons-material/Search';
+import { useTranslation } from 'react-i18next';
 import useGetQualifications from '../../../hooks/QualificationHooks/useGetQualifications';
 import useAddQualification from '../../../hooks/QualificationHooks/useAddQualification';
 import useUpdateQualification from '../../../hooks/QualificationHooks/useUpdateQualification';
@@ -19,6 +20,7 @@ import '../shared/RefModern.css';
 const emptyForm: QualificationModel = { quacod: '', qualib: '', soccod: '', catcod: null };
 
 function QualificationModernContent() {
+  const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
   const [form, setForm] = useState<QualificationModel>({ ...emptyForm, soccod: soccod || '' });
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
@@ -47,7 +49,7 @@ function QualificationModernContent() {
   }, [soccod, isEditMode, form.quacod]);
 
   if (!hasPermission('Données de Base', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter les qualifications." />;
+    return <AccessDenied message={t('donneeBase.qualification.noConsultRight')} />;
   }
 
   const filtered = useMemo(() => {
@@ -58,23 +60,22 @@ function QualificationModernContent() {
 
   const handleSubmit = () => {
     if (!form.qualib) {
-      setSnack({ open: true, msg: 'Le libellé est obligatoire.', sev: 'error' });
+      setSnack({ open: true, msg: t('donneeBase.common.labelRequired'), sev: 'error' });
       return;
     }
-    // Code auto-généré côté serveur si vide — on laisse passer même sans quacod.
     const payload = { ...form, soccod: soccod || '' };
     const onSuccess = () => {
-      setSnack({ open: true, msg: isEditMode ? 'Qualification mise à jour.' : 'Qualification ajoutée.', sev: 'success' });
+      setSnack({ open: true, msg: isEditMode ? t('donneeBase.qualification.msgUpdated') : t('donneeBase.qualification.msgAdded'), sev: 'success' });
       setForm({ ...emptyForm, soccod: soccod || '' });
       refetch();
     };
-    const onError = () => setSnack({ open: true, msg: 'Erreur lors de l\'enregistrement.', sev: 'error' });
+    const onError = () => setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
     if (isEditMode) { updateQual(payload, { onSuccess, onError }); } else { addQual(payload, { onSuccess, onError }); }
   };
 
   const handleEdit = (row: QualificationModel) => { setForm(row); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleDelete = (row: QualificationModel) => {
-    if (window.confirm('Supprimer cette qualification ?')) {
+    if (window.confirm(t('donneeBase.qualification.deleteConfirm'))) {
       deleteQual({ soccod: soccod || '', quacod: row.quacod }, { onSuccess: () => refetch() });
     }
   };
@@ -83,15 +84,15 @@ function QualificationModernContent() {
     <Box className="ref-container">
       <Box className="ref-header">
         <Box>
-          <Typography className="ref-header-title">Données de base</Typography>
-          <Typography className="ref-header-heading">Gestion des Qualifications</Typography>
-          <Typography className="ref-header-sub">Configurer les qualifications disponibles</Typography>
+          <Typography className="ref-header-title">{t('donneeBase.breadcrumb')}</Typography>
+          <Typography className="ref-header-heading">{t('donneeBase.qualification.heading')}</Typography>
+          <Typography className="ref-header-sub">{t('donneeBase.qualification.subtitle')}</Typography>
         </Box>
         <Box className="ref-header-actions">
-          {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>Annuler</Button>}
+          {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>{t('donneeBase.common.cancel')}</Button>}
           {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
             <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>
-              {isEditMode ? 'Mettre à jour' : 'Enregistrer'}
+              {isEditMode ? t('donneeBase.common.update') : t('donneeBase.common.save')}
             </Button>
           )}
         </Box>
@@ -100,33 +101,33 @@ function QualificationModernContent() {
         <Box className="ref-card">
           <Box className="ref-card-header">
             <Box className="ref-card-icon"><BoltIcon fontSize="small" /></Box>
-            <Typography className="ref-card-title">{isEditMode ? 'Modifier la qualification' : 'Nouvelle qualification'}</Typography>
+            <Typography className="ref-card-title">{isEditMode ? t('donneeBase.qualification.editTitle') : t('donneeBase.qualification.newTitle')}</Typography>
           </Box>
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field">
-              <label>Code</label>
-              <input type="text" value={form.quacod} readOnly placeholder="Auto-généré" />
+              <label>{t('donneeBase.common.code')}</label>
+              <input type="text" value={form.quacod} readOnly placeholder={t('donneeBase.qualification.autoPlaceholder')} />
             </Box>
             <Box className="ref-field">
-              <label>Libellé</label>
-              <input type="text" value={form.qualib} onChange={e => setForm(p => ({ ...p, qualib: e.target.value }))} placeholder="Ingénieur" />
+              <label>{t('donneeBase.common.label')}</label>
+              <input type="text" value={form.qualib} onChange={e => setForm(p => ({ ...p, qualib: e.target.value }))} placeholder={t('donneeBase.qualification.labelPlaceholder')} />
             </Box>
           </Box>
         </Box>
         <Box className="ref-table-section">
           <Box className="ref-table-header">
-            <Typography className="ref-table-title">Liste des Qualifications ({filtered.length})</Typography>
+            <Typography className="ref-table-title">{t('donneeBase.qualification.tableTitle', { count: filtered.length })}</Typography>
             <Box className="ref-table-search">
               <SearchIcon sx={{ fontSize: 16, color: '#8896a8' }} />
-              <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input type="text" placeholder={t('donneeBase.common.search')} value={search} onChange={e => setSearch(e.target.value)} />
             </Box>
           </Box>
           <Box className="ref-table-container">
             <table className="ref-table">
-              <thead><tr><th style={{ width: 80 }}>Actions</th><th>Code</th><th>Libellé</th></tr></thead>
+              <thead><tr><th style={{ width: 80 }}>{t('donneeBase.common.actions')}</th><th>{t('donneeBase.common.code')}</th><th>{t('donneeBase.common.label')}</th></tr></thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={3} className="ref-empty">Aucune qualification trouvée.</td></tr>
+                  <tr><td colSpan={3} className="ref-empty">{t('donneeBase.qualification.noResults')}</td></tr>
                 ) : filtered.map(q => (
                   <tr key={q.quacod}>
                     <td><Box sx={{ display: 'flex', gap: '4px' }}>
@@ -145,7 +146,7 @@ function QualificationModernContent() {
               </tbody>
             </table>
           </Box>
-          <Box className="ref-table-footer"><span>Affichage de {filtered.length} qualifications</span></Box>
+          <Box className="ref-table-footer"><span>{t('donneeBase.qualification.footerCount', { count: filtered.length })}</span></Box>
         </Box>
       </Box>
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>

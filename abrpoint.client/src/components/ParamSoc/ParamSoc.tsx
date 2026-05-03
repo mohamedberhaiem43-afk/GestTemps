@@ -20,6 +20,7 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 import useGetParametres from '../../hooks/parametreHooks/useGetParametres';
 import useUpdateParametres from '../../hooks/parametreHooks/useUpdateParametres';
@@ -32,6 +33,7 @@ import ParTranche from '../../models/ParTranche';
 import './ParamSocModern.css';
 
 export default function ParamSocModern() {
+  const { t } = useTranslation();
   const { soccod } = useAuth();
   const { data: parametres, refetch } = useGetParametres();
   const { data: partranche } = useGetParTranche();
@@ -74,14 +76,14 @@ export default function ParamSocModern() {
       successCount++;
       if (successCount >= total) {
         setIsLoading(false);
-        setSnackbar({ open: true, message: "Paramètres mis à jour avec succès !", severity: "success" });
+        setSnackbar({ open: true, message: t('paramSoc.common.updateSuccess'), severity: "success" });
         refetch();
       }
     };
 
     const onError = () => {
       setIsLoading(false);
-      setSnackbar({ open: true, message: "Erreur lors de la mise à jour.", severity: "error" });
+      setSnackbar({ open: true, message: t('paramSoc.common.updateError'), severity: "error" });
     };
 
     updateParametreMutation.mutate(dataToSend, { onSuccess: checkAllDone, onError });
@@ -126,18 +128,18 @@ export default function ParamSocModern() {
   };
 
   const tabs = [
-    { label: 'Calculs & Dates', icon: <FunctionsIcon /> },
-    { label: 'Heures Sup', icon: <EventIcon /> },
-    { label: 'Heures de Nuit', icon: <NightIcon /> },
+    { label: t('paramSoc.tabs.calculsDates'), icon: <FunctionsIcon /> },
+    { label: t('paramSoc.tabs.heuresSup'), icon: <EventIcon /> },
+    { label: t('paramSoc.tabs.heuresNuit'), icon: <NightIcon /> },
   ];
 
   return (
     <div className="ps-modern-container">
       <header className="ps-modern-header">
         <Box>
-          <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Configuration</span>
-          <h1 className="ps-modern-title">Paramètres Système</h1>
-          <p className="ps-modern-subtitle">Gérez les règles de calcul, les dates de paie et les paramètres avancés de pointage.</p>
+          <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>{t('paramSoc.common.configuration')}</span>
+          <h1 className="ps-modern-title">{t('paramSoc.common.title')}</h1>
+          <p className="ps-modern-subtitle">{t('paramSoc.common.subtitle')}</p>
         </Box>
       </header>
 
@@ -151,7 +153,7 @@ export default function ParamSocModern() {
         <div className="ps-modern-grid">
           <div className="ps-modern-card ps-modern-card--large">
             <div className="ps-modern-card-header">
-              <h3 className="ps-modern-card-title">Logique de Calcul & Dates</h3>
+              <h3 className="ps-modern-card-title">{t('paramSoc.tabsHeader.calculsTitle')}</h3>
               <FunctionsIcon sx={{ color: 'rgba(0, 64, 161, 0.1)', fontSize: 40 }} />
             </div>
 
@@ -167,25 +169,25 @@ export default function ParamSocModern() {
               */}
 
               <div className="ps-modern-form-group">
-                <label className="ps-modern-label">Début de Mois</label>
+                <label className="ps-modern-label">{t('paramSoc.calculs.moisDebut')}</label>
                 <input type="number" className="ps-modern-input" value={formData.joudeb || ''} onChange={(e) => handleInputChange('joudeb', e.target.value)} placeholder="01" />
               </div>
               <div className="ps-modern-form-group">
-                <label className="ps-modern-label">Mois Début</label>
+                <label className="ps-modern-label">{t('paramSoc.calculs.moisDebutLabel')}</label>
                 <Select fullWidth variant="standard" value={formData.moisdeb || 'C'} onChange={(e) => handleInputChange('moisdeb', e.target.value)}>
-                  <MenuItem value="C">Courant</MenuItem>
-                  <MenuItem value="P">Précédent</MenuItem>
+                  <MenuItem value="C">{t('paramSoc.calculs.current')}</MenuItem>
+                  <MenuItem value="P">{t('paramSoc.calculs.previous')}</MenuItem>
                 </Select>
               </div>
               <div className="ps-modern-form-group">
-                <label className="ps-modern-label">Fin de Mois</label>
+                <label className="ps-modern-label">{t('paramSoc.calculs.moisFin')}</label>
                 <input type="number" className="ps-modern-input" value={formData.joufin || ''} onChange={(e) => handleInputChange('joufin', e.target.value)} placeholder="31" />
               </div>
               <div className="ps-modern-form-group">
-                <label className="ps-modern-label">Mois Fin</label>
+                <label className="ps-modern-label">{t('paramSoc.calculs.moisFinLabel')}</label>
                 <Select fullWidth variant="standard" value={formData.moisfin || 'C'} onChange={(e) => handleInputChange('moisfin', e.target.value)}>
-                  <MenuItem value="C">Courant</MenuItem>
-                  <MenuItem value="P">Précédent</MenuItem>
+                  <MenuItem value="C">{t('paramSoc.calculs.current')}</MenuItem>
+                  <MenuItem value="P">{t('paramSoc.calculs.previous')}</MenuItem>
                 </Select>
               </div>
 
@@ -201,54 +203,54 @@ export default function ParamSocModern() {
               */}
 
               <div className="ps-modern-form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="ps-modern-label">Ancienneté Requise (ans)</label>
+                <label className="ps-modern-label">{t('paramSoc.calculs.anciennete')}</label>
                 <input type="number" className="ps-modern-input" value={formData.pardroitnbj || 0} onChange={(e) => handleInputChange('pardroitnbj', parseInt(e.target.value) || 0)} />
               </div>
             </div>
           </div>
 
           <div className="ps-modern-card ps-modern-card--small">
-            <h3 className="ps-modern-card-title">Congés & Jours Fériés</h3>
+            <h3 className="ps-modern-card-title">{t('paramSoc.tabsHeader.joursFeries')}</h3>
             <div className="ps-modern-form-group">
-              <label className="ps-modern-label">Heures Congé</label>
+              <label className="ps-modern-label">{t('paramSoc.calculs.heuresConge')}</label>
               <div className="ps-modern-input-wrapper">
                 <input type="number" step="0.5" className="ps-modern-input" value={formData.nbhconge ?? ''} onChange={(e) => handleInputChange('nbhconge', parseFloat(e.target.value) || 0)} />
                 <span className="ps-modern-unit">h</span>
               </div>
             </div>
             <div className="ps-modern-form-group">
-              <label className="ps-modern-label">Heures Repos</label>
+              <label className="ps-modern-label">{t('paramSoc.calculs.heuresRepos')}</label>
               <div className="ps-modern-input-wrapper">
                 <input type="number" className="ps-modern-input" value={formData.nbhrepos ?? ''} onChange={(e) => handleInputChange('nbhrepos', parseInt(e.target.value) || 0)} />
                 <span className="ps-modern-unit">h</span>
               </div>
             </div>
             <div className="ps-modern-form-group">
-              <label className="ps-modern-label">Heures Jour Férié</label>
+              <label className="ps-modern-label">{t('paramSoc.calculs.heuresFerie')}</label>
               <div className="ps-modern-input-wrapper">
                 <input type="number" className="ps-modern-input" value={formData.nbhferier ?? ''} onChange={(e) => handleInputChange('nbhferier', parseInt(e.target.value) || 0)} />
                 <span className="ps-modern-unit">h</span>
               </div>
             </div>
-            <div className="ps-modern-switch-row"><span>Travail jours fériés</span><Switch checked={formData.fertrv === 1} onChange={(e) => handleInputChange('fertrv', e.target.checked ? 1 : 0)} /></div>
+            <div className="ps-modern-switch-row"><span>{t('paramSoc.calculs.travailFerie')}</span><Switch checked={formData.fertrv === 1} onChange={(e) => handleInputChange('fertrv', e.target.checked ? 1 : 0)} /></div>
           </div>
 
           <div className="ps-modern-card ps-modern-card--small">
-            <h3 className="ps-modern-card-title">Pointage & Calcul</h3>
+            <h3 className="ps-modern-card-title">{t('paramSoc.tabsHeader.pointageCalcul')}</h3>
             <div className="ps-modern-form-group">
-              <label className="ps-modern-label">Écart minimum (min)</label>
+              <label className="ps-modern-label">{t('paramSoc.calculs.ecartMin')}</label>
               <input type="number" className="ps-modern-input" value={formData.parecart || 0} onChange={(e) => handleInputChange('parecart', parseInt(e.target.value) || 0)} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="ps-modern-form-group">
-                <label className="ps-modern-label">Min heures/jour</label>
+                <label className="ps-modern-label">{t('paramSoc.calculs.minHoursDay')}</label>
                 <div className="ps-modern-input-wrapper">
                   <input type="number" className="ps-modern-input" value={formData.parminhjour ?? 0} onChange={(e) => handleInputChange('parminhjour', Number(e.target.value))} />
                   <span className="ps-modern-unit">h</span>
                 </div>
               </div>
               <div className="ps-modern-form-group">
-                <label className="ps-modern-label">Max heures/jour</label>
+                <label className="ps-modern-label">{t('paramSoc.calculs.maxHoursDay')}</label>
                 <div className="ps-modern-input-wrapper">
                   <input type="number" className="ps-modern-input" value={formData.parmaxhjour ?? 0} onChange={(e) => handleInputChange('parmaxhjour', Number(e.target.value))} />
                   <span className="ps-modern-unit">h</span>
@@ -256,26 +258,26 @@ export default function ParamSocModern() {
               </div>
             </div>
             <div className="ps-modern-form-group">
-              <label className="ps-modern-label">Max fériés majorés</label>
+              <label className="ps-modern-label">{t('paramSoc.calculs.maxFerieMajore')}</label>
               <div className="ps-modern-input-wrapper">
                 <input type="number" className="ps-modern-input" value={formData.parmaxfer ?? 0} onChange={(e) => handleInputChange('parmaxfer', Number(e.target.value))} />
                 <span className="ps-modern-unit">h</span>
               </div>
             </div>
             <div className="ps-modern-form-group">
-              <label className="ps-modern-label">Éliminer fériés du calcul H.Sup</label>
+              <label className="ps-modern-label">{t('paramSoc.calculs.eliminerFerie')}</label>
               <Select fullWidth variant="standard" value={formData.parelimftrv || '0'} onChange={(e) => handleInputChange('parelimftrv', e.target.value)}>
-                <MenuItem value="0">Non</MenuItem>
-                <MenuItem value="1">Oui - Soustraire avant calcul</MenuItem>
-                <MenuItem value="2">Oui - Soustraire après calcul</MenuItem>
+                <MenuItem value="0">{t('paramSoc.calculs.elim0')}</MenuItem>
+                <MenuItem value="1">{t('paramSoc.calculs.elim1')}</MenuItem>
+                <MenuItem value="2">{t('paramSoc.calculs.elim2')}</MenuItem>
               </Select>
             </div>
             <div className="ps-modern-form-group">
-              <label className="ps-modern-label">Mode déduction repos (Mensuel)</label>
+              <label className="ps-modern-label">{t('paramSoc.calculs.modeDeductionRepos')}</label>
               <Select fullWidth variant="standard" value={formData.parreptrv || '0'} onChange={(e) => handleInputChange('parreptrv', e.target.value)}>
-                <MenuItem value="0">Déduire heures repos</MenuItem>
-                <MenuItem value="2">Déduire heures dimanche</MenuItem>
-                <MenuItem value="3">Déduire samedi + dimanche</MenuItem>
+                <MenuItem value="0">{t('paramSoc.calculs.rep0')}</MenuItem>
+                <MenuItem value="2">{t('paramSoc.calculs.rep2')}</MenuItem>
+                <MenuItem value="3">{t('paramSoc.calculs.rep3')}</MenuItem>
               </Select>
             </div>
           </div>
@@ -286,43 +288,43 @@ export default function ParamSocModern() {
         <div className="ps-modern-grid">
           <div className="ps-modern-card ps-modern-card--large">
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-              <h3 className="ps-modern-card-title">Tranches d'Heures Sup</h3>
+              <h3 className="ps-modern-card-title">{t('paramSoc.tabsHeader.tranchesHsup')}</h3>
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <FormControlLabel control={<Checkbox checked={formData.parcadre === '1'} onChange={(e) => handleInputChange('parcadre', e.target.checked ? '1' : '0')} />} label="Cadre" />
-                <FormControlLabel control={<Checkbox checked={formData.parmaitrise === '1'} onChange={(e) => handleInputChange('parmaitrise', e.target.checked ? '1' : '0')} />} label="Maitrise" />
-                <FormControlLabel control={<Checkbox checked={formData.parexec === '1'} onChange={(e) => handleInputChange('parexec', e.target.checked ? '1' : '0')} />} label="Exécutant" />
+                <FormControlLabel control={<Checkbox checked={formData.parcadre === '1'} onChange={(e) => handleInputChange('parcadre', e.target.checked ? '1' : '0')} />} label={t('paramSoc.heuresSup.cadre')} />
+                <FormControlLabel control={<Checkbox checked={formData.parmaitrise === '1'} onChange={(e) => handleInputChange('parmaitrise', e.target.checked ? '1' : '0')} />} label={t('paramSoc.heuresSup.maitrise')} />
+                <FormControlLabel control={<Checkbox checked={formData.parexec === '1'} onChange={(e) => handleInputChange('parexec', e.target.checked ? '1' : '0')} />} label={t('paramSoc.heuresSup.executant')} />
               </Box>
             </Box>
 
             <Box sx={{ mb: 4 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>Hebdomadaire (H)</Typography>
-                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => addTranche('H')}>Ajouter</Button>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>{t('paramSoc.heuresSup.hebdomadaire')}</Typography>
+                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => addTranche('H')}>{t('paramSoc.heuresSup.ajouter')}</Button>
               </Box>
               <Box sx={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <table className="ps-modern-table">
-                  <thead><tr><th>Calendrier</th><th>Tr1</th><th>%1</th><th>Tr2</th><th>%2</th><th></th></tr></thead>
+                  <thead><tr><th>{t('paramSoc.heuresSup.calendrier')}</th><th>{t('paramSoc.heuresSup.tr1')}</th><th>%1</th><th>{t('paramSoc.heuresSup.tr2')}</th><th>%2</th><th></th></tr></thead>
                   <tbody>
-                    {tranchesH.map((t, i) => (
+                    {tranchesH.map((tr, i) => (
                       <tr key={i}>
                         <td style={{ minWidth: '150px' }}>
                           <Select
-                            value={t.caltype}
+                            value={tr.caltype}
                             onChange={(e) => handleTrancheChange(i, 'caltype', e.target.value, 'H')}
                             size="small"
                             fullWidth
                             sx={{ borderRadius: '8px' }}
                           >
-                            <MenuItem value="">-- Sélectionner --</MenuItem>
+                            <MenuItem value="">{t('paramSoc.common.selectPlaceholder')}</MenuItem>
                             {calendriersList.map((cal) => (
                               <MenuItem key={cal} value={cal}>{cal}</MenuItem>
                             ))}
                           </Select>
                         </td>
-                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partranche1} onChange={(e) => handleTrancheChange(i, 'partranche1', Number(e.target.value), 'H')} />h</td>
-                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partaux1} onChange={(e) => handleTrancheChange(i, 'partaux1', Number(e.target.value), 'H')} />%</td>
-                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partranche2} onChange={(e) => handleTrancheChange(i, 'partranche2', Number(e.target.value), 'H')} />h</td>
-                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partaux2} onChange={(e) => handleTrancheChange(i, 'partaux2', Number(e.target.value), 'H')} />%</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={tr.partranche1} onChange={(e) => handleTrancheChange(i, 'partranche1', Number(e.target.value), 'H')} />h</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={tr.partaux1} onChange={(e) => handleTrancheChange(i, 'partaux1', Number(e.target.value), 'H')} />%</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={tr.partranche2} onChange={(e) => handleTrancheChange(i, 'partranche2', Number(e.target.value), 'H')} />h</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={tr.partaux2} onChange={(e) => handleTrancheChange(i, 'partaux2', Number(e.target.value), 'H')} />%</td>
                         <td><Button size="small" variant="text" color="error" onClick={() => removeTranche(i, 'H')}><DeleteIcon sx={{ fontSize: 18 }} /></Button></td>
                       </tr>
                     ))}
@@ -333,33 +335,33 @@ export default function ParamSocModern() {
 
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>Mensuel (M)</Typography>
-                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => addTranche('M')}>Ajouter</Button>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>{t('paramSoc.heuresSup.mensuel')}</Typography>
+                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => addTranche('M')}>{t('paramSoc.heuresSup.ajouter')}</Button>
               </Box>
               <Box sx={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <table className="ps-modern-table">
-                  <thead><tr><th>Calendrier</th><th>Tr1</th><th>%1</th><th>Tr2</th><th>%2</th><th></th></tr></thead>
+                  <thead><tr><th>{t('paramSoc.heuresSup.calendrier')}</th><th>{t('paramSoc.heuresSup.tr1')}</th><th>%1</th><th>{t('paramSoc.heuresSup.tr2')}</th><th>%2</th><th></th></tr></thead>
                   <tbody>
-                    {tranchesM.map((t, i) => (
+                    {tranchesM.map((tr, i) => (
                       <tr key={i}>
                         <td style={{ minWidth: '150px' }}>
                           <Select
-                            value={t.caltype}
+                            value={tr.caltype}
                             onChange={(e) => handleTrancheChange(i, 'caltype', e.target.value, 'M')}
                             size="small"
                             fullWidth
                             sx={{ borderRadius: '8px' }}
                           >
-                            <MenuItem value="">-- Sélectionner --</MenuItem>
+                            <MenuItem value="">{t('paramSoc.common.selectPlaceholder')}</MenuItem>
                             {calendriersList.map((cal) => (
                               <MenuItem key={cal} value={cal}>{cal}</MenuItem>
                             ))}
                           </Select>
                         </td>
-                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partranche1} onChange={(e) => handleTrancheChange(i, 'partranche1', Number(e.target.value), 'M')} />h</td>
-                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partaux1} onChange={(e) => handleTrancheChange(i, 'partaux1', Number(e.target.value), 'M')} />%</td>
-                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partranche2} onChange={(e) => handleTrancheChange(i, 'partranche2', Number(e.target.value), 'M')} />h</td>
-                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={t.partaux2} onChange={(e) => handleTrancheChange(i, 'partaux2', Number(e.target.value), 'M')} />%</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={tr.partranche1} onChange={(e) => handleTrancheChange(i, 'partranche1', Number(e.target.value), 'M')} />h</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={tr.partaux1} onChange={(e) => handleTrancheChange(i, 'partaux1', Number(e.target.value), 'M')} />%</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={tr.partranche2} onChange={(e) => handleTrancheChange(i, 'partranche2', Number(e.target.value), 'M')} />h</td>
+                        <td><input type="number" style={{ width: '60px', border: '1px solid #eee', padding: '8px', borderRadius: '4px' }} value={tr.partaux2} onChange={(e) => handleTrancheChange(i, 'partaux2', Number(e.target.value), 'M')} />%</td>
                         <td><Button size="small" variant="text" color="error" onClick={() => removeTranche(i, 'M')}><DeleteIcon sx={{ fontSize: 18 }} /></Button></td>
                       </tr>
                     ))}
@@ -375,29 +377,29 @@ export default function ParamSocModern() {
         <div className="ps-modern-grid">
           <div className="ps-modern-card ps-modern-card--medium">
             <div className="ps-modern-card-header">
-              <h3 className="ps-modern-card-title">Configuration Nuit</h3>
+              <h3 className="ps-modern-card-title">{t('paramSoc.tabsHeader.configurationNuit')}</h3>
               <Switch checked={formData.parnuit === '1'} onChange={(e) => handleInputChange('parnuit', e.target.checked ? '1' : '0')} />
             </div>
             <div className="ps-modern-time-grid" style={{ marginBottom: '2rem' }}>
               <div className="ps-modern-input-wrapper">
-                <label className="ps-modern-label">Début</label>
+                <label className="ps-modern-label">{t('paramSoc.nuit.debut')}</label>
                 <input type="text" className="ps-modern-input" value={formData.nuitdeb || '22:00'} onChange={(e) => handleInputChange('nuitdeb', e.target.value)} />
               </div>
               <div className="ps-modern-input-wrapper">
-                <label className="ps-modern-label">Fin</label>
+                <label className="ps-modern-label">{t('paramSoc.nuit.fin')}</label>
                 <input type="text" className="ps-modern-input" value={formData.nuitfin || '06:00'} onChange={(e) => handleInputChange('nuitfin', e.target.value)} />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <FormControlLabel control={<Checkbox checked={formData.moinsrepas === 1} onChange={(e) => handleInputChange('moinsrepas', e.target.checked ? 1 : 0)} />} label="Diminuer panier nuit" />
-              <FormControlLabel control={<Checkbox checked={formData.ajustupd === '1'} onChange={(e) => handleInputChange('ajustupd', e.target.checked ? '1' : '0')} />} label="Compter journée sortie" />
-              <FormControlLabel control={<Checkbox checked={formData.parretabs === '1'} onChange={(e) => handleInputChange('parretabs', e.target.checked ? '1' : '0')} />} label="Exclure nuit si sortie jour" />
-              <FormControlLabel control={<Checkbox checked={formData.parhnuitspec === '1'} onChange={(e) => handleInputChange('parhnuitspec', e.target.checked ? '1' : '0')} />} label="Majoré H.Nuit aux H.Norm" />
+              <FormControlLabel control={<Checkbox checked={formData.moinsrepas === 1} onChange={(e) => handleInputChange('moinsrepas', e.target.checked ? 1 : 0)} />} label={t('paramSoc.nuit.diminuerPanier')} />
+              <FormControlLabel control={<Checkbox checked={formData.ajustupd === '1'} onChange={(e) => handleInputChange('ajustupd', e.target.checked ? '1' : '0')} />} label={t('paramSoc.nuit.compterSortie')} />
+              <FormControlLabel control={<Checkbox checked={formData.parretabs === '1'} onChange={(e) => handleInputChange('parretabs', e.target.checked ? '1' : '0')} />} label={t('paramSoc.nuit.exclureNuit')} />
+              <FormControlLabel control={<Checkbox checked={formData.parhnuitspec === '1'} onChange={(e) => handleInputChange('parhnuitspec', e.target.checked ? '1' : '0')} />} label={t('paramSoc.nuit.majoreHnuit')} />
             </div>
 
             <div className="ps-modern-form-group" style={{ marginTop: 3, maxWidth: '200px' }}>
-              <label className="ps-modern-label">Seuil Min Nuit (h)</label>
+              <label className="ps-modern-label">{t('paramSoc.nuit.seuilMin')}</label>
               <input type="number" className="ps-modern-input" value={formData.parminhjour || 0} onChange={(e) => handleInputChange('parminhjour', Number(e.target.value))} />
             </div>
           </div>
@@ -420,7 +422,7 @@ export default function ParamSocModern() {
           zIndex: 1000,
         }}
       >
-        <Tooltip title="Enregistrer tous les changements">
+        <Tooltip title={t('paramSoc.common.saveTooltip')}>
           <Button
             variant="contained"
             startIcon={<SaveIcon />}
@@ -444,7 +446,7 @@ export default function ParamSocModern() {
               },
             }}
           >
-            {isLoading ? 'Enregistrement...' : 'Enregistrer les paramètres'}
+            {isLoading ? t('paramSoc.common.savingButton') : t('paramSoc.common.saveButton')}
           </Button>
         </Tooltip>
       </Box>

@@ -1,65 +1,74 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Alert, RefreshControl, Dimensions, ActivityIndicator, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS, THEME } from '../config/env';
+import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 import TimePickerModal from '../components/TimePickerModal';
-
-const { width } = Dimensions.get('window');
-
-const REASONS = [
-  { id: 'Personnel', label: 'Personnel', icon: 'account' },
-  { id: 'Professionnel', label: 'Pro', icon: 'briefcase' },
-  { id: 'Médical', label: 'Médical', icon: 'medical-bag' },
-];
+import BottomTabBar from '../components/BottomTabBar';
 
 export default function AuthorizationScreen({ navigation }: any) {
-  const { user, isAdmin, isManager, isEmployee } = useAuth();
+  const { user, isAdmin, isManager } = useAuth();
   const [auths, setAuths] = useState<any[]>([]);
+  const [absences, setAbsences] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  // Form state
+
   const [form, setForm] = useState({
     condep: new Date(),
     condepTime: new Date(new Date().setHours(14, 0, 0, 0)),
-    conretTime: new Date(new Date().setHours(16, 30, 0, 0)),
-    conmotif: 'Personnel',
+    conretTime: new Date(new Date().setHours(16, 0, 0, 0)),
+    abscod: '',
   });
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDepTimePicker, setShowDepTimePicker] = useState(false);
   const [showRetTimePicker, setShowRetTimePicker] = useState(false);
 
-  useEffect(() => { loadAuths(); }, [user]);
+  useEffect(() => {
+    if (user?.soccod && user?.uticod) loadInitial();
+  }, [user?.soccod, user?.uticod]);
+
+  const loadInitial = async () => {
+    setLoading(true);
+    await Promise.all([loadAuths(), loadAbsences()]);
+    setLoading(false);
+  };
+
+  const loadAbsences = async () => {
+    if (!user?.soccod) return;
+    try {
+      const data = await apiService.getAutorisationLibs(user.soccod);
+      let arr: any[] = [];
+      if (Array.isArray(data)) arr = data;
+      else if (data && typeof data === 'object') arr = Object.entries(data).map(([abscod, abslib]) => ({ abscod, abslib }));
+      setAbsences(arr);
+      if (!form.abscod && arr.length > 0) setForm((f) => ({ ...f, abscod: arr[0].abscod }));
+    } catch (e) {
+      console.log('Autorisation libs error:', e);
+    }
+  };
 
   const loadAuths = async () => {
     if (!user?.soccod || !user?.uticod) return;
     try {
-      let data: any[] = [];
-      if (isAdmin || isManager) {
-        data = await apiService.getAuthorizations(user.soccod, user.uticod);
-      } else {
-        data = await apiService.getMyAuthorizations(user.soccod, user.uticod);
-      }
+      const data = (isAdmin || isManager)
+        ? await apiService.getAuthorizations(user.soccod, user.uticod)
+        : await apiService.getMyAuthorizations(user.soccod, user.uticod);
       setAuths(Array.isArray(data) ? data : []);
     } catch (e) {
       console.log('Auth load error:', e);
-    } finally {
-      setLoading(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadAuths();
+    await Promise.all([loadAuths(), loadAbsences()]);
     setRefreshing(false);
   };
 
@@ -71,42 +80,65 @@ export default function AuthorizationScreen({ navigation }: any) {
     return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
   }, [form.condepTime, form.conretTime]);
 
+  const generateAuthorizationCode = () => {
+    const now = new Date();
+    const y = String(now.getFullYear()).slice(-2);
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    return `A${y}${m}${d}${hh}${mm}`.slice(0, 10);
+  };
+
+  const applyDurationPreset = (minutes: number) => {
+    setForm((f) => ({ ...f, conretTime: new Date(f.condepTime.getTime() + minutes * 60 * 1000) }));
+  };
+
   const handleSubmit = async () => {
     if (!user?.soccod || !user?.uticod) return;
+    if (!form.abscod) {
+      Alert.alert('Erreur', 'Veuillez sélectionner un type d\'autorisation');
+      return;
+    }
+
+    const depDate = new Date(form.condep);
+    const dep = new Date(depDate.getFullYear(), depDate.getMonth(), depDate.getDate(), form.condepTime.getHours(), form.condepTime.getMinutes());
+    const ret = new Date(depDate.getFullYear(), depDate.getMonth(), depDate.getDate(), form.conretTime.getHours(), form.conretTime.getMinutes());
+    const hoursDiff = (ret.getTime() - dep.getTime()) / (1000 * 60 * 60);
+
+    if (hoursDiff <= 0) {
+      Alert.alert('Erreur', "L'heure de fin doit être après l'heure de début");
+      return;
+    }
+
+    const selected = absences.find((a) => a.abscod === form.abscod);
+
     try {
-      const depDate = new Date(form.condep);
-      const depTime = form.condepTime;
-      const depDateTime = new Date(depDate.getFullYear(), depDate.getMonth(), depDate.getDate(),
-        depTime.getHours(), depTime.getMinutes());
-      const retTime = form.conretTime;
-      const retDateTime = new Date(depDate.getFullYear(), depDate.getMonth(), depDate.getDate(),
-        retTime.getHours(), retTime.getMinutes());
-
-      const hoursDiff = (retDateTime.getTime() - depDateTime.getTime()) / (1000 * 60 * 60);
-
       await apiService.createMyAuthorization({
         soccod: user.soccod,
         empcod: user.uticod,
-        concod: `AUT${Date.now()}`,
-        condep: depDateTime.toISOString(),
-        conret: retDateTime.toISOString(),
-        condat: new Date().toISOString().split('T')[0],
-        conmotif: form.conmotif,
-        connbjour: parseFloat(hoursDiff.toFixed(2)) || 1,
-        conamdep: depTime.getHours() < 12 ? '1' : '0',
-        conamret: retTime.getHours() < 12 ? '1' : '0',
+        concod: generateAuthorizationCode(),
+        condat: new Date().toISOString(),
+        condep: dep.toISOString(),
+        conret: ret.toISOString(),
+        connbjour: parseFloat(hoursDiff.toFixed(2)),
+        conamdep: form.condepTime.getHours() < 12 ? '1' : '0',
+        conamret: form.conretTime.getHours() < 12 ? '1' : '0',
+        abscod: form.abscod,
+        conmotif: selected?.abslib || 'Autorisation',
       });
-      Alert.alert('✅ Succès', 'Autorisation de sortie envoyée');
-      loadAuths();
-    } catch (e) { Alert.alert('Erreur', 'Impossible d\'envoyer la demande'); }
+      Alert.alert('Succès', 'Autorisation de sortie envoyée');
+      await loadAuths();
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Impossible d\'envoyer la demande';
+      Alert.alert('Erreur', msg);
+    }
   };
 
   const getStatusInfo = (consanc: string) => {
-    switch (consanc) {
-      case 'A': return { label: 'VALIDÉ', color: COLORS.tertiary, bgColor: COLORS.tertiaryFixed };
-      case 'R': return { label: 'REFUSÉ', color: COLORS.error, bgColor: COLORS.errorContainer };
-      default: return { label: 'EN ATTENTE', color: '#b45309', bgColor: '#fff4e5' };
-    }
+    if (consanc === 'A') return { label: 'VALIDEE', color: COLORS.tertiary, bgColor: COLORS.tertiaryFixed };
+    if (consanc === 'R') return { label: 'REFUSEE', color: COLORS.error, bgColor: COLORS.errorContainer };
+    return { label: 'EN ATTENTE', color: '#b45309', bgColor: '#fff4e5' };
   };
 
   if (loading && !refreshing) {
@@ -119,20 +151,16 @@ export default function AuthorizationScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* TopAppBar */}
       <View style={styles.topAppBar}>
         <View style={styles.topAppLeft}>
-          <View style={styles.profileWrapper}>
-            <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCpH0P-TIviIZgyzpcdr5V5OvD8tIpoJXxC_ijCe9YSBChJbivkajx6JaBUlFUC7rEZzv94VlWr_mZPHhjztnDXNx7pOylmEsePRzKcCE2H8ojiIpV-ItcWLCdUhbzpo_TC6h5b3YkH-XAwXeJWdrFJFe2ccROcmG8uGwqBq4qpTTx3AhaQpBkpElU1yUcwBj01Rr07fOXj2EDv-c-whqUOePQ6R5XHWO6gqmcMx6v1CE-RnFdYZaKNbC9M7hyi9tDS5oXzdly7DpI' }}
-              style={styles.profileImage}
-            />
-          </View>
-          <Text style={styles.logoText}>L'Architecte RH</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+            <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
+          </TouchableOpacity>
+          <Text style={styles.logoText}>LEDGER HR</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton}>
-          <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
-        </TouchableOpacity>
+        <View style={styles.profileImageWrapper}>
+          <MaterialCommunityIcons name="account-circle-outline" size={32} color="#cbd5e1" />
+        </View>
       </View>
 
       <ScrollView
@@ -140,173 +168,109 @@ export default function AuthorizationScreen({ navigation }: any) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerSection}>
-          <Text style={styles.subTitle}>NOUVELLE REQUÊTE</Text>
-          <Text style={styles.mainTitle}>Autorisation de Sortie</Text>
-        </View>
+        <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.heroCard}>
+          <Text style={styles.heroTitle}>Autorisation de sortie</Text>
+          <Text style={styles.heroSub}>Saisie rapide et suivi du traitement</Text>
+        </LinearGradient>
 
-        {/* Reason Selector */}
-        <View style={styles.reasonContainer}>
-          <TouchableOpacity
-            style={[styles.mainReasonCard, form.conmotif === 'Personnel' && styles.reasonCardActive]}
-            onPress={() => setForm({ ...form, conmotif: 'Personnel' })}
-          >
-            <MaterialCommunityIcons name="account" size={32} color={form.conmotif === 'Personnel' ? COLORS.primary : COLORS.onSurfaceVariant} />
-            <Text style={[styles.reasonLabel, form.conmotif === 'Personnel' && styles.reasonLabelActive]}>PERSONNEL</Text>
-            {form.conmotif === 'Personnel' && (
-              <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} style={styles.checkIcon} />
-            )}
-          </TouchableOpacity>
-          
-          <View style={styles.sideReasons}>
-            <TouchableOpacity
-              style={[styles.smallReasonCard, form.conmotif === 'Professionnel' && styles.reasonCardActive]}
-              onPress={() => setForm({ ...form, conmotif: 'Professionnel' })}
-            >
-              <MaterialCommunityIcons name="briefcase" size={20} color={form.conmotif === 'Professionnel' ? COLORS.primary : COLORS.onSurfaceVariant} />
-              <Text style={[styles.reasonLabelSmall, form.conmotif === 'Professionnel' && styles.reasonLabelActive]}>PRO</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.smallReasonCard, form.conmotif === 'Médical' && styles.reasonCardActive]}
-              onPress={() => setForm({ ...form, conmotif: 'Médical' })}
-            >
-              <MaterialCommunityIcons name="medical-bag" size={20} color={form.conmotif === 'Médical' ? COLORS.primary : COLORS.onSurfaceVariant} />
-              <Text style={[styles.reasonLabelSmall, form.conmotif === 'Médical' && styles.reasonLabelActive]}>MÉDICAL</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Date & Time Card */}
         <View style={styles.formCard}>
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>DATE DE LA SORTIE</Text>
-            <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
-              <MaterialCommunityIcons name="calendar-today" size={20} color={COLORS.primary} />
-              <Text style={styles.dateValue}>{form.condep.toLocaleDateString('fr-FR')}</Text>
-            </TouchableOpacity>
+          <Text style={styles.fieldLabel}>TYPE D'AUTORISATION</Text>
+          <View style={styles.typeRow}>
+            {absences.map((a: any) => (
+              <TouchableOpacity
+                key={a.abscod}
+                style={[styles.typeBtn, form.abscod === a.abscod && styles.typeBtnActive]}
+                onPress={() => setForm({ ...form, abscod: a.abscod })}
+              >
+                <Text style={[styles.typeText, form.abscod === a.abscod && styles.typeTextActive]}>{a.abslib || a.abscod}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
+
+          <Text style={styles.fieldLabel}>DATE</Text>
+          <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
+            <Text style={styles.dateText}>{form.condep.toLocaleDateString('fr-FR')}</Text>
+            <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
 
           <View style={styles.timeGrid}>
-            <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>HEURE DÉBUT</Text>
-              <TouchableOpacity style={styles.timeInput} onPress={() => setShowDepTimePicker(true)}>
-                <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primary} />
-                <Text style={styles.timeValue}>{form.condepTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>HEURE FIN</Text>
-              <TouchableOpacity style={styles.timeInput} onPress={() => setShowRetTimePicker(true)}>
-                <MaterialCommunityIcons name="history" size={20} color={COLORS.primary} />
-                <Text style={styles.timeValue}>{form.conretTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Duration Indicator */}
-          <View style={styles.durationCard}>
-            <View style={styles.durationLeft}>
-              <View style={styles.durationIconWrapper}>
-                <MaterialCommunityIcons name="timelapse" size={24} color="#fff" />
-              </View>
-              <View>
-                <Text style={styles.durationLabel}>DURÉE TOTALE</Text>
-                <Text style={styles.durationValue}>{totalDuration}</Text>
-              </View>
-            </View>
-            <View style={styles.autoBadge}>
-              <Text style={styles.autoBadgeText}>AUTOMATIQUE</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Submit Button */}
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryContainer]}
-            style={styles.submitGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Text style={styles.submitText}>SOUMETTRE LA DEMANDE</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* History Section */}
-        <View style={styles.historySection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Historique Récent</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>VOIR TOUT</Text>
+            <TouchableOpacity style={styles.timeInput} onPress={() => setShowDepTimePicker(true)}>
+              <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.timeText}>{form.condepTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.timeInput} onPress={() => setShowRetTimePicker(true)}>
+              <MaterialCommunityIcons name="history" size={20} color={COLORS.primary} />
+              <Text style={styles.timeText}>{form.conretTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.historyList}>
-            {auths.slice(0, 5).map((item, idx) => {
-              const status = getStatusInfo(item.consanc);
-              const icon = REASONS.find(r => r.id === item.conmotif) || REASONS[0];
-              return (
-                <View key={item.concod || idx} style={[styles.historyItem, { borderLeftColor: status.color }]}>
-                  <View style={styles.historyIconWrapper}>
-                    <MaterialCommunityIcons name={icon.icon as any} size={24} color={COLORS.primary} />
-                  </View>
-                  <View style={styles.historyContent}>
-                    <View style={styles.historyTop}>
-                      <Text style={styles.historyReason}>Démarche {item.conmotif}</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
-                        <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.historyMeta}>
-                      {new Date(item.condep).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} • {item.connbjour}h
-                    </Text>
+
+          <View style={styles.presetRow}>
+            {[30, 60, 120].map((m) => (
+              <TouchableOpacity key={m} style={styles.presetChip} onPress={() => applyDurationPreset(m)}>
+                <Text style={styles.presetText}>{m < 60 ? `${m} min` : `${m / 60}h`}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.durationCard}>
+            <Text style={styles.durationLabel}>Durée totale</Text>
+            <Text style={styles.durationValue}>{totalDuration}</Text>
+          </View>
+
+          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+            <Text style={styles.submitText}>ENVOYER LA DEMANDE</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Historique récent</Text>
+        </View>
+
+        <View style={styles.historyList}>
+          {auths.slice(0, 5).map((item, idx) => {
+            const status = getStatusInfo(item.consanc);
+            return (
+              <View key={item.concod || idx} style={styles.historyItem}>
+                <View style={styles.historyLeft}>
+                  <View style={styles.historyIcon}><MaterialCommunityIcons name="briefcase-outline" size={20} color={COLORS.primary} /></View>
+                  <View>
+                    <Text style={styles.historyTitle}>{item.conmotif || item.abslib || 'Autorisation'}</Text>
+                    <Text style={styles.historyMeta}>{new Date(item.condep).toLocaleDateString('fr-FR')} • {item.connbjour}h</Text>
                   </View>
                 </View>
-              );
-            })}
-            {auths.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>Aucun historique récent</Text>
+                <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
+                  <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+                </View>
               </View>
-            )}
-          </View>
+            );
+          })}
+          {auths.length === 0 && <Text style={styles.emptyText}>Aucune autorisation récente</Text>}
         </View>
       </ScrollView>
 
-      {/* Modals */}
-      <DatePickerModal visible={showDatePicker} value={form.condep}
+      <DatePickerModal
+        visible={showDatePicker}
+        value={form.condep}
         onChange={(d) => { setForm({ ...form, condep: d }); setShowDatePicker(false); }}
-        onClose={() => setShowDatePicker(false)} title="Date de sortie" />
-      <TimePickerModal visible={showDepTimePicker} value={form.condepTime}
-        onChange={(d) => { setForm({ ...form, condepTime: d }); }}
-        onClose={() => setShowDepTimePicker(false)} title="Heure de départ" />
-      <TimePickerModal visible={showRetTimePicker} value={form.conretTime}
-        onChange={(d) => { setForm({ ...form, conretTime: d }); }}
-        onClose={() => setShowRetTimePicker(false)} title="Heure de retour" />
+        onClose={() => setShowDatePicker(false)}
+        title="Date de sortie"
+      />
+      <TimePickerModal
+        visible={showDepTimePicker}
+        value={form.condepTime}
+        onChange={(d) => setForm({ ...form, condepTime: d })}
+        onClose={() => setShowDepTimePicker(false)}
+        title="Heure de départ"
+      />
+      <TimePickerModal
+        visible={showRetTimePicker}
+        value={form.conretTime}
+        onChange={(d) => setForm({ ...form, conretTime: d })}
+        onClose={() => setShowRetTimePicker(false)}
+        title="Heure de retour"
+      />
 
-      {/* BottomNavBar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>TABLEAU</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
-          <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>CONGÉS</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <MaterialCommunityIcons name="exit-to-app" size={24} color={COLORS.primary} />
-          <Text style={[styles.navLabel, { color: COLORS.primary }]}>SORTIES</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('PresenceHistory')}>
-          <MaterialCommunityIcons name="history" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>POINTAGE</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Expense')}>
-          <MaterialCommunityIcons name="receipt-long" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>FRAIS</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomTabBar active="requests" navigation={navigation} />
     </SafeAreaView>
   );
 }
@@ -319,75 +283,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, backgroundColor: COLORS.background,
   },
   topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  profileWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: COLORS.surfaceContainerHigh },
-  profileImage: { width: '100%', height: '100%' },
-  logoText: { fontFamily: 'Manrope', fontWeight: '800', fontSize: 18, color: COLORS.primary, letterSpacing: -0.5 },
-  iconButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 },
-  headerSection: { marginBottom: 32 },
-  subTitle: { fontSize: 12, fontWeight: '700', color: COLORS.secondary, letterSpacing: 2, marginBottom: 4 },
-  mainTitle: { fontSize: 32, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -1 },
-  reasonContainer: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  mainReasonCard: {
-    flex: 1, height: 128, backgroundColor: COLORS.surfaceContainerLowest,
-    borderRadius: 24, padding: 20, justifyContent: 'space-between',
-    borderWidth: 2, borderColor: 'transparent',
+  iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
+  profileImageWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.surfaceContainerHigh },
+  scrollContent: { padding: 20, paddingBottom: 100 },
+  heroCard: { borderRadius: 18, padding: 18, marginBottom: 18 },
+  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  heroSub: { color: 'rgba(255,255,255,0.9)', marginTop: 4, fontSize: 12 },
+  formCard: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16, marginBottom: 24 },
+  fieldLabel: { fontSize: 11, fontWeight: '800', color: COLORS.outline, marginBottom: 8, marginTop: 10, letterSpacing: 0.7 },
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  typeBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: COLORS.surfaceContainerLow },
+  typeBtnActive: { backgroundColor: COLORS.primary },
+  typeText: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
+  typeTextActive: { color: '#fff' },
+  dateInput: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 14,
   },
-  reasonCardActive: { borderColor: COLORS.primary, backgroundColor: 'rgba(0, 86, 210, 0.02)' },
-  reasonLabel: { fontSize: 12, fontWeight: '800', color: COLORS.onSurfaceVariant, letterSpacing: 1 },
-  reasonLabelActive: { color: COLORS.primary },
-  checkIcon: { position: 'absolute', bottom: 16, right: 16 },
-  sideReasons: { flex: 1, gap: 12 },
-  smallReasonCard: {
-    flex: 1, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16,
-    borderWidth: 2, borderColor: 'transparent',
+  dateText: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  timeGrid: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  timeInput: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 14,
   },
-  reasonLabelSmall: { fontSize: 10, fontWeight: '800', color: COLORS.onSurfaceVariant, letterSpacing: 1 },
-  formCard: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 24, padding: 24, marginBottom: 24 },
-  fieldGroup: { marginBottom: 24 },
-  fieldLabel: { fontSize: 10, fontWeight: '800', color: COLORS.secondary, letterSpacing: 1.5, marginBottom: 12 },
-  dateInput: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: COLORS.surfaceContainerLow, borderRadius: 16, padding: 16 },
-  dateValue: { fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
-  timeGrid: { flexDirection: 'row', gap: 16, marginBottom: 24 },
-  timeField: { flex: 1 },
-  timeInput: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.surfaceContainerLow, borderRadius: 16, padding: 16 },
-  timeValue: { fontSize: 18, fontWeight: '800', color: COLORS.onSurface },
-  durationCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(0, 86, 210, 0.05)', borderRadius: 20, padding: 16 },
-  durationLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  durationIconWrapper: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-  durationLabel: { fontSize: 9, fontWeight: '800', color: COLORS.primary, letterSpacing: 1 },
-  durationValue: { fontSize: 20, fontWeight: '800', color: COLORS.primary, letterSpacing: -0.5 },
-  autoBadge: { backgroundColor: 'rgba(0, 86, 210, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  autoBadgeText: { fontSize: 9, fontWeight: '800', color: COLORS.primary },
-  submitButton: { marginBottom: 48 },
-  submitGradient: { height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 1 },
-  historySection: { marginBottom: 32 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -0.5 },
-  seeAllText: { fontSize: 10, fontWeight: '800', color: COLORS.primary },
-  historyList: { gap: 12 },
+  timeText: { fontSize: 14, fontWeight: '800', color: COLORS.onSurface },
+  presetRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  presetChip: { backgroundColor: COLORS.primaryFixed, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  presetText: { color: COLORS.primary, fontSize: 11, fontWeight: '700' },
+  durationCard: {
+    marginTop: 12,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: 'rgba(0,86,210,0.06)', borderRadius: 12, padding: 12,
+  },
+  durationLabel: { fontSize: 12, color: COLORS.primary, fontWeight: '700' },
+  durationValue: { fontSize: 16, color: COLORS.primary, fontWeight: '800' },
+  submitBtn: { marginTop: 16, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  submitText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 1 },
+  sectionHeader: { marginBottom: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.onSurface },
+  historyList: { gap: 10 },
   historyItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16,
-    borderLeftWidth: 4, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 14, padding: 14,
   },
-  historyIconWrapper: { width: 48, height: 48, borderRadius: 12, backgroundColor: COLORS.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' },
-  historyContent: { flex: 1 },
-  historyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  historyReason: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 12 },
+  historyLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  historyIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: COLORS.primaryFixed, justifyContent: 'center', alignItems: 'center' },
+  historyTitle: { fontSize: 13, fontWeight: '700', color: COLORS.onSurface },
+  historyMeta: { fontSize: 11, color: COLORS.outline, marginTop: 2 },
+  statusBadge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
   statusText: { fontSize: 9, fontWeight: '800' },
-  historyMeta: { fontSize: 11, fontWeight: '600', color: COLORS.onSurfaceVariant },
-  emptyState: { padding: 40, alignItems: 'center' },
-  emptyText: { fontSize: 14, color: COLORS.outline, fontWeight: '500' },
-  bottomNav: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', paddingBottom: 20,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  navItem: { alignItems: 'center', gap: 4 },
-  navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
+  emptyText: { textAlign: 'center', color: COLORS.outline, marginTop: 10 },
 });

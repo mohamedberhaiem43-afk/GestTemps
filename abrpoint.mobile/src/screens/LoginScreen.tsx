@@ -92,7 +92,7 @@ export default function LoginScreen() {
         return;
       }
       setLoading(true);
-      await login(creds.email, creds.password, undefined, creds.tenantSlug || undefined);
+      await login(creds.email, creds.password, creds.tenantSlug || undefined);
     } catch (error: any) {
       const msg = error?.response?.data?.message || 'Connexion biométrique échouée.';
       Alert.alert('Erreur', msg);
@@ -102,13 +102,14 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail || !password) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
       return;
     }
     setLoading(true);
     try {
-      await login(email, password);
+      await login(normalizedEmail, password);
       // Après un login classique réussi, on propose d'activer la biométrie pour la prochaine fois.
       await offerBiometricEnrollment(email, password);
     } catch (error: any) {

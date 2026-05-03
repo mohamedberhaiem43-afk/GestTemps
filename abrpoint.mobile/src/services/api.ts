@@ -89,17 +89,22 @@ class ApiService {
   }
 
   // Auth endpoints
-  async login(email: string, password: string, company?: string, tenantSlug?: string) {
+  async login(email: string, password: string, tenantSlug?: string) {
     try {
+      const normalizedEmail = email?.trim();
+      if (!normalizedEmail) {
+        throw new Error('Email requis');
+      }
+
       // Stocke le slug AVANT le login pour qu'il soit injecté dans le header de la requête
       // (sinon le backend ne sait pas dans quelle DB chercher l'utilisateur).
       if (tenantSlug && tenantSlug.trim()) {
         await this.saveTenantSlug(tenantSlug);
       } else {
-        // Résolution control-plane : on cherche le tenant à partir de l'email avant le login,
-        // pour que le header X-Tenant-Slug soit présent sur /MobileAuth/login.
+        // Supprime un slug potentiellement obsolète avant le lookup / login.
+        await SecureStore.deleteItemAsync(TENANT_SLUG_KEY);
         try {
-          const lookup = await this.client.post('/auth/lookup-tenant', { email: email.trim() });
+          const lookup = await this.client.post('/auth/lookup-tenant', { email: normalizedEmail });
           const slug: string | undefined = lookup.data?.slug;
           if (slug) await this.saveTenantSlug(slug);
         } catch {
@@ -107,9 +112,8 @@ class ApiService {
         }
       }
       const response = await this.client.post('/MobileAuth/login', {
-        email,
+        email: normalizedEmail,
         password,
-        company,
       });
       if (response.data.token) {
         await this.saveTokens(response.data.token, response.data.refreshToken);
@@ -269,6 +273,11 @@ class ApiService {
     return response.data;
   }
 
+  async getNextLeaveRequestCode(soccod: string) {
+    const response = await this.client.get(`/DemConges/get-next-concod/${soccod}`);
+    return response.data as { concod?: string };
+  }
+
   async acceptLeaveRequest(soccod: string, concod: string, empcod: string) {
     const response = await this.client.post(
       `/DemConges/accept-demconge/${soccod}/${concod}/${empcod}`
@@ -412,6 +421,44 @@ class ApiService {
   // Profile endpoints
   async getProfile(soccod: string, uticod: string) {
     const response = await this.client.get(`/Utilisateurs/get-profile/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  async updateProfile(payload: {
+    uticod: string;
+    utinom?: string;
+    utiprn?: string;
+    utimail?: string;
+  }) {
+    const response = await this.client.put('/Utilisateurs/update-profile', {
+      utilisateur: {
+        uticod: payload.uticod,
+        utinom: payload.utinom,
+        utiprn: payload.utiprn,
+        utimail: payload.utimail,
+      },
+      moduser: null,
+    });
+    return response.data as boolean;
+  }
+
+  async changePassword(payload: { uticod: string; currentPassword: string; newPassword: string }) {
+    const response = await this.client.put('/Utilisateurs/change-password', payload);
+    return response.data as boolean;
+  }
+
+  async enable2FA(uticod: string) {
+    const response = await this.client.post(`/Utilisateurs/enable-2fa/${uticod}`);
+    return response.data as { secret: string; qrCodeBase64: string; manualEntryKey: string };
+  }
+
+  async verify2FA(uticod: string, code: string) {
+    const response = await this.client.post(`/Utilisateurs/verify-2fa/${uticod}`, { code });
+    return response.data;
+  }
+
+  async disable2FA(uticod: string) {
+    const response = await this.client.post(`/Utilisateurs/disable-2fa/${uticod}`);
     return response.data;
   }
 

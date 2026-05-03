@@ -15,6 +15,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import { useTranslation, Trans } from 'react-i18next';
 import useGetDemandeAutorisations from '../../../hooks/demandeAutorisationHooks/useGetDemandeAutorisations';
 import useGetAutorisationLibs from '../../../hooks/absenceHooks/useGetAutorisationLibs';
 import { useAuth } from '../../helper/AuthProvider';
@@ -54,21 +55,24 @@ const fmtDuration = (hours: number | null | undefined) => {
   return `${h}h${m.toString().padStart(2, '0')}`;
 };
 
-const getStatus = (d: DemandeAutorisation): 'Approuvé' | 'Refusé' | 'En attente' => {
+type DemandeStatusKey = 'approved' | 'refused' | 'pending';
+
+const getStatus = (d: DemandeAutorisation): DemandeStatusKey => {
   const s = d.statut?.trim() ?? '';
-  if (s.includes('Approuv') || s.includes('Accept')) return 'Approuvé';
-  if (s.includes('Refus')) return 'Refusé';
-  return 'En attente';
+  if (s.includes('Approuv') || s.includes('Accept')) return 'approved';
+  if (s.includes('Refus')) return 'refused';
+  return 'pending';
 };
 
-const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
-  'Approuvé': { bg: '#dcfce7', text: '#166534' },
-  'Refusé': { bg: '#fee2e2', text: '#991b1b' },
-  'En attente': { bg: '#fef9c3', text: '#854d0e' },
+const STATUS_STYLE: Record<DemandeStatusKey, { bg: string; text: string }> = {
+  approved: { bg: '#dcfce7', text: '#166534' },
+  refused: { bg: '#fee2e2', text: '#991b1b' },
+  pending: { bg: '#fef9c3', text: '#854d0e' },
 };
 
 // ── Form Dialog ──
 function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: boolean; onClose: () => void; editDemande: DemandeAutorisation | null; onSuccess?: () => void }) {
+  const { t } = useTranslation();
   const { soccod, isEmp, uticod } = useAuth();
   const { refetch } = useGetDemandeAutorisations();
 
@@ -166,48 +170,48 @@ function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: bo
         },
       }}>
       <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', pb: 1 }}>
-        {editDemande ? 'Modifier la demande' : 'Nouvelle demande d\'autorisation'}
+        {editDemande ? t('demAutorisation.form.titleEdit') : t('demAutorisation.form.titleNew')}
       </DialogTitle>
       <Divider />
       <DialogContent sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>N° Demande</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('demAutorisation.form.requestNo')}</Typography>
             <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} InputProps={{ readOnly: true }} sx={fieldSx} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Date demande</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('demAutorisation.form.requestDate')}</Typography>
             <TextField size="small" fullWidth type="date" value={condat} InputProps={{ readOnly: true }} sx={fieldSx} />
           </Box>
         </Box>
 
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Heure début</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('demAutorisation.form.startTime')}</Typography>
             <TextField size="small" fullWidth type="datetime-local" value={condep} onChange={(e) => setCondep(e.target.value)} sx={fieldSx} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Heure fin</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('demAutorisation.form.endTime')}</Typography>
             <TextField size="small" fullWidth type="datetime-local" value={conret} onChange={(e) => setConret(e.target.value)} sx={fieldSx} />
           </Box>
         </Box>
 
         {/* Duration display */}
         <Box sx={{ background: 'linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%)', borderRadius: '12px', p: 2, border: '1px solid #bfdbfe', textAlign: 'center' }}>
-          <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>Durée</Typography>
+          <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('demAutorisation.form.duration')}</Typography>
           <Typography sx={{ fontSize: '24px', fontWeight: 800, color: '#0040a1' }}>{fmtDuration(calcDuration())}</Typography>
         </Box>
 
         {/* Type d'autorisation (Absence) */}
         <Box>
-          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Type d'autorisation</Typography>
+          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('demAutorisation.form.type')}</Typography>
           <FormControl size="small" fullWidth sx={fieldSx}>
             <Select
               value={abscod}
               onChange={(e) => setAbscod(e.target.value)}
               displayEmpty
               renderValue={(selected) => {
-                if (!selected) return <em style={{ color: '#94a3b8' }}>Sélectionner un type...</em>;
+                if (!selected) return <em style={{ color: '#94a3b8' }}>{t('demAutorisation.form.typePlaceholder')}</em>;
                 const found = absences.find((a) => a.abscod === selected);
                 return found ? `${found.abscod} - ${found.abslib}` : selected;
               }}
@@ -222,17 +226,17 @@ function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: bo
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Motif</Typography>
-          <TextField size="small" fullWidth multiline rows={3} value={conmotif} onChange={(e) => setConmotif(e.target.value)} placeholder="Raison de la demande d'autorisation..." sx={fieldSx} />
+          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('demAutorisation.form.motif')}</Typography>
+          <TextField size="small" fullWidth multiline rows={3} value={conmotif} onChange={(e) => setConmotif(e.target.value)} placeholder={t('demAutorisation.form.motifPlaceholder')} sx={fieldSx} />
         </Box>
       </DialogContent>
       <Divider />
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-        <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>Annuler</Button>
+        <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('demAutorisation.form.cancel')}</Button>
         <Button variant="contained" onClick={handleSubmit} disabled={loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
           sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
-          {editDemande ? 'Modifier' : 'Soumettre'}
+          {editDemande ? t('demAutorisation.form.modify') : t('demAutorisation.form.submit')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -241,6 +245,7 @@ function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: bo
 
 // ── Approve/Refuse Dialog ──
 function TraitementDialog({ open, onClose, demande, action }: { open: boolean; onClose: () => void; demande: DemandeAutorisation | null; action: 'approve' | 'refuse' }) {
+  const { t } = useTranslation();
   const { uticod } = useAuth();
   const { refetch } = useGetDemandeAutorisations();
   const [commentaire, setCommentaire] = useState('');
@@ -274,26 +279,26 @@ function TraitementDialog({ open, onClose, demande, action }: { open: boolean; o
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
       PaperProps={{ sx: { borderRadius: '16px' } }}>
       <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', pb: 1, color: isApprove ? '#166534' : '#991b1b' }}>
-        {isApprove ? 'Approuver la demande' : 'Refuser la demande'}
+        {isApprove ? t('demAutorisation.traitement.approveTitle') : t('demAutorisation.traitement.refuseTitle')}
       </DialogTitle>
       <Divider />
       <DialogContent sx={{ pt: 2.5 }}>
         <Typography sx={{ color: '#475569', fontSize: '14px', mb: 2 }}>
           {isApprove
-            ? `Êtes-vous sûr de vouloir approuver la demande de ${demande?.emplib || demande?.empcod} ?`
-            : `Êtes-vous sûr de vouloir refuser la demande de ${demande?.emplib || demande?.empcod} ?`
+            ? t('demAutorisation.traitement.approvePrompt', { employee: demande?.emplib || demande?.empcod || '' })
+            : t('demAutorisation.traitement.refusePrompt', { employee: demande?.emplib || demande?.empcod || '' })
           }
         </Typography>
         <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
-          Commentaire {isApprove ? '(optionnel)' : '(recommandé)'}
+          {isApprove ? t('demAutorisation.traitement.commentLabelOptional') : t('demAutorisation.traitement.commentLabelRecommended')}
         </Typography>
         <TextField size="small" fullWidth multiline rows={3} value={commentaire} onChange={(e) => setCommentaire(e.target.value)}
-          placeholder={isApprove ? 'Commentaire optionnel...' : 'Raison du refus...'}
+          placeholder={isApprove ? t('demAutorisation.traitement.commentPlaceholderOptional') : t('demAutorisation.traitement.commentPlaceholderRefuse')}
           sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#f8fafc', '& fieldset': { borderColor: '#e2e8f0' } } }} />
       </DialogContent>
       <Divider />
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-        <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>Annuler</Button>
+        <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('demAutorisation.traitement.cancel')}</Button>
         <Button variant="contained" onClick={handleSubmit} disabled={loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : (isApprove ? <CheckIcon /> : <CloseIcon />)}
           sx={{
@@ -302,7 +307,7 @@ function TraitementDialog({ open, onClose, demande, action }: { open: boolean; o
               ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
               : 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
           }}>
-          {isApprove ? 'Approuver' : 'Refuser'}
+          {isApprove ? t('demAutorisation.traitement.approve') : t('demAutorisation.traitement.refuse')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -311,6 +316,7 @@ function TraitementDialog({ open, onClose, demande, action }: { open: boolean; o
 
 // ── Main Component ──
 function DemandeAutorisationModern() {
+  const { t } = useTranslation();
   const { isEmp, uticod } = useAuth();
   const { data = [], isLoading, refetch } = useGetDemandeAutorisations();
 
@@ -327,9 +333,9 @@ function DemandeAutorisationModern() {
   const showSnack = (message: string, severity: 'success' | 'error') =>
     setSnackbar({ open: true, message, severity });
 
-  const pending = data.filter((d: DemandeAutorisation) => getStatus(d) === 'En attente');
-  const approved = data.filter((d: DemandeAutorisation) => getStatus(d) === 'Approuvé');
-  const refused = data.filter((d: DemandeAutorisation) => getStatus(d) === 'Refusé');
+  const pending = data.filter((d: DemandeAutorisation) => getStatus(d) === 'pending');
+  const approved = data.filter((d: DemandeAutorisation) => getStatus(d) === 'approved');
+  const refused = data.filter((d: DemandeAutorisation) => getStatus(d) === 'refused');
 
   const handleNewRequest = () => {
     setEditDemande(null);
@@ -363,10 +369,10 @@ function DemandeAutorisationModern() {
     setDeleteLoading(true);
     try {
       await apiInstance.delete(`/DemandeAutorisations/${demandeToDelete.id}`);
-      showSnack('Demande supprimée avec succès', 'success');
+      showSnack(t('demAutorisation.msg.deletedSuccess'), 'success');
       refetch();
     } catch (err) {
-      showSnack('Erreur lors de la suppression', 'error');
+      showSnack(t('demAutorisation.msg.deleteError'), 'error');
     } finally {
       setDeleteLoading(false);
       setDeleteConfirmOpen(false);
@@ -379,13 +385,18 @@ function DemandeAutorisationModern() {
       {/* Header */}
       <Box className="da-header">
         <Box>
-          <Typography className="da-title">Demandes d'Autorisation</Typography>
+          <Typography className="da-title">{t('demAutorisation.header.title')}</Typography>
           <Typography className="da-subtitle">
-            Vous avez <strong style={{ color: '#0040a1' }}>{pending.length} demande{pending.length !== 1 ? 's' : ''}</strong> en attente de validation.
+            <Trans
+              i18nKey="demAutorisation.header.subtitle"
+              count={pending.length}
+              values={{ count: pending.length }}
+              components={{ 0: <strong style={{ color: '#0040a1' }} /> }}
+            />
           </Typography>
         </Box>
         <Button className="da-new-btn" startIcon={<AddIcon />} sx={{ color: '#fff' }} onClick={handleNewRequest}>
-          Nouvelle demande
+          {t('demAutorisation.header.newRequest')}
         </Button>
       </Box>
 
@@ -394,12 +405,12 @@ function DemandeAutorisationModern() {
         <Box className="da-left">
           {/* Table header */}
           <Box className="da-table-head">
-            <Box className="da-th da-col-emp">Employé</Box>
-            <Box className="da-th da-col-period">Période</Box>
-            <Box className="da-th da-col-duration">Durée</Box>
-            <Box className="da-th da-col-motif">Motif</Box>
-            <Box className="da-th da-col-status">Statut</Box>
-            <Box className="da-th da-col-actions" style={{ textAlign: 'right' }}>Actions</Box>
+            <Box className="da-th da-col-emp">{t('demAutorisation.headers.employee')}</Box>
+            <Box className="da-th da-col-period">{t('demAutorisation.headers.period')}</Box>
+            <Box className="da-th da-col-duration">{t('demAutorisation.headers.duration')}</Box>
+            <Box className="da-th da-col-motif">{t('demAutorisation.headers.motif')}</Box>
+            <Box className="da-th da-col-status">{t('demAutorisation.headers.status')}</Box>
+            <Box className="da-th da-col-actions" style={{ textAlign: 'right' }}>{t('demAutorisation.headers.actions')}</Box>
           </Box>
 
           {/* Rows */}
@@ -408,7 +419,7 @@ function DemandeAutorisationModern() {
           ) : data.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 6, color: '#94a3b8' }}>
               <AccessTimeIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
-              <Typography>Aucune demande d'autorisation</Typography>
+              <Typography>{t('demAutorisation.empty')}</Typography>
             </Box>
           ) : (
             <Box className="da-rows">
@@ -453,33 +464,33 @@ function DemandeAutorisationModern() {
                     {/* Status */}
                     <Box className="da-col-status">
                       <Box className="da-status-badge" style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}>
-                        {status}
+                        {t(`demAutorisation.status.${status}`)}
                       </Box>
                     </Box>
 
                     {/* Actions */}
                     <Box className="da-col-actions da-actions">
                       {/* Employee actions */}
-                      {isEmp && d.empcod === uticod && status === 'En attente' && (
+                      {isEmp && d.empcod === uticod && status === 'pending' && (
                         <>
-                          <IconButton size="small" className="da-action-edit" onClick={() => handleEdit(d)} title="Modifier">
+                          <IconButton size="small" className="da-action-edit" onClick={() => handleEdit(d)} title={t('demAutorisation.actions.edit')}>
                             <EditIcon fontSize="small" />
                           </IconButton>
                           <IconButton size="small"
                             sx={{ color: '#ba1a1a', backgroundColor: '#fee2e2', '&:hover': { backgroundColor: '#fecaca' } }}
-                            onClick={() => handleDeleteClick(d)} title="Supprimer">
+                            onClick={() => handleDeleteClick(d)} title={t('demAutorisation.actions.delete')}>
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </>
                       )}
                       {/* Admin actions */}
-                      {!isEmp && status === 'En attente' && (
+                      {!isEmp && status === 'pending' && (
                         <>
                           <Button size="small" className="da-action-refuse" onClick={() => handleRefuse(d)} startIcon={<CloseIcon />}>
-                            Refuser
+                            {t('demAutorisation.actions.refuse')}
                           </Button>
                           <Button size="small" className="da-action-accept" onClick={() => handleApprove(d)} startIcon={<CheckIcon />}>
-                            Approuver
+                            {t('demAutorisation.actions.approve')}
                           </Button>
                         </>
                       )}
@@ -497,39 +508,38 @@ function DemandeAutorisationModern() {
           <Box className="da-stats-grid">
             <Paper className="da-stat-card">
               <Typography className="da-stat-value da-stat-primary">{approved.length}</Typography>
-              <Typography className="da-stat-label">Approuvées</Typography>
+              <Typography className="da-stat-label">{t('demAutorisation.stats.approved')}</Typography>
             </Paper>
             <Paper className="da-stat-card">
               <Typography className="da-stat-value da-stat-error">{refused.length}</Typography>
-              <Typography className="da-stat-label">Refusées</Typography>
+              <Typography className="da-stat-label">{t('demAutorisation.stats.refused')}</Typography>
             </Paper>
             <Paper className="da-stat-card">
               <Typography className="da-stat-value da-stat-warning">{pending.length}</Typography>
-              <Typography className="da-stat-label">En attente</Typography>
+              <Typography className="da-stat-label">{t('demAutorisation.stats.pending')}</Typography>
             </Paper>
             <Paper className="da-stat-card">
               <Typography className="da-stat-value da-stat-primary">{data.length}</Typography>
-              <Typography className="da-stat-label">Total</Typography>
+              <Typography className="da-stat-label">{t('demAutorisation.stats.total')}</Typography>
             </Paper>
           </Box>
 
           {/* Info card */}
           <Paper className="da-info-card">
-            <Typography className="da-info-title">ℹ️ Informations</Typography>
+            <Typography className="da-info-title">{t('demAutorisation.info.title')}</Typography>
             <Typography className="da-info-text">
-              Les demandes d'autorisation sont traitées par l'administrateur.
-              Une fois approuvée, l'autorisation est automatiquement créée dans le système.
+              {t('demAutorisation.info.text')}
             </Typography>
           </Paper>
         </Box>
       </Box>
 
       {/* Form Dialog */}
-      <DemandeFormDialog 
-        open={formOpen} 
-        onClose={() => { setFormOpen(false); refetch(); }} 
+      <DemandeFormDialog
+        open={formOpen}
+        onClose={() => { setFormOpen(false); refetch(); }}
         editDemande={editDemande}
-        onSuccess={() => showSnack(editDemande ? 'Demande modifiée avec succès' : 'Demande d\'autorisation créée avec succès', 'success')}
+        onSuccess={() => showSnack(editDemande ? t('demAutorisation.msg.updatedSuccess') : t('demAutorisation.msg.createdSuccess'), 'success')}
       />
 
       {/* Approve/Refuse Dialog */}
@@ -544,26 +554,25 @@ function DemandeAutorisationModern() {
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}
         PaperProps={{ sx: { borderRadius: '12px', minWidth: '350px' } }}>
         <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#ba1a1a' }}>
-          Supprimer ma demande
+          {t('demAutorisation.delete.title')}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: '#475569', fontSize: '14px', mt: 1 }}>
-            Êtes-vous sûr de vouloir supprimer votre demande d'autorisation
-            {demandeToDelete ? ` (${demandeToDelete.concod || demandeToDelete.id})` : ''} ?
+            {t('demAutorisation.delete.prompt', { ref: demandeToDelete ? ` (${demandeToDelete.concod || demandeToDelete.id})` : '' })}
           </Typography>
           <Typography sx={{ color: '#64748b', fontSize: '12px', mt: 2 }}>
-            Cette action est irréversible.
+            {t('demAutorisation.delete.irreversible')}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteConfirmOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
-            Annuler
+            {t('demAutorisation.delete.cancel')}
           </Button>
           <Button onClick={confirmDelete} variant="contained" color="error"
             disabled={deleteLoading}
             startIcon={deleteLoading ? <CircularProgress size={14} color="inherit" /> : <DeleteIcon />}
             sx={{ textTransform: 'none', borderRadius: '8px' }}>
-            Oui, Supprimer
+            {t('demAutorisation.delete.confirm')}
           </Button>
         </DialogActions>
       </Dialog>

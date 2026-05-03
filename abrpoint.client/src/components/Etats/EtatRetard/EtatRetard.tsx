@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
+import { useTranslation } from 'react-i18next';
 import EmpRetard from './EmpRetard';
 import { Item } from '../../helper/Item/Item';
 import { EmployeeProvider } from '../../Pointeuse/EtatPeriodique/EmployeeContext';
@@ -11,11 +12,12 @@ import AccessDenied from '../../helper/AccessDenied';
 
 
 export default function EtatRetard() {
+    const { t } = useTranslation();
     const queryClient = new QueryClient();
     const { hasPermission } = useAuth();
 
     if (!hasPermission('Rapports et Statistiques', 'consult')) {
-        return <AccessDenied message="Vous n'avez pas le droit de consulter l'état de retard." />;
+        return <AccessDenied message={t('etats.retard.noConsultRight')} />;
     }
 
     return (

@@ -1,4 +1,5 @@
 import { QueryClientProvider, QueryClient } from "react-query";
+import { useTranslation } from "react-i18next";
 import UserProvider from "../../helper/UserProvider";
 
 import ListeUtilisateurRoles from "../../DonneeDeBase/Utilisteur/ListeUtilisateur.";
@@ -11,6 +12,7 @@ import "../PointeuseAccees/DroitAccees.css";
 const queryClient = new QueryClient();
 
 function DroitAccessContent() {
+  const { t } = useTranslation();
   return (
     <div className="da-page">
       {/* Page Header */}
@@ -18,8 +20,8 @@ function DroitAccessContent() {
         <div className="da-header-left">
           <Shield sx={{ fontSize: 28, color: '#0040a1' }} />
           <div>
-            <h1 className="da-page-title">Gestion des Droits d'Accès</h1>
-            <p className="da-page-subtitle">Gérez les autorisations par rôle et les accès aux pointeuses</p>
+            <h1 className="da-page-title">{t('pointeuseAccees.page.title')}</h1>
+            <p className="da-page-subtitle">{t('pointeuseAccees.page.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -29,9 +31,9 @@ function DroitAccessContent() {
         <div className="da-section-header">
           <div className="da-section-title-group">
             <People sx={{ fontSize: 20, color: '#0056d2' }} />
-            <h2 className="da-section-title">Autorisations par Rôle</h2>
+            <h2 className="da-section-title">{t('pointeuseAccees.page.rolesSection')}</h2>
           </div>
-          <p className="da-section-desc">Définissez les permissions de chaque rôle pour les modules de l'application</p>
+          <p className="da-section-desc">{t('pointeuseAccees.page.rolesDesc')}</p>
         </div>
         <div className="da-section-body">
           <div className="da-roles-grid">
@@ -46,9 +48,9 @@ function DroitAccessContent() {
         <div className="da-section-header">
           <div className="da-section-title-group">
             <Fingerprint sx={{ fontSize: 20, color: '#005236' }} />
-            <h2 className="da-section-title">Droit d'Accès Pointeuses</h2>
+            <h2 className="da-section-title">{t('pointeuseAccees.page.punchSection')}</h2>
           </div>
-          <p className="da-section-desc">Attribuez les accès de lecture, configuration et purge pour chaque pointeuse par rôle</p>
+          <p className="da-section-desc">{t('pointeuseAccees.page.punchDesc')}</p>
         </div>
         <div className="da-section-body">
           <div className="da-roles-grid">

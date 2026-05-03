@@ -6,6 +6,7 @@ import EtatPeriodiquePresence from './EtatPeriodiquePresence';
 import ValeurDefautSelection from './ValeurDefautSelection/ValeurDefautSelection';
 import { useState } from 'react';
 import { Button } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { Parametre } from '../../../models/Parametre';
 import useAddLogoSoc from '../../../hooks/parametreHooks/useAddLogoSoc';
 
@@ -23,6 +24,7 @@ interface AffichageProps {
 }
 
 const Affichage: React.FC<AffichageProps> = ({ parametre,onChange }) => {
+    const { t } = useTranslation();
 
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -101,7 +103,7 @@ const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
               fullWidth
               sx={{ textTransform: "none", mb: 1 }}
             >
-              Select Image
+              {t('paramSoc.affichage.selectImage')}
               <input
                 type="file"
                 accept="image/*"
@@ -118,14 +120,14 @@ const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
               onClick={handleUpload}
               disabled={!selectedImage}
             >
-              Enregistrer Logo
+              {t('paramSoc.affichage.saveLogo')}
             </Button>
 
             {imagePreview && (
               <Box mt={2} textAlign="center">
                 <img
                   src={imagePreview}
-                  alt="Preview"
+                  alt={t('paramSoc.affichage.previewAlt')}
                   style={{ maxWidth: "100%", height: "auto" }}
                 />
               </Box>

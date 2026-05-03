@@ -1,6 +1,7 @@
 import { Box, Typography, Button, TextField, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, InputAdornment, CircularProgress, Avatar } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 import { useAuth } from "../helper/AuthProvider";
 import apiInstance from "../API/apiInstance";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
@@ -33,6 +34,7 @@ interface Statistics {
 }
 
 const EffectifsGlobaux = () => {
+  const { t } = useTranslation();
   const { soccod, uticod, isManager, sercod, hasPermission } = useAuth();
   const canAdd = hasPermission('Gestion Employés', 'add');
   const canModify = hasPermission('Gestion Employés', 'modify');
@@ -240,7 +242,7 @@ const EffectifsGlobaux = () => {
       setEmployees(prev => prev.filter(e => e.empcod !== empcod));
       setDeleteTarget(null);
     } catch (err) {
-      console.error("Erreur lors de la suppression", err);
+      console.error(t('effectifs.deleteError'), err);
     }
   };
 
@@ -267,7 +269,7 @@ const EffectifsGlobaux = () => {
     return (
       <Box className="effectifs-loading">
         <CircularProgress size={60} />
-        <Typography mt={2}>Chargement des effectifs...</Typography>
+        <Typography mt={2}>{t('effectifs.loading')}</Typography>
       </Box>
     );
   }
@@ -276,8 +278,8 @@ const EffectifsGlobaux = () => {
     return (
       <Box sx={{ p: 4, textAlign: 'center', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', m: 3 }}>
         <GroupsIcon sx={{ fontSize: 64, color: '#ba1a1a', opacity: 0.2, mb: 2 }} />
-        <Typography variant="h6" color="error">Accès Refusé</Typography>
-        <Typography sx={{ color: '#64748b' }}>Vous n'avez pas les droits nécessaires pour consulter la liste des effectifs.</Typography>
+        <Typography variant="h6" color="error">{t('effectifs.accessDenied')}</Typography>
+        <Typography sx={{ color: '#64748b' }}>{t('effectifs.noConsultRight')}</Typography>
       </Box>
     );
   }
@@ -288,17 +290,17 @@ const EffectifsGlobaux = () => {
       <Box className="effectifs-header">
         <Box className="effectifs-header-left">
           <Typography className="effectifs-subtitle">
-            Annuaire des Collaborateurs
+            {t('effectifs.directorySubtitle')}
           </Typography>
-          <Typography className="effectifs-title">Effectifs Globaux</Typography>
+          <Typography className="effectifs-title">{t('effectifs.title')}</Typography>
           <Typography className="effectifs-description">
-            Gérez et visualisez l'ensemble de vos effectifs avec précision et simplicité.
+            {t('effectifs.description')}
           </Typography>
         </Box>
         <Box className="effectifs-header-right" sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           {canAdd && (
             <ExcelImportButton
-              label="Importer (Excel)"
+              label={t('effectifs.importExcel')}
               endpoint="/BulkImport/employes"
               extraBody={{ Soccod: soccod, Sitcod: '01' }}
               columnMap={{
@@ -324,7 +326,7 @@ const EffectifsGlobaux = () => {
               startIcon={<PersonAddIcon />}
               onClick={handleAddEmployee}
             >
-              Ajouter un Collaborateur
+              {t('effectifs.addCollaborator')}
             </Button>
           )}
         </Box>
@@ -336,7 +338,7 @@ const EffectifsGlobaux = () => {
         <Paper className="filters-container">
           <Box className="filters-row">
             <Box className="filter-field">
-              <label>Département</label>
+              <label>{t('effectifs.department')}</label>
               <TextField
                 select
                 size="small"
@@ -348,17 +350,17 @@ const EffectifsGlobaux = () => {
                   displayEmpty: true,
                 }}
               >
-                <MenuItem value="">{isManagerScoped ? "Mon département" : "Tous les départements"}</MenuItem>
+                <MenuItem value="">{isManagerScoped ? t('effectifs.myDepartment') : t('effectifs.allDepartments')}</MenuItem>
                 {Object.entries(departments).map(([code, label]) => (
                   <MenuItem key={code} value={code}>
                     {label}
                   </MenuItem>
                 ))}
               </TextField>
-              
+
             </Box>
             <Box className="filter-field">
-              <label>Position</label>
+              <label>{t('effectifs.position')}</label>
               <TextField
                 select
                 size="small"
@@ -369,7 +371,7 @@ const EffectifsGlobaux = () => {
                   displayEmpty: true,
                 }}
               >
-                <MenuItem value="">Toutes les positions</MenuItem>
+                <MenuItem value="">{t('effectifs.allPositions')}</MenuItem>
                 {Object.entries(fonctions).map(([code, label]) => (
                   <MenuItem key={code} value={code}>
                     {label}
@@ -378,7 +380,7 @@ const EffectifsGlobaux = () => {
               </TextField>
             </Box>
             <Box className="filter-field">
-              <label>Site</label>
+              <label>{t('effectifs.site')}</label>
               <TextField
                 select
                 size="small"
@@ -389,7 +391,7 @@ const EffectifsGlobaux = () => {
                   displayEmpty: true,
                 }}
               >
-                <MenuItem value="">Tous les sites</MenuItem>
+                <MenuItem value="">{t('effectifs.allSites')}</MenuItem>
                 {Object.entries(sites).map(([code, label]) => (
                   <MenuItem key={code} value={code}>
                     {label}
@@ -398,7 +400,7 @@ const EffectifsGlobaux = () => {
               </TextField>
             </Box>
             <Box className="filter-field">
-              <label>Type de Contrat</label>
+              <label>{t('effectifs.contractType')}</label>
               <TextField
                 select
                 size="small"
@@ -409,7 +411,7 @@ const EffectifsGlobaux = () => {
                   displayEmpty: true,
                 }}
               >
-                <MenuItem value="">Tous les contrats</MenuItem>
+                <MenuItem value="">{t('effectifs.allContracts')}</MenuItem>
                 <MenuItem value="CDI">CDI</MenuItem>
                 <MenuItem value="CDD">CDD</MenuItem>
                 <MenuItem value="STAGE">Stage</MenuItem>
@@ -417,7 +419,7 @@ const EffectifsGlobaux = () => {
               </TextField>
             </Box>
             <Box className="filter-field">
-              <label>Niveau</label>
+              <label>{t('effectifs.level')}</label>
               <TextField
                 select
                 size="small"
@@ -428,14 +430,14 @@ const EffectifsGlobaux = () => {
                   displayEmpty: true,
                 }}
               >
-                <MenuItem value="">Tous les niveaux</MenuItem>
-                <MenuItem value="0">Exécutant</MenuItem>
-                <MenuItem value="1">Maitrise</MenuItem>
-                <MenuItem value="2">Cadre</MenuItem>
+                <MenuItem value="">{t('effectifs.allLevels')}</MenuItem>
+                <MenuItem value="0">{t('effectifs.executant')}</MenuItem>
+                <MenuItem value="1">{t('effectifs.maitrise')}</MenuItem>
+                <MenuItem value="2">{t('effectifs.cadre')}</MenuItem>
               </TextField>
             </Box>
             <Box className="filter-field">
-              <label>Statut</label>
+              <label>{t('effectifs.status')}</label>
               <TextField
                 select
                 size="small"
@@ -446,9 +448,9 @@ const EffectifsGlobaux = () => {
                   displayEmpty: true,
                 }}
               >
-                <MenuItem value="">Tous les statuts</MenuItem>
-                <MenuItem value="actif">Actif</MenuItem>
-                <MenuItem value="inactif">Inactif</MenuItem>
+                <MenuItem value="">{t('effectifs.allStatuses')}</MenuItem>
+                <MenuItem value="actif">{t('effectifs.active')}</MenuItem>
+                <MenuItem value="inactif">{t('effectifs.inactive')}</MenuItem>
               </TextField>
             </Box>
           </Box>
@@ -457,12 +459,12 @@ const EffectifsGlobaux = () => {
         {/* Stats Summary Card */}
         <Paper className="stats-card">
           <Box className="stats-content">
-            <Typography className="stats-label">Total Effectif</Typography>
+            <Typography className="stats-label">{t('effectifs.totalHeadcount')}</Typography>
             <Typography className="stats-value">{stats.totalEmployees.toLocaleString()}</Typography>
           </Box>
           <Box className="stats-trend">
             <TrendingUpIcon className="stats-trend-icon" />
-            <span>+{stats.newThisMonth} ce mois</span>
+            <span>{t('effectifs.newThisMonth', { count: stats.newThisMonth })}</span>
           </Box>
           <GroupsIcon className="stats-decoration" />
         </Paper>
@@ -471,7 +473,7 @@ const EffectifsGlobaux = () => {
       {/* Search Bar */}
       <Paper className="search-container">
         <TextField
-          placeholder="Rechercher un collaborateur par nom, matricule ou email..."
+          placeholder={t('effectifs.searchPlaceholder')}
           size="small"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -492,20 +494,20 @@ const EffectifsGlobaux = () => {
           <Table className="employees-table">
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">Collaborateur</TableCell>
-                <TableCell className="table-header">Matricule</TableCell>
-                <TableCell className="table-header">Position</TableCell>
-                <TableCell className="table-header">Département</TableCell>
-                <TableCell className="table-header">Contrat</TableCell>
-                <TableCell className="table-header">Statut</TableCell>
-                <TableCell className="table-header table-header-right">Actions</TableCell>
+                <TableCell className="table-header">{t('effectifs.columns.collaborator')}</TableCell>
+                <TableCell className="table-header">{t('effectifs.columns.matricule')}</TableCell>
+                <TableCell className="table-header">{t('effectifs.columns.position')}</TableCell>
+                <TableCell className="table-header">{t('effectifs.columns.department')}</TableCell>
+                <TableCell className="table-header">{t('effectifs.columns.contract')}</TableCell>
+                <TableCell className="table-header">{t('effectifs.columns.status')}</TableCell>
+                <TableCell className="table-header table-header-right">{t('effectifs.columns.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {paginatedEmployees.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="empty-cell">
-                    <Typography>Aucun collaborateur trouvé</Typography>
+                    <Typography>{t('effectifs.noEmployee')}</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -559,7 +561,7 @@ const EffectifsGlobaux = () => {
                             employee.actif === "A" ? "status-active-text" : "status-inactive-text"
                           }`}
                         >
-                          {employee.actif === "A" ? "Actif" : "Inactif"}
+                          {employee.actif === "A" ? t('effectifs.active') : t('effectifs.inactive')}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -602,9 +604,15 @@ const EffectifsGlobaux = () => {
         {/* Pagination */}
         <Box className="pagination-container">
           <Typography className="pagination-info">
-            Affichage de <strong>{page * rowsPerPage + 1}</strong> à{" "}
-            <strong>{Math.min((page + 1) * rowsPerPage, filteredEmployees.length)}</strong> sur{" "}
-            <strong>{filteredEmployees.length}</strong> collaborateurs
+            <Trans
+              i18nKey="effectifs.paginationInfo"
+              values={{
+                start: page * rowsPerPage + 1,
+                end: Math.min((page + 1) * rowsPerPage, filteredEmployees.length),
+                total: filteredEmployees.length,
+              }}
+              components={{ 0: <strong />, 1: <strong />, 2: <strong /> }}
+            />
           </Typography>
           <Box className="pagination-buttons">
             <IconButton
@@ -654,7 +662,7 @@ const EffectifsGlobaux = () => {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && handleDeleteEmployee(deleteTarget.empcod)}
-        message={`Voulez-vous vraiment supprimer l'employé "${deleteTarget?.emplib}" ?`}
+        message={t('effectifs.deleteConfirm', { name: deleteTarget?.emplib ?? '' })}
       />
     </Box>
   );

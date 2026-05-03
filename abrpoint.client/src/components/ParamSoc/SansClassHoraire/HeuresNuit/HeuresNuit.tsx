@@ -1,6 +1,6 @@
 import { FormControlLabel, Checkbox, FormLabel, TextField } from "@mui/material";
 import './HeuresNuit.css'
-import { t } from "i18next";
+import { useTranslation } from "react-i18next";
 
 
 interface HeuresNuitProps {
@@ -31,57 +31,58 @@ interface HeuresNuitProps {
   setNuitDebNormal,setNuitDebSpecial,setNuitFinNormal,setNuitFinSpecial,nbhtr4M,setNbhtr4M,repasNuit,setRepasNuit,
     nbhtr4,setNbhtr4,parjhsfixe,setParjhsfixe,dtepres,setDtepres,parNuit,setParNuit
 }) => {
-    
+    const { t } = useTranslation();
+
     return (
       <>
-        <h3>Heures de Nuit</h3>
-        <FormControlLabel control={<Checkbox checked={parNuit === '1'} onChange={(e) => setParNuit && setParNuit(e.target.checked ? '1' : '0')} />} 
+        <h3>{t('paramSoc.sansClasse.heuresNuitTitle')}</h3>
+        <FormControlLabel control={<Checkbox checked={parNuit === '1'} onChange={(e) => setParNuit && setParNuit(e.target.checked ? '1' : '0')} />}
         label={t('common.countNightHours')} />
         <div className="heuredeb">
-            <FormLabel>Heure Début</FormLabel>
-            <TextField 
-                label="Normal"
-                variant="standard" 
+            <FormLabel>{t('paramSoc.sansClasse.heureDebut')}</FormLabel>
+            <TextField
+                label={t('paramSoc.sansClasse.normal')}
+                variant="standard"
                 value={nuitdeb}
                 onChange={(e) => setNuitDebNormal(e.target.value)}
             />
-            <TextField 
-                label="Spéciale" 
-                variant="standard" 
+            <TextField
+                label={t('paramSoc.sansClasse.speciale')}
+                variant="standard"
                 value={nuitsdeb}
                 onChange={(e) => setNuitDebSpecial(e.target.value)}
             />
         </div>
         <div className="heurefin">
-            <FormLabel>Heure Fin</FormLabel>
-            <TextField 
-                label="Normal" 
-                variant="standard" 
+            <FormLabel>{t('paramSoc.sansClasse.heureFin')}</FormLabel>
+            <TextField
+                label={t('paramSoc.sansClasse.normal')}
+                variant="standard"
                 value={nuitfin}
                 onChange={(e) => setNuitFinNormal(e.target.value)}
             />
-            <TextField 
-                label="Spéciale" 
-                variant="standard" 
+            <TextField
+                label={t('paramSoc.sansClasse.speciale')}
+                variant="standard"
                 value={nuitsfin}
                 onChange={(e) => setNuitFinSpecial(e.target.value)}
             />
         </div>
-        <TextField label={t('common.minNightHoursPerDay')} variant="standard" 
+        <TextField label={t('common.minNightHoursPerDay')} variant="standard"
         value={nbhtr4M} onChange={(e)=>setNbhtr4M && setNbhtr4M(Number(e.target.value))} />
 
         <div className="checkboxes">
             <FormControlLabel control={<Checkbox checked={repasNuit === '1'} onChange={(e) => setRepasNuit && setRepasNuit(e.target.checked ? '1' : '0')} />}
              label={t('common.decreaseNightMeals')} />
 
-            <FormControlLabel control={<Checkbox checked={dtepres === '1'} onChange={(e) => setDtepres && setDtepres(e.target.checked ? '1' : '0')} />} 
-            label="Compter la journé de sortie date présence" />
+            <FormControlLabel control={<Checkbox checked={dtepres === '1'} onChange={(e) => setDtepres && setDtepres(e.target.checked ? '1' : '0')} />}
+            label={t('paramSoc.sansClasse.compterSortie')} />
             <FormControlLabel control={<Checkbox checked={parjhsfixe === 1} onChange={(e) => setParjhsfixe && setParjhsfixe(e.target.checked ? 1 : 0)} />}
-             label="Ne pas compter les heures de nuits si sortie le jour" />
-            <FormControlLabel control={<Checkbox checked={nbhtr4 === 1} onChange={(e) => setNbhtr4 && setNbhtr4(e.target.checked ? 1 : 0)} />} 
-            label="Majoré H.Nuit aux H.Normales" />
+             label={t('paramSoc.sansClasse.neCompterPas')} />
+            <FormControlLabel control={<Checkbox checked={nbhtr4 === 1} onChange={(e) => setNbhtr4 && setNbhtr4(e.target.checked ? 1 : 0)} />}
+            label={t('paramSoc.sansClasse.majoreHnuit')} />
         </div>
-      </>  
+      </>
     );
 }
 export default HeuresNuit;

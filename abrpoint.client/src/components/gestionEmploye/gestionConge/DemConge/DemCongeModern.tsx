@@ -15,6 +15,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import PrintIcon from '@mui/icons-material/Print';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useTranslation, Trans } from 'react-i18next';
 import { CongeProvider, useCongeContext } from '../../../helper/CongeContext';
 import useGetDemConges from '../../../../hooks/congeHooks/useGetDemConges';
 import useAcceptDemConge from '../../../../hooks/congeHooks/useAcceptDemConge';
@@ -39,11 +40,12 @@ const fmtDate = (d: Date | string | null | undefined) => {
   catch { return '—'; }
 };
 
-const getStatus = (c: Conge): 'Accepté' | 'Refusé' | 'En attente' => {
+type CongeStatusKey = 'accepted' | 'refused' | 'pending';
+const getStatus = (c: Conge): CongeStatusKey => {
   const n = c.etat?.trim().toLowerCase() ?? '';
-  if (n.includes('refus') || c.conrefus === '1') return 'Refusé';
-  if (n.includes('accept')) return 'Accepté';
-  return 'En attente';
+  if (n.includes('refus') || c.conrefus === '1') return 'refused';
+  if (n.includes('accept')) return 'accepted';
+  return 'pending';
 };
 
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -59,10 +61,10 @@ const getTypeColor = (abscod: string) => {
   return TYPE_COLORS.default;
 };
 
-const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
-  'Accepté':   { bg: '#dcfce7', text: '#166534' },
-  'Refusé':    { bg: '#fee2e2', text: '#991b1b' },
-  'En attente':{ bg: '#fef9c3', text: '#854d0e' },
+const STATUS_STYLE: Record<CongeStatusKey, { bg: string; text: string }> = {
+  accepted:  { bg: '#dcfce7', text: '#166534' },
+  refused:   { bg: '#fee2e2', text: '#991b1b' },
+  pending:   { bg: '#fef9c3', text: '#854d0e' },
 };
 
 // ── Mini Calendar ─────────────────────────────────────────────────────────────
@@ -120,6 +122,7 @@ function MiniCalendar({ leaves }: { leaves: Conge[] }) {
 
 // ── Form Dialog ───────────────────────────────────────────────────────────────
 function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolean; onClose: () => void; editConge: Conge | null; onSuccess?: () => void }) {
+  const { t } = useTranslation();
   const { soccod, isEmp, uticod } = useAuth();
   const { refetch } = useGetDemConges();
   const { data: absences = [] } = useGetCongeAbsenceLibs();
@@ -157,7 +160,8 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   const droitRestant = (droitConge as any)?.droitrestant ?? (droitConge as any)?.Droitrestant ?? 0;
   const nouveauSolde = Math.max(0, droitRestant - connbjour);
 
-  // Auto-fill phone and hire date when employee is selected or when uticod is set (employee self-request)
+  // Auto-fill phone and hire date when employee changes.
+  // In add mode, phone is always synced to selected employee (including empty value).
   useEffect(() => {
     const targetEmpcod = isEmp && uticod ? uticod : empcod;
     if (!targetEmpcod) return;
@@ -165,7 +169,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
     apiInstance.get(`/Employes/${targetEmpcod}`)
       .then((res) => {
         const tel = res.data?.emptel || res.data?.empmob || '';
-        if (tel && !editConge) setContel(tel);
+        if (!editConge) setContel(tel);
 
         const emb = res.data?.empemb;
         if (emb) {
@@ -274,24 +278,24 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
         },
       }}>
       <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', pb: 1 }}>
-        {editConge ? 'Modifier la demande' : 'Nouvelle demande de congé'}
+        {editConge ? t('conge.demConge.form.editTitle') : t('conge.demConge.form.newTitle')}
       </DialogTitle>
       <Divider />
       <DialogContent sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>N° Ordre</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.orderNo')}</Typography>
             <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} InputProps={{ readOnly: true }} sx={fieldSx} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Date demande</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.requestDate')}</Typography>
             <TextField size="small" fullWidth type="date" value={condat} InputProps={{ readOnly: true }} sx={fieldSx} />
           </Box>
         </Box>
 
         {!isEmp && (
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Employé</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.employee')}</Typography>
             <FormControl fullWidth size="small">
               <Select value={empcod} onChange={(e) => setEmpcod(e.target.value)} sx={{ borderRadius: '8px', backgroundColor: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
                 {Object.entries(employeOptions).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
@@ -301,7 +305,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
         )}
 
         <Box>
-          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Type de congé</Typography>
+          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.type')}</Typography>
           <FormControl fullWidth size="small">
             <Select value={abscod} onChange={(e) => setAbscod(e.target.value)} sx={{ borderRadius: '8px', backgroundColor: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
               {Object.entries(absences).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
@@ -311,23 +315,23 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr auto 1fr auto auto' }, gap: 1.5, alignItems: 'end' }}>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Date départ</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.departureDate')}</Typography>
             <TextField size="small" fullWidth type="date" value={condep} onChange={(e) => setCondep(e.target.value)} sx={fieldSx} />
           </Box>
           <Box sx={{ pb: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>AM</Typography>
+            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>{t('conge.demConge.form.amHalf')}</Typography>
             <input type="checkbox" checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} style={{ width: 16, height: 16 }} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Date retour</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.returnDate')}</Typography>
             <TextField size="small" fullWidth type="date" value={conret} onChange={(e) => setConret(e.target.value)} sx={fieldSx} />
           </Box>
           <Box sx={{ pb: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>AM</Typography>
+            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>{t('conge.demConge.form.amHalf')}</Typography>
             <input type="checkbox" checked={conamret} onChange={(e) => setConamret(e.target.checked)} style={{ width: 16, height: 16 }} />
           </Box>
           <Box sx={{ gridColumn: { xs: 'span 2', sm: 'auto' } }}>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Jours</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.days')}</Typography>
             <TextField size="small" fullWidth value={connbjour} InputProps={{ readOnly: true }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#eff6ff', '& fieldset': { borderColor: '#bfdbfe' }, '& input': { color: '#0040a1', fontWeight: 700, textAlign: 'center' } } }} />
           </Box>
         </Box>
@@ -336,28 +340,28 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
         {currentEmpcod && droitConge && (
           <Box sx={{ background: 'linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%)', borderRadius: '12px', p: 2, border: '1px solid #bfdbfe' }}>
             <Typography sx={{ fontSize: '12px', fontWeight: 800, color: '#0040a1', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              📊 Solde de Congé
+              📊 {t('conge.demConge.form.balanceTitle')}
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
               <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>Solde Antérieur</Typography>
+                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.previousBalance')}</Typography>
                 <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#0040a1' }}>{soldeAnterieur}</Typography>
-                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>jours</Typography>
+                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysUnit')}</Typography>
               </Box>
               <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>Droit Mensuel</Typography>
+                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.monthlyEntitlement')}</Typography>
                 <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#005136' }}>{droitMensuel}</Typography>
-                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>jours/mois</Typography>
+                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysPerMonth')}</Typography>
               </Box>
               <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>Solde Actuel</Typography>
+                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.currentBalance')}</Typography>
                 <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#7c3aed' }}>{droitRestant}</Typography>
-                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>jours restants</Typography>
+                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysRemaining')}</Typography>
               </Box>
               <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: connbjour > 0 ? '2px solid #f59e0b' : 'none' }}>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>Nouveau Solde</Typography>
+                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.newBalance')}</Typography>
                 <Typography sx={{ fontSize: '20px', fontWeight: 800, color: nouveauSolde < 0 ? '#ba1a1a' : '#059669' }}>{nouveauSolde}</Typography>
-                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>après congé</Typography>
+                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.afterLeave')}</Typography>
               </Box>
             </Box>
           </Box>
@@ -365,22 +369,22 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Adresse pendant congé</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.addressDuringLeave')}</Typography>
             <TextField size="small" fullWidth value={conadr} onChange={(e) => setConadr(e.target.value)} sx={fieldSx} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>Téléphone</Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.phone')}</Typography>
             <TextField size="small" fullWidth value={contel} onChange={(e) => setContel(e.target.value)} sx={fieldSx} />
           </Box>
         </Box>
       </DialogContent>
       <Divider />
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-        <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>Annuler</Button>
+        <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('conge.demConge.form.cancel')}</Button>
         <Button variant="contained" onClick={handleSubmit} disabled={isBusy}
           startIcon={isBusy ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
           sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
-          {editConge ? 'Modifier' : 'Soumettre'}
+          {editConge ? t('conge.demConge.form.modify') : t('conge.demConge.form.submit')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -389,6 +393,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
 
 // ── Main Component ────────────────────────────────────────────────────────────
 function DemCongeModernInner() {
+  const { t } = useTranslation();
   const { soccod, isEmp, isManager, sercod, uticod, hasPermission } = useAuth();
   const { setSelectedConge } = useCongeContext();
   const { data = [], isLoading, refetch } = useGetDemConges();
@@ -452,9 +457,9 @@ function DemCongeModernInner() {
 
   const isDataLoading = isLoading || (isManager && !!sercod && isManagerScopeLoading);
 
-  const pending = displayData.filter((c: Conge) => getStatus(c) === 'En attente');
-  const accepted = displayData.filter((c: Conge) => getStatus(c) === 'Accepté');
-  const refused = displayData.filter((c: Conge) => getStatus(c) === 'Refusé');
+  const pending = displayData.filter((c: Conge) => getStatus(c) === 'pending');
+  const accepted = displayData.filter((c: Conge) => getStatus(c) === 'accepted');
+  const refused = displayData.filter((c: Conge) => getStatus(c) === 'refused');
   const [formOpen, setFormOpen] = useState(false);
   const [editConge, setEditConge] = useState<Conge | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -477,8 +482,8 @@ function DemCongeModernInner() {
   const confirmAccept = () => {
     if (!congeToAccept) return;
     acceptConge({ concod: congeToAccept.concod, empcod: congeToAccept.empcod }, {
-      onSuccess: (res: any) => { showSnack(res.message || 'Demande acceptée avec succès', 'success'); refetch(); },
-      onError: (err: any) => showSnack(err?.response?.data?.message || 'Erreur', 'error'),
+      onSuccess: (res: any) => { showSnack(res.message || t('conge.demConge.msg.acceptedSuccess'), 'success'); refetch(); },
+      onError: (err: any) => showSnack(err?.response?.data?.message || t('conge.demConge.msg.errorGeneric'), 'error'),
     });
     setAcceptConfirmOpen(false);
     setCongeToAccept(null);
@@ -494,12 +499,12 @@ function DemCongeModernInner() {
     const { soccod, concod, empcod } = congeToRefuse;
     
     apiInstance.post(`/DemConges/refuse-demconge/${soccod}/${concod}/${empcod}`)
-      .then((res) => { 
-        showSnack(res.data?.message || 'Demande refusée avec succès', 'success'); 
-        refetch(); 
+      .then((res) => {
+        showSnack(res.data?.message || t('conge.demConge.msg.refusedSuccess'), 'success');
+        refetch();
       })
       .catch((err) => showSnack(
-        err?.response?.data?.message || 'Erreur lors du refus', 'error'
+        err?.response?.data?.message || t('conge.demConge.msg.refuseError'), 'error'
       ))
       .finally(() => {
         setRefuseConfirmOpen(false);
@@ -521,7 +526,7 @@ function DemCongeModernInner() {
 
   const handlePrint = async (c: Conge) => {
     try {
-      showSnack('Génération du rapport...', 'success');
+      showSnack(t('conge.demConge.msg.generatingReport'), 'success');
       const response = await apiInstance.get(`/Conges/get-report/${c.concod}`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -530,7 +535,7 @@ function DemCongeModernInner() {
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      showSnack('Erreur lors de l\'impression', 'error');
+      showSnack(t('conge.demConge.msg.printError'), 'error');
     }
   };
 
@@ -539,14 +544,19 @@ function DemCongeModernInner() {
       {/* Header */}
       <Box className="dcm-header">
         <Box>
-          <Typography className="dcm-title">Gestion des Congés</Typography>
+          <Typography className="dcm-title">{t('conge.demConge.title')}</Typography>
           <Typography className="dcm-subtitle">
-            Vous avez <strong style={{ color: '#0040a1' }}>{pending.length} demande{pending.length !== 1 ? 's' : ''}</strong> en attente de validation.
+            <Trans
+              i18nKey="conge.demConge.subtitlePending"
+              count={pending.length}
+              values={{ count: pending.length }}
+              components={{ 0: <strong style={{ color: '#0040a1' }} /> }}
+            />
           </Typography>
         </Box>
         {canAdd && (
           <Button className="dcm-new-btn" startIcon={<AddIcon />} onClick={handleNewRequest}>
-            Nouvelle demande
+            {t('conge.demConge.newRequest')}
           </Button>
         )}
       </Box>
@@ -556,11 +566,11 @@ function DemCongeModernInner() {
         <Box className="dcm-left">
           {/* Table header */}
           <Box className="dcm-table-head">
-            <Box className="dcm-th dcm-col-emp">Employé</Box>
-            <Box className="dcm-th dcm-col-type">Type</Box>
-            <Box className="dcm-th dcm-col-period">Période</Box>
-            <Box className="dcm-th dcm-col-status">Statut</Box>
-            <Box className="dcm-th dcm-col-actions" style={{ textAlign: 'right' }}>Actions</Box>
+            <Box className="dcm-th dcm-col-emp">{t('conge.demConge.headers.employee')}</Box>
+            <Box className="dcm-th dcm-col-type">{t('conge.demConge.headers.type')}</Box>
+            <Box className="dcm-th dcm-col-period">{t('conge.demConge.headers.period')}</Box>
+            <Box className="dcm-th dcm-col-status">{t('conge.demConge.headers.status')}</Box>
+            <Box className="dcm-th dcm-col-actions" style={{ textAlign: 'right' }}>{t('conge.demConge.headers.actions')}</Box>
           </Box>
 
           {/* Rows */}
@@ -569,12 +579,12 @@ function DemCongeModernInner() {
           ) : !canConsult ? (
             <Box sx={{ textAlign: 'center', py: 6, color: '#ba1a1a' }}>
               <CloseIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
-              <Typography>Accès refusé. Vous n'avez pas les droits de consultation.</Typography>
+              <Typography>{t('conge.demConge.noConsult')}</Typography>
             </Box>
           ) : displayData.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 6, color: '#94a3b8' }}>
               <CalendarTodayIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
-              <Typography>Aucune demande de congé</Typography>
+              <Typography>{t('conge.demConge.noData')}</Typography>
             </Box>
           ) : (
             <Box className="dcm-rows">
@@ -605,49 +615,49 @@ function DemCongeModernInner() {
                       <Typography className="dcm-period-dates">
                         {fmtDate(c.condep)} — {fmtDate(c.conret)}
                       </Typography>
-                      <Typography className="dcm-period-days">{c.connbjour} jour{c.connbjour !== 1 ? 's' : ''} ouvrés</Typography>
+                      <Typography className="dcm-period-days">{t('conge.demConge.daysWorked', { count: c.connbjour })}</Typography>
                     </Box>
 
                     {/* Status */}
                     <Box className="dcm-col-status">
                       <Box className="dcm-status-badge" style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}>
-                        {status}
+                        {t(`conge.demConge.status.${status}`)}
                       </Box>
                     </Box>
 
                     {/* Actions */}
                     <Box className="dcm-col-actions dcm-actions">
-                      <IconButton size="small" 
-                        sx={{ color: '#0040a1', backgroundColor: '#e0e7ff', '&:hover': { backgroundColor: '#c7d2fe' } }} 
-                        onClick={() => handlePrint(c)} 
-                        title="Imprimer"
+                      <IconButton size="small"
+                        sx={{ color: '#0040a1', backgroundColor: '#e0e7ff', '&:hover': { backgroundColor: '#c7d2fe' } }}
+                        onClick={() => handlePrint(c)}
+                        title={t('conge.demConge.actions.print')}
                       >
                         <PrintIcon fontSize="small" />
                       </IconButton>
-                      {(canModify || (isEmp && c.empcod === uticod && status === 'En attente')) && (
-                        <IconButton size="small" className="dcm-action-edit" onClick={() => handleEdit(c)} title="Modifier">
+                      {(canModify || (isEmp && c.empcod === uticod && status === 'pending')) && (
+                        <IconButton size="small" className="dcm-action-edit" onClick={() => handleEdit(c)} title={t('conge.demConge.actions.edit')}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       )}
-                      {isEmp && c.empcod === uticod && status === 'En attente' && (
-                        <IconButton size="small" 
-                          sx={{ color: '#ba1a1a', backgroundColor: '#fee2e2', '&:hover': { backgroundColor: '#fecaca' } }} 
-                          onClick={() => { setCongeToDelete(c); setDeleteConfirmOpen(true); }} 
-                          title="Supprimer ma demande"
+                      {isEmp && c.empcod === uticod && status === 'pending' && (
+                        <IconButton size="small"
+                          sx={{ color: '#ba1a1a', backgroundColor: '#fee2e2', '&:hover': { backgroundColor: '#fecaca' } }}
+                          onClick={() => { setCongeToDelete(c); setDeleteConfirmOpen(true); }}
+                          title={t('conge.demConge.actions.deleteMine')}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       )}
-                      {status === 'En attente' && c.empcod !== uticod && (
+                      {status === 'pending' && c.empcod !== uticod && (
                         <>
                           {canDelete && (
                             <Button size="small" className="dcm-action-refuse" onClick={() => handleRefuseClick(c)} startIcon={<CloseIcon />}>
-                              Refuser
+                              {t('conge.demConge.actions.refuse')}
                             </Button>
                           )}
                           {canModify && (
                             <Button size="small" className="dcm-action-accept" onClick={() => handleAcceptClick(c)} startIcon={<CheckIcon />}>
-                              Valider
+                              {t('conge.demConge.actions.accept')}
                             </Button>
                           )}
                         </>
@@ -667,9 +677,9 @@ function DemCongeModernInner() {
 
           {/* Availability */}
           <Paper className="dcm-avail-card">
-            <Typography className="dcm-avail-title">Disponibilité aujourd'hui</Typography>
+            <Typography className="dcm-avail-title">{t('conge.demConge.sidebar.availability')}</Typography>
             <Box className="dcm-avail-row">
-              <Typography className="dcm-avail-label">Présents</Typography>
+              <Typography className="dcm-avail-label">{t('conge.demConge.sidebar.presents')}</Typography>
               <Typography className="dcm-avail-count">
                 {displayData.length - pending.length} / {displayData.length}
               </Typography>
@@ -683,19 +693,19 @@ function DemCongeModernInner() {
           <Box className="dcm-stats-grid">
             <Paper className="dcm-stat-card">
               <Typography className="dcm-stat-value dcm-stat-primary">{accepted.length}</Typography>
-              <Typography className="dcm-stat-label">Validés ce mois</Typography>
+              <Typography className="dcm-stat-label">{t('conge.demConge.sidebar.validatedMonth')}</Typography>
             </Paper>
             <Paper className="dcm-stat-card">
               <Typography className="dcm-stat-value dcm-stat-error">{refused.length}</Typography>
-              <Typography className="dcm-stat-label">Refusés ce mois</Typography>
+              <Typography className="dcm-stat-label">{t('conge.demConge.sidebar.refusedMonth')}</Typography>
             </Paper>
             <Paper className="dcm-stat-card">
               <Typography className="dcm-stat-value dcm-stat-warning">{pending.length}</Typography>
-              <Typography className="dcm-stat-label">En attente</Typography>
+              <Typography className="dcm-stat-label">{t('conge.demConge.sidebar.pending')}</Typography>
             </Paper>
             <Paper className="dcm-stat-card">
               <Typography className="dcm-stat-value dcm-stat-primary">{displayData.length}</Typography>
-              <Typography className="dcm-stat-label">Total demandes</Typography>
+              <Typography className="dcm-stat-label">{t('conge.demConge.sidebar.totalRequests')}</Typography>
             </Paper>
           </Box>
         </Box>
@@ -706,7 +716,7 @@ function DemCongeModernInner() {
         open={formOpen} 
         onClose={() => { setFormOpen(false); refetch(); }} 
         editConge={editConge} 
-        onSuccess={() => showSnack(editConge ? 'Demande modifiée avec succès' : 'Demande de congé créée avec succès', 'success')}
+        onSuccess={() => showSnack(editConge ? t('conge.demConge.msg.updatedSuccess') : t('conge.demConge.msg.createdSuccess'), 'success')}
       />
 
       {/* Accept Confirmation Dialog */}
@@ -716,30 +726,31 @@ function DemCongeModernInner() {
         PaperProps={{ sx: { borderRadius: '12px', minWidth: '350px' } }}
       >
         <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#005136' }}>
-          Confirmer la validation
+          {t('conge.demConge.dialog.acceptTitle')}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: '#475569', fontSize: '14px', mt: 1 }}>
-            Êtes-vous sûr de vouloir valider la demande de congé
-            {congeToAccept ? ` de ${congeToAccept.emplib || congeToAccept.empcod}` : ''} 
-            {(congeToAccept && (absenceLibs as Record<string, string>)?.[congeToAccept.abscod]) 
-              ? ` (${(absenceLibs as Record<string, string>)[congeToAccept.abscod]})` 
-              : ''} ?
+            {t('conge.demConge.dialog.acceptPrompt', {
+              employee: congeToAccept ? ` de ${congeToAccept.emplib || congeToAccept.empcod}` : '',
+              type: (congeToAccept && (absenceLibs as Record<string, string>)?.[congeToAccept.abscod])
+                ? ` (${(absenceLibs as Record<string, string>)[congeToAccept.abscod]})`
+                : '',
+            })}
           </Typography>
           {congeToAccept && (
             <Box sx={{ mt: 2, p: 1.5, background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
               <Typography sx={{ fontSize: '12px', color: '#166534', fontWeight: 600 }}>
-                Du {fmtDate(congeToAccept.condep)} au {fmtDate(congeToAccept.conret)} — {congeToAccept.connbjour} jour{congeToAccept.connbjour !== 1 ? 's' : ''}
+                {fmtDate(congeToAccept.condep)} — {fmtDate(congeToAccept.conret)} · {t('conge.demConge.daysWorked', { count: congeToAccept.connbjour })}
               </Typography>
             </Box>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setAcceptConfirmOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
-            Annuler
+            {t('conge.demConge.dialog.cancel')}
           </Button>
           <Button onClick={confirmAccept} variant="contained" color="success" sx={{ textTransform: 'none', borderRadius: '8px' }}>
-            Oui, Valider
+            {t('conge.demConge.dialog.acceptYes')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -751,23 +762,24 @@ function DemCongeModernInner() {
         PaperProps={{ sx: { borderRadius: '12px', minWidth: '350px' } }}
       >
         <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#ba1a1a' }}>
-          Confirmer le refus
+          {t('conge.demConge.dialog.refuseTitle')}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: '#475569', fontSize: '14px', mt: 1 }}>
-            Êtes-vous sûr de vouloir refuser la demande de congé 
-            {congeToRefuse ? ` de ${congeToRefuse.emplib || congeToRefuse.empcod}` : ''} ?
+            {t('conge.demConge.dialog.refusePrompt', {
+              employee: congeToRefuse ? ` de ${congeToRefuse.emplib || congeToRefuse.empcod}` : '',
+            })}
           </Typography>
           <Typography sx={{ color: '#64748b', fontSize: '12px', mt: 2 }}>
-            Cette action est irréversible.
+            {t('conge.demConge.dialog.irreversible')}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setRefuseConfirmOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
-            Annuler
+            {t('conge.demConge.dialog.cancel')}
           </Button>
           <Button onClick={confirmRefuse} variant="contained" color="error" sx={{ textTransform: 'none', borderRadius: '8px' }}>
-            Oui, Refuser
+            {t('conge.demConge.dialog.refuseYes')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -779,40 +791,39 @@ function DemCongeModernInner() {
         PaperProps={{ sx: { borderRadius: '12px', minWidth: '350px' } }}
       >
         <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#ba1a1a' }}>
-          Supprimer ma demande
+          {t('conge.demConge.dialog.deleteTitle')}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: '#475569', fontSize: '14px', mt: 1 }}>
-            Êtes-vous sûr de vouloir supprimer votre demande de congé
-            {congeToDelete ? ` (${congeToDelete.concod})` : ''} ?
+            {t('conge.demConge.dialog.deletePrompt', { ref: congeToDelete ? ` (${congeToDelete.concod})` : '' })}
           </Typography>
           <Typography sx={{ color: '#64748b', fontSize: '12px', mt: 2 }}>
-            Cette action est irréversible.
+            {t('conge.demConge.dialog.irreversible')}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteConfirmOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
-            Annuler
+            {t('conge.demConge.dialog.cancel')}
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               if (!congeToDelete) return;
               deleteMutation.mutate(
                 { soccod: congeToDelete.soccod, concod: congeToDelete.concod },
                 {
-                  onSuccess: () => { showSnack('Demande supprimée avec succès', 'success'); refetch(); },
-                  onError: () => showSnack('Erreur lors de la suppression', 'error'),
+                  onSuccess: () => { showSnack(t('conge.demConge.msg.deletedSuccess'), 'success'); refetch(); },
+                  onError: () => showSnack(t('conge.demConge.msg.deleteError'), 'error'),
                 }
               );
               setDeleteConfirmOpen(false);
               setCongeToDelete(null);
             }}
-            variant="contained" color="error" 
+            variant="contained" color="error"
             disabled={deleteMutation.isLoading}
             startIcon={deleteMutation.isLoading ? <CircularProgress size={14} color="inherit" /> : <DeleteIcon />}
             sx={{ textTransform: 'none', borderRadius: '8px' }}
           >
-            Oui, Supprimer
+            {t('conge.demConge.dialog.deleteYes')}
           </Button>
         </DialogActions>
       </Dialog>

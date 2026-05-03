@@ -1,10 +1,20 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box,
   Snackbar, Alert, Autocomplete } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 import { useAuth } from '../../helper/AuthProvider';
 import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
 import './ContractBuilder.css';
+
+type VarCategory = 'Employer' | 'Employee' | 'Job' | 'Dates' | 'Congé' | 'Signature';
+type VarLabelKey =
+  | 'companyName' | 'headOfficeAddress' | 'companyPhone' | 'companyFax' | 'companyEmail' | 'manager' | 'logo'
+  | 'employeeName' | 'matricule' | 'cin' | 'birthDate' | 'birthPlace' | 'address' | 'phone' | 'email' | 'gender'
+  | 'function' | 'functionLabel' | 'qualification' | 'hireDate' | 'exitDate' | 'baseSalary' | 'grossSalary' | 'contractType' | 'site' | 'direction'
+  | 'currentDate' | 'todayDate' | 'city'
+  | 'leaveDays' | 'leaveStart' | 'leaveEnd' | 'referencePeriod'
+  | 'employeeSignature' | 'companySignature';
 
 interface TemplateFile {
   name: string;
@@ -13,6 +23,7 @@ interface TemplateFile {
 }
 
 const ContractBuilderModern = () => {
+  const { t } = useTranslation();
   const [templates, setTemplates] = useState<TemplateFile[]>([]);
   const [selectedTpl, setSelectedTpl] = useState<string | null>(null);
   const [content, setContent] = useState<string>('<h1>CONTRAT DE TRAVAIL</h1><p>Entre les soussignés...</p>');
@@ -71,42 +82,42 @@ const ContractBuilderModern = () => {
     return () => { document.body.classList.remove('hide-app-sidebar'); };
   }, []);
 
-  const VARS = [
-    { label: 'Nom Entreprise', tag: '[Table.soclib]', cat: 'Employer' },
-    { label: 'Adresse Siège', tag: '[Table.socadr]', cat: 'Employer' },
-    { label: 'Téléphone Soc.', tag: '[Table.soctel]', cat: 'Employer' },
-    { label: 'Fax Soc.', tag: '[Table.socfax]', cat: 'Employer' },
-    { label: 'Email Soc.', tag: '[Table.socemail]', cat: 'Employer' },
-    { label: 'Responsable', tag: '[Table.socresp]', cat: 'Employer' },
-    { label: 'Logo', tag: '[Logo_Entreprise]', cat: 'Employer' },
-    { label: 'Nom Employé', tag: '[Table.emplib]', cat: 'Employee' },
-    { label: 'Matricule', tag: '[Table.empmat]', cat: 'Employee' },
-    { label: 'CIN', tag: '[Table.empcin]', cat: 'Employee' },
-    { label: 'Date Naissance', tag: '[Table.empdnais]', cat: 'Employee' },
-    { label: 'Lieu Naissance', tag: '[Table.emplnais]', cat: 'Employee' },
-    { label: 'Adresse', tag: '[Table.empadr]', cat: 'Employee' },
-    { label: 'Téléphone', tag: '[Table.emptel]', cat: 'Employee' },
-    { label: 'Email', tag: '[Table.empemail]', cat: 'Employee' },
-    { label: 'Sexe', tag: '[Table.empsexe]', cat: 'Employee' },
-    { label: 'Fonction', tag: '[Table.empfonc]', cat: 'Job' },
-    { label: 'Libellé Fonction', tag: '[Table.fonclib]', cat: 'Job' },
-    { label: 'Qualification', tag: '[Table.quallib]', cat: 'Job' },
-    { label: 'Date Embauche', tag: '[Table.empemb]', cat: 'Job' },
-    { label: 'Date Sortie', tag: '[Table.empsort]', cat: 'Job' },
-    { label: 'Salaire Base', tag: '[Table.empsbase]', cat: 'Job' },
-    { label: 'Salaire Brut', tag: '[Table.empsbrut]', cat: 'Job' },
-    { label: 'Type Contrat', tag: '[Table.empcontrat]', cat: 'Job' },
-    { label: 'Site', tag: '[Table.sitlib]', cat: 'Job' },
-    { label: 'Direction', tag: '[Table.dirlib]', cat: 'Job' },
-    { label: 'Date Actuelle', tag: '[Date_Actuelle]', cat: 'Dates' },
-    { label: 'Date du Jour', tag: '[Date_du_jour]', cat: 'Dates' },
-    { label: 'Ville', tag: '[Ville]', cat: 'Dates' },
-    { label: 'Nb Jours Congé', tag: '[Nombre_de_jours]', cat: 'Congé' },
-    { label: 'Date Début Congé', tag: '[Date_debut_conge]', cat: 'Congé' },
-    { label: 'Date Fin Congé', tag: '[Date_fin_conge]', cat: 'Congé' },
-    { label: 'Période Référence', tag: '[Periode_de_reference]', cat: 'Congé' },
-    { label: 'Signature Employé', tag: '{{Signature_Employe}}', cat: 'Signature' },
-    { label: 'Signature Entreprise', tag: '{{Signature_Entreprise}}', cat: 'Signature' },
+  const VARS: { labelKey: VarLabelKey; tag: string; cat: VarCategory }[] = [
+    { labelKey: 'companyName', tag: '[Table.soclib]', cat: 'Employer' },
+    { labelKey: 'headOfficeAddress', tag: '[Table.socadr]', cat: 'Employer' },
+    { labelKey: 'companyPhone', tag: '[Table.soctel]', cat: 'Employer' },
+    { labelKey: 'companyFax', tag: '[Table.socfax]', cat: 'Employer' },
+    { labelKey: 'companyEmail', tag: '[Table.socemail]', cat: 'Employer' },
+    { labelKey: 'manager', tag: '[Table.socresp]', cat: 'Employer' },
+    { labelKey: 'logo', tag: '[Logo_Entreprise]', cat: 'Employer' },
+    { labelKey: 'employeeName', tag: '[Table.emplib]', cat: 'Employee' },
+    { labelKey: 'matricule', tag: '[Table.empmat]', cat: 'Employee' },
+    { labelKey: 'cin', tag: '[Table.empcin]', cat: 'Employee' },
+    { labelKey: 'birthDate', tag: '[Table.empdnais]', cat: 'Employee' },
+    { labelKey: 'birthPlace', tag: '[Table.emplnais]', cat: 'Employee' },
+    { labelKey: 'address', tag: '[Table.empadr]', cat: 'Employee' },
+    { labelKey: 'phone', tag: '[Table.emptel]', cat: 'Employee' },
+    { labelKey: 'email', tag: '[Table.empemail]', cat: 'Employee' },
+    { labelKey: 'gender', tag: '[Table.empsexe]', cat: 'Employee' },
+    { labelKey: 'function', tag: '[Table.empfonc]', cat: 'Job' },
+    { labelKey: 'functionLabel', tag: '[Table.fonclib]', cat: 'Job' },
+    { labelKey: 'qualification', tag: '[Table.quallib]', cat: 'Job' },
+    { labelKey: 'hireDate', tag: '[Table.empemb]', cat: 'Job' },
+    { labelKey: 'exitDate', tag: '[Table.empsort]', cat: 'Job' },
+    { labelKey: 'baseSalary', tag: '[Table.empsbase]', cat: 'Job' },
+    { labelKey: 'grossSalary', tag: '[Table.empsbrut]', cat: 'Job' },
+    { labelKey: 'contractType', tag: '[Table.empcontrat]', cat: 'Job' },
+    { labelKey: 'site', tag: '[Table.sitlib]', cat: 'Job' },
+    { labelKey: 'direction', tag: '[Table.dirlib]', cat: 'Job' },
+    { labelKey: 'currentDate', tag: '[Date_Actuelle]', cat: 'Dates' },
+    { labelKey: 'todayDate', tag: '[Date_du_jour]', cat: 'Dates' },
+    { labelKey: 'city', tag: '[Ville]', cat: 'Dates' },
+    { labelKey: 'leaveDays', tag: '[Nombre_de_jours]', cat: 'Congé' },
+    { labelKey: 'leaveStart', tag: '[Date_debut_conge]', cat: 'Congé' },
+    { labelKey: 'leaveEnd', tag: '[Date_fin_conge]', cat: 'Congé' },
+    { labelKey: 'referencePeriod', tag: '[Periode_de_reference]', cat: 'Congé' },
+    { labelKey: 'employeeSignature', tag: '{{Signature_Employe}}', cat: 'Signature' },
+    { labelKey: 'companySignature', tag: '{{Signature_Entreprise}}', cat: 'Signature' },
   ];
 
   /* ── Fetch ── */
@@ -133,7 +144,7 @@ const ContractBuilderModern = () => {
       if (editorRef.current) editorRef.current.innerHTML = res.data.content;
     } catch (err) {
       setContent('<h1>Error</h1>');
-      showSnack(`Impossible de charger le modèle "${name}".`, 'error');
+      showSnack(t('contractBuilder.snack.loadTemplateError', { name }), 'error');
     }
     finally { setLoading(false); }
   };
@@ -144,10 +155,10 @@ const ContractBuilderModern = () => {
     const htmlContent = editorRef.current ? editorRef.current.innerHTML : content;
     try {
       await apiInstance.put(`/Templates/${encodeURIComponent(selectedTpl)}`, { content: htmlContent });
-      showSnack('Modèle enregistré.', 'success');
+      showSnack(t('contractBuilder.snack.savedSuccess'), 'success');
       fetchTemplates();
     } catch (err: any) {
-      showSnack(err?.response?.data?.message || "Erreur lors de l'enregistrement.", 'error');
+      showSnack(err?.response?.data?.message || t('contractBuilder.snack.saveError'), 'error');
     }
     finally { setSaving(false); }
   };
@@ -175,7 +186,7 @@ const ContractBuilderModern = () => {
     for (let i = 0; i < r; i++) {
       tableHtml += '<tr>';
       for (let j = 0; j < c; j++) {
-        tableHtml += '<td style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Contenu</td>';
+        tableHtml += `<td style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">${t('contractBuilder.table.cellContent')}</td>`;
       }
       tableHtml += '</tr>';
     }
@@ -213,7 +224,7 @@ const ContractBuilderModern = () => {
   const handlePreview = async () => {
     if (!selectedTpl) return;
     if (!soccod || !uticod) {
-      showSnack('Session expirée — reconnectez-vous pour générer un aperçu.', 'error');
+      showSnack(t('contractBuilder.snack.sessionExpiredPreview'), 'error');
       return;
     }
     try {
@@ -223,7 +234,7 @@ const ContractBuilderModern = () => {
       );
       setPreviewUrl(URL.createObjectURL(res.data));
     } catch (err: any) {
-      showSnack(err?.response?.data?.message || 'Erreur de génération PDF.', 'error');
+      showSnack(err?.response?.data?.message || t('contractBuilder.snack.previewError'), 'error');
     }
   };
 
@@ -232,9 +243,9 @@ const ContractBuilderModern = () => {
    * du dialog) — déclenche un téléchargement direct en plus d'afficher l'aperçu.
    */
   const handleExportForEmployee = async () => {
-    if (!selectedTpl) { showSnack('Sélectionnez un modèle dans la sidebar.', 'error'); return; }
-    if (!exportEmpcod) { showSnack('Choisissez l\'employé cible.', 'error'); return; }
-    if (!soccod) { showSnack('Session expirée.', 'error'); return; }
+    if (!selectedTpl) { showSnack(t('contractBuilder.snack.selectTemplateExport'), 'error'); return; }
+    if (!exportEmpcod) { showSnack(t('contractBuilder.snack.selectEmployeeExport'), 'error'); return; }
+    if (!soccod) { showSnack(t('contractBuilder.snack.sessionExpired'), 'error'); return; }
     setExporting(true);
     try {
       const res = await apiInstance.get(
@@ -253,11 +264,11 @@ const ContractBuilderModern = () => {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      showSnack('Document exporté.', 'success');
+      showSnack(t('contractBuilder.snack.exported'), 'success');
       setOpenExport(false);
     } catch (err: any) {
       // L'API renvoie le message dans le blob — on le décode pour afficher la cause.
-      let msg = 'Erreur lors de l\'export.';
+      let msg = t('contractBuilder.snack.exportError');
       if (err?.response?.data instanceof Blob) {
         try { msg = JSON.parse(await err.response.data.text())?.message || msg; } catch { /* ignore */ }
       }
@@ -281,7 +292,7 @@ const ContractBuilderModern = () => {
       });
       setAiResult(res.data.html);
     } catch (err: any) {
-      alert("AI Generation failed: " + (err.response?.data || err.message));
+      showSnack(t('contractBuilder.ai.generationFailed', { error: err.response?.data || err.message }), 'error');
     } finally {
       setAiLoading(false);
     }
@@ -300,14 +311,14 @@ const ContractBuilderModern = () => {
   };
 
   const handleDelete = async (name: string) => {
-    if (!confirm(`Supprimer le modèle "${name}" ?`)) return;
+    if (!confirm(t('contractBuilder.snack.deleteConfirm', { name }))) return;
     try {
       await apiInstance.delete(`/Templates/${encodeURIComponent(name)}`);
       if (selectedTpl === name) { setSelectedTpl(null); setContent(''); }
       fetchTemplates();
-      showSnack('Modèle supprimé.', 'success');
+      showSnack(t('contractBuilder.snack.deleted'), 'success');
     } catch (err: any) {
-      showSnack(err?.response?.data?.message || 'Erreur lors de la suppression.', 'error');
+      showSnack(err?.response?.data?.message || t('contractBuilder.snack.deleteError'), 'error');
     }
   };
 
@@ -318,7 +329,7 @@ const ContractBuilderModern = () => {
       if (selectedTpl === renameTplOriginal) setSelectedTpl(res.data.newName);
       setOpenRenameTpl(false);
       fetchTemplates();
-    } catch (err: any) { alert(err.response?.data?.message || "Erreur lors du renommage"); }
+    } catch (err: any) { showSnack(err.response?.data?.message || t('contractBuilder.rename.error'), 'error'); }
   };
 
   const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,7 +347,7 @@ const ContractBuilderModern = () => {
          setContent(editorRef.current.innerHTML);
       }
     } catch (err: any) {
-       alert(err.response?.data || "Import failed");
+       showSnack(err.response?.data || t('contractBuilder.snack.importFailed'), 'error');
     } finally { setImporting(false); }
   };
 
@@ -352,7 +363,7 @@ const ContractBuilderModern = () => {
              <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center">
                 <span className="material-symbols-outlined text-white text-sm">contract</span>
              </div>
-             <h1 className="text-lg font-bold text-slate-900 tracking-tight">Contract Builder Pro</h1>
+             <h1 className="text-lg font-bold text-slate-900 tracking-tight">{t('contractBuilder.header.title')}</h1>
           </div>
         </div>
         
@@ -364,26 +375,26 @@ const ContractBuilderModern = () => {
              className="rounded-xl font-bold border-purple-200 text-purple-700 hover:bg-purple-50"
              size="small"
            >
-             AI Assistant
+             {t('contractBuilder.header.aiAssistant')}
            </Button>
 
            <div className="w-px h-6 bg-slate-200 mx-2" />
 
            {importing ? <CircularProgress size={20} className="mr-8" /> : (
               <Button onClick={() => fileInputRef.current?.click()} size="small" color="inherit" className="font-bold text-slate-600">
-                <span className="material-symbols-outlined mr-2 text-sm">upload_file</span> Import
+                <span className="material-symbols-outlined mr-2 text-sm">upload_file</span> {t('contractBuilder.header.import')}
               </Button>
            )}
            <input type="file" ref={fileInputRef} className="hidden" accept=".pdf" onChange={handlePdfImport} />
            
            <Button variant="outlined" color="primary" onClick={() => setOpenNewTpl(true)} size="small" className="rounded-xl font-bold border-slate-200 text-slate-700">
-              <span className="material-symbols-outlined mr-2 text-sm">add</span> Nouveau
+              <span className="material-symbols-outlined mr-2 text-sm">add</span> {t('contractBuilder.header.new')}
            </Button>
 
            <Button
              variant="outlined"
              onClick={() => {
-               if (!selectedTpl) { showSnack('Sélectionnez un modèle avant d\'exporter.', 'error'); return; }
+               if (!selectedTpl) { showSnack(t('contractBuilder.snack.selectBeforeExport'), 'error'); return; }
                setExportEmpcod('');
                setOpenExport(true);
              }}
@@ -391,11 +402,11 @@ const ContractBuilderModern = () => {
              className="rounded-xl font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50"
              size="small"
            >
-             Exporter pour un employé
+             {t('contractBuilder.header.exportForEmployee')}
            </Button>
 
            <Button variant="contained" onClick={handleSave} disabled={saving} size="small" className="rounded-xl px-6 font-bold shadow-lg shadow-blue-100 bg-blue-700">
-             {saving ? "Enregistrement…" : "Enregistrer"}
+             {saving ? t('contractBuilder.header.saving') : t('contractBuilder.header.save')}
            </Button>
         </div>
       </header>
@@ -405,9 +416,9 @@ const ContractBuilderModern = () => {
         {isSidebarOpen && (
           <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0">
             <div className="p-4 border-b border-slate-100">
-               <div className="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-4">Library</div>
+               <div className="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-4">{t('contractBuilder.sidebar.library')}</div>
                <TextField
-                 placeholder="Rechercher un modèle…"
+                 placeholder={t('contractBuilder.sidebar.searchPlaceholder')}
                  size="small" fullWidth
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
@@ -419,23 +430,23 @@ const ContractBuilderModern = () => {
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {templates
-                .filter(t => !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                .map(t => (
-                 <div 
-                   key={t.name}
-                   onClick={() => handleSelect(t.name)}
-                   onContextMenu={(e) => { e.preventDefault(); setContextMenu({name: t.name, x: e.clientX, y: e.clientY}); }}
-                   className={`group px-4 py-3 rounded-xl cursor-pointer flex items-center justify-between transition-all ${selectedTpl === t.name ? 'bg-blue-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                .filter(tpl => !searchQuery || tpl.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map(tpl => (
+                 <div
+                   key={tpl.name}
+                   onClick={() => handleSelect(tpl.name)}
+                   onContextMenu={(e) => { e.preventDefault(); setContextMenu({name: tpl.name, x: e.clientX, y: e.clientY}); }}
+                   className={`group px-4 py-3 rounded-xl cursor-pointer flex items-center justify-between transition-all ${selectedTpl === tpl.name ? 'bg-blue-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
                  >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className={`material-symbols-outlined ${selectedTpl === t.name ? 'text-white' : 'text-slate-300'}`}>description</span>
-                      <span className="text-sm truncate flex-1">{t.name}</span>
+                      <span className={`material-symbols-outlined ${selectedTpl === tpl.name ? 'text-white' : 'text-slate-300'}`}>description</span>
+                      <span className="text-sm truncate flex-1">{tpl.name}</span>
                     </div>
                     <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); setRenameTplOriginal(t.name); setRenameTplName(t.name.replace('.html','')); setOpenRenameTpl(true); }} className={selectedTpl === t.name ? 'text-white hover:text-blue-200' : 'text-slate-400 hover:text-blue-600'}>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); setRenameTplOriginal(tpl.name); setRenameTplName(tpl.name.replace('.html','')); setOpenRenameTpl(true); }} className={selectedTpl === tpl.name ? 'text-white hover:text-blue-200' : 'text-slate-400 hover:text-blue-600'}>
                         <span className="material-symbols-outlined text-[16px]">edit</span>
                       </IconButton>
-                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleDelete(t.name); }} className={selectedTpl === t.name ? 'text-white hover:text-red-200' : 'text-slate-400 hover:text-red-600'}>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleDelete(tpl.name); }} className={selectedTpl === tpl.name ? 'text-white hover:text-red-200' : 'text-slate-400 hover:text-red-600'}>
                         <span className="material-symbols-outlined text-[16px]">delete</span>
                       </IconButton>
                     </div>
@@ -464,18 +475,18 @@ const ContractBuilderModern = () => {
                  <IconButton size="small" onClick={insertTable}><span className="material-symbols-outlined text-sm">table_chart</span></IconButton>
               </div>
               <div className="flex gap-0.5 border-r border-slate-100 pr-2">
-                 <IconButton size="small" onClick={() => exec('insertHTML', '<header><p>[Logo_Entreprise]</p><p><b>[Table.soclib]</b></p><p>[Table.socadr]</p></header><br>')} title="Insérer En-tête"><span className="material-symbols-outlined text-sm">vertical_align_top</span></IconButton>
-                 <IconButton size="small" onClick={() => exec('insertHTML', '<br><footer><p><i>[Table.soclib] — [Table.socadr]</i></p></footer>')} title="Insérer Pied de page"><span className="material-symbols-outlined text-sm">vertical_align_bottom</span></IconButton>
+                 <IconButton size="small" onClick={() => exec('insertHTML', '<header><p>[Logo_Entreprise]</p><p><b>[Table.soclib]</b></p><p>[Table.socadr]</p></header><br>')} title={t('contractBuilder.toolbar.insertHeader')}><span className="material-symbols-outlined text-sm">vertical_align_top</span></IconButton>
+                 <IconButton size="small" onClick={() => exec('insertHTML', '<br><footer><p><i>[Table.soclib] — [Table.socadr]</i></p></footer>')} title={t('contractBuilder.toolbar.insertFooter')}><span className="material-symbols-outlined text-sm">vertical_align_bottom</span></IconButton>
               </div>
               <div className="flex gap-1 border-r border-slate-100 pr-2 items-center">
                  <select className="text-[11px] font-bold bg-slate-50 rounded-lg px-2 py-1 border-none outline-none" onChange={(e) => exec('fontSize', e.target.value)}>
-                    <option value="3">Normal</option>
-                    <option value="5">Large</option>
-                    <option value="1">Small</option>
+                    <option value="3">{t('contractBuilder.toolbar.fontNormal')}</option>
+                    <option value="5">{t('contractBuilder.toolbar.fontLarge')}</option>
+                    <option value="1">{t('contractBuilder.toolbar.fontSmall')}</option>
                  </select>
               </div>
               <div className="ml-auto">
-                 <Button size="small" onClick={handlePreview} startIcon={<span className="material-symbols-outlined text-[16px]">visibility</span>} className="text-slate-500 font-bold normal-case">Preview PDF</Button>
+                 <Button size="small" onClick={handlePreview} startIcon={<span className="material-symbols-outlined text-[16px]">visibility</span>} className="text-slate-500 font-bold normal-case">{t('contractBuilder.toolbar.previewPdf')}</Button>
               </div>
            </div>
 
@@ -496,24 +507,24 @@ const ContractBuilderModern = () => {
         {/* ── Variables Sidebar (Right) ── */}
         <aside className="w-72 bg-white border-l border-slate-200 p-6 flex flex-col shrink-0">
            <div className="text-[10px] font-black text-slate-900 mb-6 uppercase tracking-widest flex items-center justify-between">
-              Variables & Meta
+              {t('contractBuilder.variables.title')}
               <span className="material-symbols-outlined text-slate-300 text-sm">help_outline</span>
            </div>
-           
+
            <div className="flex-1 overflow-y-auto pr-2 space-y-6 scrollbar-hide">
-              {['Employer', 'Employee', 'Job', 'Dates', 'Congé', 'Signature'].map(cat => (
+              {(['Employer', 'Employee', 'Job', 'Dates', 'Congé', 'Signature'] as VarCategory[]).map(cat => (
                 <div key={cat} className="space-y-2">
-                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{cat}</div>
+                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{t(`contractBuilder.variables.categories.${cat}`)}</div>
                    {VARS.filter(v => v.cat === cat).map(v => (
-                     <div 
-                       key={v.tag} 
-                       draggable 
+                     <div
+                       key={v.tag}
+                       draggable
                        onDragStart={(e) => onDragStart(e, v.tag)}
                        onClick={() => insertVariable(v.tag)}
                        className={`group flex items-center justify-between p-3.5 rounded-2xl border border-transparent shadow-sm cursor-grab ${cat === 'Signature' ? 'bg-amber-50 hover:border-amber-200' : 'bg-slate-50 hover:border-blue-200'}`}
                      >
                         <div className="flex flex-col">
-                           <span className={`text-xs font-black ${cat === 'Signature' ? 'text-amber-800' : 'text-slate-700'}`}>{v.label}</span>
+                           <span className={`text-xs font-black ${cat === 'Signature' ? 'text-amber-800' : 'text-slate-700'}`}>{t(`contractBuilder.variables.labels.${v.labelKey}`)}</span>
                            <span className="text-[9px] font-mono text-slate-400 mt-0.5">{v.tag}</span>
                         </div>
                         <span className="material-symbols-outlined text-slate-300 group-hover:text-blue-600 transition-colors scale-75 group-hover:scale-100">drag_indicator</span>
@@ -532,16 +543,16 @@ const ContractBuilderModern = () => {
                 <span className="material-symbols-outlined text-purple-700">auto_awesome</span>
              </div>
              <div>
-                <div className="text-lg font-black text-slate-900">AI Template Assistant</div>
-                <div className="text-xs text-slate-400 font-medium">Auto-generate dynamic contracts using AI</div>
+                <div className="text-lg font-black text-slate-900">{t('contractBuilder.ai.title')}</div>
+                <div className="text-xs text-slate-400 font-medium">{t('contractBuilder.ai.subtitle')}</div>
              </div>
          </DialogTitle>
          <DialogContent className="space-y-6 mt-4">
-            <TextField 
-              label="Describe the document you want to create..."
+            <TextField
+              label={t('contractBuilder.ai.describeLabel')}
               multiline rows={4} fullWidth variant="outlined"
               value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
-              placeholder="Ex: Un contrat de travail CDI pour un ingénieur avec une clause de confidentialité et 3 mois de période d'essai."
+              placeholder={t('contractBuilder.ai.describePlaceholder')}
               InputProps={{ className: 'rounded-2xl bg-slate-50' }}
             />
 
@@ -549,12 +560,12 @@ const ContractBuilderModern = () => {
                 <div className="flex items-center gap-3">
                    <span className="material-symbols-outlined text-slate-400">upload_file</span>
                    <div>
-                      <div className="text-sm font-bold text-slate-700">{aiExampleFile ? aiExampleFile.name : "Example Document (Optional)"}</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Used as a structure reference</div>
+                      <div className="text-sm font-bold text-slate-700">{aiExampleFile ? aiExampleFile.name : t('contractBuilder.ai.exampleFile')}</div>
+                      <div className="text-[10px] text-slate-400 font-medium">{t('contractBuilder.ai.exampleHint')}</div>
                    </div>
                 </div>
                 <Button size="small" onClick={() => aiFileRef.current?.click()} className="text-blue-600 font-black">
-                   {aiExampleFile ? "Change" : "Browse PDF"}
+                   {aiExampleFile ? t('contractBuilder.ai.change') : t('contractBuilder.ai.browsePdf')}
                 </Button>
                 <input type="file" ref={aiFileRef} className="hidden" accept=".pdf" onChange={e => setAiExampleFile(e.target.files?.[0] || null)} />
             </Box>
@@ -563,72 +574,72 @@ const ContractBuilderModern = () => {
                 <div className="p-4 bg-green-50 border border-green-100 rounded-2xl">
                    <div className="text-xs font-black text-green-700 uppercase tracking-widest mb-2 flex items-center gap-2">
                        <span className="material-symbols-outlined text-sm">check_circle</span>
-                       Draft Generated Successfully!
+                       {t('contractBuilder.ai.draftSuccess')}
                    </div>
-                   <div className="text-[10px] text-green-600 font-medium">Review the editor after applying to see the full document.</div>
+                   <div className="text-[10px] text-green-600 font-medium">{t('contractBuilder.ai.draftSuccessHint')}</div>
                 </div>
             )}
          </DialogContent>
          <DialogActions className="p-4">
-            <Button onClick={() => setOpenAi(false)} disabled={aiLoading} color="inherit">Cancel</Button>
+            <Button onClick={() => setOpenAi(false)} disabled={aiLoading} color="inherit">{t('contractBuilder.ai.cancel')}</Button>
             {aiResult ? (
-                <Button onClick={applyAiResult} variant="contained" className="bg-green-700 rounded-xl px-6 font-bold">Apply to Editor</Button>
+                <Button onClick={applyAiResult} variant="contained" className="bg-green-700 rounded-xl px-6 font-bold">{t('contractBuilder.ai.applyToEditor')}</Button>
             ) : (
-                <Button 
-                    onClick={handleAiGenerate} 
-                    disabled={aiLoading || !aiPrompt} 
-                    variant="contained" 
+                <Button
+                    onClick={handleAiGenerate}
+                    disabled={aiLoading || !aiPrompt}
+                    variant="contained"
                     className="bg-purple-700 rounded-xl px-6 font-bold"
                     startIcon={aiLoading ? <CircularProgress size={16} color="inherit" /> : <span className="material-symbols-outlined text-sm">magic_button</span>}
                 >
-                    {aiLoading ? "Generating..." : "Magic Build"}
+                    {aiLoading ? t('contractBuilder.ai.generating') : t('contractBuilder.ai.magicBuild')}
                 </Button>
             )}
          </DialogActions>
       </Dialog>
 
       <Dialog open={openNewTpl} onClose={() => setOpenNewTpl(false)} PaperProps={{ className: 'rounded-3xl p-4' }}>
-        <DialogTitle className="font-black text-slate-900">New Template</DialogTitle>
+        <DialogTitle className="font-black text-slate-900">{t('contractBuilder.newTemplate.title')}</DialogTitle>
         <DialogContent>
-           <TextField label="Name" fullWidth variant="standard" value={newTplName} onChange={(e) => setNewTplName(e.target.value)} />
+           <TextField label={t('contractBuilder.newTemplate.name')} fullWidth variant="standard" value={newTplName} onChange={(e) => setNewTplName(e.target.value)} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenNewTpl(false)} color="inherit">Cancel</Button>
+          <Button onClick={() => setOpenNewTpl(false)} color="inherit">{t('contractBuilder.newTemplate.cancel')}</Button>
           <Button onClick={async () => {
             try {
               await apiInstance.post('/Templates', { name: newTplName });
               setOpenNewTpl(false);
               fetchTemplates();
             } catch(e) { console.error(e); }
-          }} variant="contained" className="bg-blue-700">Create</Button>
+          }} variant="contained" className="bg-blue-700">{t('contractBuilder.newTemplate.create')}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Rename Dialog */}
       <Dialog open={openRenameTpl} onClose={() => setOpenRenameTpl(false)} PaperProps={{ className: 'rounded-3xl p-4' }}>
-        <DialogTitle className="font-black text-slate-900">Renommer le modèle</DialogTitle>
+        <DialogTitle className="font-black text-slate-900">{t('contractBuilder.rename.title')}</DialogTitle>
         <DialogContent>
-           <TextField label="Nouveau nom" fullWidth variant="standard" value={renameTplName} onChange={(e) => setRenameTplName(e.target.value)} />
+           <TextField label={t('contractBuilder.rename.newName')} fullWidth variant="standard" value={renameTplName} onChange={(e) => setRenameTplName(e.target.value)} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenRenameTpl(false)} color="inherit">Annuler</Button>
-          <Button onClick={handleRename} variant="contained" className="bg-blue-700">Renommer</Button>
+          <Button onClick={() => setOpenRenameTpl(false)} color="inherit">{t('contractBuilder.rename.cancel')}</Button>
+          <Button onClick={handleRename} variant="contained" className="bg-blue-700">{t('contractBuilder.rename.confirm')}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Insert Table Dialog (remplace les prompt() bruts) */}
       <Dialog open={openInsertTable} onClose={() => setOpenInsertTable(false)} PaperProps={{ className: 'rounded-3xl p-4' }}>
-        <DialogTitle className="font-black text-slate-900">Insérer un tableau</DialogTitle>
+        <DialogTitle className="font-black text-slate-900">{t('contractBuilder.insertTable.title')}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
             <TextField
-              label="Nombre de lignes" type="number" size="small"
+              label={t('contractBuilder.insertTable.rows')} type="number" size="small"
               inputProps={{ min: 1, max: 20 }}
               value={tableRows}
               onChange={(e) => setTableRows(parseInt(e.target.value || '1', 10))}
             />
             <TextField
-              label="Nombre de colonnes" type="number" size="small"
+              label={t('contractBuilder.insertTable.cols')} type="number" size="small"
               inputProps={{ min: 1, max: 20 }}
               value={tableCols}
               onChange={(e) => setTableCols(parseInt(e.target.value || '1', 10))}
@@ -636,8 +647,8 @@ const ContractBuilderModern = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenInsertTable(false)} color="inherit">Annuler</Button>
-          <Button onClick={confirmInsertTable} variant="contained" className="bg-blue-700">Insérer</Button>
+          <Button onClick={() => setOpenInsertTable(false)} color="inherit">{t('contractBuilder.insertTable.cancel')}</Button>
+          <Button onClick={confirmInsertTable} variant="contained" className="bg-blue-700">{t('contractBuilder.insertTable.confirm')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -648,9 +659,9 @@ const ContractBuilderModern = () => {
             <span className="material-symbols-outlined text-emerald-700">picture_as_pdf</span>
           </div>
           <div>
-            <div className="text-lg font-black text-slate-900">Exporter le modèle</div>
+            <div className="text-lg font-black text-slate-900">{t('contractBuilder.export.title')}</div>
             <div className="text-xs text-slate-400 font-medium">
-              {selectedTpl ? `Modèle : ${selectedTpl}` : 'Aucun modèle sélectionné'}
+              {selectedTpl ? t('contractBuilder.export.templateLabel', { name: selectedTpl }) : t('contractBuilder.export.noTemplate')}
             </div>
           </div>
         </DialogTitle>
@@ -662,15 +673,14 @@ const ContractBuilderModern = () => {
             isOptionEqualToValue={(a, b) => a.code === b.code}
             value={employeeOptions.find(o => o.code === exportEmpcod) || null}
             onChange={(_, val) => setExportEmpcod(val?.code || '')}
-            renderInput={(params) => <TextField {...params} label="Employé cible" placeholder="Rechercher…" />}
+            renderInput={(params) => <TextField {...params} label={t('contractBuilder.export.targetEmployee')} placeholder={t('contractBuilder.export.searchPlaceholder')} />}
           />
           <Box className="text-[12px] text-slate-500 leading-relaxed">
-            Le modèle sera fusionné avec les données de l'employé sélectionné (nom, CIN,
-            fonction, salaire, dates…) et téléchargé au format PDF.
+            {t('contractBuilder.export.description')}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenExport(false)} color="inherit" disabled={exporting}>Annuler</Button>
+          <Button onClick={() => setOpenExport(false)} color="inherit" disabled={exporting}>{t('contractBuilder.export.cancel')}</Button>
           <Button
             onClick={handleExportForEmployee}
             variant="contained"
@@ -678,7 +688,7 @@ const ContractBuilderModern = () => {
             startIcon={exporting ? <CircularProgress size={16} color="inherit" /> : <span className="material-symbols-outlined text-sm">download</span>}
             className="bg-emerald-700"
           >
-            {exporting ? 'Génération…' : 'Exporter PDF'}
+            {exporting ? t('contractBuilder.export.exporting') : t('contractBuilder.export.exportPdf')}
           </Button>
         </DialogActions>
       </Dialog>

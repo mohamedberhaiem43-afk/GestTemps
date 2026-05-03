@@ -7,6 +7,7 @@ import {
   Plus, Edit3, Trash2, Search, Briefcase, MapPin, Calendar, User as UserIcon, FileText
 } from 'lucide-react';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
 import { useQuery } from 'react-query';
 import EmployeService from '../../../services/EmployeService/EmployeService';
@@ -43,6 +44,7 @@ const emptyForm = (soccod: string, defaultEmpcod = ''): MissionUpsertRequest => 
 });
 
 const MissionPage: React.FC = () => {
+  const { t } = useTranslation();
   const { soccod, uticod, isEmp, isAdmin, isManager } = useAuth();
   const sc = soccod || '';
   // Un collaborateur (sans rôle manager/admin) ne peut créer une mission que pour lui-même.
@@ -66,7 +68,7 @@ const MissionPage: React.FC = () => {
   const deleteMut = useDeleteMission();
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('Tous');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<MissionUpsertRequest>(emptyForm(sc, defaultEmpcod));
@@ -88,7 +90,7 @@ const MissionPage: React.FC = () => {
   const filtered = useMemo(() => {
     const list = (missionsQ.data ?? []) as Mission[];
     return list.filter(m => {
-      if (statusFilter !== 'Tous' && m.misetat !== statusFilter) return false;
+      if (statusFilter !== 'all' && m.misetat !== statusFilter) return false;
       if (!search.trim()) return true;
       const s = search.toLowerCase();
       return (
@@ -124,11 +126,11 @@ const MissionPage: React.FC = () => {
 
   const submit = async () => {
     if (!form.empcod || !form.misobj || !form.abscod || !form.misdatedeb || !form.misdatefin) {
-      showSnack('Champs requis manquants : collaborateur, objet, nature et dates.', 'error');
+      showSnack(t('mission.msg.requiredFields'), 'error');
       return;
     }
     if (dayjs(form.misdatefin).isBefore(form.misdatedeb)) {
-      showSnack('La date de fin doit être postérieure à la date de début.', 'error');
+      showSnack(t('mission.msg.invalidDateRange'), 'error');
       return;
     }
     try {
@@ -141,14 +143,14 @@ const MissionPage: React.FC = () => {
       };
       if (editingId == null) {
         await createMut.mutateAsync(payload);
-        showSnack('Mission créée.', 'success');
+        showSnack(t('mission.msg.created'), 'success');
       } else {
         await updateMut.mutateAsync({ id: editingId, req: payload });
-        showSnack('Mission mise à jour.', 'success');
+        showSnack(t('mission.msg.updated'), 'success');
       }
       setDialogOpen(false);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || "Échec de l'enregistrement.";
+      const msg = err?.response?.data?.message || t('mission.msg.saveError');
       showSnack(msg, 'error');
     }
   };
@@ -157,9 +159,9 @@ const MissionPage: React.FC = () => {
     if (!confirmDelete) return;
     try {
       await deleteMut.mutateAsync(confirmDelete.id);
-      showSnack('Mission supprimée.', 'success');
+      showSnack(t('mission.msg.deleted'), 'success');
     } catch {
-      showSnack('Erreur lors de la suppression.', 'error');
+      showSnack(t('mission.msg.deleteError'), 'error');
     } finally {
       setConfirmDelete(null);
     }
@@ -173,10 +175,10 @@ const MissionPage: React.FC = () => {
         <Box>
           <Typography sx={{ fontSize: 26, fontWeight: 800, color: 'text.primary' }}>
             <Briefcase size={22} style={{ verticalAlign: -3, marginRight: 8 }} />
-            Gestion des missions
+            {t('mission.header.title')}
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.5 }}>
-            Toute note de frais doit être rattachée à une mission de catégorie « Formation et mission » (abscng = 6).
+            {t('mission.header.subtitle')}
           </Typography>
         </Box>
         <Button
@@ -185,21 +187,20 @@ const MissionPage: React.FC = () => {
           onClick={openCreate}
           sx={{ bgcolor: '#0040a1', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#003080' } }}
         >
-          Nouvelle mission
+          {t('mission.header.newMission')}
         </Button>
       </Box>
 
       {noNatures && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          Aucune nature d'absence avec abscng = 6 n'est définie. Créez-en une dans
-          « Données de base &gt; Natures d'absences » avant de saisir des missions.
+          {t('mission.alerts.noNatures')}
         </Alert>
       )}
 
       <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <TextField
           size="small"
-          placeholder="Rechercher (objet, destination, employé)..."
+          placeholder={t('mission.filters.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{ startAdornment: <InputAdornment position="start"><Search size={16} /></InputAdornment> }}
@@ -208,13 +209,13 @@ const MissionPage: React.FC = () => {
         <TextField
           size="small"
           select
-          label="État"
+          label={t('mission.filters.state')}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           sx={{ minWidth: 180 }}
         >
-          <MenuItem value="Tous">Tous</MenuItem>
-          {STATES.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          <MenuItem value="all">{t('mission.filters.all')}</MenuItem>
+          {STATES.map(s => <MenuItem key={s} value={s}>{t(`mission.states.${s}`)}</MenuItem>)}
         </TextField>
       </Box>
 
@@ -223,7 +224,15 @@ const MissionPage: React.FC = () => {
           lisibilité en gardant la min-width de la grille. */}
       <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: '2.5fr 1.8fr 1.4fr 1.4fr 1fr 1fr 90px', gap: 0, bgcolor: 'background.paper', minWidth: { xs: 700, md: 'auto' } }}>
-          {['Objet', 'Collaborateur', 'Destination', 'Période', 'Budget', 'État', ''].map((h, i) => (
+          {[
+            t('mission.table.object'),
+            t('mission.table.collaborator'),
+            t('mission.table.destination'),
+            t('mission.table.period'),
+            t('mission.table.budget'),
+            t('mission.table.state'),
+            ''
+          ].map((h, i) => (
             <Typography key={i} sx={{ p: 1.5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'text.secondary', borderBottom: '1px solid', borderColor: 'divider' }}>
               {h}
             </Typography>
@@ -233,7 +242,7 @@ const MissionPage: React.FC = () => {
           )}
           {!missionsQ.isLoading && filtered.length === 0 && (
             <Typography sx={{ gridColumn: '1 / -1', p: 4, textAlign: 'center', color: 'text.secondary' }}>
-              Aucune mission.
+              {t('mission.table.empty')}
             </Typography>
           )}
           {filtered.map(m => (
@@ -264,14 +273,14 @@ const MissionPage: React.FC = () => {
               </Typography>
               <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
                 <Chip
-                  label={m.misetat}
+                  label={t(`mission.states.${m.misetat}`, m.misetat)}
                   size="small"
                   sx={{ bgcolor: `${STATE_COLORS[m.misetat] || '#94a3b8'}20`, color: STATE_COLORS[m.misetat] || '#94a3b8', fontWeight: 700, fontSize: 11 }}
                 />
               </Box>
               <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Tooltip title="Modifier"><IconButton size="small" onClick={() => openEdit(m)}><Edit3 size={14} /></IconButton></Tooltip>
-                <Tooltip title="Supprimer"><IconButton size="small" onClick={() => setConfirmDelete(m)} sx={{ color: '#ef4444' }}><Trash2 size={14} /></IconButton></Tooltip>
+                <Tooltip title={t('mission.actions.edit')}><IconButton size="small" onClick={() => openEdit(m)}><Edit3 size={14} /></IconButton></Tooltip>
+                <Tooltip title={t('mission.actions.delete')}><IconButton size="small" onClick={() => setConfirmDelete(m)} sx={{ color: '#ef4444' }}><Trash2 size={14} /></IconButton></Tooltip>
               </Box>
             </React.Fragment>
           ))}
@@ -279,21 +288,21 @@ const MissionPage: React.FC = () => {
       </Box>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editingId == null ? 'Nouvelle mission' : 'Modifier la mission'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{editingId == null ? t('mission.dialog.newTitle') : t('mission.dialog.editTitle')}</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, pt: 1 }}>
             {selfOnly ? (
               // Employé : auto-affecté à lui-même, champ en lecture seule pour clarifier l'intention.
               <TextField
-                label="Collaborateur"
+                label={t('mission.dialog.collaborator')}
                 size="small"
                 value={uticod ?? ''}
                 InputProps={{ readOnly: true }}
-                helperText="Mission créée pour vous-même."
+                helperText={t('mission.dialog.selfHint')}
               />
             ) : (
               <TextField
-                label="Collaborateur"
+                label={t('mission.dialog.collaborator')}
                 size="small"
                 select
                 required
@@ -306,13 +315,13 @@ const MissionPage: React.FC = () => {
               </TextField>
             )}
             <TextField
-              label="Nature d'absence (Formation et mission)"
+              label={t('mission.dialog.absenceNature')}
               size="small"
               select
               required
               value={form.abscod}
               onChange={e => setForm({ ...form, abscod: e.target.value })}
-              helperText={noNatures ? 'Aucune nature avec abscng = 6 disponible.' : 'Seules les natures abscng=6 sont listées.'}
+              helperText={noNatures ? t('mission.dialog.absenceHintNone') : t('mission.dialog.absenceHintAvailable')}
               disabled={noNatures}
             >
               {(naturesQ.data ?? []).map(n => (
@@ -320,7 +329,7 @@ const MissionPage: React.FC = () => {
               ))}
             </TextField>
             <TextField
-              label="Objet de la mission"
+              label={t('mission.dialog.object')}
               size="small"
               required
               value={form.misobj}
@@ -328,22 +337,22 @@ const MissionPage: React.FC = () => {
               sx={{ gridColumn: { md: 'span 2' } }}
             />
             <TextField
-              label="Destination"
+              label={t('mission.dialog.destination')}
               size="small"
               value={form.misdest ?? ''}
               onChange={e => setForm({ ...form, misdest: e.target.value })}
             />
             <TextField
-              label="État"
+              label={t('mission.dialog.state')}
               size="small"
               select
               value={form.misetat}
               onChange={e => setForm({ ...form, misetat: e.target.value })}
             >
-              {STATES.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+              {STATES.map(s => <MenuItem key={s} value={s}>{t(`mission.states.${s}`)}</MenuItem>)}
             </TextField>
             <TextField
-              label="Date de début"
+              label={t('mission.dialog.dateStart')}
               size="small"
               type="date"
               required
@@ -352,7 +361,7 @@ const MissionPage: React.FC = () => {
               onChange={e => setForm({ ...form, misdatedeb: e.target.value })}
             />
             <TextField
-              label="Date de fin"
+              label={t('mission.dialog.dateEnd')}
               size="small"
               type="date"
               required
@@ -361,7 +370,7 @@ const MissionPage: React.FC = () => {
               onChange={e => setForm({ ...form, misdatefin: e.target.value })}
             />
             <TextField
-              label="Budget alloué (DT)"
+              label={t('mission.dialog.budget')}
               size="small"
               type="number"
               inputProps={{ step: '0.001', min: 0 }}
@@ -369,7 +378,7 @@ const MissionPage: React.FC = () => {
               onChange={e => setForm({ ...form, misbudget: e.target.value === '' ? undefined : Number(e.target.value) })}
             />
             <TextField
-              label="Note"
+              label={t('mission.dialog.note')}
               size="small"
               multiline
               minRows={3}
@@ -380,27 +389,27 @@ const MissionPage: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Annuler</Button>
+          <Button onClick={() => setDialogOpen(false)}>{t('mission.dialog.cancel')}</Button>
           <Button
             variant="contained"
             onClick={submit}
             disabled={createMut.isLoading || updateMut.isLoading}
             sx={{ bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' } }}
           >
-            {(createMut.isLoading || updateMut.isLoading) ? <CircularProgress size={16} sx={{ color: 'white' }} /> : 'Enregistrer'}
+            {(createMut.isLoading || updateMut.isLoading) ? <CircularProgress size={16} sx={{ color: 'white' }} /> : t('mission.dialog.save')}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={!!confirmDelete} onClose={() => setConfirmDelete(null)}>
-        <DialogTitle>Supprimer la mission ?</DialogTitle>
+        <DialogTitle>{t('mission.delete.title')}</DialogTitle>
         <DialogContent>
-          <Typography>« {confirmDelete?.misobj} » sera supprimée. Les notes de frais déjà rattachées la conserveront en référence historique.</Typography>
+          <Typography>{t('mission.delete.message', { object: confirmDelete?.misobj ?? '' })}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDelete(null)}>Annuler</Button>
+          <Button onClick={() => setConfirmDelete(null)}>{t('mission.delete.cancel')}</Button>
           <Button color="error" variant="contained" onClick={doDelete} disabled={deleteMut.isLoading}>
-            {deleteMut.isLoading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : 'Supprimer'}
+            {deleteMut.isLoading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : t('mission.delete.confirm')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -17,6 +17,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import LocationCityIcon from '@mui/icons-material/LocationCity';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 import { DirectionModel } from '../../../models/DirectionModel';
 import '../Societe/SocieteModern.css';
@@ -38,6 +39,7 @@ type OrgUnit = {
 const PER_PAGE = 10;
 
 function OrgStructureContent() {
+  const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const [directions, setDirections] = useState<DirectionModel[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -60,7 +62,7 @@ function OrgStructureContent() {
   const canDelete = hasPermission('Données de Base', 'delete');
 
   if (!hasPermission('Données de Base', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter la structure organisationnelle." />;
+    return <AccessDenied message={t('donneeBase.orgStructure.noConsultRight')} />;
   }
 
   const fetchData = async () => {
@@ -87,11 +89,11 @@ function OrgStructureContent() {
     }));
     const srvs: OrgUnit[] = services.map((s: any) => ({
       code: s.sercod, libelle: s.serlib, type: 'service' as const,
-      location: s.serloc || '', email: '', responsable: '', soccod: s.soccod,
+      location: s.serloc || '', email: s.seremail || s.sermail || s.email || '', responsable: '', soccod: s.soccod,
     }));
     const secs: OrgUnit[] = sections.map((s: any) => ({
       code: s.seccod, libelle: s.seclib || '', type: 'section' as const,
-      location: '', email: '', responsable: '', soccod: s.soccod,
+      location: '', email: s.secemail || s.secmail || s.email || '', responsable: '', soccod: s.soccod,
     }));
     return [...dirs, ...srvs, ...secs];
   }, [directions, services, sections]);
@@ -112,36 +114,33 @@ function OrgStructureContent() {
   };
 
   const handleSave = async () => {
-    // Le libellé est obligatoire dans tous les cas. Le code est facultatif à la création
-    // (auto-généré côté serveur) mais obligatoire pour les directions (clé fonctionnelle).
-    if (!form.libelle) { setSnack({ open: true, msg: 'Libellé obligatoire.', sev: 'error' }); return; }
-    if (editUnit && !form.code) { setSnack({ open: true, msg: 'Code obligatoire en modification.', sev: 'error' }); return; }
-    if (!editUnit && dialogMode === 'direction' && !form.code) { setSnack({ open: true, msg: 'Code obligatoire pour une direction.', sev: 'error' }); return; }
+    if (!form.libelle) { setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.labelRequired'), sev: 'error' }); return; }
+    if (editUnit && !form.code) { setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.codeRequiredEdit'), sev: 'error' }); return; }
+    if (!editUnit && dialogMode === 'direction' && !form.code) { setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.codeRequiredDir'), sev: 'error' }); return; }
     try {
       if (editUnit) {
         if (dialogMode === 'direction') await apiInstance.put(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
-        else if (dialogMode === 'service') await apiInstance.put(`/Services/${soccod}/${form.code}`, { soccod, sercod: form.code, serlib: form.libelle, serloc: form.location });
-        else await apiInstance.put(`/Sections/${soccod}/${form.code}`, { soccod, seccod: form.code, seclib: form.libelle });
-        setSnack({ open: true, msg: 'Unité mise à jour.', sev: 'success' });
+        else if (dialogMode === 'service') await apiInstance.put(`/Services/${soccod}/${form.code}`, { soccod, sercod: form.code, serlib: form.libelle, serloc: form.location, seremail: form.email, sermail: form.email });
+        else await apiInstance.put(`/Sections/${soccod}/${form.code}`, { soccod, seccod: form.code, seclib: form.libelle, secemail: form.email, secmail: form.email });
+        setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.updated'), sev: 'success' });
       } else {
         if (dialogMode === 'direction') await apiInstance.post(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
-        // Service & Section : on n'envoie pas de code si vide → serveur génère le suivant.
-        else if (dialogMode === 'service') await apiInstance.post(`/Services`, { soccod, sercod: form.code || undefined, serlib: form.libelle, serloc: form.location, effectif: 0 });
-        else await apiInstance.post(`/Sections`, { soccod, seccod: form.code || undefined, seclib: form.libelle, effectif: 0 });
-        setSnack({ open: true, msg: 'Unité ajoutée.', sev: 'success' });
+        else if (dialogMode === 'service') await apiInstance.post(`/Services`, { soccod, sercod: form.code || undefined, serlib: form.libelle, serloc: form.location, effectif: 0, seremail: form.email, sermail: form.email });
+        else await apiInstance.post(`/Sections`, { soccod, seccod: form.code || undefined, seclib: form.libelle, effectif: 0, secemail: form.email, secmail: form.email });
+        setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.added'), sev: 'success' });
       }
       setDialogOpen(false); fetchData();
-    } catch (err: any) { setSnack({ open: true, msg: err?.response?.data?.message || 'Erreur.', sev: 'error' }); }
+    } catch (err: any) { setSnack({ open: true, msg: err?.response?.data?.message || t('donneeBase.orgStructure.msg.error'), sev: 'error' }); }
   };
 
   const handleDelete = async (unit: OrgUnit) => {
-    if (!window.confirm(`Supprimer ${unit.libelle} ?`)) return;
+    if (!window.confirm(t('donneeBase.orgStructure.msg.deleteConfirm', { name: unit.libelle }))) return;
     try {
       if (unit.type === 'direction') await apiInstance.delete(`/Directions/${unit.soccod}/${unit.code}`);
       else if (unit.type === 'service') await apiInstance.delete(`/Services/${unit.soccod}/${unit.code}`);
       else await apiInstance.delete(`/Sections/${unit.soccod}/${unit.code}`);
-      setSnack({ open: true, msg: 'Supprimé.', sev: 'success' }); fetchData();
-    } catch { setSnack({ open: true, msg: 'Erreur de suppression.', sev: 'error' }); }
+      setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.deleted'), sev: 'success' }); fetchData();
+    } catch { setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.deleteError'), sev: 'error' }); }
   };
 
   const iconForType = (type: string) => type === 'direction' ? <DomainIcon sx={{ fontSize: 16 }} /> : type === 'service' ? <BadgeIcon sx={{ fontSize: 16 }} /> : <LocationCityIcon sx={{ fontSize: 16 }} />;
@@ -153,8 +152,8 @@ function OrgStructureContent() {
       {/* Header */}
       <Box className="org-header">
         <Box>
-          <span className="org-label">Administration Centrale</span>
-          <Typography className="org-title">Structure Organisationnelle</Typography>
+          <span className="org-label">{t('donneeBase.orgStructure.label')}</span>
+          <Typography className="org-title">{t('donneeBase.orgStructure.title')}</Typography>
         </Box>
         {canAdd && (
           <>
@@ -165,7 +164,7 @@ function OrgStructureContent() {
               endIcon={<ArrowDropDownIcon />}
               onClick={() => setAddMenuOpen(true)}
             >
-              Ajouter une Unité
+              {t('donneeBase.orgStructure.addUnit')}
             </Button>
             <Menu
               anchorEl={addMenuAnchor.current}
@@ -175,13 +174,13 @@ function OrgStructureContent() {
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
               <MenuItem onClick={() => { setAddMenuOpen(false); openAddDialog('direction'); }}>
-                <DomainIcon sx={{ fontSize: 18, mr: 1, color: '#0040a1' }} /> Direction
+                <DomainIcon sx={{ fontSize: 18, mr: 1, color: '#0040a1' }} /> {t('donneeBase.orgStructure.menu.direction')}
               </MenuItem>
               <MenuItem onClick={() => { setAddMenuOpen(false); openAddDialog('service'); }}>
-                <BadgeIcon sx={{ fontSize: 18, mr: 1, color: '#0066ff' }} /> Service
+                <BadgeIcon sx={{ fontSize: 18, mr: 1, color: '#0066ff' }} /> {t('donneeBase.orgStructure.menu.service')}
               </MenuItem>
               <MenuItem onClick={() => { setAddMenuOpen(false); openAddDialog('section'); }}>
-                <LocationCityIcon sx={{ fontSize: 18, mr: 1, color: '#4edea3' }} /> Section
+                <LocationCityIcon sx={{ fontSize: 18, mr: 1, color: '#4edea3' }} /> {t('donneeBase.orgStructure.menu.section')}
               </MenuItem>
             </Menu>
           </>
@@ -192,7 +191,7 @@ function OrgStructureContent() {
       {canAdd && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, px: { xs: 1.5, sm: 0 }, mb: 2 }}>
           <ExcelImportButton
-            label="Importer Directions (Excel)"
+            label={t('donneeBase.orgStructure.import.directions')}
             endpoint="/BulkImport/directions"
             extraBody={{ Soccod: soccod }}
             columnMap={{
@@ -205,7 +204,7 @@ function OrgStructureContent() {
             onImported={fetchData}
           />
           <ExcelImportButton
-            label="Importer Services (Excel)"
+            label={t('donneeBase.orgStructure.import.services')}
             endpoint="/BulkImport/services"
             extraBody={{ Soccod: soccod }}
             columnMap={{
@@ -215,7 +214,7 @@ function OrgStructureContent() {
             onImported={fetchData}
           />
           <ExcelImportButton
-            label="Importer Sections (Excel)"
+            label={t('donneeBase.orgStructure.import.sections')}
             endpoint="/BulkImport/sections"
             extraBody={{ Soccod: soccod }}
             columnMap={{
@@ -231,21 +230,21 @@ function OrgStructureContent() {
       {/* Metrics */}
       <Box className="org-metrics">
         <Box className="org-metric-card">
-          <p className="org-metric-label">Total Directions</p>
+          <p className="org-metric-label">{t('donneeBase.orgStructure.metric.totalDirections')}</p>
           <h3 className="org-metric-value">{String(directions.length).padStart(2,'0')}</h3>
-          <div className="org-metric-sub"><TrendingUpIcon sx={{ fontSize: 14, mr: 0.5 }} /> Active(s)</div>
+          <div className="org-metric-sub"><TrendingUpIcon sx={{ fontSize: 14, mr: 0.5 }} /> {t('donneeBase.orgStructure.metric.active')}</div>
           <DomainIcon className="org-metric-icon-bg" />
         </Box>
         <Box className="org-metric-card">
-          <p className="org-metric-label">Total Services</p>
+          <p className="org-metric-label">{t('donneeBase.orgStructure.metric.totalServices')}</p>
           <h3 className="org-metric-value">{String(services.length).padStart(2,'0')}</h3>
-          <div className="org-metric-sub"><CheckCircleIcon sx={{ fontSize: 14, mr: 0.5 }} /> Opérationnels</div>
+          <div className="org-metric-sub"><CheckCircleIcon sx={{ fontSize: 14, mr: 0.5 }} /> {t('donneeBase.orgStructure.metric.operational')}</div>
           <HubIcon className="org-metric-icon-bg" />
         </Box>
         <Box className="org-metric-card">
-          <p className="org-metric-label">Total Sections</p>
+          <p className="org-metric-label">{t('donneeBase.orgStructure.metric.totalSections')}</p>
           <h3 className="org-metric-value">{String(sections.length).padStart(2,'0')}</h3>
-          <div className="org-metric-sub" style={{ color: '#0040a1' }}>{total} unités au total</div>
+          <div className="org-metric-sub" style={{ color: '#0040a1' }}>{t('donneeBase.orgStructure.metric.totalUnits', { count: total })}</div>
           <MapIcon className="org-metric-icon-bg" />
         </Box>
       </Box>
@@ -256,13 +255,13 @@ function OrgStructureContent() {
           {(['all','direction','service','section'] as const).map(f => (
             <button key={f} className={`org-pill ${filter===f?'org-pill--active':'org-pill--inactive'}`}
               onClick={() => { setFilter(f); setPage(1); }}>
-              {f==='all'?'Tous':f==='direction'?'Directions':f==='service'?'Services':'Sections'}
+              {f==='all'?t('donneeBase.orgStructure.filter.all'):f==='direction'?t('donneeBase.orgStructure.filter.directions'):f==='service'?t('donneeBase.orgStructure.filter.services'):t('donneeBase.orgStructure.filter.sections')}
             </button>
           ))}
         </Box>
         <Box className="org-actions-bar">
-          <button className="org-action-btn"><FilterListIcon sx={{ fontSize: 14 }} /> Filtres Avancés</button>
-          <button className="org-action-btn"><FileDownloadIcon sx={{ fontSize: 14 }} /> Exporter le Ledger</button>
+          <button className="org-action-btn"><FilterListIcon sx={{ fontSize: 14 }} /> {t('donneeBase.orgStructure.filter.advanced')}</button>
+          <button className="org-action-btn"><FileDownloadIcon sx={{ fontSize: 14 }} /> {t('donneeBase.orgStructure.filter.exportLedger')}</button>
         </Box>
       </Box>
 
@@ -270,23 +269,23 @@ function OrgStructureContent() {
       <Box className="org-table-wrap">
         <table className="org-table">
           <thead><tr>
-            <th>Code</th><th>Libellé de l'Unité</th><th>Type</th><th>Localisation</th><th>Contact Email</th><th style={{textAlign:'right'}}>Actions</th>
+            <th>{t('donneeBase.orgStructure.headers.code')}</th><th>{t('donneeBase.orgStructure.headers.label')}</th><th>{t('donneeBase.orgStructure.headers.type')}</th><th>{t('donneeBase.orgStructure.headers.location')}</th><th>{t('donneeBase.orgStructure.headers.email')}</th><th style={{textAlign:'right'}}>{t('donneeBase.orgStructure.headers.actions')}</th>
           </tr></thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{textAlign:'center',padding:40,color:'#94a3b8'}}>Chargement...</td></tr>
+              <tr><td colSpan={6} style={{textAlign:'center',padding:40,color:'#94a3b8'}}>{t('donneeBase.orgStructure.loading')}</td></tr>
             ) : paginated.length===0 ? (
-              <tr><td colSpan={6} style={{textAlign:'center',padding:40,color:'#94a3b8'}}>Aucune unité trouvée.</td></tr>
+              <tr><td colSpan={6} style={{textAlign:'center',padding:40,color:'#94a3b8'}}>{t('donneeBase.orgStructure.noResults')}</td></tr>
             ) : paginated.map(unit => (
               <tr key={`${unit.type}-${unit.code}`}>
                 <td><span className="org-table-code">{unit.code}</span></td>
                 <td><Box className="org-unit-cell">
                   <Box className={`org-unit-icon ${iconClass(unit.type)}`}>{iconForType(unit.type)}</Box>
                   <Box><p className="org-unit-name">{unit.libelle}</p>
-                    {unit.responsable && <p className="org-unit-resp">Resp: {unit.responsable}</p>}</Box>
+                    {unit.responsable && <p className="org-unit-resp">{t('donneeBase.orgStructure.responsable')} {unit.responsable}</p>}</Box>
                 </Box></td>
                 <td><span className={`org-type-badge org-type-badge--${unit.type}`}>
-                  {unit.type==='direction'?'Direction':unit.type==='service'?'Service':'Section'}
+                  {unit.type==='direction'?t('donneeBase.orgStructure.type.direction'):unit.type==='service'?t('donneeBase.orgStructure.type.service'):t('donneeBase.orgStructure.type.section')}
                 </span></td>
                 <td><Box className="org-location"><ApartmentIcon sx={{fontSize:14,mr:0.5}} />{unit.location||'—'}</Box></td>
                 <td style={{fontSize:12,color:'#515f74'}}>{unit.email||'—'}</td>
@@ -304,7 +303,7 @@ function OrgStructureContent() {
           </tbody>
         </table>
         <Box className="org-table-footer">
-          <span className="org-table-info">Affichage de {filtered.length>0?(page-1)*PER_PAGE+1:0} à {Math.min(page*PER_PAGE,filtered.length)} sur {filtered.length} unités</span>
+          <span className="org-table-info">{t('donneeBase.orgStructure.showing', { from: filtered.length>0?(page-1)*PER_PAGE+1:0, to: Math.min(page*PER_PAGE,filtered.length), total: filtered.length })}</span>
           <Box className="org-pagination">
             <button className="org-page-btn" disabled={page<=1} onClick={()=>setPage(p=>p-1)}><ChevronLeftIcon sx={{fontSize:16}}/></button>
             {Array.from({length:totalPages},(_,i)=>(
@@ -320,7 +319,7 @@ function OrgStructureContent() {
       <Box className="org-bottom-cards">
         <Box className="org-side-cards">
           <Box className="org-stat-card org-stat-card--secondary">
-            <p className="org-stat-label">Unités en Création</p>
+            <p className="org-stat-label">{t('donneeBase.orgStructure.creating')}</p>
             <Box className="org-stat-row"><span className="org-stat-value">{String(total).padStart(2,'0')}</span></Box>
           </Box>
         </Box>
@@ -330,14 +329,14 @@ function OrgStructureContent() {
       {dialogOpen && (
         <Box className="org-dialog-overlay" onClick={()=>setDialogOpen(false)}>
           <Box className="org-dialog" onClick={(e:any)=>e.stopPropagation()}>
-            <h3 className="org-dialog-title">{editUnit?'Modifier':'Ajouter'} {dialogMode==='direction'?'une Direction':dialogMode==='service'?'un Service':'une Section'}</h3>
+            <h3 className="org-dialog-title">{editUnit?t('donneeBase.orgStructure.dialog.edit'):t('donneeBase.orgStructure.dialog.add')} {dialogMode==='direction'?t('donneeBase.orgStructure.dialog.directionUnit'):dialogMode==='service'?t('donneeBase.orgStructure.dialog.serviceUnit'):t('donneeBase.orgStructure.dialog.sectionUnit')}</h3>
             <Box sx={{display:'flex',flexDirection:'column',gap:'16px'}}>
               <Box className="soc-field">
                 <label>
-                  Code
+                  {t('donneeBase.orgStructure.dialog.code')}
                   {!editUnit && (dialogMode === 'service' || dialogMode === 'section') && (
                     <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 6 }}>
-                      (laisser vide pour auto-générer)
+                      {t('donneeBase.orgStructure.dialog.autoGen')}
                     </span>
                   )}
                 </label>
@@ -346,21 +345,27 @@ function OrgStructureContent() {
                   value={form.code}
                   onChange={e=>setForm({...form,code:e.target.value})}
                   readOnly={!!editUnit}
-                  placeholder={!editUnit && (dialogMode === 'service' || dialogMode === 'section') ? 'Auto' : ''}
+                  placeholder={!editUnit && (dialogMode === 'service' || dialogMode === 'section') ? t('donneeBase.orgStructure.dialog.autoPlaceholder') : ''}
                 />
               </Box>
-              <Box className="soc-field"><label>Libellé</label><input type="text" value={form.libelle} onChange={e=>setForm({...form,libelle:e.target.value})}/></Box>
+              <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.label')}</label><input type="text" value={form.libelle} onChange={e=>setForm({...form,libelle:e.target.value})}/></Box>
               {dialogMode==='direction' && <>
-                <Box className="soc-field"><label>Localisation</label><input type="text" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></Box>
-                <Box className="soc-field"><label>Email</label><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></Box>
+                <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.location')}</label><input type="text" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></Box>
+                <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.email')}</label><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></Box>
               </>}
               {dialogMode==='service' && (
-                <Box className="soc-field"><label>Localisation</label><input type="text" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></Box>
+                <>
+                  <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.location')}</label><input type="text" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></Box>
+                  <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.email')}</label><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></Box>
+                </>
+              )}
+              {dialogMode==='section' && (
+                <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.email')}</label><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></Box>
               )}
             </Box>
             <Box className="org-dialog-actions">
-              <button className="org-dialog-cancel" onClick={()=>setDialogOpen(false)}>Annuler</button>
-              <button className="org-dialog-save" onClick={handleSave}>{editUnit?'Mettre à jour':'Enregistrer'}</button>
+              <button className="org-dialog-cancel" onClick={()=>setDialogOpen(false)}>{t('donneeBase.orgStructure.dialog.cancel')}</button>
+              <button className="org-dialog-save" onClick={handleSave}>{editUnit?t('donneeBase.orgStructure.dialog.update'):t('donneeBase.orgStructure.dialog.save')}</button>
             </Box>
           </Box>
         </Box>

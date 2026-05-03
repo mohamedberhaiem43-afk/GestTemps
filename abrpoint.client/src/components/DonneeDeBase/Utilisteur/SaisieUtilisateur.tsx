@@ -1,5 +1,6 @@
 import { Snackbar, Alert } from "@mui/material";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useTranslation } from "react-i18next";
 import useGetSocLibs from "../../../hooks/societeHooks/useGetSocLibs";
 import useGetSiteLibs from "../../../hooks/siteHooks/useGetSiteLibs";
 import useAddUser from "../../../hooks/userHooks/useAddUser";
@@ -32,6 +33,7 @@ export interface SaisieUtilisateurHandle {
 
 const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurProps>(
     ({ onDataChange, profil }, ref) => {
+        const { t } = useTranslation();
         const [uticod, setCode] = useState("");
         const [utiprn, setPrenom] = useState("");
         const [utinom, setNom] = useState("");
@@ -131,7 +133,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
 
         const handleSave = async () => {
             if (!uticod || !utiprn || !utinom || !societe || !site) {
-                handleSnackbarOpen("Veuillez remplir tous les champs obligatoires.", 'error');
+                handleSnackbarOpen(t('utilisateur.form.requiredFields'), 'error');
                 return false;
             }
 
@@ -172,7 +174,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                 const errorMessage =
                     apiError.response?.data?.message ||
                     apiError.message ||
-                    "Erreur lors de l'ajout de l'utilisateur.";
+                    t('utilisateur.form.addError');
                 handleSnackbarOpen(errorMessage, 'error');
             }
         }, [error]);
@@ -182,10 +184,10 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                 <div className="aut-user-form">
                     <div className="aut-form-grid">
                         <div className="aut-form-field">
-                            <label>Code</label>
+                            <label>{t('utilisateur.form.code')}</label>
                             <input
                                 type="text"
-                                placeholder="Code utilisateur"
+                                placeholder={t('utilisateur.form.codePlaceholder')}
                                 value={uticod}
                                 onChange={(e) => setCode(e.target.value)}
                                 readOnly={!!selectedUser}
@@ -193,45 +195,45 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                             />
                         </div>
                         <div className="aut-form-field">
-                            <label>Nom</label>
+                            <label>{t('utilisateur.form.name')}</label>
                             <input
                                 type="text"
-                                placeholder="Nom"
+                                placeholder={t('utilisateur.form.namePlaceholder')}
                                 value={utinom}
                                 onChange={(e) => setNom(e.target.value)}
                             />
                         </div>
                         <div className="aut-form-field">
-                            <label>Prénom</label>
+                            <label>{t('utilisateur.form.firstName')}</label>
                             <input
                                 type="text"
-                                placeholder="Prénom"
+                                placeholder={t('utilisateur.form.firstNamePlaceholder')}
                                 value={utiprn}
                                 onChange={(e) => setPrenom(e.target.value)}
                             />
                         </div>
                         <div className="aut-form-field">
-                            <label>Email</label>
+                            <label>{t('utilisateur.form.email')}</label>
                             <input
                                 type="email"
-                                placeholder="email@exemple.com"
+                                placeholder={t('utilisateur.form.emailPlaceholder')}
                                 value={utimail}
                                 onChange={(e) => setUtimail(e.target.value)}
                             />
                         </div>
                         <div className="aut-form-field">
-                            <label>Mot de passe</label>
+                            <label>{t('utilisateur.form.password')}</label>
                             <input
                                 type="password"
-                                placeholder="••••••••"
+                                placeholder={t('utilisateur.form.passwordPlaceholder')}
                                 value={utimps}
                                 onChange={(e) => setMotPasse(e.target.value)}
                             />
                         </div>
                         <div className="aut-form-field">
-                            <label>Société</label>
+                            <label>{t('utilisateur.form.company')}</label>
                             <select value={societe} onChange={(e) => setSociete(e.target.value)}>
-                                <option value="">Sélectionner...</option>
+                                <option value="">{t('utilisateur.form.selectPlaceholder')}</option>
                                 {Object.entries(socLibs || {}).map(([k, v]) => (
                                     <option key={k} value={k}>
                                         {String(v)}
@@ -240,9 +242,9 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                             </select>
                         </div>
                         <div className="aut-form-field">
-                            <label>Site / Filiale</label>
+                            <label>{t('utilisateur.form.site')}</label>
                             <select value={site} onChange={(e) => setSite(e.target.value)}>
-                                <option value="">Sélectionner...</option>
+                                <option value="">{t('utilisateur.form.selectPlaceholder')}</option>
                                 {Object.entries(sitLibs || {}).map(([k, v]) => (
                                     <option key={k} value={k}>
                                         {String(v)}
@@ -252,7 +254,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                         </div>
                         {profil === false && (
                             <div className="aut-form-field">
-                                <label>Rôle</label>
+                                <label>{t('utilisateur.form.role')}</label>
                                 <select value={utirole} onChange={(e) => handleRoleChange(e.target.value)}>
                                     {ROLE_OPTIONS.map((opt) => (
                                         <option key={opt.value} value={opt.value}>

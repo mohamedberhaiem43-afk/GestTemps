@@ -34,6 +34,7 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import SearchIcon from '@mui/icons-material/Search';
 import dayjs from 'dayjs';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
 import { EmployeeContext, EmployeeProvider } from '../Pointeuse/EtatPeriodique/EmployeeContext';
 import useAddEmploye from '../../hooks/employeHooks/useAddEmploye';
@@ -145,6 +146,7 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
     onAdd: (code: string, lib: string) => Promise<void>;
     addTitle: string;
 }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [newCode, setNewCode] = useState('');
     const [newLib, setNewLib] = useState('');
@@ -190,21 +192,21 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
                 <Divider />
                 <DialogContent sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Box>
-                        <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>Code</Typography>
+                        <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{t('common.code')}</Typography>
                         <TextField size="small" fullWidth value={newCode} onChange={e => setNewCode(e.target.value)} sx={fSx} />
                     </Box>
                     <Box>
-                        <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>Libellé</Typography>
+                        <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{t('common.label')}</Typography>
                         <TextField size="small" fullWidth value={newLib} onChange={e => setNewLib(e.target.value)} sx={fSx} />
                     </Box>
                 </DialogContent>
                 <Divider />
                 <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-                    <Button onClick={() => setOpen(false)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>Annuler</Button>
+                    <Button onClick={() => setOpen(false)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('common.cancel')}</Button>
                     <Button variant="contained" onClick={handleAdd} disabled={saving || !newCode.trim() || !newLib.trim()}
                         startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
                         sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
-                        Ajouter
+                        {t('common.add')}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -214,6 +216,7 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
 
 // ── Inner component ───────────────────────────────────────────────────────────
 const EmployeModernInner = () => {
+    const { t } = useTranslation();
     const { soccod, sitcod, uticod, hasPermission } = useAuth();
 
     const canAdd = hasPermission('Gestion Employés', 'add');
@@ -293,9 +296,9 @@ const EmployeModernInner = () => {
         try {
             await apiInstance.post('/Directions', { soccod, dircod: code, dirlib: lib });
             queryClient.invalidateQueries('directions');
-            showSnackbar("Direction ajoutée avec succès", 'success');
+            showSnackbar(t('employe.addedDirection'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout de la direction", 'error');
+            showSnackbar(t('employe.addErrorDirection'), 'error');
             throw err;
         }
     };
@@ -303,9 +306,9 @@ const EmployeModernInner = () => {
         try {
             await apiInstance.post('/Fonctions', { soccod, foncod: code, fonlib: lib });
             queryClient.invalidateQueries('fonlibs');
-            showSnackbar("Fonction ajoutée avec succès", 'success');
+            showSnackbar(t('employe.addedFunction'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout de la fonction", 'error');
+            showSnackbar(t('employe.addErrorFunction'), 'error');
             throw err;
         }
     };
@@ -313,9 +316,9 @@ const EmployeModernInner = () => {
         try {
             await apiInstance.post('/Sections', { soccod, seccod: code, seclib: lib });
             queryClient.invalidateQueries('sec-libs');
-            showSnackbar("Section ajoutée avec succès", 'success');
+            showSnackbar(t('employe.addedSection'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout de la section", 'error');
+            showSnackbar(t('employe.addErrorSection'), 'error');
             throw err;
         }
     };
@@ -323,9 +326,9 @@ const EmployeModernInner = () => {
         try {
             await apiInstance.post('/Qualifs', { soccod, quacod: code, qualib: lib });
             queryClient.invalidateQueries('qualifs');
-            showSnackbar("Qualification ajoutée avec succès", 'success');
+            showSnackbar(t('employe.addedQualification'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout de la qualification", 'error');
+            showSnackbar(t('employe.addErrorQualification'), 'error');
             throw err;
         }
     };
@@ -333,9 +336,9 @@ const EmployeModernInner = () => {
         try {
             await apiInstance.post('/Services', { soccod, sercod: code, serlib: lib });
             setServiceLibs(prev => ({ ...prev, [code]: lib }));
-            showSnackbar("Service ajouté avec succès", 'success');
+            showSnackbar(t('employe.addedService'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout du service", 'error');
+            showSnackbar(t('employe.addErrorService'), 'error');
             throw err;
         }
     };
@@ -346,9 +349,9 @@ const EmployeModernInner = () => {
             // pas dans le dropdown — l'utilisateur croit alors que l'affectation n'a pas été persistée.
             await apiInstance.post('/Lcategories', { soccod, catcod: code, catlib: lib, catperiode: 'N', catfixe: '1' });
             setClasseHoraireLibs(prev => ({ ...prev, [code]: lib }));
-            showSnackbar("Classe horaire ajoutée avec succès", 'success');
+            showSnackbar(t('employe.addedSchedule'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout de la classe horaire", 'error');
+            showSnackbar(t('employe.addErrorSchedule'), 'error');
             throw err;
         }
     };
@@ -356,9 +359,9 @@ const EmployeModernInner = () => {
         try {
             await apiInstance.post('/Sites', { soccod, sitcod: code, sitlib: lib });
             queryClient.invalidateQueries('sitlibs');
-            showSnackbar("Filiale ajoutée avec succès", 'success');
+            showSnackbar(t('employe.addedBranch'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout de la filiale", 'error');
+            showSnackbar(t('employe.addErrorBranch'), 'error');
             throw err;
         }
     };
@@ -366,9 +369,9 @@ const EmployeModernInner = () => {
         try {
             await apiInstance.post('/Villes', { soccod, vilcod: code, villib: lib });
             queryClient.invalidateQueries('villibs');
-            showSnackbar("Ville ajoutée avec succès", 'success');
+            showSnackbar(t('employe.addedCity'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout de la ville", 'error');
+            showSnackbar(t('employe.addErrorCity'), 'error');
             throw err;
         }
     };
@@ -376,9 +379,9 @@ const EmployeModernInner = () => {
         try {
             await apiInstance.post('/Pays', { natcod: code, natlib: lib });
             queryClient.invalidateQueries('pays-libs');
-            showSnackbar("Pays ajouté avec succès", 'success');
+            showSnackbar(t('employe.addedCountry'), 'success');
         } catch (err) {
-            showSnackbar("Erreur lors de l'ajout du pays. Vérifiez si le code existe déjà.", 'error');
+            showSnackbar(t('employe.addErrorCountry'), 'error');
             throw err;
         }
     };
@@ -393,7 +396,7 @@ const EmployeModernInner = () => {
             setIsFetching(true);
             apiInstance.get(`/Employes/get-employe/${soccod}/${empIdFromUrl}`)
                 .then(res => { if (res.data) { setFormData(res.data); setMode('update'); } })
-                .catch(() => showSnackbar("Erreur lors du chargement de l'employé", 'error'))
+                .catch(() => showSnackbar(t('employe.loadError'), 'error'))
                 .finally(() => setIsFetching(false));
             return;
         }
@@ -523,7 +526,7 @@ const EmployeModernInner = () => {
             (cleaned as any)[k] = v;
         });
         setFormData(prev => ({ ...prev, ...cleaned }));
-        showSnackbar(`Données importées avec succès depuis le document`, 'success');
+        showSnackbar(t('employe.scanImportedSuccess'), 'success');
     };
 
     const handleSave = async () => {
@@ -576,7 +579,7 @@ const EmployeModernInner = () => {
             queryClient.invalidateQueries(['employee-horaires', soccod, formData.empcod]);
             setIsSaving(false);
             if (mode === 'save') {
-                showSnackbar(res?.message || 'Employé créé avec succès', 'success');
+                showSnackbar(res?.message || t('employe.createdSuccess'), 'success');
                 setMode('update');
                 navigate(`/dashboard/gestion-employe?id=${formData.empcod}&new=false`);
                 return;
@@ -587,15 +590,15 @@ const EmployeModernInner = () => {
             // un 404 parasite dans la console pour rien (le GET a son propre filtre soft-delete
             // qui peut diverger du UPDATE) et un faux snackbar d'erreur.
             await refreshEmpHoraires(formData.empcod);
-            showSnackbar(res?.message || 'Modifications enregistrées', 'success');
+            showSnackbar(res?.message || t('employe.changesSaved'), 'success');
         };
-        const onError = (err: any) => { showSnackbar(err?.response?.data?.message || 'Erreur lors de la sauvegarde', 'error'); setIsSaving(false); };
+        const onError = (err: any) => { showSnackbar(err?.response?.data?.message || t('employe.saveError'), 'error'); setIsSaving(false); };
         mode === 'save' ? addEmploye(payload, { onSuccess, onError }) : updateEmploye(payload, { onSuccess, onError });
     };
 
     const handleDownload = (docKey: string, docLabel: string) => {
         setDocAnchorEl(null);
-        if (!formData.empcod || !soccod) { showSnackbar("Veuillez sélectionner un employé d'abord", 'error'); return; }
+        if (!formData.empcod || !soccod) { showSnackbar(t('employe.selectFirst'), 'error'); return; }
 
         // Map each document type to its real backend endpoint
         const endpointMap: Record<string, string> = {
@@ -608,7 +611,7 @@ const EmployeModernInner = () => {
         };
 
         const endpoint = endpointMap[docKey];
-        if (!endpoint) { showSnackbar(`Document "${docLabel}" non disponible`, 'error'); return; }
+        if (!endpoint) { showSnackbar(t('employe.documentNotAvailable', { doc: docLabel }), 'error'); return; }
 
         apiInstance.get(endpoint, { responseType: 'blob' })
             .then(res => {
@@ -619,7 +622,7 @@ const EmployeModernInner = () => {
                 document.body.appendChild(link); link.click(); link.remove();
                 window.URL.revokeObjectURL(url);
             })
-            .catch(() => showSnackbar(`Téléchargement de "${docLabel}" non disponible`, 'error'));
+            .catch(() => showSnackbar(t('employe.documentDownloadFail', { doc: docLabel }), 'error'));
     };
 
     if (isFetching) {
@@ -652,7 +655,7 @@ const EmployeModernInner = () => {
                 <TextField
                     size="small"
                     fullWidth
-                    placeholder="Rechercher nom, matricule, position..."
+                    placeholder={t('employe.searchPlaceholder')}
                     value={empSearchQuery}
                     onChange={e => setEmpSearchQuery(e.target.value)}
                     sx={{
@@ -743,17 +746,17 @@ const EmployeModernInner = () => {
                         </IconButton>
                         <Box>
                             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                                {mode === 'save' ? 'Nouveau Collaborateur' : 'Profil Employé'}
+                                {mode === 'save' ? t('employe.newEmployeeBadge') : t('employe.profileBadge')}
                             </Typography>
                             <Typography sx={{ fontSize: '18px', fontWeight: 800, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c', lineHeight: 1.2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {formData.emplib || 'Fiche Collaborateur'}
+                                {formData.emplib || t('employe.profileTitle')}
                                 {mode === 'update' && formData.actif === 'N' && (
-                                    <Chip size="small" icon={<WarningAmberIcon sx={{ fontSize: '12px !important', color: '#d97706 !important' }} />} label="Inactif"
+                                    <Chip size="small" icon={<WarningAmberIcon sx={{ fontSize: '12px !important', color: '#d97706 !important' }} />} label={t('employe.inactiveLabel')}
                                         sx={{ backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 700, fontSize: '10px', height: 20 }} />
                                 )}
                             </Typography>
                             <Typography sx={{ fontSize: '11px', color: '#8896a8', mt: 0.2 }}>
-                                Gestion détaillée de la fiche collaborateur
+                                {t('employe.profileSubtitle')}
                             </Typography>
                         </Box>
                     </Box>
@@ -771,7 +774,7 @@ const EmployeModernInner = () => {
                                         '&:hover': { borderColor: '#0040a1', color: '#0040a1', backgroundColor: '#f0f5ff' },
                                     }}
                                 >
-                                    Exporter
+                                    {t('employe.exportBtn')}
                                 </Button>
                                 <Menu
                                     anchorEl={docAnchorEl} open={Boolean(docAnchorEl)} onClose={() => setDocAnchorEl(null)}
@@ -779,7 +782,7 @@ const EmployeModernInner = () => {
                                 >
                                     <Box sx={{ px: 2, py: 1.5 }}>
                                         <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#8896a8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                            Documents disponibles
+                                            {t('employe.availableDocuments')}
                                         </Typography>
                                     </Box>
                                     <Divider sx={{ borderColor: '#f1f5f9' }} />
@@ -806,7 +809,7 @@ const EmployeModernInner = () => {
                                     '&:hover': { borderColor: '#0040a1', backgroundColor: 'rgba(0,64,161,0.08)', boxShadow: '0 2px 8px rgba(0,64,161,0.15)' },
                                 }}
                             >
-                                Scanner un document
+                                {t('employe.scanDocument')}
                             </Button>
                         )}
                         {((mode === 'save' && canAdd) || (mode === 'update' && canModify)) && (
@@ -823,7 +826,7 @@ const EmployeModernInner = () => {
                                     '&:hover': { background: 'linear-gradient(135deg, #003080 0%, #0040a1 100%)', boxShadow: '0 4px 18px rgba(0,64,161,0.4)' },
                                 }}
                             >
-                                {mode === 'save' ? "Créer l'employé" : 'Enregistrer les modifications'}
+                                {mode === 'save' ? t('employe.createBtn') : t('employe.saveChangesBtn')}
                             </Button>
                         )}
                     </Box>
@@ -833,8 +836,8 @@ const EmployeModernInner = () => {
                 {!canConsult ? (
                     <Box sx={{ p: 4, textAlign: 'center', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', m: 3 }}>
                         <PersonIcon sx={{ fontSize: 64, color: '#ba1a1a', opacity: 0.2, mb: 2 }} />
-                        <Typography variant="h6" color="error">Accès Refusé</Typography>
-                        <Typography sx={{ color: '#64748b' }}>Vous n'avez pas les droits nécessaires pour consulter cette fiche collaborateur.</Typography>
+                        <Typography variant="h6" color="error">{t('employe.accessDenied')}</Typography>
+                        <Typography sx={{ color: '#64748b' }}>{t('employe.noConsultRight')}</Typography>
                     </Box>
                 ) : (
                     <>
@@ -850,18 +853,18 @@ const EmployeModernInner = () => {
                                             <PersonIcon sx={{ color: '#0040a1', fontSize: 18 }} />
                                         </Box>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c' }}>
-                                            Informations de base
+                                            {t('employe.section.basicInfo')}
                                         </Typography>
                                     </Box>
                                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' }, gap: 2 }}>
                                         <Box>
-                                            <Typography sx={labelStyle}>Matricule</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.matricule')}</Typography>
                                             <TextField name="empcod" value={formData.empcod} onChange={handleField} size="small" fullWidth
                                                 InputProps={{
                                                     readOnly: mode === 'update',
                                                     endAdornment: mode === 'save' ? (
                                                         <InputAdornment position="end">
-                                                            <Tooltip title="Régénérer le matricule selon le paramétrage société">
+                                                            <Tooltip title={t('employe.field.regenerateMatricule')}>
                                                                 <IconButton size="small" onClick={fetchNextEmpcod}>
                                                                     <AutorenewIcon fontSize="small" />
                                                                 </IconButton>
@@ -869,78 +872,78 @@ const EmployeModernInner = () => {
                                                         </InputAdornment>
                                                     ) : undefined,
                                                 }}
-                                                sx={fieldStyle} placeholder="Auto" />
+                                                sx={fieldStyle} placeholder={t('employe.field.autoPlaceholder')} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Nom complet</Typography>
-                                            <TextField name="emplib" value={formData.emplib} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="Jean-Christophe Roussel" />
+                                            <Typography sx={labelStyle}>{t('employe.field.fullName')}</Typography>
+                                            <TextField name="emplib" value={formData.emplib} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder={t('employe.field.fullNamePlaceholder')} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Sexe</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.sex')}</Typography>
                                             <FormControl fullWidth size="small">
                                                 <Select value={formData.empsexe || ''} onChange={handleSelect('empsexe')} sx={selectStyle} displayEmpty>
                                                     <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>
-                                                    <MenuItem value="M">Masculin</MenuItem>
-                                                    <MenuItem value="F">Féminin</MenuItem>
+                                                    <MenuItem value="M">{t('employe.field.male')}</MenuItem>
+                                                    <MenuItem value="F">{t('employe.field.female')}</MenuItem>
                                                 </Select>
                                             </FormControl>
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>CIN / ID</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.cin')}</Typography>
                                             <TextField name="empcin" value={formData.empcin} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="SJB88920" />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Date de naissance</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.birthDate')}</Typography>
                                             <TextField name="empdnais" type="date" value={formData.empdnais || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle} InputLabelProps={{ shrink: true }} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Lieu de naissance</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.birthPlace')}</Typography>
                                             <TextField name="emplnais" value={formData.emplnais || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Situation familiale</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.civilStatus')}</Typography>
                                             <FormControl fullWidth size="small">
                                                 <Select value={formData.empsitfam || ''} onChange={handleSelect('empsitfam')} sx={selectStyle} displayEmpty>
                                                     <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>
-                                                    <MenuItem value="C">Célibataire</MenuItem>
-                                                    <MenuItem value="M">Marié(e)</MenuItem>
-                                                    <MenuItem value="D">Divorcé(e)</MenuItem>
-                                                    <MenuItem value="V">Veuf/Veuve</MenuItem>
+                                                    <MenuItem value="C">{t('employe.field.single')}</MenuItem>
+                                                    <MenuItem value="M">{t('employe.field.married')}</MenuItem>
+                                                    <MenuItem value="D">{t('employe.field.divorced')}</MenuItem>
+                                                    <MenuItem value="V">{t('employe.field.widow')}</MenuItem>
                                                 </Select>
                                             </FormControl>
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Nb. personnes à charge</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.nbDependents')}</Typography>
                                             <TextField name="empnbp" type="number" value={formData.empnbp ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Email</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.email')}</Typography>
                                             <TextField name="empemail" type="email" value={formData.empemail || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
                                                 InputProps={{ startAdornment: <EmailIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }}
-                                                placeholder="jean.dupont@entreprise.com" />
+                                                placeholder={t('employe.field.emailPlaceholder')} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Niveau employé</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.level')}</Typography>
                                             <FormControl fullWidth size="small">
                                                 <Select value={formData.empniv || ''} onChange={handleSelect('empniv')} sx={selectStyle} displayEmpty>
                                                     <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>
-                                                    <MenuItem value="0">Exécutant</MenuItem>
-                                                    <MenuItem value="1">Maitrise</MenuItem>
-                                                    <MenuItem value="2">Cadre</MenuItem>
+                                                    <MenuItem value="0">{t('employe.field.executant')}</MenuItem>
+                                                    <MenuItem value="1">{t('employe.field.supervisor')}</MenuItem>
+                                                    <MenuItem value="2">{t('employe.field.manager')}</MenuItem>
                                                 </Select>
                                             </FormControl>
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Ville</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.city')}</Typography>
                                             <SelectWithAdd value={formData.vilcod || ''}
                                                 onChange={v => setFormData(p => ({ ...p, vilcod: v }))}
-                                                options={vilMap} onAdd={handleAddVille} addTitle="Nouvelle Ville" />
+                                                options={vilMap} onAdd={handleAddVille} addTitle={t('employe.addTitle.ville')} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Pays</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.country')}</Typography>
                                             <SelectWithAdd value={formData.natcod || ''}
                                                 onChange={v => setFormData(p => ({ ...p, natcod: v }))}
-                                                options={payMap} onAdd={handleAddPays} addTitle="Nouveau Pays" />
+                                                options={payMap} onAdd={handleAddPays} addTitle={t('employe.addTitle.pays')} />
                                         </Box>
                                     </Box>
                                 </Paper>
@@ -952,27 +955,27 @@ const EmployeModernInner = () => {
                                             <PhoneIcon sx={{ color: '#10b981', fontSize: 18 }} />
                                         </Box>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c' }}>
-                                            Coordonnées
+                                            {t('employe.section.contact')}
                                         </Typography>
                                     </Box>
                                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2 }}>
                                         <Box>
-                                            <Typography sx={labelStyle}>Adresse</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.address')}</Typography>
                                             <TextField name="empadr" value={formData.empadr || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
                                                 InputProps={{ startAdornment: <LocationOnIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }}
-                                                placeholder="123 Rue Example" />
+                                                placeholder={t('employe.field.addressPlaceholder')} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Téléphone</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.phone')}</Typography>
                                             <TextField name="emptel" value={formData.emptel || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
                                                 InputProps={{ startAdornment: <PhoneIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }}
-                                                placeholder="+213 555 000 000" />
+                                                placeholder={t('employe.field.phonePlaceholder')} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>Mobile</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.mobile')}</Typography>
                                             <TextField name="empmob" value={formData.empmob || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
                                                 InputProps={{ startAdornment: <PhoneIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }}
-                                                placeholder="+213 555 000 000" />
+                                                placeholder={t('employe.field.phonePlaceholder')} />
                                         </Box>
                                     </Box>
                                 </Paper>
@@ -987,11 +990,11 @@ const EmployeModernInner = () => {
                                                 <WorkIcon sx={{ color: '#0040a1', fontSize: 18 }} />
                                             </Box>
                                             <Typography sx={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c' }}>
-                                                Informations de travail
+                                                {t('employe.section.work')}
                                             </Typography>
                                         </Box>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.8 }}>
-                                            {[{ lbl: "Date d'embauche", type: 'date', name: 'empemb', val: formData.empemb ? dayjs(formData.empemb).format('YYYY-MM-DD') : '' }].map(f => (
+                                            {[{ lbl: t('employe.field.hireDate'), type: 'date', name: 'empemb', val: formData.empemb ? dayjs(formData.empemb).format('YYYY-MM-DD') : '' }].map(f => (
                                                 <Box key={f.name}>
                                                     <Typography sx={labelStyle}>{f.lbl}</Typography>
                                                     <TextField name={f.name} type={f.type} value={f.val} onChange={handleField} size="small" fullWidth sx={fieldStyle} InputLabelProps={{ shrink: true }}
@@ -999,7 +1002,7 @@ const EmployeModernInner = () => {
                                                 </Box>
                                             ))}
                                             <Box>
-                                                <Typography sx={labelStyle}>Type de contrat</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.contractType')}</Typography>
                                                 <FormControl fullWidth size="small">
                                                     <Select value={formData.empcontrat || ''} onChange={handleSelect('empcontrat')} sx={selectStyle} displayEmpty>
                                                         <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>
@@ -1014,29 +1017,29 @@ const EmployeModernInner = () => {
                                                 </FormControl>
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Régime</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.regime')}</Typography>
                                                 <FormControl fullWidth size="small">
                                                     <Select value={formData.empreg || ''} onChange={handleSelect('empreg')} sx={selectStyle} displayEmpty>
                                                         <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>
-                                                        <MenuItem value="M">Mensuelle</MenuItem>
-                                                        <MenuItem value="H">Horaire</MenuItem>
+                                                        <MenuItem value="M">{t('employe.field.monthly')}</MenuItem>
+                                                        <MenuItem value="H">{t('employe.field.hourly')}</MenuItem>
                                                     </Select>
                                                 </FormControl>
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Filiale (Site)</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.branchSite')}</Typography>
                                                 <SelectWithAdd value={formData.sitcod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, sitcod: v }))}
-                                                    options={sitMap} onAdd={handleAddSite} addTitle="Nouvelle Filiale" />
+                                                    options={sitMap} onAdd={handleAddSite} addTitle={t('employe.addTitle.filiale')} />
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Service</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.service')}</Typography>
                                                 <SelectWithAdd value={formData.sercod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, sercod: v }))}
-                                                    options={serviceLibs} onAdd={handleAddService} addTitle="Nouveau Service" />
+                                                    options={serviceLibs} onAdd={handleAddService} addTitle={t('employe.addTitle.service')} />
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Classe Horaire</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.timeClass')}</Typography>
                                                 <SelectWithAdd value={formData.catcod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, catcod: v }))}
                                                     options={(() => {
@@ -1047,14 +1050,14 @@ const EmployeModernInner = () => {
                                                         // classe n'a été assignée — alors qu'elle l'est en base.
                                                         const cur = formData.catcod || '';
                                                         if (cur && !classeHoraireLibs[cur]) {
-                                                            return { ...classeHoraireLibs, [cur]: `${cur} (hors plage active)` };
+                                                            return { ...classeHoraireLibs, [cur]: `${cur} ${t('employe.field.outOfRange')}` };
                                                         }
                                                         return classeHoraireLibs;
                                                     })()}
-                                                    onAdd={handleAddClasseHoraire} addTitle="Nouvelle Classe Horaire" />
+                                                    onAdd={handleAddClasseHoraire} addTitle={t('employe.addTitle.classeHoraire')} />
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Calendrier</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.calendar')}</Typography>
                                                 <FormControl fullWidth size="small">
                                                     <Select value={formData.caltype || ''} onChange={handleSelect('caltype')} sx={selectStyle} displayEmpty>
                                                         <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>
@@ -1076,50 +1079,50 @@ const EmployeModernInner = () => {
                                                 <BadgeIcon sx={{ color: '#0040a1', fontSize: 18 }} />
                                             </Box>
                                             <Typography sx={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c' }}>
-                                                Détails Employé
+                                                {t('employe.section.details')}
                                             </Typography>
                                         </Box>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.8 }}>
 
                                             <Box>
-                                                <Typography sx={labelStyle}>Fonction</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.function')}</Typography>
                                                 <SelectWithAdd value={formData.foncod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, foncod: v }))}
-                                                    options={fonMap} onAdd={handleAddFonction} addTitle="Nouvelle Fonction" />
+                                                    options={fonMap} onAdd={handleAddFonction} addTitle={t('employe.addTitle.fonction')} />
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Qualification</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.qualification')}</Typography>
                                                 <SelectWithAdd value={formData.quacod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, quacod: v }))}
-                                                    options={quaMap} onAdd={handleAddQualification} addTitle="Nouvelle Qualification" />
+                                                    options={quaMap} onAdd={handleAddQualification} addTitle={t('employe.addTitle.qualification')} />
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Direction</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.direction')}</Typography>
                                                 <SelectWithAdd value={formData.dircod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, dircod: v }))}
-                                                    options={dirMap} onAdd={handleAddDirection} addTitle="Nouvelle Direction" />
+                                                    options={dirMap} onAdd={handleAddDirection} addTitle={t('employe.addTitle.direction')} />
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Section</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.sectionLbl')}</Typography>
                                                 <SelectWithAdd value={formData.seccod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, seccod: v }))}
-                                                    options={secMap} onAdd={handleAddSection} addTitle="Nouvelle Section" />
+                                                    options={secMap} onAdd={handleAddSection} addTitle={t('employe.addTitle.section')} />
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Date d'embauche</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.hireDate')}</Typography>
                                                 <TextField name="empemb2" type="date" value={formData.empemb ? dayjs(formData.empemb).format('YYYY-MM-DD') : ''} onChange={handleField} size="small" fullWidth sx={fieldStyle} InputLabelProps={{ shrink: true }} />
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Statut</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.statusLbl')}</Typography>
                                                 <FormControl fullWidth size="small">
                                                     <Select value={formData.actif || 'A'} onChange={handleSelect('actif')} sx={selectStyle}>
-                                                        <MenuItem value="A">Actif</MenuItem>
-                                                        <MenuItem value="N">Inactif</MenuItem>
+                                                        <MenuItem value="A">{t('employe.field.active')}</MenuItem>
+                                                        <MenuItem value="N">{t('employe.field.inactive')}</MenuItem>
                                                     </Select>
                                                 </FormControl>
                                             </Box>
                                             <Box>
-                                                <Typography sx={labelStyle}>Rôle Utilisateur</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.userRole')}</Typography>
                                                 <FormControl fullWidth size="small">
                                                     <Select value={formData.utirole || 'Employee'} onChange={handleSelect('utirole')} sx={selectStyle}>
                                                         {roles.length > 0 ? (
@@ -1132,64 +1135,64 @@ const EmployeModernInner = () => {
                                                                 </MenuItem>
                                                             ))
                                                         ) : (
-                                                            <MenuItem value="Employee">Employé</MenuItem>
+                                                            <MenuItem value="Employee">{t('employe.field.employee')}</MenuItem>
                                                         )}
                                                     </Select>
                                                 </FormControl>
                                             </Box>
                                             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2, mt: 0.5 }}>
                                                 <Box>
-                                                    <Typography sx={labelStyle}>Jour Max / Mois</Typography>
-                                                    <TextField name="empmaxjour" type="number" value={formData.empmaxjour ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="0 = illimité" />
+                                                    <Typography sx={labelStyle}>{t('employe.field.maxDaysMonth')}</Typography>
+                                                    <TextField name="empmaxjour" type="number" value={formData.empmaxjour ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder={t('employe.field.unlimited')} />
                                                 </Box>
                                                 <Box>
-                                                    <Typography sx={labelStyle}>Max Heure / Jour</Typography>
-                                                    <TextField name="empmaxhre" type="number" value={formData.empmaxhre ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="0 = illimité" />
+                                                    <Typography sx={labelStyle}>{t('employe.field.maxHoursDay')}</Typography>
+                                                    <TextField name="empmaxhre" type="number" value={formData.empmaxhre ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder={t('employe.field.unlimited')} />
                                                 </Box>
                                                 <Box>
-                                                    <Typography sx={labelStyle}>Min Heure / Jour</Typography>
+                                                    <Typography sx={labelStyle}>{t('employe.field.minHoursDay')}</Typography>
                                                     <TextField name="empminhjour" type="number" value={formData.empminhjour ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="0" />
                                                 </Box>
                                             </Box>
                                             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                                                 <Box>
-                                                    <Typography sx={labelStyle}>Compter Repos</Typography>
+                                                    <Typography sx={labelStyle}>{t('employe.field.countRest')}</Typography>
                                                     <FormControl fullWidth size="small">
                                                         <Select value={formData.empferepos || '0'} onChange={handleSelect('empferepos')} sx={selectStyle}>
-                                                            <MenuItem value="0">0- Ne pas compter</MenuItem>
-                                                            <MenuItem value="1">1- Tous les repos</MenuItem>
-                                                            <MenuItem value="2">2- Repos Samedi</MenuItem>
-                                                            <MenuItem value="3">3- Repos Dimanche</MenuItem>
+                                                            <MenuItem value="0">{t('employe.field.countRestNo')}</MenuItem>
+                                                            <MenuItem value="1">{t('employe.field.countRestAll')}</MenuItem>
+                                                            <MenuItem value="2">{t('employe.field.countRestSat')}</MenuItem>
+                                                            <MenuItem value="3">{t('employe.field.countRestSun')}</MenuItem>
                                                         </Select>
                                                     </FormControl>
                                                 </Box>
                                                 <Box>
-                                                    <Typography sx={labelStyle}>Panier</Typography>
+                                                    <Typography sx={labelStyle}>{t('employe.field.panier')}</Typography>
                                                     <FormControl fullWidth size="small">
                                                         <Select value={formData.emppanier || '0'} onChange={handleSelect('emppanier')} sx={selectStyle}>
-                                                            <MenuItem value="0">0- Pas de panier</MenuItem>
-                                                            <MenuItem value="1">1- Panier 7H</MenuItem>
-                                                            <MenuItem value="2">2- Panier 6H</MenuItem>
+                                                            <MenuItem value="0">{t('employe.field.panierNone')}</MenuItem>
+                                                            <MenuItem value="1">{t('employe.field.panier7H')}</MenuItem>
+                                                            <MenuItem value="2">{t('employe.field.panier6H')}</MenuItem>
                                                         </Select>
                                                     </FormControl>
                                                 </Box>
                                             </Box>
                                             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                                                 <Box>
-                                                    <Typography sx={labelStyle}>Heures Nuit</Typography>
+                                                    <Typography sx={labelStyle}>{t('employe.field.nightHours')}</Typography>
                                                     <FormControl fullWidth size="small">
                                                         <Select value={formData.empnuit || '0'} onChange={handleSelect('empnuit')} sx={selectStyle}>
-                                                            <MenuItem value="0">0- Normal</MenuItem>
-                                                            <MenuItem value="1">1- Spécial</MenuItem>
+                                                            <MenuItem value="0">{t('employe.field.nightNormal')}</MenuItem>
+                                                            <MenuItem value="1">{t('employe.field.nightSpecial')}</MenuItem>
                                                         </Select>
                                                     </FormControl>
                                                 </Box>
                                                 <Box>
-                                                    <Typography sx={labelStyle}>Éliminer Retard</Typography>
+                                                    <Typography sx={labelStyle}>{t('employe.field.eliminateDelay')}</Typography>
                                                     <FormControl fullWidth size="small">
                                                         <Select value={formData.empretard || '0'} onChange={handleSelect('empretard')} sx={selectStyle}>
-                                                            <MenuItem value="0">Non</MenuItem>
-                                                            <MenuItem value="1">Oui</MenuItem>
+                                                            <MenuItem value="0">{t('employe.field.no')}</MenuItem>
+                                                            <MenuItem value="1">{t('employe.field.yes')}</MenuItem>
                                                         </Select>
                                                     </FormControl>
                                                 </Box>
@@ -1210,15 +1213,15 @@ const EmployeModernInner = () => {
                                             <PaymentsIcon sx={{ color: '#93c5fd', fontSize: 18 }} />
                                         </Box>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: '#e2e8f0' }}>
-                                            Rémunération
+                                            {t('employe.section.salary')}
                                         </Typography>
-                                        <Chip label="Confidentiel" size="small" sx={{ ml: 'auto', backgroundColor: 'rgba(251,191,36,0.12)', color: '#fbbf24', fontWeight: 700, fontSize: '9px', height: 22, letterSpacing: '0.04em' }} />
+                                        <Chip label={t('employe.confidential')} size="small" sx={{ ml: 'auto', backgroundColor: 'rgba(251,191,36,0.12)', color: '#fbbf24', fontWeight: 700, fontSize: '9px', height: 22, letterSpacing: '0.04em' }} />
                                     </Box>
                                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: '1fr 1fr 1fr' }, gap: 2.5, px: { xs: 1.5, md: 3 }, py: 3 }}>
                                         {[
-                                            { label: 'Salaire de Base', name: 'empsbase', value: formData.empsbase, icon: <TrendingUpIcon sx={{ fontSize: 14, color: '#60a5fa' }} /> },
-                                            { label: 'Salaire Brut', name: 'empsbrut', value: formData.empsbrut, icon: <AccountBalanceWalletIcon sx={{ fontSize: 14, color: '#34d399' }} /> },
-                                            { label: 'Salaire Net', name: 'empsnet', value: formData.empsnet, icon: <PaymentsIcon sx={{ fontSize: 14, color: '#a78bfa' }} /> },
+                                            { label: t('employe.field.baseSalary'), name: 'empsbase', value: formData.empsbase, icon: <TrendingUpIcon sx={{ fontSize: 14, color: '#60a5fa' }} /> },
+                                            { label: t('employe.field.grossSalary'), name: 'empsbrut', value: formData.empsbrut, icon: <AccountBalanceWalletIcon sx={{ fontSize: 14, color: '#34d399' }} /> },
+                                            { label: t('employe.field.netSalary'), name: 'empsnet', value: formData.empsnet, icon: <PaymentsIcon sx={{ fontSize: 14, color: '#a78bfa' }} /> },
                                         ].map(field => (
                                             <Box key={field.name}>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
@@ -1259,11 +1262,11 @@ const EmployeModernInner = () => {
                                                 <ScheduleIcon sx={{ color: '#0040a1', fontSize: 18 }} />
                                             </Box>
                                             <Typography sx={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c' }}>
-                                                Horaires de l'employé sélectionné
+                                                {t('employe.section.schedules')}
                                             </Typography>
                                         </Box>
                                         <Chip
-                                            label="Semaine en cours"
+                                            label={t('employe.currentWeek')}
                                             size="small"
                                             sx={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontWeight: 700, fontSize: '10px', letterSpacing: '0.04em' }}
                                         />
@@ -1274,7 +1277,7 @@ const EmployeModernInner = () => {
                                         d'écraser leur contenu sur 320px de large. */}
                                     <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                                     <Box sx={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr 1fr 1fr 100px', gap: 0, mb: 1, minWidth: { xs: 700, md: 'auto' } }}>
-                                        {['POSTE', 'ENTRÉE MATIN', 'SORTIE MATIN', 'ENTRÉE AM', 'SORTIE AM', 'STATUT'].map(h => (
+                                        {[t('employe.scheduleHeaders.post'), t('employe.scheduleHeaders.entryMorning'), t('employe.scheduleHeaders.exitMorning'), t('employe.scheduleHeaders.entryAfternoon'), t('employe.scheduleHeaders.exitAfternoon'), t('employe.scheduleHeaders.status')].map(h => (
                                             <Typography key={h} sx={{ fontSize: '9px', fontWeight: 700, color: '#8896a8', textTransform: 'uppercase', letterSpacing: '0.1em', px: 1.5, py: 1 }}>
                                                 {h}
                                             </Typography>
@@ -1304,14 +1307,14 @@ const EmployeModernInner = () => {
                                             <Box sx={{ px: 1.5, py: 1.5 }}>
                                                 {h.statut === 'valide' ? (
                                                     <Chip
-                                                        label="Travail"
+                                                        label={t('employe.workLabel')}
                                                         size="small"
                                                         icon={<CheckCircleIcon sx={{ fontSize: '12px !important', color: '#16a34a !important' }} />}
                                                         sx={{ backgroundColor: '#dcfce7', color: '#166534', fontWeight: 700, fontSize: '10px', height: 22 }}
                                                     />
                                                 ) : h.statut === 'repos' ? (
                                                     <Chip
-                                                        label="Repos"
+                                                        label={t('employe.restLabel')}
                                                         size="small"
                                                         sx={{ backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: 700, fontSize: '10px', height: 22 }}
                                                     />
@@ -1326,7 +1329,7 @@ const EmployeModernInner = () => {
                                         </Box>
                                     )) : (
                                         <Box sx={{ py: 4, textAlign: 'center', color: '#94a3b8' }}>
-                                            <Typography sx={{ fontSize: '13px' }}>Aucun horaire défini pour cet employé</Typography>
+                                            <Typography sx={{ fontSize: '13px' }}>{t('employe.noSchedule')}</Typography>
                                         </Box>
                                     )}
                                     </Box>

@@ -217,17 +217,17 @@ const useNavigationItems = (): NavGroup[] => {
         items: [],
       },
       {
-        label: 'Mon Espace',
+        label: t('navigation.mySpace'),
         href: '/dashboard/mon-espace',
         icon: User,
         items: [
           { label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX },
           { label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck },
-          { label: 'Mes Missions', href: '/dashboard/missions', icon: Briefcase },
-          { label: "Notes de Frais", href: '/dashboard/remboursement', icon: Receipt },
-          { label: "Demande d'Autorisation", href: '/dashboard/demande-autorisation', icon: Timer },
+          { label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase },
+          { label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt },
+          { label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer },
           { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
-          { label: 'Mon Coffre-fort', href: '/dashboard/coffre-fort', icon: Shield },
+          { label: t('navigation.myVault'), href: '/dashboard/coffre-fort', icon: Shield },
         ],
       },
     ];
@@ -247,7 +247,7 @@ const useNavigationItems = (): NavGroup[] => {
       icon: Database,
       items: [
         ...(canSee('gestion-societe') ? [{ label: t('navigation.society'), href: '/dashboard/gestion-societe', icon: Building2 }] : []),
-        ...(canSee('structure-organisationnelle') ? [{ label: 'Structure Org.', href: '/dashboard/structure-organisationnelle', icon: Network }] : []),
+        ...(canSee('structure-organisationnelle') ? [{ label: t('navigation.orgStructure'), href: '/dashboard/structure-organisationnelle', icon: Network }] : []),
         ...(canSee('filiale') ? [{ label: t('navigation.branch'), href: '/dashboard/filiale', icon: Flag }] : []),
         ...(canSee('pays') ? [{ label: t('navigation.country'), href: '/dashboard/pays', icon: Globe }] : []),
         ...(canSee('ville') ? [{ label: t('navigation.city'), href: '/dashboard/ville', icon: MapPin }] : []),
@@ -275,14 +275,14 @@ const useNavigationItems = (): NavGroup[] => {
       icon: Users,
       items: [
         ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
-        ...(canSee('profil-employe') ? [{ label: 'Profil Employé', href: '/dashboard/profil-employe', icon: User }] : []),
+        ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
         ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat/contrat', icon: FileText }] : []),
-        { label: 'Missions', href: '/dashboard/missions', icon: Briefcase },
+        { label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase },
         // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
         // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
         ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
-        ...(canSee('coffre-fort') ? [{ label: 'Coffre-fort', href: '/dashboard/coffre-fort', icon: Shield }] : []),
-        ...(canSee('admin-vault') ? [{ label: 'Vue Globale Vault', href: '/dashboard/admin-vault', icon: Eye }] : []),
+        ...(canSee('coffre-fort') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
+        ...(canSee('admin-vault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
       ],
     },
     {
@@ -294,8 +294,8 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
-        ...(isAdminEffective ? [{ label: 'Affectation Soldes', href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
-        ...(isAdminEffective ? [{ label: 'Compte Épargne Temps', href: '/dashboard/cet', icon: CalendarCheck }] : []),
+        ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
+        ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
       ],
     },
     {
@@ -306,7 +306,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('jour-de-compensation') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
         ...(canSee('autorisation-de-sortie') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
         ...(canSee('autorisation-de-sortie-generale') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
-        ...(canSee('demande-autorisation') ? [{ label: "Demande d'Autorisation", href: '/dashboard/demande-autorisation', icon: Timer }] : []),
+        ...(canSee('demande-autorisation') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
         ...(canSee('absence-et-sanction') ? [{ label: t('navigation.absenceAndSanction'), href: '/dashboard/absence-et-sanction', icon: Gavel }] : []),
       ],
     },
@@ -330,7 +330,7 @@ const useNavigationItems = (): NavGroup[] => {
         // ...(canSee('accompte-salaire') ? [{ label: t('navigation.salaryAdvance'), href: '/dashboard/accompte-salaire', icon: Wallet }] : []),
         ...(canSee('pointage-du-mois') ? [{ label: t('navigation.monthlyClocking'), href: '/dashboard/pointage-du-mois', icon: Clock3 }] : []),
         ...(canSee('droit-de-conge') ? [{ label: t('navigation.leaveRights'), href: '/dashboard/droit-de-conge', icon: CalendarCheck }] : []),
-        ...(canSee('remboursement') ? [{ label: 'Notes de Frais', href: '/dashboard/remboursement', icon: Receipt }] : []),
+        ...(canSee('remboursement') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
       ],
     }] : []),
     ...(!isTrialing ? [{
@@ -352,7 +352,7 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         { label: t('navigation.users'), href: '/dashboard/gestion-utilisateur', icon: Users },
         { label: t('navigation.accessRights'), href: '/dashboard/droit-accees', icon: Shield },
-        { label: 'Modèles de Contrats', href: '/dashboard/template-builder', icon: FileText },
+        { label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText },
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
@@ -378,6 +378,7 @@ interface DemoPageContentProps {
 }
 
 function DemoPageContent({ pathname }: DemoPageContentProps) {
+  const { t } = useTranslation();
   let content: React.ReactNode;
 
   switch (pathname) {
@@ -438,7 +439,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/affectation-solde': content = <SoldeCongeAdmin />; break;
     case '/dashboard/cet': content = <CetPage />; break;
     case '/dashboard/calendrier-societe': content = <Calendrier />; break;
-    case '/dashboard/chat-bot': content = <Box p={3}>Utilisez le bouton flottant de l'assistant en bas à droite.</Box>; break;
+    case '/dashboard/chat-bot': content = <Box p={3}>{t('navigation.chatBotPrompt')}</Box>; break;
     case '/dashboard/template-builder': content = <ContractBuilderModern />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
     case '/dashboard/pricing': content = <PricingPage />; break;
@@ -489,6 +490,7 @@ interface RecentItem {
 }
 
 function RecentItemsBar({ items, onNavigate }: { items: RecentItem[], onNavigate: (h: string) => void }) {
+  const { t } = useTranslation();
   if (items.length === 0) return null;
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 2, overflow: 'hidden' }}>
@@ -504,7 +506,7 @@ function RecentItemsBar({ items, onNavigate }: { items: RecentItem[], onNavigate
             '&:hover': { color: '#0040a1', textDecoration: 'underline' }
           }}
         >
-          Recent: {item.label}
+          {t('navigation.recent')}: {item.label}
         </Typography>
       ))}
     </Box>
@@ -536,6 +538,7 @@ function makeToolbarActions(
   }).filter((v, i, a) => v.href && v.href !== '#' && a.findIndex(t => t.href === v.href) === i);
 
   function UserProfileMenu({ userName, isDark, clearAuth, onNavigate }: { userName?: string | null, isDark: boolean, clearAuth: () => void, onNavigate: (h: string) => void }) {
+    const { t } = useTranslation();
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
     const handleClick = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
@@ -546,7 +549,7 @@ function makeToolbarActions(
 
     return (
       <>
-        <Tooltip title={userName || 'Compte'}>
+        <Tooltip title={userName || t('navigation.account')}>
           <Avatar
             onClick={handleClick}
             sx={{
@@ -587,12 +590,12 @@ function makeToolbarActions(
         >
           <MenuItem onClick={handleProfile}>
             <ListItemIcon><User size={22} /></ListItemIcon>
-            <ListItemText primary="Mon Profil" primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
+            <ListItemText primary={t('navigation.myProfile')} primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
           </MenuItem>
           <Divider />
           <MenuItem onClick={handleLogout} sx={{ color: '#ba1a1a' }}>
             <ListItemIcon><LogOut size={22} color="#ba1a1a" /></ListItemIcon>
-            <ListItemText primary="Déconnexion" primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
+            <ListItemText primary={t('navigation.logout')} primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
           </MenuItem>
         </Menu>
       </>
@@ -600,6 +603,7 @@ function makeToolbarActions(
   }
 
   return function ToolbarActions() {
+    const { t } = useTranslation();
     const [recentPages, _setRecentPages] = React.useState<RecentItem[]>(() => {
       const saved = localStorage.getItem('recentPages');
       return saved ? JSON.parse(saved) : [];
@@ -635,7 +639,7 @@ function makeToolbarActions(
           renderInput={(params) => (
             <TextField
               {...params}
-              placeholder="Rechercher une page..."
+              placeholder={t('navigation.searchPage')}
               InputProps={{
                 ...params.InputProps,
                 startAdornment: (
@@ -676,7 +680,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { authReady, clearAuth, userName, isAdmin } = useAuth();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const NAVIGATION = useNavigationItems();
   const outerTheme = useMuiTheme();
   const isDark = outerTheme.palette.mode === 'dark';
@@ -736,22 +740,26 @@ function DashboardLayoutAccount(_props: DemoProps) {
     if (matched) {
       document.title = `${matched.label} | Concorde Workforce`;
     } else if (canonicalPathname === '/dashboard') {
-      document.title = `Tableau de bord | Concorde Workforce`;
+      document.title = `${t('navigation.dashboard')} | Concorde Workforce`;
     } else if (pathname === '/login') {
-      document.title = `Connexion | Concorde Workforce`;
+      document.title = `${t('navigation.loginTitle')} | Concorde Workforce`;
     } else if (pathname === '/signup') {
-      document.title = `Créer mon espace | Concorde Workforce`;
+      document.title = `${t('navigation.signupTitle')} | Concorde Workforce`;
     } else if (pathname === '/') {
-      document.title = `Tarifs | Concorde Workforce`;
+      document.title = `${t('navigation.pricingTitle')} | Concorde Workforce`;
     } else {
       document.title = `Concorde Workforce`;
     }
-  }, [pathname, canonicalPathname, NAVIGATION]);
+  }, [pathname, canonicalPathname, NAVIGATION, t]);
 
   // ── Tab Management State ──
+  // Le label par défaut est lu depuis i18n pour rester cohérent avec la langue active.
+  // Cas particulier : les onglets persistés en localStorage gardent leur label sauvegardé
+  // (snapshot de la langue à l'ouverture) — un changement de langue ne renomme donc pas
+  // les onglets déjà ouverts. Seul le tab "Dashboard" initial réutilise t() à l'ouverture.
   const [openedTabs, setOpenedTabs] = React.useState<OpenedTab[]>(() => {
     const saved = localStorage.getItem('openedTabs');
-    return saved ? JSON.parse(saved) : [{ label: 'Tableau de bord', href: '/dashboard', icon: 'Home' }];
+    return saved ? JSON.parse(saved) : [{ label: t('navigation.dashboard'), href: '/dashboard', icon: 'Home' }];
   });
 
   // Track navigation to add tabs
@@ -808,7 +816,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   const handleCloseAllTabs = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const dashboardTab: OpenedTab = { label: 'Tableau de bord', href: '/dashboard', icon: 'Home' };
+    const dashboardTab: OpenedTab = { label: t('navigation.dashboard'), href: '/dashboard', icon: 'Home' };
     setOpenedTabs([dashboardTab]);
     localStorage.setItem('openedTabs', JSON.stringify([dashboardTab]));
     if (pathname !== '/dashboard') navigate('/dashboard');
@@ -821,9 +829,9 @@ function DashboardLayoutAccount(_props: DemoProps) {
   );
 
   const footerItems: FooterItem[] = [
-    { label: 'Support', href: '/dashboard/support', icon: LifeBuoy },
-    { label: 'Paramètres', href: '/dashboard/parametres', icon: Settings },
-    { label: 'Déconnexion', href: '#', icon: LogOut, onClick: () => { clearAuth(); navigate('/'); } },
+    { label: t('navigation.support'), href: '/dashboard/support', icon: LifeBuoy },
+    { label: t('navigation.settings'), href: '/dashboard/parametres', icon: Settings },
+    { label: t('navigation.logout'), href: '#', icon: LogOut, onClick: () => { clearAuth(); navigate('/'); } },
   ];
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
@@ -976,7 +984,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
             );
           })}
           {openedTabs.length > 1 && (
-            <Tooltip title="Fermer tous les onglets" arrow>
+            <Tooltip title={t('navigation.closeAllTabs')} arrow>
               <IconButton
                 size="small"
                 onClick={handleCloseAllTabs}
@@ -1000,7 +1008,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
               >
                 <XCircle size={14} />
                 <Typography sx={{ fontSize: '11px', fontWeight: 600, ml: 0.25 }}>
-                  Fermer tout
+                  {t('navigation.closeAll')}
                 </Typography>
               </IconButton>
             </Tooltip>

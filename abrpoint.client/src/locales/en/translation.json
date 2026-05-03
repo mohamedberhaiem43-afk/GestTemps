@@ -57,7 +57,33 @@
     "companyCalendar": "Company Calendar",
     "chatBot": "Chat Bot",
     "about": "About",
-    "contact": "Contact"
+    "contact": "Contact",
+    "mySpace": "My Space",
+    "myMissions": "My Missions",
+    "expenseNotes": "Expense Notes",
+    "exitAuthorizationRequest": "Authorization Request",
+    "myVault": "My Vault",
+    "orgStructure": "Org Structure",
+    "employeeProfile": "Employee Profile",
+    "missions": "Missions",
+    "vault": "Vault",
+    "vaultGlobalView": "Vault Global View",
+    "balanceAllocation": "Balance Allocation",
+    "timeSavingAccount": "Time Saving Account",
+    "contractTemplates": "Contract Templates",
+    "recent": "Recent",
+    "account": "Account",
+    "myProfile": "My Profile",
+    "logout": "Logout",
+    "searchPage": "Search a page...",
+    "loginTitle": "Sign in",
+    "signupTitle": "Create my space",
+    "pricingTitle": "Pricing",
+    "support": "Support",
+    "settings": "Settings",
+    "closeAllTabs": "Close all tabs",
+    "closeAll": "Close all",
+    "chatBotPrompt": "Use the assistant's floating button at the bottom right."
   },
   "notifications": {
     "loading": "Loading notifications...",
@@ -110,6 +136,50 @@
       "delete": "Delete",
       "manage": "Manage Employee"
     }
+  },
+  "effectifs": {
+    "loading": "Loading employees...",
+    "accessDenied": "Access Denied",
+    "noConsultRight": "You do not have the necessary rights to view the employee list.",
+    "directorySubtitle": "Collaborator Directory",
+    "title": "Global Headcount",
+    "description": "Manage and visualize all your employees with precision and simplicity.",
+    "importExcel": "Import (Excel)",
+    "addCollaborator": "Add a Collaborator",
+    "department": "Department",
+    "myDepartment": "My department",
+    "allDepartments": "All departments",
+    "position": "Position",
+    "allPositions": "All positions",
+    "site": "Site",
+    "allSites": "All sites",
+    "contractType": "Contract Type",
+    "allContracts": "All contracts",
+    "level": "Level",
+    "allLevels": "All levels",
+    "executant": "Executant",
+    "maitrise": "Supervisor",
+    "cadre": "Manager",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "active": "Active",
+    "inactive": "Inactive",
+    "totalHeadcount": "Total Headcount",
+    "newThisMonth": "+{{count}} this month",
+    "searchPlaceholder": "Search a collaborator by name, ID or email...",
+    "columns": {
+      "collaborator": "Collaborator",
+      "matricule": "Matricule",
+      "position": "Position",
+      "department": "Department",
+      "contract": "Contract",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "noEmployee": "No collaborator found",
+    "paginationInfo": "Showing <0>{{start}}</0> to <1>{{end}}</1> of <2>{{total}}</2> collaborators",
+    "deleteConfirm": "Do you really want to delete employee \"{{name}}\"?",
+    "deleteError": "Error during deletion"
   },
   "employe": {
     "save": "Save",
@@ -231,6 +301,150 @@
       "echelon": "Echelon",
       "scale": "Scale",
       "subCategory": "Sub Category"
+    },
+    "accessDenied": "Access Denied",
+    "noConsultRight": "You do not have the necessary rights to view this employee record.",
+    "searchPlaceholder": "Search name, ID, position...",
+    "loadError": "Error loading employee",
+    "createdSuccess": "Employee created successfully",
+    "changesSaved": "Changes saved",
+    "saveError": "Error while saving",
+    "selectFirst": "Please select an employee first",
+    "documentNotAvailable": "Document \"{{doc}}\" not available",
+    "documentDownloadFail": "Download of \"{{doc}}\" failed",
+    "scanImportedSuccess": "Data imported successfully from document",
+    "inactiveLabel": "Inactive",
+    "nbDependents": "Nb. dependents",
+    "level": "Employee level",
+    "phone": "Phone",
+    "userRole": "User Role",
+    "confidential": "Confidential",
+    "currentWeek": "Current week",
+    "workLabel": "Work",
+    "restLabel": "Rest",
+    "noSchedule": "No schedule defined for this employee",
+    "addedDirection": "Direction added successfully",
+    "addErrorDirection": "Error while adding the direction",
+    "addedFunction": "Function added successfully",
+    "addErrorFunction": "Error while adding the function",
+    "addedSection": "Section added successfully",
+    "addErrorSection": "Error while adding the section",
+    "addedQualification": "Qualification added successfully",
+    "addErrorQualification": "Error while adding the qualification",
+    "addedService": "Service added successfully",
+    "addErrorService": "Error while adding the service",
+    "addedSchedule": "Time class added successfully",
+    "addErrorSchedule": "Error while adding the time class",
+    "addedBranch": "Branch added successfully",
+    "addErrorBranch": "Error while adding the branch",
+    "addedCity": "City added successfully",
+    "addErrorCity": "Error while adding the city",
+    "addedCountry": "Country added successfully",
+    "addErrorCountry": "Error while adding the country. Check if the code already exists.",
+    "newEmployeeBadge": "New Collaborator",
+    "profileBadge": "Employee Profile",
+    "profileTitle": "Collaborator File",
+    "profileSubtitle": "Detailed management of the collaborator file",
+    "exportBtn": "Export",
+    "availableDocuments": "Available documents",
+    "scanDocument": "Scan a document",
+    "createBtn": "Create employee",
+    "saveChangesBtn": "Save changes",
+    "section": {
+      "basicInfo": "Basic information",
+      "contact": "Contact",
+      "work": "Work information",
+      "details": "Employee Details",
+      "salary": "Compensation",
+      "schedules": "Selected employee's schedules"
+    },
+    "field": {
+      "matricule": "Matricule",
+      "regenerateMatricule": "Regenerate matricule based on company settings",
+      "autoPlaceholder": "Auto",
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "Jean-Christopher Roussel",
+      "sex": "Sex",
+      "male": "Male",
+      "female": "Female",
+      "cin": "CIN / ID",
+      "birthDate": "Date of birth",
+      "birthPlace": "Place of birth",
+      "civilStatus": "Civil status",
+      "single": "Single",
+      "married": "Married",
+      "divorced": "Divorced",
+      "widow": "Widow",
+      "email": "Email",
+      "emailPlaceholder": "john.doe@company.com",
+      "executant": "Executant",
+      "supervisor": "Supervisor",
+      "manager": "Manager",
+      "city": "City",
+      "country": "Country",
+      "address": "Address",
+      "addressPlaceholder": "123 Example Street",
+      "mobile": "Mobile",
+      "phonePlaceholder": "+1 555 000 0000",
+      "hireDate": "Hire date",
+      "contractType": "Contract type",
+      "regime": "Regime",
+      "monthly": "Monthly",
+      "hourly": "Hourly",
+      "branchSite": "Branch (Site)",
+      "service": "Service",
+      "timeClass": "Time Class",
+      "outOfRange": "(out of active range)",
+      "calendar": "Calendar",
+      "function": "Function",
+      "qualification": "Qualification",
+      "direction": "Direction",
+      "sectionLbl": "Section",
+      "statusLbl": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "employee": "Employee",
+      "maxDaysMonth": "Max Days / Month",
+      "maxHoursDay": "Max Hours / Day",
+      "minHoursDay": "Min Hours / Day",
+      "unlimited": "0 = unlimited",
+      "countRest": "Count Rest",
+      "countRestNo": "0- Do not count",
+      "countRestAll": "1- All rests",
+      "countRestSat": "2- Saturday rest",
+      "countRestSun": "3- Sunday rest",
+      "panier": "Meal allowance",
+      "panierNone": "0- No allowance",
+      "panier7H": "1- 7H allowance",
+      "panier6H": "2- 6H allowance",
+      "nightHours": "Night Hours",
+      "nightNormal": "0- Normal",
+      "nightSpecial": "1- Special",
+      "eliminateDelay": "Eliminate Lateness",
+      "no": "No",
+      "yes": "Yes",
+      "baseSalary": "Base Salary",
+      "grossSalary": "Gross Salary",
+      "netSalary": "Net Salary"
+    },
+    "addTitle": {
+      "ville": "New City",
+      "pays": "New Country",
+      "filiale": "New Branch",
+      "service": "New Service",
+      "classeHoraire": "New Time Class",
+      "fonction": "New Function",
+      "qualification": "New Qualification",
+      "direction": "New Direction",
+      "section": "New Section"
+    },
+    "scheduleHeaders": {
+      "post": "POST",
+      "entryMorning": "ENTRY MORNING",
+      "exitMorning": "EXIT MORNING",
+      "entryAfternoon": "ENTRY AFT.",
+      "exitAfternoon": "EXIT AFT.",
+      "status": "STATUS"
     }
   },
   "login": {
@@ -241,7 +455,42 @@
     "site": "Branch / Site",
     "button": "Sign in",
     "requiredError": "Please fill in all required fields",
-    "loginError": "Login failed. Please check your credentials."
+    "loginError": "Login failed. Please check your credentials.",
+    "welcome": "Welcome back.",
+    "subtitle": "Please enter your credentials to access the dashboard.",
+    "emailPlaceholder": "name@company.com",
+    "forgotPassword": "Forgot password?",
+    "twoFAPrompt": "Enter the 6-digit code from your Google Authenticator / Authy app:",
+    "twoFAInvalid": "Please enter a valid 6-digit code",
+    "twoFAError": "Incorrect code. Please try again.",
+    "backToLogin": "Back to login",
+    "connecting": "Signing in...",
+    "verifyCode": "VERIFY CODE",
+    "signIn": "SIGN IN",
+    "forgotPromptEmail": "Enter your email to reset your password",
+    "forgotPromptCode": "Enter the reset code sent to your email",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "loading": "Loading...",
+    "sendCode": "SEND CODE",
+    "reset": "RESET",
+    "needHelp": "Need help?",
+    "contactSupport": "Contact support",
+    "leftTitle": "Structural excellence at the service of your human capital.",
+    "leftSubtitle": "Manage your organization with the precision of an architect. Concorde Workforce centralizes and elevates your HR data.",
+    "noAccount": "No account found for this email.",
+    "cannotVerify": "Unable to verify the account. Try again.",
+    "invalidCredentials": "Incorrect credentials. Please try again.",
+    "paymentRequired": "Payment required. Complete your subscription to activate your account.",
+    "stripeFailed": "Failed to redirect to Stripe.",
+    "enterEmail": "Please enter your email.",
+    "fillAllFields": "Please fill in all fields.",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordTooShort": "Password must contain at least 6 characters.",
+    "codeSent": "If an account exists with this email, a code has been sent.",
+    "codeSendError": "Error sending the code.",
+    "passwordReset": "Password reset.",
+    "resetError": "Error during reset."
   },
   "weeklyHoursTable": {
     "dateStart": "Start date",
@@ -253,6 +502,278 @@
     "total": "TOTAL",
     "weekDetails": "Week details {{numSem}}",
     "majorHolidayAndLeave": "Public holiday and leave premium on regular hours"
+  },
+  "pointageMois": {
+    "noConsultRight": "You don't have permission to view monthly time tracking.",
+    "title": "Monthly Time Tracking",
+    "subtitle": "Architectural overview of attendance hours",
+    "exportSelected": "Selected employee report",
+    "exportAll": "All employees report",
+    "export": "Export",
+    "filters": {
+      "employees": "Employees",
+      "selectedCount": "{{count}} selected",
+      "branch": "Branch",
+      "allBranches": "All branches",
+      "service": "Service",
+      "myService": "My service",
+      "allServices": "All services",
+      "regime": "Regime",
+      "allRegimes": "All regimes",
+      "regime35": "35 Hours",
+      "regime39": "39 Hours",
+      "regimeFlat": "Daily Package",
+      "period": "Period",
+      "search": "Search",
+      "majorHolidays": "Boost holiday and leave hours",
+      "selectAtLeastOne": "Please select at least one employee."
+    },
+    "table": {
+      "employee": "Employee",
+      "matricule": "Employee ID",
+      "cumul": "Total",
+      "totalMonth": "Month total",
+      "noData": "No data — select employees and click Search",
+      "weekShort": "W{{n}}",
+      "labels": {
+        "ok": "Ok",
+        "okShort": "Ok",
+        "sick": "Sick leave",
+        "sickShort": "Sick",
+        "paidLeave": "PL ({{count}}d)",
+        "paidLeaveShort": "PL",
+        "overtime": "+{{value}}h",
+        "absence": "Abs {{value}}d",
+        "absenceShort": "Abs"
+      }
+    },
+    "detail": {
+      "title": "Weekly details — {{name}}",
+      "hint": "Double-click on a row to view daily details",
+      "weekShort": "Wk.",
+      "total": "Total",
+      "columns": {
+        "tothre": "Hours",
+        "nbJours": "Days",
+        "retard": "Late",
+        "heuresSupTranche1": "OT25",
+        "heuresSupTranche2": "OT50",
+        "hreSupSemaine": "OT",
+        "jourFerier": "Hol. Days",
+        "heureFerier": "Hol. Hours",
+        "nbhFerierTrv": "Hol. Worked",
+        "hreFerieTrv": "Hol. Worked 1",
+        "hreFerieTrv2": "Hol. Worked 2",
+        "nbJourFerier": "Hol. Days Worked",
+        "hreAllaitement": "Nursing",
+        "absnp": "Unpaid Abs.",
+        "caltype": "Calendar",
+        "totalAbsence": "Abs. Hours",
+        "nbJourPointer": "Punched Days",
+        "panier": "Meal",
+        "nbNuits": "Nights",
+        "nbJourCngPaye": "Paid Leave",
+        "nbHeureConge": "Leave Hours",
+        "hcsf": "Family Hours",
+        "heuresNormales": "Regular Hours",
+        "jourRepos": "Rest Days",
+        "hreNuits": "Night Hours",
+        "heureRepos": "Rest Hours",
+        "deplacement": "Travel",
+        "act": "ACT",
+        "fm": "Training",
+        "absj": "Justified Abs.",
+        "ct": "Tech. Stop",
+        "maladie": "Sick",
+        "absnj": "Unjust. Abs.",
+        "csf": "Family Leave",
+        "css": "CSS",
+        "map": "MAP",
+        "jourSamediTrv": "Sat. Worked",
+        "hreSamediTrv": "Sat. Hours"
+      }
+    },
+    "summary": {
+      "totalHours": "Total Hours Worked",
+      "employeesCount_one": "{{count}} employee",
+      "employeesCount_other": "{{count}} employees",
+      "overtime": "Overtime",
+      "withinLegalQuotas": "Within legal quotas",
+      "holidaysAbsences": "Holidays / Absences"
+    },
+    "distribution": {
+      "title": "Distribution by Service",
+      "viewDetails": "View details",
+      "noData": "No data",
+      "other": "Other"
+    },
+    "alerts": {
+      "title": "Alerts",
+      "subtitle": "Time tracking discrepancies detected this month.",
+      "recurringDelays": "{{count}} Recurring delays",
+      "concernedEmployees": "Affected employee(s)",
+      "exitOmissions": "{{count}} Missing exits",
+      "unjustifiedAbsences": "Unjustified absences",
+      "missingPoste_one": "{{count}} employee with unresolved post",
+      "missingPoste_other": "{{count}} employees with unresolved post",
+      "checkAttachments": "Check Lcategories assignments or default Poscod",
+      "treatBtn": "Process alerts",
+      "dialogTitle": "Alert Processing — {{period}}",
+      "totalChip": "{{count}} Total",
+      "pendingChip": "{{count}} Pending",
+      "treatedChip": "{{count}} Processed",
+      "ignoredChip": "{{count}} Ignored",
+      "filterAll": "All",
+      "filterDelays": "Delays",
+      "filterAbsences": "Unj. Abs.",
+      "treatAll": "Process all",
+      "ignoreAll": "Ignore all",
+      "noAlerts": "No alerts to display",
+      "weekShort": "W{{n}}",
+      "delayLabel": "Delay of {{time}} in Week {{week}}",
+      "absenceLabel": "Unjustified absence ({{value}}d) in Week {{week}}",
+      "treatedBadge": "Processed",
+      "ignoredBadge": "Ignored",
+      "markTreated": "Mark as processed",
+      "ignore": "Ignore",
+      "pendingFooter_one": "{{count}} pending alert",
+      "pendingFooter_other": "{{count}} pending alerts",
+      "allTreated": "All alerts have been processed",
+      "confirmTreatment": "Confirm processing",
+      "successProcessed_one": "{{count}} alert processed successfully",
+      "successProcessed_other": "{{count}} alerts processed successfully"
+    },
+    "errors": {
+      "selectEmployee": "Select an employee",
+      "noData": "No data",
+      "reportError": "Report generation error"
+    }
+  },
+  "remboursement": {
+    "title": "Expense Report",
+    "subtitleAdmin": "Manage and validate expense reports.",
+    "subtitleEmployee": "Manage your expenses and mission costs.",
+    "pendingValidation_one": "<0>{{count}} expense</0> awaiting validation.",
+    "pendingValidation_other": "<0>{{count}} expenses</0> awaiting validation.",
+    "youHavePending_one": "You have <0>{{count}} expense</0> pending.",
+    "youHavePending_other": "You have <0>{{count}} expenses</0> pending.",
+    "newExpense": "New Expense",
+    "stats": {
+      "pending": "Pending",
+      "reimbursed": "Reimbursed",
+      "totalYear": "Year Total"
+    },
+    "table": {
+      "titleAdmin": "All Expenses",
+      "titleEmployee": "Expense History",
+      "filter": "Filter",
+      "exportCsv": "Export CSV",
+      "employee": "Employee",
+      "description": "Description",
+      "category": "Category",
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "noExpensesWithStatus": "No expenses with status \"{{status}}\".",
+      "noExpenses": "No expenses found.",
+      "pagination": "{{from}}–{{to}} of {{total}}"
+    },
+    "filters": {
+      "all": "All"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "reimbursed": "Reimbursed",
+      "rejected": "Rejected"
+    },
+    "actions": {
+      "details": "Details",
+      "approve": "Approve",
+      "reject": "Reject",
+      "markReimbursed": "Mark Reimbursed",
+      "delete": "Delete"
+    },
+    "delete": {
+      "title": "Confirm deletion",
+      "prompt": "Are you sure you want to delete the expense <0>“{{title}}”</0> with an amount of <1>{{amount}} €</1>?",
+      "irreversible": "This action is irreversible.",
+      "cancel": "Cancel",
+      "confirm": "Yes, Delete"
+    },
+    "statusDialog": {
+      "approveTitle": "Approve this expense?",
+      "rejectTitle": "Reject this expense?",
+      "reimburseTitle": "Mark this expense as Reimbursed?",
+      "employeeLabel": "Employee",
+      "expenseLabel": "Expense",
+      "approveDesc": "This action approves the expense and makes it eligible for reimbursement.",
+      "rejectDesc": "This action rejects the expense. The employee will be notified.",
+      "reimburseDesc": "This action confirms that the reimbursement has been completed.",
+      "cancel": "Cancel"
+    },
+    "detail": {
+      "title": "Expense Details",
+      "employee": "Employee",
+      "expenseTitle": "Title",
+      "category": "Category",
+      "amount": "Amount",
+      "status": "Status",
+      "expenseDate": "Expense date",
+      "submissionDate": "Submission date",
+      "project": "Project / Mission",
+      "receipt": "Receipt",
+      "viewReceipt": "View receipt",
+      "close": "Close"
+    },
+    "form": {
+      "title": "New Expense",
+      "motiveTitle": "Reason / Title",
+      "motivePlaceholder": "E.g. Client travel",
+      "expenseDate": "Expense date",
+      "category": "Category",
+      "amount": "Amount (€)",
+      "amountPlaceholder": "0.000",
+      "linkedMission": "Linked mission *",
+      "loading": "Loading…",
+      "noMission": "No mission — create one under Employees > Missions",
+      "selectMission": "Select a mission",
+      "project": "Project (free text)",
+      "projectPlaceholder": "Internal reference (Optional)",
+      "receipt": "Receipt",
+      "uploadHint": "Click or drop the file",
+      "uploadConstraints": "PDF, PNG, JPG (Max 10MB)",
+      "submit": "SUBMIT",
+      "submitting": "SENDING...",
+      "cancel": "Cancel",
+      "tip": "Equipment over €500 requires pre-authorization."
+    },
+    "categories": {
+      "transport": "Transport",
+      "meals": "Meals",
+      "equipment": "Equipment",
+      "lodging": "Lodging",
+      "other": "Other"
+    },
+    "messages": {
+      "missionRequired": "Select a mission before submitting the expense.",
+      "submittedSuccess": "Expense submitted successfully!",
+      "submitError": "Error submitting expense.",
+      "deletedSuccess": "Expense deleted.",
+      "deleteError": "Error during deletion.",
+      "statusUpdated": "Expense marked as \"{{label}}\".",
+      "statusError": "Error during update.",
+      "csvDownloaded": "CSV export downloaded."
+    },
+    "csv": {
+      "employee": "Employee",
+      "title": "Title",
+      "category": "Category",
+      "date": "Date",
+      "amount": "Amount",
+      "project": "Project",
+      "status": "Status"
+    }
   },
   "posteHoraire": {
     "day": "Day",
@@ -307,6 +828,76 @@
       "tolerance": "Tolerance",
       "presence": "Presence",
       "meal": "Meal"
+    },
+    "modern": {
+      "noConsultRight": "You do not have the right to view time classes.",
+      "sidebar": {
+        "title": "Seasonal Periods",
+        "noPeriod": "No period found",
+        "addPeriod": "Add a period",
+        "badgeActive": "Active Period",
+        "badgeNext": "Upcoming Period"
+      },
+      "summary": {
+        "title": "Cycle Summary",
+        "coverage": "Annual Coverage",
+        "coverageValue": "{{covered}} / 365 Days",
+        "distinctPosts": "Distinct Shifts",
+        "distinctPostsValue_one": "{{count}} Shift",
+        "distinctPostsValue_other": "{{count}} Shifts",
+        "classId": "Class ID"
+      },
+      "preview": {
+        "title": "Standard Week Configuration",
+        "subtitle": "Preview for <0>{{name}}</0>",
+        "subtitleWithPoste": "Preview for <0>{{name}}</0> (Shift: <1>{{poste}}</1>)",
+        "automated": "Automated",
+        "adjustPointage": "Adjust clocking",
+        "newClass": "New",
+        "delete": "Delete"
+      },
+      "day": {
+        "rest": "Rest",
+        "morning": "Morning",
+        "night": "Night",
+        "afternoonShort": "PM",
+        "afternoon": "Afternoon"
+      },
+      "posteSelector": {
+        "title": "Associate a Work Shift",
+        "subtitle": "Operational matrix selector",
+        "cancel": "Cancel",
+        "apply": "Apply to Segment"
+      },
+      "dialog": {
+        "editTitle": "Edit period",
+        "newTitle": "New period",
+        "classInfo": "Class: {{code}} — {{label}}",
+        "codeClasse": "Class Code",
+        "label": "Label",
+        "from": "From",
+        "to": "To",
+        "overtime": "Overtime",
+        "rotationTitle": "Shifts per Week (Rotation)",
+        "singlePosteTitle": "Work Shift",
+        "weekCount_one": "{{count}} week",
+        "weekCount_other": "{{count}} weeks",
+        "selectPoste": "Select a shift",
+        "addWeek": "Add a week",
+        "cancel": "Cancel",
+        "save": "Update",
+        "create": "Add period"
+      },
+      "msg": {
+        "missingCodeLabel": "Please provide the class code and label",
+        "savedSuccess": "Period saved successfully",
+        "saveError": "Error while saving",
+        "deletedSuccess": "Period deleted",
+        "deleteError": "Error while deleting",
+        "appliedSuccess": "Shift applied successfully",
+        "applyError": "Error while applying the shift"
+      },
+      "confirmDeletePeriod": "Do you really want to delete the period \"{{name}}\"?"
     }
   },
   "dailyHours": {
@@ -379,6 +970,7 @@
     "presence": "Presence",
     "yes": "Yes",
     "no": "No",
+    "add": "Add",
     "confirmDelete": "Are you sure you want to delete this item?"
   },
   "list": {
@@ -421,12 +1013,382 @@
       "exception": "Exception",
       "print": "Print"
     },
-    "confirmDelete": "Are you sure you want to delete this leave (Order No: {{order}})?"
+    "confirmDelete": "Are you sure you want to delete this leave (Order No: {{order}})?",
+    "demConge": {
+      "title": "Leave Management",
+      "subtitlePending_one": "You have <0>{{count}} request</0> pending validation.",
+      "subtitlePending_other": "You have <0>{{count}} requests</0> pending validation.",
+      "newRequest": "New Request",
+      "headers": {
+        "employee": "Employee",
+        "type": "Type",
+        "period": "Period",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "noConsult": "Access denied. You do not have consultation rights.",
+      "noData": "No leave request",
+      "daysWorked_one": "{{count}} working day",
+      "daysWorked_other": "{{count}} working days",
+      "actions": {
+        "print": "Print",
+        "edit": "Edit",
+        "deleteMine": "Delete my request",
+        "refuse": "Refuse",
+        "accept": "Validate"
+      },
+      "status": {
+        "accepted": "Accepted",
+        "refused": "Refused",
+        "pending": "Pending"
+      },
+      "msg": {
+        "acceptedSuccess": "Request accepted successfully",
+        "errorGeneric": "Error",
+        "refusedSuccess": "Request refused successfully",
+        "refuseError": "Error during refusal",
+        "generatingReport": "Generating report...",
+        "printError": "Print error",
+        "createdSuccess": "Leave request created successfully",
+        "updatedSuccess": "Request updated successfully",
+        "deletedSuccess": "Request deleted successfully",
+        "deleteError": "Error during deletion"
+      },
+      "sidebar": {
+        "availability": "Availability today",
+        "presents": "Present",
+        "validatedMonth": "Validated this month",
+        "refusedMonth": "Refused this month",
+        "pending": "Pending",
+        "totalRequests": "Total requests"
+      },
+      "form": {
+        "editTitle": "Edit request",
+        "newTitle": "New leave request",
+        "orderNo": "Order No",
+        "requestDate": "Request date",
+        "employee": "Employee",
+        "type": "Leave type",
+        "departureDate": "Departure date",
+        "returnDate": "Return date",
+        "amHalf": "PM",
+        "days": "Days",
+        "balanceTitle": "Leave Balance",
+        "previousBalance": "Previous Balance",
+        "monthlyEntitlement": "Monthly Entitlement",
+        "currentBalance": "Current Balance",
+        "newBalance": "New Balance",
+        "daysUnit": "days",
+        "daysPerMonth": "days/month",
+        "daysRemaining": "days remaining",
+        "afterLeave": "after leave",
+        "addressDuringLeave": "Address during leave",
+        "phone": "Phone",
+        "cancel": "Cancel",
+        "submit": "Submit",
+        "modify": "Modify"
+      },
+      "dialog": {
+        "acceptTitle": "Confirm validation",
+        "acceptPrompt": "Are you sure you want to validate the leave request{{employee}}{{type}}?",
+        "acceptYes": "Yes, Validate",
+        "refuseTitle": "Confirm refusal",
+        "refusePrompt": "Are you sure you want to refuse the leave request{{employee}}?",
+        "irreversible": "This action is irreversible.",
+        "refuseYes": "Yes, Refuse",
+        "deleteTitle": "Delete my request",
+        "deletePrompt": "Are you sure you want to delete your leave request{{ref}}?",
+        "deleteYes": "Yes, Delete",
+        "cancel": "Cancel"
+      }
+    },
+    "soldeConge": {
+      "titleEmployees": "Employees Leave Balance",
+      "titleNamed": "Leave Balance — {{name}}",
+      "titleMine": "My Leave Balance",
+      "refPeriod": "Reference period: {{period}}",
+      "selectEmployee": "Select an employee…",
+      "selectMyService": "View an employee from my service…",
+      "viewMine": "View my own balance",
+      "selectFirstTitle": "Select an employee",
+      "selectFirstSub": "As an administrator, you view an employee's leave balance. Pick one from the list above.",
+      "card": {
+        "days": "days",
+        "acquired": "Acquired",
+        "takenPlaced": "Taken / Placed",
+        "paidLeave": "Paid Leave",
+        "specialFamily": "Special Family Leave",
+        "noFamilyLeave": "No special family leave taken this year.",
+        "unpaidLeave": "Unpaid Leave",
+        "noUnpaidLeave": "No unpaid leave taken this year."
+      },
+      "table": {
+        "title": "Movements History",
+        "exportPdf": "Export (PDF)",
+        "date": "Date",
+        "description": "Description",
+        "type": "Type",
+        "movement": "Movement",
+        "status": "Status",
+        "noMovements": "No movement recorded",
+        "leaveTaken": "Leave Taken",
+        "daysShort": "d",
+        "statusAccepted": "Accepted",
+        "statusRefused": "Refused",
+        "statusPending": "Pending"
+      },
+      "chart": {
+        "title": "Annual consumption",
+        "labelStart": "Jun",
+        "labelEnd": "Dec",
+        "note_one": "You have consumed <0>{{count}} accepted request</0> this year.",
+        "note_other": "You have consumed <0>{{count}} accepted requests</0> this year."
+      },
+      "quickStats": {
+        "validated": "Validated",
+        "refused": "Refused",
+        "pending": "Pending"
+      },
+      "info": {
+        "rolloverTitle": "Carry-over rule",
+        "rolloverText": "Paid leave not taken by May 31 will be automatically transferred to your Time Saving Account (TSA), up to 10 days."
+      }
+    },
+    "titreConge": {
+      "title": "Leave Titles",
+      "subtitle_one": "You have <0>{{count}} official leave</0> generated.",
+      "subtitle_other": "You have <0>{{count}} official leaves</0> generated.",
+      "newButton": "New Leave",
+      "headers": {
+        "employee": "Employee",
+        "type": "Type",
+        "period": "Period",
+        "orderNo": "Order No.",
+        "actions": "Actions"
+      },
+      "noConsult": "Access denied. You do not have viewing rights.",
+      "noData": "No leave title found",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "actions": {
+        "print": "Print",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "form": {
+        "titleAdd": "Issue a New Leave Title",
+        "titleEdit": "Edit Leave Title",
+        "orderNo": "Order No.",
+        "dateTitre": "Title Date",
+        "employee": "Employee",
+        "imputation": "Imputation (Type)",
+        "departureDate": "Departure date",
+        "returnDate": "Return date",
+        "am": "AM",
+        "days": "Days",
+        "balanceTitle": "📊 Balance Status",
+        "balancePrev": "PREVIOUS",
+        "balanceCurrent": "CURRENT",
+        "balanceNew": "ESTIMATED NEW BALANCE",
+        "balanceNewDays": "{{count}} days",
+        "ref": "Reference / Comment",
+        "submit": "Issue",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "delete": {
+        "title": "Deletion",
+        "message": "Are you sure you want to delete leave #{{order}}?",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "msg": {
+        "deletedSuccess": "Successfully deleted",
+        "deleteError": "Error during deletion",
+        "generatingReport": "Generating report...",
+        "downloadError": "Error during download",
+        "createdSuccess": "Leave title created successfully",
+        "updatedSuccess": "Leave title updated successfully"
+      },
+      "stat": {
+        "totalEmitted": "Total Issued Titles"
+      },
+      "pagination": {
+        "showing": "Showing <0>{{from}}</0> to <1>{{to}}</1> of <2>{{total}}</2>"
+      }
+    },
+    "congeGeneral": {
+      "title": "General Leave",
+      "subtitle": "Global base: <0>{{count}}</0> leaves recorded in the system.",
+      "bulkButton": "Bulk Issuance (Mass)",
+      "form": {
+        "titleAdd": "Issue a New Title",
+        "titleEdit": "Edit Leave Title",
+        "exceptionsTitle": "Exceptions ({{count}})",
+        "exceptionsSubtitle": "Employees excluded from issuance",
+        "hide": "Hide",
+        "manage": "Manage",
+        "search": "Search...",
+        "submit": "Issue",
+        "submitBulk": "Bulk Issue"
+      }
+    },
+    "soldeAdmin": {
+      "title": "Leave Balance Allocation",
+      "yearLabel": "Yearly management — {{year}}",
+      "refresh": "Refresh",
+      "stats": {
+        "totalEmployees": "Total Employees",
+        "withSolde": "With Balance",
+        "totalDays": "Total Allocated Days"
+      },
+      "search": "Search an employee...",
+      "headers": {
+        "matricule": "ID",
+        "employee": "Employee",
+        "status": "Status",
+        "balance": "Balance (days)",
+        "action": "Action"
+      },
+      "status": {
+        "assigned": "Allocated",
+        "notAssigned": "Not allocated"
+      },
+      "noEmployees": "No employee found",
+      "tooltip": {
+        "save": "Save"
+      },
+      "msg": {
+        "invalid": "Invalid value. Enter a positive number.",
+        "updateSuccess": "{{name}}'s balance updated successfully",
+        "saveError": "Error while saving the balance"
+      }
+    },
+    "cet": {
+      "title": "Time Saving Account",
+      "subtitle": "Paid leave not taken by the deadline is automatically transferred to the TSA, up to the configured ceiling.",
+      "noConsult": "You do not have the right to consult the TSA.",
+      "params": {
+        "title": "Rule parameters",
+        "dateLimit": "Deadline (DD-MM)",
+        "dateLimitHelp": "Date after which the transfer applies",
+        "ceiling": "TSA Ceiling (days)",
+        "ceilingHelp": "Maximum number of days transferred per year",
+        "save": "Save"
+      },
+      "apply": {
+        "title": "Apply yearly transfer",
+        "description": "Select the year. The preview computes without modifying — the actual transfer updates the balance table.",
+        "year": "Year",
+        "preview": "Preview",
+        "applyButton": "Apply transfer"
+      },
+      "result": {
+        "title": "Result — Year {{year}}",
+        "dateLimit": "Deadline: {{date}}",
+        "ceiling": "Ceiling: {{count}} d",
+        "employees_one": "{{count}} employee",
+        "employees_other": "{{count}} employee(s)",
+        "totalDays": "Total: {{count}} d",
+        "noTransfer": "No day to transfer.",
+        "headers": {
+          "empcod": "Employee code",
+          "before": "Remaining balance before",
+          "transferred": "Days transferred",
+          "after": "TSA after"
+        }
+      },
+      "confirm": {
+        "title": "Confirm TSA transfer",
+        "message": "This action updates all employees' balances for year <0>{{year}}</0>. Days not taken (above the ceiling) will be lost. This operation is irreversible.",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      },
+      "msg": {
+        "invalidDate": "Invalid deadline (format DD-MM, e.g.: 31-05).",
+        "invalidCeiling": "Ceiling must be positive.",
+        "saveSuccess": "TSA parameters saved.",
+        "saveError": "Error while saving.",
+        "previewMsg": "Preview: {{employees}} employee(s), {{days}} day(s) to transfer.",
+        "previewError": "Error during calculation.",
+        "applySuccess": "Transfer applied: {{employees}} employee(s), {{days}} day(s) added to TSA.",
+        "applyError": "Error during transfer."
+      }
+    }
   },
   "contract": {
     "number": "Contract No",
     "date": "Contract Date",
     "type": "Contract Type"
+  },
+  "contrat": {
+    "noConsultRight": "You do not have the right to view contracts.",
+    "loadEmployeeError": "Error loading employee data",
+    "selectEmployee": "Please select an employee",
+    "concodRequired": "Contract No is required",
+    "sessionExpired": "Session expired, please log in again",
+    "updatedSuccess": "Contract updated successfully",
+    "addedSuccess": "Contract added successfully",
+    "saveError": "Error while saving",
+    "deletedSuccess": "Contract deleted",
+    "deleteError": "Error during deletion",
+    "templatesLoadError": "Unable to load templates.",
+    "selectTemplate": "Select a template.",
+    "exported": "Document exported.",
+    "exportError": "Error during export.",
+    "exportPdf": "Export (PDF)",
+    "renew": "Renew",
+    "edit": "Edit",
+    "delete": "Delete",
+    "kpiActive": "Active Contracts",
+    "kpiActiveSub": "/ {{total}} total",
+    "kpiExpiring": "Expiring soon",
+    "kpiExpiringSub": "next 30 days",
+    "kpiNew": "New this month",
+    "kpiNewSub": "Onboarding",
+    "editTitle": "Edit Contract",
+    "newTitle": "New Contract",
+    "company": "Company",
+    "branchSite": "Branch / Site",
+    "selectPlaceholder": "Select...",
+    "employee": "Employee",
+    "selectEmployeePlaceholder": "Select an employee...",
+    "loadingEmployee": "Loading employee data...",
+    "concodLabel": "Contract No",
+    "typeLabel": "Type",
+    "dateStart": "Start Date",
+    "dateEnd": "End Date",
+    "positionFunction": "Position / Function",
+    "baseSalary": "Base Salary",
+    "motifObs": "Reason / Notes",
+    "obsPlaceholder": "Additional notes...",
+    "saveContract": "Save Contract",
+    "all": "All",
+    "searchPlaceholder": "Search...",
+    "exportPdfBtn": "Export PDF",
+    "selection": "Selection",
+    "headers": {
+      "concod": "Contract No",
+      "employee": "Employee",
+      "period": "Period",
+      "type": "Type",
+      "position": "Position",
+      "actions": "Actions"
+    },
+    "noContracts": "No contract found",
+    "indefinite": "Indefinite",
+    "expired": "Expired",
+    "displayedCount_one": "{{count}} contract shown",
+    "displayedCount_other": "{{count}} contracts shown",
+    "deleteConfirm": "Do you really want to delete contract \"{{concod}}\" from {{employee}}?",
+    "renewedSuccess": "Contract renewed successfully",
+    "exportTitle": "Export contract — {{concod}}",
+    "exportPrompt": "Select the template to use for generating the PDF of the contract for",
+    "selectTemplatePlaceholder": "Select a template…",
+    "noTemplate": "No template available. Create one from Vault → Template Library.",
+    "cancel": "Cancel",
+    "exporting": "Exporting…",
+    "downloadPdf": "Download PDF"
   },
   "employeeLevel": {
     "cadre": "Cadre",
@@ -530,6 +1492,111 @@
     "manipulate": "Manipulate"
   },
   "paramSoc": {
+    "common": {
+      "month": "Month",
+      "configuration": "Configuration",
+      "title": "System Settings",
+      "subtitle": "Manage calculation rules, payroll dates, and advanced clock-in settings.",
+      "saveTooltip": "Save all changes",
+      "saveButton": "Save settings",
+      "savingButton": "Saving...",
+      "updateSuccess": "Settings updated successfully!",
+      "updateError": "Error during update.",
+      "selectPlaceholder": "-- Select --"
+    },
+    "tabs": {
+      "calculsDates": "Calculations & Dates",
+      "heuresSup": "Overtime",
+      "heuresNuit": "Night Hours",
+      "general": "General",
+      "affichage": "Display",
+      "valeurCalcul": "Calculation Values",
+      "heureSupp": "Overtime Hours",
+      "sansClassHoraire": "Without Schedule Class",
+      "connPoint": "Clock Connection",
+      "calendrier": "Calendar"
+    },
+    "tabsHeader": {
+      "calculsTitle": "Calculation Logic & Dates",
+      "joursFeries": "Leaves & Public Holidays",
+      "pointageCalcul": "Clock-in & Calculation",
+      "tranchesHsup": "Overtime Brackets",
+      "configurationNuit": "Night Configuration"
+    },
+    "calculs": {
+      "moisDebut": "Month Start",
+      "moisDebutLabel": "Start Month",
+      "moisFin": "Month End",
+      "moisFinLabel": "End Month",
+      "current": "Current",
+      "previous": "Previous",
+      "anciennete": "Required Seniority (years)",
+      "heuresConge": "Leave Hours",
+      "heuresRepos": "Rest Hours",
+      "heuresFerie": "Holiday Hours",
+      "travailFerie": "Work on holidays",
+      "ecartMin": "Minimum gap (min)",
+      "minHoursDay": "Min hours/day",
+      "maxHoursDay": "Max hours/day",
+      "maxFerieMajore": "Max increased holidays",
+      "eliminerFerie": "Exclude holidays from overtime calculation",
+      "modeDeductionRepos": "Rest deduction mode (Monthly)",
+      "elim0": "No",
+      "elim1": "Yes - Subtract before calculation",
+      "elim2": "Yes - Subtract after calculation",
+      "rep0": "Deduct rest hours",
+      "rep2": "Deduct Sunday hours",
+      "rep3": "Deduct Saturday + Sunday"
+    },
+    "heuresSup": {
+      "cadre": "Manager",
+      "maitrise": "Supervisor",
+      "executant": "Operator",
+      "hebdomadaire": "Weekly (W)",
+      "mensuel": "Monthly (M)",
+      "ajouter": "Add",
+      "calendrier": "Calendar",
+      "tr1": "Br1",
+      "tr2": "Br2",
+      "horaire": "Hourly",
+      "mensuelTitle": "Monthly",
+      "tranche1": "Bracket 1",
+      "tranche2": "Bracket 2",
+      "taux1": "Rate 1",
+      "taux2": "Rate 2",
+      "action": "Action",
+      "semaineComplete": "Full Week",
+      "method": {
+        "paramCategorie": "Param. Category",
+        "paramPoste": "Param. Position",
+        "hsupMensuel": "Monthly Overtime",
+        "hsupHebdo": "Weekly Overtime Calculation",
+        "trancheMaxJour": "Max work hours/day bracket",
+        "cumulHsupJour": "Daily overtime accumulation",
+        "hsupHebdoMens": "Weekly + Monthly Overtime"
+      },
+      "elim0": "0- Count Worked Holiday",
+      "elim1": "1- Exclude Worked Holiday from Overtime and Normal hours",
+      "elim2": "2- Exclude Worked Holiday from Overtime + Add N.H.",
+      "elim3": "3- Exclude Worked Holiday-Rest from Overtime + Add N.H.",
+      "rep0": "0- Do not handle Worked Rest with normal hours",
+      "rep1": "1- Handle Worked Rest with normal hours",
+      "rep2": "2- Do not handle Worked Sunday with normal hours",
+      "rep3": "3- Do not handle Worked Saturday-Sunday with normal hours",
+      "debutCalculLabel": "Start of normal hours calculation",
+      "calculHsupLabel": "Overtime calculation",
+      "premierMois": "First of the month",
+      "lundiSemaine": "Monday week 1"
+    },
+    "nuit": {
+      "debut": "Start",
+      "fin": "End",
+      "diminuerPanier": "Reduce night meal allowance",
+      "compterSortie": "Count exit day",
+      "exclureNuit": "Exclude night if exit during day",
+      "majoreHnuit": "Increase Night Hrs to Normal Hrs",
+      "seuilMin": "Min Night Threshold (h)"
+    },
     "part1": {
       "jourDebut": "Start day",
       "jourFin": "End day",
@@ -552,8 +1619,281 @@
       "saisieConge": "Leave entry",
       "daysBeforeOrAfter": "Days before or after"
     },
-    "common": {
-      "month": "Month"
+    "general": {
+      "part1": {
+        "afficherEcheance": "Show contract due date on home",
+        "calculSemaine": "Compute Weekly Hours by non-calendar definition",
+        "utilisationPlan": "Use Calendar plan",
+        "longueurMatricule": "Badge Length",
+        "memeSerie": "Same series for absence and leave",
+        "codeAbsenceAllaitement": "Breastfeeding Absence Code"
+      },
+      "part2": {
+        "integrationPaie": "Payroll Integration",
+        "arrondirCumul": "Round payroll hours total",
+        "diviserNuit": "Divide night hours to integrate by",
+        "intituleNuit": "Special Night Label"
+      },
+      "part3": {
+        "arrondiPointage": "Clock-in rounding",
+        "arrondiEntree": "Round each entry hour",
+        "majoreEntree": "Increased from",
+        "arrondiHsup": "Overtime rounding",
+        "arrondiSortie": "Round each exit hour",
+        "majoreSortie": "Increased from"
+      },
+      "part4": {
+        "enregistrementAuto": "Automatic Save",
+        "importAuto": "Auto Employee Import",
+        "modeleEtat": "Hourly Clock-in Report Template",
+        "etatMois": "Monthly Report",
+        "badgeUnique": "Unique badge across all companies",
+        "siteUnique": "Single site for all companies",
+        "genererBillet": "Generate Entry Ticket",
+        "separationZone": "Zone Separation",
+        "gererCentrePaie": "Manage By Payroll Center"
+      }
+    },
+    "affichage": {
+      "selectImage": "Select Image",
+      "saveLogo": "Save Logo",
+      "previewAlt": "Preview",
+      "etatPeriodiquePresence": {
+        "afficherTaux25": "Show 25% Rate",
+        "afficherTaux50": "Show 50% Rate",
+        "afficherTaux75": "Show 75% Rate",
+        "afficherTaux100": "Show 100% Rate",
+        "separationDecimal": "Decimal separator"
+      },
+      "valeurDefaut": {
+        "regime": "Regime",
+        "presence": "Presence",
+        "modelePresence": "Presence Report Template",
+        "regime0": "All",
+        "regime1": "Monthly",
+        "regime2": "Hourly",
+        "presence0": "All",
+        "presence1": "Valid",
+        "presence2": "Invalid",
+        "presence3": "Missing",
+        "presence4": "Absence",
+        "directe": "Direct",
+        "indirecte": "Indirect",
+        "tous": "All",
+        "normal": "Normal",
+        "hebdomadaire": "Weekly",
+        "septJourSemaine": "7 Days/Week"
+      }
+    },
+    "calendrier": {
+      "monthsLong": {
+        "janvier": "January",
+        "fevrier": "February",
+        "mars": "March",
+        "avril": "April",
+        "mai": "May",
+        "juin": "June",
+        "juillet": "July",
+        "aout": "August",
+        "septembre": "September",
+        "octobre": "October",
+        "novembre": "November",
+        "decembre": "December"
+      },
+      "monthsShort": {
+        "jan": "Jan",
+        "fev": "Feb",
+        "mar": "Mar",
+        "avr": "Apr",
+        "mai": "May",
+        "juin": "Jun",
+        "juil": "Jul",
+        "aout": "Aug",
+        "sep": "Sep",
+        "oct": "Oct",
+        "nov": "Nov",
+        "dec": "Dec"
+      },
+      "days": {
+        "lundi": "Monday",
+        "mardi": "Tuesday",
+        "mercredi": "Wednesday",
+        "jeudi": "Thursday",
+        "vendredi": "Friday",
+        "samedi": "Saturday",
+        "dimanche": "Sunday",
+        "samDim": "Sat-Sun"
+      },
+      "settingsSavedFor": "Settings saved for {{period}}",
+      "settingsSaveError": "Error while saving settings.",
+      "yearCreatedSuccess": "Schedule {{year}} created successfully!",
+      "yearCreateError": "Error while creating year {{year}}.",
+      "yearClonedSuccess": "Year {{year}} cloned successfully!",
+      "yearCloneError": "Error while cloning year {{year}}.",
+      "tag": "Time tracking",
+      "heading": "Monthly Schedule & Clock-in",
+      "rest": "Rest",
+      "monthTotal": "Month total: {{hours}} hours",
+      "basedOn": "Based on",
+      "workedDays_one": "{{count}} day worked",
+      "workedDays_other": "{{count}} days worked",
+      "downloadPdf": "Download",
+      "validate": "Validate",
+      "validateHours": "hours",
+      "annualStats": "Annual Statistics {{year}}",
+      "calculatedAuto": "Calculated automatically",
+      "headers": {
+        "month": "Month",
+        "daysPerMonth": "Days/Month",
+        "hoursPerMonth": "Hours/Month",
+        "openHours": "Open Hours",
+        "hoursPerDay": "Hours/Day",
+        "performance": "Performance"
+      },
+      "config": {
+        "title": "Configuration",
+        "adjust": "Adjust your monthly settings",
+        "hoursPerDay": "Hours per day",
+        "saturdayHours": "Saturday (Hours)",
+        "restDay": "Rest day",
+        "applyAllMonths": "Apply to all months",
+        "saveSettings": "Save settings",
+        "initYear": "Initialize a year",
+        "tipBold": "Tip:",
+        "tip": "Clock-in syncs automatically every day at 11:59 PM."
+      },
+      "newPlanning": {
+        "title": "New Schedule",
+        "subtitle": "Set up the calendar for a new year",
+        "sourceYear": "Source Year",
+        "newYear": "New Year",
+        "baseHours": "Base hours per day",
+        "clone": "Clone {{year}}",
+        "createNew": "Create New",
+        "footer": "Initialization will generate 12 months of calendar based on your settings."
+      },
+      "sidebar": {
+        "currentAssignment": "Current assignment",
+        "hub": "Architecture & Design Hub",
+        "remainingLeaves": "Remaining leaves",
+        "remainingLeavesValue": "12 days"
+      },
+      "saisie": {
+        "tousLesJours": "Every day",
+        "tousLesMois": "Every month",
+        "samedi": "Saturday",
+        "nbHreJour": "Hrs/Day",
+        "nbJourMois": "Days/Month",
+        "nbHreMois": "Hrs/Month"
+      },
+      "cumul": {
+        "nombre": "Number",
+        "joursMois": "Days/Month",
+        "heuresMois": "Hours/Month",
+        "heuresOuv": "Open Hrs",
+        "heuresJour": "Hours/Day"
+      }
+    },
+    "connPoint": {
+      "ncom": "COM No.",
+      "nbPointeuse": "Clock Count",
+      "ecartPointage": "Successful Clock-in Gap (min)",
+      "footerNote": "Port No. 1, 2 or 3 if model transfer: D: DIS, H: HAKIM, N: B-HAKIM, B: Table access, T: ZKS Clock, Z: ZKS Base v.2008"
+    },
+    "sansClasse": {
+      "heuresNuitTitle": "Night Hours",
+      "heureDebut": "Start Time",
+      "heureFin": "End Time",
+      "normal": "Normal",
+      "speciale": "Special",
+      "compterSortie": "Count exit day as presence date",
+      "neCompterPas": "Do not count night hours if exit during day",
+      "majoreHnuit": "Increase Night Hrs to Normal Hrs",
+      "jourRepos": "Rest Day:",
+      "selectionnerJour": "Select a day",
+      "methodeCalculTitle": "Overtime Calculation Method",
+      "journee": "Day",
+      "tauxNormal": "Normal Rate",
+      "tauxRepos": "Rest Rate"
+    },
+    "valeurCalcul": {
+      "part2": {
+        "conge": "Leave",
+        "ferie": "Holiday",
+        "repos": "Rest",
+        "demiJour": "Half Day",
+        "nbHeuresJour": "Hrs/Day"
+      },
+      "part3": {
+        "maxHeuresFerie": "Max Worked Holiday Hours",
+        "selonClasse": "0 if according to schedule class",
+        "minHeuresJour": "Min Hours = One Day",
+        "minHeuresDemi": "Min Hours = Half Day",
+        "maxHeuresJour": "Max hours per day for optimization",
+        "arrondirHeure": "Round hours per day",
+        "a": "to",
+        "pourPoste": "for shift",
+        "changementPoste": "Shift Change on Mondays"
+      }
+    },
+    "profile": {
+      "user": "User",
+      "active": "Active",
+      "inactive": "Inactive",
+      "admin": "Administrator",
+      "modifyProfile": "Edit Profile",
+      "changePassword": "Change password",
+      "basicInfo": "Basic Information",
+      "lastName": "Last Name",
+      "firstName": "First Name",
+      "professionalEmail": "Work Email",
+      "userCode": "User Code",
+      "role": "Role",
+      "status": "Status",
+      "accountSecurity": "Account Security",
+      "password": "Password",
+      "passwordSubtitle": "Last changed recently",
+      "twoFA": "Two-Factor Authentication (2FA)",
+      "twoFAEnabled": "Enabled ✓",
+      "twoFARecommended": "Recommended to secure your access",
+      "disable": "Disable",
+      "enable2FA": "Enable 2FA",
+      "profilePhoto": "Profile photo",
+      "uploadImage": "Upload image",
+      "uploadHint": "Drag and drop or click to browse. JPG, PNG (max. 5MB)",
+      "deletePhoto": "Remove current photo",
+      "activitySummary": "Activity Summary",
+      "code": "Code",
+      "twoFAStatus": "2FA",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "securityStatus": "Security status",
+      "excellent": "Excellent",
+      "good": "Good",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "twoFADialogTitle": "Enable Two-Factor Authentication",
+      "twoFAStep1": "1. Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)",
+      "twoFAStep2": "2. Enter the 6-digit code shown in the app",
+      "verifying": "Verifying...",
+      "verifyAndEnable": "Verify & Enable",
+      "msg": {
+        "profileUpdated": "Profile updated successfully!",
+        "noChanges": "No changes made.",
+        "updateError": "Error during update.",
+        "photoUpdated": "Profile picture updated!",
+        "photoSaveError": "Error while saving the image.",
+        "fillAllFields": "Please fill in all fields.",
+        "passwordChanged": "Password changed successfully!",
+        "passwordChangeError": "Error while changing the password.",
+        "twoFAEnableError": "Error while enabling 2FA.",
+        "twoFAEnabled": "2FA enabled successfully!",
+        "twoFAInvalidCode": "Invalid code. Please try again.",
+        "twoFADisabled": "2FA disabled.",
+        "twoFADisableError": "Error while disabling."
+      }
     }
   },
   "app": {
@@ -586,7 +1926,61 @@
     "present": "Present",
     "absent": "Absent",
     "onLeave": "On Leave",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "title": "Overview",
+    "updatedToday": "Updated today, {{date}}",
+    "exportReport": "Export report",
+    "allDepartments": "All Departments",
+    "applyFilters": "Apply filters",
+    "presenceRate": "Presence Rate",
+    "absenceRate": "Absenteeism Rate",
+    "punctuality": "Punctuality",
+    "average": "Average",
+    "overtimeAccumulated": "Accumulated Overtime",
+    "totalEmployees": "Total Employees",
+    "ongoingLeaves": "Ongoing Leaves",
+    "pendingApproval": "Requests pending approval",
+    "contractAlerts": "Contract Alerts",
+    "contractsExpiringMonth": "Contracts expiring this month →",
+    "recruitmentTrends": "Recruitment Trends",
+    "monthlyEvolution": "Monthly evolution {{year}}",
+    "entries": "Entries",
+    "exits": "Exits",
+    "recentAbsences": "Recent absences",
+    "todaysAbsences": "Today's absences",
+    "total": "Total",
+    "active": "Active",
+    "noAbsence": "No absence recorded",
+    "todaysLate": "Today's lateness",
+    "viewAllCalendar": "View full calendar",
+    "nextRenewals": "Upcoming contract renewals",
+    "daysLeft": "{{days}}d remaining",
+    "renew": "Renew",
+    "noRenewal": "No imminent renewal this month",
+    "congeRequestsPending": "Pending Leave Requests",
+    "requestsFound": "{{count}} request(s) found",
+    "contractsExpiring": "Contracts Expiring this Month",
+    "contractsExpiringSub": "{{count}} contract(s) reaching expiration",
+    "noContractExpiring": "No contract expires this month",
+    "pointagesIncomplete": "Incomplete clockings",
+    "fetchError": "Error during retrieval.",
+    "noIncompletePointage": "No incomplete clocking found.",
+    "loadError": "Error loading the dashboard",
+    "columns": {
+      "matricule": "ID",
+      "employee": "Employee",
+      "type": "Type",
+      "hireDate": "Hire Date",
+      "dueDate": "Due Date",
+      "daysRemaining": "Days Remaining",
+      "action": "Action",
+      "name": "Name",
+      "department": "Department",
+      "date": "Date",
+      "arrival": "Arrival",
+      "departure": "Departure",
+      "comment": "Comment"
+    }
   },
   "loading": {
     "loading": "Loading..."
@@ -603,6 +1997,306 @@
     "added": "Company added successfully!",
     "addError": "Failed to add Company. Please try again.",
     "updated": "Company updated successfully!"
+  },
+  "donneeBase": {
+    "breadcrumb": "Base data",
+    "common": {
+      "cancel": "Cancel",
+      "update": "Update",
+      "save": "Save",
+      "search": "Search...",
+      "actions": "Actions",
+      "code": "Code",
+      "label": "Label",
+      "saveError": "Error while saving.",
+      "labelRequired": "Label is required."
+    },
+    "pays": {
+      "noConsultRight": "You do not have the right to view countries.",
+      "heading": "Country Management",
+      "subtitle": "Configure available countries for the application",
+      "editTitle": "Edit country",
+      "newTitle": "New country",
+      "codeLabel": "Country Code",
+      "autoGenerated": "(auto-generated)",
+      "autoPlaceholder": "Auto",
+      "labelPlaceholder": "Morocco",
+      "tableTitle": "Countries List ({{count}})",
+      "noResults": "No country found.",
+      "footerCount": "Showing {{count}} countries",
+      "deleteConfirm": "Are you sure you want to delete this country?",
+      "msgUpdated": "Country updated successfully.",
+      "msgAdded": "Country added successfully."
+    },
+    "ville": {
+      "noConsultRight": "You do not have the right to view cities.",
+      "heading": "City Management",
+      "subtitle": "Configure available cities",
+      "editTitle": "Edit city",
+      "newTitle": "New city",
+      "codeLabel": "City Code",
+      "autoGenerated": "(auto-generated)",
+      "labelPlaceholder": "Casablanca",
+      "tableTitle": "Cities List ({{count}})",
+      "noResults": "No city found.",
+      "footerCount": "Showing {{count}} cities",
+      "deleteConfirm": "Are you sure you want to delete this city?",
+      "msgUpdated": "City updated successfully.",
+      "msgAdded": "City added successfully.",
+      "importFranceTitle": "Import French cities",
+      "importing": "Importing…",
+      "importFranceConfirm": "Import the ~35,000 French municipalities? Existing cities will be skipped.",
+      "importSuccess": "{{inserted}} cities imported ({{skipped}} already present)",
+      "importError": "Error during cities import"
+    },
+    "qualification": {
+      "noConsultRight": "You do not have the right to view qualifications.",
+      "heading": "Qualification Management",
+      "subtitle": "Configure available qualifications",
+      "editTitle": "Edit qualification",
+      "newTitle": "New qualification",
+      "codeLabel": "Qualification Code",
+      "autoPlaceholder": "Auto-generated",
+      "labelPlaceholder": "Engineer",
+      "tableTitle": "Qualifications List ({{count}})",
+      "noResults": "No qualification found.",
+      "footerCount": "Showing {{count}} qualifications",
+      "deleteConfirm": "Delete this qualification?",
+      "msgUpdated": "Qualification updated.",
+      "msgAdded": "Qualification added."
+    },
+    "orgStructure": {
+      "noConsultRight": "You do not have the right to view the organizational structure.",
+      "label": "Central Administration",
+      "title": "Organizational Structure",
+      "addUnit": "Add a Unit",
+      "menu": {
+        "direction": "Direction",
+        "service": "Service",
+        "section": "Section"
+      },
+      "import": {
+        "directions": "Import Directions (Excel)",
+        "services": "Import Services (Excel)",
+        "sections": "Import Sections (Excel)"
+      },
+      "metric": {
+        "totalDirections": "Total Directions",
+        "totalServices": "Total Services",
+        "totalSections": "Total Sections",
+        "active": "Active",
+        "operational": "Operational",
+        "totalUnits": "{{count}} units total"
+      },
+      "filter": {
+        "all": "All",
+        "directions": "Directions",
+        "services": "Services",
+        "sections": "Sections",
+        "advanced": "Advanced Filters",
+        "exportLedger": "Export Ledger"
+      },
+      "headers": {
+        "code": "Code",
+        "label": "Unit Name",
+        "type": "Type",
+        "location": "Location",
+        "email": "Contact Email",
+        "actions": "Actions"
+      },
+      "type": {
+        "direction": "Direction",
+        "service": "Service",
+        "section": "Section"
+      },
+      "loading": "Loading...",
+      "noResults": "No unit found.",
+      "responsable": "Mgr:",
+      "showing": "Showing {{from}} to {{to}} of {{total}} units",
+      "creating": "Units in Creation",
+      "dialog": {
+        "edit": "Edit",
+        "add": "Add",
+        "directionUnit": "a Direction",
+        "serviceUnit": "a Service",
+        "sectionUnit": "a Section",
+        "code": "Code",
+        "autoGen": "(leave empty to auto-generate)",
+        "autoPlaceholder": "Auto",
+        "label": "Label",
+        "location": "Location",
+        "email": "Email",
+        "cancel": "Cancel",
+        "save": "Save",
+        "update": "Update"
+      },
+      "msg": {
+        "labelRequired": "Label is required.",
+        "codeRequiredEdit": "Code is required when editing.",
+        "codeRequiredDir": "Code is required for a direction.",
+        "updated": "Unit updated.",
+        "added": "Unit added.",
+        "deleted": "Deleted.",
+        "deleteError": "Deletion error.",
+        "deleteConfirm": "Delete {{name}}?",
+        "error": "Error."
+      }
+    },
+    "allaitement": {
+      "title": "Breastfeeding Management",
+      "subtitle": "Configure and monitor breastfeeding periods for staff.",
+      "infoTitle": "Legal Compliance",
+      "infoText": "Breastfeeding time counts as effective work time. Make sure the slots comply with the applicable collective agreement.",
+      "infoButton": "View HR guide"
+    },
+    "fonction": {
+      "noConsultRight": "You do not have the right to view functions.",
+      "heading": "Function Management",
+      "subtitle": "Configure available functions",
+      "editTitle": "Edit function",
+      "newTitle": "New function",
+      "labelPlaceholder": "Director",
+      "typeLabel": "Type",
+      "type": {
+        "admin": "Administration",
+        "technical": "Technical",
+        "operational": "Operational"
+      },
+      "tableTitle": "Functions List ({{count}})",
+      "noResults": "No function found.",
+      "footerCount": "Showing {{count}} functions",
+      "deleteConfirm": "Delete this function?",
+      "msgUpdated": "Function updated.",
+      "msgAdded": "Function added.",
+      "importExcel": "Import Excel"
+    },
+    "filiale": {
+      "noConsultRight": "You do not have the right to view branches.",
+      "heading": "Branch Management",
+      "subtitle": "Configure your company's sites and branches",
+      "saving": "Saving...",
+      "tableTitle": "Branch Portfolio ({{count}})",
+      "noResults": "No branch found.",
+      "footerCount": "Showing {{count}} branches",
+      "deleteConfirm": "Delete this branch?",
+      "msgUpdated": "Branch updated.",
+      "msgAdded": "Branch added.",
+      "codeRequired": "Code and Name are required.",
+      "headers": {
+        "name": "Name",
+        "phone": "Phone",
+        "email": "Email",
+        "hoursMonth": "Hrs/Month"
+      },
+      "details": {
+        "titleEdit": "Branch details:",
+        "titleNew": "New branch",
+        "subEdit": "Edit information for the selected branch.",
+        "subNew": "Enter information for the new branch."
+      },
+      "card": {
+        "identification": "Identification",
+        "contact": "Contact Details",
+        "workParams": "Work Parameters"
+      },
+      "field": {
+        "code": "Branch Code",
+        "name": "Branch Name",
+        "address": "Address",
+        "phone": "Phone",
+        "fax": "Fax",
+        "email": "Email",
+        "hoursMonth": "Hours / Month",
+        "leavesYear": "Leave / Year",
+        "leavesMonth": "Leave / Month"
+      },
+      "placeholder": {
+        "code": "S01",
+        "name": "Casablanca HQ",
+        "address": "123 Mohammed V Avenue",
+        "phone": "+212 5XX XXX XXX",
+        "email": "contact@branch.ma"
+      }
+    },
+    "rubrique": {
+      "noConsultRight": "You do not have the right to view rubrics.",
+      "heading": "Rubrics Management",
+      "subtitle": "Configure payroll rubrics",
+      "editTitle": "Edit rubric",
+      "newTitle": "New rubric",
+      "codeRequired": "Code and Label are required.",
+      "codePlaceholder": "R01",
+      "labelPlaceholder": "Base salary",
+      "unitLabel": "Unit",
+      "typeLabel": "Type",
+      "unit": {
+        "hour": "Hour",
+        "day": "Day",
+        "month": "Month",
+        "fixed": "Fixed"
+      },
+      "type": {
+        "gain": "Gain",
+        "deduction": "Deduction",
+        "contribution": "Contribution"
+      },
+      "tableTitle": "Rubrics List ({{count}})",
+      "noResults": "No rubric found.",
+      "footerCount": "Showing {{count}} rubrics",
+      "deleteConfirm": "Delete this rubric?",
+      "msgUpdated": "Rubric updated.",
+      "msgAdded": "Rubric added."
+    }
+  },
+  "societe": {
+    "noConsultRight": "You do not have the right to view company settings.",
+    "title": "Company Settings",
+    "subtitle": "Manage your entity portfolio and their configurations.",
+    "export": "Export",
+    "newCompany": "New Company",
+    "tableTitle": "Companies Portfolio",
+    "filterByType": "Filter by type:",
+    "all": "All",
+    "branches": "Branches",
+    "groups": "Groups",
+    "headers": {
+      "actions": "Actions",
+      "code": "Code",
+      "label": "Label",
+      "type": "Type",
+      "phoneEmail": "Phone / Email",
+      "responsible": "Manager",
+      "address": "Address"
+    },
+    "noCompany": "No company found.",
+    "pagination": "Showing {{start}} to {{end}} of {{total}} companies",
+    "detailsTitle": "Entity details: {{code}}",
+    "newDetailsTitle": "New company",
+    "editSubtitle": "Edit the selected entity's information.",
+    "newSubtitle": "Fill in the new entity's information.",
+    "cancel": "Cancel",
+    "msg": {
+      "codeLibelleRequired": "Code and label are required.",
+      "codeMustBeTwoChars": "Company code must be exactly 2 characters.",
+      "fieldExceeds": "Field {{field}} exceeds {{max}} characters.",
+      "updated": "Company updated successfully.",
+      "added": "Company added successfully.",
+      "updateError": "Error during update.",
+      "addError": "Error during addition.",
+      "deleteConfirm": "Are you sure you want to delete this company?"
+    },
+    "type": {
+      "siege": "Headquarters",
+      "groupe": "Group",
+      "filiale": "Branch"
+    },
+    "card": {
+      "identification": "Identification",
+      "address": "Address",
+      "city": "City",
+      "email": "Email",
+      "work": "Work"
+    }
   },
   "profile": {
     "imageSaved": "Image saved successfully.",
@@ -626,6 +2320,382 @@
     "save": "Save rubrique",
     "edit": "Edit rubrique"
   },
+  "pointeuse": {
+    "etatPeriodique": {
+      "title": "Periodic Report",
+      "subtitle": "Detailed monitoring of attendance and schedules",
+      "export": "Export",
+      "print": "Print",
+      "collaborators": "Collaborators",
+      "branch": "Branch",
+      "service": "Service",
+      "regime": "Regime",
+      "regimeAll": "All",
+      "monthly": "Monthly",
+      "hourly": "Hourly",
+      "month": "Month",
+      "year": "Year",
+      "period": "Period",
+      "dateStart": "Start Date",
+      "dateEnd": "End Date",
+      "search": "Search",
+      "myService": "My service",
+      "empSummary": "Employee Summary",
+      "searchMatricule": "Search by ID...",
+      "applyFilters": "Apply filters to load employees",
+      "noResult": "No result",
+      "planningTitle": "Periodic Planning — {{period}}",
+      "viewCalendar": "📅 Calendar",
+      "viewTable": "📋 Table",
+      "selectEmp": "Select an employee to display their schedule",
+      "dayDetails": "Day Details",
+      "adjustPointage": "Adjust clocking",
+      "adjustPointageTitle": "Correct entry/exit hours for this day",
+      "actionRequired": "Action required",
+      "alertSelectEmp": "Please select an employee first.",
+      "alertReportError": "Error generating the report.",
+      "alertNoData": "No data to export",
+      "fields": {
+        "entryMorning": "Morning Entry",
+        "exitMorning": "Morning Exit",
+        "entryAm": "Afternoon Entry",
+        "exitAm": "Afternoon Exit",
+        "totalWorked": "Total Worked",
+        "meal": "Meal",
+        "late": "Late",
+        "supplementary": "Overtime",
+        "nightHours": "Night Hours",
+        "absenceHours": "Absence Hours",
+        "compensation": "Compensation",
+        "observation": "Observation"
+      },
+      "authorization": "Authorization",
+      "authorizedRange": "Authorized range",
+      "motif": "Reason",
+      "postOfDay": "Post of the day",
+      "workRange": "Work range",
+      "toleranceEntry": "Entry Tolerance",
+      "toleranceExit": "Exit Tolerance",
+      "statusLabel": "Status",
+      "restDay": "Rest day",
+      "table": {
+        "date": "Date",
+        "status": "Status",
+        "entry": "Entry",
+        "exit": "Exit",
+        "workedH": "Worked",
+        "late": "Late",
+        "absH": "Abs.H",
+        "supH": "OT",
+        "days": "Days",
+        "weekend": "(W-E)"
+      },
+      "status": {
+        "present": "Present",
+        "absent": "Absent",
+        "retard": "Late",
+        "conge": "Leave",
+        "autorisation": "Authorization",
+        "ferie": "Holiday",
+        "repos": "Rest",
+        "unknown": "—"
+      },
+      "summary": {
+        "present_one": "{{count}} Present",
+        "present_other": "{{count}} Presents",
+        "absent_one": "{{count}} Absent",
+        "absent_other": "{{count}} Absents",
+        "retard_one": "{{count}} Late",
+        "retard_other": "{{count}} Lates",
+        "conge_one": "{{count}} Leave",
+        "conge_other": "{{count}} Leaves",
+        "autorisation_one": "{{count}} Authorization",
+        "autorisation_other": "{{count}} Authorizations",
+        "ferie_one": "{{count}} Holiday",
+        "ferie_other": "{{count}} Holidays",
+        "repos_one": "{{count}} Rest",
+        "repos_other": "{{count}} Rests",
+        "daysWorked": "📅 {{value}} days worked"
+      },
+      "sidebar": {
+        "mat": "ID",
+        "stats": "{{days}}d / {{time}}",
+        "retard": "{{time}} Late",
+        "noRetard": "No lateness"
+      }
+    },
+    "list": {
+      "title": "Clocking Reading",
+      "subtitle": "List and details of clocking operations",
+      "noConsultRight": "You do not have the right to view the clocking list.",
+      "msgUpdated": "Clocking device updated successfully",
+      "msgAdded": "Clocking device added successfully",
+      "msgSaveError": "Error while saving",
+      "msgDeleted": "Clocking device deleted",
+      "msgPurgeOk": "Purge completed successfully",
+      "msgPurgeError": "Purge error: {{msg}}",
+      "stats": {
+        "total": "Total",
+        "totalSub": "Registered terminals",
+        "online": "Online",
+        "onlineSub": "Connected & Active",
+        "offline": "Offline",
+        "offlineSub": "Connection failed",
+        "sync": "Synchronization",
+        "syncSub": "Last update"
+      },
+      "config": {
+        "editTitle": "Edit Terminal",
+        "newTitle": "Terminal Configuration",
+        "editSubtitle": "Edit clocking device network settings",
+        "newSubtitle": "Add or edit a clocking device's network settings.",
+        "newBtn": "New Terminal",
+        "editBtn": "Edit"
+      },
+      "table": {
+        "title": "Terminals List",
+        "filter": "Filter",
+        "export": "Export",
+        "purge": "Purge",
+        "edit": "Edit",
+        "delete": "Delete",
+        "code": "Device Code",
+        "label": "Label",
+        "ip": "IP Address",
+        "port": "Port No",
+        "status": "Status",
+        "actions": "Actions",
+        "connected": "CONNECTED",
+        "disconnected": "DISCONNECTED",
+        "noTerminal": "No terminal registered",
+        "pagination": "Showing {{start}}-{{end}} of {{total}} terminals",
+        "prev": "Prev",
+        "next": "Next"
+      },
+      "dialog": {
+        "newTitle": "New Terminal",
+        "editTitle": "Edit Terminal",
+        "code": "Code",
+        "codePlaceholder": "Ex: PT-001",
+        "label": "Label",
+        "labelPlaceholder": "Ex: PLANT 1",
+        "ip": "IP Address",
+        "ipPlaceholder": "192.168.1.100",
+        "port": "Port No",
+        "portPlaceholder": "4370",
+        "com": "Software / Com",
+        "cancel": "Cancel",
+        "save": "Save",
+        "deleteTitle": "Confirm deletion",
+        "deleteConfirm": "Are you sure you want to delete the device <strong>{{code}}</strong>?",
+        "deleteBtn": "Delete"
+      }
+    }
+  },
+  "etats": {
+    "filter": {
+      "branch": "Branch",
+      "all": "All",
+      "service": "Service",
+      "myService": "My service",
+      "allService": "All",
+      "regime": "Regime",
+      "regimeAll": "All",
+      "dateStart": "Start Date",
+      "dateEnd": "End Date",
+      "year": "Year",
+      "employees": "Employees",
+      "filterBtn": "FILTER",
+      "printBtn": "PRINT",
+      "minDelay": "Min lateness",
+      "options": "Options",
+      "countAdvance": "Count advance",
+      "morningLate": "Morning late",
+      "afternoonLate": "Afternoon late",
+      "noEffectiveEmps": "No active employee matches the selected filters. Please select an employee.",
+      "reportError": "Report generation error"
+    },
+    "presence": {
+      "noConsultRight": "You do not have the right to view the attendance report.",
+      "title": "Attendance Report",
+      "analyticTitle": "Attendance Analytics",
+      "punctuality": "Punctuality {{value}}%",
+      "kpiLateRate": "Global lateness rate",
+      "kpiTotalLate": "Total lateness time",
+      "kpiAvgLate": "Average lateness",
+      "kpiTotalNight": "Total Night Hours",
+      "period": "Period",
+      "search": "Search",
+      "searchPlaceholder": "ID or Name",
+      "filter": "Filter",
+      "headers": {
+        "employee": "Employee",
+        "date": "Date",
+        "schedule": "Schedule",
+        "punch": "Punch",
+        "lateDuration": "Late Duration",
+        "status": "Status"
+      },
+      "id": "ID",
+      "fallbackEmployee": "Employee",
+      "statusLeave": "Leave",
+      "statusBreastfeeding": "Breastfeeding",
+      "statusNormal": "Normal",
+      "detailsTitle": "Attendance Details",
+      "punchesRecorded": "Recorded punches",
+      "entryMorning": "Morning entry",
+      "exitMorning": "Morning exit",
+      "entryAfternoon": "Afternoon entry",
+      "exitAfternoon": "Afternoon exit",
+      "totalLate": "Total lateness",
+      "nightHour": "Night hours",
+      "viewDailyDetail": "View daily detail",
+      "dailyDetail": "Daily Detail",
+      "totalHours": "Total hours",
+      "lateMorning": "Morning late",
+      "lateAfternoon": "Afternoon late",
+      "regimeLabel": "Regime",
+      "motif": "Reason",
+      "noSelection": "No row selected."
+    },
+    "retard": {
+      "noConsultRight": "You do not have the right to view the lateness report.",
+      "title": "Lateness Tracking",
+      "analyticTitle": "Attendance Analytics",
+      "upToDate": "Up to date",
+      "kpiGlobalRate": "Global lateness rate",
+      "kpiTotalDuration": "Total lateness time",
+      "kpiAvgByPunch": "Average per punch",
+      "kpiImpacted": "Affected employees",
+      "tableTitle": "Lateness Details",
+      "period": "Period",
+      "site": "Site",
+      "regimePrefix": "Regime {{value}}",
+      "allRegimes": "All regimes",
+      "search": "Search",
+      "searchPlaceholder": "ID or Name",
+      "filter": "Filter",
+      "headers": {
+        "employee": "Employee",
+        "date": "Date",
+        "schedule": "Schedule",
+        "punch": "Punch",
+        "lateDuration": "Late Duration",
+        "status": "Status"
+      },
+      "id": "ID",
+      "fallbackEmployee": "Employee",
+      "justified": "Justified",
+      "notJustified": "Not justified",
+      "rowsPerPage": "Rows per page:",
+      "exportPdf": "Export PDF",
+      "detailsBtn": "Details",
+      "detailsTitle": "Lateness Detail",
+      "punchesRecorded": "Recorded punches",
+      "entryMorning": "Morning entry",
+      "entryAfternoon": "Afternoon entry",
+      "lateMorning": "Morning late",
+      "lateAfternoon": "Afternoon late",
+      "advanceMorning": "Morning advance",
+      "advanceAfternoon": "Afternoon advance",
+      "total": "Total",
+      "totalLate": "Total lateness",
+      "justifyAction": "Justify this lateness",
+      "notifyAction": "Notify the employee",
+      "noSelection": "No row selected.",
+      "noData": "No lateness data for the selected period.",
+      "report": {
+        "header": "Lateness Tracking",
+        "employee": "Employee",
+        "date": "Date",
+        "schedule": "Schedule",
+        "punch": "Punch",
+        "late": "Late",
+        "status": "Status"
+      }
+    },
+    "absence": {
+      "noConsultRight": "You do not have the right to view the absence report.",
+      "title": "Absence Report",
+      "subtitle": "Staff absence analysis and tracking",
+      "yearLabel": "Year {{year}}",
+      "regime": "Regime",
+      "dateStart": "Start Date",
+      "dateEnd": "End Date",
+      "employees": "Employees",
+      "search": "SEARCH",
+      "noEmpFilter": "No active employee matches the filters.",
+      "selectedLabel": "{{label}} — {{count}} employee(s) selected",
+      "summary": {
+        "employees": "Affected Employees",
+        "employeesFooter": "Employees with absences",
+        "totalAbs": "Total Absences",
+        "rows": "Rows",
+        "rowsFooter": "Records over the period",
+        "absNonJust": "Unjustified Abs.",
+        "days": "Days",
+        "justifiedFooter": "Justified: {{value}} Days",
+        "totalDays": "Total Absence Days",
+        "cumulative": "Cumulative over the period"
+      },
+      "table": {
+        "title": "Absence Registry",
+        "period": "Period from {{start}} to {{end}}",
+        "exportExcel": "EXPORT EXCEL",
+        "printPdf": "PRINT PDF",
+        "filterBtn": "Filter",
+        "matricule": "Matricule",
+        "collaborator": "Collaborator",
+        "date": "Date",
+        "absCode": "Abs. Code",
+        "motif": "Reason",
+        "regime": "Regime",
+        "absNJShort": "Unj. Abs.",
+        "absJustShort": "Just. Abs.",
+        "actions": "Actions",
+        "details": "Details",
+        "noData": "No absence recorded for this period.",
+        "clickSearch": "Click SEARCH to load data.",
+        "pagination": "Showing {{start}} to {{end}} of {{total}} records"
+      },
+      "drawer": {
+        "title": "Absence Detail",
+        "subtitle": "Complete record sheet",
+        "matriculeLabel": "Matricule: {{value}}",
+        "empCode": "Employee Code",
+        "regime": "Regime",
+        "date": "Date",
+        "absCode": "Absence Code",
+        "motif": "Reason",
+        "justifiedSection": "Authorized / Justified Absences",
+        "paidLeave": "Paid Leave",
+        "workAccident": "Work Accident",
+        "csf": "CSF",
+        "absJust": "Justified Abs.",
+        "nonJustifiedSection": "Unjustified Absences",
+        "absSick": "Sick Leave",
+        "absNJ": "Unjustified Abs.",
+        "otherTypesSection": "Other Types",
+        "formationMission": "Training + Mission",
+        "techStop": "Technical Stop",
+        "map": "MAP",
+        "autsp": "Special Paid Auth.",
+        "autsnp": "Special Unpaid Auth.",
+        "css": "Unpaid Leave",
+        "totalsSection": "Totals",
+        "absDayLate": "Abs. Day + Lateness",
+        "totalAbs": "Total Absence",
+        "exportSheet": "EXPORT SHEET"
+      },
+      "filter": {
+        "absaut": "Absences/Authorizations",
+        "absret": "Absences with lateness",
+        "presNonOpt": "Presences not optimized",
+        "sansPointageInvalide": "Without invalid clocking",
+        "radio": "Display mode"
+      }
+    }
+  },
   "filter": {
     "withoutPointage": "Without clocking (unjustified absence)",
     "allAbsence": "All absence",
@@ -636,5 +2706,1367 @@
     "withoutInvalidPointage": "Without Invalid Clocking",
     "presenceNotOptimized": "Presence not optimized",
     "absenceType": "Absence Type"
+  },
+  "intituleAbsences": {
+    "noConsultRight": "You do not have the right to view absence types.",
+    "config": {
+      "title": "Type Configuration",
+      "modeEdit": "Edit Mode",
+      "modeNew": "New",
+      "codeNature": "Type Code",
+      "label": "Label",
+      "calculationUnit": "Calculation Unit",
+      "days": "Days",
+      "hours": "Hours",
+      "sanctionType": "Sanction Type"
+    },
+    "rules": {
+      "title": "Calculation Rules",
+      "allowAbsence": "Allow absence",
+      "payAbsence": "Pay absence",
+      "countRest": "Count rest day",
+      "countHoliday": "Count public holiday"
+    },
+    "imputation": {
+      "title": "Imputation Type",
+      "newButton": "New",
+      "save": "Save type",
+      "update": "Update type"
+    },
+    "imputationOptions": {
+      "0": "Paid Leave (CP)",
+      "8": "Work Accident (AT)",
+      "1": "Special Family Leave (CSF)",
+      "2": "Justified Absence (AJ)",
+      "6": "Training + Mission (FM)",
+      "A": "Technical Stop (CT)",
+      "C": "Day/Package Complement (C)",
+      "M": "Maternity Leave (M)",
+      "3": "Unjustified Absence (ANJ)",
+      "4": "Sanction Absence (MAP)",
+      "B": "Exit Authorization (AS)",
+      "5": "Unpaid Leave (CSS)",
+      "7": "Reprimand (B)",
+      "V": "Warning (V)"
+    },
+    "periodicite": {
+      "A": "Calendar Year",
+      "M": "Month",
+      "S": "Half-year",
+      "T": "Quarter"
+    },
+    "sanction": {
+      "N": "Justification",
+      "O": "Sanction",
+      "C": "Compensation",
+      "F": "End of Work"
+    },
+    "table": {
+      "title": "Absence Type Registry",
+      "subtitle_one": "{{count}} absence type configured",
+      "subtitle_other": "{{count}} absence types configured",
+      "search": "Search a type...",
+      "headers": {
+        "code": "Code",
+        "label": "Absence Label",
+        "leave": "Leave",
+        "paid": "Paid",
+        "sanction": "Sanction",
+        "authorized": "Authorized",
+        "periodicity": "Periodicity",
+        "actions": "Actions"
+      },
+      "empty": "No absence type found",
+      "showing": "Showing {{from}}–{{to}} of {{total}}"
+    },
+    "msg": {
+      "addedSuccess": "Type added successfully",
+      "updatedSuccess": "Type updated successfully",
+      "deletedSuccess": "Type deleted",
+      "deleteError": "Error during deletion",
+      "genericError": "Error"
+    },
+    "confirmDelete": "Delete the type \"{{label}}\" ({{code}})?"
+  },
+  "repos": {
+    "noConsultRight": "You do not have the right to view holidays and rest days.",
+    "page": {
+      "title": "Calendar Configuration",
+      "subtitle": "Define and manage exceptional rest periods for all employees.",
+      "importTitle": "Import the official list of metropolitan France holidays for the selected year",
+      "importButton": "Import (gouv.fr)",
+      "newButton": "New",
+      "save": "Save",
+      "update": "Update"
+    },
+    "form": {
+      "title": "Holiday Settings",
+      "modeEdit": "Edit Mode",
+      "modeNew": "New",
+      "year": "Reference year",
+      "motif": "Reason / Designation",
+      "motifPlaceholder": "e.g.: Independence Day",
+      "dateStart": "Start Date",
+      "dateEnd": "Return Date",
+      "dayType": "Day Type",
+      "ferier": "Holiday",
+      "restDay": "Rest day",
+      "nbHours": "Hours",
+      "fixed": "Fixed (Annual)",
+      "fixedSub": "Repeats every year on the same date",
+      "unpaid": "Unpaid",
+      "unpaidSub": "Deduct from monthly salary"
+    },
+    "policy": {
+      "title": "Holiday Policy",
+      "text": "All configured holidays are automatically applied to the schedules of employees assigned to the main establishment."
+    },
+    "stats": {
+      "overview": "Quick overview ({{year}})",
+      "totalHolidays": "Total holidays"
+    },
+    "table": {
+      "title": "Holiday Directory",
+      "filterAll": "All",
+      "filterPaid": "Paid",
+      "filterFixed": "Fixed",
+      "headers": {
+        "date": "Date",
+        "motif": "Reason",
+        "fixed": "Fixed?",
+        "type": "Type",
+        "nbHours": "Hours",
+        "paid": "Paid?",
+        "dateReturn": "Return Date",
+        "actions": "Actions"
+      },
+      "empty": "No holiday configured",
+      "ferier": "Holiday",
+      "restDay": "Rest",
+      "yes": "YES",
+      "no": "NO",
+      "showing": "Showing {{from}} to {{to}} of {{total}} entries"
+    },
+    "msg": {
+      "sessionExpired": "Session expired, please log in again",
+      "motifRequired": "Reason is required",
+      "dateRequired": "Date is required",
+      "invalidDate": "Invalid date",
+      "saveError": "Error while saving",
+      "addedSuccess": "Holiday added",
+      "updatedSuccess": "Holiday updated",
+      "deletedSuccess": "Deleted successfully",
+      "deleteError": "Error during deletion",
+      "noAddRight": "You do not have the right to add holidays.",
+      "invalidYear": "Enter a valid year before importing.",
+      "importConfirm": "Import metropolitan France holidays for {{year}}?\n\nExisting entries will be kept (no duplicates).",
+      "importDone": "Import complete: {{inserted}} added, {{skipped}} skipped (already present).",
+      "importError": "Failed to import holidays."
+    },
+    "confirmDelete": "Delete \"{{motif}}\" on {{date}}?"
+  },
+  "posteTravail": {
+    "noConsultRight": "You do not have the right to view work shifts.",
+    "header": {
+      "shiftId": "Shift ID",
+      "newPoste": "New Shift",
+      "subtitle": "Detailed work schedule configuration",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "identification": {
+      "title": "Identification",
+      "codePoste": "SHIFT CODE",
+      "labelPoste": "SHIFT LABEL"
+    },
+    "tolerance": {
+      "title": "Tolerances (min)",
+      "entry": "Entry",
+      "exit": "Exit",
+      "before": "BEFORE",
+      "after": "AFTER"
+    },
+    "rules": {
+      "title": "Breaks & Rules",
+      "pauseBefore": "Auto Break Before Work",
+      "pauseAfter": "Auto Break After Work",
+      "lateSanction": "Late Sanction",
+      "presenceBonus": "Presence Bonus"
+    },
+    "schedule": {
+      "title": "Weekly Schedule",
+      "applyAll": "Apply to all days (based on Monday)",
+      "headers": {
+        "day": "Day",
+        "startMorning": "Start Morning",
+        "entryMorning": "Entry M.",
+        "endMorning": "End M.",
+        "exitMorning": "Exit M.",
+        "startNoon": "Start Noon",
+        "entryNoon": "Entry Noon",
+        "exitPm": "Exit PM",
+        "endPm": "End PM",
+        "meal": "Meal",
+        "rest": "Rest"
+      },
+      "weeklyRest": "Weekly rest"
+    },
+    "list": {
+      "title": "Shifts List",
+      "active": "Active Shift",
+      "idPrefix": "ID {{id}}"
+    },
+    "msg": {
+      "updatedSuccess": "Shift updated successfully",
+      "updateError": "Error during update",
+      "addError": "Error while adding",
+      "deleteError": "Error during deletion",
+      "appliedAll": "Schedule applied to all days"
+    },
+    "confirmDelete": "Do you really want to delete the shift \"{{label}}\"?"
+  },
+  "autSortie": {
+    "header": {
+      "title": "Absence Management",
+      "heading": "Exit Authorization",
+      "subtitle": "Manage absence authorizations"
+    },
+    "actions": {
+      "new": "New",
+      "save": "Save",
+      "saving": "Saving...",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "pdfReport": "PDF Report",
+      "export": "Export"
+    },
+    "cards": {
+      "generalInfo": "General Information",
+      "scheduling": "Schedule Planning",
+      "authorizationType": "Authorization Type"
+    },
+    "fields": {
+      "employeeSelection": "Employee selection",
+      "employeeSearchPlaceholder": "Search for an employee...",
+      "orderNo": "Order No.",
+      "reference": "Reference",
+      "referencePlaceholder": "REF-XXXX",
+      "date": "Date",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "totalDuration": "Total Duration",
+      "imputation": "Allocation",
+      "comments": "Comments / Reason",
+      "commentsPlaceholder": "Specify the reason for the exit..."
+    },
+    "table": {
+      "title": "Exit Authorization Register",
+      "subtitle": "Recent entries history for the operational unit",
+      "searchPlaceholder": "Search...",
+      "headers": {
+        "actions": "Actions",
+        "orderNo": "Order No.",
+        "employee": "Employee",
+        "date": "Date",
+        "type": "Type",
+        "out": "Out",
+        "in": "Return",
+        "duration": "Duration"
+      },
+      "empty": "No authorization found.",
+      "footer": "Showing {{showing}} of {{total}} records",
+      "rowsPerPage": "Rows:"
+    },
+    "msg": {
+      "orderRequired": "Order No. is required.",
+      "updated": "Authorization updated.",
+      "added": "Authorization added.",
+      "saveError": "Error while saving.",
+      "deleted": "Authorization deleted."
+    },
+    "deleteConfirm": "Are you sure you want to delete this exit authorization?",
+    "subtitle": "You have <0>{{count}}</0> exit authorization",
+    "subtitle_plural": "You have <0>{{count}}</0> exit authorizations",
+    "form": {
+      "newTitle": "New Authorization",
+      "editTitle": "Edit Authorization",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "modify": "Save"
+    },
+    "sidebar": {
+      "total": "Total Authorizations"
+    },
+    "pdf": {
+      "headers": {
+        "orderNo": "Order No.",
+        "date": "Date",
+        "employee": "Employee",
+        "imputation": "Allocation",
+        "out": "Out",
+        "in": "Return",
+        "duration": "Duration"
+      }
+    }
+  },
+  "absenceSanction": {
+    "header": {
+      "title": "Absence Management",
+      "heading": "Absences & Sanctions",
+      "subtitle": "Record and track personnel movements"
+    },
+    "actions": {
+      "new": "New",
+      "save": "Save",
+      "saving": "Saving...",
+      "update": "Update",
+      "edit": "Edit",
+      "delete": "Delete",
+      "pdfReport": "PDF Report",
+      "export": "Export"
+    },
+    "cards": {
+      "generalInfo": "General Information",
+      "movementDetails": "Movement Details"
+    },
+    "fields": {
+      "employee": "Employee",
+      "employeeSearchPlaceholder": "Search for an employee...",
+      "orderNo": "Order No.",
+      "reference": "Reference",
+      "referencePlaceholder": "REF-XXXX",
+      "date": "Date",
+      "imputationType": "Allocation Type",
+      "imputationPlaceholder": "-- Select --",
+      "startDate": "Start date",
+      "expectedReturnDate": "Expected return date",
+      "afternoon": "Afternoon",
+      "daysCounted": "Days Counted"
+    },
+    "access": {
+      "denied": "Access Denied",
+      "deniedDetail": "You do not have the required permissions to view this module."
+    },
+    "table": {
+      "title": "Recent Movements",
+      "subtitle": "Showing the last 10 requests",
+      "searchPlaceholder": "Search...",
+      "headers": {
+        "actions": "Actions",
+        "orderNo": "Order No.",
+        "employee": "Employee",
+        "date": "Date",
+        "imputationType": "Allocation Type",
+        "startDate": "Start Date",
+        "returnDate": "Return Date",
+        "nbDays": "Days"
+      },
+      "empty": "No record found.",
+      "footer": "Showing {{showing}} of {{total}} entries",
+      "rowsPerPage": "Rows:"
+    },
+    "msg": {
+      "imputationRequired": "Please select the absence code.",
+      "updated": "Sanction updated.",
+      "added": "Sanction added.",
+      "saveError": "Error while saving.",
+      "deleted": "Sanction deleted."
+    },
+    "deleteConfirm": "Do you really want to delete this sanction?",
+    "pdf": {
+      "headers": {
+        "orderNo": "Order No.",
+        "employee": "Employee",
+        "date": "Date",
+        "imputation": "Allocation",
+        "start": "Start",
+        "return": "Return",
+        "nbDays": "Days"
+      }
+    }
+  },
+  "demAutorisation": {
+    "header": {
+      "title": "Authorization Requests",
+      "subtitle_one": "You have <0>{{count}} request</0> awaiting validation.",
+      "subtitle_other": "You have <0>{{count}} requests</0> awaiting validation.",
+      "newRequest": "New request"
+    },
+    "headers": {
+      "employee": "Employee",
+      "period": "Period",
+      "duration": "Duration",
+      "motif": "Reason",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "approved": "Approved",
+      "refused": "Refused",
+      "pending": "Pending"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "refuse": "Refuse",
+      "approve": "Approve"
+    },
+    "empty": "No authorization request",
+    "stats": {
+      "approved": "Approved",
+      "refused": "Refused",
+      "pending": "Pending",
+      "total": "Total"
+    },
+    "info": {
+      "title": "ℹ️ Information",
+      "text": "Authorization requests are processed by the administrator. Once approved, the authorization is automatically created in the system."
+    },
+    "form": {
+      "titleEdit": "Edit request",
+      "titleNew": "New authorization request",
+      "requestNo": "Request No.",
+      "requestDate": "Request date",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "duration": "Duration",
+      "type": "Authorization type",
+      "typePlaceholder": "Select a type...",
+      "motif": "Reason",
+      "motifPlaceholder": "Reason for the authorization request...",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "modify": "Edit"
+    },
+    "traitement": {
+      "approveTitle": "Approve request",
+      "refuseTitle": "Refuse request",
+      "approvePrompt": "Are you sure you want to approve the request from {{employee}}?",
+      "refusePrompt": "Are you sure you want to refuse the request from {{employee}}?",
+      "commentLabelOptional": "Comment (optional)",
+      "commentLabelRecommended": "Comment (recommended)",
+      "commentPlaceholderOptional": "Optional comment...",
+      "commentPlaceholderRefuse": "Reason for refusal...",
+      "cancel": "Cancel",
+      "approve": "Approve",
+      "refuse": "Refuse"
+    },
+    "delete": {
+      "title": "Delete my request",
+      "prompt": "Are you sure you want to delete your authorization request{{ref}}?",
+      "irreversible": "This action is irreversible.",
+      "cancel": "Cancel",
+      "confirm": "Yes, Delete"
+    },
+    "msg": {
+      "deletedSuccess": "Request deleted successfully",
+      "deleteError": "Error during deletion",
+      "createdSuccess": "Authorization request created successfully",
+      "updatedSuccess": "Request updated successfully"
+    }
+  },
+  "coffreFort": {
+    "badge": {
+      "adminView": "Administrator View",
+      "authenticated": "Active Authenticated Session"
+    },
+    "title": {
+      "ofEmployee": "{{name}}'s Vault",
+      "default": "Digital Vault"
+    },
+    "description": {
+      "ofEmployee": "You are viewing this employee's digital vault. You can add new documents — the employee will be notified each time you upload one.",
+      "default": "Your secure, encrypted archive for personal administrative assets. All documents are stored with end-to-end encryption and timestamp validation."
+    },
+    "stats": {
+      "vaultState": "Vault State",
+      "secured": "Secured",
+      "totalDocs": "Total Encrypted Documents"
+    },
+    "admin": {
+      "consultDeposit": "View / upload to an employee's vault",
+      "scopeAll": "(all employees)",
+      "scopeService": "(employees in your service only)",
+      "backToMyVault": "← Back to my vault",
+      "selectEmployeePlaceholder": "Select an employee to view their vault…",
+      "messagePlaceholder": "Message (optional) — attached to the upload notification",
+      "viewingNotice": "You are viewing the vault of <0>{{name}}</0>. Any document you upload will be deposited into this vault and the employee will be notified."
+    },
+    "collections": {
+      "title": "Collections",
+      "subtitle": "Browse organized directories",
+      "paySlips": "Pay Slips",
+      "contracts": "Contracts",
+      "certificates": "Certificates",
+      "documentsCount": "{{count}} Documents",
+      "newAsset": "New Asset",
+      "loading": "Loading..."
+    },
+    "menu": {
+      "paySlip": "Pay Slip",
+      "contract": "Contract",
+      "certificate": "Certificate",
+      "other": "Other"
+    },
+    "recent": {
+      "title": "Recent Documents",
+      "subtitle": "Recently uploaded validated assets",
+      "viewAll": "View entire archive"
+    },
+    "table": {
+      "documentName": "Document Name",
+      "type": "Type",
+      "modificationDate": "Modification Date",
+      "size": "Size",
+      "action": "Action",
+      "empty": "No documents in your vault."
+    },
+    "status": {
+      "validSignature": "Valid Digital Signature",
+      "pendingSignature": "Pending signature"
+    },
+    "actions": {
+      "sign": "Sign"
+    },
+    "snack": {
+      "accessDeniedService": "Access denied: this employee is not in your service.",
+      "accessDeniedVault": "You are not allowed to view this vault.",
+      "uploadedAndNotified": "Document uploaded and employee notified.",
+      "uploaded": "Document added.",
+      "uploadError": "Error while uploading the document."
+    }
+  },
+  "adminVault": {
+    "header": {
+      "eyebrow": "Administration · Vault",
+      "title": "Digital Vault — Global View",
+      "subtitle": "Browse and manage documents for all employees. Track pending signature requests."
+    },
+    "stats": {
+      "totalDocs": "Total documents",
+      "pendingSignature": "Pending signature",
+      "signed": "Signed",
+      "employees": "Employees"
+    },
+    "toolbar": {
+      "employee": "Employee",
+      "allEmployees": "All employees",
+      "searchPlaceholder": "Search by employee or document..."
+    },
+    "filter": {
+      "all": "All",
+      "pending": "Pending",
+      "signed": "Signed",
+      "validated": "Validated"
+    },
+    "empty": "No documents found.",
+    "table": {
+      "document": "Document",
+      "employee": "Employee",
+      "type": "Type",
+      "date": "Date",
+      "size": "Size",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "signed": "Signed",
+      "pending": "Pending",
+      "validated": "Validated"
+    },
+    "tooltip": {
+      "sign": "Sign the document",
+      "download": "Download",
+      "signShort": "Sign"
+    },
+    "actions": {
+      "sign": "Sign"
+    },
+    "footer": {
+      "showing_one": "Showing {{count}} document",
+      "showing_other": "Showing {{count}} documents",
+      "filterLabel": " · filter: {{label}}"
+    },
+    "grid": {
+      "doc_one": "{{count}} doc",
+      "doc_other": "{{count}} docs",
+      "pendingTag": "{{count}} pending",
+      "signedRatio": "{{signed}}/{{total}} signed"
+    },
+    "privacy": {
+      "title": "Privacy Protection Active",
+      "subtitle": "All document accesses are logged and audited.",
+      "activityLog": "Activity Log",
+      "syncMasterKey": "Sync Master Key"
+    }
+  },
+  "contractBuilder": {
+    "header": {
+      "title": "Contract Builder Pro",
+      "aiAssistant": "AI Assistant",
+      "import": "Import",
+      "new": "New",
+      "exportForEmployee": "Export for an employee",
+      "saving": "Saving…",
+      "save": "Save"
+    },
+    "sidebar": {
+      "library": "Library",
+      "searchPlaceholder": "Search a template…"
+    },
+    "toolbar": {
+      "fontNormal": "Normal",
+      "fontLarge": "Large",
+      "fontSmall": "Small",
+      "previewPdf": "Preview PDF",
+      "insertHeader": "Insert Header",
+      "insertFooter": "Insert Footer"
+    },
+    "variables": {
+      "title": "Variables & Meta",
+      "categories": {
+        "Employer": "Employer",
+        "Employee": "Employee",
+        "Job": "Job",
+        "Dates": "Dates",
+        "Congé": "Leave",
+        "Signature": "Signature"
+      },
+      "labels": {
+        "companyName": "Company Name",
+        "headOfficeAddress": "Head Office Address",
+        "companyPhone": "Company Phone",
+        "companyFax": "Company Fax",
+        "companyEmail": "Company Email",
+        "manager": "Manager",
+        "logo": "Logo",
+        "employeeName": "Employee Name",
+        "matricule": "Employee ID",
+        "cin": "ID Card",
+        "birthDate": "Birth Date",
+        "birthPlace": "Birth Place",
+        "address": "Address",
+        "phone": "Phone",
+        "email": "Email",
+        "gender": "Gender",
+        "function": "Function",
+        "functionLabel": "Function Label",
+        "qualification": "Qualification",
+        "hireDate": "Hire Date",
+        "exitDate": "Exit Date",
+        "baseSalary": "Base Salary",
+        "grossSalary": "Gross Salary",
+        "contractType": "Contract Type",
+        "site": "Site",
+        "direction": "Direction",
+        "currentDate": "Current Date",
+        "todayDate": "Today's Date",
+        "city": "City",
+        "leaveDays": "Leave Days",
+        "leaveStart": "Leave Start Date",
+        "leaveEnd": "Leave End Date",
+        "referencePeriod": "Reference Period",
+        "employeeSignature": "Employee Signature",
+        "companySignature": "Company Signature"
+      }
+    },
+    "ai": {
+      "title": "AI Template Assistant",
+      "subtitle": "Auto-generate dynamic contracts using AI",
+      "describeLabel": "Describe the document you want to create…",
+      "describePlaceholder": "Ex: A permanent (CDI) employment contract for an engineer with a confidentiality clause and a 3-month trial period.",
+      "exampleFile": "Example Document (Optional)",
+      "exampleHint": "Used as a structure reference",
+      "browsePdf": "Browse PDF",
+      "change": "Change",
+      "draftSuccess": "Draft Generated Successfully!",
+      "draftSuccessHint": "Review the editor after applying to see the full document.",
+      "cancel": "Cancel",
+      "applyToEditor": "Apply to Editor",
+      "magicBuild": "Magic Build",
+      "generating": "Generating…",
+      "generationFailed": "AI Generation failed: {{error}}"
+    },
+    "newTemplate": {
+      "title": "New Template",
+      "name": "Name",
+      "cancel": "Cancel",
+      "create": "Create"
+    },
+    "rename": {
+      "title": "Rename template",
+      "newName": "New name",
+      "cancel": "Cancel",
+      "confirm": "Rename",
+      "error": "Error during rename"
+    },
+    "insertTable": {
+      "title": "Insert a table",
+      "rows": "Number of rows",
+      "cols": "Number of columns",
+      "cancel": "Cancel",
+      "confirm": "Insert"
+    },
+    "export": {
+      "title": "Export template",
+      "templateLabel": "Template: {{name}}",
+      "noTemplate": "No template selected",
+      "targetEmployee": "Target employee",
+      "searchPlaceholder": "Search…",
+      "description": "The template will be merged with the selected employee's data (name, ID, position, salary, dates…) and downloaded as a PDF.",
+      "cancel": "Cancel",
+      "exporting": "Generating…",
+      "exportPdf": "Export PDF"
+    },
+    "snack": {
+      "loadTemplateError": "Could not load template \"{{name}}\".",
+      "savedSuccess": "Template saved.",
+      "saveError": "Error while saving.",
+      "sessionExpiredPreview": "Session expired — please log in again to generate a preview.",
+      "previewError": "PDF generation error.",
+      "selectTemplateExport": "Select a template from the sidebar.",
+      "selectEmployeeExport": "Choose the target employee.",
+      "sessionExpired": "Session expired.",
+      "exported": "Document exported.",
+      "exportError": "Error during export.",
+      "selectBeforeExport": "Select a template before exporting.",
+      "deleted": "Template deleted.",
+      "deleteError": "Error during deletion.",
+      "deleteConfirm": "Delete template \"{{name}}\"?",
+      "importFailed": "Import failed."
+    },
+    "table": {
+      "cellContent": "Content"
+    }
+  },
+  "cahierConge": {
+    "noConsultRight": "You do not have the right to view the leave register.",
+    "title": "Leave Register",
+    "subtitle": "Staff leave management and tracking",
+    "yearLabel": "Year {{year}}",
+    "filter": {
+      "filiale": "Branch",
+      "filialeAll": "All",
+      "service": "Service",
+      "myService": "My service",
+      "allServices": "All",
+      "regime": "Regime",
+      "regimeAll": "All",
+      "regimeMonthly": "Monthly",
+      "regimeHourly": "Hourly",
+      "dateStart": "Start Date",
+      "dateEnd": "End Date",
+      "year": "Year",
+      "month": "Month",
+      "employees": "Employees",
+      "employeesPlaceholder": "Select...",
+      "absenceJustified": "Justified Absence",
+      "absenceType": "Absence Type",
+      "search": "SEARCH",
+      "selectedLabel": "{{label}} — {{count}} employee(s) selected",
+      "noEmpFilter": "No active employee matches the filters.",
+      "noEmpFilterLong": "No active employee matches the selected filters. Please select an employee or adjust branch, service or regime.",
+      "justifiedOptions": {
+        "all": "All types",
+        "yes": "Justified",
+        "no": "Not justified"
+      },
+      "absenceTypeOptions": {
+        "all": "All types",
+        "csf": "CSF",
+        "justified": "Justified",
+        "notJustified": "Not justified",
+        "map": "MAP",
+        "css": "CSS",
+        "fm": "FM",
+        "workAccident": "Work accident",
+        "sickness": "Illness"
+      }
+    },
+    "summary": {
+      "totalEmployees": "Total Employees",
+      "filteredData": "Filtered data",
+      "initialBalance": "Initial Balance",
+      "cumulative": "Cumulative",
+      "leaveDue": "Leave Due",
+      "currentPeriod": "Current period",
+      "totalDuePresence": "Total Due Presence",
+      "indemnity": "Indemnity: {{value}} DT",
+      "daysShort": "Days",
+      "currency": "DT"
+    },
+    "table": {
+      "title": "Leave Register",
+      "subtitle": "Showing consolidated data from {{start}} to {{end}}",
+      "exportExcel": "EXPORT EXCEL",
+      "printPdf": "PRINT PDF",
+      "filterTooltip": "Filter",
+      "headers": {
+        "matricule": "Matricule",
+        "collaborator": "Collaborator",
+        "period": "Period",
+        "nbDays": "Days",
+        "actions": "Actions"
+      },
+      "noData": "No data for this period.",
+      "clickSearch": "Click SEARCH to load data.",
+      "details": "Details",
+      "pagination": "Showing {{start}} to {{end}} of {{total}} collaborators"
+    },
+    "drawer": {
+      "title": "Collaborator Details",
+      "subtitle": "Complete payroll and HR data",
+      "matriculeLabel": "Matricule: {{value}}",
+      "regime": "Regime",
+      "regimeMonthly": "Monthly",
+      "regimeHourly": "Hourly",
+      "salaryDaily": "Daily Salary",
+      "birthDate": "Birth Date",
+      "hireDate": "Hire Date",
+      "calculationsTitle": "Leave Calculations",
+      "initialBalance": "Initial Balance",
+      "leaveDueDays": "Leave Due Days",
+      "leaveDueIndemnity": "Leave Due Indemnity",
+      "seniorityTitle": "Seniority",
+      "seniorityDays": "Seniority Days",
+      "seniorityAmount": "Seniority Amount",
+      "youngWorkerTitle": "Young Worker",
+      "youngWorkerLeave": "Young Worker Leave",
+      "youngWorkerLeaveAmount": "Young Worker Leave Amount",
+      "youngWorkerDays": "Young Worker Days",
+      "youngWorkerDaysAmount": "Young Worker Days Amount",
+      "totalsTitle": "Totals & Indemnities",
+      "totalDuePresence": "Total Due Presence",
+      "leaveIndemnity": "Leave Indemnity",
+      "departureReturnTitle": "Departure & Return",
+      "departureDate": "Departure Date",
+      "returnDate": "Return Date",
+      "periodTitle": "Period Information",
+      "periodSum": "Period Sum",
+      "periodTemporis": "Period Temporis",
+      "exportSheet": "EXPORT FULL SHEET",
+      "days": "Days",
+      "currency": "DT"
+    },
+    "list": {
+      "title": "",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Full Name",
+        "birthDate": "Birth Date",
+        "hireDate": "Hire Date",
+        "regime": "Regime",
+        "salaryDaily": "Daily Salary",
+        "sumReceived": "Amount Received",
+        "presenceTime": "Presence Time",
+        "initialBalance": "Initial Balance",
+        "leaveDueDays": "Leave Due Days",
+        "leaveDueIndemnity": "Leave Due Indemnity",
+        "seniorityDays": "Seniority Days",
+        "seniorityAmount": "Seniority Amount",
+        "youngWorkerLeave": "Young Worker Leave",
+        "youngWorkerLeaveAmount": "Young Worker Amount",
+        "youngWorkerDays": "Young Worker Days",
+        "youngWorkerDaysAmount": "Young Worker Amount",
+        "totalDuePresence": "Total Due Presence",
+        "leaveIndemnity": "Leave Indemnity",
+        "departureDate": "Departure Date",
+        "am": "AM",
+        "returnDate": "Return Date"
+      }
+    },
+    "excel": {
+      "title": "Leave Register - Period from {{start}} to {{end}}",
+      "sheetName": "Leave Register",
+      "totalLabel": "TOTAL",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Full Name",
+        "birthDate": "Birth Date",
+        "hireDate": "Hire Date",
+        "regime": "Regime",
+        "salaryDaily": "Daily Salary",
+        "periodSum": "Period Sum",
+        "periodTemporis": "Period Temporis",
+        "initialBalance": "Initial Balance (Days)",
+        "leaveDue": "Leave Due (Days)",
+        "leaveDueIndemnity": "Leave Due Indemnity (DT)",
+        "seniorityDays": "Seniority Days",
+        "seniorityAmount": "Seniority Amount (DT)",
+        "youngWorkerLeave": "Young Worker Leave (Days)",
+        "youngWorkerLeaveAmount": "Young Worker Leave Amount (DT)",
+        "youngWorkerDays": "Young Worker Days",
+        "youngWorkerDaysAmount": "Young Worker Days Amount (DT)",
+        "totalDuePresence": "Total Due Presence (DT)",
+        "leaveIndemnity": "Leave Indemnity (DT)",
+        "departureDate": "Departure Date",
+        "departureHour": "Dep. Hour",
+        "returnDate": "Return Date",
+        "returnHour": "Ret. Hour"
+      }
+    }
+  },
+  "echeanceContrat": {
+    "noConsultRight": "You do not have the right to view contract expirations.",
+    "title": "Contract Expirations",
+    "subtitle": "Tracking contract endings and renewal anticipation",
+    "yearLabel": "Year {{year}}",
+    "filter": {
+      "echStart": "Expiration Start",
+      "echEnd": "Expiration End",
+      "search": "SEARCH"
+    },
+    "errors": {
+      "forbidden": "Action forbidden: you do not have permission.",
+      "fetchError": "Error while fetching contracts.",
+      "reportForbidden": "Access denied to report generation.",
+      "reportError": "Error while generating report."
+    },
+    "summary": {
+      "totalCards": "Contracts expiring",
+      "totalUnit": "Contracts",
+      "totalFooter": "Over the selected period",
+      "employees": "Affected Employees",
+      "employeesFooter": "Distinct over the period",
+      "urgent": "Urgent (≤ 7d)",
+      "urgentFooter": "To renew very soon",
+      "expired": "Already expired",
+      "expiredFooter": "Immediate action required"
+    },
+    "table": {
+      "title": "Expirations Registry",
+      "subtitle": "Period from {{start}} to {{end}}",
+      "exportExcel": "EXPORT EXCEL",
+      "printPdf": "PRINT PDF",
+      "headers": {
+        "matricule": "Matricule",
+        "collaborator": "Collaborator",
+        "contractNo": "Contract No.",
+        "contractDate": "Contract Date",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "daysLeft": "Days Left",
+        "actions": "Actions"
+      },
+      "noData": "No contracts expire in this period.",
+      "clickSearch": "Click SEARCH to load data.",
+      "expiredBadge": "Expired ({{days}}d)",
+      "daysShort": "{{days}}d",
+      "renew": "Renew",
+      "renewTooltip": "Renew this contract",
+      "pagination": "Showing {{start}} to {{end}} of {{total}} contract(s)"
+    },
+    "excel": {
+      "title": "Contract Expirations — {{start}} to {{end}}",
+      "sheetName": "Expiration",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Full Name",
+        "contractNo": "Contract No.",
+        "contractDate": "Contract Date",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "daysLeft": "Days Left"
+      }
+    },
+    "list": {
+      "title": "Contract Expirations List",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Full Name",
+        "contractDate": "Contract Date",
+        "contractNo": "Contract No.",
+        "startDate": "Start Date",
+        "endDate": "End Date"
+      }
+    }
+  },
+  "etatDroitConge": {
+    "noConsultRight": "You do not have the right to view leave entitlements.",
+    "title": "Leave Entitlements",
+    "tabs": {
+      "synthesis": "ENTITLEMENTS SYNTHESIS",
+      "synthesisDesc": "Global view by employee",
+      "leavesByMonth": "LEAVES RECEIVED BY MONTH",
+      "leavesByMonthDesc": "Monthly leave breakdown",
+      "absencesByMonth": "ABSENCES BY MONTH",
+      "absencesByMonthDesc": "Detailed absence tracking"
+    },
+    "errors": {
+      "forbidden": "You do not have permission to perform this action.",
+      "generic": "An error occurred. Please try again."
+    },
+    "filter": {
+      "employee": "Collaborator / Department",
+      "myService": "My service",
+      "allEmployees": "All employees",
+      "selectedCount": "{{count}} collaborators selected",
+      "dateStart": "Start Date",
+      "dateEnd": "End Date",
+      "search": "SEARCH"
+    },
+    "summary": {
+      "totalCollaborators": "Total Collaborators",
+      "filteredData": "Filtered data",
+      "totalRights": "Total Acquired Rights",
+      "average": "Average: {{value}} days / person",
+      "totalTaken": "Total Taken",
+      "consumption": "{{value}}% consumption",
+      "globalBalance": "Global Balances",
+      "leavesReceived": "Leaves received: {{value}}",
+      "daysShort": "Days"
+    },
+    "tableSynthesis": {
+      "title": "Entitlements Details",
+      "subtitle": "Showing consolidated data for the current year",
+      "export": "EXPORT SELECTION",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Full Name",
+        "regime": "Regime",
+        "year": "Year",
+        "leaveRight": "Leave Right",
+        "leaveReceived": "Leave Received",
+        "totalRight": "Total Right",
+        "consumed": "Consumed",
+        "remaining": "Remaining Balance",
+        "status": "Status"
+      },
+      "statusPending": "Pending",
+      "statusValidated": "Validated",
+      "noData": "No data. Click SEARCH to load leave entitlements.",
+      "pagination": "Showing {{start}} to {{end}} of {{total}} collaborators"
+    },
+    "tableLeavesMonth": {
+      "title": "Leaves Received by Month",
+      "subtitle": "Monthly breakdown of leaves received",
+      "export": "EXPORT SELECTION",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Full Name",
+        "regime": "Regime",
+        "year": "Year",
+        "totalLeavesReceived": "Total Leaves Received"
+      },
+      "noData": "No data. Click SEARCH to load.",
+      "pagination": "Showing {{start}} to {{end}} of {{total}}"
+    },
+    "tableAbsencesMonth": {
+      "title": "Absences by Month",
+      "subtitle": "Detailed monthly absence tracking",
+      "export": "EXPORT SELECTION",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Full Name",
+        "regime": "Regime",
+        "year": "Year",
+        "totalAbsences": "Total Absences"
+      },
+      "noData": "No data. Click SEARCH to load.",
+      "pagination": "Showing {{start}} to {{end}} of {{total}}"
+    },
+    "csv": {
+      "filename": "leave-entitlements.csv",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Name",
+        "regime": "Regime",
+        "year": "Year",
+        "leaveRight": "Leave Right",
+        "leaveReceived": "Leave Received",
+        "totalRight": "Total Right",
+        "consumed": "Consumed",
+        "remaining": "Remaining Balance"
+      }
+    }
+  },
+  "utilisateur": {
+    "page": {
+      "title": "User Management",
+      "searchPlaceholder": "Search the directory...",
+      "permissions": "Permissions",
+      "newUser": "New User",
+      "exportCsv": "Export CSV",
+      "loading": "Loading...",
+      "noUsers": "No users found",
+      "paginationInfo": "Showing {{filtered}} of {{total}} users"
+    },
+    "kpi": {
+      "totalUsers": "Total Users",
+      "active": "Active",
+      "administrators": "Administrators",
+      "without2fa": "Without 2FA",
+      "activeBadge": "Active"
+    },
+    "filters": {
+      "allRoles": "All Roles",
+      "administrator": "Administrator",
+      "rh": "HR Manager",
+      "supervisor": "Supervisor",
+      "manager": "Manager",
+      "standard": "Standard",
+      "allStatuses": "All Statuses",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "table": {
+      "user": "User",
+      "role": "Role",
+      "status": "Status",
+      "email": "Email",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "resetPassword": "Reset password",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "delete": "Delete"
+    },
+    "modal": {
+      "editTitle": "Edit User",
+      "newTitle": "New User",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "msg": {
+      "statusUpdated": "Status updated",
+      "statusUpdateError": "Failed to update status",
+      "userDeleted": "User deleted",
+      "deleteError": "Failed to delete user",
+      "passwordReset": "Password reset",
+      "resetError": "Failed to reset password",
+      "userUpdated": "User updated successfully",
+      "userCreated": "User created successfully"
+    },
+    "delete": {
+      "title": "Confirm deletion",
+      "message": "Are you sure you want to delete user <0>{{name}}</0>?",
+      "warning": "This will also remove all their rights and access.",
+      "cancel": "Cancel",
+      "confirm": "Delete permanently"
+    },
+    "reset": {
+      "title": "Reset password",
+      "prompt": "New password for <0>{{name}}</0>:",
+      "placeholder": "Enter the new password",
+      "cancel": "Cancel",
+      "confirm": "Reset"
+    },
+    "form": {
+      "code": "Code",
+      "codePlaceholder": "User code",
+      "name": "Last name",
+      "namePlaceholder": "Last name",
+      "firstName": "First name",
+      "firstNamePlaceholder": "First name",
+      "email": "Email",
+      "emailPlaceholder": "email@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "company": "Company",
+      "site": "Site / Branch",
+      "selectPlaceholder": "Select...",
+      "role": "Role",
+      "requiredFields": "Please fill in all required fields.",
+      "addError": "Failed to add user."
+    },
+    "profile": {
+      "site": "Site",
+      "admin": "Admin"
+    }
+  },
+  "pointeuseAccees": {
+    "page": {
+      "title": "Access Rights Management",
+      "subtitle": "Manage role-based permissions and punch clock access",
+      "rolesSection": "Role Permissions",
+      "rolesDesc": "Define each role's permissions for application modules",
+      "punchSection": "Punch Clock Access Rights",
+      "punchDesc": "Grant read, configure, and purge access for each punch clock by role"
+    },
+    "table": {
+      "code": "Code",
+      "punchClock": "Punch Clock",
+      "read": "Read",
+      "purge": "Purge",
+      "configure": "Configure",
+      "loading": "Loading...",
+      "selectUser": "Select a user to view permissions"
+    },
+    "form": {
+      "email": "Email",
+      "name": "Last name",
+      "firstName": "First name",
+      "company": "Company",
+      "site": "Site",
+      "administrator": "Administrator",
+      "addError": "Failed to add user."
+    },
+    "list": {
+      "loading": "Loading...",
+      "fetchError": "Error fetching users",
+      "code": "Code",
+      "name": "Last name",
+      "firstName": "First name",
+      "active": "Active",
+      "admin": "Admin",
+      "yes": "Yes",
+      "no": "No"
+    }
+  },
+  "mission": {
+    "header": {
+      "title": "Mission Management",
+      "subtitle": "Every expense report must be linked to a mission of category \"Training and mission\" (abscng = 6).",
+      "newMission": "New mission"
+    },
+    "alerts": {
+      "noNatures": "No absence type with abscng = 6 is defined. Create one under \"Base data > Absence types\" before recording missions."
+    },
+    "filters": {
+      "searchPlaceholder": "Search (object, destination, employee)...",
+      "state": "Status",
+      "all": "All"
+    },
+    "states": {
+      "Pending": "Pending",
+      "Approved": "Approved",
+      "InProgress": "In progress",
+      "Completed": "Completed",
+      "Cancelled": "Cancelled"
+    },
+    "table": {
+      "object": "Object",
+      "collaborator": "Employee",
+      "destination": "Destination",
+      "period": "Period",
+      "budget": "Budget",
+      "state": "Status",
+      "empty": "No missions."
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "newTitle": "New mission",
+      "editTitle": "Edit mission",
+      "collaborator": "Employee",
+      "selfHint": "Mission created for yourself.",
+      "absenceNature": "Absence type (Training and mission)",
+      "absenceHintNone": "No nature with abscng = 6 available.",
+      "absenceHintAvailable": "Only natures with abscng = 6 are listed.",
+      "object": "Mission object",
+      "destination": "Destination",
+      "state": "Status",
+      "dateStart": "Start date",
+      "dateEnd": "End date",
+      "budget": "Allocated budget (DT)",
+      "note": "Note",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "delete": {
+      "title": "Delete mission?",
+      "message": "\"{{object}}\" will be deleted. Expense reports already linked will keep it as a historical reference.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "msg": {
+      "requiredFields": "Required fields missing: employee, object, nature and dates.",
+      "invalidDateRange": "End date must be after start date.",
+      "created": "Mission created.",
+      "updated": "Mission updated.",
+      "deleted": "Mission deleted.",
+      "saveError": "Failed to save.",
+      "deleteError": "Failed to delete."
+    }
+  },
+  "autSortieGenerale": {
+    "header": {
+      "title": "General Exit Authorization",
+      "subtitle": "Bulk issuance for all personnel",
+      "reset": "Reset",
+      "generating": "Generating...",
+      "submit": "Bulk Issue"
+    },
+    "exceptions": {
+      "title": "Exceptions ({{count}})",
+      "desc": "Select the employees to exclude from this batch",
+      "show": "Manage exceptions",
+      "hide": "Hide list"
+    },
+    "schedule": {
+      "title": "Common Schedule",
+      "exitDate": "Exit Date",
+      "start": "Start",
+      "end": "Expected End",
+      "duration": "Duration"
+    },
+    "references": {
+      "title": "References",
+      "adminRef": "Administrative Reference",
+      "adminRefPlaceholder": "Service note No..."
+    },
+    "imputation": {
+      "title": "Imputation Type",
+      "collectiveReason": "Collective Reason",
+      "collectiveReasonPlaceholder": "Justification for all employees..."
+    },
+    "msg": {
+      "imputationRequired": "Imputation is required.",
+      "bulkSuccess": "{{count}} authorizations generated successfully.",
+      "bulkError": "Error during bulk save."
+    }
+  },
+  "jourCompensation": {
+    "header": {
+      "title": "Compensation Day",
+      "subtitle": "Manage hours to compensate or recover",
+      "newEntry": "New",
+      "save": "Save",
+      "update": "Update"
+    },
+    "form": {
+      "infoTitle": "Information",
+      "scheduleTitle": "Scheduling",
+      "detailsTitle": "Details",
+      "employee": "Employee",
+      "orderNo": "Order No.",
+      "reference": "Reference",
+      "startDateTime": "Start Date & Time",
+      "endTime": "End Time",
+      "totalDuration": "Total Duration",
+      "hoursValue": "{{hours}} Hours",
+      "imputation": "Imputation",
+      "reason": "Reason",
+      "reasonPlaceholder": "Specify the reason..."
+    },
+    "list": {
+      "title": "Compensation Register",
+      "searchPlaceholder": "Search...",
+      "employee": "Employee",
+      "date": "Date",
+      "period": "Period",
+      "duration": "Duration",
+      "actions": "Actions",
+      "empty": "No data",
+      "rowsPerPage": "Rows:",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "msg": {
+      "requiredFields": "Employee and Order No. are required.",
+      "saveSuccess": "Save successful",
+      "saveError": "Error during save",
+      "deleteConfirm": "Delete compensation #{{code}}?"
+    }
   }
 }

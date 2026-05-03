@@ -11,6 +11,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../../../helper/AuthProvider';
 import useGetSoldeByEmp from '../../../../hooks/soldeCongeHooks/useGetSoldeByEmp';
 import useGetDemConges from '../../../../hooks/congeHooks/useGetDemConges';
@@ -28,11 +29,12 @@ const fmtDate = (d: Date | string | null | undefined) => {
   catch { return '—'; }
 };
 
-const getStatus = (c: Conge): 'Accepté' | 'Refusé' | 'En attente' => {
+type SoldeStatusKey = 'accepted' | 'refused' | 'pending';
+const getStatus = (c: Conge): SoldeStatusKey => {
   const n = c.etat?.trim().toLowerCase() ?? '';
-  if (n.includes('refus') || c.conrefus === '1') return 'Refusé';
-  if (n.includes('accept')) return 'Accepté';
-  return 'En attente';
+  if (n.includes('refus') || c.conrefus === '1') return 'refused';
+  if (n.includes('accept')) return 'accepted';
+  return 'pending';
 };
 
 
@@ -49,6 +51,7 @@ interface BalanceCardProps {
 }
 
 function BalanceCard({ icon, iconBg, label, balance, acquired, taken, barColor, emptyMsg }: BalanceCardProps) {
+  const { t } = useTranslation();
   const pct = acquired > 0 ? Math.min(100, (balance / acquired) * 100) : 0;
   return (
     <Paper className="scm-balance-card">
@@ -58,21 +61,21 @@ function BalanceCard({ icon, iconBg, label, balance, acquired, taken, barColor, 
       </Box>
       <Box className="scm-card-value">
         <Typography className="scm-card-number">{balance.toFixed(1)}</Typography>
-        <Typography className="scm-card-unit">jours</Typography>
+        <Typography className="scm-card-unit">{t('conge.soldeConge.card.days')}</Typography>
       </Box>
       {emptyMsg && balance === 0 ? (
         <Typography className="scm-card-empty">{emptyMsg}</Typography>
       ) : (
         <Box className="scm-card-stats">
           <Box className="scm-card-stat-row">
-            <Typography className="scm-stat-label">Acquis</Typography>
+            <Typography className="scm-stat-label">{t('conge.soldeConge.card.acquired')}</Typography>
             <Typography className="scm-stat-value">{acquired.toFixed(1)}</Typography>
           </Box>
           <Box className="scm-progress-bar">
             <Box className="scm-progress-fill" style={{ width: `${pct}%`, backgroundColor: barColor }} />
           </Box>
           <Box className="scm-card-stat-row">
-            <Typography className="scm-stat-label">Pris / Posés</Typography>
+            <Typography className="scm-stat-label">{t('conge.soldeConge.card.takenPlaced')}</Typography>
             <Typography className="scm-stat-value scm-stat-taken">{taken.toFixed(1)}</Typography>
           </Box>
         </Box>
@@ -83,6 +86,7 @@ function BalanceCard({ icon, iconBg, label, balance, acquired, taken, barColor, 
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 function SoldeCongeModernInner() {
+  const { t } = useTranslation();
   const { uticod, isAdmin, isManager } = useAuth();
   const ownEmpId = uticod || '';
 
@@ -107,6 +111,7 @@ function SoldeCongeModernInner() {
     if (!canPickEmployee || !empMap || typeof empMap !== 'object') return [] as Array<{ code: string; lib: string }>;
     return Object.entries(empMap as Record<string, string>).map(([code, lib]) => ({ code, lib }));
   }, [empMap, canPickEmployee]);
+  const allowedEmpcodes = useMemo(() => new Set(employeeOptions.map((o) => o.code)), [employeeOptions]);
 
   // Le hook ne fire la requête que si empId est non vide (cf. enabled: !!empcod). Pour l'admin
   // sans sélection, empId === '' donc aucun appel /Soldes/by-emp n'est fait — exactement le
@@ -132,9 +137,17 @@ function SoldeCongeModernInner() {
   // Suppress unused warning
   useEffect(() => { /* noop */ }, [selectedLabel]);
 
-  const accepted = myConges.filter((c) => getStatus(c) === 'Accepté');
-  const refused  = myConges.filter((c) => getStatus(c) === 'Refusé');
-  const pending  = myConges.filter((c) => getStatus(c) === 'En attente');
+  // Safety net: for managers, prevent consulting balances outside their service.
+  useEffect(() => {
+    if (!isManager || !selectedEmpId) return;
+    if (!allowedEmpcodes.has(selectedEmpId)) {
+      setSelectedEmpId('');
+    }
+  }, [isManager, selectedEmpId, allowedEmpcodes]);
+
+  const accepted = myConges.filter((c) => getStatus(c) === 'accepted');
+  const refused  = myConges.filter((c) => getStatus(c) === 'refused');
+  const pending  = myConges.filter((c) => getStatus(c) === 'pending');
 
   const { data: allAbsences = [] } = useGetAllAbsences();
 
@@ -217,12 +230,12 @@ function SoldeCongeModernInner() {
         <Box>
           <Typography className="scm-title">
             {isAdmin
-              ? (selectedEmpId ? `Solde de Congés — ${selectedLabel}` : 'Solde de Congés des Employés')
-              : (canPickEmployee && selectedEmpId ? `Solde de Congés — ${selectedLabel}` : 'Mon Solde de Congés')}
+              ? (selectedEmpId ? t('conge.soldeConge.titleNamed', { name: selectedLabel }) : t('conge.soldeConge.titleEmployees'))
+              : (canPickEmployee && selectedEmpId ? t('conge.soldeConge.titleNamed', { name: selectedLabel }) : t('conge.soldeConge.titleMine'))}
           </Typography>
           <Box className="scm-period">
             <EventIcon sx={{ fontSize: 16 }} />
-            <Typography className="scm-period-text">Période de référence : {refPeriod}</Typography>
+            <Typography className="scm-period-text">{t('conge.soldeConge.refPeriod', { period: refPeriod })}</Typography>
           </Box>
           {canPickEmployee && (
             <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -235,14 +248,14 @@ function SoldeCongeModernInner() {
                 onChange={(_, val) => setSelectedEmpId(val?.code || '')}
                 sx={{ minWidth: 320 }}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder={isAdmin ? 'Sélectionner un employé…' : 'Consulter un employé de mon service…'} />
+                  <TextField {...params} placeholder={isAdmin ? t('conge.soldeConge.selectEmployee') : t('conge.soldeConge.selectMyService')} />
                 )}
               />
               {/* Le bouton "Voir mon propre solde" est masqué pour l'admin : un admin ne consulte
                   que des soldes employés, jamais le sien. */}
               {selectedEmpId && !isAdmin && (
                 <Button size="small" onClick={() => setSelectedEmpId('')} sx={{ textTransform: 'none' }}>
-                  Voir mon propre solde
+                  {t('conge.soldeConge.viewMine')}
                 </Button>
               )}
             </Box>
@@ -259,10 +272,10 @@ function SoldeCongeModernInner() {
         <Paper sx={{ p: 4, textAlign: 'center', mt: 3, border: '1px dashed #cbd5e1', background: '#f8fafc', boxShadow: 'none' }}>
           <EventIcon sx={{ fontSize: 40, color: '#94a3b8', mb: 1 }} />
           <Typography sx={{ fontWeight: 700, fontSize: '15px', color: '#334155', mb: 0.5 }}>
-            Sélectionnez un employé
+            {t('conge.soldeConge.selectFirstTitle')}
           </Typography>
           <Typography sx={{ fontSize: '13px', color: '#64748b' }}>
-            En tant qu'administrateur, vous consultez le solde de congés d'un employé. Choisissez-en un dans la liste ci-dessus.
+            {t('conge.soldeConge.selectFirstSub')}
           </Typography>
         </Paper>
       )}
@@ -276,7 +289,7 @@ function SoldeCongeModernInner() {
         <BalanceCard
           icon={<BeachAccessIcon sx={{ color: '#0040a1' }} />}
           iconBg="rgba(0,64,161,0.1)"
-          label="Congés Payés"
+          label={t('conge.soldeConge.card.paidLeave')}
           balance={totalBalance}
           acquired={totalAcquired}
           taken={totalTaken}
@@ -285,22 +298,22 @@ function SoldeCongeModernInner() {
         <BalanceCard
           icon={<FamilyRestroomIcon sx={{ color: '#005136' }} />}
           iconBg="rgba(0,81,54,0.12)"
-          label="Congé Spéciale Familiale"
+          label={t('conge.soldeConge.card.specialFamily')}
           balance={takenStats.csf}
           acquired={takenStats.csf}
           taken={takenStats.csf}
           barColor="#005136"
-          emptyMsg="Aucun congé spéciale familiale pris cette année."
+          emptyMsg={t('conge.soldeConge.card.noFamilyLeave')}
         />
         <BalanceCard
           icon={<MoneyOffIcon sx={{ color: '#ba1a1a' }} />}
           iconBg="rgba(186,26,26,0.1)"
-          label="Congé Sans Solde"
+          label={t('conge.soldeConge.card.unpaidLeave')}
           balance={takenStats.css}
           acquired={takenStats.css}
           taken={takenStats.css}
           barColor="#ba1a1a"
-          emptyMsg="Aucun congé sans solde pris cette année."
+          emptyMsg={t('conge.soldeConge.card.noUnpaidLeave')}
         />
       </Box>
 
@@ -309,41 +322,41 @@ function SoldeCongeModernInner() {
         {/* History table */}
         <Paper className="scm-table-card">
           <Box className="scm-table-header">
-            <Typography className="scm-table-title">Historique des Mouvements</Typography>
+            <Typography className="scm-table-title">{t('conge.soldeConge.table.title')}</Typography>
             <Button
               startIcon={<DownloadIcon />}
               onClick={handleExportPDF}
               className="scm-export-btn"
             >
-              Exporter (PDF)
+              {t('conge.soldeConge.table.exportPdf')}
             </Button>
           </Box>
           <Box className="scm-table-wrap">
             <table className="scm-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Type</th>
-                  <th className="scm-th-right">Mouvement</th>
-                  <th className="scm-th-right">Statut</th>
+                  <th>{t('conge.soldeConge.table.date')}</th>
+                  <th>{t('conge.soldeConge.table.description')}</th>
+                  <th>{t('conge.soldeConge.table.type')}</th>
+                  <th className="scm-th-right">{t('conge.soldeConge.table.movement')}</th>
+                  <th className="scm-th-right">{t('conge.soldeConge.table.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {myConges.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="scm-empty-row">Aucun mouvement enregistré</td>
+                    <td colSpan={5} className="scm-empty-row">{t('conge.soldeConge.table.noMovements')}</td>
                   </tr>
                 ) : (
                   myConges.map((c) => {
                     const status = getStatus(c);
-                    const isPos = status === 'Accepté';
+                    const isPos = status === 'accepted';
                     return (
                       <tr key={c.concod} className="scm-tr">
                         <td className="scm-td-date">{fmtDate(c.condep)}</td>
                         <td>
-                          <Typography className="scm-td-title">Prise de Congé</Typography>
-                          <Typography className="scm-td-sub">{c.abscod} — {fmtDate(c.condep)} au {fmtDate(c.conret)}</Typography>
+                          <Typography className="scm-td-title">{t('conge.soldeConge.table.leaveTaken')}</Typography>
+                          <Typography className="scm-td-sub">{c.abscod} — {fmtDate(c.condep)} → {fmtDate(c.conret)}</Typography>
                         </td>
                         <td>
                           <Chip
@@ -354,16 +367,16 @@ function SoldeCongeModernInner() {
                         </td>
                         <td className="scm-td-right">
                           <Typography className={`scm-movement ${isPos ? 'scm-movement-neg' : 'scm-movement-pending'}`}>
-                            -{c.connbjour} j
+                            -{c.connbjour} {t('conge.soldeConge.table.daysShort')}
                           </Typography>
                         </td>
                         <td className="scm-td-right">
                           <Box className="scm-status-cell">
-                            {status === 'Accepté' && <CheckCircleIcon sx={{ fontSize: 14, color: '#166534' }} />}
-                            {status === 'Refusé' && <CancelIcon sx={{ fontSize: 14, color: '#991b1b' }} />}
-                            {status === 'En attente' && <HourglassEmptyIcon sx={{ fontSize: 14, color: '#854d0e' }} />}
-                            <Typography className={`scm-status-text scm-status-${status === 'Accepté' ? 'ok' : status === 'Refusé' ? 'ko' : 'wait'}`}>
-                              {status}
+                            {status === 'accepted' && <CheckCircleIcon sx={{ fontSize: 14, color: '#166534' }} />}
+                            {status === 'refused' && <CancelIcon sx={{ fontSize: 14, color: '#991b1b' }} />}
+                            {status === 'pending' && <HourglassEmptyIcon sx={{ fontSize: 14, color: '#854d0e' }} />}
+                            <Typography className={`scm-status-text scm-status-${status === 'accepted' ? 'ok' : status === 'refused' ? 'ko' : 'wait'}`}>
+                              {t(`conge.soldeConge.table.status${status.charAt(0).toUpperCase() + status.slice(1)}`)}
                             </Typography>
                           </Box>
                         </td>
@@ -381,7 +394,7 @@ function SoldeCongeModernInner() {
           {/* Consumption chart */}
           <Paper className="scm-chart-card">
             <Box className="scm-chart-header">
-              <Typography className="scm-chart-title">Consommation annuelle</Typography>
+              <Typography className="scm-chart-title">{t('conge.soldeConge.chart.title')}</Typography>
               <Chip label={String(currentYear)} size="small" className="scm-year-chip" />
             </Box>
             <Box className="scm-chart-bars">
@@ -395,11 +408,16 @@ function SoldeCongeModernInner() {
               })}
             </Box>
             <Box className="scm-chart-labels">
-              <Typography className="scm-chart-label">Juin</Typography>
-              <Typography className="scm-chart-label">Déc</Typography>
+              <Typography className="scm-chart-label">{t('conge.soldeConge.chart.labelStart')}</Typography>
+              <Typography className="scm-chart-label">{t('conge.soldeConge.chart.labelEnd')}</Typography>
             </Box>
             <Typography className="scm-chart-note">
-              Vous avez consommé <strong style={{ color: '#0040a1' }}>{accepted.length} demande{accepted.length !== 1 ? 's' : ''}</strong> acceptée{accepted.length !== 1 ? 's' : ''} cette année.
+              <Trans
+                i18nKey="conge.soldeConge.chart.note"
+                count={accepted.length}
+                values={{ count: accepted.length }}
+                components={{ 0: <strong style={{ color: '#0040a1' }} /> }}
+              />
             </Typography>
           </Paper>
 
@@ -408,17 +426,17 @@ function SoldeCongeModernInner() {
             <Paper className="scm-stat-item">
               <CheckCircleIcon sx={{ color: '#166534', fontSize: 20 }} />
               <Typography className="scm-stat-num scm-stat-green">{accepted.length}</Typography>
-              <Typography className="scm-stat-lbl">Validés</Typography>
+              <Typography className="scm-stat-lbl">{t('conge.soldeConge.quickStats.validated')}</Typography>
             </Paper>
             <Paper className="scm-stat-item">
               <CancelIcon sx={{ color: '#991b1b', fontSize: 20 }} />
               <Typography className="scm-stat-num scm-stat-red">{refused.length}</Typography>
-              <Typography className="scm-stat-lbl">Refusés</Typography>
+              <Typography className="scm-stat-lbl">{t('conge.soldeConge.quickStats.refused')}</Typography>
             </Paper>
             <Paper className="scm-stat-item">
               <HourglassEmptyIcon sx={{ color: '#854d0e', fontSize: 20 }} />
               <Typography className="scm-stat-num scm-stat-yellow">{pending.length}</Typography>
-              <Typography className="scm-stat-lbl">En attente</Typography>
+              <Typography className="scm-stat-lbl">{t('conge.soldeConge.quickStats.pending')}</Typography>
             </Paper>
           </Box>
 
@@ -426,10 +444,10 @@ function SoldeCongeModernInner() {
           <Paper className="scm-info-card">
             <Box className="scm-info-header">
               <AutoAwesomeIcon sx={{ color: '#93c5fd', fontSize: 20 }} />
-              <Typography className="scm-info-title">Règle de report</Typography>
+              <Typography className="scm-info-title">{t('conge.soldeConge.info.rolloverTitle')}</Typography>
             </Box>
             <Typography className="scm-info-text">
-              Les congés payés non pris au 31 mai seront automatiquement transférés vers votre Compte Épargne Temps (CET), dans la limite de 10 jours.
+              {t('conge.soldeConge.info.rolloverText')}
             </Typography>
           </Paper>
         </Box>

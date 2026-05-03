@@ -21,7 +21,8 @@ import {
 } from 'lucide-react';
 import { QueryClient, QueryClientProvider } from "react-query";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 
 const queryClient = new QueryClient();
 
@@ -37,12 +38,15 @@ interface CalendarEntry {
   calDate: string;
 }
 
-const MONTHS = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+const MONTH_KEYS = [
+  "janvier", "fevrier", "mars", "avril", "mai", "juin",
+  "juillet", "aout", "septembre", "octobre", "novembre", "decembre"
 ];
 
 function CalendrierContent() {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language?.startsWith('en') ? enUS : fr;
+  const MONTHS = MONTH_KEYS.map(k => t(`paramSoc.calendrier.monthsLong.${k}`));
   const { selectedCalendrier, setSelectedCalendrier } = useCalendrierContext();
   const soccod = localStorage.getItem("soccod") || "01";
 
@@ -106,9 +110,9 @@ function CalendrierContent() {
     updateCalendrier.mutate(undefined, {
       onSuccess: () => {
         refetch();
-        showFeedback(`Réglages enregistrés pour ${format(currentDate, 'MMMM yyyy', { locale: fr })}`);
+        showFeedback(t('paramSoc.calendrier.settingsSavedFor', { period: format(currentDate, 'MMMM yyyy', { locale: dateLocale }) }));
       },
-      onError: () => showFeedback('Erreur lors de l\'enregistrement des réglages.', 'error'),
+      onError: () => showFeedback(t('paramSoc.calendrier.settingsSaveError'), 'error'),
     });
   };
 
@@ -139,9 +143,9 @@ function CalendrierContent() {
       onSuccess: () => {
         setShowAddModal(false);
         refetch();
-        showFeedback(`Planification ${newYear} créée avec succès !`);
+        showFeedback(t('paramSoc.calendrier.yearCreatedSuccess', { year: newYear }));
       },
-      onError: () => showFeedback(`Erreur lors de la création de l'année ${newYear}.`, 'error'),
+      onError: () => showFeedback(t('paramSoc.calendrier.yearCreateError', { year: newYear }), 'error'),
     });
   };
 
@@ -150,9 +154,9 @@ function CalendrierContent() {
       onSuccess: () => {
         setShowAddModal(false);
         refetch();
-        showFeedback(`Année ${sourceYear} clonée avec succès !`);
+        showFeedback(t('paramSoc.calendrier.yearClonedSuccess', { year: sourceYear }));
       },
-      onError: () => showFeedback(`Erreur lors du clonage de l'année ${sourceYear}.`, 'error'),
+      onError: () => showFeedback(t('paramSoc.calendrier.yearCloneError', { year: sourceYear }), 'error'),
     });
   };
 
@@ -212,8 +216,8 @@ function CalendrierContent() {
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
-              <p className="text-xs font-label font-bold text-primary uppercase tracking-[0.2em] mb-2">Suivi des temps</p>
-              <h2 className="text-2xl sm:text-4xl font-extrabold font-headline text-on-surface tracking-tight">Planification & Pointage Mensuel</h2>
+              <p className="text-xs font-label font-bold text-primary uppercase tracking-[0.2em] mb-2">{t('paramSoc.calendrier.tag')}</p>
+              <h2 className="text-2xl sm:text-4xl font-extrabold font-headline text-on-surface tracking-tight">{t('paramSoc.calendrier.heading')}</h2>
             </div>
             <div className="flex items-center gap-3 bg-surface-container-low p-1.5 rounded-xl self-center sm:self-auto">
               <button onClick={handlePrevMonth} className="p-2 hover:bg-surface-container-lowest rounded-lg transition-all text-on-surface-variant">
@@ -221,7 +225,7 @@ function CalendrierContent() {
               </button>
               <div className="flex flex-col items-center px-4 sm:px-6">
                 <span className="font-headline font-black text-sm uppercase text-primary tracking-tighter">
-                  {format(currentDate, 'MMMM', { locale: fr })}
+                  {format(currentDate, 'MMMM', { locale: dateLocale })}
                 </span>
                 <select
                   value={selectedCalendrier || selectedYear}
@@ -256,9 +260,9 @@ function CalendrierContent() {
           <div className="w-full overflow-x-auto rounded-2xl shadow-sm border border-outline-variant/10">
             <div className="grid grid-cols-7 gap-px overflow-hidden bg-outline-variant/20 min-w-[700px]">
               {/* Day Headers */}
-              {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].map(day => (
-                <div key={day} className="bg-surface-container-high py-4 text-center">
-                  <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">{day}</span>
+              {['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'].map(dayKey => (
+                <div key={dayKey} className="bg-surface-container-high py-4 text-center">
+                  <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">{t(`paramSoc.calendrier.days.${dayKey}`)}</span>
                 </div>
               ))}
 
@@ -278,7 +282,7 @@ function CalendrierContent() {
 
                   cells.push(
                     <div key={dateStr} className="min-h-[100px] sm:min-h-[120px] p-2 sm:p-4 flex flex-col justify-between bg-surface-container-lowest text-on-surface hover:bg-primary/5 transition-colors group cursor-pointer border-t border-outline-variant/10">
-                      <span className="text-xs font-label font-bold">{format(day, 'd MMM')}</span>
+                      <span className="text-xs font-label font-bold">{format(day, 'd MMM', { locale: dateLocale })}</span>
                       {entry ? (
                         entry.calNbh > 0 ? (
                           <div className="bg-primary/10 text-primary px-2 sm:px-3 py-1 sm:py-2 rounded-lg border-l-4 border-primary">
@@ -286,7 +290,7 @@ function CalendrierContent() {
                             <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-tighter mt-1">({entry.calNbh}h)</p>
                           </div>
                         ) : (
-                          <span className="text-[9px] sm:text-[10px] font-label font-semibold italic text-outline">Repos</span>
+                          <span className="text-[9px] sm:text-[10px] font-label font-semibold italic text-outline">{t('paramSoc.calendrier.rest')}</span>
                         )
                       ) : null}
                     </div>
@@ -309,16 +313,16 @@ function CalendrierContent() {
             <div className="flex items-center gap-4">
               <CheckCircle2 className="text-primary hidden sm:block" size={32} />
               <div>
-                <h3 className="text-xl sm:text-2xl font-black font-headline text-primary">Total du mois : {stats.totalHours} heures</h3>
-                <p className="text-xs sm:text-sm font-label font-semibold text-on-surface-variant">Basé sur <span className="text-on-surface font-bold">{stats.workedDays} jours travaillés</span></p>
+                <h3 className="text-xl sm:text-2xl font-black font-headline text-primary">{t('paramSoc.calendrier.monthTotal', { hours: stats.totalHours })}</h3>
+                <p className="text-xs sm:text-sm font-label font-semibold text-on-surface-variant">{t('paramSoc.calendrier.basedOn')} <span className="text-on-surface font-bold">{t('paramSoc.calendrier.workedDays', { count: stats.workedDays })}</span></p>
               </div>
             </div>
             <div className="flex flex-wrap gap-3 w-full md:w-auto">
               <button className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-surface-container-lowest text-on-surface text-xs sm:text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2">
-                <Download size={16} /> <span className="hidden sm:inline">Télécharger</span> PDF
+                <Download size={16} /> <span className="hidden sm:inline">{t('paramSoc.calendrier.downloadPdf')}</span> PDF
               </button>
               <button onClick={handleSave} className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-primary text-on-primary text-xs sm:text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2">
-                <Save size={16} /> Valider <span className="hidden sm:inline">les heures</span>
+                <Save size={16} /> {t('paramSoc.calendrier.validate')} <span className="hidden sm:inline">{t('paramSoc.calendrier.validateHours')}</span>
               </button>
             </div>
           </div>
@@ -326,22 +330,22 @@ function CalendrierContent() {
           {/* Annual Statistics */}
           <div className="mt-8">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg sm:text-xl font-extrabold font-headline tracking-tight">Statistiques Annuelles {selectedYear}</h3>
+              <h3 className="text-lg sm:text-xl font-extrabold font-headline tracking-tight">{t('paramSoc.calendrier.annualStats', { year: selectedYear })}</h3>
               <div className="hidden sm:flex items-center gap-2 text-outline">
                 <Info size={14} />
-                <span className="text-xs font-label font-medium italic">Calculé automatiquement</span>
+                <span className="text-xs font-label font-medium italic">{t('paramSoc.calendrier.calculatedAuto')}</span>
               </div>
             </div>
             <div className="overflow-x-auto rounded-2xl bg-surface-container-low shadow-sm border border-outline-variant/10">
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead className="bg-surface-container-high">
                   <tr>
-                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">Mois</th>
-                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">Jours/Mois</th>
-                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">Heures/Mois</th>
-                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">Heures Ouvrées</th>
-                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">Heures/Jour</th>
-                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-right">Performance</th>
+                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">{t('paramSoc.calendrier.headers.month')}</th>
+                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">{t('paramSoc.calendrier.headers.daysPerMonth')}</th>
+                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">{t('paramSoc.calendrier.headers.hoursPerMonth')}</th>
+                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">{t('paramSoc.calendrier.headers.openHours')}</th>
+                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">{t('paramSoc.calendrier.headers.hoursPerDay')}</th>
+                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-right">{t('paramSoc.calendrier.headers.performance')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
@@ -370,12 +374,12 @@ function CalendrierContent() {
         <aside className="w-full lg:w-80 flex flex-col gap-8">
           <div className="bg-surface-container-lowest p-6 sm:p-8 rounded-3xl shadow-lg flex flex-col gap-6 sticky top-28 border border-outline-variant/20">
             <div>
-              <h3 className="text-xl font-extrabold font-headline tracking-tight text-primary mb-1">Configuration</h3>
-              <p className="text-xs font-label font-medium text-outline">Ajustez vos paramètres mensuels</p>
+              <h3 className="text-xl font-extrabold font-headline tracking-tight text-primary mb-1">{t('paramSoc.calendrier.config.title')}</h3>
+              <p className="text-xs font-label font-medium text-outline">{t('paramSoc.calendrier.config.adjust')}</p>
             </div>
             <div className="space-y-6">
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">Heures par jour</label>
+                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">{t('paramSoc.calendrier.config.hoursPerDay')}</label>
                 <div className="relative">
                   <input
                     className="w-full bg-surface-container-low rounded-xl py-3 px-4 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold"
@@ -387,7 +391,7 @@ function CalendrierContent() {
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">Samedi (Heures)</label>
+                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">{t('paramSoc.calendrier.config.saturdayHours')}</label>
                 <div className="relative">
                   <input
                     className="w-full bg-surface-container-low rounded-xl py-3 px-4 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold"
@@ -400,25 +404,25 @@ function CalendrierContent() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">Jour de repos</label>
+                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">{t('paramSoc.calendrier.config.restDay')}</label>
                 <select
                   className="w-full bg-surface-container-low rounded-xl py-3 px-4 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold appearance-none cursor-pointer"
                   value={jourRepos}
                   onChange={(e) => setJourRepos(e.target.value)}
                 >
-                  <option value="0">Dimanche</option>
-                  <option value="1">Lundi</option>
-                  <option value="2">Mardi</option>
-                  <option value="3">Mercredi</option>
-                  <option value="4">Jeudi</option>
-                  <option value="5">Vendredi</option>
-                  <option value="6">Samedi</option>
+                  <option value="0">{t('paramSoc.calendrier.days.dimanche')}</option>
+                  <option value="1">{t('paramSoc.calendrier.days.lundi')}</option>
+                  <option value="2">{t('paramSoc.calendrier.days.mardi')}</option>
+                  <option value="3">{t('paramSoc.calendrier.days.mercredi')}</option>
+                  <option value="4">{t('paramSoc.calendrier.days.jeudi')}</option>
+                  <option value="5">{t('paramSoc.calendrier.days.vendredi')}</option>
+                  <option value="6">{t('paramSoc.calendrier.days.samedi')}</option>
                 </select>
               </div>
 
               <div className="pt-4 border-t border-outline-variant/20">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-label font-bold text-on-surface-variant">Appliquer à tous les mois</span>
+                  <span className="text-xs font-label font-bold text-on-surface-variant">{t('paramSoc.calendrier.config.applyAllMonths')}</span>
                   <div
                     onClick={() => setTousLesMois(!tousLesMois)}
                     className={`w-10 h-5 rounded-full relative cursor-pointer transition-all duration-300 ${tousLesMois ? 'bg-primary' : 'bg-outline-variant'}`}
@@ -430,13 +434,13 @@ function CalendrierContent() {
                   onClick={handleSave}
                   className="w-full py-4 bg-primary text-on-primary text-sm font-bold font-headline rounded-xl shadow-md hover:translate-y-[-1px] transition-all active:scale-95 mb-3"
                 >
-                  Enregistrer les réglages
+                  {t('paramSoc.calendrier.config.saveSettings')}
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="w-full py-4 bg-surface-container-high text-primary text-sm font-bold font-headline rounded-xl border border-primary/10 flex items-center justify-center gap-2 hover:translate-y-[-1px] transition-all active:scale-95"
                 >
-                  <Plus size={18} /> Initialiser une année
+                  <Plus size={18} /> {t('paramSoc.calendrier.config.initYear')}
                 </button>
               </div>
             </div>
@@ -444,7 +448,7 @@ function CalendrierContent() {
             <div className="mt-4 p-4 rounded-2xl bg-secondary-container/20 flex gap-4">
               <Lightbulb className="text-secondary flex-shrink-0" size={20} />
               <p className="text-[10px] font-label leading-relaxed text-on-secondary-fixed-variant">
-                <strong>Astuce :</strong> Le pointage se synchronise automatiquement chaque jour à 23h59.
+                <strong>{t('paramSoc.calendrier.config.tipBold')}</strong> {t('paramSoc.calendrier.config.tip')}
               </p>
             </div>
           </div>
@@ -454,14 +458,14 @@ function CalendrierContent() {
             <div className="flex items-center gap-4 mb-4">
               <img alt="Team member" className="w-12 h-12 rounded-full object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" />
               <div>
-                <p className="text-[10px] font-label font-bold text-outline uppercase tracking-wider">Affectation actuelle</p>
-                <h4 className="text-sm font-extrabold font-headline">Architecture & Design Hub</h4>
+                <p className="text-[10px] font-label font-bold text-outline uppercase tracking-wider">{t('paramSoc.calendrier.sidebar.currentAssignment')}</p>
+                <h4 className="text-sm font-extrabold font-headline">{t('paramSoc.calendrier.sidebar.hub')}</h4>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-label text-on-surface-variant">Congés restants</span>
-                <span className="text-xs font-headline font-bold">12 jours</span>
+                <span className="text-xs font-label text-on-surface-variant">{t('paramSoc.calendrier.sidebar.remainingLeaves')}</span>
+                <span className="text-xs font-headline font-bold">{t('paramSoc.calendrier.sidebar.remainingLeavesValue')}</span>
               </div>
               <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
                 <div className="h-full bg-primary w-2/3"></div>
@@ -477,8 +481,8 @@ function CalendrierContent() {
           <div className="bg-surface-container-lowest w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/20 scale-in-center animate-in zoom-in-95 duration-200">
             <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center">
               <div>
-                <h3 className="text-2xl font-black font-headline text-primary tracking-tight">Nouvelle Planification</h3>
-                <p className="text-xs font-label font-medium text-outline">Configurez le calendrier pour une nouvelle année</p>
+                <h3 className="text-2xl font-black font-headline text-primary tracking-tight">{t('paramSoc.calendrier.newPlanning.title')}</h3>
+                <p className="text-xs font-label font-medium text-outline">{t('paramSoc.calendrier.newPlanning.subtitle')}</p>
               </div>
               <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-surface-container-high rounded-full transition-all">
                 <X size={24} />
@@ -488,7 +492,7 @@ function CalendrierContent() {
             <div className="p-8 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">Année Source</label>
+                  <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">{t('paramSoc.calendrier.newPlanning.sourceYear')}</label>
                   <select
                     className="w-full bg-surface-container-low rounded-xl py-3 px-4 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold"
                     value={sourceYear}
@@ -500,7 +504,7 @@ function CalendrierContent() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">Nouvelle Année</label>
+                  <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">{t('paramSoc.calendrier.newPlanning.newYear')}</label>
                   <input
                     className="w-full bg-surface-container-low rounded-xl py-3 px-4 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold"
                     type="number"
@@ -511,7 +515,7 @@ function CalendrierContent() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">Base heures par jour</label>
+                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">{t('paramSoc.calendrier.newPlanning.baseHours')}</label>
                 <div className="relative">
                   <input
                     className="w-full bg-surface-container-low rounded-xl py-4 px-5 border-none focus:ring-2 focus:ring-primary/20 text-lg font-headline font-black"
@@ -529,21 +533,21 @@ function CalendrierContent() {
                   className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-secondary-container/10 border-2 border-dashed border-secondary/30 hover:bg-secondary-container/20 transition-all group"
                 >
                   <Copy size={24} className="text-secondary group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">Cloner {selectedYear}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">{t('paramSoc.calendrier.newPlanning.clone', { year: selectedYear })}</span>
                 </button>
                 <button
                   onClick={handleAddNewYear}
                   className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-primary text-on-primary shadow-lg hover:translate-y-[-2px] transition-all"
                 >
                   <Plus size={24} className="animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Créer Nouveau</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{t('paramSoc.calendrier.newPlanning.createNew')}</span>
                 </button>
               </div>
             </div>
 
             <div className="p-6 bg-surface-container-high/30 text-center">
               <p className="text-[10px] font-label font-medium text-outline italic">
-                L'initialisation générera 12 mois de calendrier basés sur vos paramètres.
+                {t('paramSoc.calendrier.newPlanning.footer')}
               </p>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Alert, RefreshControl, Image, Dimensions, ActivityIndicator,
@@ -17,7 +17,7 @@ const { width } = Dimensions.get('window');
 const CATEGORIES = [
   { id: 'Auto', label: 'Auto', icon: 'car-outline' },
   { id: 'Repas', label: 'Repas', icon: 'silverware-fork-knife' },
-  { id: 'Hôtel', label: 'Nuit', icon: 'bed-outline' },
+  { id: 'HÃ´tel', label: 'Nuit', icon: 'bed-outline' },
 ];
 
 export default function ExpenseScreen({ navigation }: any) {
@@ -31,6 +31,8 @@ export default function ExpenseScreen({ navigation }: any) {
   const [form, setForm] = useState(defaultForm);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'reimbursed' | 'rejected'>('all');
 
   useEffect(() => { loadExpenses(); }, [user]);
 
@@ -47,7 +49,7 @@ export default function ExpenseScreen({ navigation }: any) {
 
   const handleCapture = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Erreur', 'Accès caméra requis'); return; }
+    if (status !== 'granted') { Alert.alert('Erreur', 'AccÃ¨s camÃ©ra requis'); return; }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: true });
     if (!result.canceled && result.assets[0]) {
       setImageUri(result.assets[0].uri);
@@ -69,7 +71,7 @@ export default function ExpenseScreen({ navigation }: any) {
         montant: parseFloat(form.montant.replace(',', '.')),
         dateDepense: form.dateDepense.toISOString().split('T')[0],
       }, imageUri || undefined);
-      Alert.alert('✅ Succès', 'Note de frais soumise');
+      Alert.alert('âœ… SuccÃ¨s', 'Note de frais soumise');
       setForm(defaultForm);
       setImageUri(null);
       loadExpenses();
@@ -86,11 +88,34 @@ export default function ExpenseScreen({ navigation }: any) {
       .reduce((sum, e) => sum + (e.montant || 0), 0);
   }, [expenses]);
 
+  const pendingCount = useMemo(
+    () => expenses.filter((e) => (e.etat || '').toLowerCase() === 'pending').length,
+    [expenses]
+  );
+
+  const filteredExpenses = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return expenses.filter((e) => {
+      const st = (e.etat || '').toLowerCase();
+      const statusOk =
+        statusFilter === 'all' ||
+        (statusFilter === 'pending' && st === 'pending') ||
+        (statusFilter === 'approved' && st === 'approved') ||
+        (statusFilter === 'reimbursed' && st === 'reimbursed') ||
+        (statusFilter === 'rejected' && st === 'rejected');
+      const searchOk =
+        !q ||
+        (e.titre || '').toLowerCase().includes(q) ||
+        (e.categorie || '').toLowerCase().includes(q);
+      return statusOk && searchOk;
+    });
+  }, [expenses, search, statusFilter]);
+
   const getStatusInfo = (etat: string) => {
     switch (etat) {
-      case 'Reimbursed': return { label: 'Remboursé', color: COLORS.secondary, bgColor: COLORS.secondaryContainer };
-      case 'Approved': return { label: 'Validé', color: COLORS.onTertiaryFixedVariant, bgColor: COLORS.tertiaryFixed };
-      case 'Rejected': return { label: 'Refusé', color: COLORS.error, bgColor: COLORS.errorContainer };
+      case 'Reimbursed': return { label: 'RemboursÃ©', color: COLORS.secondary, bgColor: COLORS.secondaryContainer };
+      case 'Approved': return { label: 'ValidÃ©', color: COLORS.onTertiaryFixedVariant, bgColor: COLORS.tertiaryFixed };
+      case 'Rejected': return { label: 'RefusÃ©', color: COLORS.error, bgColor: COLORS.errorContainer };
       default: return { label: 'En attente', color: '#b45309', bgColor: '#fff4e5' };
     }
   };
@@ -127,7 +152,7 @@ export default function ExpenseScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.subHeader}>Gestion financière</Text>
+          <Text style={styles.subHeader}>Gestion financiÃ¨re</Text>
           <Text style={styles.mainTitle}>Notes de Frais</Text>
         </View>
 
@@ -138,7 +163,7 @@ export default function ExpenseScreen({ navigation }: any) {
             <View style={styles.chartHeader}>
               <View>
                 <Text style={styles.chartLabel}>TOTAL MENSUEL</Text>
-                <Text style={styles.chartValue}>{totalMonthly.toLocaleString('fr-FR')} €</Text>
+                <Text style={styles.chartValue}>{totalMonthly.toLocaleString('fr-FR')} â‚¬</Text>
               </View>
               <View style={styles.chartTrend}>
                 <Text style={styles.trendValue}>+12%</Text>
@@ -160,6 +185,9 @@ export default function ExpenseScreen({ navigation }: any) {
               <Text style={styles.legendText}>REPAS</Text>
               <Text style={styles.legendText}>LOGEMENT</Text>
             </View>
+            <View style={styles.kpiInlineRow}>
+              <Text style={styles.kpiInlineText}>Demandes en attente: {pendingCount}</Text>
+            </View>
           </View>
 
           {/* New Expense Action */}
@@ -169,7 +197,7 @@ export default function ExpenseScreen({ navigation }: any) {
           >
             <View style={styles.actionHeader}>
               <Text style={styles.actionTitle}>Nouveau Frais</Text>
-              <Text style={styles.actionSubTitle}>Capturez vos reçus instantanément</Text>
+              <Text style={styles.actionSubTitle}>Capturez vos reÃ§us instantanÃ©ment</Text>
             </View>
             
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryStack}>
@@ -189,7 +217,7 @@ export default function ExpenseScreen({ navigation }: any) {
 
         {/* Submission Form */}
         <View style={styles.formContainer}>
-          <Text style={styles.sectionHeader}>DÉTAILS DE LA DÉPENSE</Text>
+          <Text style={styles.sectionHeader}>DÃ‰TAILS DE LA DÃ‰PENSE</Text>
           
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>MONTANT & DEVISE</Text>
@@ -217,7 +245,7 @@ export default function ExpenseScreen({ navigation }: any) {
               {imageUri ? (
                 <Image source={{ uri: imageUri }} style={styles.uploadedPreview} />
               ) : (
-                <Text style={styles.uploadText}>Prendre une photo ou {"\n"}choisir un reçu</Text>
+                <Text style={styles.uploadText}>Prendre une photo ou {"\n"}choisir un reÃ§u</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -231,16 +259,48 @@ export default function ExpenseScreen({ navigation }: any) {
         {/* Recent Expenses */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Frais Récents</Text>
+            <Text style={styles.sectionTitle}>Frais RÃ©cents</Text>
             <TouchableOpacity>
               <Text style={styles.seeAllText}>VOIR TOUT</Text>
             </TouchableOpacity>
           </View>
-          
+
+          <View style={styles.filterBar}>
+            <View style={styles.searchBox}>
+              <MaterialCommunityIcons name="magnify" size={18} color={COLORS.outline} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Rechercher un titre ou catégorie"
+                placeholderTextColor={COLORS.outline}
+                value={search}
+                onChangeText={setSearch}
+              />
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+              {[
+                { key: 'all', label: 'Tous' },
+                { key: 'pending', label: 'En attente' },
+                { key: 'approved', label: 'Validés' },
+                { key: 'reimbursed', label: 'Remboursés' },
+                { key: 'rejected', label: 'Refusés' },
+              ].map((c) => (
+                <TouchableOpacity
+                  key={c.key}
+                  style={[styles.filterChip, statusFilter === c.key && styles.filterChipActive]}
+                  onPress={() => setStatusFilter(c.key as any)}
+                >
+                  <Text style={[styles.filterChipText, statusFilter === c.key && styles.filterChipTextActive]}>
+                    {c.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
           <View style={styles.expenseList}>
-            {expenses.map((exp, idx) => {
+            {filteredExpenses.map((exp, idx) => {
               const status = getStatusInfo(exp.etat);
-              const iconName = exp.categorie === 'Auto' ? 'car-outline' : exp.categorie === 'Hôtel' ? 'bed-outline' : 'silverware-fork-knife';
+              const iconName = exp.categorie === 'Auto' ? 'car-outline' : exp.categorie === 'HÃ´tel' ? 'bed-outline' : 'silverware-fork-knife';
               return (
                 <View key={exp.id || idx} style={styles.expenseItem}>
                   <View style={styles.expenseLeft}>
@@ -250,12 +310,12 @@ export default function ExpenseScreen({ navigation }: any) {
                     <View style={styles.expenseInfo}>
                       <Text style={styles.expenseTitre}>{exp.titre}</Text>
                       <Text style={styles.expenseMeta}>
-                        {new Date(exp.dateDepense).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} • {exp.categorie.toUpperCase()}
+                        {new Date(exp.dateDepense).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} â€¢ {exp.categorie.toUpperCase()}
                       </Text>
                     </View>
                   </View>
                   <View style={styles.expenseRight}>
-                    <Text style={styles.expenseAmount}>{exp.montant?.toFixed(2)} €</Text>
+                    <Text style={styles.expenseAmount}>{exp.montant?.toFixed(2)} â‚¬</Text>
                     <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
                       <Text style={[styles.statusText, { color: status.color }]}>{status.label.toUpperCase()}</Text>
                     </View>
@@ -263,9 +323,9 @@ export default function ExpenseScreen({ navigation }: any) {
                 </View>
               );
             })}
-            {expenses.length === 0 && (
+            {filteredExpenses.length === 0 && (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>Aucune dépense enregistrée</Text>
+                <Text style={styles.emptyText}>Aucune dépense trouvée</Text>
               </View>
             )}
           </View>
@@ -280,7 +340,7 @@ export default function ExpenseScreen({ navigation }: any) {
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
           <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>CONGÉS</Text>
+          <Text style={styles.navLabel}>CONGÃ‰S</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
           <MaterialCommunityIcons name="exit-to-app" size={24} color="#94a3b8" />
@@ -298,7 +358,7 @@ export default function ExpenseScreen({ navigation }: any) {
 
       <DatePickerModal visible={showDatePicker} value={form.dateDepense}
         onChange={(d) => { setForm({ ...form, dateDepense: d }); setShowDatePicker(false); }}
-        onClose={() => setShowDatePicker(false)} title="Date de dépense" />
+        onClose={() => setShowDatePicker(false)} title="Date de dÃ©pense" />
     </SafeAreaView>
   );
 }
@@ -331,6 +391,8 @@ const styles = StyleSheet.create({
   bar: { flex: 1, borderRadius: 4 },
   chartLegend: { flexDirection: 'row', justifyContent: 'space-between' },
   legendText: { fontSize: 9, fontWeight: '800', color: COLORS.outline, letterSpacing: 0.5 },
+  kpiInlineRow: { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.surfaceContainerLow },
+  kpiInlineText: { fontSize: 12, fontWeight: '700', color: COLORS.onSurfaceVariant },
   actionCard: { borderRadius: 16, padding: 24, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 4 },
   actionHeader: { marginBottom: 20 },
   actionTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
@@ -357,6 +419,31 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 14, fontWeight: '800', color: COLORS.onSurface, letterSpacing: 1.5, textTransform: 'uppercase' },
   seeAllText: { fontSize: 10, fontWeight: '800', color: COLORS.primary },
+  filterBar: { gap: 10, marginBottom: 14 },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceContainerLowest,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: { flex: 1, fontSize: 13, color: COLORS.onSurface },
+  chipsRow: { gap: 8, paddingRight: 8 },
+  filterChip: {
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: COLORS.surfaceContainerLowest,
+  },
+  filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  filterChipText: { fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant },
+  filterChipTextActive: { color: '#fff' },
   expenseList: { gap: 12 },
   expenseItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16, elevation: 1 },
   expenseLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
@@ -379,3 +466,7 @@ const styles = StyleSheet.create({
   navItem: { alignItems: 'center', gap: 4 },
   navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
 });
+
+
+
+

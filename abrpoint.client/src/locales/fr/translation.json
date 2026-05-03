@@ -57,7 +57,33 @@
     "companyCalendar": "Calendrier Société",
     "chatBot": "Chat Bot",
     "about": "À propos",
-    "contact": "Contact"
+    "contact": "Contact",
+    "mySpace": "Mon Espace",
+    "myMissions": "Mes Missions",
+    "expenseNotes": "Notes de Frais",
+    "exitAuthorizationRequest": "Demande d'Autorisation",
+    "myVault": "Mon Coffre-fort",
+    "orgStructure": "Structure Org.",
+    "employeeProfile": "Profil Employé",
+    "missions": "Missions",
+    "vault": "Coffre-fort",
+    "vaultGlobalView": "Vue Globale Vault",
+    "balanceAllocation": "Affectation Soldes",
+    "timeSavingAccount": "Compte Épargne Temps",
+    "contractTemplates": "Modèles de Contrats",
+    "recent": "Récent",
+    "account": "Compte",
+    "myProfile": "Mon Profil",
+    "logout": "Déconnexion",
+    "searchPage": "Rechercher une page...",
+    "loginTitle": "Connexion",
+    "signupTitle": "Créer mon espace",
+    "pricingTitle": "Tarifs",
+    "support": "Support",
+    "settings": "Paramètres",
+    "closeAllTabs": "Fermer tous les onglets",
+    "closeAll": "Fermer tout",
+    "chatBotPrompt": "Utilisez le bouton flottant de l'assistant en bas à droite."
   },
   "notifications": {
     "loading": "Chargement des notifications...",
@@ -110,6 +136,50 @@
       "delete": "Supprimer",
       "manage": "Gérer Employé"
     }
+  },
+  "effectifs": {
+    "loading": "Chargement des effectifs...",
+    "accessDenied": "Accès Refusé",
+    "noConsultRight": "Vous n'avez pas les droits nécessaires pour consulter la liste des effectifs.",
+    "directorySubtitle": "Annuaire des Collaborateurs",
+    "title": "Effectifs Globaux",
+    "description": "Gérez et visualisez l'ensemble de vos effectifs avec précision et simplicité.",
+    "importExcel": "Importer (Excel)",
+    "addCollaborator": "Ajouter un Collaborateur",
+    "department": "Département",
+    "myDepartment": "Mon département",
+    "allDepartments": "Tous les départements",
+    "position": "Position",
+    "allPositions": "Toutes les positions",
+    "site": "Site",
+    "allSites": "Tous les sites",
+    "contractType": "Type de Contrat",
+    "allContracts": "Tous les contrats",
+    "level": "Niveau",
+    "allLevels": "Tous les niveaux",
+    "executant": "Exécutant",
+    "maitrise": "Maitrise",
+    "cadre": "Cadre",
+    "status": "Statut",
+    "allStatuses": "Tous les statuts",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "totalHeadcount": "Total Effectif",
+    "newThisMonth": "+{{count}} ce mois",
+    "searchPlaceholder": "Rechercher un collaborateur par nom, matricule ou email...",
+    "columns": {
+      "collaborator": "Collaborateur",
+      "matricule": "Matricule",
+      "position": "Position",
+      "department": "Département",
+      "contract": "Contrat",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "noEmployee": "Aucun collaborateur trouvé",
+    "paginationInfo": "Affichage de <0>{{start}}</0> à <1>{{end}}</1> sur <2>{{total}}</2> collaborateurs",
+    "deleteConfirm": "Voulez-vous vraiment supprimer l'employé \"{{name}}\" ?",
+    "deleteError": "Erreur lors de la suppression"
   },
   "employe": {
     "save": "Enregistrer",
@@ -231,6 +301,150 @@
       "echelon": "Echelon",
       "scale": "Echelle",
       "subCategory": "S.Catégorie"
+    },
+    "accessDenied": "Accès Refusé",
+    "noConsultRight": "Vous n'avez pas les droits nécessaires pour consulter cette fiche collaborateur.",
+    "searchPlaceholder": "Rechercher nom, matricule, position...",
+    "loadError": "Erreur lors du chargement de l'employé",
+    "createdSuccess": "Employé créé avec succès",
+    "changesSaved": "Modifications enregistrées",
+    "saveError": "Erreur lors de la sauvegarde",
+    "selectFirst": "Veuillez sélectionner un employé d'abord",
+    "documentNotAvailable": "Document \"{{doc}}\" non disponible",
+    "documentDownloadFail": "Téléchargement de \"{{doc}}\" non disponible",
+    "scanImportedSuccess": "Données importées avec succès depuis le document",
+    "inactiveLabel": "Inactif",
+    "nbDependents": "Nb. personnes à charge",
+    "level": "Niveau employé",
+    "phone": "Téléphone",
+    "userRole": "Rôle Utilisateur",
+    "confidential": "Confidentiel",
+    "currentWeek": "Semaine en cours",
+    "workLabel": "Travail",
+    "restLabel": "Repos",
+    "noSchedule": "Aucun horaire défini pour cet employé",
+    "addedDirection": "Direction ajoutée avec succès",
+    "addErrorDirection": "Erreur lors de l'ajout de la direction",
+    "addedFunction": "Fonction ajoutée avec succès",
+    "addErrorFunction": "Erreur lors de l'ajout de la fonction",
+    "addedSection": "Section ajoutée avec succès",
+    "addErrorSection": "Erreur lors de l'ajout de la section",
+    "addedQualification": "Qualification ajoutée avec succès",
+    "addErrorQualification": "Erreur lors de l'ajout de la qualification",
+    "addedService": "Service ajouté avec succès",
+    "addErrorService": "Erreur lors de l'ajout du service",
+    "addedSchedule": "Classe horaire ajoutée avec succès",
+    "addErrorSchedule": "Erreur lors de l'ajout de la classe horaire",
+    "addedBranch": "Filiale ajoutée avec succès",
+    "addErrorBranch": "Erreur lors de l'ajout de la filiale",
+    "addedCity": "Ville ajoutée avec succès",
+    "addErrorCity": "Erreur lors de l'ajout de la ville",
+    "addedCountry": "Pays ajouté avec succès",
+    "addErrorCountry": "Erreur lors de l'ajout du pays. Vérifiez si le code existe déjà.",
+    "newEmployeeBadge": "Nouveau Collaborateur",
+    "profileBadge": "Profil Employé",
+    "profileTitle": "Fiche Collaborateur",
+    "profileSubtitle": "Gestion détaillée de la fiche collaborateur",
+    "exportBtn": "Exporter",
+    "availableDocuments": "Documents disponibles",
+    "scanDocument": "Scanner un document",
+    "createBtn": "Créer l'employé",
+    "saveChangesBtn": "Enregistrer les modifications",
+    "section": {
+      "basicInfo": "Informations de base",
+      "contact": "Coordonnées",
+      "work": "Informations de travail",
+      "details": "Détails Employé",
+      "salary": "Rémunération",
+      "schedules": "Horaires de l'employé sélectionné"
+    },
+    "field": {
+      "matricule": "Matricule",
+      "regenerateMatricule": "Régénérer le matricule selon le paramétrage société",
+      "autoPlaceholder": "Auto",
+      "fullName": "Nom complet",
+      "fullNamePlaceholder": "Jean-Christophe Roussel",
+      "sex": "Sexe",
+      "male": "Masculin",
+      "female": "Féminin",
+      "cin": "CIN / ID",
+      "birthDate": "Date de naissance",
+      "birthPlace": "Lieu de naissance",
+      "civilStatus": "Situation familiale",
+      "single": "Célibataire",
+      "married": "Marié(e)",
+      "divorced": "Divorcé(e)",
+      "widow": "Veuf/Veuve",
+      "email": "Email",
+      "emailPlaceholder": "jean.dupont@entreprise.com",
+      "executant": "Exécutant",
+      "supervisor": "Maitrise",
+      "manager": "Cadre",
+      "city": "Ville",
+      "country": "Pays",
+      "address": "Adresse",
+      "addressPlaceholder": "123 Rue Example",
+      "mobile": "Mobile",
+      "phonePlaceholder": "+213 555 000 000",
+      "hireDate": "Date d'embauche",
+      "contractType": "Type de contrat",
+      "regime": "Régime",
+      "monthly": "Mensuelle",
+      "hourly": "Horaire",
+      "branchSite": "Filiale (Site)",
+      "service": "Service",
+      "timeClass": "Classe Horaire",
+      "outOfRange": "(hors plage active)",
+      "calendar": "Calendrier",
+      "function": "Fonction",
+      "qualification": "Qualification",
+      "direction": "Direction",
+      "sectionLbl": "Section",
+      "statusLbl": "Statut",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "employee": "Employé",
+      "maxDaysMonth": "Jour Max / Mois",
+      "maxHoursDay": "Max Heure / Jour",
+      "minHoursDay": "Min Heure / Jour",
+      "unlimited": "0 = illimité",
+      "countRest": "Compter Repos",
+      "countRestNo": "0- Ne pas compter",
+      "countRestAll": "1- Tous les repos",
+      "countRestSat": "2- Repos Samedi",
+      "countRestSun": "3- Repos Dimanche",
+      "panier": "Panier",
+      "panierNone": "0- Pas de panier",
+      "panier7H": "1- Panier 7H",
+      "panier6H": "2- Panier 6H",
+      "nightHours": "Heures Nuit",
+      "nightNormal": "0- Normal",
+      "nightSpecial": "1- Spécial",
+      "eliminateDelay": "Éliminer Retard",
+      "no": "Non",
+      "yes": "Oui",
+      "baseSalary": "Salaire de Base",
+      "grossSalary": "Salaire Brut",
+      "netSalary": "Salaire Net"
+    },
+    "addTitle": {
+      "ville": "Nouvelle Ville",
+      "pays": "Nouveau Pays",
+      "filiale": "Nouvelle Filiale",
+      "service": "Nouveau Service",
+      "classeHoraire": "Nouvelle Classe Horaire",
+      "fonction": "Nouvelle Fonction",
+      "qualification": "Nouvelle Qualification",
+      "direction": "Nouvelle Direction",
+      "section": "Nouvelle Section"
+    },
+    "scheduleHeaders": {
+      "post": "POSTE",
+      "entryMorning": "ENTRÉE MATIN",
+      "exitMorning": "SORTIE MATIN",
+      "entryAfternoon": "ENTRÉE AM",
+      "exitAfternoon": "SORTIE AM",
+      "status": "STATUT"
     }
   },
   "login": {
@@ -241,7 +455,42 @@
     "site": "Filiale / Site",
     "button": "Connecter",
     "requiredError": "Veuillez remplir tous les champs obligatoires",
-    "loginError": "Échec de la connexion. Vérifiez vos identifiants."
+    "loginError": "Échec de la connexion. Vérifiez vos identifiants.",
+    "welcome": "Bon retour.",
+    "subtitle": "Veuillez renseigner vos identifiants pour accéder au tableau de bord.",
+    "emailPlaceholder": "nom@entreprise.com",
+    "forgotPassword": "Mot de passe oublié ?",
+    "twoFAPrompt": "Entrez le code à 6 chiffres de votre application Google Authenticator / Authy :",
+    "twoFAInvalid": "Veuillez entrer un code à 6 chiffres valide",
+    "twoFAError": "Code incorrect. Veuillez réessayer.",
+    "backToLogin": "Retour à la connexion",
+    "connecting": "Connexion...",
+    "verifyCode": "VÉRIFIER LE CODE",
+    "signIn": "CONNECTER",
+    "forgotPromptEmail": "Entrez votre email pour réinitialiser votre mot de passe",
+    "forgotPromptCode": "Entrez le code de réinitialisation envoyé à votre email",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "loading": "Chargement...",
+    "sendCode": "ENVOYER LE CODE",
+    "reset": "RÉINITIALISER",
+    "needHelp": "Besoin d'assistance ?",
+    "contactSupport": "Contactez le support",
+    "leftTitle": "L'excellence structurelle au service de votre capital humain.",
+    "leftSubtitle": "Pilotez votre organisation avec la précision d'un architecte. Concorde Workforce centralise et sublime vos données RH.",
+    "noAccount": "Aucun compte trouvé pour cet email.",
+    "cannotVerify": "Impossible de vérifier le compte. Réessayez.",
+    "invalidCredentials": "Identifiants incorrects. Veuillez réessayer.",
+    "paymentRequired": "Paiement requis. Finalisez votre abonnement pour activer votre compte.",
+    "stripeFailed": "Échec de la redirection vers Stripe.",
+    "enterEmail": "Veuillez entrer votre email.",
+    "fillAllFields": "Veuillez remplir tous les champs.",
+    "passwordMismatch": "Les mots de passe ne correspondent pas.",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères.",
+    "codeSent": "Si un compte existe avec cet email, un code vous a été envoyé.",
+    "codeSendError": "Erreur lors de l'envoi du code.",
+    "passwordReset": "Mot de passe réinitialisé.",
+    "resetError": "Erreur lors de la réinitialisation."
   },
   "posteHoraire": {
     "day": "Journée",
@@ -298,6 +547,76 @@
       "tolerance": "Tolérance",
       "presence": "Présence",
       "meal": "Repas"
+    },
+    "modern": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter les classes horaires.",
+      "sidebar": {
+        "title": "Périodes de Saisonnalité",
+        "noPeriod": "Aucune période trouvée",
+        "addPeriod": "Ajouter une période",
+        "badgeActive": "Période Active",
+        "badgeNext": "Période Suivante"
+      },
+      "summary": {
+        "title": "Résumé du Cycle",
+        "coverage": "Couverture Annuelle",
+        "coverageValue": "{{covered}} / 365 Jours",
+        "distinctPosts": "Postes Distincts",
+        "distinctPostsValue_one": "{{count}} Poste",
+        "distinctPostsValue_other": "{{count}} Postes",
+        "classId": "Classe ID"
+      },
+      "preview": {
+        "title": "Configuration de la Semaine Type",
+        "subtitle": "Aperçu pour <0>{{name}}</0>",
+        "subtitleWithPoste": "Aperçu pour <0>{{name}}</0> (Poste : <1>{{poste}}</1>)",
+        "automated": "Automatisé",
+        "adjustPointage": "Ajuster pointage",
+        "newClass": "Nouveau",
+        "delete": "Supprimer"
+      },
+      "day": {
+        "rest": "Repos",
+        "morning": "Matin",
+        "night": "Nuit",
+        "afternoonShort": "AM",
+        "afternoon": "Après-midi"
+      },
+      "posteSelector": {
+        "title": "Associer un Poste de Travail",
+        "subtitle": "Sélecteur de matrice opérationnelle",
+        "cancel": "Annuler",
+        "apply": "Appliquer au Segment"
+      },
+      "dialog": {
+        "editTitle": "Modifier la période",
+        "newTitle": "Nouvelle période",
+        "classInfo": "Classe : {{code}} — {{label}}",
+        "codeClasse": "Code Classe",
+        "label": "Libellé",
+        "from": "Du",
+        "to": "Au",
+        "overtime": "Heures supplémentaires",
+        "rotationTitle": "Postes par Semaine (Rotation)",
+        "singlePosteTitle": "Poste de Travail",
+        "weekCount_one": "{{count}} semaine",
+        "weekCount_other": "{{count}} semaines",
+        "selectPoste": "Sélectionner un poste",
+        "addWeek": "Ajouter une semaine",
+        "cancel": "Annuler",
+        "save": "Modifier",
+        "create": "Ajouter la période"
+      },
+      "msg": {
+        "missingCodeLabel": "Veuillez renseigner le code et le libellé de la classe",
+        "savedSuccess": "Période enregistrée avec succès",
+        "saveError": "Erreur lors de l'enregistrement",
+        "deletedSuccess": "Période supprimée",
+        "deleteError": "Erreur lors de la suppression",
+        "appliedSuccess": "Poste appliqué avec succès",
+        "applyError": "Erreur lors de l'application du poste"
+      },
+      "confirmDeletePeriod": "Voulez-vous vraiment supprimer la période \"{{name}}\" ?"
     }
   },
   "weeklyHoursTable": {
@@ -310,6 +629,278 @@
     "total": "TOTAL",
     "majorHolidayAndLeave": "majoration jours fériés et congés au heures normales",
     "weekDetails": "Détails de la semaine {{numSem}}"
+  },
+  "pointageMois": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter le pointage du mois.",
+    "title": "Pointage du mois",
+    "subtitle": "Suivi architectural des heures de présence",
+    "exportSelected": "Rapport employé sélectionné",
+    "exportAll": "Rapport tous les employés",
+    "export": "Exporter",
+    "filters": {
+      "employees": "Employés",
+      "selectedCount": "{{count}} sélectionné(s)",
+      "branch": "Filiale",
+      "allBranches": "Toutes les filiales",
+      "service": "Service",
+      "myService": "Mon service",
+      "allServices": "Tous les services",
+      "regime": "Régime",
+      "allRegimes": "Tous les régimes",
+      "regime35": "35 Heures",
+      "regime39": "39 Heures",
+      "regimeFlat": "Forfait Jours",
+      "period": "Période",
+      "search": "Rechercher",
+      "majorHolidays": "Majorer heures fériées et congés",
+      "selectAtLeastOne": "Veuillez sélectionner au moins un employé."
+    },
+    "table": {
+      "employee": "Employé",
+      "matricule": "Matricule",
+      "cumul": "Cumul",
+      "totalMonth": "Total mois",
+      "noData": "Aucune donnée — sélectionnez des employés et cliquez Rechercher",
+      "weekShort": "S{{n}}",
+      "labels": {
+        "ok": "Ok",
+        "okShort": "Ok",
+        "sick": "Maladie",
+        "sickShort": "Mal",
+        "paidLeave": "CP ({{count}}j)",
+        "paidLeaveShort": "CP",
+        "overtime": "+{{value}}h",
+        "absence": "Abs {{value}}j",
+        "absenceShort": "Abs"
+      }
+    },
+    "detail": {
+      "title": "Détail semaines — {{name}}",
+      "hint": "Double-clic sur une ligne pour voir le détail journalier",
+      "weekShort": "Sem.",
+      "total": "Total",
+      "columns": {
+        "tothre": "Nb. Heures",
+        "nbJours": "Nb. Jours",
+        "retard": "Retard",
+        "heuresSupTranche1": "HS25",
+        "heuresSupTranche2": "HS50",
+        "hreSupSemaine": "HS",
+        "jourFerier": "J.Fériés",
+        "heureFerier": "H.Fériés",
+        "nbhFerierTrv": "H.Fér.Trv",
+        "hreFerieTrv": "H.Fér.Trv1",
+        "hreFerieTrv2": "H.Fér.Trv2",
+        "nbJourFerier": "J.Fér.Trv",
+        "hreAllaitement": "Allaitement",
+        "absnp": "Abs N/Payé",
+        "caltype": "Calend",
+        "totalAbsence": "H.Absences",
+        "nbJourPointer": "J.Pointés",
+        "panier": "Panier",
+        "nbNuits": "Nb.Nuits",
+        "nbJourCngPaye": "Congé Payé",
+        "nbHeureConge": "H.Congé",
+        "hcsf": "H.Spéc.Fam",
+        "heuresNormales": "H.Normales",
+        "jourRepos": "J.Repos",
+        "hreNuits": "H.Nuits",
+        "heureRepos": "H.Repos",
+        "deplacement": "Déplacement",
+        "act": "ACT",
+        "fm": "Formation",
+        "absj": "Abs.Just",
+        "ct": "Arrêt Tech.",
+        "maladie": "Maladie",
+        "absnj": "Abs.NJ",
+        "csf": "C.Spéc.Fam",
+        "css": "CSS",
+        "map": "MAP",
+        "jourSamediTrv": "Sam.Trv",
+        "hreSamediTrv": "H.Sam.Trv"
+      }
+    },
+    "summary": {
+      "totalHours": "Total Heures Travaillées",
+      "employeesCount_one": "{{count}} employé",
+      "employeesCount_other": "{{count}} employés",
+      "overtime": "Heures Supplémentaires",
+      "withinLegalQuotas": "Dans les quotas légaux",
+      "holidaysAbsences": "Jours Fériés / Absences"
+    },
+    "distribution": {
+      "title": "Répartition par Service",
+      "viewDetails": "Voir détails",
+      "noData": "Aucune donnée",
+      "other": "Autre"
+    },
+    "alerts": {
+      "title": "Alertes",
+      "subtitle": "Écarts de pointage détectés ce mois-ci.",
+      "recurringDelays": "{{count}} Retards récurrents",
+      "concernedEmployees": "Employé(s) concerné(s)",
+      "exitOmissions": "{{count}} Oublis de sortie",
+      "unjustifiedAbsences": "Absences non justifiées",
+      "missingPoste_one": "{{count}} employé avec poste non résolu",
+      "missingPoste_other": "{{count}} employés avec poste non résolu",
+      "checkAttachments": "Vérifier les rattachements Lcategories ou le Poscod par défaut",
+      "treatBtn": "Traiter les alertes",
+      "dialogTitle": "Traitement des Alertes — {{period}}",
+      "totalChip": "{{count}} Total",
+      "pendingChip": "{{count}} En attente",
+      "treatedChip": "{{count}} Traitées",
+      "ignoredChip": "{{count}} Ignorées",
+      "filterAll": "Toutes",
+      "filterDelays": "Retards",
+      "filterAbsences": "Abs. NJ",
+      "treatAll": "Tout traiter",
+      "ignoreAll": "Tout ignorer",
+      "noAlerts": "Aucune alerte à afficher",
+      "weekShort": "S{{n}}",
+      "delayLabel": "Retard de {{time}} en Semaine {{week}}",
+      "absenceLabel": "Absence non justifiée ({{value}}j) en Semaine {{week}}",
+      "treatedBadge": "Traité",
+      "ignoredBadge": "Ignoré",
+      "markTreated": "Marquer comme traité",
+      "ignore": "Ignorer",
+      "pendingFooter_one": "{{count}} alerte en attente",
+      "pendingFooter_other": "{{count}} alertes en attente",
+      "allTreated": "Toutes les alertes ont été traitées",
+      "confirmTreatment": "Confirmer le traitement",
+      "successProcessed_one": "{{count}} alerte traitée avec succès",
+      "successProcessed_other": "{{count}} alertes traitées avec succès"
+    },
+    "errors": {
+      "selectEmployee": "Sélectionnez un employé",
+      "noData": "Aucune donnée",
+      "reportError": "Erreur génération rapport"
+    }
+  },
+  "remboursement": {
+    "title": "Note de Frais",
+    "subtitleAdmin": "Gestion et validation des notes de frais.",
+    "subtitleEmployee": "Gérez vos dépenses et frais de mission.",
+    "pendingValidation_one": "<0>{{count}} dépense</0> en attente de validation.",
+    "pendingValidation_other": "<0>{{count}} dépenses</0> en attente de validation.",
+    "youHavePending_one": "Vous avez <0>{{count}} dépense</0> en attente.",
+    "youHavePending_other": "Vous avez <0>{{count}} dépenses</0> en attente.",
+    "newExpense": "Nouvelle Dépense",
+    "stats": {
+      "pending": "En attente",
+      "reimbursed": "Remboursé",
+      "totalYear": "Total Année"
+    },
+    "table": {
+      "titleAdmin": "Toutes les Dépenses",
+      "titleEmployee": "Historique des Dépenses",
+      "filter": "Filtrer",
+      "exportCsv": "Export CSV",
+      "employee": "Employé",
+      "description": "Description",
+      "category": "Catégorie",
+      "date": "Date",
+      "amount": "Montant",
+      "status": "État",
+      "noExpensesWithStatus": "Aucune dépense avec le statut \"{{status}}\".",
+      "noExpenses": "Aucune dépense trouvée.",
+      "pagination": "{{from}}–{{to}} sur {{total}}"
+    },
+    "filters": {
+      "all": "Tous"
+    },
+    "status": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "reimbursed": "Remboursé",
+      "rejected": "Refusé"
+    },
+    "actions": {
+      "details": "Détails",
+      "approve": "Approuver",
+      "reject": "Refuser",
+      "markReimbursed": "Marquer Remboursé",
+      "delete": "Supprimer"
+    },
+    "delete": {
+      "title": "Confirmer la suppression",
+      "prompt": "Êtes-vous sûr de vouloir supprimer la dépense <0>« {{title}} »</0> d'un montant de <1>{{amount}} €</1> ?",
+      "irreversible": "Cette action est irréversible.",
+      "cancel": "Annuler",
+      "confirm": "Oui, Supprimer"
+    },
+    "statusDialog": {
+      "approveTitle": "Approuver cette dépense ?",
+      "rejectTitle": "Refuser cette dépense ?",
+      "reimburseTitle": "Marquer Remboursé cette dépense ?",
+      "employeeLabel": "Employé",
+      "expenseLabel": "Dépense",
+      "approveDesc": "Cette action approuve la dépense et la rend éligible au remboursement.",
+      "rejectDesc": "Cette action refuse la dépense. L'employé sera informé.",
+      "reimburseDesc": "Cette action confirme que le remboursement a été effectué.",
+      "cancel": "Annuler"
+    },
+    "detail": {
+      "title": "Détail de la Dépense",
+      "employee": "Employé",
+      "expenseTitle": "Titre",
+      "category": "Catégorie",
+      "amount": "Montant",
+      "status": "État",
+      "expenseDate": "Date de la dépense",
+      "submissionDate": "Date de soumission",
+      "project": "Projet / Mission",
+      "receipt": "Justificatif",
+      "viewReceipt": "Voir le justificatif",
+      "close": "Fermer"
+    },
+    "form": {
+      "title": "Nouvelle Dépense",
+      "motiveTitle": "Motif / Titre",
+      "motivePlaceholder": "Ex: Déplacement Client",
+      "expenseDate": "Date de la dépense",
+      "category": "Catégorie",
+      "amount": "Montant (€)",
+      "amountPlaceholder": "0.000",
+      "linkedMission": "Mission rattachée *",
+      "loading": "Chargement…",
+      "noMission": "Aucune mission — créez-en une dans Employés > Missions",
+      "selectMission": "Sélectionnez une mission",
+      "project": "Projet (libellé libre)",
+      "projectPlaceholder": "Référence interne (Optionnel)",
+      "receipt": "Justificatif",
+      "uploadHint": "Cliquez ou glissez le fichier",
+      "uploadConstraints": "PDF, PNG, JPG (Max 10MB)",
+      "submit": "SOUMETTRE",
+      "submitting": "ENVOI EN COURS...",
+      "cancel": "Annuler",
+      "tip": "Les équipements de plus de 500 € nécessitent une pré-autorisation."
+    },
+    "categories": {
+      "transport": "Transport",
+      "meals": "Repas",
+      "equipment": "Équipement",
+      "lodging": "Logement",
+      "other": "Autre"
+    },
+    "messages": {
+      "missionRequired": "Sélectionnez une mission avant de soumettre la dépense.",
+      "submittedSuccess": "Dépense soumise avec succès !",
+      "submitError": "Erreur lors de la soumission.",
+      "deletedSuccess": "Dépense supprimée.",
+      "deleteError": "Erreur lors de la suppression.",
+      "statusUpdated": "Dépense marquée comme \"{{label}}\".",
+      "statusError": "Erreur lors de la mise à jour.",
+      "csvDownloaded": "Export CSV téléchargé."
+    },
+    "csv": {
+      "employee": "Employé",
+      "title": "Titre",
+      "category": "Catégorie",
+      "date": "Date",
+      "amount": "Montant",
+      "project": "Projet",
+      "status": "État"
+    }
   },
   "dailyHours": {
     "noData": "Aucune donnée journalière disponible",
@@ -379,6 +970,7 @@
     "restDay": "Jour de repos",
     "yes": "Oui",
     "no": "Non",
+    "add": "Ajouter",
     "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?"
   },
   "list": {
@@ -421,12 +1013,382 @@
       "exception": "Exception",
       "print": "Imprimer"
     },
-    "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce congé (N° Ordre : {{order}})?"
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce congé (N° Ordre : {{order}})?",
+    "demConge": {
+      "title": "Gestion des Congés",
+      "subtitlePending_one": "Vous avez <0>{{count}} demande</0> en attente de validation.",
+      "subtitlePending_other": "Vous avez <0>{{count}} demandes</0> en attente de validation.",
+      "newRequest": "Nouvelle demande",
+      "headers": {
+        "employee": "Employé",
+        "type": "Type",
+        "period": "Période",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "noConsult": "Accès refusé. Vous n'avez pas les droits de consultation.",
+      "noData": "Aucune demande de congé",
+      "daysWorked_one": "{{count}} jour ouvré",
+      "daysWorked_other": "{{count}} jours ouvrés",
+      "actions": {
+        "print": "Imprimer",
+        "edit": "Modifier",
+        "deleteMine": "Supprimer ma demande",
+        "refuse": "Refuser",
+        "accept": "Valider"
+      },
+      "status": {
+        "accepted": "Accepté",
+        "refused": "Refusé",
+        "pending": "En attente"
+      },
+      "msg": {
+        "acceptedSuccess": "Demande acceptée avec succès",
+        "errorGeneric": "Erreur",
+        "refusedSuccess": "Demande refusée avec succès",
+        "refuseError": "Erreur lors du refus",
+        "generatingReport": "Génération du rapport...",
+        "printError": "Erreur lors de l'impression",
+        "createdSuccess": "Demande de congé créée avec succès",
+        "updatedSuccess": "Demande modifiée avec succès",
+        "deletedSuccess": "Demande supprimée avec succès",
+        "deleteError": "Erreur lors de la suppression"
+      },
+      "sidebar": {
+        "availability": "Disponibilité aujourd'hui",
+        "presents": "Présents",
+        "validatedMonth": "Validés ce mois",
+        "refusedMonth": "Refusés ce mois",
+        "pending": "En attente",
+        "totalRequests": "Total demandes"
+      },
+      "form": {
+        "editTitle": "Modifier la demande",
+        "newTitle": "Nouvelle demande de congé",
+        "orderNo": "N° Ordre",
+        "requestDate": "Date demande",
+        "employee": "Employé",
+        "type": "Type de congé",
+        "departureDate": "Date départ",
+        "returnDate": "Date retour",
+        "amHalf": "AM",
+        "days": "Jours",
+        "balanceTitle": "Solde de Congé",
+        "previousBalance": "Solde Antérieur",
+        "monthlyEntitlement": "Droit Mensuel",
+        "currentBalance": "Solde Actuel",
+        "newBalance": "Nouveau Solde",
+        "daysUnit": "jours",
+        "daysPerMonth": "jours/mois",
+        "daysRemaining": "jours restants",
+        "afterLeave": "après congé",
+        "addressDuringLeave": "Adresse pendant congé",
+        "phone": "Téléphone",
+        "cancel": "Annuler",
+        "submit": "Soumettre",
+        "modify": "Modifier"
+      },
+      "dialog": {
+        "acceptTitle": "Confirmer la validation",
+        "acceptPrompt": "Êtes-vous sûr de vouloir valider la demande de congé{{employee}}{{type}} ?",
+        "acceptYes": "Oui, Valider",
+        "refuseTitle": "Confirmer le refus",
+        "refusePrompt": "Êtes-vous sûr de vouloir refuser la demande de congé{{employee}} ?",
+        "irreversible": "Cette action est irréversible.",
+        "refuseYes": "Oui, Refuser",
+        "deleteTitle": "Supprimer ma demande",
+        "deletePrompt": "Êtes-vous sûr de vouloir supprimer votre demande de congé{{ref}} ?",
+        "deleteYes": "Oui, Supprimer",
+        "cancel": "Annuler"
+      }
+    },
+    "soldeConge": {
+      "titleEmployees": "Solde de Congés des Employés",
+      "titleNamed": "Solde de Congés — {{name}}",
+      "titleMine": "Mon Solde de Congés",
+      "refPeriod": "Période de référence : {{period}}",
+      "selectEmployee": "Sélectionner un employé…",
+      "selectMyService": "Consulter un employé de mon service…",
+      "viewMine": "Voir mon propre solde",
+      "selectFirstTitle": "Sélectionnez un employé",
+      "selectFirstSub": "En tant qu'administrateur, vous consultez le solde de congés d'un employé. Choisissez-en un dans la liste ci-dessus.",
+      "card": {
+        "days": "jours",
+        "acquired": "Acquis",
+        "takenPlaced": "Pris / Posés",
+        "paidLeave": "Congés Payés",
+        "specialFamily": "Congé Spéciale Familiale",
+        "noFamilyLeave": "Aucun congé spéciale familiale pris cette année.",
+        "unpaidLeave": "Congé Sans Solde",
+        "noUnpaidLeave": "Aucun congé sans solde pris cette année."
+      },
+      "table": {
+        "title": "Historique des Mouvements",
+        "exportPdf": "Exporter (PDF)",
+        "date": "Date",
+        "description": "Description",
+        "type": "Type",
+        "movement": "Mouvement",
+        "status": "Statut",
+        "noMovements": "Aucun mouvement enregistré",
+        "leaveTaken": "Prise de Congé",
+        "daysShort": "j",
+        "statusAccepted": "Accepté",
+        "statusRefused": "Refusé",
+        "statusPending": "En attente"
+      },
+      "chart": {
+        "title": "Consommation annuelle",
+        "labelStart": "Juin",
+        "labelEnd": "Déc",
+        "note_one": "Vous avez consommé <0>{{count}} demande</0> acceptée cette année.",
+        "note_other": "Vous avez consommé <0>{{count}} demandes</0> acceptées cette année."
+      },
+      "quickStats": {
+        "validated": "Validés",
+        "refused": "Refusés",
+        "pending": "En attente"
+      },
+      "info": {
+        "rolloverTitle": "Règle de report",
+        "rolloverText": "Les congés payés non pris au 31 mai seront automatiquement transférés vers votre Compte Épargne Temps (CET), dans la limite de 10 jours."
+      }
+    },
+    "titreConge": {
+      "title": "Titres de Congés",
+      "subtitle_one": "Vous avez <0>{{count}} congé</0> officiel généré.",
+      "subtitle_other": "Vous avez <0>{{count}} congés</0> officiels générés.",
+      "newButton": "Nouveau Congé",
+      "headers": {
+        "employee": "Employé",
+        "type": "Type",
+        "period": "Période",
+        "orderNo": "Ordre N°",
+        "actions": "Actions"
+      },
+      "noConsult": "Accès refusé. Vous n'avez pas les droits de consultation.",
+      "noData": "Aucun Titre de Congé existant",
+      "days_one": "{{count}} jour",
+      "days_other": "{{count}} jours",
+      "actions": {
+        "print": "Imprimer",
+        "edit": "Modifier",
+        "delete": "Supprimer"
+      },
+      "form": {
+        "titleAdd": "Émettre un Nouveau Titre de Congé",
+        "titleEdit": "Modifier Titre de Congé",
+        "orderNo": "N° Ordre",
+        "dateTitre": "Date Titre",
+        "employee": "Employé",
+        "imputation": "Imputation (Type)",
+        "departureDate": "Date départ",
+        "returnDate": "Date retour",
+        "am": "AM",
+        "days": "Jours",
+        "balanceTitle": "📊 État du Solde",
+        "balancePrev": "ANTÉRIEUR",
+        "balanceCurrent": "ACTUEL",
+        "balanceNew": "NOUVEAU SOLDE ESTIMÉ",
+        "balanceNewDays": "{{count}} jours",
+        "ref": "Référence / Commentaire",
+        "submit": "Émettre",
+        "save": "Enregistrer",
+        "cancel": "Annuler"
+      },
+      "delete": {
+        "title": "Suppression",
+        "message": "Êtes-vous sûr de vouloir supprimer le congé #{{order}} ?",
+        "cancel": "Annuler",
+        "confirm": "Supprimer"
+      },
+      "msg": {
+        "deletedSuccess": "Suppression réussie",
+        "deleteError": "Erreur lors de la suppression",
+        "generatingReport": "Génération du rapport en cours...",
+        "downloadError": "Erreur lors du téléchargement",
+        "createdSuccess": "Titre de congé créé avec succès",
+        "updatedSuccess": "Titre de congé modifié avec succès"
+      },
+      "stat": {
+        "totalEmitted": "Total Titres Émis"
+      },
+      "pagination": {
+        "showing": "Affichage de <0>{{from}}</0> à <1>{{to}}</1> sur <2>{{total}}</2>"
+      }
+    },
+    "congeGeneral": {
+      "title": "Congé Général",
+      "subtitle": "Base globale : <0>{{count}}</0> congés inscrits dans le système.",
+      "bulkButton": "Émission Collective (Masse)",
+      "form": {
+        "titleAdd": "Émettre un Nouveau Titre",
+        "titleEdit": "Modifier Titre de Congé",
+        "exceptionsTitle": "Exceptions ({{count}})",
+        "exceptionsSubtitle": "Employés exclus de l'émission",
+        "hide": "Masquer",
+        "manage": "Gérer",
+        "search": "Rechercher...",
+        "submit": "Émettre",
+        "submitBulk": "Émettre en masse"
+      }
+    },
+    "soldeAdmin": {
+      "title": "Affectation des Soldes de Congé",
+      "yearLabel": "Gestion par année — {{year}}",
+      "refresh": "Actualiser",
+      "stats": {
+        "totalEmployees": "Total Employés",
+        "withSolde": "Avec Solde",
+        "totalDays": "Total Jours Affectés"
+      },
+      "search": "Rechercher un employé...",
+      "headers": {
+        "matricule": "Matricule",
+        "employee": "Employé",
+        "status": "Statut",
+        "balance": "Solde (jours)",
+        "action": "Action"
+      },
+      "status": {
+        "assigned": "Affecté",
+        "notAssigned": "Non affecté"
+      },
+      "noEmployees": "Aucun employé trouvé",
+      "tooltip": {
+        "save": "Enregistrer"
+      },
+      "msg": {
+        "invalid": "Valeur invalide. Entrez un nombre positif.",
+        "updateSuccess": "Solde de {{name}} mis à jour avec succès",
+        "saveError": "Erreur lors de l'enregistrement du solde"
+      }
+    },
+    "cet": {
+      "title": "Compte Épargne Temps",
+      "subtitle": "Les congés payés non pris à la date limite sont automatiquement transférés vers le CET, dans la limite du plafond paramétré.",
+      "noConsult": "Vous n'avez pas le droit de consulter le CET.",
+      "params": {
+        "title": "Paramètres de la règle",
+        "dateLimit": "Date limite (JJ-MM)",
+        "dateLimitHelp": "Date après laquelle le transfert s'applique",
+        "ceiling": "Plafond CET (jours)",
+        "ceilingHelp": "Nombre maximum de jours transférés par an",
+        "save": "Enregistrer"
+      },
+      "apply": {
+        "title": "Appliquer le transfert annuel",
+        "description": "Sélectionnez l'année. L'aperçu calcule sans modifier — le transfert effectif met à jour la table solde.",
+        "year": "Année",
+        "preview": "Aperçu",
+        "applyButton": "Appliquer le transfert"
+      },
+      "result": {
+        "title": "Résultat — Année {{year}}",
+        "dateLimit": "Date limite : {{date}}",
+        "ceiling": "Plafond : {{count}} j",
+        "employees_one": "{{count}} employé",
+        "employees_other": "{{count}} employé(s)",
+        "totalDays": "Total : {{count}} j",
+        "noTransfer": "Aucun jour à transférer.",
+        "headers": {
+          "empcod": "Code employé",
+          "before": "Solde restant avant",
+          "transferred": "Jours transférés",
+          "after": "CET après"
+        }
+      },
+      "confirm": {
+        "title": "Confirmer le transfert CET",
+        "message": "Cette action met à jour les soldes de tous les employés pour l'année <0>{{year}}</0>. Les jours non pris (au-delà du plafond) seront perdus. Cette opération est irréversible.",
+        "cancel": "Annuler",
+        "confirm": "Confirmer"
+      },
+      "msg": {
+        "invalidDate": "Date limite invalide (format DD-MM, ex: 31-05).",
+        "invalidCeiling": "Le plafond doit être positif.",
+        "saveSuccess": "Paramètres CET enregistrés.",
+        "saveError": "Erreur lors de la sauvegarde.",
+        "previewMsg": "Aperçu : {{employees}} employé(s), {{days}} jour(s) à transférer.",
+        "previewError": "Erreur lors du calcul.",
+        "applySuccess": "Transfert appliqué : {{employees}} employé(s), {{days}} jour(s) ajoutés au CET.",
+        "applyError": "Erreur lors du transfert."
+      }
+    }
   },
   "contract": {
     "number": "N° Contrat",
     "date": "Date Contrat",
     "type": "Type Contrat"
+  },
+  "contrat": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter les contrats.",
+    "loadEmployeeError": "Erreur lors du chargement des données de l'employé",
+    "selectEmployee": "Veuillez sélectionner un employé",
+    "concodRequired": "Le N° contrat est obligatoire",
+    "sessionExpired": "Session expirée, veuillez vous reconnecter",
+    "updatedSuccess": "Contrat modifié avec succès",
+    "addedSuccess": "Contrat ajouté avec succès",
+    "saveError": "Erreur lors de la sauvegarde",
+    "deletedSuccess": "Contrat supprimé",
+    "deleteError": "Erreur lors de la suppression",
+    "templatesLoadError": "Impossible de charger les modèles.",
+    "selectTemplate": "Sélectionnez un modèle.",
+    "exported": "Document exporté.",
+    "exportError": "Erreur lors de l'export.",
+    "exportPdf": "Exporter (PDF)",
+    "renew": "Renouveler",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "kpiActive": "Contrats Actifs",
+    "kpiActiveSub": "/ {{total}} total",
+    "kpiExpiring": "Expirent bientôt",
+    "kpiExpiringSub": "30 prochains jours",
+    "kpiNew": "Nouveaux ce mois",
+    "kpiNewSub": "Onboarding",
+    "editTitle": "Modifier le Contrat",
+    "newTitle": "Nouveau Contrat",
+    "company": "Société",
+    "branchSite": "Filiale / Site",
+    "selectPlaceholder": "Sélectionner...",
+    "employee": "Employé",
+    "selectEmployeePlaceholder": "Sélectionner un employé...",
+    "loadingEmployee": "Chargement des données de l'employé...",
+    "concodLabel": "N° Contrat",
+    "typeLabel": "Type",
+    "dateStart": "Date Début",
+    "dateEnd": "Date Fin",
+    "positionFunction": "Poste / Fonction",
+    "baseSalary": "Salaire Base",
+    "motifObs": "Motif / Observations",
+    "obsPlaceholder": "Notes complémentaires...",
+    "saveContract": "Enregistrer le Contrat",
+    "all": "Tous",
+    "searchPlaceholder": "Rechercher...",
+    "exportPdfBtn": "Export PDF",
+    "selection": "Sélection",
+    "headers": {
+      "concod": "N° Contrat",
+      "employee": "Employé",
+      "period": "Période",
+      "type": "Type",
+      "position": "Poste",
+      "actions": "Actions"
+    },
+    "noContracts": "Aucun contrat trouvé",
+    "indefinite": "Indéterminé",
+    "expired": "Expiré",
+    "displayedCount_one": "{{count}} contrat affiché",
+    "displayedCount_other": "{{count}} contrats affichés",
+    "deleteConfirm": "Voulez-vous vraiment supprimer le contrat \"{{concod}}\" de {{employee}} ?",
+    "renewedSuccess": "Contrat renouvelé avec succès",
+    "exportTitle": "Exporter le contrat — {{concod}}",
+    "exportPrompt": "Sélectionnez le modèle de document à utiliser pour générer le PDF du contrat de",
+    "selectTemplatePlaceholder": "Sélectionner un modèle…",
+    "noTemplate": "Aucun modèle disponible. Créez-en un depuis le Coffre-fort → Bibliothèque de modèles.",
+    "cancel": "Annuler",
+    "exporting": "Export en cours…",
+    "downloadPdf": "Télécharger PDF"
   },
   "employeeLevel": {
     "cadre": "Cadre",
@@ -530,7 +1492,109 @@
   },
   "paramSoc": {
     "common":{
-      "month": "Mois"
+      "month": "Mois",
+      "configuration": "Configuration",
+      "title": "Paramètres Système",
+      "subtitle": "Gérez les règles de calcul, les dates de paie et les paramètres avancés de pointage.",
+      "saveTooltip": "Enregistrer tous les changements",
+      "saveButton": "Enregistrer les paramètres",
+      "savingButton": "Enregistrement...",
+      "updateSuccess": "Paramètres mis à jour avec succès !",
+      "updateError": "Erreur lors de la mise à jour.",
+      "selectPlaceholder": "-- Sélectionner --"
+    },
+    "tabs": {
+      "calculsDates": "Calculs & Dates",
+      "heuresSup": "Heures Sup",
+      "heuresNuit": "Heures de Nuit",
+      "general": "Général",
+      "affichage": "Affichage",
+      "valeurCalcul": "Valeurs de Calcul",
+      "heureSupp": "Heures Supplémentaires",
+      "sansClassHoraire": "Sans Classe Horaire",
+      "connPoint": "Connexion Pointeuse",
+      "calendrier": "Calendrier"
+    },
+    "tabsHeader": {
+      "calculsTitle": "Logique de Calcul & Dates",
+      "joursFeries": "Congés & Jours Fériés",
+      "pointageCalcul": "Pointage & Calcul",
+      "tranchesHsup": "Tranches d'Heures Sup",
+      "configurationNuit": "Configuration Nuit"
+    },
+    "calculs": {
+      "moisDebut": "Début de Mois",
+      "moisDebutLabel": "Mois Début",
+      "moisFin": "Fin de Mois",
+      "moisFinLabel": "Mois Fin",
+      "current": "Courant",
+      "previous": "Précédent",
+      "anciennete": "Ancienneté Requise (ans)",
+      "heuresConge": "Heures Congé",
+      "heuresRepos": "Heures Repos",
+      "heuresFerie": "Heures Jour Férié",
+      "travailFerie": "Travail jours fériés",
+      "ecartMin": "Écart minimum (min)",
+      "minHoursDay": "Min heures/jour",
+      "maxHoursDay": "Max heures/jour",
+      "maxFerieMajore": "Max fériés majorés",
+      "eliminerFerie": "Éliminer fériés du calcul H.Sup",
+      "modeDeductionRepos": "Mode déduction repos (Mensuel)",
+      "elim0": "Non",
+      "elim1": "Oui - Soustraire avant calcul",
+      "elim2": "Oui - Soustraire après calcul",
+      "rep0": "Déduire heures repos",
+      "rep2": "Déduire heures dimanche",
+      "rep3": "Déduire samedi + dimanche"
+    },
+    "heuresSup": {
+      "cadre": "Cadre",
+      "maitrise": "Maîtrise",
+      "executant": "Exécutant",
+      "hebdomadaire": "Hebdomadaire (H)",
+      "mensuel": "Mensuel (M)",
+      "ajouter": "Ajouter",
+      "calendrier": "Calendrier",
+      "tr1": "Tr1",
+      "tr2": "Tr2",
+      "horaire": "Horaire",
+      "mensuelTitle": "Mensuel",
+      "tranche1": "Tranche 1",
+      "tranche2": "Tranche 2",
+      "taux1": "Taux 1",
+      "taux2": "Taux 2",
+      "action": "Action",
+      "semaineComplete": "Semaine Complète",
+      "method": {
+        "paramCategorie": "Param. Catégorie",
+        "paramPoste": "Param. Poste",
+        "hsupMensuel": "Heures sup. Mensuel",
+        "hsupHebdo": "Calcul H.Sup Hebdomadaire",
+        "trancheMaxJour": "Tranche heure max trav./jour",
+        "cumulHsupJour": "Cumul des heures sup/jour",
+        "hsupHebdoMens": "H.Sup Hebdomadaire+Mens"
+      },
+      "elim0": "0- Compter Férié Travaillé",
+      "elim1": "1- Eliminer Férié Travaillé des Hres Sup. et Normale",
+      "elim2": "2- Eliminer Férié Travaillé des Hres Sup. + Ajout H.N",
+      "elim3": "3- Eliminer Férié Trv-Repos des Hres Sup. + Ajout H.N",
+      "rep0": "0- Ne pas gérer Repos Travaillés avec les heures normales",
+      "rep1": "1- Gérer Repos Travaillés avec les heures normales",
+      "rep2": "2- Ne pas gérer Dimanche Travaillés avec les heures normales",
+      "rep3": "3- Ne pas gérer Samedi-Dimanche Travaillés avec les heures normales",
+      "debutCalculLabel": "Début de calcul des heures normales",
+      "calculHsupLabel": "Calcul des heures supplémentaires",
+      "premierMois": "Premier du mois",
+      "lundiSemaine": "Lundi semaine 1"
+    },
+    "nuit": {
+      "debut": "Début",
+      "fin": "Fin",
+      "diminuerPanier": "Diminuer panier nuit",
+      "compterSortie": "Compter journée sortie",
+      "exclureNuit": "Exclure nuit si sortie jour",
+      "majoreHnuit": "Majoré H.Nuit aux H.Norm",
+      "seuilMin": "Seuil Min Nuit (h)"
     },
     "part1": {
       "jourDebut": "Jour début",
@@ -553,6 +1617,282 @@
       "fiveYears": "5 Ans",
       "saisieConge": "Saisie Congé",
       "daysBeforeOrAfter": "Jours avant ou après"
+    },
+    "general": {
+      "part1": {
+        "afficherEcheance": "Afficher Echéance Contrat à l'accueil",
+        "calculSemaine": "Calcul Heures Semaine selon définition non calendrier",
+        "utilisationPlan": "Utilisation de plan Calendrier",
+        "longueurMatricule": "Longueur Matricule",
+        "memeSerie": "Même série d'absence et de congé",
+        "codeAbsenceAllaitement": "Code Absence Allaitement"
+      },
+      "part2": {
+        "integrationPaie": "Intégration Paie",
+        "arrondirCumul": "Arrondir le cumul heures de paie",
+        "diviserNuit": "Diviser Hre de nuit à intégrer par",
+        "intituleNuit": "Intitulé Nuit Spéciale"
+      },
+      "part3": {
+        "arrondiPointage": "Arrondi de pointage",
+        "arrondiEntree": "Arrondi chaque heure d'entrée",
+        "majoreEntree": "Majorée à partir de",
+        "arrondiHsup": "Arrondi heures supp.",
+        "arrondiSortie": "Arrondi chaque heure de sortie",
+        "majoreSortie": "Majorée à partir de"
+      },
+      "part4": {
+        "enregistrementAuto": "Enregistrement Automatique",
+        "importAuto": "Import Auto employé",
+        "modeleEtat": "Modèle Etat de pointage Horaire",
+        "etatMois": "Etat du mois",
+        "badgeUnique": "Badge unique toutes sociétés",
+        "siteUnique": "Site unique pour toutes les sociétés",
+        "genererBillet": "Générer Billet d'Entrée",
+        "separationZone": "Séparation Zone",
+        "gererCentrePaie": "Gérer Par Centre de paie"
+      }
+    },
+    "affichage": {
+      "selectImage": "Sélectionner Image",
+      "saveLogo": "Enregistrer Logo",
+      "previewAlt": "Aperçu",
+      "etatPeriodiquePresence": {
+        "afficherTaux25": "Afficher Taux 25%",
+        "afficherTaux50": "Afficher Taux 50%",
+        "afficherTaux75": "Afficher Taux 75%",
+        "afficherTaux100": "Afficher Taux 100%",
+        "separationDecimal": "Séparation décimal"
+      },
+      "valeurDefaut": {
+        "regime": "Régime",
+        "presence": "Présence",
+        "modelePresence": "Modèle Etat Présence",
+        "regime0": "Tous",
+        "regime1": "Mensuel",
+        "regime2": "Horaire",
+        "presence0": "Tous",
+        "presence1": "Valide",
+        "presence2": "Invalide",
+        "presence3": "Manquant",
+        "presence4": "Absence",
+        "directe": "Directe",
+        "indirecte": "Indirecte",
+        "tous": "Tous",
+        "normal": "Normal",
+        "hebdomadaire": "Hebdomadaire",
+        "septJourSemaine": "7 Jour/Semaine"
+      }
+    },
+    "calendrier": {
+      "monthsLong": {
+        "janvier": "Janvier",
+        "fevrier": "Février",
+        "mars": "Mars",
+        "avril": "Avril",
+        "mai": "Mai",
+        "juin": "Juin",
+        "juillet": "Juillet",
+        "aout": "Août",
+        "septembre": "Septembre",
+        "octobre": "Octobre",
+        "novembre": "Novembre",
+        "decembre": "Décembre"
+      },
+      "monthsShort": {
+        "jan": "Jan",
+        "fev": "Fév",
+        "mar": "Mar",
+        "avr": "Avr",
+        "mai": "Mai",
+        "juin": "Juin",
+        "juil": "Juil",
+        "aout": "Août",
+        "sep": "Sep",
+        "oct": "Oct",
+        "nov": "Nov",
+        "dec": "Déc"
+      },
+      "days": {
+        "lundi": "Lundi",
+        "mardi": "Mardi",
+        "mercredi": "Mercredi",
+        "jeudi": "Jeudi",
+        "vendredi": "Vendredi",
+        "samedi": "Samedi",
+        "dimanche": "Dimanche",
+        "samDim": "Sam-Dim"
+      },
+      "settingsSavedFor": "Réglages enregistrés pour {{period}}",
+      "settingsSaveError": "Erreur lors de l'enregistrement des réglages.",
+      "yearCreatedSuccess": "Planification {{year}} créée avec succès !",
+      "yearCreateError": "Erreur lors de la création de l'année {{year}}.",
+      "yearClonedSuccess": "Année {{year}} clonée avec succès !",
+      "yearCloneError": "Erreur lors du clonage de l'année {{year}}.",
+      "tag": "Suivi des temps",
+      "heading": "Planification & Pointage Mensuel",
+      "rest": "Repos",
+      "monthTotal": "Total du mois : {{hours}} heures",
+      "basedOn": "Basé sur",
+      "workedDays_one": "{{count}} jour travaillé",
+      "workedDays_other": "{{count}} jours travaillés",
+      "downloadPdf": "Télécharger",
+      "validate": "Valider",
+      "validateHours": "les heures",
+      "annualStats": "Statistiques Annuelles {{year}}",
+      "calculatedAuto": "Calculé automatiquement",
+      "headers": {
+        "month": "Mois",
+        "daysPerMonth": "Jours/Mois",
+        "hoursPerMonth": "Heures/Mois",
+        "openHours": "Heures Ouvrées",
+        "hoursPerDay": "Heures/Jour",
+        "performance": "Performance"
+      },
+      "config": {
+        "title": "Configuration",
+        "adjust": "Ajustez vos paramètres mensuels",
+        "hoursPerDay": "Heures par jour",
+        "saturdayHours": "Samedi (Heures)",
+        "restDay": "Jour de repos",
+        "applyAllMonths": "Appliquer à tous les mois",
+        "saveSettings": "Enregistrer les réglages",
+        "initYear": "Initialiser une année",
+        "tipBold": "Astuce :",
+        "tip": "Le pointage se synchronise automatiquement chaque jour à 23h59."
+      },
+      "newPlanning": {
+        "title": "Nouvelle Planification",
+        "subtitle": "Configurez le calendrier pour une nouvelle année",
+        "sourceYear": "Année Source",
+        "newYear": "Nouvelle Année",
+        "baseHours": "Base heures par jour",
+        "clone": "Cloner {{year}}",
+        "createNew": "Créer Nouveau",
+        "footer": "L'initialisation générera 12 mois de calendrier basés sur vos paramètres."
+      },
+      "sidebar": {
+        "currentAssignment": "Affectation actuelle",
+        "hub": "Architecture & Design Hub",
+        "remainingLeaves": "Congés restants",
+        "remainingLeavesValue": "12 jours"
+      },
+      "saisie": {
+        "tousLesJours": "Tous les jours",
+        "tousLesMois": "Tous les mois",
+        "samedi": "Samedi",
+        "nbHreJour": "Nb.Hre/Jour",
+        "nbJourMois": "Nb.Jour/Mois",
+        "nbHreMois": "Nb.Hre/Mois"
+      },
+      "cumul": {
+        "nombre": "Nombre",
+        "joursMois": "Jours/Mois",
+        "heuresMois": "Heures/Mois",
+        "heuresOuv": "Heures Ouv",
+        "heuresJour": "Heures/Jour"
+      }
+    },
+    "connPoint": {
+      "ncom": "N° Com",
+      "nbPointeuse": "Nb. Pointeuse",
+      "ecartPointage": "Ecart Pointage success (mn)",
+      "footerNote": "N° Port 1,2 ou 3 si transfert modèle : D : DIS, H : HAKIM, N : B-HAKIM, B : Table access, T : Pointeuse ZKS, Z : Base ZKS Vers 2008"
+    },
+    "sansClasse": {
+      "heuresNuitTitle": "Heures de Nuit",
+      "heureDebut": "Heure Début",
+      "heureFin": "Heure Fin",
+      "normal": "Normal",
+      "speciale": "Spéciale",
+      "compterSortie": "Compter la journée de sortie date présence",
+      "neCompterPas": "Ne pas compter les heures de nuits si sortie le jour",
+      "majoreHnuit": "Majoré H.Nuit aux H.Normales",
+      "jourRepos": "Jour de Repos:",
+      "selectionnerJour": "Sélectionner un jour",
+      "methodeCalculTitle": "Méthode de Calcul des heures supplémentaires",
+      "journee": "Journée",
+      "tauxNormal": "Taux Normal",
+      "tauxRepos": "Taux Repos"
+    },
+    "valeurCalcul": {
+      "part2": {
+        "conge": "Congé",
+        "ferie": "Férié",
+        "repos": "Repos",
+        "demiJour": "Demi Jour",
+        "nbHeuresJour": "Nb. Heures/Jour"
+      },
+      "part3": {
+        "maxHeuresFerie": "Max Heures Férié Travaillé",
+        "selonClasse": "0 si selon classe horaire",
+        "minHeuresJour": "Min Heures = un Jour",
+        "minHeuresDemi": "Min Heures = 1/2 Jour",
+        "maxHeuresJour": "Max Heures par jour pour optimisation",
+        "arrondirHeure": "Arrondir nb Heure par jour",
+        "a": "à",
+        "pourPoste": "pour posté",
+        "changementPoste": "Changement de Poste les Lundi"
+      }
+    },
+    "profile": {
+      "user": "Utilisateur",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "admin": "Administrateur",
+      "modifyProfile": "Modifier le Profil",
+      "changePassword": "Changer le mot de passe",
+      "basicInfo": "Informations de base",
+      "lastName": "Nom",
+      "firstName": "Prénom",
+      "professionalEmail": "Email Professionnel",
+      "userCode": "Code Utilisateur",
+      "role": "Rôle",
+      "status": "Statut",
+      "accountSecurity": "Sécurité du compte",
+      "password": "Mot de passe",
+      "passwordSubtitle": "Dernière modification récemment",
+      "twoFA": "Double authentification (2FA)",
+      "twoFAEnabled": "Activée ✓",
+      "twoFARecommended": "Recommandé pour sécuriser votre accès",
+      "disable": "Désactiver",
+      "enable2FA": "Activer la 2FA",
+      "profilePhoto": "Photo de profil",
+      "uploadImage": "Uploader l'image",
+      "uploadHint": "Glissez-déposez ou cliquez pour parcourir. JPG, PNG (max. 5MB)",
+      "deletePhoto": "Supprimer la photo actuelle",
+      "activitySummary": "Résumé de l'activité",
+      "code": "Code",
+      "twoFAStatus": "2FA",
+      "enabled": "Activée",
+      "disabled": "Désactivée",
+      "securityStatus": "Statut de sécurité",
+      "excellent": "Excellent",
+      "good": "Bon",
+      "currentPassword": "Mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "cancel": "Annuler",
+      "confirm": "Confirmer",
+      "twoFADialogTitle": "Activer la Double Authentification",
+      "twoFAStep1": "1. Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy, etc.)",
+      "twoFAStep2": "2. Entrez le code à 6 chiffres affiché dans l'application",
+      "verifying": "Vérification...",
+      "verifyAndEnable": "Vérifier & Activer",
+      "msg": {
+        "profileUpdated": "Profil mis à jour avec succès !",
+        "noChanges": "Aucune modification apportée.",
+        "updateError": "Erreur lors de la mise à jour.",
+        "photoUpdated": "Photo de profil mise à jour !",
+        "photoSaveError": "Erreur lors de la sauvegarde de l'image.",
+        "fillAllFields": "Veuillez remplir tous les champs.",
+        "passwordChanged": "Mot de passe modifié avec succès !",
+        "passwordChangeError": "Erreur lors du changement de mot de passe.",
+        "twoFAEnableError": "Erreur lors de l'activation de la 2FA.",
+        "twoFAEnabled": "2FA activée avec succès !",
+        "twoFAInvalidCode": "Code invalide. Veuillez réessayer.",
+        "twoFADisabled": "2FA désactivée.",
+        "twoFADisableError": "Erreur lors de la désactivation."
+      }
     }
   },
   "app": {
@@ -585,7 +1925,61 @@
     "present": "Présent",
     "absent": "Absent",
     "onLeave": "En Congé",
-    "unknown": "Inconnu"
+    "unknown": "Inconnu",
+    "title": "Vue d'ensemble",
+    "updatedToday": "Mise à jour aujourd'hui, le {{date}}",
+    "exportReport": "Exporter le rapport",
+    "allDepartments": "Tous les Départements",
+    "applyFilters": "Appliquer les filtres",
+    "presenceRate": "Taux de Présence",
+    "absenceRate": "Taux d'Absentéisme",
+    "punctuality": "Ponctualité",
+    "average": "Moyenne",
+    "overtimeAccumulated": "Heures Supp. Cumulées",
+    "totalEmployees": "Total Employés",
+    "ongoingLeaves": "Congés en cours",
+    "pendingApproval": "Demandes en attente d'approbation",
+    "contractAlerts": "Alertes Contrat",
+    "contractsExpiringMonth": "Contrats échus ce mois →",
+    "recruitmentTrends": "Tendances de recrutement",
+    "monthlyEvolution": "Évolution mensuelle {{year}}",
+    "entries": "Entrées",
+    "exits": "Départs",
+    "recentAbsences": "Absences récentes",
+    "todaysAbsences": "Absences du jour",
+    "total": "Total",
+    "active": "Actif",
+    "noAbsence": "Aucune absence enregistrée",
+    "todaysLate": "Retards du jour",
+    "viewAllCalendar": "Voir tout le calendrier",
+    "nextRenewals": "Prochains renouvellements de contrat",
+    "daysLeft": "{{days}}j restants",
+    "renew": "Renouveler",
+    "noRenewal": "Aucun renouvellement imminent ce mois",
+    "congeRequestsPending": "Demandes de Congé en Attente",
+    "requestsFound": "{{count}} demande(s) trouvée(s)",
+    "contractsExpiring": "Contrats Échus ce Mois",
+    "contractsExpiringSub": "{{count}} contrat(s) arrivent à expiration",
+    "noContractExpiring": "Aucun contrat n'expire ce mois",
+    "pointagesIncomplete": "Pointages non complètes",
+    "fetchError": "Erreur lors de la récupération.",
+    "noIncompletePointage": "Aucun pointage non complet trouvé.",
+    "loadError": "Erreur lors du chargement du tableau de bord",
+    "columns": {
+      "matricule": "Matricule",
+      "employee": "Employé",
+      "type": "Type",
+      "hireDate": "Date Embauche",
+      "dueDate": "Date Échéance",
+      "daysRemaining": "Jours Restants",
+      "action": "Action",
+      "name": "Nom",
+      "department": "Département",
+      "date": "Date",
+      "arrival": "Arrivée",
+      "departure": "Départ",
+      "comment": "Commentaire"
+    }
   },
   "loading": {
     "loading": "Chargement..."
@@ -602,6 +1996,306 @@
     "requiredFields": "Le code et le libellé sont obligatoires !",
     "added": "Société ajoutée avec succès !",
     "addError": "Échec de l'ajout de la société. Veuillez réessayer."
+  },
+  "donneeBase": {
+    "breadcrumb": "Données de base",
+    "common": {
+      "cancel": "Annuler",
+      "update": "Mettre à jour",
+      "save": "Enregistrer",
+      "search": "Rechercher...",
+      "actions": "Actions",
+      "code": "Code",
+      "label": "Libellé",
+      "saveError": "Erreur lors de l'enregistrement.",
+      "labelRequired": "Le libellé est obligatoire."
+    },
+    "pays": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter les pays.",
+      "heading": "Gestion des Pays",
+      "subtitle": "Configurer les pays disponibles pour l'application",
+      "editTitle": "Modifier le pays",
+      "newTitle": "Nouveau pays",
+      "codeLabel": "Code Pays",
+      "autoGenerated": "(auto-généré)",
+      "autoPlaceholder": "Auto",
+      "labelPlaceholder": "Maroc",
+      "tableTitle": "Liste des Pays ({{count}})",
+      "noResults": "Aucun pays trouvé.",
+      "footerCount": "Affichage de {{count}} pays",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce pays ?",
+      "msgUpdated": "Pays mis à jour avec succès.",
+      "msgAdded": "Pays ajouté avec succès."
+    },
+    "ville": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter les villes.",
+      "heading": "Gestion des Villes",
+      "subtitle": "Configurer les villes disponibles",
+      "editTitle": "Modifier la ville",
+      "newTitle": "Nouvelle ville",
+      "codeLabel": "Code Ville",
+      "autoGenerated": "(auto-généré)",
+      "labelPlaceholder": "Casablanca",
+      "tableTitle": "Liste des Villes ({{count}})",
+      "noResults": "Aucune ville trouvée.",
+      "footerCount": "Affichage de {{count}} villes",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette ville ?",
+      "msgUpdated": "Ville mise à jour avec succès.",
+      "msgAdded": "Ville ajoutée avec succès.",
+      "importFranceTitle": "Importer villes France",
+      "importing": "Import en cours…",
+      "importFranceConfirm": "Importer les ~35 000 communes françaises ? Les villes déjà présentes seront sautées.",
+      "importSuccess": "{{inserted}} villes importées ({{skipped}} déjà présentes)",
+      "importError": "Erreur lors de l'import des villes"
+    },
+    "qualification": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter les qualifications.",
+      "heading": "Gestion des Qualifications",
+      "subtitle": "Configurer les qualifications disponibles",
+      "editTitle": "Modifier la qualification",
+      "newTitle": "Nouvelle qualification",
+      "codeLabel": "Code Qualification",
+      "autoPlaceholder": "Auto-généré",
+      "labelPlaceholder": "Ingénieur",
+      "tableTitle": "Liste des Qualifications ({{count}})",
+      "noResults": "Aucune qualification trouvée.",
+      "footerCount": "Affichage de {{count}} qualifications",
+      "deleteConfirm": "Supprimer cette qualification ?",
+      "msgUpdated": "Qualification mise à jour.",
+      "msgAdded": "Qualification ajoutée."
+    },
+    "orgStructure": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter la structure organisationnelle.",
+      "label": "Administration Centrale",
+      "title": "Structure Organisationnelle",
+      "addUnit": "Ajouter une Unité",
+      "menu": {
+        "direction": "Direction",
+        "service": "Service",
+        "section": "Section"
+      },
+      "import": {
+        "directions": "Importer Directions (Excel)",
+        "services": "Importer Services (Excel)",
+        "sections": "Importer Sections (Excel)"
+      },
+      "metric": {
+        "totalDirections": "Total Directions",
+        "totalServices": "Total Services",
+        "totalSections": "Total Sections",
+        "active": "Active(s)",
+        "operational": "Opérationnels",
+        "totalUnits": "{{count}} unités au total"
+      },
+      "filter": {
+        "all": "Tous",
+        "directions": "Directions",
+        "services": "Services",
+        "sections": "Sections",
+        "advanced": "Filtres Avancés",
+        "exportLedger": "Exporter le Ledger"
+      },
+      "headers": {
+        "code": "Code",
+        "label": "Libellé de l'Unité",
+        "type": "Type",
+        "location": "Localisation",
+        "email": "Contact Email",
+        "actions": "Actions"
+      },
+      "type": {
+        "direction": "Direction",
+        "service": "Service",
+        "section": "Section"
+      },
+      "loading": "Chargement...",
+      "noResults": "Aucune unité trouvée.",
+      "responsable": "Resp:",
+      "showing": "Affichage de {{from}} à {{to}} sur {{total}} unités",
+      "creating": "Unités en Création",
+      "dialog": {
+        "edit": "Modifier",
+        "add": "Ajouter",
+        "directionUnit": "une Direction",
+        "serviceUnit": "un Service",
+        "sectionUnit": "une Section",
+        "code": "Code",
+        "autoGen": "(laisser vide pour auto-générer)",
+        "autoPlaceholder": "Auto",
+        "label": "Libellé",
+        "location": "Localisation",
+        "email": "Email",
+        "cancel": "Annuler",
+        "save": "Enregistrer",
+        "update": "Mettre à jour"
+      },
+      "msg": {
+        "labelRequired": "Libellé obligatoire.",
+        "codeRequiredEdit": "Code obligatoire en modification.",
+        "codeRequiredDir": "Code obligatoire pour une direction.",
+        "updated": "Unité mise à jour.",
+        "added": "Unité ajoutée.",
+        "deleted": "Supprimé.",
+        "deleteError": "Erreur de suppression.",
+        "deleteConfirm": "Supprimer {{name}} ?",
+        "error": "Erreur."
+      }
+    },
+    "allaitement": {
+      "title": "Gestion de l'Allaitement",
+      "subtitle": "Configurez et suivez les périodes d'allaitement des collaboratrices.",
+      "infoTitle": "Conformité Légale",
+      "infoText": "Le temps d'allaitement est comptabilisé comme temps de travail effectif. Assurez-vous que les créneaux respectent la convention collective en vigueur.",
+      "infoButton": "Consulter le guide RH"
+    },
+    "fonction": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter les fonctions.",
+      "heading": "Gestion des Fonctions",
+      "subtitle": "Configurer les fonctions disponibles",
+      "editTitle": "Modifier la fonction",
+      "newTitle": "Nouvelle fonction",
+      "labelPlaceholder": "Directeur",
+      "typeLabel": "Type",
+      "type": {
+        "admin": "Administration",
+        "technical": "Technique",
+        "operational": "Opérationnel"
+      },
+      "tableTitle": "Liste des Fonctions ({{count}})",
+      "noResults": "Aucune fonction trouvée.",
+      "footerCount": "Affichage de {{count}} fonctions",
+      "deleteConfirm": "Supprimer cette fonction ?",
+      "msgUpdated": "Fonction mise à jour.",
+      "msgAdded": "Fonction ajoutée.",
+      "importExcel": "Importer Excel"
+    },
+    "filiale": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter les filiales.",
+      "heading": "Gestion des Filiales",
+      "subtitle": "Configurer les sites et filiales de votre société",
+      "saving": "Enregistrement...",
+      "tableTitle": "Portefeuille des Filiales ({{count}})",
+      "noResults": "Aucune filiale trouvée.",
+      "footerCount": "Affichage de {{count}} filiales",
+      "deleteConfirm": "Supprimer cette filiale ?",
+      "msgUpdated": "Filiale mise à jour.",
+      "msgAdded": "Filiale ajoutée.",
+      "codeRequired": "Code et Libellé sont obligatoires.",
+      "headers": {
+        "name": "Nom",
+        "phone": "Tél",
+        "email": "Email",
+        "hoursMonth": "Hrs/Mois"
+      },
+      "details": {
+        "titleEdit": "Détails de la filiale :",
+        "titleNew": "Nouvelle filiale",
+        "subEdit": "Modifiez les informations de la filiale sélectionnée.",
+        "subNew": "Renseignez les informations de la nouvelle filiale."
+      },
+      "card": {
+        "identification": "Identification",
+        "contact": "Coordonnées",
+        "workParams": "Paramètres Travail"
+      },
+      "field": {
+        "code": "Code Filiale",
+        "name": "Nom Filiale",
+        "address": "Adresse",
+        "phone": "Téléphone",
+        "fax": "Fax",
+        "email": "Email",
+        "hoursMonth": "Heures / Mois",
+        "leavesYear": "Congés / An",
+        "leavesMonth": "Congés / Mois"
+      },
+      "placeholder": {
+        "code": "S01",
+        "name": "Siège Casablanca",
+        "address": "123 Avenue Mohammed V",
+        "phone": "+212 5XX XXX XXX",
+        "email": "contact@filiale.ma"
+      }
+    },
+    "rubrique": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter les rubriques.",
+      "heading": "Gestion des Rubriques",
+      "subtitle": "Configurer les rubriques de paie",
+      "editTitle": "Modifier la rubrique",
+      "newTitle": "Nouvelle rubrique",
+      "codeRequired": "Code et Libellé sont obligatoires.",
+      "codePlaceholder": "R01",
+      "labelPlaceholder": "Salaire de base",
+      "unitLabel": "Unité",
+      "typeLabel": "Type",
+      "unit": {
+        "hour": "Heure",
+        "day": "Jour",
+        "month": "Mois",
+        "fixed": "Forfaitaire"
+      },
+      "type": {
+        "gain": "Gain",
+        "deduction": "Retenue",
+        "contribution": "Cotisation"
+      },
+      "tableTitle": "Liste des Rubriques ({{count}})",
+      "noResults": "Aucune rubrique trouvée.",
+      "footerCount": "Affichage de {{count}} rubriques",
+      "deleteConfirm": "Supprimer cette rubrique ?",
+      "msgUpdated": "Rubrique mise à jour.",
+      "msgAdded": "Rubrique ajoutée."
+    }
+  },
+  "societe": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter les paramètres société.",
+    "title": "Paramètres Société",
+    "subtitle": "Gérez votre portefeuille d'entités et leurs configurations.",
+    "export": "Exporter",
+    "newCompany": "Nouvelle Société",
+    "tableTitle": "Portefeuille des Sociétés",
+    "filterByType": "Filtrer par type :",
+    "all": "Toutes",
+    "branches": "Filiales",
+    "groups": "Groupes",
+    "headers": {
+      "actions": "Actions",
+      "code": "Code",
+      "label": "Libellé",
+      "type": "Type",
+      "phoneEmail": "Tél / E-mail",
+      "responsible": "Responsable",
+      "address": "Adresse"
+    },
+    "noCompany": "Aucune société trouvée.",
+    "pagination": "Affichage de {{start}} à {{end}} sur {{total}} sociétés",
+    "detailsTitle": "Détails de l'entité : {{code}}",
+    "newDetailsTitle": "Nouvelle société",
+    "editSubtitle": "Modifiez les informations de l'entité sélectionnée.",
+    "newSubtitle": "Renseignez les informations de la nouvelle entité.",
+    "cancel": "Annuler",
+    "msg": {
+      "codeLibelleRequired": "Code et libellé sont obligatoires.",
+      "codeMustBeTwoChars": "Le code société doit contenir exactement 2 caractères.",
+      "fieldExceeds": "Le champ {{field}} dépasse {{max}} caractères.",
+      "updated": "Société mise à jour avec succès.",
+      "added": "Société ajoutée avec succès.",
+      "updateError": "Erreur lors de la mise à jour.",
+      "addError": "Erreur lors de l'ajout.",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette société ?"
+    },
+    "type": {
+      "siege": "Siège",
+      "groupe": "Groupe",
+      "filiale": "Filiale"
+    },
+    "card": {
+      "identification": "Identification",
+      "address": "Adresse",
+      "city": "Ville",
+      "email": "E-mail",
+      "work": "Travail"
+    }
   },
   "profile": {
     "imageSaved": "Image sauvegardée avec succès.",
@@ -625,6 +2319,382 @@
     "save": "Enregistrer la Rubrique",
     "edit": "Modifier la Rubrique"
   },
+  "pointeuse": {
+    "etatPeriodique": {
+      "title": "État Périodique",
+      "subtitle": "Suivi détaillé des présences et horaires des collaborateurs",
+      "export": "Exporter",
+      "print": "Imprimer",
+      "collaborators": "Collaborateurs",
+      "branch": "Filiale",
+      "service": "Service",
+      "regime": "Régime",
+      "regimeAll": "Tous",
+      "monthly": "Mensuelle",
+      "hourly": "Horaire",
+      "month": "Mois",
+      "year": "Année",
+      "period": "Période",
+      "dateStart": "Date début",
+      "dateEnd": "Date fin",
+      "search": "Rechercher",
+      "myService": "Mon service",
+      "empSummary": "Récapitulatif Employés",
+      "searchMatricule": "Rechercher un matricule...",
+      "applyFilters": "Appliquez les filtres pour charger les employés",
+      "noResult": "Aucun résultat",
+      "planningTitle": "Planning Périodique — {{period}}",
+      "viewCalendar": "📅 Calendrier",
+      "viewTable": "📋 Tableau",
+      "selectEmp": "Sélectionnez un employé pour afficher son planning",
+      "dayDetails": "Détails de la journée",
+      "adjustPointage": "Ajuster pointage",
+      "adjustPointageTitle": "Corriger les heures d'entrée/sortie pour cette journée",
+      "actionRequired": "Action requise",
+      "alertSelectEmp": "Sélectionnez un employé d'abord.",
+      "alertReportError": "Erreur lors de la génération du rapport.",
+      "alertNoData": "Aucune donnée à exporter",
+      "fields": {
+        "entryMorning": "Entrée Matin",
+        "exitMorning": "Sortie Matin",
+        "entryAm": "Entrée AM",
+        "exitAm": "Sortie AM",
+        "totalWorked": "Total Travaillé",
+        "meal": "Repas",
+        "late": "Retard",
+        "supplementary": "H. Suppl.",
+        "nightHours": "H. Nuits",
+        "absenceHours": "H. Absences",
+        "compensation": "Compensation",
+        "observation": "Observation"
+      },
+      "authorization": "Autorisation",
+      "authorizedRange": "Plage autorisée",
+      "motif": "Motif",
+      "postOfDay": "Poste du jour",
+      "workRange": "Plage de travail",
+      "toleranceEntry": "Tolérance Entrée",
+      "toleranceExit": "Tolérance Sortie",
+      "statusLabel": "Statut",
+      "restDay": "Jour de repos",
+      "table": {
+        "date": "Date",
+        "status": "Statut",
+        "entry": "Entrée",
+        "exit": "Sortie",
+        "workedH": "H.Trav",
+        "late": "Retard",
+        "absH": "H.Abs",
+        "supH": "H.Sup",
+        "days": "Jours",
+        "weekend": "(W-E)"
+      },
+      "status": {
+        "present": "Présent",
+        "absent": "Absent",
+        "retard": "Retard",
+        "conge": "Congé",
+        "autorisation": "Autorisation",
+        "ferie": "Férié",
+        "repos": "Repos",
+        "unknown": "—"
+      },
+      "summary": {
+        "present_one": "{{count}} Présent",
+        "present_other": "{{count}} Présents",
+        "absent_one": "{{count}} Absent",
+        "absent_other": "{{count}} Absents",
+        "retard_one": "{{count}} Retard",
+        "retard_other": "{{count}} Retards",
+        "conge_one": "{{count}} Congé",
+        "conge_other": "{{count}} Congés",
+        "autorisation_one": "{{count}} Autorisation",
+        "autorisation_other": "{{count}} Autorisations",
+        "ferie_one": "{{count}} Férié",
+        "ferie_other": "{{count}} Fériés",
+        "repos_one": "{{count}} Repos",
+        "repos_other": "{{count}} Repos",
+        "daysWorked": "📅 {{value}} j travaillés"
+      },
+      "sidebar": {
+        "mat": "MAT",
+        "stats": "{{days}}j / {{time}}",
+        "retard": "{{time}} Retard",
+        "noRetard": "Aucun retard"
+      }
+    },
+    "list": {
+      "title": "Lecture des Pointeuses",
+      "subtitle": "Liste et détails des opérations de pointage",
+      "noConsultRight": "Vous n'avez pas le droit de consulter la liste des pointeuses.",
+      "msgUpdated": "Pointeuse modifiée avec succès",
+      "msgAdded": "Pointeuse ajoutée avec succès",
+      "msgSaveError": "Erreur lors de l'enregistrement",
+      "msgDeleted": "Pointeuse supprimée",
+      "msgPurgeOk": "Purge effectuée avec succès",
+      "msgPurgeError": "Erreur purge: {{msg}}",
+      "stats": {
+        "total": "Total",
+        "totalSub": "Terminaux enregistrés",
+        "online": "En Ligne",
+        "onlineSub": "Connectés & Actifs",
+        "offline": "Hors Ligne",
+        "offlineSub": "Échec de connexion",
+        "sync": "Synchronisation",
+        "syncSub": "Dernière mise à jour"
+      },
+      "config": {
+        "editTitle": "Modifier Terminal",
+        "newTitle": "Configuration Terminal",
+        "editSubtitle": "Modifier les paramètres réseau de la pointeuse",
+        "newSubtitle": "Ajouter ou modifier les paramètres réseau d'une pointeuse.",
+        "newBtn": "Nouveau Terminal",
+        "editBtn": "Modifier"
+      },
+      "table": {
+        "title": "Liste des Terminaux",
+        "filter": "Filtrer",
+        "export": "Exporter",
+        "purge": "Purger",
+        "edit": "Modifier",
+        "delete": "Supprimer",
+        "code": "Code Pointeuse",
+        "label": "Libellé",
+        "ip": "Adresse IP",
+        "port": "N° Port",
+        "status": "Statut",
+        "actions": "Actions",
+        "connected": "CONNECTÉ",
+        "disconnected": "DÉCONNECTÉ",
+        "noTerminal": "Aucun terminal enregistré",
+        "pagination": "Affichage {{start}}-{{end}} sur {{total}} terminaux",
+        "prev": "Préc",
+        "next": "Suiv"
+      },
+      "dialog": {
+        "newTitle": "Nouveau Terminal",
+        "editTitle": "Modifier Terminal",
+        "code": "Code",
+        "codePlaceholder": "Ex: PT-001",
+        "label": "Libellé",
+        "labelPlaceholder": "Ex: RANDA USINE 1",
+        "ip": "Adresse IP",
+        "ipPlaceholder": "192.168.1.100",
+        "port": "N° Port",
+        "portPlaceholder": "4370",
+        "com": "Logiciel / Com",
+        "cancel": "Annuler",
+        "save": "Enregistrer",
+        "deleteTitle": "Confirmer la suppression",
+        "deleteConfirm": "Êtes-vous sûr de vouloir supprimer la pointeuse <strong>{{code}}</strong> ?",
+        "deleteBtn": "Supprimer"
+      }
+    }
+  },
+  "etats": {
+    "filter": {
+      "branch": "Filiale",
+      "all": "Toutes",
+      "service": "Service",
+      "myService": "Mon service",
+      "allService": "Tous",
+      "regime": "Regime",
+      "regimeAll": "Tous",
+      "dateStart": "Date Debut",
+      "dateEnd": "Date Fin",
+      "year": "Annee",
+      "employees": "Employes",
+      "filterBtn": "FILTRER",
+      "printBtn": "IMPRIMER",
+      "minDelay": "Retard min",
+      "options": "Options",
+      "countAdvance": "Compter avance",
+      "morningLate": "Retard matin",
+      "afternoonLate": "Retard AM",
+      "noEffectiveEmps": "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe.",
+      "reportError": "Erreur generation rapport"
+    },
+    "presence": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter l'état de présence.",
+      "title": "Etat de Presence",
+      "analyticTitle": "Analytique Presence",
+      "punctuality": "Ponctualite {{value}}%",
+      "kpiLateRate": "Taux de retard global",
+      "kpiTotalLate": "Temps de retard total",
+      "kpiAvgLate": "Moyenne retard",
+      "kpiTotalNight": "H. Nuit total",
+      "period": "Periode",
+      "search": "Recherche",
+      "searchPlaceholder": "ID ou Nom",
+      "filter": "Filtrer",
+      "headers": {
+        "employee": "Employe",
+        "date": "Date",
+        "schedule": "Horaire",
+        "punch": "Pointage",
+        "lateDuration": "Duree retard",
+        "status": "Statut"
+      },
+      "id": "ID",
+      "fallbackEmployee": "Employe",
+      "statusLeave": "Conge",
+      "statusBreastfeeding": "Allaitement",
+      "statusNormal": "Normal",
+      "detailsTitle": "Details Presence",
+      "punchesRecorded": "Pointages enregistres",
+      "entryMorning": "Entree matin",
+      "exitMorning": "Sortie matin",
+      "entryAfternoon": "Entree apres-midi",
+      "exitAfternoon": "Sortie apres-midi",
+      "totalLate": "Retard total",
+      "nightHour": "Heure nuit",
+      "viewDailyDetail": "Voir le detail journalier",
+      "dailyDetail": "Detail journalier",
+      "totalHours": "Total heures",
+      "lateMorning": "Retard matin",
+      "lateAfternoon": "Retard apres-midi",
+      "regimeLabel": "Regime",
+      "motif": "Motif",
+      "noSelection": "Aucune ligne selectionnee."
+    },
+    "retard": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter l'état de retard.",
+      "title": "Suivi des Retards",
+      "analyticTitle": "Analytique Presence",
+      "upToDate": "Donnees a jour",
+      "kpiGlobalRate": "Taux de retard global",
+      "kpiTotalDuration": "Temps de retard total",
+      "kpiAvgByPunch": "Moyenne par pointage",
+      "kpiImpacted": "Employes concernes",
+      "tableTitle": "Détails des Retards",
+      "period": "Periode",
+      "site": "Site",
+      "regimePrefix": "Regime {{value}}",
+      "allRegimes": "Tous les regimes",
+      "search": "Recherche",
+      "searchPlaceholder": "ID ou Nom",
+      "filter": "Filtrer",
+      "headers": {
+        "employee": "Employe",
+        "date": "Date",
+        "schedule": "Horaire",
+        "punch": "Pointage",
+        "lateDuration": "Duree retard",
+        "status": "Statut"
+      },
+      "id": "ID",
+      "fallbackEmployee": "Employe",
+      "justified": "Justifie",
+      "notJustified": "Non justifie",
+      "rowsPerPage": "Lignes par page:",
+      "exportPdf": "Exporter PDF",
+      "detailsBtn": "Details",
+      "detailsTitle": "Details du Retard",
+      "punchesRecorded": "Pointages enregistres",
+      "entryMorning": "Entree matin",
+      "entryAfternoon": "Entree apres-midi",
+      "lateMorning": "Retard matin",
+      "lateAfternoon": "Retard apres-midi",
+      "advanceMorning": "Avance matin",
+      "advanceAfternoon": "Avance AM",
+      "total": "Total",
+      "totalLate": "Total retard",
+      "justifyAction": "Justifier ce retard",
+      "notifyAction": "Notifier l'employe",
+      "noSelection": "Aucune ligne selectionnee.",
+      "noData": "Aucune donnee de retard pour la periode selectionnee.",
+      "report": {
+        "header": "Suivi des Retards",
+        "employee": "Employe",
+        "date": "Date",
+        "schedule": "Horaire",
+        "punch": "Pointage",
+        "late": "Retard",
+        "status": "Statut"
+      }
+    },
+    "absence": {
+      "noConsultRight": "Vous n'avez pas le droit de consulter l'état d'absence.",
+      "title": "État des Absences",
+      "subtitle": "Analyse et suivi des absences du personnel",
+      "yearLabel": "Année {{year}}",
+      "regime": "Régime",
+      "dateStart": "Date Début",
+      "dateEnd": "Date Fin",
+      "employees": "Employés",
+      "search": "RECHERCHE",
+      "noEmpFilter": "Aucun employé actif ne correspond aux filtres.",
+      "selectedLabel": "{{label}} — {{count}} employé(s) sélectionné(s)",
+      "summary": {
+        "employees": "Employés Concernés",
+        "employeesFooter": "Employés avec absences",
+        "totalAbs": "Total Absences",
+        "rows": "Lignes",
+        "rowsFooter": "Enregistrements sur la période",
+        "absNonJust": "Abs. Non Justifiées",
+        "days": "Jrs",
+        "justifiedFooter": "Justifiées: {{value}} Jrs",
+        "totalDays": "Total Jours d'Absence",
+        "cumulative": "Cumulatif sur la période"
+      },
+      "table": {
+        "title": "Registre des Absences",
+        "period": "Période du {{start}} au {{end}}",
+        "exportExcel": "EXPORTER EXCEL",
+        "printPdf": "IMPRIMER PDF",
+        "filterBtn": "Filtrer",
+        "matricule": "Matricule",
+        "collaborator": "Collaborateur",
+        "date": "Date",
+        "absCode": "Code Abs.",
+        "motif": "Motif",
+        "regime": "Régime",
+        "absNJShort": "Abs. NJ",
+        "absJustShort": "Abs. Just.",
+        "actions": "Actions",
+        "details": "Détails",
+        "noData": "Aucune absence enregistrée pour cette période.",
+        "clickSearch": "Cliquez sur RECHERCHE pour charger les données.",
+        "pagination": "Affichage de {{start}} à {{end}} sur {{total}} enregistrements"
+      },
+      "drawer": {
+        "title": "Détail d'Absence",
+        "subtitle": "Fiche complète de l'enregistrement",
+        "matriculeLabel": "Matricule: {{value}}",
+        "empCode": "Code Employé",
+        "regime": "Régime",
+        "date": "Date",
+        "absCode": "Code Absence",
+        "motif": "Motif",
+        "justifiedSection": "Absences Autorisées / Justifiées",
+        "paidLeave": "Congé Payé",
+        "workAccident": "Accident de Travail",
+        "csf": "C.S.F",
+        "absJust": "Abs. Justifiée",
+        "nonJustifiedSection": "Absences Non Justifiées",
+        "absSick": "Abs. Maladie",
+        "absNJ": "Abs. Non Just.",
+        "otherTypesSection": "Autres Types",
+        "formationMission": "Formation + Mission",
+        "techStop": "Arrêt Technique",
+        "map": "MAP",
+        "autsp": "Aut. Spécial Payé",
+        "autsnp": "Aut. Spécial Non Payé",
+        "css": "Congé Sans Solde",
+        "totalsSection": "Totaux",
+        "absDayLate": "Abs. Jour + Retard",
+        "totalAbs": "Total Absence",
+        "exportSheet": "EXPORTER LA FICHE"
+      },
+      "filter": {
+        "absaut": "Absences/Autorisations",
+        "absret": "Absences avec retard",
+        "presNonOpt": "Présences non optimisées",
+        "sansPointageInvalide": "Sans pointage invalide",
+        "radio": "Mode d'affichage"
+      }
+    }
+  },
   "filter": {
     "withoutPointage": "Sans pointage (abs non justifiée)",
     "allAbsence": "Toute absence",
@@ -635,5 +2705,1367 @@
     "withoutInvalidPointage": "Sans Pointage Invalide",
     "presenceNotOptimized": "Présence non optimisée",
     "absenceType": "Type Absence"
+  },
+  "intituleAbsences": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter les intitulés des absences.",
+    "config": {
+      "title": "Configuration de la Nature",
+      "modeEdit": "Mode Édition",
+      "modeNew": "Nouveau",
+      "codeNature": "Code Nature",
+      "label": "Libellé",
+      "calculationUnit": "Unité de calcul",
+      "days": "Jours",
+      "hours": "Heures",
+      "sanctionType": "Type Sanction"
+    },
+    "rules": {
+      "title": "Règles de Calcul",
+      "allowAbsence": "Autoriser l'absence",
+      "payAbsence": "Payer l'absence",
+      "countRest": "Compter jour repos",
+      "countHoliday": "Compter jour férié"
+    },
+    "imputation": {
+      "title": "Type d'imputation",
+      "newButton": "Nouveau",
+      "save": "Enregistrer la nature",
+      "update": "Mettre à jour la nature"
+    },
+    "imputationOptions": {
+      "0": "Congé Payé (CP)",
+      "8": "Accident de Travail (AT)",
+      "1": "Congé Spécial Familial (CSF)",
+      "2": "Absence Justifiée (AJ)",
+      "6": "Formation + Mission (FM)",
+      "A": "Arrêt Technique (CT)",
+      "C": "Complément Jour/Forfait (C)",
+      "M": "Absence Maternité (M)",
+      "3": "Absence non Justifiée (ANJ)",
+      "4": "Absence de Sanction (MAP)",
+      "B": "Autorisation de Sortie (AS)",
+      "5": "Congé sans Solde (CSS)",
+      "7": "Blame (B)",
+      "V": "Avertissement (V)"
+    },
+    "periodicite": {
+      "A": "Année civile",
+      "M": "Mois",
+      "S": "Semestre",
+      "T": "Trimestre"
+    },
+    "sanction": {
+      "N": "Justification",
+      "O": "Sanction",
+      "C": "Compensation",
+      "F": "Fin Travail"
+    },
+    "table": {
+      "title": "Registre des Natures",
+      "subtitle_one": "{{count}} type d'absence configuré",
+      "subtitle_other": "{{count}} types d'absences configurés",
+      "search": "Rechercher une nature...",
+      "headers": {
+        "code": "Code",
+        "label": "Intitulé Absence",
+        "leave": "Congé",
+        "paid": "Payé",
+        "sanction": "Sanction",
+        "authorized": "Autorisé",
+        "periodicity": "Périodicité",
+        "actions": "Actions"
+      },
+      "empty": "Aucune nature d'absence trouvée",
+      "showing": "Affichage {{from}}–{{to}} sur {{total}}"
+    },
+    "msg": {
+      "addedSuccess": "Nature ajoutée avec succès",
+      "updatedSuccess": "Nature modifiée avec succès",
+      "deletedSuccess": "Nature supprimée",
+      "deleteError": "Erreur lors de la suppression",
+      "genericError": "Erreur"
+    },
+    "confirmDelete": "Supprimer la nature \"{{label}}\" ({{code}}) ?"
+  },
+  "repos": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter les jours fériés et repos.",
+    "page": {
+      "title": "Configuration du Calendrier",
+      "subtitle": "Définissez et gérez les périodes de repos exceptionnelles pour l'ensemble des collaborateurs.",
+      "importTitle": "Importer la liste officielle des jours fériés métropole France pour l'année saisie",
+      "importButton": "Importer (gouv.fr)",
+      "newButton": "Nouveau",
+      "save": "Enregistrer",
+      "update": "Mettre à jour"
+    },
+    "form": {
+      "title": "Paramètres du jour férié",
+      "modeEdit": "Mode Édition",
+      "modeNew": "Nouveau",
+      "year": "Année de référence",
+      "motif": "Motif / Désignation",
+      "motifPlaceholder": "ex: Fête de l'Indépendance",
+      "dateStart": "Date Début",
+      "dateEnd": "Date Retour",
+      "dayType": "Type de journée",
+      "ferier": "Férié",
+      "restDay": "Jour de repos",
+      "nbHours": "Nb. Heures",
+      "fixed": "Fixe (Annuel)",
+      "fixedSub": "Se répète chaque année à la même date",
+      "unpaid": "Non Payé",
+      "unpaidSub": "Déduire du salaire mensuel"
+    },
+    "policy": {
+      "title": "Politique des Jours Fériés",
+      "text": "Tous les jours fériés configurés sont automatiquement appliqués aux plannings des collaborateurs affectés à l'établissement principal."
+    },
+    "stats": {
+      "overview": "Aperçu rapide ({{year}})",
+      "totalHolidays": "Total jours fériés"
+    },
+    "table": {
+      "title": "Répertoire des Jours Fériés",
+      "filterAll": "Tous",
+      "filterPaid": "Payés",
+      "filterFixed": "Fixes",
+      "headers": {
+        "date": "Date",
+        "motif": "Motif",
+        "fixed": "Fixe ?",
+        "type": "Type",
+        "nbHours": "Nb. Heures",
+        "paid": "Payé ?",
+        "dateReturn": "Date Retour",
+        "actions": "Actions"
+      },
+      "empty": "Aucun jour férié configuré",
+      "ferier": "Férié",
+      "restDay": "Repos",
+      "yes": "OUI",
+      "no": "NON",
+      "showing": "Affichage de {{from}} à {{to}} sur {{total}} entrées"
+    },
+    "msg": {
+      "sessionExpired": "Session expirée, veuillez vous reconnecter",
+      "motifRequired": "Le motif est obligatoire",
+      "dateRequired": "La date est obligatoire",
+      "invalidDate": "Date invalide",
+      "saveError": "Erreur lors de la sauvegarde",
+      "addedSuccess": "Jour férié ajouté",
+      "updatedSuccess": "Jour férié modifié",
+      "deletedSuccess": "Supprimé avec succès",
+      "deleteError": "Erreur lors de la suppression",
+      "noAddRight": "Vous n'avez pas le droit d'ajouter des jours fériés.",
+      "invalidYear": "Saisissez une année valide avant l'import.",
+      "importConfirm": "Importer les jours fériés métropole France pour {{year}} ?\n\nLes jours déjà saisis seront conservés (pas de doublon).",
+      "importDone": "Import terminé : {{inserted}} ajouté(s), {{skipped}} ignoré(s) (déjà présents).",
+      "importError": "Échec de l'import des jours fériés."
+    },
+    "confirmDelete": "Supprimer \"{{motif}}\" du {{date}} ?"
+  },
+  "posteTravail": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter les postes de travail.",
+    "header": {
+      "shiftId": "Shift ID",
+      "newPoste": "Nouveau Poste",
+      "subtitle": "Configuration détaillée du planning de travail",
+      "delete": "Supprimer",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "identification": {
+      "title": "Identification",
+      "codePoste": "CODE POSTE",
+      "labelPoste": "LIBELLÉ DU POSTE"
+    },
+    "tolerance": {
+      "title": "Tolérances (min)",
+      "entry": "Entrée",
+      "exit": "Sortie",
+      "before": "AVANT",
+      "after": "APRÈS"
+    },
+    "rules": {
+      "title": "Pauses & Règles",
+      "pauseBefore": "Pause Auto Avant Travail",
+      "pauseAfter": "Pause Auto Après Travail",
+      "lateSanction": "Sanction Retard",
+      "presenceBonus": "Bonus Présence"
+    },
+    "schedule": {
+      "title": "Planning Hebdomadaire",
+      "applyAll": "Appliquer à tous les jours (basé sur Lundi)",
+      "headers": {
+        "day": "Journée",
+        "startMorning": "Début Matin",
+        "entryMorning": "Entrée M.",
+        "endMorning": "Fin M.",
+        "exitMorning": "Sortie M.",
+        "startNoon": "Début Midi",
+        "entryNoon": "Entrée Midi",
+        "exitPm": "Sortie PM",
+        "endPm": "Fin PM",
+        "meal": "Repas",
+        "rest": "Repos"
+      },
+      "weeklyRest": "Repos hebdomadaire"
+    },
+    "list": {
+      "title": "Liste des Postes",
+      "active": "Poste Actif",
+      "idPrefix": "ID {{id}}"
+    },
+    "msg": {
+      "updatedSuccess": "Poste mis à jour avec succès",
+      "updateError": "Erreur lors de la mise à jour",
+      "addError": "Erreur lors de l'ajout",
+      "deleteError": "Erreur lors de la suppression",
+      "appliedAll": "Horaires appliqués à tous les jours"
+    },
+    "confirmDelete": "Voulez-vous vraiment supprimer le poste \"{{label}}\" ?"
+  },
+  "autSortie": {
+    "header": {
+      "title": "Gestion des Absences",
+      "heading": "Autorisation de Sortie",
+      "subtitle": "Gestion des autorisations d'absence"
+    },
+    "actions": {
+      "new": "Nouveau",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "update": "Mettre à jour",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "pdfReport": "Rapport PDF",
+      "export": "Exporter"
+    },
+    "cards": {
+      "generalInfo": "Informations Générales",
+      "scheduling": "Planification des Horaires",
+      "authorizationType": "Type d'Autorisation"
+    },
+    "fields": {
+      "employeeSelection": "Sélection de l'employé",
+      "employeeSearchPlaceholder": "Rechercher un employé...",
+      "orderNo": "N° Ordre",
+      "reference": "Référence",
+      "referencePlaceholder": "REF-XXXX",
+      "date": "Date",
+      "startTime": "Heure de Début",
+      "endTime": "Heure de Fin",
+      "totalDuration": "Durée Totale",
+      "imputation": "Imputation",
+      "comments": "Commentaires / Motif",
+      "commentsPlaceholder": "Précisez la raison de la sortie..."
+    },
+    "table": {
+      "title": "Registre des Autorisations de Sortie",
+      "subtitle": "Historique des entrées récentes pour l'unité opérationnelle",
+      "searchPlaceholder": "Rechercher...",
+      "headers": {
+        "actions": "Actions",
+        "orderNo": "N° Ordre",
+        "employee": "Employé",
+        "date": "Date",
+        "type": "Type",
+        "out": "Sortie",
+        "in": "Retour",
+        "duration": "Durée"
+      },
+      "empty": "Aucune autorisation trouvée.",
+      "footer": "Affichage de {{showing}} sur {{total}} enregistrements",
+      "rowsPerPage": "Lignes:"
+    },
+    "msg": {
+      "orderRequired": "N° Ordre est obligatoire.",
+      "updated": "Autorisation mise à jour.",
+      "added": "Autorisation ajoutée.",
+      "saveError": "Erreur lors de l'enregistrement.",
+      "deleted": "Autorisation supprimée."
+    },
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette autorisation de sortie ?",
+    "subtitle": "Vous avez <0>{{count}}</0> autorisation de sortie",
+    "subtitle_plural": "Vous avez <0>{{count}}</0> autorisations de sortie",
+    "form": {
+      "newTitle": "Nouvelle Autorisation",
+      "editTitle": "Modifier Autorisation",
+      "cancel": "Annuler",
+      "submit": "Émettre",
+      "modify": "Enregistrer"
+    },
+    "sidebar": {
+      "total": "Total Autorisations"
+    },
+    "pdf": {
+      "headers": {
+        "orderNo": "N° Ordre",
+        "date": "Date",
+        "employee": "Employé",
+        "imputation": "Imputation",
+        "out": "Sortie",
+        "in": "Retour",
+        "duration": "Durée"
+      }
+    }
+  },
+  "absenceSanction": {
+    "header": {
+      "title": "Gestion des Absences",
+      "heading": "Absences & Sanctions",
+      "subtitle": "Saisie et suivi des mouvements du personnel"
+    },
+    "actions": {
+      "new": "Nouveau",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "update": "Mettre à jour",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "pdfReport": "Rapport PDF",
+      "export": "Exporter"
+    },
+    "cards": {
+      "generalInfo": "Informations Générales",
+      "movementDetails": "Détails du mouvement"
+    },
+    "fields": {
+      "employee": "Collaborateur",
+      "employeeSearchPlaceholder": "Rechercher un employé...",
+      "orderNo": "N° Ordre",
+      "reference": "Référence",
+      "referencePlaceholder": "REF-XXXX",
+      "date": "Date",
+      "imputationType": "Type d'imputation",
+      "imputationPlaceholder": "-- Sélectionner --",
+      "startDate": "Date départ",
+      "expectedReturnDate": "Date retour prévue",
+      "afternoon": "Après-midi",
+      "daysCounted": "Jours Décomptés"
+    },
+    "access": {
+      "denied": "Accès Refusé",
+      "deniedDetail": "Vous n'avez pas les droits nécessaires pour consulter ce module."
+    },
+    "table": {
+      "title": "Mouvements Récents",
+      "subtitle": "Affichage des 10 dernières demandes",
+      "searchPlaceholder": "Rechercher...",
+      "headers": {
+        "actions": "Actions",
+        "orderNo": "N° Ordre",
+        "employee": "Employé",
+        "date": "Date",
+        "imputationType": "Type d'imputation",
+        "startDate": "Date Départ",
+        "returnDate": "Date Retour",
+        "nbDays": "Nb. Jours"
+      },
+      "empty": "Aucun enregistrement trouvé.",
+      "footer": "Affichage de {{showing}} sur {{total}} entrées",
+      "rowsPerPage": "Lignes:"
+    },
+    "msg": {
+      "imputationRequired": "Veuillez saisir le code absence.",
+      "updated": "Sanction mise à jour.",
+      "added": "Sanction ajoutée.",
+      "saveError": "Erreur lors de l'enregistrement.",
+      "deleted": "Sanction supprimée."
+    },
+    "deleteConfirm": "Voulez-vous vraiment supprimer cette sanction ?",
+    "pdf": {
+      "headers": {
+        "orderNo": "N° Ordre",
+        "employee": "Employé",
+        "date": "Date",
+        "imputation": "Imputation",
+        "start": "Départ",
+        "return": "Retour",
+        "nbDays": "Nb. Jours"
+      }
+    }
+  },
+  "demAutorisation": {
+    "header": {
+      "title": "Demandes d'Autorisation",
+      "subtitle_one": "Vous avez <0>{{count}} demande</0> en attente de validation.",
+      "subtitle_other": "Vous avez <0>{{count}} demandes</0> en attente de validation.",
+      "newRequest": "Nouvelle demande"
+    },
+    "headers": {
+      "employee": "Employé",
+      "period": "Période",
+      "duration": "Durée",
+      "motif": "Motif",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "status": {
+      "approved": "Approuvé",
+      "refused": "Refusé",
+      "pending": "En attente"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "refuse": "Refuser",
+      "approve": "Approuver"
+    },
+    "empty": "Aucune demande d'autorisation",
+    "stats": {
+      "approved": "Approuvées",
+      "refused": "Refusées",
+      "pending": "En attente",
+      "total": "Total"
+    },
+    "info": {
+      "title": "ℹ️ Informations",
+      "text": "Les demandes d'autorisation sont traitées par l'administrateur. Une fois approuvée, l'autorisation est automatiquement créée dans le système."
+    },
+    "form": {
+      "titleEdit": "Modifier la demande",
+      "titleNew": "Nouvelle demande d'autorisation",
+      "requestNo": "N° Demande",
+      "requestDate": "Date demande",
+      "startTime": "Heure début",
+      "endTime": "Heure fin",
+      "duration": "Durée",
+      "type": "Type d'autorisation",
+      "typePlaceholder": "Sélectionner un type...",
+      "motif": "Motif",
+      "motifPlaceholder": "Raison de la demande d'autorisation...",
+      "cancel": "Annuler",
+      "submit": "Soumettre",
+      "modify": "Modifier"
+    },
+    "traitement": {
+      "approveTitle": "Approuver la demande",
+      "refuseTitle": "Refuser la demande",
+      "approvePrompt": "Êtes-vous sûr de vouloir approuver la demande de {{employee}} ?",
+      "refusePrompt": "Êtes-vous sûr de vouloir refuser la demande de {{employee}} ?",
+      "commentLabelOptional": "Commentaire (optionnel)",
+      "commentLabelRecommended": "Commentaire (recommandé)",
+      "commentPlaceholderOptional": "Commentaire optionnel...",
+      "commentPlaceholderRefuse": "Raison du refus...",
+      "cancel": "Annuler",
+      "approve": "Approuver",
+      "refuse": "Refuser"
+    },
+    "delete": {
+      "title": "Supprimer ma demande",
+      "prompt": "Êtes-vous sûr de vouloir supprimer votre demande d'autorisation{{ref}} ?",
+      "irreversible": "Cette action est irréversible.",
+      "cancel": "Annuler",
+      "confirm": "Oui, Supprimer"
+    },
+    "msg": {
+      "deletedSuccess": "Demande supprimée avec succès",
+      "deleteError": "Erreur lors de la suppression",
+      "createdSuccess": "Demande d'autorisation créée avec succès",
+      "updatedSuccess": "Demande modifiée avec succès"
+    }
+  },
+  "coffreFort": {
+    "badge": {
+      "adminView": "Consultation Administrateur",
+      "authenticated": "Session Authentifiée Active"
+    },
+    "title": {
+      "ofEmployee": "Coffre-fort de {{name}}",
+      "default": "Coffre-fort Numérique"
+    },
+    "description": {
+      "ofEmployee": "Vous consultez le coffre-fort numérique de cet employé. Vous pouvez y ajouter de nouveaux documents — l'employé sera notifié à chaque dépôt.",
+      "default": "Votre archive sécurisée et cryptée pour vos actifs administratifs personnels. Tous les documents sont stockés avec un cryptage de bout en bout et une validation d'horodatage."
+    },
+    "stats": {
+      "vaultState": "État du Coffre",
+      "secured": "Sécurisé",
+      "totalDocs": "Documents Totaux Cryptés"
+    },
+    "admin": {
+      "consultDeposit": "Consulter / déposer dans le coffre d'un employé",
+      "scopeAll": "(tous les employés)",
+      "scopeService": "(employés de votre service uniquement)",
+      "backToMyVault": "← Revenir à mon coffre",
+      "selectEmployeePlaceholder": "Sélectionner un employé pour consulter son coffre…",
+      "messagePlaceholder": "Message (optionnel) — joint à la notification de dépôt",
+      "viewingNotice": "Vous consultez le coffre de <0>{{name}}</0>. Tout document que vous y ajouterez sera déposé dans ce coffre et l'employé sera notifié."
+    },
+    "collections": {
+      "title": "Collections",
+      "subtitle": "Parcourir les répertoires organisés",
+      "paySlips": "Fiches de Paie",
+      "contracts": "Contrats",
+      "certificates": "Attestations",
+      "documentsCount": "{{count}} Documents",
+      "newAsset": "Nouvel Actif",
+      "loading": "Chargement..."
+    },
+    "menu": {
+      "paySlip": "Fiche de Paie",
+      "contract": "Contrat",
+      "certificate": "Attestation",
+      "other": "Autre"
+    },
+    "recent": {
+      "title": "Documents Récents",
+      "subtitle": "Actifs validés téléchargés récemment",
+      "viewAll": "Voir tout l'archive"
+    },
+    "table": {
+      "documentName": "Nom du Document",
+      "type": "Type",
+      "modificationDate": "Date de Modification",
+      "size": "Taille",
+      "action": "Action",
+      "empty": "Aucun document dans votre coffre-fort."
+    },
+    "status": {
+      "validSignature": "Signature Numérique Valide",
+      "pendingSignature": "En attente de signature"
+    },
+    "actions": {
+      "sign": "Signer"
+    },
+    "snack": {
+      "accessDeniedService": "Accès refusé: cet employé n'est pas dans votre service.",
+      "accessDeniedVault": "Vous n'avez pas le droit de consulter ce coffre-fort.",
+      "uploadedAndNotified": "Document déposé et employé notifié.",
+      "uploaded": "Document ajouté.",
+      "uploadError": "Erreur lors du dépôt du document."
+    }
+  },
+  "adminVault": {
+    "header": {
+      "eyebrow": "Administration · Coffre-fort",
+      "title": "Coffre-fort Numérique — Vue Globale",
+      "subtitle": "Consultez et gérez les documents de tous les employés. Suivez les demandes de signature en attente."
+    },
+    "stats": {
+      "totalDocs": "Documents totaux",
+      "pendingSignature": "En attente signature",
+      "signed": "Signés",
+      "employees": "Employés"
+    },
+    "toolbar": {
+      "employee": "Employé",
+      "allEmployees": "Tous les employés",
+      "searchPlaceholder": "Rechercher par employé ou document..."
+    },
+    "filter": {
+      "all": "Tous",
+      "pending": "En attente",
+      "signed": "Signés",
+      "validated": "Validés"
+    },
+    "empty": "Aucun document trouvé.",
+    "table": {
+      "document": "Document",
+      "employee": "Employé",
+      "type": "Type",
+      "date": "Date",
+      "size": "Taille",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "status": {
+      "signed": "Signé",
+      "pending": "En attente",
+      "validated": "Validé"
+    },
+    "tooltip": {
+      "sign": "Signer le document",
+      "download": "Télécharger",
+      "signShort": "Signer"
+    },
+    "actions": {
+      "sign": "Signer"
+    },
+    "footer": {
+      "showing_one": "Affichage de {{count}} document",
+      "showing_other": "Affichage de {{count}} documents",
+      "filterLabel": " · filtre: {{label}}"
+    },
+    "grid": {
+      "doc_one": "{{count}} doc",
+      "doc_other": "{{count}} docs",
+      "pendingTag": "{{count}} en attente",
+      "signedRatio": "{{signed}}/{{total}} signés"
+    },
+    "privacy": {
+      "title": "Protection de la Vie Privée Active",
+      "subtitle": "Tous les accès aux documents sont journalisés et audités.",
+      "activityLog": "Journal d'activité",
+      "syncMasterKey": "Synchro Master Key"
+    }
+  },
+  "contractBuilder": {
+    "header": {
+      "title": "Contract Builder Pro",
+      "aiAssistant": "AI Assistant",
+      "import": "Importer",
+      "new": "Nouveau",
+      "exportForEmployee": "Exporter pour un employé",
+      "saving": "Enregistrement…",
+      "save": "Enregistrer"
+    },
+    "sidebar": {
+      "library": "Bibliothèque",
+      "searchPlaceholder": "Rechercher un modèle…"
+    },
+    "toolbar": {
+      "fontNormal": "Normal",
+      "fontLarge": "Grand",
+      "fontSmall": "Petit",
+      "previewPdf": "Aperçu PDF",
+      "insertHeader": "Insérer En-tête",
+      "insertFooter": "Insérer Pied de page"
+    },
+    "variables": {
+      "title": "Variables & Méta",
+      "categories": {
+        "Employer": "Entreprise",
+        "Employee": "Employé",
+        "Job": "Poste",
+        "Dates": "Dates",
+        "Congé": "Congé",
+        "Signature": "Signature"
+      },
+      "labels": {
+        "companyName": "Nom Entreprise",
+        "headOfficeAddress": "Adresse Siège",
+        "companyPhone": "Téléphone Soc.",
+        "companyFax": "Fax Soc.",
+        "companyEmail": "Email Soc.",
+        "manager": "Responsable",
+        "logo": "Logo",
+        "employeeName": "Nom Employé",
+        "matricule": "Matricule",
+        "cin": "CIN",
+        "birthDate": "Date Naissance",
+        "birthPlace": "Lieu Naissance",
+        "address": "Adresse",
+        "phone": "Téléphone",
+        "email": "Email",
+        "gender": "Sexe",
+        "function": "Fonction",
+        "functionLabel": "Libellé Fonction",
+        "qualification": "Qualification",
+        "hireDate": "Date Embauche",
+        "exitDate": "Date Sortie",
+        "baseSalary": "Salaire Base",
+        "grossSalary": "Salaire Brut",
+        "contractType": "Type Contrat",
+        "site": "Site",
+        "direction": "Direction",
+        "currentDate": "Date Actuelle",
+        "todayDate": "Date du Jour",
+        "city": "Ville",
+        "leaveDays": "Nb Jours Congé",
+        "leaveStart": "Date Début Congé",
+        "leaveEnd": "Date Fin Congé",
+        "referencePeriod": "Période Référence",
+        "employeeSignature": "Signature Employé",
+        "companySignature": "Signature Entreprise"
+      }
+    },
+    "ai": {
+      "title": "Assistant IA pour Modèles",
+      "subtitle": "Génère automatiquement des contrats dynamiques avec l'IA",
+      "describeLabel": "Décrivez le document que vous souhaitez créer…",
+      "describePlaceholder": "Ex: Un contrat de travail CDI pour un ingénieur avec une clause de confidentialité et 3 mois de période d'essai.",
+      "exampleFile": "Document d'exemple (Optionnel)",
+      "exampleHint": "Utilisé comme référence de structure",
+      "browsePdf": "Parcourir PDF",
+      "change": "Changer",
+      "draftSuccess": "Brouillon généré avec succès !",
+      "draftSuccessHint": "Consultez l'éditeur après application pour voir le document complet.",
+      "cancel": "Annuler",
+      "applyToEditor": "Appliquer à l'éditeur",
+      "magicBuild": "Construction Magique",
+      "generating": "Génération…",
+      "generationFailed": "La génération IA a échoué : {{error}}"
+    },
+    "newTemplate": {
+      "title": "Nouveau Modèle",
+      "name": "Nom",
+      "cancel": "Annuler",
+      "create": "Créer"
+    },
+    "rename": {
+      "title": "Renommer le modèle",
+      "newName": "Nouveau nom",
+      "cancel": "Annuler",
+      "confirm": "Renommer",
+      "error": "Erreur lors du renommage"
+    },
+    "insertTable": {
+      "title": "Insérer un tableau",
+      "rows": "Nombre de lignes",
+      "cols": "Nombre de colonnes",
+      "cancel": "Annuler",
+      "confirm": "Insérer"
+    },
+    "export": {
+      "title": "Exporter le modèle",
+      "templateLabel": "Modèle : {{name}}",
+      "noTemplate": "Aucun modèle sélectionné",
+      "targetEmployee": "Employé cible",
+      "searchPlaceholder": "Rechercher…",
+      "description": "Le modèle sera fusionné avec les données de l'employé sélectionné (nom, CIN, fonction, salaire, dates…) et téléchargé au format PDF.",
+      "cancel": "Annuler",
+      "exporting": "Génération…",
+      "exportPdf": "Exporter PDF"
+    },
+    "snack": {
+      "loadTemplateError": "Impossible de charger le modèle \"{{name}}\".",
+      "savedSuccess": "Modèle enregistré.",
+      "saveError": "Erreur lors de l'enregistrement.",
+      "sessionExpiredPreview": "Session expirée — reconnectez-vous pour générer un aperçu.",
+      "previewError": "Erreur de génération PDF.",
+      "selectTemplateExport": "Sélectionnez un modèle dans la sidebar.",
+      "selectEmployeeExport": "Choisissez l'employé cible.",
+      "sessionExpired": "Session expirée.",
+      "exported": "Document exporté.",
+      "exportError": "Erreur lors de l'export.",
+      "selectBeforeExport": "Sélectionnez un modèle avant d'exporter.",
+      "deleted": "Modèle supprimé.",
+      "deleteError": "Erreur lors de la suppression.",
+      "deleteConfirm": "Supprimer le modèle \"{{name}}\" ?",
+      "importFailed": "Échec de l'import."
+    },
+    "table": {
+      "cellContent": "Contenu"
+    }
+  },
+  "cahierConge": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter le cahier de congé.",
+    "title": "Cahier de Congés",
+    "subtitle": "Gestion et suivi des congés du personnel",
+    "yearLabel": "Année {{year}}",
+    "filter": {
+      "filiale": "Filiale",
+      "filialeAll": "Toutes",
+      "service": "Service",
+      "myService": "Mon service",
+      "allServices": "Tous",
+      "regime": "Régime",
+      "regimeAll": "Tous",
+      "regimeMonthly": "Mensuelle",
+      "regimeHourly": "Horaire",
+      "dateStart": "Date Début",
+      "dateEnd": "Date Fin",
+      "year": "Annee",
+      "month": "Mois",
+      "employees": "Employés",
+      "employeesPlaceholder": "Sélectionner...",
+      "absenceJustified": "Absence Justifiée",
+      "absenceType": "Type Absence",
+      "search": "RECHERCHE",
+      "selectedLabel": "{{label}} — {{count}} employé(s) sélectionné(s)",
+      "noEmpFilter": "Aucun employé actif ne correspond aux filtres.",
+      "noEmpFilterLong": "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe ou ajustez la filiale, le service ou le regime.",
+      "justifiedOptions": {
+        "all": "Tous les types",
+        "yes": "Justifiée",
+        "no": "Non justifiée"
+      },
+      "absenceTypeOptions": {
+        "all": "Tous les types",
+        "csf": "CSF",
+        "justified": "Justifiée",
+        "notJustified": "Non justifiée",
+        "map": "MAP",
+        "css": "CSS",
+        "fm": "FM",
+        "workAccident": "Accident du travail",
+        "sickness": "Maladie"
+      }
+    },
+    "summary": {
+      "totalEmployees": "Total Employés",
+      "filteredData": "Données filtrées",
+      "initialBalance": "Solde Initial",
+      "cumulative": "Cumulatif",
+      "leaveDue": "Congé dû",
+      "currentPeriod": "Période en cours",
+      "totalDuePresence": "Total dû Présence",
+      "indemnity": "Indemnité: {{value}} DT",
+      "daysShort": "Jrs",
+      "currency": "DT"
+    },
+    "table": {
+      "title": "Registre du Cahier de Congés",
+      "subtitle": "Affichage des données consolidées du {{start}} au {{end}}",
+      "exportExcel": "EXPORTER EXCEL",
+      "printPdf": "IMPRIMER PDF",
+      "filterTooltip": "Filtrer",
+      "headers": {
+        "matricule": "Matricule",
+        "collaborator": "Collaborateur",
+        "period": "Période",
+        "nbDays": "Nb Jours",
+        "actions": "Actions"
+      },
+      "noData": "Aucune donnée pour cette période.",
+      "clickSearch": "Cliquez sur RECHERCHE pour charger les données.",
+      "details": "Détails",
+      "pagination": "Affichage de {{start}} à {{end}} sur {{total}} collaborateurs"
+    },
+    "drawer": {
+      "title": "Détails Collaborateur",
+      "subtitle": "Données complètes de paie et RH",
+      "matriculeLabel": "Matricule: {{value}}",
+      "regime": "Régime",
+      "regimeMonthly": "Mensuelle",
+      "regimeHourly": "Horaire",
+      "salaryDaily": "Salaire Journalier",
+      "birthDate": "Date Naissance",
+      "hireDate": "Date Embauche",
+      "calculationsTitle": "Calculs Congé",
+      "initialBalance": "Solde Initial",
+      "leaveDueDays": "Jours Congé dû",
+      "leaveDueIndemnity": "Indemnité Congé dû",
+      "seniorityTitle": "Ancienneté",
+      "seniorityDays": "Jours Ancienneté",
+      "seniorityAmount": "Montant Ancienneté",
+      "youngWorkerTitle": "Jeune Travailleur",
+      "youngWorkerLeave": "Congé Jeune Trav.",
+      "youngWorkerLeaveAmount": "Montant Congé Jeune Trav.",
+      "youngWorkerDays": "Jours Jeune Trav.",
+      "youngWorkerDaysAmount": "Montant Jours Jeune Trav.",
+      "totalsTitle": "Totaux & Indemnités",
+      "totalDuePresence": "Total dû Présence",
+      "leaveIndemnity": "Indemnité Congé",
+      "departureReturnTitle": "Départ & Retour",
+      "departureDate": "Date Départ",
+      "returnDate": "Date Retour",
+      "periodTitle": "Informations Période",
+      "periodSum": "Somme Période",
+      "periodTemporis": "Période Temporis",
+      "exportSheet": "EXPORTER LA FICHE COMPLÈTE",
+      "days": "Jours",
+      "currency": "DT"
+    },
+    "list": {
+      "title": "",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Nom et Prénom",
+        "birthDate": "Date Naissance",
+        "hireDate": "Date Embauche",
+        "regime": "Régime",
+        "salaryDaily": "Salaire Journalier",
+        "sumReceived": "Somme Percue",
+        "presenceTime": "Temps de présence",
+        "initialBalance": "Solde Initial",
+        "leaveDueDays": "Jours Congé dû",
+        "leaveDueIndemnity": "Indemnité Congé dû",
+        "seniorityDays": "Jour Ancien.",
+        "seniorityAmount": "Montant Ancienneté",
+        "youngWorkerLeave": "Congé Jeune Trv",
+        "youngWorkerLeaveAmount": "Montant Jeune Trv",
+        "youngWorkerDays": "Jour Jeune Trv",
+        "youngWorkerDaysAmount": "Montant Jeune Trv",
+        "totalDuePresence": "Total dû Présence",
+        "leaveIndemnity": "Indemnité Congé",
+        "departureDate": "Date Départ",
+        "am": "AM",
+        "returnDate": "Date Retour"
+      }
+    },
+    "excel": {
+      "title": "Cahier de Congés - Période du {{start}} au {{end}}",
+      "sheetName": "Cahier de Congés",
+      "totalLabel": "TOTAL",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Nom et Prénom",
+        "birthDate": "Date Naissance",
+        "hireDate": "Date Embauche",
+        "regime": "Régime",
+        "salaryDaily": "Salaire Journalier",
+        "periodSum": "Période Somme",
+        "periodTemporis": "Période Temporis",
+        "initialBalance": "Solde Initial (Jours)",
+        "leaveDue": "Congé dû (Jours)",
+        "leaveDueIndemnity": "Indemnité Congé dû (DT)",
+        "seniorityDays": "Jours Ancienneté",
+        "seniorityAmount": "Montant Ancienneté (DT)",
+        "youngWorkerLeave": "Congé Jeune Trav. (Jours)",
+        "youngWorkerLeaveAmount": "Montant Congé Jeune Trav. (DT)",
+        "youngWorkerDays": "Jours Jeune Trav.",
+        "youngWorkerDaysAmount": "Montant Jours Jeune Trav. (DT)",
+        "totalDuePresence": "Total dû Présence (DT)",
+        "leaveIndemnity": "Indemnité Congé (DT)",
+        "departureDate": "Date Départ",
+        "departureHour": "Heure Dép.",
+        "returnDate": "Date Retour",
+        "returnHour": "Heure Ret."
+      }
+    }
+  },
+  "echeanceContrat": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter l'échéance des contrats.",
+    "title": "Échéance des Contrats",
+    "subtitle": "Suivi des fins de contrat et anticipation des renouvellements",
+    "yearLabel": "Année {{year}}",
+    "filter": {
+      "echStart": "Échéance Début",
+      "echEnd": "Échéance Fin",
+      "search": "RECHERCHE"
+    },
+    "errors": {
+      "forbidden": "Action interdite : vous n'avez pas la permission.",
+      "fetchError": "Erreur lors de la récupération des contrats.",
+      "reportForbidden": "Accès refusé à la génération du rapport.",
+      "reportError": "Erreur lors de la génération du rapport."
+    },
+    "summary": {
+      "totalCards": "Contrats à échéance",
+      "totalUnit": "Contrats",
+      "totalFooter": "Sur la période sélectionnée",
+      "employees": "Employés concernés",
+      "employeesFooter": "Distinct sur la période",
+      "urgent": "Urgents (≤ 7j)",
+      "urgentFooter": "À renouveler très prochainement",
+      "expired": "Déjà échus",
+      "expiredFooter": "Action immédiate requise"
+    },
+    "table": {
+      "title": "Registre des Échéances",
+      "subtitle": "Période du {{start}} au {{end}}",
+      "exportExcel": "EXPORTER EXCEL",
+      "printPdf": "IMPRIMER PDF",
+      "headers": {
+        "matricule": "Matricule",
+        "collaborator": "Collaborateur",
+        "contractNo": "N° Contrat",
+        "contractDate": "Date Contrat",
+        "startDate": "Date Début",
+        "endDate": "Date Fin",
+        "daysLeft": "Jours Restants",
+        "actions": "Actions"
+      },
+      "noData": "Aucun contrat n'arrive à échéance sur cette période.",
+      "clickSearch": "Cliquez sur RECHERCHE pour charger les données.",
+      "expiredBadge": "Échu ({{days}}j)",
+      "daysShort": "{{days}}j",
+      "renew": "Renouveler",
+      "renewTooltip": "Renouveler ce contrat",
+      "pagination": "Affichage de {{start}} à {{end}} sur {{total}} contrat(s)"
+    },
+    "excel": {
+      "title": "Échéance de Contrats — {{start}} au {{end}}",
+      "sheetName": "Echeance",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Nom & Prénom",
+        "contractNo": "N° Contrat",
+        "contractDate": "Date Contrat",
+        "startDate": "Date Début",
+        "endDate": "Date Fin",
+        "daysLeft": "Jours Restants"
+      }
+    },
+    "list": {
+      "title": "Liste des écheances contrats",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Nom et Prénom",
+        "contractDate": "Date Contrat",
+        "contractNo": "N°Contrat",
+        "startDate": "Date Début",
+        "endDate": "Date Fin"
+      }
+    }
+  },
+  "etatDroitConge": {
+    "noConsultRight": "Vous n'avez pas le droit de consulter les droits de congés.",
+    "title": "Droits de Congés",
+    "tabs": {
+      "synthesis": "SYNTHÈSE DES DROITS",
+      "synthesisDesc": "Vue globale par employé",
+      "leavesByMonth": "CONGÉS REÇUS PAR MOIS",
+      "leavesByMonthDesc": "Répartition mensuelle des congés",
+      "absencesByMonth": "ABSENCES PAR MOIS",
+      "absencesByMonthDesc": "Suivi détaillé des absences"
+    },
+    "errors": {
+      "forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
+      "generic": "Une erreur est survenue. Veuillez réessayer."
+    },
+    "filter": {
+      "employee": "Collaborateur / Département",
+      "myService": "Mon service",
+      "allEmployees": "Tous les employés",
+      "selectedCount": "{{count}} collaborateurs sélectionnés",
+      "dateStart": "Date Début",
+      "dateEnd": "Date Fin",
+      "search": "RECHERCHE"
+    },
+    "summary": {
+      "totalCollaborators": "Total Collaborateurs",
+      "filteredData": "Données filtrées",
+      "totalRights": "Total Droits Acquis",
+      "average": "Moyenne: {{value}} jrs / pers.",
+      "totalTaken": "Total Pris",
+      "consumption": "{{value}}% de consommation",
+      "globalBalance": "Soldes Globaux",
+      "leavesReceived": "Congés reçus: {{value}}",
+      "daysShort": "Jrs"
+    },
+    "tableSynthesis": {
+      "title": "Détails des Entitlements",
+      "subtitle": "Affichage des données consolidées pour l'exercice en cours",
+      "export": "EXPORTER LA SÉLECTION",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Nom et Prénom",
+        "regime": "Régime",
+        "year": "Année",
+        "leaveRight": "Droit Congé",
+        "leaveReceived": "Congé reçu",
+        "totalRight": "Total Droit",
+        "consumed": "Consommé",
+        "remaining": "Solde Restant",
+        "status": "Statut"
+      },
+      "statusPending": "En Attente",
+      "statusValidated": "Validé",
+      "noData": "Aucune donnée. Cliquez sur RECHERCHE pour charger les droits de congés.",
+      "pagination": "Affichage de {{start}} à {{end}} sur {{total}} collaborateurs"
+    },
+    "tableLeavesMonth": {
+      "title": "Congés Reçus par Mois",
+      "subtitle": "Répartition mensuelle des congés reçus",
+      "export": "EXPORTER LA SÉLECTION",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Nom et Prénom",
+        "regime": "Régime",
+        "year": "Année",
+        "totalLeavesReceived": "Total Congés Reçus"
+      },
+      "noData": "Aucune donnée. Cliquez sur RECHERCHE pour charger.",
+      "pagination": "Affichage de {{start}} à {{end}} sur {{total}}"
+    },
+    "tableAbsencesMonth": {
+      "title": "Absences par Mois",
+      "subtitle": "Suivi détaillé des absences mensuelles",
+      "export": "EXPORTER LA SÉLECTION",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Nom et Prénom",
+        "regime": "Régime",
+        "year": "Année",
+        "totalAbsences": "Total Absences"
+      },
+      "noData": "Aucune donnée. Cliquez sur RECHERCHE pour charger.",
+      "pagination": "Affichage de {{start}} à {{end}} sur {{total}}"
+    },
+    "csv": {
+      "filename": "droits-conges.csv",
+      "headers": {
+        "matricule": "Matricule",
+        "name": "Nom",
+        "regime": "Régime",
+        "year": "Année",
+        "leaveRight": "Droit Congé",
+        "leaveReceived": "Congé Reçu",
+        "totalRight": "Total Droit",
+        "consumed": "Consommé",
+        "remaining": "Solde Restant"
+      }
+    }
+  },
+  "utilisateur": {
+    "page": {
+      "title": "Gestion des Utilisateurs",
+      "searchPlaceholder": "Rechercher dans le répertoire...",
+      "permissions": "Autorisations",
+      "newUser": "Nouvel Utilisateur",
+      "exportCsv": "Exporter CSV",
+      "loading": "Chargement...",
+      "noUsers": "Aucun utilisateur trouvé",
+      "paginationInfo": "Affichage de {{filtered}} sur {{total}} utilisateurs"
+    },
+    "kpi": {
+      "totalUsers": "Total Utilisateurs",
+      "active": "Actifs",
+      "administrators": "Administrateurs",
+      "without2fa": "Sans 2FA",
+      "activeBadge": "Actif"
+    },
+    "filters": {
+      "allRoles": "Tous les Rôles",
+      "administrator": "Administrateur",
+      "rh": "Responsable RH",
+      "supervisor": "Superviseur",
+      "manager": "Manager",
+      "standard": "Standard",
+      "allStatuses": "Tous les Statuts",
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "table": {
+      "user": "Utilisateur",
+      "role": "Rôle",
+      "status": "Statut",
+      "email": "Email",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "resetPassword": "Réinitialiser mot de passe",
+      "activate": "Activer",
+      "deactivate": "Désactiver",
+      "delete": "Supprimer"
+    },
+    "modal": {
+      "editTitle": "Modifier l'Utilisateur",
+      "newTitle": "Nouvel Utilisateur",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "msg": {
+      "statusUpdated": "Statut mis à jour",
+      "statusUpdateError": "Erreur lors de la mise à jour",
+      "userDeleted": "Utilisateur supprimé",
+      "deleteError": "Erreur lors de la suppression",
+      "passwordReset": "Mot de passe réinitialisé",
+      "resetError": "Erreur lors de la réinitialisation",
+      "userUpdated": "Utilisateur mis à jour avec succès",
+      "userCreated": "Utilisateur créé avec succès"
+    },
+    "delete": {
+      "title": "Confirmer la suppression",
+      "message": "Êtes-vous sûr de vouloir supprimer l'utilisateur <0>{{name}}</0> ?",
+      "warning": "Cette action supprimera également tous ses droits et accès.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer définitivement"
+    },
+    "reset": {
+      "title": "Réinitialiser le mot de passe",
+      "prompt": "Nouveau mot de passe pour <0>{{name}}</0> :",
+      "placeholder": "Entrez le nouveau mot de passe",
+      "cancel": "Annuler",
+      "confirm": "Réinitialiser"
+    },
+    "form": {
+      "code": "Code",
+      "codePlaceholder": "Code utilisateur",
+      "name": "Nom",
+      "namePlaceholder": "Nom",
+      "firstName": "Prénom",
+      "firstNamePlaceholder": "Prénom",
+      "email": "Email",
+      "emailPlaceholder": "email@exemple.com",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "••••••••",
+      "company": "Société",
+      "site": "Site / Filiale",
+      "selectPlaceholder": "Sélectionner...",
+      "role": "Rôle",
+      "requiredFields": "Veuillez remplir tous les champs obligatoires.",
+      "addError": "Erreur lors de l'ajout de l'utilisateur."
+    },
+    "profile": {
+      "site": "Site",
+      "admin": "Admin"
+    }
+  },
+  "pointeuseAccees": {
+    "page": {
+      "title": "Gestion des Droits d'Accès",
+      "subtitle": "Gérez les autorisations par rôle et les accès aux pointeuses",
+      "rolesSection": "Autorisations par Rôle",
+      "rolesDesc": "Définissez les permissions de chaque rôle pour les modules de l'application",
+      "punchSection": "Droit d'Accès Pointeuses",
+      "punchDesc": "Attribuez les accès de lecture, configuration et purge pour chaque pointeuse par rôle"
+    },
+    "table": {
+      "code": "Code",
+      "punchClock": "Pointeuse",
+      "read": "Lire",
+      "purge": "Purger",
+      "configure": "Configurer",
+      "loading": "Chargement...",
+      "selectUser": "Sélectionnez un utilisateur pour voir les permissions"
+    },
+    "form": {
+      "email": "Email",
+      "name": "Nom",
+      "firstName": "Prénom",
+      "company": "Société",
+      "site": "Site",
+      "administrator": "Administrateur",
+      "addError": "Erreur lors de l'ajout de l'utilisateur."
+    },
+    "list": {
+      "loading": "Chargement...",
+      "fetchError": "Erreur lors de la récupération des utilisateurs",
+      "code": "Code",
+      "name": "Nom",
+      "firstName": "Prénom",
+      "active": "Actif",
+      "admin": "Admin",
+      "yes": "Oui",
+      "no": "Non"
+    }
+  },
+  "mission": {
+    "header": {
+      "title": "Gestion des missions",
+      "subtitle": "Toute note de frais doit être rattachée à une mission de catégorie « Formation et mission » (abscng = 6).",
+      "newMission": "Nouvelle mission"
+    },
+    "alerts": {
+      "noNatures": "Aucune nature d'absence avec abscng = 6 n'est définie. Créez-en une dans « Données de base > Natures d'absences » avant de saisir des missions."
+    },
+    "filters": {
+      "searchPlaceholder": "Rechercher (objet, destination, employé)...",
+      "state": "État",
+      "all": "Tous"
+    },
+    "states": {
+      "Pending": "En attente",
+      "Approved": "Approuvée",
+      "InProgress": "En cours",
+      "Completed": "Terminée",
+      "Cancelled": "Annulée"
+    },
+    "table": {
+      "object": "Objet",
+      "collaborator": "Collaborateur",
+      "destination": "Destination",
+      "period": "Période",
+      "budget": "Budget",
+      "state": "État",
+      "empty": "Aucune mission."
+    },
+    "actions": {
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "dialog": {
+      "newTitle": "Nouvelle mission",
+      "editTitle": "Modifier la mission",
+      "collaborator": "Collaborateur",
+      "selfHint": "Mission créée pour vous-même.",
+      "absenceNature": "Nature d'absence (Formation et mission)",
+      "absenceHintNone": "Aucune nature avec abscng = 6 disponible.",
+      "absenceHintAvailable": "Seules les natures abscng=6 sont listées.",
+      "object": "Objet de la mission",
+      "destination": "Destination",
+      "state": "État",
+      "dateStart": "Date de début",
+      "dateEnd": "Date de fin",
+      "budget": "Budget alloué (DT)",
+      "note": "Note",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "delete": {
+      "title": "Supprimer la mission ?",
+      "message": "« {{object}} » sera supprimée. Les notes de frais déjà rattachées la conserveront en référence historique.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer"
+    },
+    "msg": {
+      "requiredFields": "Champs requis manquants : collaborateur, objet, nature et dates.",
+      "invalidDateRange": "La date de fin doit être postérieure à la date de début.",
+      "created": "Mission créée.",
+      "updated": "Mission mise à jour.",
+      "deleted": "Mission supprimée.",
+      "saveError": "Échec de l'enregistrement.",
+      "deleteError": "Erreur lors de la suppression."
+    }
+  },
+  "autSortieGenerale": {
+    "header": {
+      "title": "Autorisation de Sortie Générale",
+      "subtitle": "Émission groupée pour l'ensemble du personnel",
+      "reset": "Réinitialiser",
+      "generating": "Génération...",
+      "submit": "Émettre en Masse"
+    },
+    "exceptions": {
+      "title": "Exceptions ({{count}})",
+      "desc": "Sélectionnez les employés à exclure de cet envoi",
+      "show": "Gérer les exceptions",
+      "hide": "Masquer la liste"
+    },
+    "schedule": {
+      "title": "Planification Commune",
+      "exitDate": "Date de Sortie",
+      "start": "Début",
+      "end": "Fin Prévue",
+      "duration": "Durée"
+    },
+    "references": {
+      "title": "Références",
+      "adminRef": "Référence Administrative",
+      "adminRefPlaceholder": "Note de service N°..."
+    },
+    "imputation": {
+      "title": "Type d'Imputation",
+      "collectiveReason": "Motif Collectif",
+      "collectiveReasonPlaceholder": "Justification pour l'ensemble des employés..."
+    },
+    "msg": {
+      "imputationRequired": "Imputation est obligatoire.",
+      "bulkSuccess": "{{count}} autorisations générées avec succès.",
+      "bulkError": "Erreur lors de l'enregistrement en masse."
+    }
+  },
+  "jourCompensation": {
+    "header": {
+      "title": "Jour de Compensation",
+      "subtitle": "Gestion des heures à compenser ou récupérer",
+      "newEntry": "Nouveau",
+      "save": "Enregistrer",
+      "update": "Mettre à jour"
+    },
+    "form": {
+      "infoTitle": "Informations",
+      "scheduleTitle": "Planification",
+      "detailsTitle": "Détails",
+      "employee": "Employé",
+      "orderNo": "N° Ordre",
+      "reference": "Référence",
+      "startDateTime": "Date & Heure Début",
+      "endTime": "Heure de Fin",
+      "totalDuration": "Durée Totale",
+      "hoursValue": "{{hours}} Heures",
+      "imputation": "Imputation",
+      "reason": "Motif / Raison",
+      "reasonPlaceholder": "Précisez la raison..."
+    },
+    "list": {
+      "title": "Registre des Compensations",
+      "searchPlaceholder": "Rechercher...",
+      "employee": "Employé",
+      "date": "Date",
+      "period": "Période",
+      "duration": "Durée",
+      "actions": "Actions",
+      "empty": "Aucune donnée",
+      "rowsPerPage": "Lignes:",
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "msg": {
+      "requiredFields": "Employé et N° Ordre sont obligatoires.",
+      "saveSuccess": "Enregistrement réussi",
+      "saveError": "Erreur lors de l'enregistrement",
+      "deleteConfirm": "Supprimer la compensation #{{code}} ?"
+    }
   }
 }

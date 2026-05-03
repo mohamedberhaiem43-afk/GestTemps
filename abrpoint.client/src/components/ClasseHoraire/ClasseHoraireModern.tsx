@@ -16,6 +16,7 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import GroupIcon from '@mui/icons-material/Group';
 import TuneIcon from '@mui/icons-material/Tune';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 import AccessDenied from '../helper/AccessDenied';
 import './ClasseHoraireModern.css';
@@ -59,6 +60,7 @@ const DAY_KEYS = [
 
 // ── Day Card ──────────────────────────────────────────────────────────────────
 function DayCard({ dayIndex, poste }: { dayIndex: number; poste: PosteHoraire }) {
+  const { t } = useTranslation();
   const dk = DAY_KEYS[dayIndex];
   const p = poste as any;
   const isRest = p[dk.repos] === '1';
@@ -76,17 +78,17 @@ function DayCard({ dayIndex, poste }: { dayIndex: number; poste: PosteHoraire })
       </Box>
       {isRest ? (
         <Box className="chm-day-rest-body">
-          <Typography className="chm-rest-text">Repos</Typography>
+          <Typography className="chm-rest-text">{t('classeHoraire.modern.day.rest')}</Typography>
         </Box>
       ) : (
         <Box className="chm-day-slots">
           <Box className="chm-slot chm-slot-matin">
-            <Typography className="chm-slot-lbl">Matin</Typography>
+            <Typography className="chm-slot-lbl">{t('classeHoraire.modern.day.morning')}</Typography>
             <Typography className="chm-slot-time">{matinIn || '--:--'}</Typography>
           </Box>
           {(matinIn || matinOut) && (
             <Box className={`chm-slot ${isNight ? 'chm-slot-nuit' : 'chm-slot-aprem'}`}>
-              <Typography className="chm-slot-lbl">{isNight ? 'Nuit' : 'AM'}</Typography>
+              <Typography className="chm-slot-lbl">{isNight ? t('classeHoraire.modern.day.night') : t('classeHoraire.modern.day.afternoonShort')}</Typography>
               <Typography className="chm-slot-time chm-slot-time-accent">
                 {matinIn || '--:--'} - {matinOut || '--:--'}
               </Typography>
@@ -94,7 +96,7 @@ function DayCard({ dayIndex, poste }: { dayIndex: number; poste: PosteHoraire })
           )}
           {apremIn && (
             <Box className="chm-slot chm-slot-aprem2">
-              <Typography className="chm-slot-lbl">Après-midi</Typography>
+              <Typography className="chm-slot-lbl">{t('classeHoraire.modern.day.afternoon')}</Typography>
               <Typography className="chm-slot-time">{apremIn} - {apremOut}</Typography>
             </Box>
           )}
@@ -141,6 +143,7 @@ function PeriodFormDialog({
   frequence: string;
   classeExists?: boolean;
 }) {
+  const { t } = useTranslation();
   const [catcod, setCatcod] = useState('');
   const [catlib, setCatlib] = useState('');
   const [catdu, setCatdu] = useState('');
@@ -258,10 +261,10 @@ function PeriodFormDialog({
       PaperProps={{ sx: { borderRadius: '16px' } }}
     >
       <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '17px', pb: 1 }}>
-        {editData ? 'Modifier la période' : 'Nouvelle période'}
+        {editData ? t('classeHoraire.modern.dialog.editTitle') : t('classeHoraire.modern.dialog.newTitle')}
         {isNewWithInherit && (
           <Typography sx={{ fontSize: '11px', color: '#0040a1', fontWeight: 600, mt: 0.5 }}>
-            Classe : {inheritCatcod} — {inheritCatlib}
+            {t('classeHoraire.modern.dialog.classInfo', { code: inheritCatcod, label: inheritCatlib })}
           </Typography>
         )}
       </DialogTitle>
@@ -273,13 +276,13 @@ function PeriodFormDialog({
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' }, gap: 2 }}>
             <Box>
               <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                Code Classe
+                {t('classeHoraire.modern.dialog.codeClasse')}
               </Typography>
               <TextField size="small" fullWidth value={catcod} onChange={e => setCatcod(e.target.value)} sx={fieldSx} />
             </Box>
             <Box>
               <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-                Libellé
+                {t('classeHoraire.modern.dialog.label')}
               </Typography>
               <TextField size="small" fullWidth value={catlib} onChange={e => setCatlib(e.target.value)} sx={fieldSx} />
             </Box>
@@ -290,7 +293,7 @@ function PeriodFormDialog({
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box>
             <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-              Du
+              {t('classeHoraire.modern.dialog.from')}
             </Typography>
             <TextField
               size="small" fullWidth type="date" value={catdu}
@@ -300,7 +303,7 @@ function PeriodFormDialog({
           </Box>
           <Box>
             <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
-              Au
+              {t('classeHoraire.modern.dialog.to')}
             </Typography>
             <TextField
               size="small" fullWidth type="date" value={catau}
@@ -312,7 +315,7 @@ function PeriodFormDialog({
 
         <FormControlLabel
           control={<Switch checked={cathsup === '1'} onChange={e => setCathsup(e.target.checked ? '1' : '0')} size="small" />}
-          label={<Typography sx={{ fontSize: '13px', fontWeight: 500 }}>Heures supplémentaires</Typography>}
+          label={<Typography sx={{ fontSize: '13px', fontWeight: 500 }}>{t('classeHoraire.modern.dialog.overtime')}</Typography>}
         />
 
         <Divider />
@@ -321,11 +324,11 @@ function PeriodFormDialog({
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
             <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {frequence === 'S' ? 'Postes par Semaine (Rotation)' : 'Poste de Travail'}
+              {frequence === 'S' ? t('classeHoraire.modern.dialog.rotationTitle') : t('classeHoraire.modern.dialog.singlePosteTitle')}
             </Typography>
             {frequence === 'S' && (
               <Typography sx={{ fontSize: '10px', color: '#94a3b8' }}>
-                {postes.filter(Boolean).length} semaine{postes.filter(Boolean).length !== 1 ? 's' : ''}
+                {t('classeHoraire.modern.dialog.weekCount', { count: postes.filter(Boolean).length })}
               </Typography>
             )}
           </Box>
@@ -347,7 +350,7 @@ function PeriodFormDialog({
                       onChange={e => { const u = [...postes]; u[i] = e.target.value; setPostes(u); }}
                       sx={{ borderRadius: '8px', backgroundColor: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}
                     >
-                      <MenuItem value=""><em style={{ color: '#94a3b8' }}>Sélectionner un poste</em></MenuItem>
+                      <MenuItem value=""><em style={{ color: '#94a3b8' }}>{t('classeHoraire.modern.dialog.selectPoste')}</em></MenuItem>
                       {Object.entries(postesMap).map(([k, v]) => (
                         <MenuItem key={k} value={k}>
                           {String(v)} <span style={{ color: '#94a3b8', fontSize: '11px', marginLeft: 6 }}>({k})</span>
@@ -373,7 +376,7 @@ function PeriodFormDialog({
                   onClick={() => setPostes([...postes, ''])}
                   sx={{ mt: 1, textTransform: 'none', fontWeight: 600, color: '#0040a1', fontSize: '12px', alignSelf: 'flex-start' }}
                 >
-                  Ajouter une semaine
+                  {t('classeHoraire.modern.dialog.addWeek')}
                 </Button>
               )}
             </Box>
@@ -386,7 +389,7 @@ function PeriodFormDialog({
                 onChange={e => setSinglePoste(e.target.value)}
                 sx={{ borderRadius: '8px', backgroundColor: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}
               >
-                <MenuItem value=""><em style={{ color: '#94a3b8' }}>Sélectionner un poste</em></MenuItem>
+                <MenuItem value=""><em style={{ color: '#94a3b8' }}>{t('classeHoraire.modern.dialog.selectPoste')}</em></MenuItem>
                 {Object.entries(postesMap).map(([k, v]) => (
                   <MenuItem key={k} value={k}>
                     {String(v)} <span style={{ color: '#94a3b8', fontSize: '11px', marginLeft: 6 }}>({k})</span>
@@ -400,14 +403,14 @@ function PeriodFormDialog({
       <Divider />
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
         <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>
-          Annuler
+          {t('classeHoraire.modern.dialog.cancel')}
         </Button>
         <Button
           variant="contained"
           onClick={handleSave}
           sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}
         >
-          {editData ? 'Modifier' : 'Ajouter la période'}
+          {editData ? t('classeHoraire.modern.dialog.save') : t('classeHoraire.modern.dialog.create')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -416,6 +419,7 @@ function PeriodFormDialog({
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 function ClasseHoraireModernInner() {
+  const { t } = useTranslation();
   const { selectedClasseHoraire, setSelectedClasseHoraire, setFrequence, setSelectedPoste } = useClasseHoraireContext();
 
   const [classeCode, setClasseCode] = useState('');
@@ -441,7 +445,7 @@ function ClasseHoraireModernInner() {
   const [pointageDialogOpen, setPointageDialogOpen] = useState(false);
 
   if (!hasPermission('Paramètres de Temps', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter les classes horaires." />;
+    return <AccessDenied message={t('classeHoraire.modern.noConsultRight')} />;
   }
 
   const { data: postesList = [] } = useGetPoste();
@@ -493,7 +497,7 @@ function ClasseHoraireModernInner() {
 
   const handleSavePeriod = async (data: Partial<Lcategorie>) => {
     if (!data.catcod || !data.catlib) {
-      showSnack('Veuillez renseigner le code et le libellé de la classe', 'warning');
+      showSnack(t('classeHoraire.modern.msg.missingCodeLabel'), 'warning');
       return;
     }
     // On force la fréquence résolue et on garantit la cohérence des catsem*
@@ -514,7 +518,7 @@ function ClasseHoraireModernInner() {
     };
     try {
       await saveLcategorie(payload);
-      showSnack('Période enregistrée avec succès', 'success');
+      showSnack(t('classeHoraire.modern.msg.savedSuccess'), 'success');
       setPeriodDialogOpen(false);
       setEditPeriod(null);
       // Synchronise le code/libellé de la classe active pour que le filtre du sidebar
@@ -523,7 +527,7 @@ function ClasseHoraireModernInner() {
       if (data.catlib) setClasseLib(data.catlib);
       refetchClasses();
     } catch {
-      showSnack("Erreur lors de l'enregistrement", 'error');
+      showSnack(t('classeHoraire.modern.msg.saveError'), 'error');
     }
   };
 
@@ -532,12 +536,12 @@ function ClasseHoraireModernInner() {
     if (!activePeriod) return;
     try {
       await deleteLcategorie({ ...activePeriod, soccod: sessionStorage.getItem('soccod') || '' });
-      showSnack('Période supprimée', 'success');
+      showSnack(t('classeHoraire.modern.msg.deletedSuccess'), 'success');
       setActivePeriod(null);
       setSelectedClasseHoraire(null);
       refetchClasses();
     } catch {
-      showSnack('Erreur lors de la suppression', 'error');
+      showSnack(t('classeHoraire.modern.msg.deleteError'), 'error');
     }
   };
 
@@ -551,12 +555,12 @@ function ClasseHoraireModernInner() {
         codposte: selectedPosteCode,
       };
       await updateLcategorie(payload);
-      showSnack('Poste appliqué avec succès', 'success');
+      showSnack(t('classeHoraire.modern.msg.appliedSuccess'), 'success');
       setSelectedPoste(selectedPosteCode);
       setActivePeriod({ ...activePeriod, codposte: selectedPosteCode });
       refetchClasses();
     } catch {
-      showSnack("Erreur lors de l'application du poste", 'error');
+      showSnack(t('classeHoraire.modern.msg.applyError'), 'error');
     }
   };
 
@@ -602,7 +606,7 @@ function ClasseHoraireModernInner() {
         {/* ── Sidebar gauche ── */}
         <Box className="chm-sidebar">
           <Box className="chm-sidebar-header">
-            <Typography className="chm-sidebar-title">Périodes de Saisonnalité</Typography>
+            <Typography className="chm-sidebar-title">{t('classeHoraire.modern.sidebar.title')}</Typography>
             {canAdd && (
               <IconButton
                 size="small"
@@ -618,7 +622,7 @@ function ClasseHoraireModernInner() {
           <Box className="chm-timeline-scroll">
             {filteredPeriods.length === 0 ? (
               <Typography sx={{ color: '#94a3b8', fontSize: '12px', textAlign: 'center', py: 4 }}>
-                Aucune période trouvée
+                {t('classeHoraire.modern.sidebar.noPeriod')}
               </Typography>
             ) : (
               filteredPeriods.map((row: any, i: number) => {
@@ -639,7 +643,7 @@ function ClasseHoraireModernInner() {
                     <Box className="chm-period-body">
                       <Box className="chm-period-badge-row">
                         <Typography className={`chm-period-badge ${isActive ? 'chm-badge-active' : 'chm-badge-next'}`}>
-                          {isActive ? 'Période Active' : 'Période Suivante'}
+                          {isActive ? t('classeHoraire.modern.sidebar.badgeActive') : t('classeHoraire.modern.sidebar.badgeNext')}
                         </Typography>
                         {canModify && (
                           <IconButton
@@ -679,25 +683,25 @@ function ClasseHoraireModernInner() {
                 onClick={() => { setEditPeriod(null); setPeriodDialogOpen(true); }}
               >
                 <AddIcon sx={{ fontSize: 14 }} />
-                <Typography className="chm-add-period-text">Ajouter une période</Typography>
+                <Typography className="chm-add-period-text">{t('classeHoraire.modern.sidebar.addPeriod')}</Typography>
               </Box>
             )}
           </Box>
 
           {/* Résumé */}
           <Paper className="chm-summary">
-            <Typography className="chm-summary-title">Résumé du Cycle</Typography>
+            <Typography className="chm-summary-title">{t('classeHoraire.modern.summary.title')}</Typography>
             <Box className="chm-summary-rows">
               <Box className="chm-summary-row">
-                <Typography className="chm-summary-lbl">Couverture Annuelle</Typography>
-                <Typography className="chm-summary-val">{totalCoverage} / 365 Jours</Typography>
+                <Typography className="chm-summary-lbl">{t('classeHoraire.modern.summary.coverage')}</Typography>
+                <Typography className="chm-summary-val">{t('classeHoraire.modern.summary.coverageValue', { covered: totalCoverage })}</Typography>
               </Box>
               <Box className="chm-summary-row">
-                <Typography className="chm-summary-lbl">Postes Distincts</Typography>
-                <Typography className="chm-summary-val">{distinctPostes} Poste{distinctPostes !== 1 ? 's' : ''}</Typography>
+                <Typography className="chm-summary-lbl">{t('classeHoraire.modern.summary.distinctPosts')}</Typography>
+                <Typography className="chm-summary-val">{t('classeHoraire.modern.summary.distinctPostsValue', { count: distinctPostes })}</Typography>
               </Box>
               <Box className="chm-summary-row">
-                <Typography className="chm-summary-lbl">Classe ID</Typography>
+                <Typography className="chm-summary-lbl">{t('classeHoraire.modern.summary.classId')}</Typography>
                 <Typography className="chm-summary-val">#{classeCode || '—'}</Typography>
               </Box>
             </Box>
@@ -711,19 +715,27 @@ function ClasseHoraireModernInner() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <CalendarMonthIcon sx={{ color: '#0040a1', fontSize: 22 }} />
               <Box>
-                <Typography className="chm-preview-title">Configuration de la Semaine Type</Typography>
+                <Typography className="chm-preview-title">{t('classeHoraire.modern.preview.title')}</Typography>
                 <Typography className="chm-preview-sub">
-                  Aperçu pour{' '}
-                  <strong style={{ color: '#0040a1' }}>{activePeriod?.catlib || '—'}</strong>
-                  {activePosteLabel && (
-                    <> (Poste : <strong style={{ color: '#0040a1' }}>{activePosteLabel}</strong>)</>
+                  {activePosteLabel ? (
+                    <Trans
+                      i18nKey="classeHoraire.modern.preview.subtitleWithPoste"
+                      values={{ name: activePeriod?.catlib || '—', poste: activePosteLabel }}
+                      components={{ 0: <strong style={{ color: '#0040a1' }} />, 1: <strong style={{ color: '#0040a1' }} /> }}
+                    />
+                  ) : (
+                    <Trans
+                      i18nKey="classeHoraire.modern.preview.subtitle"
+                      values={{ name: activePeriod?.catlib || '—' }}
+                      components={{ 0: <strong style={{ color: '#0040a1' }} /> }}
+                    />
                   )}
                 </Typography>
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Chip
-                label="Automatisé"
+                label={t('classeHoraire.modern.preview.automated')}
                 size="small"
                 sx={{ background: '#dcfce7', color: '#166534', fontWeight: 700, fontSize: '10px' }}
               />
@@ -737,7 +749,7 @@ function ClasseHoraireModernInner() {
                     '&:hover': { background: '#e0ebff' },
                   }}
                 >
-                  Ajuster pointage
+                  {t('classeHoraire.modern.preview.adjustPointage')}
                 </Button>
               )}
               <Button
@@ -766,7 +778,7 @@ function ClasseHoraireModernInner() {
                   color: '#334155', border: '1px solid #e2e8f0', background: 'white', fontSize: '12px',
                 }}
               >
-                Nouveau
+                {t('classeHoraire.modern.preview.newClass')}
               </Button>
               {activePeriod && canDelete && (
                 <Button
@@ -776,7 +788,7 @@ function ClasseHoraireModernInner() {
                   onClick={() => setConfirmOpen(true)}
                   sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, fontSize: '12px' }}
                 >
-                  Supprimer
+                  {t('classeHoraire.modern.preview.delete')}
                 </Button>
               )}
             </Box>
@@ -793,8 +805,8 @@ function ClasseHoraireModernInner() {
           <Paper className="chm-poste-selector">
             <Box className="chm-poste-selector-header">
               <Box>
-                <Typography className="chm-poste-selector-title">Associer un Poste de Travail</Typography>
-                <Typography className="chm-poste-selector-sub">Sélecteur de matrice opérationnelle</Typography>
+                <Typography className="chm-poste-selector-title">{t('classeHoraire.modern.posteSelector.title')}</Typography>
+                <Typography className="chm-poste-selector-sub">{t('classeHoraire.modern.posteSelector.subtitle')}</Typography>
               </Box>
             </Box>
             <Box className="chm-poste-cards-grid">
@@ -813,7 +825,7 @@ function ClasseHoraireModernInner() {
                 onClick={() => setSelectedPosteCode('')}
                 sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, color: '#64748b', border: '1px solid #e2e8f0' }}
               >
-                Annuler
+                {t('classeHoraire.modern.posteSelector.cancel')}
               </Button>
               <Button
                 variant="contained"
@@ -821,7 +833,7 @@ function ClasseHoraireModernInner() {
                 disabled={!selectedPosteCode || !activePeriod || !canModify}
                 sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: '#0040a1' }}
               >
-                Appliquer au Segment
+                {t('classeHoraire.modern.posteSelector.apply')}
               </Button>
             </Box>
           </Paper>
@@ -846,7 +858,7 @@ function ClasseHoraireModernInner() {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleDeletePeriod}
-        message={`Voulez-vous vraiment supprimer la période "${activePeriod?.catlib}" ?`}
+        message={t('classeHoraire.modern.confirmDeletePeriod', { name: activePeriod?.catlib ?? '' })}
       />
 
       <PointageAdjustDialog

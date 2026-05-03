@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useTranslation } from 'react-i18next';
 import useGetPresence from '../../../hooks/presenceHooks/useGetPresence';
 import { useDateRange } from '../../Pointeuse/EtatPeriodique/FilterContext';
 
@@ -97,6 +98,7 @@ const initials = (name: string): string => {
 };
 
 const EmpRetard = () => {
+  const { t } = useTranslation();
   const { dateRange } = useDateRange() as { dateRange: DateRangeState };
   const [search, setSearch] = useState('');
 
@@ -232,7 +234,7 @@ const EmpRetard = () => {
   }
 
   if (!rows.length) {
-    return <Alert severity="info">Aucune donnee de retard pour la periode selectionnee.</Alert>;
+    return <Alert severity="info">{t('etats.retard.noData')}</Alert>;
   }
 
   return (
@@ -243,33 +245,33 @@ const EmpRetard = () => {
             <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
               <Box>
                 <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#64748b' }}>
-                  Analytique Presence
+                  {t('etats.retard.analyticTitle')}
                 </Typography>
                 <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: { xs: '1.7rem', md: '2rem' }, color: '#0f172a' }}>
-                  Suivi des Retards
+                  {t('etats.retard.title')}
                 </Typography>
               </Box>
-              <Chip label="Donnees a jour" sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 700, alignSelf: 'start' }} />
+              <Chip label={t('etats.retard.upToDate')} sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 700, alignSelf: 'start' }} />
             </Stack>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2,1fr)', xl: 'repeat(4,1fr)' }, gap: 1.4, mt: 2 }}>
               <Paper variant="outlined" sx={{ p: 1.6, borderRadius: 2 }}>
-                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Taux de retard global</Typography>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>{t('etats.retard.kpiGlobalRate')}</Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, fontFamily: 'Manrope' }}>{kpis.rate}%</Typography>
                   <TrendingUp sx={{ fontSize: 16, color: '#dc2626' }} />
                 </Stack>
               </Paper>
               <Paper variant="outlined" sx={{ p: 1.6, borderRadius: 2 }}>
-                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Temps de retard total</Typography>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>{t('etats.retard.kpiTotalDuration')}</Typography>
                 <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, fontFamily: 'Manrope', color: '#0040a1' }}>{kpis.totalRetard}</Typography>
               </Paper>
               <Paper variant="outlined" sx={{ p: 1.6, borderRadius: 2 }}>
-                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Moyenne par pointage</Typography>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>{t('etats.retard.kpiAvgByPunch')}</Typography>
                 <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, fontFamily: 'Manrope' }}>{kpis.avgByDay}</Typography>
               </Paper>
               <Paper variant="outlined" sx={{ p: 1.6, borderRadius: 2 }}>
-                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Employes concernes</Typography>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>{t('etats.retard.kpiImpacted')}</Typography>
                 <Stack direction="row" spacing={1} alignItems="baseline">
                   <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, fontFamily: 'Manrope' }}>{kpis.impactedEmployees}</Typography>
                   <Typography sx={{ fontSize: '0.74rem', color: '#64748b' }}>/ {kpis.totalEmployees}</Typography>
@@ -281,24 +283,24 @@ const EmpRetard = () => {
           <Paper sx={{ p: 2, borderRadius: 2.5, border: '1px solid #e7eaf0', bgcolor: '#f8fafc' }}>
             <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} alignItems={{ lg: 'end' }}>
               <TextField
-                label="Periode"
+                label={t('etats.retard.period')}
                 size="small"
                 value={periodLabel}
                 InputProps={{ startAdornment: <CalendarToday sx={{ mr: 1, fontSize: 16, color: '#64748b' }} /> }}
                 fullWidth
               />
-              <TextField label="Site" size="small" value={dateRange.selectedRegime ? `Regime ${dateRange.selectedRegime}` : 'Tous les regimes'} sx={{ minWidth: 180 }} />
+              <TextField label={t('etats.retard.site')} size="small" value={dateRange.selectedRegime ? t('etats.retard.regimePrefix', { value: dateRange.selectedRegime }) : t('etats.retard.allRegimes')} sx={{ minWidth: 180 }} />
               <TextField
-                label="Recherche"
+                label={t('etats.retard.search')}
                 size="small"
-                placeholder="ID ou Nom"
+                placeholder={t('etats.retard.searchPlaceholder')}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 InputProps={{ startAdornment: <Search sx={{ mr: 1, fontSize: 16, color: '#64748b' }} /> }}
                 fullWidth
               />
               <Button variant="contained" onClick={() => undefined} sx={{ minWidth: 110, height: 40 }}>
-                Filtrer
+                {t('etats.retard.filter')}
               </Button>
             </Stack>
           </Paper>
@@ -308,12 +310,12 @@ const EmpRetard = () => {
               <Table size="small" sx={{ minWidth: 1050 }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#eef2f7' }}>
-                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Employe</TableCell>
-                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Date</TableCell>
-                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Horaire</TableCell>
-                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Pointage</TableCell>
-                    <TableCell align="center" sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Duree retard</TableCell>
-                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>Statut</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>{t('etats.retard.headers.employee')}</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>{t('etats.retard.headers.date')}</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>{t('etats.retard.headers.schedule')}</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>{t('etats.retard.headers.punch')}</TableCell>
+                    <TableCell align="center" sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>{t('etats.retard.headers.lateDuration')}</TableCell>
+                    <TableCell sx={{ fontSize: '0.67rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>{t('etats.retard.headers.status')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -323,7 +325,7 @@ const EmpRetard = () => {
                       const absoluteIndex = page * rowsPerPage + index;
                       const key = `${row.empcod}-${row.predat}-${absoluteIndex}`;
                     const isActive = selectedKey === key;
-                    const employeeName = row.emplib || row.empcod || 'Employe';
+                    const employeeName = row.emplib || row.empcod || t('etats.retard.fallbackEmployee');
                     const planned = `${row.entree1 || DASH} - ${row.sortie2 || DASH}`;
                     const pointage = row.entree1 || DASH;
                     const justified = Boolean(row.motif && row.motif.trim() && row.motif !== DASH);
@@ -343,7 +345,7 @@ const EmpRetard = () => {
                             </Avatar>
                             <Box>
                               <Typography sx={{ fontSize: '0.82rem', fontWeight: 700 }}>{employeeName}</Typography>
-                              <Typography sx={{ fontSize: '0.68rem', color: '#64748b' }}>ID: {row.empcod || DASH}</Typography>
+                              <Typography sx={{ fontSize: '0.68rem', color: '#64748b' }}>{t('etats.retard.id')}: {row.empcod || DASH}</Typography>
                             </Box>
                           </Stack>
                         </TableCell>
@@ -359,7 +361,7 @@ const EmpRetard = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={justified ? 'Justifie' : 'Non justifie'}
+                            label={justified ? t('etats.retard.justified') : t('etats.retard.notJustified')}
                             size="small"
                             sx={{
                               bgcolor: justified ? '#064e3b' : '#e2e8f0',
@@ -384,13 +386,13 @@ const EmpRetard = () => {
               page={page}
               onPageChange={handleChangePage}
               onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Lignes par page:"
+              labelRowsPerPage={t('etats.retard.rowsPerPage')}
               sx={{ borderTop: '1px solid #eef2f7' }}
             />
             <Box sx={{ px: 2, py: 1.2, borderTop: '1px solid #eef2f7', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
               <Stack direction="row" spacing={1}>
-                <Button size="small" variant="outlined" onClick={exportPdf}>Exporter PDF</Button>
-                <Button size="small" variant="outlined" startIcon={<TrendingDown />}>Details</Button>
+                <Button size="small" variant="outlined" onClick={exportPdf}>{t('etats.retard.exportPdf')}</Button>
+                <Button size="small" variant="outlined" startIcon={<TrendingDown />}>{t('etats.retard.detailsBtn')}</Button>
               </Stack>
             </Box>
           </Paper>
@@ -408,7 +410,7 @@ const EmpRetard = () => {
           display: { xs: 'none', xl: 'block' },
         }}
       >
-        <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '1.1rem', mb: 2 }}>Details du Retard</Typography>
+        <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '1.1rem', mb: 2 }}>{t('etats.retard.detailsTitle')}</Typography>
         {selectedRow ? (
           <Stack spacing={1.5}>
             <Stack direction="row" spacing={1.2} alignItems="center">
@@ -422,28 +424,28 @@ const EmpRetard = () => {
             </Stack>
 
             <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2, bgcolor: '#f8fafc' }}>
-              <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Date</Typography>
+              <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>{t('etats.retard.headers.date')}</Typography>
               <Typography sx={{ fontSize: '0.86rem', fontWeight: 700 }}>{formatDateLong(selectedRow.predat)}</Typography>
             </Paper>
 
             <Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}>
-              <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, mb: 0.6 }}>Pointages enregistres</Typography>
+              <Typography sx={{ fontSize: '0.64rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, mb: 0.6 }}>{t('etats.retard.punchesRecorded')}</Typography>
               <Stack spacing={0.8}>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree1 || DASH}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Retard matin</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#b91c1c' }}>{selectedRow.preretmateup || '00:00'}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Entree apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree2 || DASH}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Retard apres-midi</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#b91c1c' }}>{selectedRow.preretameup || '00:00'}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>Total</Typography><Chip size="small" label={selectedRow.totalRetard || '00:00'} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }} /></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>{t('etats.retard.entryMorning')}</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree1 || DASH}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>{t('etats.retard.lateMorning')}</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#b91c1c' }}>{selectedRow.preretmateup || '00:00'}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>{t('etats.retard.entryAfternoon')}</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700 }}>{selectedRow.entree2 || DASH}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>{t('etats.retard.lateAfternoon')}</Typography><Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#b91c1c' }}>{selectedRow.preretameup || '00:00'}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: '0.78rem' }}>{t('etats.retard.total')}</Typography><Chip size="small" label={selectedRow.totalRetard || '00:00'} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }} /></Stack>
               </Stack>
             </Paper>
 
             <Stack spacing={1}>
-              <Button variant="outlined" fullWidth>Justifier ce retard</Button>
-              <Button variant="outlined" fullWidth>Notifier l'employe</Button>
+              <Button variant="outlined" fullWidth>{t('etats.retard.justifyAction')}</Button>
+              <Button variant="outlined" fullWidth>{t('etats.retard.notifyAction')}</Button>
             </Stack>
           </Stack>
         ) : (
-          <Alert severity="info">Aucune ligne selectionnee.</Alert>
+          <Alert severity="info">{t('etats.retard.noSelection')}</Alert>
         )}
       </Paper>
     </Box>

@@ -1,14 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Box, CircularProgress, IconButton, FormControl, Select, MenuItem, InputLabel } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../../API/apiInstance';
 import { DocumentVault } from '../../../models/DocumentVault';
 import './AdminVault.css';
 
-type FilterType = 'Tous' | 'Pending Signature' | 'Signed' | 'Validated';
+type FilterKey = 'all' | 'pending' | 'signed' | 'validated';
+type StatusKey = 'signed' | 'pending' | 'validated';
 
 const AdminVaultModern = () => {
+  const { t, i18n } = useTranslation();
   const { soccod, uticod, isEmp, authReady } = useAuth();
   const navigate = useNavigate();
 
@@ -17,7 +20,7 @@ const AdminVaultModern = () => {
   const [employees, setEmployees] = useState<Record<string, string>>({});
   const [selectedEmpcod, setSelectedEmpcod] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterType>('Tous');
+  const [filter, setFilter] = useState<FilterKey>('all');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
@@ -92,18 +95,29 @@ const AdminVaultModern = () => {
     return 'insert_drive_file';
   };
 
-  const getStatusStyle = (doc: DocumentVault): { label: string; cls: string; icon: string } => {
-    if (doc.isSigned) return { label: 'Signé', cls: 'avlt-badge--signed', icon: 'verified' };
-    if (doc.status === 'Pending Signature') return { label: 'En attente', cls: 'avlt-badge--pending', icon: 'pending' };
-    return { label: 'Validé', cls: 'avlt-badge--validated', icon: 'check_circle' };
+  const getStatusInfo = (doc: DocumentVault): { key: StatusKey; cls: string; icon: string } => {
+    if (doc.isSigned) return { key: 'signed', cls: 'avlt-badge--signed', icon: 'verified' };
+    if (doc.status === 'Pending Signature') return { key: 'pending', cls: 'avlt-badge--pending', icon: 'pending' };
+    return { key: 'validated', cls: 'avlt-badge--validated', icon: 'check_circle' };
+  };
+  const statusLabel = (key: StatusKey) => t(`adminVault.status.${key}`);
+
+  // Map docType to a stable category for chip styling.
+  type DocCategory = 'pay' | 'contract' | 'cert' | 'other';
+  const docCategoryClass = (docType: string): DocCategory => {
+    const v = (docType || '').toLowerCase();
+    if (v.includes('paie') || v.includes('fiche') || v.includes('salary') || v.includes('bulletin')) return 'pay';
+    if (v.includes('contrat') || v.includes('contract')) return 'contract';
+    if (v.includes('attestation') || v.includes('certificat') || v.includes('certificate') || v.includes('badge')) return 'cert';
+    return 'other';
   };
 
   const filtered = useMemo(() => {
     return documents.filter(doc => {
       const matchFilter =
-        filter === 'Tous' ? true :
-        filter === 'Signed' ? doc.isSigned :
-        filter === 'Pending Signature' ? (!doc.isSigned && doc.status === 'Pending Signature') :
+        filter === 'all' ? true :
+        filter === 'signed' ? doc.isSigned :
+        filter === 'pending' ? (!doc.isSigned && doc.status === 'Pending Signature') :
         (!doc.isSigned && doc.status !== 'Pending Signature');
       const matchSearch = search === '' ||
         doc.docName.toLowerCase().includes(search.toLowerCase()) ||
@@ -136,15 +150,18 @@ const AdminVaultModern = () => {
     );
   }
 
+  const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
+  const filterKeys: FilterKey[] = ['all', 'pending', 'signed', 'validated'];
+
   return (
     <div className="avlt-container">
       {/* ── Header ── */}
       <section className="avlt-header">
         <div className="avlt-header-text">
-          <label className="avlt-eyebrow">Administration · Coffre-fort</label>
-          <h1 className="avlt-title">Digital Vault — Vue Globale</h1>
+          <label className="avlt-eyebrow">{t('adminVault.header.eyebrow')}</label>
+          <h1 className="avlt-title">{t('adminVault.header.title')}</h1>
           <p className="avlt-subtitle">
-            Consultez et gérez les documents de tous les employés. Suivez les demandes de signature en attente.
+            {t('adminVault.header.subtitle')}
           </p>
         </div>
 
@@ -153,28 +170,28 @@ const AdminVaultModern = () => {
             <span className="material-symbols-outlined avlt-stat-icon">folder_shared</span>
             <div>
               <div className="avlt-stat-value">{totalDocs}</div>
-              <div className="avlt-stat-label">Documents totaux</div>
+              <div className="avlt-stat-label">{t('adminVault.stats.totalDocs')}</div>
             </div>
           </div>
           <div className="avlt-stat avlt-stat--pending">
             <span className="material-symbols-outlined avlt-stat-icon">pending_actions</span>
             <div>
               <div className="avlt-stat-value">{pendingDocs}</div>
-              <div className="avlt-stat-label">En attente signature</div>
+              <div className="avlt-stat-label">{t('adminVault.stats.pendingSignature')}</div>
             </div>
           </div>
           <div className="avlt-stat avlt-stat--signed">
             <span className="material-symbols-outlined avlt-stat-icon">verified</span>
             <div>
               <div className="avlt-stat-value">{signedDocs}</div>
-              <div className="avlt-stat-label">Signés</div>
+              <div className="avlt-stat-label">{t('adminVault.stats.signed')}</div>
             </div>
           </div>
           <div className="avlt-stat avlt-stat--emp">
             <span className="material-symbols-outlined avlt-stat-icon">groups</span>
             <div>
               <div className="avlt-stat-value">{uniqueEmployees}</div>
-              <div className="avlt-stat-label">Employés</div>
+              <div className="avlt-stat-label">{t('adminVault.stats.employees')}</div>
             </div>
           </div>
         </div>
@@ -183,14 +200,14 @@ const AdminVaultModern = () => {
       {/* ── Toolbar ── */}
       <div className="avlt-toolbar">
         <FormControl size="small" sx={{ minWidth: 240 }}>
-          <InputLabel>Employé</InputLabel>
+          <InputLabel>{t('adminVault.toolbar.employee')}</InputLabel>
           <Select
-            label="Employé"
+            label={t('adminVault.toolbar.employee')}
             value={selectedEmpcod}
             onChange={e => setSelectedEmpcod(String(e.target.value))}
             displayEmpty
           >
-            <MenuItem value=""><em>Tous les employés</em></MenuItem>
+            <MenuItem value=""><em>{t('adminVault.toolbar.allEmployees')}</em></MenuItem>
             {Object.entries(employees).map(([code, lib]) => (
               <MenuItem key={code} value={code}>{lib} ({code})</MenuItem>
             ))}
@@ -201,22 +218,20 @@ const AdminVaultModern = () => {
           <span className="material-symbols-outlined avlt-search-icon">search</span>
           <input
             className="avlt-search"
-            placeholder="Rechercher par employé ou document..."
+            placeholder={t('adminVault.toolbar.searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
 
         <div className="avlt-filter-chips">
-          {(['Tous', 'Pending Signature', 'Signed', 'Validated'] as FilterType[]).map(f => (
+          {filterKeys.map(f => (
             <button
               key={f}
               className={`avlt-chip ${filter === f ? 'avlt-chip--active' : ''}`}
               onClick={() => setFilter(f)}
             >
-              {f === 'Tous' ? 'Tous' :
-               f === 'Pending Signature' ? 'En attente' :
-               f === 'Signed' ? 'Signés' : 'Validés'}
+              {t(`adminVault.filter.${f}`)}
             </button>
           ))}
         </div>
@@ -235,7 +250,7 @@ const AdminVaultModern = () => {
       {filtered.length === 0 ? (
         <div className="avlt-empty">
           <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: '#cbd5e1' }}>folder_open</span>
-          <p>Aucun document trouvé.</p>
+          <p>{t('adminVault.empty')}</p>
         </div>
       ) : viewMode === 'list' ? (
         /* LIST VIEW */
@@ -243,18 +258,18 @@ const AdminVaultModern = () => {
           <table className="avlt-table">
             <thead>
               <tr>
-                <th>Document</th>
-                <th>Employé</th>
-                <th>Type</th>
-                <th>Date</th>
-                <th>Taille</th>
-                <th>Statut</th>
-                <th style={{ textAlign: 'center' }}>Actions</th>
+                <th>{t('adminVault.table.document')}</th>
+                <th>{t('adminVault.table.employee')}</th>
+                <th>{t('adminVault.table.type')}</th>
+                <th>{t('adminVault.table.date')}</th>
+                <th>{t('adminVault.table.size')}</th>
+                <th>{t('adminVault.table.status')}</th>
+                <th style={{ textAlign: 'center' }}>{t('adminVault.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(doc => {
-                const st = getStatusStyle(doc);
+                const st = getStatusInfo(doc);
                 return (
                   <tr key={doc.id}>
                     <td>
@@ -271,7 +286,7 @@ const AdminVaultModern = () => {
                             <span className="material-symbols-outlined" style={{ fontSize: 11 }}>
                               {st.icon}
                             </span>
-                            {st.label}
+                            {statusLabel(st.key)}
                           </div>
                         </div>
                       </div>
@@ -283,16 +298,16 @@ const AdminVaultModern = () => {
                       </div>
                     </td>
                     <td>
-                      <span className={`avlt-type-chip avlt-type-${doc.docType === 'Fiche de paie' ? 'pay' : doc.docType === 'Contrat' ? 'contract' : 'cert'}`}>
+                      <span className={`avlt-type-chip avlt-type-${docCategoryClass(doc.docType)}`}>
                         {doc.docType}
                       </span>
                     </td>
                     <td className="avlt-date">
-                      {new Date(doc.docDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {new Date(doc.docDate).toLocaleDateString(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="avlt-size">{formatSize(doc.docSize)}</td>
                     <td>
-                      <span className={`avlt-status-badge ${st.cls}`}>{st.label}</span>
+                      <span className={`avlt-status-badge ${st.cls}`}>{statusLabel(st.key)}</span>
                     </td>
                     <td>
                       <div className="avlt-actions">
@@ -300,17 +315,17 @@ const AdminVaultModern = () => {
                           <button
                             className="avlt-btn-sign"
                             onClick={() => navigate(`/dashboard/sign-document?id=${doc.id}`)}
-                            title="Signer le document"
+                            title={t('adminVault.tooltip.sign')}
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: 15 }}>draw</span>
-                            Signer
+                            {t('adminVault.actions.sign')}
                           </button>
                         )}
                         <IconButton
                           size="small"
                           className="avlt-btn-dl"
                           onClick={() => handleDownload(doc.id, doc.docName)}
-                          title="Télécharger"
+                          title={t('adminVault.tooltip.download')}
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
                         </IconButton>
@@ -322,8 +337,8 @@ const AdminVaultModern = () => {
             </tbody>
           </table>
           <div className="avlt-table-footer">
-            Affichage de {filtered.length} document{filtered.length !== 1 ? 's' : ''}
-            {filter !== 'Tous' && ` · filtre: ${filter === 'Pending Signature' ? 'En attente' : filter}`}
+            {t('adminVault.footer.showing', { count: filtered.length })}
+            {filter !== 'all' && t('adminVault.footer.filterLabel', { label: t(`adminVault.filter.${filter}`) })}
           </div>
         </div>
       ) : (
@@ -339,15 +354,15 @@ const AdminVaultModern = () => {
                   <div>
                     <div className="avlt-emp-card-name">{empcod}</div>
                     <div className="avlt-emp-card-meta">
-                      {docs.length} doc{docs.length !== 1 ? 's' : ''}
-                      {empPending > 0 && <span className="avlt-emp-pending-tag">{empPending} en attente</span>}
+                      {t('adminVault.grid.doc', { count: docs.length })}
+                      {empPending > 0 && <span className="avlt-emp-pending-tag">{t('adminVault.grid.pendingTag', { count: empPending })}</span>}
                     </div>
                   </div>
                 </div>
 
                 <div className="avlt-emp-doc-list">
                   {docs.map(doc => {
-                    const st = getStatusStyle(doc);
+                    const st = getStatusInfo(doc);
                     return (
                       <div key={doc.id} className="avlt-emp-doc-row">
                         <div className={`avlt-emp-doc-icon ${doc.docName.endsWith('.pdf') ? 'pdf' : 'other'}`}>
@@ -355,14 +370,14 @@ const AdminVaultModern = () => {
                         </div>
                         <div className="avlt-emp-doc-info">
                           <div className="avlt-emp-doc-name">{doc.docName}</div>
-                          <span className={`avlt-status-badge ${st.cls}`} style={{ fontSize: '0.6rem' }}>{st.label}</span>
+                          <span className={`avlt-status-badge ${st.cls}`} style={{ fontSize: '0.6rem' }}>{statusLabel(st.key)}</span>
                         </div>
                         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                           {!doc.isSigned && (
                             <button
                               className="avlt-btn-sign-sm"
                               onClick={() => navigate(`/dashboard/sign-document?id=${doc.id}`)}
-                              title="Signer"
+                              title={t('adminVault.tooltip.signShort')}
                             >
                               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>draw</span>
                             </button>
@@ -383,7 +398,7 @@ const AdminVaultModern = () => {
                       style={{ width: `${docs.length ? (empSigned / docs.length) * 100 : 0}%` }}
                     />
                   </div>
-                  <span className="avlt-emp-progress-label">{empSigned}/{docs.length} signés</span>
+                  <span className="avlt-emp-progress-label">{t('adminVault.grid.signedRatio', { signed: empSigned, total: docs.length })}</span>
                 </div>
               </div>
             );
@@ -398,13 +413,13 @@ const AdminVaultModern = () => {
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>lock</span>
           </div>
           <div>
-            <p className="avlt-privacy-title">Protection de la Vie Privée Active</p>
-            <p className="avlt-privacy-sub">Tous les accès aux documents sont journalisés et audités.</p>
+            <p className="avlt-privacy-title">{t('adminVault.privacy.title')}</p>
+            <p className="avlt-privacy-sub">{t('adminVault.privacy.subtitle')}</p>
           </div>
         </div>
         <div className="avlt-privacy-actions">
-          <button className="avlt-privacy-btn-sec">Journal d'activité</button>
-          <button className="avlt-privacy-btn-pri">Synchro Master Key</button>
+          <button className="avlt-privacy-btn-sec">{t('adminVault.privacy.activityLog')}</button>
+          <button className="avlt-privacy-btn-pri">{t('adminVault.privacy.syncMasterKey')}</button>
         </div>
       </div>
     </div>

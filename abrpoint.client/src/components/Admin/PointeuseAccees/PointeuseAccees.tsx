@@ -1,5 +1,6 @@
 import { Checkbox, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useUserContext } from "../../helper/UserProvider";
 import Poidroit from "../../../models/Poidroit";
 import useGetPoidroits from "../../../hooks/pointeuseHooks/useGetPointdroits";
@@ -9,6 +10,7 @@ interface DroitAcceesProps {
 }
 
 export default function PointeuseAccees({ onPermissionsChange }: DroitAcceesProps) {
+  const { t } = useTranslation();
   const { selectedUser } = useUserContext();
   const { data: poidroits = [], isLoading } = useGetPoidroits(selectedUser);
 
@@ -47,11 +49,11 @@ export default function PointeuseAccees({ onPermissionsChange }: DroitAcceesProp
       <Table sx={{ minWidth: 650 }} size="small" aria-label="droit accès table">
         <TableHead sx={{ backgroundColor: "#1976d2", position: "sticky", top: 0, zIndex: 1 }}>
           <TableRow>
-            <TableCell sx={{ color: "white" }}>Code</TableCell>
-            <TableCell sx={{ color: "white" }}>Pointeuse</TableCell>
-            <TableCell align="right" sx={{ color: "white" }}>Lire</TableCell>
-            <TableCell align="right" sx={{ color: "white" }}>Purger</TableCell>
-            <TableCell align="right" sx={{ color: "white" }}>Configurer</TableCell>
+            <TableCell sx={{ color: "white" }}>{t('pointeuseAccees.table.code')}</TableCell>
+            <TableCell sx={{ color: "white" }}>{t('pointeuseAccees.table.punchClock')}</TableCell>
+            <TableCell align="right" sx={{ color: "white" }}>{t('pointeuseAccees.table.read')}</TableCell>
+            <TableCell align="right" sx={{ color: "white" }}>{t('pointeuseAccees.table.purge')}</TableCell>
+            <TableCell align="right" sx={{ color: "white" }}>{t('pointeuseAccees.table.configure')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -74,7 +76,7 @@ export default function PointeuseAccees({ onPermissionsChange }: DroitAcceesProp
           ) : (
             <TableRow>
               <TableCell colSpan={5} align="center">
-                {isLoading ? "Loading..." : "Select a user to view permissions"}
+                {isLoading ? t('pointeuseAccees.table.loading') : t('pointeuseAccees.table.selectUser')}
               </TableCell>
             </TableRow>
           )}

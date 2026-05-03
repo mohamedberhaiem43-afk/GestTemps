@@ -2,6 +2,7 @@ import { Grid, Select, MenuItem, InputLabel, Box } from "@mui/material";
 import './Part1_ConnPoint.css';
 import { Parametre } from "../../../../models/Parametre";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import InputComponent from "../../../Inputs/Input";
 
 interface AffichageProps {
@@ -10,6 +11,7 @@ interface AffichageProps {
 }
 
 const Part1_ConnPoint: React.FC<AffichageProps> = ({ parametre, onChange }) => {
+  const { t } = useTranslation();
   const [ncom, setNcom] = useState(parametre?.ncom || '');
   const [vitesse, setVitesse] = useState(parametre?.vitesse || 0);
   const [parecart, setParecart] = useState(parametre?.parecart || 0);
@@ -31,7 +33,7 @@ const Part1_ConnPoint: React.FC<AffichageProps> = ({ parametre, onChange }) => {
       <Grid container spacing={2}>
         {/* N° Com */}
         <Grid item xs={6}>
-          <InputLabel shrink={true} id="ncom-label">N° Com</InputLabel>
+          <InputLabel shrink={true} id="ncom-label">{t('paramSoc.connPoint.ncom')}</InputLabel>
           <Select
             size="small"
             labelId="ncom-label"
@@ -48,7 +50,7 @@ const Part1_ConnPoint: React.FC<AffichageProps> = ({ parametre, onChange }) => {
 
         {/* Nb. Pointeuse */}
         <Grid item xs={6}>
-          <InputLabel shrink={true} id="vitesse-label">Nb. Pointeuse</InputLabel>
+          <InputLabel shrink={true} id="vitesse-label">{t('paramSoc.connPoint.nbPointeuse')}</InputLabel>
           <Select
             size="small"
             labelId="vitesse-label"
@@ -67,7 +69,7 @@ const Part1_ConnPoint: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={6}>
           <InputComponent
             type="number"
-            label="Ecart Pointage success (mn)"
+            label={t('paramSoc.connPoint.ecartPointage')}
             value={parecart}
             setValue={setParecart}
           />
@@ -94,8 +96,7 @@ const Part1_ConnPoint: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={12}>
           <Box mt={2}>
             <h3 style={{ fontWeight: 400, fontSize: '0.95rem' }}>
-              N° Port 1,2 ou 3 si transfert modèle : D : DIS, H : HAKIM, N : B-HAKIM, B : Table access,
-              T : Pointeuse ZKS, Z : Base ZKS Vers 2008
+              {t('paramSoc.connPoint.footerNote')}
             </h3>
           </Box>
         </Grid>

@@ -19,6 +19,7 @@ export default function PointageAdjustDialog({
   onClose,
   canModify,
   showSnack,
+  onSaved,
   initialEmpcod,
   initialDate,
 }: {
@@ -26,6 +27,7 @@ export default function PointageAdjustDialog({
   onClose: () => void;
   canModify: boolean;
   showSnack: (msg: string, sev: 'success' | 'error' | 'warning') => void;
+  onSaved?: (ctx: { empcod: string; date: string }) => void | Promise<void>;
   // Pré-remplissage optionnel : si fournis, le dialog s'ouvre déjà ciblé sur le bon
   // (employé, jour) — utilisé depuis l'état périodique où l'utilisateur a déjà
   // cliqué sur une journée précise.
@@ -139,6 +141,7 @@ export default function PointageAdjustDialog({
         tothnuit: '',
         tothre: '',
       });
+      await onSaved?.({ empcod, date });
       showSnack('Pointage corrigé avec succès', 'success');
       onClose();
     } catch (err: any) {
@@ -299,3 +302,4 @@ export default function PointageAdjustDialog({
     </Dialog>
   );
 }
+

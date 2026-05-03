@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Autocomplete, CircularProgress, TextField } from '@mui/material';
 import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
 import { useEmployeeFilter } from '../../../hooks/employeHooks/useEmployeeFilter';
@@ -27,18 +28,19 @@ import './CahierConge.css';
 
 const queryClient = new QueryClient();
 
-const regimeOptions: Record<string, string> = {
-  '': 'Tous',
-  M: 'Mensuelle',
-  H: 'Horaire',
-};
-
 
 function CahierCongePage() {
+  const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
 
+  const regimeOptions: Record<string, string> = {
+    '': t('cahierConge.filter.regimeAll'),
+    M: t('cahierConge.filter.regimeMonthly'),
+    H: t('cahierConge.filter.regimeHourly'),
+  };
+
   if (!hasPermission('Rapports et Statistiques', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter le cahier de congé." />;
+    return <AccessDenied message={t('cahierConge.noConsultRight')} />;
   }
 
   const {
@@ -181,31 +183,31 @@ function CahierCongePage() {
     if (cahierData.length === 0) return;
 
     // Title rows
-    const titleRow = [`Cahier de Congés - Période du ${formatDate(dateDebut)} au ${formatDate(dateFin)}`];
+    const titleRow = [t('cahierConge.excel.title', { start: formatDate(dateDebut), end: formatDate(dateFin) })];
     const headerRow = [
-      'Matricule',
-      'Nom et Prénom',
-      'Date Naissance',
-      'Date Embauche',
-      'Régime',
-      'Salaire Journalier',
-      'Période Somme',
-      'Période Temporis',
-      'Solde Initial (Jours)',
-      'Congé dû (Jours)',
-      'Indemnité Congé dû (DT)',
-      'Jours Ancienneté',
-      'Montant Ancienneté (DT)',
-      'Congé Jeune Trav. (Jours)',
-      'Montant Congé Jeune Trav. (DT)',
-      'Jours Jeune Trav.',
-      'Montant Jours Jeune Trav. (DT)',
-      'Total dû Présence (DT)',
-      'Indemnité Congé (DT)',
-      'Date Départ',
-      'Heure Dép.',
-      'Date Retour',
-      'Heure Ret.',
+      t('cahierConge.excel.headers.matricule'),
+      t('cahierConge.excel.headers.name'),
+      t('cahierConge.excel.headers.birthDate'),
+      t('cahierConge.excel.headers.hireDate'),
+      t('cahierConge.excel.headers.regime'),
+      t('cahierConge.excel.headers.salaryDaily'),
+      t('cahierConge.excel.headers.periodSum'),
+      t('cahierConge.excel.headers.periodTemporis'),
+      t('cahierConge.excel.headers.initialBalance'),
+      t('cahierConge.excel.headers.leaveDue'),
+      t('cahierConge.excel.headers.leaveDueIndemnity'),
+      t('cahierConge.excel.headers.seniorityDays'),
+      t('cahierConge.excel.headers.seniorityAmount'),
+      t('cahierConge.excel.headers.youngWorkerLeave'),
+      t('cahierConge.excel.headers.youngWorkerLeaveAmount'),
+      t('cahierConge.excel.headers.youngWorkerDays'),
+      t('cahierConge.excel.headers.youngWorkerDaysAmount'),
+      t('cahierConge.excel.headers.totalDuePresence'),
+      t('cahierConge.excel.headers.leaveIndemnity'),
+      t('cahierConge.excel.headers.departureDate'),
+      t('cahierConge.excel.headers.departureHour'),
+      t('cahierConge.excel.headers.returnDate'),
+      t('cahierConge.excel.headers.returnHour'),
     ];
 
     const dataRows = cahierData.map((d) => [
@@ -237,7 +239,7 @@ function CahierCongePage() {
     // Totals row
     const totalsRow = [
       '',
-      'TOTAL',
+      t('cahierConge.excel.totalLabel'),
       '',
       '',
       '',
@@ -295,7 +297,7 @@ function CahierCongePage() {
     worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 22 } }];
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Cahier de Congés');
+    XLSX.utils.book_append_sheet(workbook, worksheet, t('cahierConge.excel.sheetName'));
 
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
@@ -340,8 +342,8 @@ function CahierCongePage() {
       <div className="cc-header">
         <div className="cc-header-left">
           <div>
-            <h2 className="cc-title">Cahier de Congés</h2>
-            <p className="cc-subtitle">Gestion et suivi des congés du personnel</p>
+            <h2 className="cc-title">{t('cahierConge.title')}</h2>
+            <p className="cc-subtitle">{t('cahierConge.subtitle')}</p>
           </div>
           <div className="cc-header-divider" />
           <div className="cc-year-select">
@@ -360,10 +362,10 @@ function CahierCongePage() {
                 fontFamily: 'Inter, sans-serif',
               }}
             >
-              <option value="2026">Année 2026</option>
-              <option value="2025">Année 2025</option>
-              <option value="2024">Année 2024</option>
-              <option value="2023">Année 2023</option>
+              <option value="2026">{t('cahierConge.yearLabel', { year: 2026 })}</option>
+              <option value="2025">{t('cahierConge.yearLabel', { year: 2025 })}</option>
+              <option value="2024">{t('cahierConge.yearLabel', { year: 2024 })}</option>
+              <option value="2023">{t('cahierConge.yearLabel', { year: 2023 })}</option>
             </select>
           </div>
         </div>
@@ -374,13 +376,13 @@ function CahierCongePage() {
         <div className="cc-filter-row">
           {filiale && Object.keys(filiale).length > 0 && (
             <div className="cc-filter-field">
-              <label className="cc-filter-label">Filiale</label>
+              <label className="cc-filter-label">{t('cahierConge.filter.filiale')}</label>
               <select
                 className="cc-filter-select"
                 value={selectedFiliale}
                 onChange={(e) => setSelectedFiliale(e.target.value)}
               >
-                <option value="">Toutes</option>
+                <option value="">{t('cahierConge.filter.filialeAll')}</option>
                 {Object.entries(filiale).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
@@ -389,14 +391,14 @@ function CahierCongePage() {
           )}
           {services && Object.keys(services).length > 0 && (
             <div className="cc-filter-field">
-              <label className="cc-filter-label">Service</label>
+              <label className="cc-filter-label">{t('cahierConge.filter.service')}</label>
               <select
                 className="cc-filter-select"
                 value={selectedService}
                 onChange={(e) => setSelectedService(e.target.value)}
                 disabled={isServiceLocked}
               >
-                <option value="">{isServiceLocked ? 'Mon service' : 'Tous'}</option>
+                <option value="">{isServiceLocked ? t('cahierConge.filter.myService') : t('cahierConge.filter.allServices')}</option>
                 {Object.entries(services).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
@@ -404,7 +406,7 @@ function CahierCongePage() {
             </div>
           )}
           <div className="cc-filter-field">
-            <label className="cc-filter-label">Régime</label>
+            <label className="cc-filter-label">{t('cahierConge.filter.regime')}</label>
             <select
               className="cc-filter-select"
               value={selectedRegime}
@@ -416,7 +418,7 @@ function CahierCongePage() {
             </select>
           </div>
          <div className="cc-filter-field-narrow">
-            <label className="cc-filter-label">Date Début</label>
+            <label className="cc-filter-label">{t('cahierConge.filter.dateStart')}</label>
             <input
               type="date"
               className="cc-filter-input"
@@ -425,7 +427,7 @@ function CahierCongePage() {
             />
           </div>
           <div className="cc-filter-field-narrow">
-            <label className="cc-filter-label">Date Fin</label>
+            <label className="cc-filter-label">{t('cahierConge.filter.dateEnd')}</label>
             <input
               type="date"
               className="cc-filter-input"
@@ -434,7 +436,7 @@ function CahierCongePage() {
             />
           </div>
           <div className="cc-filter-field" style={{ minWidth: 250, flexGrow: 1 }}>
-            <label className="cc-filter-label">Employés</label>
+            <label className="cc-filter-label">{t('cahierConge.filter.employees')}</label>
             <Autocomplete
                 multiple
                 limitTags={2}
@@ -446,7 +448,7 @@ function CahierCongePage() {
                   handleEmployeeSelection(newValue.map(e => e.empcod));
                 }}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Sélectionner..." />
+                  <TextField {...params} placeholder={t('cahierConge.filter.employeesPlaceholder')} />
                 )}
                 sx={{
                   bgcolor: '#fff',
@@ -457,14 +459,14 @@ function CahierCongePage() {
           </div>
           <button className="cc-search-btn" onClick={handleSearch} disabled={!hasEffectiveEmployees || isLoading}>
             {isLoading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon sx={{ fontSize: 16 }} />}
-            RECHERCHE
+            {t('cahierConge.filter.search')}
           </button>
         </div>
         <div className="cc-status-msg" style={{ marginLeft: 4 }}>
           <span className={hasEffectiveEmployees ? 'cc-status-msg-ok' : 'cc-status-msg-warn'}>
             {hasEffectiveEmployees
-              ? `${effectiveEmployeesLabel} — ${effectiveEmpcods.length} employé(s) sélectionné(s)`
-              : 'Aucun employé actif ne correspond aux filtres.'}
+              ? t('cahierConge.filter.selectedLabel', { label: effectiveEmployeesLabel, count: effectiveEmpcods.length })
+              : t('cahierConge.filter.noEmpFilter')}
           </span>
         </div>
       </div>
@@ -473,7 +475,7 @@ function CahierCongePage() {
       <div className="cc-summary-grid">
         <div className="cc-summary-card cc-card-border-blue">
           <div className="cc-summary-card-top">
-            <span className="cc-summary-label">Total Employés</span>
+            <span className="cc-summary-label">{t('cahierConge.summary.totalEmployees')}</span>
             <div className="cc-summary-icon cc-icon-bg-blue">
               <GroupIcon sx={{ fontSize: 20 }} />
             </div>
@@ -481,50 +483,50 @@ function CahierCongePage() {
           <div className="cc-summary-value">
             {cahierData.length}
           </div>
-          <div className="cc-summary-footer">Données filtrées</div>
+          <div className="cc-summary-footer">{t('cahierConge.summary.filteredData')}</div>
         </div>
 
         <div className="cc-summary-card cc-card-border-blue">
           <div className="cc-summary-card-top">
-            <span className="cc-summary-label">Solde Initial</span>
+            <span className="cc-summary-label">{t('cahierConge.summary.initialBalance')}</span>
             <div className="cc-summary-icon cc-icon-bg-blue">
               <AccountBalanceWalletIcon sx={{ fontSize: 20 }} />
             </div>
           </div>
           <div className="cc-summary-value">
             {totalSoldini.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
-            <span className="cc-summary-unit">Jrs</span>
+            <span className="cc-summary-unit">{t('cahierConge.summary.daysShort')}</span>
           </div>
-          <div className="cc-summary-footer">Cumulatif</div>
+          <div className="cc-summary-footer">{t('cahierConge.summary.cumulative')}</div>
         </div>
 
         <div className="cc-summary-card cc-card-border-amber">
           <div className="cc-summary-card-top">
-            <span className="cc-summary-label">Congé dû</span>
+            <span className="cc-summary-label">{t('cahierConge.summary.leaveDue')}</span>
             <div className="cc-summary-icon cc-icon-bg-orange">
               <PendingActionsIcon sx={{ fontSize: 20 }} />
             </div>
           </div>
           <div className="cc-summary-value">
             {totalCongedu.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
-            <span className="cc-summary-unit">Jrs</span>
+            <span className="cc-summary-unit">{t('cahierConge.summary.daysShort')}</span>
           </div>
-          <div className="cc-summary-footer">Période en cours</div>
+          <div className="cc-summary-footer">{t('cahierConge.summary.currentPeriod')}</div>
         </div>
 
         <div className="cc-summary-card cc-card-border-green">
           <div className="cc-summary-card-top">
-            <span className="cc-summary-label">Total dû Présence</span>
+            <span className="cc-summary-label">{t('cahierConge.summary.totalDuePresence')}</span>
             <div className="cc-summary-icon cc-icon-bg-green">
               <PaymentsIcon sx={{ fontSize: 20 }} />
             </div>
           </div>
           <div className="cc-summary-value">
             {totalTotdupres.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
-            <span className="cc-summary-unit">DT</span>
+            <span className="cc-summary-unit">{t('cahierConge.summary.currency')}</span>
           </div>
           <div className="cc-summary-footer">
-            Indemnité: {totalIndemcong.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} DT
+            {t('cahierConge.summary.indemnity', { value: totalIndemcong.toLocaleString('fr-FR', { minimumFractionDigits: 0 }) })}
           </div>
         </div>
       </div>
@@ -535,22 +537,22 @@ function CahierCongePage() {
           <div>
             <div className="cc-table-title">
               <FactCheckIcon />
-              Registre du Cahier de Congés
+              {t('cahierConge.table.title')}
             </div>
             <div className="cc-table-subtitle">
-              Affichage des données consolidées du {formatDate(dateDebut)} au {formatDate(dateFin)}
+              {t('cahierConge.table.subtitle', { start: formatDate(dateDebut), end: formatDate(dateFin) })}
             </div>
           </div>
           <div className="cc-table-actions">
             <button className="cc-export-btn" onClick={handleExportExcel}>
               <DownloadIcon sx={{ fontSize: 14 }} />
-              EXPORTER EXCEL
+              {t('cahierConge.table.exportExcel')}
             </button>
             <button className="cc-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
               <PrintIcon sx={{ fontSize: 14 }} />
-              IMPRIMER PDF
+              {t('cahierConge.table.printPdf')}
             </button>
-            <button className="cc-filter-toggle" title="Filtrer">
+            <button className="cc-filter-toggle" title={t('cahierConge.table.filterTooltip')}>
               <FilterListIcon sx={{ fontSize: 16 }} />
             </button>
           </div>
@@ -566,11 +568,11 @@ function CahierCongePage() {
               <table className="cc-table">
                 <thead>
                   <tr>
-                    <th>Matricule</th>
-                    <th>Collaborateur</th>
-                    <th>Période</th>
-                    <th className="cc-th-right cc-th-primary">Nb Jours</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th>{t('cahierConge.table.headers.matricule')}</th>
+                    <th>{t('cahierConge.table.headers.collaborator')}</th>
+                    <th>{t('cahierConge.table.headers.period')}</th>
+                    <th className="cc-th-right cc-th-primary">{t('cahierConge.table.headers.nbDays')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('cahierConge.table.headers.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -578,8 +580,8 @@ function CahierCongePage() {
                     <tr>
                       <td colSpan={5} className="cc-no-data">
                         {searchTriggered
-                          ? 'Aucune donnée pour cette période.'
-                          : 'Cliquez sur RECHERCHE pour charger les données.'}
+                          ? t('cahierConge.table.noData')
+                          : t('cahierConge.table.clickSearch')}
                       </td>
                     </tr>
                   ) : (
@@ -601,9 +603,9 @@ function CahierCongePage() {
                             {item.congedu != null ? Number(item.congedu).toFixed(2) : '—'}
                           </td>
                           <td className="cc-actions">
-                            <button className="cc-action-btn" onClick={() => openDrawer(item)} title="Détails">
+                            <button className="cc-action-btn" onClick={() => openDrawer(item)} title={t('cahierConge.table.details')}>
                               <VisibilityIcon />
-                              <span className="cc-action-label">Détails</span>
+                              <span className="cc-action-label">{t('cahierConge.table.details')}</span>
                             </button>
                           </td>
                         </tr>
@@ -617,8 +619,11 @@ function CahierCongePage() {
             {cahierData.length > 0 && (
               <div className="cc-table-footer">
                 <span className="cc-table-footer-info">
-                  Affichage de {Math.min((currentPage - 1) * pageSize + 1, cahierData.length)} à{' '}
-                  {Math.min(currentPage * pageSize, cahierData.length)} sur {cahierData.length} collaborateurs
+                  {t('cahierConge.table.pagination', {
+                    start: Math.min((currentPage - 1) * pageSize + 1, cahierData.length),
+                    end: Math.min(currentPage * pageSize, cahierData.length),
+                    total: cahierData.length,
+                  })}
                 </span>
                 <div className="cc-pagination">
                   <button
@@ -658,8 +663,8 @@ function CahierCongePage() {
       <div className={`cc-drawer ${drawerOpen ? 'cc-drawer-open' : ''}`}>
         <div className="cc-drawer-header">
           <div>
-            <h3 className="cc-drawer-title">Détails Collaborateur</h3>
-            <p className="cc-drawer-subtitle">Données complètes de paie et RH</p>
+            <h3 className="cc-drawer-title">{t('cahierConge.drawer.title')}</h3>
+            <p className="cc-drawer-subtitle">{t('cahierConge.drawer.subtitle')}</p>
           </div>
           <button className="cc-drawer-close" onClick={closeDrawer}>
             <CloseIcon />
@@ -675,28 +680,28 @@ function CahierCongePage() {
                   <div className="cc-drawer-avatar">{getInitials(selectedRow.emplib)}</div>
                   <div>
                     <div className="cc-drawer-name">{selectedRow.emplib}</div>
-                    <span className="cc-drawer-matricule">Matricule: {selectedRow.empmat}</span>
+                    <span className="cc-drawer-matricule">{t('cahierConge.drawer.matriculeLabel', { value: selectedRow.empmat })}</span>
                   </div>
                 </div>
                 <div className="cc-drawer-grid">
                   <div className="cc-drawer-field">
-                    <div className="cc-drawer-field-label">Régime</div>
+                    <div className="cc-drawer-field-label">{t('cahierConge.drawer.regime')}</div>
                     <div className="cc-drawer-field-value">
-                      {selectedRow.empreg || '—'} ({selectedRow.empreg === 'M' ? 'Mensuelle' : 'Horaire'})
+                      {selectedRow.empreg || '—'} ({selectedRow.empreg === 'M' ? t('cahierConge.drawer.regimeMonthly') : t('cahierConge.drawer.regimeHourly')})
                     </div>
                   </div>
                   <div className="cc-drawer-field">
-                    <div className="cc-drawer-field-label">Salaire Journalier</div>
+                    <div className="cc-drawer-field-label">{t('cahierConge.drawer.salaryDaily')}</div>
                     <div className="cc-drawer-field-value">
-                      {selectedRow.saljou != null ? round4(selectedRow.saljou).toFixed(4) + ' DT' : '—'}
+                      {selectedRow.saljou != null ? round4(selectedRow.saljou).toFixed(4) + ' ' + t('cahierConge.drawer.currency') : '—'}
                     </div>
                   </div>
                   <div className="cc-drawer-field">
-                    <div className="cc-drawer-field-label">Date Naissance</div>
+                    <div className="cc-drawer-field-label">{t('cahierConge.drawer.birthDate')}</div>
                     <div className="cc-drawer-field-value">{formatDate(selectedRow.empdnais) || '—'}</div>
                   </div>
                   <div className="cc-drawer-field">
-                    <div className="cc-drawer-field-label">Date Embauche</div>
+                    <div className="cc-drawer-field-label">{t('cahierConge.drawer.hireDate')}</div>
                     <div className="cc-drawer-field-value">{formatDate(selectedRow.empemb) || '—'}</div>
                   </div>
                 </div>
@@ -706,26 +711,26 @@ function CahierCongePage() {
               <div className="cc-drawer-section">
                 <h5 className="cc-drawer-section-title">
                   <span className="cc-drawer-bar cc-drawer-bar-blue" />
-                  Calculs Congé
+                  {t('cahierConge.drawer.calculationsTitle')}
                 </h5>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Solde Initial</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.initialBalance')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.soldini != null ? Number(selectedRow.soldini).toFixed(2) : '—'} Jours
+                    {selectedRow.soldini != null ? Number(selectedRow.soldini).toFixed(2) : '—'} {t('cahierConge.drawer.days')}
                   </span>
                 </div>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Jours Congé dû</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.leaveDueDays')}</span>
                   <span className="cc-drawer-row-value cc-drawer-row-value-red">
-                    {selectedRow.congedu != null ? Number(selectedRow.congedu).toFixed(2) : '—'} Jours
+                    {selectedRow.congedu != null ? Number(selectedRow.congedu).toFixed(2) : '—'} {t('cahierConge.drawer.days')}
                   </span>
                 </div>
                 <div className="cc-drawer-row cc-drawer-row-highlight">
                   <span className="cc-drawer-row-value" style={{ fontWeight: 700, color: '#1e40af' }}>
-                    Indemnité Congé dû
+                    {t('cahierConge.drawer.leaveDueIndemnity')}
                   </span>
                   <span className="cc-drawer-row-value" style={{ fontWeight: 900, color: '#1e40af' }}>
-                    {selectedRow.indemdu != null ? Number(selectedRow.indemdu).toFixed(2) : '—'} DT
+                    {selectedRow.indemdu != null ? Number(selectedRow.indemdu).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
                   </span>
                 </div>
               </div>
@@ -734,18 +739,18 @@ function CahierCongePage() {
               <div className="cc-drawer-section">
                 <h5 className="cc-drawer-section-title">
                   <span className="cc-drawer-bar cc-drawer-bar-orange" />
-                  Ancienneté
+                  {t('cahierConge.drawer.seniorityTitle')}
                 </h5>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Jours Ancienneté</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.seniorityDays')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.jouanc != null ? Number(selectedRow.jouanc).toFixed(2) : '—'} Jours
+                    {selectedRow.jouanc != null ? Number(selectedRow.jouanc).toFixed(2) : '—'} {t('cahierConge.drawer.days')}
                   </span>
                 </div>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Montant Ancienneté</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.seniorityAmount')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.montanc != null ? Number(selectedRow.montanc).toFixed(2) : '—'} DT
+                    {selectedRow.montanc != null ? Number(selectedRow.montanc).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
                   </span>
                 </div>
               </div>
@@ -754,30 +759,30 @@ function CahierCongePage() {
               <div className="cc-drawer-section">
                 <h5 className="cc-drawer-section-title">
                   <span className="cc-drawer-bar cc-drawer-bar-green" />
-                  Jeune Travailleur
+                  {t('cahierConge.drawer.youngWorkerTitle')}
                 </h5>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Congé Jeune Trav.</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.youngWorkerLeave')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.conjeutrv != null ? Number(selectedRow.conjeutrv).toFixed(2) : '—'} Jours
+                    {selectedRow.conjeutrv != null ? Number(selectedRow.conjeutrv).toFixed(2) : '—'} {t('cahierConge.drawer.days')}
                   </span>
                 </div>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Montant Congé Jeune Trav.</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.youngWorkerLeaveAmount')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.montjeutrv != null ? Number(selectedRow.montjeutrv).toFixed(2) : '—'} DT
+                    {selectedRow.montjeutrv != null ? Number(selectedRow.montjeutrv).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
                   </span>
                 </div>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Jours Jeune Trav.</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.youngWorkerDays')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.jourjeutrv != null ? Number(selectedRow.jourjeutrv).toFixed(2) : '—'} Jours
+                    {selectedRow.jourjeutrv != null ? Number(selectedRow.jourjeutrv).toFixed(2) : '—'} {t('cahierConge.drawer.days')}
                   </span>
                 </div>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Montant Jours Jeune Trav.</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.youngWorkerDaysAmount')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.montjourjeutrv != null ? Number(selectedRow.montjourjeutrv).toFixed(2) : '—'} DT
+                    {selectedRow.montjourjeutrv != null ? Number(selectedRow.montjourjeutrv).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
                   </span>
                 </div>
               </div>
@@ -786,22 +791,22 @@ function CahierCongePage() {
               <div className="cc-drawer-section">
                 <h5 className="cc-drawer-section-title">
                   <span className="cc-drawer-bar cc-drawer-bar-blue" />
-                  Totaux & Indemnités
+                  {t('cahierConge.drawer.totalsTitle')}
                 </h5>
                 <div className="cc-drawer-row cc-drawer-row-highlight">
                   <span className="cc-drawer-row-value" style={{ fontWeight: 700, color: '#1e40af' }}>
-                    Total dû Présence
+                    {t('cahierConge.drawer.totalDuePresence')}
                   </span>
                   <span className="cc-drawer-row-value" style={{ fontWeight: 900, color: '#1e40af' }}>
-                    {selectedRow.totdupres != null ? Number(selectedRow.totdupres).toFixed(2) : '—'} DT
+                    {selectedRow.totdupres != null ? Number(selectedRow.totdupres).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
                   </span>
                 </div>
                 <div className="cc-drawer-row cc-drawer-row-highlight">
                   <span className="cc-drawer-row-value" style={{ fontWeight: 700, color: '#059669' }}>
-                    Indemnité Congé
+                    {t('cahierConge.drawer.leaveIndemnity')}
                   </span>
                   <span className="cc-drawer-row-value" style={{ fontWeight: 900, color: '#059669' }}>
-                    {selectedRow.indemcong != null ? Number(selectedRow.indemcong).toFixed(2) : '—'} DT
+                    {selectedRow.indemcong != null ? Number(selectedRow.indemcong).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
                   </span>
                 </div>
               </div>
@@ -811,11 +816,11 @@ function CahierCongePage() {
                 <div className="cc-drawer-section">
                   <h5 className="cc-drawer-section-title">
                     <span className="cc-drawer-bar cc-drawer-bar-orange" />
-                    Départ & Retour
+                    {t('cahierConge.drawer.departureReturnTitle')}
                   </h5>
                   {selectedRow.datdep && (
                     <div className="cc-drawer-row">
-                      <span className="cc-drawer-row-label">Date Départ</span>
+                      <span className="cc-drawer-row-label">{t('cahierConge.drawer.departureDate')}</span>
                       <span className="cc-drawer-row-value">
                         {formatDate(selectedRow.datdep)}
                         {selectedRow.depam ? ` ${selectedRow.depam}` : ''}
@@ -824,7 +829,7 @@ function CahierCongePage() {
                   )}
                   {selectedRow.datret && (
                     <div className="cc-drawer-row">
-                      <span className="cc-drawer-row-label">Date Retour</span>
+                      <span className="cc-drawer-row-label">{t('cahierConge.drawer.returnDate')}</span>
                       <span className="cc-drawer-row-value">
                         {formatDate(selectedRow.datret)}
                         {selectedRow.retam ? ` ${selectedRow.retam}` : ''}
@@ -838,16 +843,16 @@ function CahierCongePage() {
               <div className="cc-drawer-section">
                 <h5 className="cc-drawer-section-title">
                   <span className="cc-drawer-bar cc-drawer-bar-blue" />
-                  Informations Période
+                  {t('cahierConge.drawer.periodTitle')}
                 </h5>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Somme Période</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.periodSum')}</span>
                   <span className="cc-drawer-row-value">
                     {selectedRow.somper != null ? Number(selectedRow.somper).toFixed(2) : '—'}
                   </span>
                 </div>
                 <div className="cc-drawer-row">
-                  <span className="cc-drawer-row-label">Période Temporis</span>
+                  <span className="cc-drawer-row-label">{t('cahierConge.drawer.periodTemporis')}</span>
                   <span className="cc-drawer-row-value">{selectedRow.pretemps || '—'}</span>
                 </div>
               </div>
@@ -856,7 +861,7 @@ function CahierCongePage() {
             <div className="cc-drawer-footer">
               <button className="cc-export-btn" onClick={handleExportExcel} style={{ width: '100%', justifyContent: 'center' }}>
                 <DownloadIcon sx={{ fontSize: 16 }} />
-                EXPORTER LA FICHE COMPLÈTE
+                {t('cahierConge.drawer.exportSheet')}
               </button>
             </div>
           </>

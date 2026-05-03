@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Typography } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
 import PrintIcon from '@mui/icons-material/Print';
+import { useTranslation } from "react-i18next";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { EmployeeContext } from "../../Pointeuse/EtatPeriodique/EmployeeContext";
@@ -12,6 +13,7 @@ import EmployeeMultiSelectDropdown from "../../helper/EmployeeMultiSelectDropdow
 import '../CahierConge/CahierConge.css';
 
 function FilterRetard() {
+  const { t } = useTranslation();
   const { soccod } = useAuth();
   const { setSelectedEmp } = useContext(EmployeeContext);
   const {
@@ -170,9 +172,9 @@ function FilterRetard() {
     <div className="cc-filter-section">
       <div className="cc-filter-row">
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Filiale</label>
+          <label className="cc-filter-label">{t('etats.filter.branch')}</label>
           <select className="cc-filter-select" value={selectedFiliale} onChange={(e) => setSelectedFiliale(e.target.value)}>
-            <option value="">Toutes</option>
+            <option value="">{t('etats.filter.all')}</option>
             {Object.entries(filiale).map(([cod, lib]) => (
               <option key={cod} value={cod}>{lib}</option>
             ))}
@@ -180,9 +182,9 @@ function FilterRetard() {
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Service</label>
+          <label className="cc-filter-label">{t('etats.filter.service')}</label>
           <select className="cc-filter-select" value={selectedService} onChange={(e) => setSelectedService(e.target.value)} disabled={isServiceLocked}>
-            <option value="">{isServiceLocked ? 'Mon service' : 'Tous'}</option>
+            <option value="">{isServiceLocked ? t('etats.filter.myService') : t('etats.filter.allService')}</option>
             {Object.entries(services).map(([cod, lib]) => (
               <option key={cod} value={cod}>{lib}</option>
             ))}
@@ -190,9 +192,9 @@ function FilterRetard() {
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Regime</label>
+          <label className="cc-filter-label">{t('etats.filter.regime')}</label>
           <select className="cc-filter-select" value={selectedRegime} onChange={(e) => setSelectedRegime(e.target.value)}>
-            <option value="">Tous</option>
+            <option value="">{t('etats.filter.regimeAll')}</option>
             {Object.entries(regimeOptions).map(([cod, lib]) => (
               <option key={cod} value={cod}>{lib}</option>
             ))}
@@ -200,27 +202,27 @@ function FilterRetard() {
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Date Debut</label>
+          <label className="cc-filter-label">{t('etats.filter.dateStart')}</label>
           <input className="cc-filter-input" type="date" value={dateDebut} onChange={(e) => setStartDate(e.target.value)} />
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Date Fin</label>
+          <label className="cc-filter-label">{t('etats.filter.dateEnd')}</label>
           <input className="cc-filter-input" type="date" value={dateFin} onChange={(e) => setEndDate(e.target.value)} />
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Annee</label>
+          <label className="cc-filter-label">{t('etats.filter.year')}</label>
           <input className="cc-filter-input" type="number" value={annee} onChange={(e) => setAnnee(e.target.value)} />
         </div>
 
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Retard min</label>
+          <label className="cc-filter-label">{t('etats.filter.minDelay')}</label>
           <input className="cc-filter-input" type="number" value={retmin} onChange={(e) => setRetmin(Number(e.target.value || 0))} />
         </div>
 
         <div className="cc-filter-field" style={{ minWidth: 220 }}>
-          <label className="cc-filter-label">Employes</label>
+          <label className="cc-filter-label">{t('etats.filter.employees')}</label>
           <EmployeeMultiSelectDropdown
             options={Object.entries((emplibs || {}) as Record<string, string>).map(([code, label]) => ({ code, label: String(label) }))}
             value={selectedEmpCodes}
@@ -229,31 +231,29 @@ function FilterRetard() {
         </div>
 
         <button className="cc-search-btn" onClick={handleApplyFilter} disabled={!hasEffectiveEmployees}>
-          <SearchIcon sx={{ fontSize: 16 }} /> FILTRER
+          <SearchIcon sx={{ fontSize: 16 }} /> {t('etats.filter.filterBtn')}
         </button>
 
         <button className="cc-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
-          <PrintIcon sx={{ fontSize: 16 }} /> IMPRIMER
+          <PrintIcon sx={{ fontSize: 16 }} /> {t('etats.filter.printBtn')}
         </button>
       </div>
 
       <div className="cc-filter-row" style={{ marginTop: 10 }}>
-        <label className="cc-filter-label" style={{ marginBottom: 0, marginRight: 8 }}>Options:</label>
+        <label className="cc-filter-label" style={{ marginBottom: 0, marginRight: 8 }}>{t('etats.filter.options')}:</label>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
-          <input type="checkbox" checked={compterAvance} onChange={(e) => setCompterAvance(e.target.checked)} /> Compter avance
+          <input type="checkbox" checked={compterAvance} onChange={(e) => setCompterAvance(e.target.checked)} /> {t('etats.filter.countAdvance')}
         </label>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
-          <input type="checkbox" checked={retmat} onChange={(e) => setRetmat(e.target.checked)} /> Retard matin
+          <input type="checkbox" checked={retmat} onChange={(e) => setRetmat(e.target.checked)} /> {t('etats.filter.morningLate')}
         </label>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
-          <input type="checkbox" checked={retapres} onChange={(e) => setRetapres(e.target.checked)} /> Retard AM
+          <input type="checkbox" checked={retapres} onChange={(e) => setRetapres(e.target.checked)} /> {t('etats.filter.afternoonLate')}
         </label>
       </div>
 
       <Typography variant="body2" color={hasEffectiveEmployees ? "text.secondary" : "warning.main"} sx={{ mt: 1.2 }}>
-        {hasEffectiveEmployees
-          ? effectiveEmployeesLabel
-          : "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe."}
+        {hasEffectiveEmployees ? effectiveEmployeesLabel : t('etats.filter.noEffectiveEmps')}
       </Typography>
     </div>
   );

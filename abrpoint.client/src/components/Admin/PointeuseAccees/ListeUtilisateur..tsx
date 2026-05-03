@@ -5,26 +5,28 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import { useTranslation } from 'react-i18next';
 import useGetUsers from '../../../hooks/userHooks/useGetUsers';
 import { useUserContext } from '../../helper/UserProvider';
 
 export default function ListeUtilisateur() {
+  const { t } = useTranslation();
   const { data: users, isLoading, error } = useGetUsers();
   const { selectedUser, setSelectedUser } = useUserContext();
 
-  if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Error fetching users</p>;
+  if (isLoading) return <p>{t('pointeuseAccees.list.loading')}</p>;
+  if (error) return <p>{t('pointeuseAccees.list.fetchError')}</p>;
 
   return (
     <TableContainer component={Paper} sx={{ maxHeight: 450, position: 'relative' }}>
       <Table size="small" aria-label="a dense table" >
         <TableHead sx={{ backgroundColor: '#1976d2', position: 'sticky', top: 0, zIndex: 1 }}>
           <TableRow>
-            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Code</TableCell>
-            <TableCell align="left" sx={{ color: 'white', fontWeight: 'bold' }}>Nom</TableCell>
-            <TableCell align="left" sx={{ color: 'white', fontWeight: 'bold' }}>Prénom</TableCell>
-            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>Actif</TableCell>
-            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>Admin</TableCell>
+            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>{t('pointeuseAccees.list.code')}</TableCell>
+            <TableCell align="left" sx={{ color: 'white', fontWeight: 'bold' }}>{t('pointeuseAccees.list.name')}</TableCell>
+            <TableCell align="left" sx={{ color: 'white', fontWeight: 'bold' }}>{t('pointeuseAccees.list.firstName')}</TableCell>
+            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>{t('pointeuseAccees.list.active')}</TableCell>
+            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>{t('pointeuseAccees.list.admin')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -44,8 +46,8 @@ export default function ListeUtilisateur() {
               <TableCell component="th" scope="row">{user.uticod}</TableCell>
               <TableCell align="left">{user.utinom}</TableCell>
               <TableCell align="left">{user.utiprn}</TableCell>
-              <TableCell align="center">{user.utiactif === '1' ? 'Oui' : 'Non'}</TableCell>
-              <TableCell align="center">{user.utiadm === '1' ? 'Oui' : 'Non'}</TableCell>
+              <TableCell align="center">{user.utiactif === '1' ? t('pointeuseAccees.list.yes') : t('pointeuseAccees.list.no')}</TableCell>
+              <TableCell align="center">{user.utiadm === '1' ? t('pointeuseAccees.list.yes') : t('pointeuseAccees.list.no')}</TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -307,8 +307,8 @@ export default function HomeScreen({ navigation }: any) {
                 {pointing
                   ? 'Localisation en cours...'
                   : todayStatus.hasEntry && !todayStatus.hasExit
-                  ? 'Pointer la Sortie'
-                  : "Pointer l'Entrée"}
+                  ? 'Pointer'
+                  : "Pointer"}
               </Text>
             </LinearGradient>
           </TouchableOpacity>

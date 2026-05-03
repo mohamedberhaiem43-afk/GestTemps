@@ -391,6 +391,19 @@ namespace ABRPOINT.Server.Repository
             var profile = _mapper.Map<UtiProfile>(utilisateur.Utilisateur);
             profile.Sitcod = utilisateur.SocUser.Sitcod;
             profile.Soccod = utilisateur.SocUser.Soccod;
+            profile.Soclib = await _dbContext.Societes
+                .Where(s => s.Soccod == soccod)
+                .Select(s => s.Soclib)
+                .FirstOrDefaultAsync();
+
+            var employe = await _dbContext.Employes
+                .Where(e => e.Soccod == soccod && e.Empcod == uticod)
+                .SingleOrDefaultAsync();
+
+            if (employe != null)
+            {
+                profile.Employee = _mapper.Map<EmployeDto>(employe);
+            }
 
             return profile;
         }

@@ -11,6 +11,10 @@ namespace ABRPOINT.Server.Dtaos
         public string? Utinom { get; set; }
         public string? Utiprn { get; set; }
         public string? Utimail { get; set; }
+        public string? Utirole { get; set; }
+        public string? Utiimg { get; set; }
+        public string? Soclib { get; set; }
+        public EmployeDto? Employee { get; set; }
 
         [JsonPropertyName("uti2fa_enabled")]
         public string? UtiTwoFactorEnabled { get; set; }

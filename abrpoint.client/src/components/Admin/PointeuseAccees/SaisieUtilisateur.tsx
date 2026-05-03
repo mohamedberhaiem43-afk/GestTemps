@@ -107,9 +107,9 @@ function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProp
         if (error) {
             const apiError = error as ApiError;
             const errorMessage =
-                apiError.response?.data?.message || 
+                apiError.response?.data?.message ||
                 apiError.message || // Fallback to error.message
-                "Erreur lors de l'ajout de l'utilisateur."; 
+                t('pointeuseAccees.form.addError');
             handleSnackbarOpen(errorMessage, 'error');
         }
     }, [error]);
@@ -121,17 +121,17 @@ function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProp
                     <InputComponent type="text" label={t('common.code')} readOnly={state} value={uticod} setValue={setCode} />
                 </Grid>
                 <Grid item xs={2}>
-                    <InputComponent type="text" label="Email" readOnly={state} value={utimail} setValue={setUtimail} />
+                    <InputComponent type="text" label={t('pointeuseAccees.form.email')} readOnly={state} value={utimail} setValue={setUtimail} />
                 </Grid>
                 <Grid item xs={1.5}>
-                    <InputComponent type="text" label="Nom" readOnly={state} value={utinom} setValue={setNom} />
+                    <InputComponent type="text" label={t('pointeuseAccees.form.name')} readOnly={state} value={utinom} setValue={setNom} />
                 </Grid>
                 <Grid item xs={1.5}>
-                    <InputComponent type="text" label="Prénom" readOnly={state} value={utiprn} setValue={setPrenom} />
+                    <InputComponent type="text" label={t('pointeuseAccees.form.firstName')} readOnly={state} value={utiprn} setValue={setPrenom} />
                 </Grid>
                 <Grid item xs={1.5} mt={1}>
                     <SelectInputComponent
-                        label="Société"
+                        label={t('pointeuseAccees.form.company')}
                         value={societe}
                         setValue={setSociete}
                         maplist={socLibs || []}
@@ -139,14 +139,14 @@ function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProp
                 </Grid>
                 <Grid item xs={1.5} mt={1}>
                     <SelectInputComponent
-                        label="Site"
+                        label={t('pointeuseAccees.form.site')}
                         value={site}
                         setValue={setSite}
                         maplist={sitLibs || []}
                     />
                 </Grid>
                 <Grid item xs={1} mt={3}>
-                    <CheckboxComponent label="Administrateur" value={utiadm} setValue={setIsAdmin} />
+                    <CheckboxComponent label={t('pointeuseAccees.form.administrator')} value={utiadm} setValue={setIsAdmin} />
                 </Grid>
 
                 <Grid item xs={12}>

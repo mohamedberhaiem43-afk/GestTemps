@@ -22,7 +22,7 @@ interface AuthContextType {
   user: UserInfo | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, company?: string, tenantSlug?: string) => Promise<void>;
+  login: (email: string, password: string, tenantSlug?: string) => Promise<void>;
   logout: () => Promise<void>;
   isAdmin: boolean;
   isManager: boolean;
@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string, company?: string, tenantSlug?: string) => {
-    const data = await apiService.login(email, password, company, tenantSlug);
+  const login = async (email: string, password: string, tenantSlug?: string) => {
+    const data = await apiService.login(email, password, tenantSlug);
     setUser(data.user);
   };
 

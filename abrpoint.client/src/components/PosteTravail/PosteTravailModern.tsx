@@ -1,6 +1,7 @@
 import { Box, Typography, Switch, Paper } from "@mui/material";
 import { useContext, useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "react-query";
+import { useTranslation } from "react-i18next";
 import { PosteContext } from "../helper/PostProvider/PostContext";
 import { Poste } from "../../models/Poste";
 import useGetAllPostes from "../../hooks/posteHooks/useGetAllPostes";
@@ -27,6 +28,7 @@ const emptySchedule = [
 ];
 
 export default function PosteTravailModern() {
+  const { t } = useTranslation();
   const [saisieData, setSaisieData] = useState<Poste>({} as Poste);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -54,7 +56,7 @@ export default function PosteTravailModern() {
   const canDelete = hasPermission('Paramètres de Temps', 'delete');
 
   if (!hasPermission('Paramètres de Temps', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter les postes de travail." />;
+    return <AccessDenied message={t('posteTravail.noConsultRight')} />;
   }
 
   const { data: poste } = useGetAllPostes(selectedPoste?.codposte);
@@ -130,11 +132,11 @@ export default function PosteTravailModern() {
     if (mode === "update") {
       updatePoste(mergedData, {
         onSuccess: () => {
-          showSnackbar("Poste mis à jour avec succès", "success");
+          showSnackbar(t('posteTravail.msg.updatedSuccess'), "success");
           queryClient.invalidateQueries(["postes", soccod]);
           queryClient.invalidateQueries(["all-postes", soccod]);
         },
-        onError: (err: any) => showSnackbar(err?.response?.data?.message || "Erreur lors de la mise à jour", "error")
+        onError: (err: any) => showSnackbar(err?.response?.data?.message || t('posteTravail.msg.updateError'), "error")
       });
     } else {
       addPoste(mergedData, {
@@ -148,7 +150,7 @@ export default function PosteTravailModern() {
             setSelectedPoste({ codposte: mergedData.codposte || '', libposte: mergedData.libposte || '', soccod: soccod || '' });
           }
         },
-        onError: (err: any) => showSnackbar(err?.response?.data?.message || "Erreur lors de l'ajout", "error")
+        onError: (err: any) => showSnackbar(err?.response?.data?.message || t('posteTravail.msg.addError'), "error")
       });
     }
   };
@@ -165,7 +167,7 @@ export default function PosteTravailModern() {
           setModalOpen(false);
           resetForm();
         },
-        onError: (err: any) => showSnackbar(err?.response?.data?.message || "Erreur lors de la suppression", "error")
+        onError: (err: any) => showSnackbar(err?.response?.data?.message || t('posteTravail.msg.deleteError'), "error")
       }
     );
   };
@@ -198,7 +200,7 @@ export default function PosteTravailModern() {
       };
     });
     setScheduleData(updated);
-    showSnackbar("Horaires appliqués à tous les jours", "info");
+    showSnackbar(t('posteTravail.msg.appliedAll'), "info");
   };
 
   const postesArray = useMemo(() => {
@@ -216,20 +218,20 @@ export default function PosteTravailModern() {
         <Box>
           <Box className="shift-id-badge">
             <span className="id-tag">{saisieData.codposte || 'NEW'}</span>
-            <span className="id-label">Shift ID</span>
+            <span className="id-label">{t('posteTravail.header.shiftId')}</span>
           </Box>
-          <Typography className="shift-title">{saisieData.libposte || 'Nouveau Poste'}</Typography>
-          <Typography className="shift-subtitle">Configuration détaillée du planning de travail</Typography>
+          <Typography className="shift-title">{saisieData.libposte || t('posteTravail.header.newPoste')}</Typography>
+          <Typography className="shift-subtitle">{t('posteTravail.header.subtitle')}</Typography>
         </Box>
         <Box className="header-actions">
           {mode === 'update' && canDelete && (
             <button className="btn-cancel" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fee2e2' }} onClick={() => setModalOpen(true)}>
-              Supprimer
+              {t('posteTravail.header.delete')}
             </button>
           )}
-          <button className="btn-cancel" onClick={resetForm}>Annuler</button>
+          <button className="btn-cancel" onClick={resetForm}>{t('posteTravail.header.cancel')}</button>
           {((mode === 'add' && canAdd) || (mode === 'update' && canModify)) && (
-            <button className="btn-save" onClick={handleSave}>Enregistrer</button>
+            <button className="btn-save" onClick={handleSave}>{t('posteTravail.header.save')}</button>
           )}
         </Box>
       </Box>
@@ -244,15 +246,15 @@ export default function PosteTravailModern() {
             <Paper className="modern-card">
               <Box className="card-header">
                 <span className="material-symbols-outlined">edit</span>
-                <Typography className="card-title">Identification</Typography>
+                <Typography className="card-title">{t('posteTravail.identification.title')}</Typography>
               </Box>
               <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
                 <Box>
-                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>CODE POSTE</Typography>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>{t('posteTravail.identification.codePoste')}</Typography>
                   <input className="modern-input" value={saisieData.codposte || ''} onChange={e => setSaisieData({ ...saisieData, codposte: e.target.value })} disabled={mode === 'update' || (mode === 'add' && !canAdd)} />
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>LIBELLÉ DU POSTE</Typography>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>{t('posteTravail.identification.labelPoste')}</Typography>
                   <input className="modern-input" value={saisieData.libposte || ''} onChange={e => setSaisieData({ ...saisieData, libposte: e.target.value })} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
                 </Box>
               </Box>
@@ -262,43 +264,43 @@ export default function PosteTravailModern() {
             <Paper className="modern-card">
               <Box className="card-header">
                 <span className="material-symbols-outlined">timer</span>
-                <Typography className="card-title">Tolérances (min)</Typography>
+                <Typography className="card-title">{t('posteTravail.tolerance.title')}</Typography>
               </Box>
               <Box className="tolerance-grid">
                 <Box>
-                  <span className="tolerance-col-title">Entrée</span>
+                  <span className="tolerance-col-title">{t('posteTravail.tolerance.entry')}</span>
                   <Box className="tolerance-input-group">
-                    <span>AVANT</span>
-                    <input className="modern-input" type="number" 
-                      value={toleranceEntry.avant} 
-                      onChange={e => setToleranceEntry({ ...toleranceEntry, avant: Number(e.target.value) })} 
+                    <span>{t('posteTravail.tolerance.before')}</span>
+                    <input className="modern-input" type="number"
+                      value={toleranceEntry.avant}
+                      onChange={e => setToleranceEntry({ ...toleranceEntry, avant: Number(e.target.value) })}
                       disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
                     />
                   </Box>
                   <Box className="tolerance-input-group">
-                    <span>APRÈS</span>
-                    <input className="modern-input" type="number" 
-                      value={toleranceEntry.apres} 
-                      onChange={e => setToleranceEntry({ ...toleranceEntry, apres: Number(e.target.value) })} 
+                    <span>{t('posteTravail.tolerance.after')}</span>
+                    <input className="modern-input" type="number"
+                      value={toleranceEntry.apres}
+                      onChange={e => setToleranceEntry({ ...toleranceEntry, apres: Number(e.target.value) })}
                       disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
                     />
                   </Box>
                 </Box>
                 <Box>
-                  <span className="tolerance-col-title">Sortie</span>
+                  <span className="tolerance-col-title">{t('posteTravail.tolerance.exit')}</span>
                   <Box className="tolerance-input-group">
-                    <span>AVANT</span>
-                    <input className="modern-input" type="number" 
-                      value={toleranceExit.avant} 
-                      onChange={e => setToleranceExit({ ...toleranceExit, avant: Number(e.target.value) })} 
+                    <span>{t('posteTravail.tolerance.before')}</span>
+                    <input className="modern-input" type="number"
+                      value={toleranceExit.avant}
+                      onChange={e => setToleranceExit({ ...toleranceExit, avant: Number(e.target.value) })}
                       disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
                     />
                   </Box>
                   <Box className="tolerance-input-group">
-                    <span>APRÈS</span>
-                    <input className="modern-input" type="number" 
-                      value={toleranceExit.apres} 
-                      onChange={e => setToleranceExit({ ...toleranceExit, apres: Number(e.target.value) })} 
+                    <span>{t('posteTravail.tolerance.after')}</span>
+                    <input className="modern-input" type="number"
+                      value={toleranceExit.apres}
+                      onChange={e => setToleranceExit({ ...toleranceExit, apres: Number(e.target.value) })}
                       disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
                     />
                   </Box>
@@ -312,13 +314,13 @@ export default function PosteTravailModern() {
             <Box>
               <Box className="card-header">
                 <span className="material-symbols-outlined">coffee</span>
-                <Typography className="card-title">Pauses & Règles</Typography>
+                <Typography className="card-title">{t('posteTravail.rules.title')}</Typography>
               </Box>
               <Box className="rules-container" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                 <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
                   <Box className="rule-label">
                     <Switch checked={pausesEnabled} onChange={e => setPausesEnabled(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
-                    <span>Pause Auto Avant Travail</span>
+                    <span>{t('posteTravail.rules.pauseBefore')}</span>
                   </Box>
                   <select className="modern-select" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}>
                     <option>15 min</option>
@@ -328,7 +330,7 @@ export default function PosteTravailModern() {
                 <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
                   <Box className="rule-label">
                     <Switch checked={repasEnabled} onChange={e => setRepasEnabled(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
-                    <span>Pause Auto Après Travail</span>
+                    <span>{t('posteTravail.rules.pauseAfter')}</span>
                   </Box>
                   <select className="modern-select" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}>
                     <option>15 min</option>
@@ -338,13 +340,13 @@ export default function PosteTravailModern() {
                 <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
                   <Box className="rule-label">
                     <Switch checked={sanctionRetard} onChange={e => setSanctionRetard(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
-                    <span>Sanction Retard</span>
+                    <span>{t('posteTravail.rules.lateSanction')}</span>
                   </Box>
                 </Box>
                 <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
                   <Box className="rule-label">
                     <Switch checked={bonusPresence} onChange={e => setBonusPresence(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
-                    <span>Bonus Présence</span>
+                    <span>{t('posteTravail.rules.presenceBonus')}</span>
                   </Box>
                 </Box>
               </Box>
@@ -354,11 +356,11 @@ export default function PosteTravailModern() {
           {/* Weekly Schedule Table */}
           <Paper className="modern-card table-card">
             <Box className="table-header-row">
-              <Typography className="card-title">Planning Hebdomadaire</Typography>
+              <Typography className="card-title">{t('posteTravail.schedule.title')}</Typography>
               {((mode === 'add' && canAdd) || (mode === 'update' && canModify)) && (
                 <button className="btn-apply-all" onClick={handleApplyAll}>
                   <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>
-                  Appliquer à tous les jours (basé sur Lundi)
+                  {t('posteTravail.schedule.applyAll')}
                 </button>
               )}
             </Box>
@@ -366,17 +368,17 @@ export default function PosteTravailModern() {
               <table className="modern-table">
                 <thead>
                   <tr>
-                    <th>Journée</th>
-                    <th>Début Matin</th>
-                    <th>Entrée M.</th>
-                    <th>Fin M.</th>
-                    <th>Sortie M.</th>
-                    <th>Début Midi</th>
-                    <th>Entrée Midi</th>
-                    <th>Sortie PM</th>
-                    <th>Fin PM</th>
-                    <th>Repas</th>
-                    <th>Repos</th>
+                    <th>{t('posteTravail.schedule.headers.day')}</th>
+                    <th>{t('posteTravail.schedule.headers.startMorning')}</th>
+                    <th>{t('posteTravail.schedule.headers.entryMorning')}</th>
+                    <th>{t('posteTravail.schedule.headers.endMorning')}</th>
+                    <th>{t('posteTravail.schedule.headers.exitMorning')}</th>
+                    <th>{t('posteTravail.schedule.headers.startNoon')}</th>
+                    <th>{t('posteTravail.schedule.headers.entryNoon')}</th>
+                    <th>{t('posteTravail.schedule.headers.exitPm')}</th>
+                    <th>{t('posteTravail.schedule.headers.endPm')}</th>
+                    <th>{t('posteTravail.schedule.headers.meal')}</th>
+                    <th>{t('posteTravail.schedule.headers.rest')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -384,7 +386,7 @@ export default function PosteTravailModern() {
                     <tr key={idx} className={row.repos === '1' ? 'row-weekend' : ''}>
                       <td className="row-day">{row.jour}</td>
                       {row.repos === '1' ? (
-                        <td colSpan={9} className="weekend-text">Repos hebdomadaire</td>
+                        <td colSpan={9} className="weekend-text">{t('posteTravail.schedule.weeklyRest')}</td>
                       ) : (
                         <>
                           <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.DebEntree || ''} onChange={e => handleScheduleChange(idx, 'DebEntree', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
@@ -415,7 +417,7 @@ export default function PosteTravailModern() {
         <Box className="side-column" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Paper className="modern-card">
             <Box className="list-header">
-              <Typography className="card-title">Liste des Postes</Typography>
+              <Typography className="card-title">{t('posteTravail.list.title')}</Typography>
               {canAdd && (
                 <button className="btn-add-poste" onClick={resetForm}>
                   <span className="material-symbols-outlined">add</span>
@@ -430,11 +432,11 @@ export default function PosteTravailModern() {
                   onClick={() => setSelectedPoste(p)}
                 >
                   <Box className="poste-item-header">
-                    <span className="poste-id-text">ID {p.codposte}</span>
+                    <span className="poste-id-text">{t('posteTravail.list.idPrefix', { id: p.codposte })}</span>
                     {selectedPoste?.codposte === p.codposte && <span className="material-symbols-outlined" style={{ fontSize: 14 }}>lock</span>}
                   </Box>
                   <Typography className="poste-name-text">{p.libposte}</Typography>
-                  <Typography className="poste-desc-text">Poste Actif</Typography>
+                  <Typography className="poste-desc-text">{t('posteTravail.list.active')}</Typography>
                 </Box>
               ))}
             </Box>
@@ -450,7 +452,7 @@ export default function PosteTravailModern() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onConfirm={handleDelete}
-        message={`Voulez-vous vraiment supprimer le poste "${selectedPoste?.libposte}" ?`}
+        message={t('posteTravail.confirmDelete', { label: selectedPoste?.libposte ?? '' })}
       />
 
       <CustomizedSnackbars

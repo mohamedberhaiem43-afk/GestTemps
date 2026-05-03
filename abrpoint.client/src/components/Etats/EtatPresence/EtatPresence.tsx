@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
+import { useTranslation } from 'react-i18next';
 import EmpPresence from './EmpPresence';
 import { Item } from '../../helper/Item/Item';
 import { DateRangeProvider } from '../../Pointeuse/EtatPeriodique/FilterContext';
@@ -10,11 +11,12 @@ import AccessDenied from '../../helper/AccessDenied';
 
 
 export default function EtatPresence() {
+  const { t } = useTranslation();
   const queryClient = new QueryClient();
   const { hasPermission } = useAuth();
 
   if (!hasPermission('Rapports et Statistiques', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter l'état de présence." />;
+    return <AccessDenied message={t('etats.presence.noConsultRight')} />;
   }
 
   return (

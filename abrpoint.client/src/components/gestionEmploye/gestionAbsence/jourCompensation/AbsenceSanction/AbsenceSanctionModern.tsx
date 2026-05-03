@@ -16,6 +16,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { useTranslation } from 'react-i18next';
 import useGetAbsencesLibs from '../../../../../hooks/absenceHooks/useGetAbsenceLibs';
 import useGetEmployee from '../../../../../hooks/employeHooks/useGetEmployee';
 import useAddSanction from '../../../../../hooks/sanctionHooks/useAddSanction';
@@ -33,6 +34,7 @@ import autoTable from 'jspdf-autotable';
 import './AbsenceSanctionModern.css';
 
 function AbsenceSanctionModernContent() {
+  const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
 
   const canAdd = hasPermission('Absences et Sanctions', 'add');
@@ -150,7 +152,7 @@ function AbsenceSanctionModernContent() {
   // Save handler
   const handleSubmit = () => {
     if (!abscod) {
-      setSnack({ open: true, msg: "Veuillez saisir le code absence.", sev: 'error' });
+      setSnack({ open: true, msg: t('absenceSanction.msg.imputationRequired'), sev: 'error' });
       return;
     }
     setIsSaving(true);
@@ -172,12 +174,12 @@ function AbsenceSanctionModernContent() {
     };
 
     const onSuccess = () => {
-      setSnack({ open: true, msg: mode === 'edit' ? 'Sanction mise à jour.' : 'Sanction ajoutée.', sev: 'success' });
+      setSnack({ open: true, msg: mode === 'edit' ? t('absenceSanction.msg.updated') : t('absenceSanction.msg.added'), sev: 'success' });
       resetForm();
       setIsSaving(false);
     };
     const onError = () => {
-      setSnack({ open: true, msg: "Erreur lors de l'enregistrement.", sev: 'error' });
+      setSnack({ open: true, msg: t('absenceSanction.msg.saveError'), sev: 'error' });
       setIsSaving(false);
     };
 
@@ -214,7 +216,7 @@ function AbsenceSanctionModernContent() {
         { soccod: soccod || '', concod: selectedSanction.concod },
         {
           onSuccess: () => {
-            setSnack({ open: true, msg: 'Sanction supprimée.', sev: 'success' });
+            setSnack({ open: true, msg: t('absenceSanction.msg.deleted'), sev: 'success' });
             refetch();
           },
         }
@@ -254,7 +256,15 @@ function AbsenceSanctionModernContent() {
       row.connbjour?.toString() ?? '0',
     ]);
     autoTable(doc, {
-      head: [['N° Ordre', 'Employé', 'Date', 'Imputation', 'Départ', 'Retour', 'Nb. Jours']],
+      head: [[
+        t('absenceSanction.pdf.headers.orderNo'),
+        t('absenceSanction.pdf.headers.employee'),
+        t('absenceSanction.pdf.headers.date'),
+        t('absenceSanction.pdf.headers.imputation'),
+        t('absenceSanction.pdf.headers.start'),
+        t('absenceSanction.pdf.headers.return'),
+        t('absenceSanction.pdf.headers.nbDays'),
+      ]],
       body: tableData,
       styles: { cellPadding: 3, fontSize: 8, valign: 'middle', halign: 'center' },
       headStyles: { fillColor: [0, 64, 161], textColor: 255, fontStyle: 'bold' },
@@ -272,13 +282,13 @@ function AbsenceSanctionModernContent() {
       {/* Header */}
       <Box className="abs-header">
         <Box>
-          <Typography className="abs-header-title">Gestion des Absences</Typography>
-          <Typography className="abs-header-heading">Absences & Sanctions</Typography>
-          <Typography className="abs-header-sub">Saisie et suivi des mouvements du personnel</Typography>
+          <Typography className="abs-header-title">{t('absenceSanction.header.title')}</Typography>
+          <Typography className="abs-header-heading">{t('absenceSanction.header.heading')}</Typography>
+          <Typography className="abs-header-sub">{t('absenceSanction.header.subtitle')}</Typography>
         </Box>
         <Box className="abs-header-actions">
           <Button className="abs-cancel-btn" variant="outlined" startIcon={<RefreshIcon />} onClick={resetForm}>
-            Nouveau
+            {t('absenceSanction.actions.new')}
           </Button>
           {((mode === 'save' && canAdd) || (mode === 'edit' && canModify)) && (
             <Button
@@ -288,7 +298,7 @@ function AbsenceSanctionModernContent() {
               onClick={handleSubmit}
               disabled={isSaving}
             >
-              {isSaving ? 'Enregistrement...' : mode === 'edit' ? 'Mettre à jour' : 'Enregistrer'}
+              {isSaving ? t('absenceSanction.actions.saving') : mode === 'edit' ? t('absenceSanction.actions.update') : t('absenceSanction.actions.save')}
             </Button>
           )}
         </Box>
@@ -298,8 +308,8 @@ function AbsenceSanctionModernContent() {
         {!canConsult ? (
           <Box sx={{ p: 4, textAlign: 'center', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
              <EventNoteIcon sx={{ fontSize: 64, color: '#ba1a1a', opacity: 0.2, mb: 2 }} />
-             <Typography variant="h6" color="error">Accès Refusé</Typography>
-             <Typography sx={{ color: '#64748b' }}>Vous n'avez pas les droits nécessaires pour consulter ce module.</Typography>
+             <Typography variant="h6" color="error">{t('absenceSanction.access.denied')}</Typography>
+             <Typography sx={{ color: '#64748b' }}>{t('absenceSanction.access.deniedDetail')}</Typography>
           </Box>
         ) : (
           <>
@@ -310,16 +320,16 @@ function AbsenceSanctionModernContent() {
             <Box className="abs-card">
               <Box className="abs-card-header">
                 <Box className="abs-card-icon"><PersonIcon fontSize="small" /></Box>
-                <Typography className="abs-card-title">Informations Générales</Typography>
+                <Typography className="abs-card-title">{t('absenceSanction.cards.generalInfo')}</Typography>
               </Box>
               <Box className="abs-form-stack">
                 <Box className="abs-field">
-                  <label>Collaborateur</label>
+                  <label>{t('absenceSanction.fields.employee')}</label>
                   <div className="abs-field-with-icon">
                     <SearchIcon sx={{ fontSize: 18, color: '#8896a8' }} />
                     <input
                       type="text"
-                      placeholder="Rechercher un employé..."
+                      placeholder={t('absenceSanction.fields.employeeSearchPlaceholder')}
                       value={mode === 'edit' ? getEmployeeName(empcod) : empSearch}
                       onChange={(e) => { setEmpSearch(e.target.value); if (mode !== 'edit') setEmpcod(''); }}
                       readOnly={mode === 'edit'}
@@ -340,15 +350,15 @@ function AbsenceSanctionModernContent() {
                   {empcod && <Typography sx={{ fontSize: 12, color: '#10b981', mt: 0.5 }}>✓ {getEmployeeName(empcod)}</Typography>}
                 </Box>
                 <Box className="abs-field">
-                  <label>N° Ordre</label>
+                  <label>{t('absenceSanction.fields.orderNo')}</label>
                   <input type="text" value={concod} onChange={(e) => setConcod(e.target.value)} readOnly={mode === 'edit'} className="abs-input-mono" />
                 </Box>
                 <Box className="abs-field">
-                  <label>Référence</label>
-                  <input type="text" placeholder="REF-XXXX" value={conref} onChange={(e) => setConref(e.target.value)} />
+                  <label>{t('absenceSanction.fields.reference')}</label>
+                  <input type="text" placeholder={t('absenceSanction.fields.referencePlaceholder')} value={conref} onChange={(e) => setConref(e.target.value)} />
                 </Box>
                 <Box className="abs-field">
-                  <label>Date</label>
+                  <label>{t('absenceSanction.fields.date')}</label>
                   <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
                     <DatePicker
                       value={condat}
@@ -367,15 +377,15 @@ function AbsenceSanctionModernContent() {
             <Box className="abs-card abs-card--full">
               <Box className="abs-card-header">
                 <Box className="abs-card-icon"><EventNoteIcon fontSize="small" /></Box>
-                <Typography className="abs-card-title">Détails du mouvement</Typography>
+                <Typography className="abs-card-title">{t('absenceSanction.cards.movementDetails')}</Typography>
               </Box>
               <Box className="abs-details-grid">
                 {/* Col 1: Type & Motif */}
                 <Box className="abs-details-col">
                   <Box className="abs-field">
-                    <label>Type d'imputation</label>
+                    <label>{t('absenceSanction.fields.imputationType')}</label>
                     <select className="abs-select" value={abscod} onChange={(e) => setAbscod(e.target.value)}>
-                      <option value="">-- Sélectionner --</option>
+                      <option value="">{t('absenceSanction.fields.imputationPlaceholder')}</option>
                       {(absences as any[])?.map((abs: any) => (
                         <option key={abs.abscod || abs.code} value={abs.abscod || abs.code}>
                           {abs.abslib || abs.lib}
@@ -389,7 +399,7 @@ function AbsenceSanctionModernContent() {
                 <Box className="abs-details-col">
                   <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
                     <Box className="abs-field">
-                      <label>Date départ</label>
+                      <label>{t('absenceSanction.fields.startDate')}</label>
                       <DatePicker
                         value={condep}
                         onChange={setCondep}
@@ -400,11 +410,11 @@ function AbsenceSanctionModernContent() {
                     <Box className="abs-checkbox-row">
                       <FormControlLabel
                         control={<Checkbox checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} size="small" sx={{ color: '#0040a1' }} />}
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Après-midi</span>}
+                        label={<span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>{t('absenceSanction.fields.afternoon')}</span>}
                       />
                     </Box>
                     <Box className="abs-field" sx={{ mt: 1 }}>
-                      <label>Date retour prévue</label>
+                      <label>{t('absenceSanction.fields.expectedReturnDate')}</label>
                       <DatePicker
                         value={conret}
                         onChange={setConret}
@@ -415,7 +425,7 @@ function AbsenceSanctionModernContent() {
                     <Box className="abs-checkbox-row">
                       <FormControlLabel
                         control={<Checkbox checked={conamret} onChange={(e) => setConamret(e.target.checked)} size="small" sx={{ color: '#0040a1' }} />}
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Après-midi</span>}
+                        label={<span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>{t('absenceSanction.fields.afternoon')}</span>}
                       />
                     </Box>
                   </LocalizationProvider>
@@ -424,7 +434,7 @@ function AbsenceSanctionModernContent() {
                 {/* Col 3: Days Counter */}
                 <Box className="abs-days-counter">
                   <span className="abs-days-number">{connbjour}</span>
-                  <span className="abs-days-label">Jours Décomptés</span>
+                  <span className="abs-days-label">{t('absenceSanction.fields.daysCounted')}</span>
                 </Box>
               </Box>
             </Box>
@@ -435,47 +445,47 @@ function AbsenceSanctionModernContent() {
         <Box className="abs-table-section">
           <Box className="abs-table-header">
             <Box>
-              <Typography className="abs-table-title">Mouvements Récents</Typography>
-              <span className="abs-table-subtitle">Affichage des 10 dernières demandes</span>
+              <Typography className="abs-table-title">{t('absenceSanction.table.title')}</Typography>
+              <span className="abs-table-subtitle">{t('absenceSanction.table.subtitle')}</span>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Box className="abs-table-search">
                 <SearchIcon sx={{ fontSize: 16, color: '#8896a8' }} />
-                <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+                <input type="text" placeholder={t('absenceSanction.table.searchPlaceholder')} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
               </Box>
               <Button size="small" startIcon={<DownloadIcon />} onClick={handleExportRows}
                 sx={{ color: '#0040a1', fontWeight: 700, fontSize: 13, textTransform: 'none' }}>
-                Exporter
+                {t('absenceSanction.actions.export')}
               </Button>
             </Box>
           </Box>
           <table className="abs-table">
             <thead>
               <tr>
-                <th style={{ width: 90 }}>Actions</th>
-                <th>N° Ordre</th>
-                <th>Employé</th>
-                <th>Date</th>
-                <th>Type d'imputation</th>
-                <th>Date Départ</th>
-                <th>Date Retour</th>
-                <th>Nb. Jours</th>
+                <th style={{ width: 90 }}>{t('absenceSanction.table.headers.actions')}</th>
+                <th>{t('absenceSanction.table.headers.orderNo')}</th>
+                <th>{t('absenceSanction.table.headers.employee')}</th>
+                <th>{t('absenceSanction.table.headers.date')}</th>
+                <th>{t('absenceSanction.table.headers.imputationType')}</th>
+                <th>{t('absenceSanction.table.headers.startDate')}</th>
+                <th>{t('absenceSanction.table.headers.returnDate')}</th>
+                <th>{t('absenceSanction.table.headers.nbDays')}</th>
               </tr>
             </thead>
             <tbody>
               {paginatedData.length === 0 ? (
-                <tr><td colSpan={8} className="abs-empty">Aucun enregistrement trouvé.</td></tr>
+                <tr><td colSpan={8} className="abs-empty">{t('absenceSanction.table.empty')}</td></tr>
               ) : paginatedData.map((row: any, idx: number) => (
                 <tr key={row.concod || idx}>
                   <td>
                     <Box sx={{ display: 'flex', gap: '2px' }}>
                       {canModify && (
-                        <Tooltip title="Modifier"><button className="abs-action-btn abs-action-btn--edit" onClick={() => handleEdit(row)}><EditIcon sx={{ fontSize: 15 }} /></button></Tooltip>
+                        <Tooltip title={t('absenceSanction.actions.edit')}><button className="abs-action-btn abs-action-btn--edit" onClick={() => handleEdit(row)}><EditIcon sx={{ fontSize: 15 }} /></button></Tooltip>
                       )}
                       {canDelete && (
-                        <Tooltip title="Supprimer"><button className="abs-action-btn abs-action-btn--delete" onClick={() => handleDelete(row)}><DeleteOutlineIcon sx={{ fontSize: 15 }} /></button></Tooltip>
+                        <Tooltip title={t('absenceSanction.actions.delete')}><button className="abs-action-btn abs-action-btn--delete" onClick={() => handleDelete(row)}><DeleteOutlineIcon sx={{ fontSize: 15 }} /></button></Tooltip>
                       )}
-                      <Tooltip title="Rapport PDF"><button className="abs-action-btn abs-action-btn--pdf" onClick={() => handleReport(row)}><PictureAsPdfIcon sx={{ fontSize: 15 }} /></button></Tooltip>
+                      <Tooltip title={t('absenceSanction.actions.pdfReport')}><button className="abs-action-btn abs-action-btn--pdf" onClick={() => handleReport(row)}><PictureAsPdfIcon sx={{ fontSize: 15 }} /></button></Tooltip>
                     </Box>
                   </td>
                   <td className="abs-cell-mono">{row.concod}</td>
@@ -497,12 +507,12 @@ function AbsenceSanctionModernContent() {
             </tbody>
           </table>
           <Box className="abs-table-footer">
-            <span>Affichage de {paginatedData.length} sur {filteredData.length} entrées</span>
+            <span>{t('absenceSanction.table.footer', { showing: paginatedData.length, total: filteredData.length })}</span>
             <TablePagination
               component="div" count={filteredData.length} page={page}
               onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
               onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-              rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Lignes:" sx={{ borderTop: 'none' }}
+              rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage={t('absenceSanction.table.rowsPerPage')} sx={{ borderTop: 'none' }}
             />
           </Box>
         </Box>
@@ -512,7 +522,7 @@ function AbsenceSanctionModernContent() {
 
       {/* Delete Modal */}
       <AlertModal open={openModal} onClose={() => setOpenModal(false)} onConfirm={confirmDelete}
-        message="Voulez-vous vraiment supprimer cette sanction ?" />
+        message={t('absenceSanction.deleteConfirm')} />
 
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
         <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>

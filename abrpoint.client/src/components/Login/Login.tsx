@@ -4,6 +4,7 @@ import {
   InputAdornment, IconButton,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
 import { startStripeCheckout, resumeStripeCheckout } from '../Pricing/stripeCheckout';
@@ -20,6 +21,7 @@ interface UserLoginModel {
 }
 
 export default function CredentialsSignInPage() {
+  const { t } = useTranslation();
   const { setAuthData, refreshAuth } = useAuth();
   const [utimail, setUtimail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,7 +79,7 @@ export default function CredentialsSignInPage() {
         await startStripeCheckout(pendingPlan);
         return;
       } catch (e: any) {
-        setError(e?.response?.data?.error || 'Échec de la redirection vers Stripe.');
+        setError(e?.response?.data?.error || t('login.stripeFailed'));
         return;
       }
     }
@@ -87,7 +89,7 @@ export default function CredentialsSignInPage() {
   const handleSignIn = async () => {
     setError(null);
     if (!utimail || !password) {
-      setError('Veuillez remplir tous les champs obligatoires');
+      setError(t('login.requiredError'));
       return;
     }
 
@@ -98,7 +100,7 @@ export default function CredentialsSignInPage() {
       const lookup = await apiInstance.post('/auth/lookup-tenant', { email: utimail.trim() });
       const slug: string | undefined = lookup.data?.slug;
       if (!slug) {
-        setError('Aucun compte trouvé pour cet email.');
+        setError(t('login.noAccount'));
         setLoading(false);
         return;
       }
@@ -107,9 +109,7 @@ export default function CredentialsSignInPage() {
       localStorage.setItem('tenantSlug', slug);
     } catch (lookupErr: any) {
       const status = lookupErr?.response?.status;
-      setError(status === 404
-        ? 'Aucun compte trouvé pour cet email.'
-        : 'Impossible de vérifier le compte. Réessayez.');
+      setError(status === 404 ? t('login.noAccount') : t('login.cannotVerify'));
       setLoading(false);
       return;
     }
@@ -136,12 +136,11 @@ export default function CredentialsSignInPage() {
             await resumeStripeCheckout(utimail.trim(), password);
             return;
           } catch (resumeErr: any) {
-            setError(resumeErr?.response?.data?.error
-              || 'Paiement requis. Finalisez votre abonnement pour activer votre compte.');
+            setError(resumeErr?.response?.data?.error || t('login.paymentRequired'));
             return;
           }
         }
-        setError('Identifiants incorrects. Veuillez réessayer.');
+        setError(t('login.invalidCredentials'));
       })
       .finally(() => setLoading(false));
   };
@@ -149,7 +148,7 @@ export default function CredentialsSignInPage() {
   const handleVerify2FA = () => {
     setError(null);
     if (!twoFACode || twoFACode.length !== 6) {
-      setError('Veuillez entrer un code à 6 chiffres valide');
+      setError(t('login.twoFAInvalid'));
       return;
     }
 
@@ -161,7 +160,7 @@ export default function CredentialsSignInPage() {
       await processLoginSuccess(response.data);
     }).catch(error => {
       console.error('2FA failed', error);
-      setError('Code incorrect. Veuillez réessayer.');
+      setError(t('login.twoFAError'));
     }).finally(() => setLoading(false));
   };
 
@@ -184,27 +183,27 @@ export default function CredentialsSignInPage() {
   };
 
   const handleSendResetCode = () => {
-    if (!forgotEmail) { setError('Veuillez entrer votre email.'); return; }
+    if (!forgotEmail) { setError(t('login.enterEmail')); return; }
     setForgotLoading(true);
     setError(null);
     apiInstance.post('/auth/forgot-password', { Email: forgotEmail })
       .then(res => {
-        setSuccess(res.data.message || 'Si un compte existe avec cet email, un code vous a été envoyé.');
+        setSuccess(res.data.message || t('login.codeSent'));
         setForgotStep('code');
       })
-      .catch(err => setError(err.response?.data?.message || 'Erreur lors de l\'envoi du code.'))
+      .catch(err => setError(err.response?.data?.message || t('login.codeSendError')))
       .finally(() => setForgotLoading(false));
   };
 
   const handleResetPassword = () => {
-    if (!newPassword || !confirmPassword) { setError('Veuillez remplir tous les champs.'); return; }
-    if (newPassword !== confirmPassword) { setError('Les mots de passe ne correspondent pas.'); return; }
-    if (newPassword.length < 6) { setError('Le mot de passe doit contenir au moins 6 caractères.'); return; }
+    if (!newPassword || !confirmPassword) { setError(t('login.fillAllFields')); return; }
+    if (newPassword !== confirmPassword) { setError(t('login.passwordMismatch')); return; }
+    if (newPassword.length < 6) { setError(t('login.passwordTooShort')); return; }
     setForgotLoading(true);
     setError(null);
     apiInstance.post('/auth/reset-password', { Email: forgotEmail, Code: resetCode, NewPassword: newPassword })
       .then(res => {
-        setSuccess(res.data.message || 'Mot de passe réinitialisé.');
+        setSuccess(res.data.message || t('login.passwordReset'));
         setShowForgotPassword(false);
         setForgotStep('email');
         setForgotEmail('');
@@ -212,7 +211,7 @@ export default function CredentialsSignInPage() {
         setNewPassword('');
         setConfirmPassword('');
       })
-      .catch(err => setError(err.response?.data?.message || 'Erreur lors de la réinitialisation.'))
+      .catch(err => setError(err.response?.data?.message || t('login.resetError')))
       .finally(() => setForgotLoading(false));
   };
 
@@ -232,10 +231,10 @@ export default function CredentialsSignInPage() {
         <Box className="login-left-content">
           <Box className="login-left-text">
             <Typography className="login-left-title">
-              L'excellence structurelle au service de votre capital humain.
+              {t('login.leftTitle')}
             </Typography>
             <Typography className="login-left-subtitle">
-              Pilotez votre organisation avec la précision d'un architecte. Concorde Workforce centralise et sublime vos données RH.
+              {t('login.leftSubtitle')}
             </Typography>
           </Box>
         </Box>
@@ -257,9 +256,9 @@ export default function CredentialsSignInPage() {
 
           {/* Header */}
           <Box className="login-form-header">
-            <Typography className="login-form-title">Bon retour.</Typography>
+            <Typography className="login-form-title">{t('login.welcome')}</Typography>
             <Typography className="login-form-subtitle">
-              Veuillez renseigner vos identifiants pour accéder au tableau de bord.
+              {t('login.subtitle')}
             </Typography>
           </Box>
 
@@ -280,12 +279,12 @@ export default function CredentialsSignInPage() {
               <>
                 {/* Email */}
                 <Box className="login-field-group">
-                  <Typography className="login-field-label">Email</Typography>
+                  <Typography className="login-field-label">{t('login.email')}</Typography>
                   <TextField
                     fullWidth
                     size="small"
                     type="email"
-                    placeholder="nom@entreprise.com"
+                    placeholder={t('login.emailPlaceholder')}
                     value={utimail}
                     onChange={(e) => setUtimail(e.target.value)}
                     className="login-input"
@@ -301,7 +300,7 @@ export default function CredentialsSignInPage() {
 
                 {/* Password */}
                 <Box className="login-field-group">
-                  <Typography className="login-field-label">Mot de passe</Typography>
+                  <Typography className="login-field-label">{t('login.password')}</Typography>
                   <TextField
                     fullWidth
                     size="small"
@@ -334,7 +333,7 @@ export default function CredentialsSignInPage() {
                     onClick={() => { setShowForgotPassword(true); setError(null); setSuccess(null); setForgotEmail(utimail); }}
                     sx={{ fontSize: '12px', color: '#0040a1', cursor: 'pointer', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
                   >
-                    Mot de passe oublié ?
+                    {t('login.forgotPassword')}
                   </Typography>
                 </Box>
 
@@ -343,7 +342,7 @@ export default function CredentialsSignInPage() {
             ) : (
               <Box className="login-field-group" sx={{ textAlign: 'center', mb: 3 }}>
                 <Typography className="login-field-label" sx={{ mb: 2 }}>
-                  Entrez le code à 6 chiffres de votre application Google Authenticator / Authy :
+                  {t('login.twoFAPrompt')}
                 </Typography>
                 <TextField
                   fullWidth
@@ -373,7 +372,7 @@ export default function CredentialsSignInPage() {
               endIcon={loading ? <CircularProgress size={18} sx={{ color: '#ffffff' }} /> : <ArrowForwardIcon sx={{ color: '#ffffff' }} />}
             >
               <span style={{ color: '#ffffff' }}>
-                {loading ? 'Connexion...' : (requires2FA ? 'VÉRIFIER LE CODE' : 'CONNECTER')}
+                {loading ? t('login.connecting') : (requires2FA ? t('login.verifyCode') : t('login.signIn'))}
               </span>
             </Button>
 
@@ -389,7 +388,7 @@ export default function CredentialsSignInPage() {
                 disabled={loading}
                 sx={{ mt: 2, color: '#64748b', fontSize: '13px', textTransform: 'none' }}
               >
-                Retour à la connexion
+                {t('login.backToLogin')}
               </Button>
             )}
 
@@ -398,9 +397,9 @@ export default function CredentialsSignInPage() {
               <Box sx={{ mt: 2 }}>
                 {forgotStep === 'email' && (
                   <Box className="login-field-group">
-                    <Typography className="login-field-label" sx={{ mb: 1 }}>Entrez votre email pour réinitialiser votre mot de passe</Typography>
+                    <Typography className="login-field-label" sx={{ mb: 1 }}>{t('login.forgotPromptEmail')}</Typography>
                     <TextField
-                      fullWidth size="small" type="email" placeholder="nom@entreprise.com"
+                      fullWidth size="small" type="email" placeholder={t('login.emailPlaceholder')}
                       value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)}
                       className="login-input"
                       InputProps={{ startAdornment: <InputAdornment position="start"><MailIcon sx={{ color: '#737785', fontSize: 18 }} /></InputAdornment> }}
@@ -409,7 +408,7 @@ export default function CredentialsSignInPage() {
                 )}
                 {forgotStep === 'code' && (
                   <Box className="login-field-group">
-                    <Typography className="login-field-label" sx={{ mb: 1 }}>Entrez le code de réinitialisation envoyé à votre email</Typography>
+                    <Typography className="login-field-label" sx={{ mb: 1 }}>{t('login.forgotPromptCode')}</Typography>
                     <TextField
                       fullWidth size="small" type="text" placeholder="000000"
                       value={resetCode} onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -421,7 +420,7 @@ export default function CredentialsSignInPage() {
                 {forgotStep === 'reset' && (
                   <>
                     <Box className="login-field-group">
-                      <Typography className="login-field-label">Nouveau mot de passe</Typography>
+                      <Typography className="login-field-label">{t('login.newPassword')}</Typography>
                       <TextField
                         fullWidth size="small" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
                         value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
@@ -430,7 +429,7 @@ export default function CredentialsSignInPage() {
                       />
                     </Box>
                     <Box className="login-field-group">
-                      <Typography className="login-field-label">Confirmer le mot de passe</Typography>
+                      <Typography className="login-field-label">{t('login.confirmPassword')}</Typography>
                       <TextField
                         fullWidth size="small" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
                         value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
@@ -446,7 +445,7 @@ export default function CredentialsSignInPage() {
                   endIcon={forgotLoading ? <CircularProgress size={18} sx={{ color: '#ffffff' }} /> : <ArrowForwardIcon sx={{ color: '#ffffff' }} />}
                 >
                   <span style={{ color: '#ffffff' }}>
-                    {forgotLoading ? 'Chargement...' : (forgotStep === 'email' ? 'ENVOYER LE CODE' : forgotStep === 'code' ? 'VÉRIFIER LE CODE' : 'RÉINITIALISER')}
+                    {forgotLoading ? t('login.loading') : (forgotStep === 'email' ? t('login.sendCode') : forgotStep === 'code' ? t('login.verifyCode') : t('login.reset'))}
                   </span>
                 </Button>
                 <Button
@@ -454,7 +453,7 @@ export default function CredentialsSignInPage() {
                   onClick={() => { setShowForgotPassword(false); setForgotStep('email'); setError(null); setSuccess(null); }}
                   sx={{ mt: 1, color: '#64748b', fontSize: '13px', textTransform: 'none' }}
                 >
-                  Retour à la connexion
+                  {t('login.backToLogin')}
                 </Button>
               </Box>
             )}
@@ -463,7 +462,7 @@ export default function CredentialsSignInPage() {
           {/* Footer */}
           <Box className="login-footer">
             <Typography className="login-footer-text">
-              Besoin d'assistance ? <span className="login-footer-link">Contactez le support</span>
+              {t('login.needHelp')} <span className="login-footer-link">{t('login.contactSupport')}</span>
             </Typography>
           </Box>
         </Box>

@@ -13,6 +13,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Contrat } from '../../../models/Contrat';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
@@ -105,6 +106,7 @@ function RowMenu({ onEdit, onDelete, onRenew, onExport, canModify, canDelete, ca
   onEdit: () => void; onDelete: () => void; onRenew: () => void; onExport: () => void;
   canModify: boolean; canDelete: boolean; canAdd: boolean;
 }) {
+  const { t } = useTranslation();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   return (
     <>
@@ -116,10 +118,10 @@ function RowMenu({ onEdit, onDelete, onRenew, onExport, canModify, canDelete, ca
         <Paper sx={{ position: 'fixed', zIndex: 1300, borderRadius: '10px', boxShadow: '0 8px 24px rgba(15,23,42,0.12)', minWidth: 160, border: '1px solid #edf0f5', mt: 0.5 }}
           onClick={() => setAnchor(null)}>
           {[
-            { label: 'Exporter (PDF)', icon: <PictureAsPdfIcon fontSize="small" />, onClick: onExport, color: '#16a34a' },
-            canAdd && { label: 'Renouveler', icon: <RefreshIcon fontSize="small" />, onClick: onRenew, color: '#0040a1' },
-            canModify && { label: 'Modifier', icon: <EditIcon fontSize="small" />, onClick: onEdit },
-            canDelete && { label: 'Supprimer', icon: <DeleteIcon fontSize="small" />, onClick: onDelete, color: '#ef4444' },
+            { label: t('contrat.exportPdf'), icon: <PictureAsPdfIcon fontSize="small" />, onClick: onExport, color: '#16a34a' },
+            canAdd && { label: t('contrat.renew'), icon: <RefreshIcon fontSize="small" />, onClick: onRenew, color: '#0040a1' },
+            canModify && { label: t('contrat.edit'), icon: <EditIcon fontSize="small" />, onClick: onEdit },
+            canDelete && { label: t('contrat.delete'), icon: <DeleteIcon fontSize="small" />, onClick: onDelete, color: '#ef4444' },
           ].filter(Boolean).map((item: any) => (
             <Box key={item.label} onClick={item.onClick}
               sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.2, cursor: 'pointer', color: item.color || '#334155',
@@ -146,14 +148,15 @@ const emptyForm = (soccod: string): Contrat => ({
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const GestionContratsModernInner = () => {
+  const { t } = useTranslation();
   const { soccod, uticod, hasPermission } = useAuth();
-  
+
   const canAdd = hasPermission('Contrats et Avenants', 'add');
   const canModify = hasPermission('Contrats et Avenants', 'modify');
   const canDelete = hasPermission('Contrats et Avenants', 'delete');
 
   if (!hasPermission('Contrats et Avenants', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter les contrats." />;
+    return <AccessDenied message={t('contrat.noConsultRight')} />;
   }
 
   const { data: contratsRaw = [], isLoading, refetch } = useQuery(
@@ -274,7 +277,7 @@ const GestionContratsModernInner = () => {
       }));
     } catch (err: any) {
       console.error('Error fetching employee details:', err);
-      showSnack('Erreur lors du chargement des données de l\'employé', 'error');
+      showSnack(t('contrat.loadEmployeeError'), 'error');
       setForm(prev => ({ ...prev, empcod }));
     } finally {
       setLoadingEmployee(false);
@@ -295,11 +298,11 @@ const GestionContratsModernInner = () => {
   };
 
   const handleSave = async () => {
-    if (!form.empcod) { showSnack('Veuillez sélectionner un employé', 'error'); return; }
-    if (!form.concod?.trim()) { showSnack('Le N° contrat est obligatoire', 'error'); return; }
+    if (!form.empcod) { showSnack(t('contrat.selectEmployee'), 'error'); return; }
+    if (!form.concod?.trim()) { showSnack(t('contrat.concodRequired'), 'error'); return; }
 
     const resolvedSoccod = soccod || form.soccod || '';
-    if (!resolvedSoccod) { showSnack('Session expirée, veuillez vous reconnecter', 'error'); return; }
+    if (!resolvedSoccod) { showSnack(t('contrat.sessionExpired'), 'error'); return; }
 
     const parseDate = (val: any): string | null => {
       if (!val) return null;
@@ -333,15 +336,15 @@ const GestionContratsModernInner = () => {
     try {
       if (mode === 'edit') {
         await updateContrat(payload as any);
-        showSnack('Contrat modifié avec succès', 'success');
+        showSnack(t('contrat.updatedSuccess'), 'success');
       } else {
         await apiInstance.post('/Contrats', payload);
-        showSnack('Contrat ajouté avec succès', 'success');
+        showSnack(t('contrat.addedSuccess'), 'success');
       }
       handleReset();
       refetch();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.response?.data || err?.message || 'Erreur lors de la sauvegarde';
+      const msg = err?.response?.data?.message || err?.response?.data || err?.message || t('contrat.saveError');
       showSnack(String(msg), 'error');
     }
   };
@@ -349,10 +352,10 @@ const GestionContratsModernInner = () => {
   const handleDelete = async (c: Contrat) => {
     try {
       await deleteContrat({ soccod: c.soccod, concod: c.concod });
-      showSnack('Contrat supprimé', 'success');
+      showSnack(t('contrat.deletedSuccess'), 'success');
       setDeleteTarget(null);
       refetch();
-    } catch { showSnack('Erreur lors de la suppression', 'error'); }
+    } catch { showSnack(t('contrat.deleteError'), 'error'); }
   };
 
   const openExportDialog = async (c: Contrat) => {
@@ -368,13 +371,13 @@ const GestionContratsModernInner = () => {
       if (contratTpl) setExportTpl(contratTpl.name);
       else if (tpls.length > 0) setExportTpl(tpls[0].name);
     } catch {
-      showSnack("Impossible de charger les modèles.", 'error');
+      showSnack(t('contrat.templatesLoadError'), 'error');
     }
   };
 
   const doExport = async () => {
     if (!exportTarget || !exportTpl) {
-      showSnack('Sélectionnez un modèle.', 'error');
+      showSnack(t('contrat.selectTemplate'), 'error');
       return;
     }
     const target = exportTarget;
@@ -396,10 +399,10 @@ const GestionContratsModernInner = () => {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      showSnack('Document exporté.', 'success');
+      showSnack(t('contrat.exported'), 'success');
       setExportTarget(null);
     } catch (err: any) {
-      let msg = "Erreur lors de l'export.";
+      let msg = t('contrat.exportError');
       if (err?.response?.data instanceof Blob) {
         try { msg = JSON.parse(await err.response.data.text())?.message || msg; } catch { /* ignore */ }
       }
@@ -416,9 +419,9 @@ const GestionContratsModernInner = () => {
 
       {/* KPI Row — responsive: 1 col on mobile, 3 on tablet+ */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, px: { xs: 1.5, sm: 3 }, pt: 3, pb: 2 }}>
-        <KpiCard label="Contrats Actifs"    value={activeCount}    sub={`/ ${contrats.length} total`} subColor="#10b981" highlight />
-        <KpiCard label="Expirent bientôt"   value={expiringCount}  sub="30 prochains jours" subColor="#f59e0b" />
-        <KpiCard label="Nouveaux ce mois"   value={newThisMonth}   sub="Onboarding" subColor="#8896a8" />
+        <KpiCard label={t('contrat.kpiActive')}    value={activeCount}    sub={t('contrat.kpiActiveSub', { total: contrats.length })} subColor="#10b981" highlight />
+        <KpiCard label={t('contrat.kpiExpiring')}  value={expiringCount}  sub={t('contrat.kpiExpiringSub')} subColor="#f59e0b" />
+        <KpiCard label={t('contrat.kpiNew')}       value={newThisMonth}   sub={t('contrat.kpiNewSub')} subColor="#8896a8" />
       </Box>
 
       {/* Main grid — responsive: stacked on mobile, side-by-side on desktop */}
@@ -433,7 +436,7 @@ const GestionContratsModernInner = () => {
                   <CreditCardIcon sx={{ color: '#0040a1', fontSize: 20 }} />
                 </Box>
                 <Typography sx={{ fontSize: '17px', fontWeight: 800, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c' }}>
-                  {mode === 'edit' ? 'Modifier le Contrat' : 'Nouveau Contrat'}
+                  {mode === 'edit' ? t('contrat.editTitle') : t('contrat.newTitle')}
                 </Typography>
               </Box>
               {mode === 'edit' && canModify && (
@@ -448,10 +451,10 @@ const GestionContratsModernInner = () => {
             {/* Société + Filiale */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
               <Box>
-                <Typography sx={labelSx}>Société</Typography>
+                <Typography sx={labelSx}>{t('contrat.company')}</Typography>
                 <FormControl fullWidth size="small">
                   <Select value={form.soccod || soccod || ''} onChange={handleSelect('soccod')} sx={selectSx}>
-                    <MenuItem value=""><em>Sélectionner...</em></MenuItem>
+                    <MenuItem value=""><em>{t('contrat.selectPlaceholder')}</em></MenuItem>
                     {Object.entries(socLibs).map(([k, v]) => (
                       <MenuItem key={k} value={k} sx={{ fontSize: '13px' }}>{String(v)}</MenuItem>
                     ))}
@@ -459,10 +462,10 @@ const GestionContratsModernInner = () => {
                 </FormControl>
               </Box>
               <Box>
-                <Typography sx={labelSx}>Filiale / Site</Typography>
+                <Typography sx={labelSx}>{t('contrat.branchSite')}</Typography>
                 <FormControl fullWidth size="small">
                   <Select value={form.sitcod || ''} onChange={handleSelect('sitcod')} sx={selectSx}>
-                    <MenuItem value=""><em>Sélectionner...</em></MenuItem>
+                    <MenuItem value=""><em>{t('contrat.selectPlaceholder')}</em></MenuItem>
                     {Object.entries(sitLibs).map(([k, v]) => (
                       <MenuItem key={k} value={k} sx={{ fontSize: '13px' }}>{String(v)}</MenuItem>
                     ))}
@@ -473,7 +476,7 @@ const GestionContratsModernInner = () => {
 
             {/* Employé */}
             <Box>
-              <Typography sx={labelSx}>Employé</Typography>
+              <Typography sx={labelSx}>{t('contrat.employee')}</Typography>
               {mode === 'edit' ? (
                 <TextField
                   size="small" fullWidth
@@ -490,7 +493,7 @@ const GestionContratsModernInner = () => {
                     disabled={loadingEmployee}
                     MenuProps={{ PaperProps: { sx: { maxHeight: 300, borderRadius: '10px' } } }}
                   >
-                    <MenuItem value=""><em style={{ color: '#aaa' }}>Sélectionner un employé...</em></MenuItem>
+                    <MenuItem value=""><em style={{ color: '#aaa' }}>{t('contrat.selectEmployeePlaceholder')}</em></MenuItem>
                     {Object.entries(empMap).map(([code, lib]) => (
                       <MenuItem key={code} value={code} sx={{ fontSize: '13px', py: 1 }}>
                         <Box>
@@ -506,7 +509,7 @@ const GestionContratsModernInner = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                   <CircularProgress size={14} sx={{ color: '#0040a1' }} />
                   <Typography sx={{ fontSize: '11px', color: '#0040a1', fontWeight: 600 }}>
-                    Chargement des données de l'employé...
+                    {t('contrat.loadingEmployee')}
                   </Typography>
                 </Box>
               )}
@@ -515,15 +518,15 @@ const GestionContratsModernInner = () => {
             {/* N° Contrat + Type */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
               <Box>
-                <Typography sx={labelSx}>N° Contrat</Typography>
+                <Typography sx={labelSx}>{t('contrat.concodLabel')}</Typography>
                 <TextField name="concod" value={form.concod} onChange={handleField}
                   size="small" fullWidth sx={fieldSx} InputProps={{ readOnly: mode === 'edit' }} />
               </Box>
               <Box>
-                <Typography sx={labelSx}>Type</Typography>
+                <Typography sx={labelSx}>{t('contrat.typeLabel')}</Typography>
                 <FormControl fullWidth size="small">
                   <Select value={form.empcontrat || form.contype || 'CDI'} onChange={handleSelect('empcontrat')} sx={selectSx}>
-                    {CONTRACT_TYPES.map(t => <MenuItem key={t} value={t} sx={{ fontSize: '13px' }}>{t}</MenuItem>)}
+                    {CONTRACT_TYPES.map(ct => <MenuItem key={ct} value={ct} sx={{ fontSize: '13px' }}>{ct}</MenuItem>)}
                   </Select>
                 </FormControl>
               </Box>
@@ -532,12 +535,12 @@ const GestionContratsModernInner = () => {
             {/* Date début + Date fin */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
               <Box>
-                <Typography sx={labelSx}>Date Début</Typography>
+                <Typography sx={labelSx}>{t('contrat.dateStart')}</Typography>
                 <TextField name="empemb" type="date" value={fmtDateInput(form.empemb)} onChange={handleField}
                   size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
               </Box>
               <Box>
-                <Typography sx={labelSx}>Date Fin</Typography>
+                <Typography sx={labelSx}>{t('contrat.dateEnd')}</Typography>
                 <TextField name="empsort" type="date" value={fmtDateInput(form.empsort)} onChange={handleField}
                   size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
               </Box>
@@ -546,11 +549,11 @@ const GestionContratsModernInner = () => {
             {/* Poste + Salaire */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
               <Box>
-                <Typography sx={labelSx}>Poste / Fonction</Typography>
+                <Typography sx={labelSx}>{t('contrat.positionFunction')}</Typography>
                 <FormControl fullWidth size="small">
                   <Select value={form.emppost || ''} onChange={handleSelect('emppost')} sx={selectSx}
                     displayEmpty MenuProps={{ PaperProps: { sx: { maxHeight: 250, borderRadius: '10px' } } }}>
-                    <MenuItem value=""><em style={{ color: '#aaa' }}>Sélectionner...</em></MenuItem>
+                    <MenuItem value=""><em style={{ color: '#aaa' }}>{t('contrat.selectPlaceholder')}</em></MenuItem>
                     {Object.entries(fonLibs as Record<string, string>).map(([code, lib]) => (
                       <MenuItem key={code} value={code} sx={{ fontSize: '13px' }}>{String(lib)}</MenuItem>
                     ))}
@@ -558,16 +561,16 @@ const GestionContratsModernInner = () => {
                 </FormControl>
               </Box>
               <Box>
-                <Typography sx={labelSx}>Salaire Base</Typography>
+                <Typography sx={labelSx}>{t('contrat.baseSalary')}</Typography>
                 <TextField name="empsbase" type="number" value={form.empsbase ?? ''} onChange={handleField} size="small" fullWidth sx={fieldSx} />
               </Box>
             </Box>
 
             {/* Observations */}
             <Box>
-              <Typography sx={labelSx}>Motif / Observations</Typography>
+              <Typography sx={labelSx}>{t('contrat.motifObs')}</Typography>
               <TextField name="empmotif" value={form.empmotif || ''} onChange={handleField}
-                size="small" fullWidth multiline rows={3} placeholder="Notes complémentaires..." sx={fieldSx} />
+                size="small" fullWidth multiline rows={3} placeholder={t('contrat.obsPlaceholder')} sx={fieldSx} />
             </Box>
 
             {/* Save */}
@@ -582,7 +585,7 @@ const GestionContratsModernInner = () => {
                     '&:disabled': { background: '#c0c8d4', color: '#fff' },
                     transition: 'all 0.2s',
                   }}>
-                  {mode === 'edit' ? 'Modifier le Contrat' : 'Enregistrer le Contrat'}
+                  {mode === 'edit' ? t('contrat.editTitle') : t('contrat.saveContract')}
                 </Button>
               )}
           </Box>
@@ -603,14 +606,14 @@ const GestionContratsModernInner = () => {
                       ? { backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1.5px solid #bfdbfe' }
                       : { backgroundColor: 'transparent', color: '#64748b', border: '1.5px solid #e8ecf2', '&:hover': { backgroundColor: '#f8faff' } }),
                   }}>
-                  {f === 'all' ? 'Tous' : f}
+                  {f === 'all' ? t('contrat.all') : f}
                 </Box>
               ))}
-              <TextField size="small" placeholder="Rechercher..." value={searchQ} onChange={e => setSearchQ(e.target.value)}
+              <TextField size="small" placeholder={t('contrat.searchPlaceholder')} value={searchQ} onChange={e => setSearchQ(e.target.value)}
                 sx={{ ml: 1, width: { xs: 120, sm: 180 }, '& .MuiOutlinedInput-root': { borderRadius: '20px', fontSize: '12px', height: 32 } }} />
             </Box>
             <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1 }}>
-              {[{ label: 'Export PDF', icon: <PictureAsPdfIcon sx={{ fontSize: 15 }} /> }, { label: 'Sélection', icon: <ChecklistIcon sx={{ fontSize: 15 }} /> }].map(btn => (
+              {[{ label: t('contrat.exportPdfBtn'), icon: <PictureAsPdfIcon sx={{ fontSize: 15 }} /> }, { label: t('contrat.selection'), icon: <ChecklistIcon sx={{ fontSize: 15 }} /> }].map(btn => (
                 <Button key={btn.label} startIcon={btn.icon} size="small"
                   sx={{ borderRadius: '9px', textTransform: 'none', fontWeight: 600, fontSize: '12px', color: '#4a5568', border: '1.5px solid #e2e8f0', backgroundColor: '#fafbfc', px: 1.8, py: 0.7, '&:hover': { borderColor: '#0040a1', color: '#0040a1', backgroundColor: '#f0f5ff' } }}>
                   {btn.label}
@@ -621,7 +624,7 @@ const GestionContratsModernInner = () => {
 
           {/* Table header — hidden on mobile */}
           <Box sx={{ display: { xs: 'none', md: 'grid' }, gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', px: 3, py: 1.5, borderBottom: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}>
-            {['N° Contrat', 'Employé', 'Période', 'Type', 'Poste', 'Actions'].map((h, i) => (
+            {[t('contrat.headers.concod'), t('contrat.headers.employee'), t('contrat.headers.period'), t('contrat.headers.type'), t('contrat.headers.position'), t('contrat.headers.actions')].map((h, i) => (
               <Typography key={h} sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8896a8', textAlign: i === 5 ? 'right' : 'left' }}>
                 {h}
               </Typography>
@@ -634,7 +637,7 @@ const GestionContratsModernInner = () => {
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress size={36} /></Box>
             ) : filtered.length === 0 ? (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8 }}>
-                <Typography sx={{ color: '#94a3b8', fontSize: '13px' }}>Aucun contrat trouvé</Typography>
+                <Typography sx={{ color: '#94a3b8', fontSize: '13px' }}>{t('contrat.noContracts')}</Typography>
               </Box>
             ) : (
               <>
@@ -669,10 +672,10 @@ const GestionContratsModernInner = () => {
                           <Chip label={c.empcontrat || c.contype || '—'} size="small"
                             sx={{ backgroundColor: tc.bg, color: tc.color, fontWeight: 800, fontSize: '11px', height: 24, borderRadius: '6px', '& .MuiChip-label': { px: 1.2 } }} />
                           <Typography sx={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                            {fmtDate(c.empemb)} → {c.empsort ? fmtDate(c.empsort) : 'Indéterminé'}
+                            {fmtDate(c.empemb)} → {c.empsort ? fmtDate(c.empsort) : t('contrat.indefinite')}
                           </Typography>
                           {isExpired && (
-                            <Chip label="Expiré" size="small" sx={{ backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: 700, fontSize: '10px', height: 20 }} />
+                            <Chip label={t('contrat.expired')} size="small" sx={{ backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: 700, fontSize: '10px', height: 20 }} />
                           )}
                         </Box>
                         {/* Poste */}
@@ -744,7 +747,7 @@ const GestionContratsModernInner = () => {
           {/* Footer */}
           <Box sx={{ px: { xs: 1.5, sm: 3 }, py: 2, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafbfc' }}>
             <Typography sx={{ fontSize: '12px', color: '#8896a8', fontWeight: 500 }}>
-              {filtered.length} contrat{filtered.length !== 1 ? 's' : ''} affiché{filtered.length !== 1 ? 's' : ''}
+              {t('contrat.displayedCount', { count: filtered.length })}
             </Typography>
           </Box>
         </Paper>
@@ -762,24 +765,27 @@ const GestionContratsModernInner = () => {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
-        message={`Voulez-vous vraiment supprimer le contrat "${deleteTarget?.concod}" de ${deleteTarget?.emplib || empMap[deleteTarget?.empcod || ''] || deleteTarget?.empcod} ?`}
+        message={t('contrat.deleteConfirm', {
+          concod: deleteTarget?.concod ?? '',
+          employee: deleteTarget?.emplib || empMap[deleteTarget?.empcod || ''] || deleteTarget?.empcod || '',
+        })}
       />
 
       <RenewContractDialog
         open={!!renewTarget}
         source={renewTarget}
         onClose={() => setRenewTarget(null)}
-        onSuccess={() => { setRenewTarget(null); refetch(); showSnack('Contrat renouvelé avec succès', 'success'); }}
+        onSuccess={() => { setRenewTarget(null); refetch(); showSnack(t('contrat.renewedSuccess'), 'success'); }}
       />
 
       <Dialog open={!!exportTarget} onClose={() => !exporting && setExportTarget(null)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <PictureAsPdfIcon sx={{ color: '#16a34a' }} />
-          Exporter le contrat — {exportTarget?.concod}
+          {t('contrat.exportTitle', { concod: exportTarget?.concod ?? '' })}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: 13, color: '#475569', mb: 2 }}>
-            Sélectionnez le modèle de document à utiliser pour générer le PDF du contrat de{' '}
+            {t('contrat.exportPrompt')}{' '}
             <strong>{exportTarget?.emplib || empMap[exportTarget?.empcod || ''] || exportTarget?.empcod}</strong>.
           </Typography>
           <FormControl fullWidth size="small" sx={{ mt: 1 }}>
@@ -789,21 +795,21 @@ const GestionContratsModernInner = () => {
               displayEmpty
               sx={selectSx}
             >
-              <MenuItem value=""><em>Sélectionner un modèle…</em></MenuItem>
-              {exportTemplates.map((t) => (
-                <MenuItem key={t.name} value={t.name} sx={{ fontSize: 13 }}>{t.name}</MenuItem>
+              <MenuItem value=""><em>{t('contrat.selectTemplatePlaceholder')}</em></MenuItem>
+              {exportTemplates.map((tpl) => (
+                <MenuItem key={tpl.name} value={tpl.name} sx={{ fontSize: 13 }}>{tpl.name}</MenuItem>
               ))}
             </Select>
           </FormControl>
           {exportTemplates.length === 0 && (
             <Typography sx={{ fontSize: 12, color: '#ef4444', mt: 1 }}>
-              Aucun modèle disponible. Créez-en un depuis le Coffre-fort → Bibliothèque de modèles.
+              {t('contrat.noTemplate')}
             </Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setExportTarget(null)} disabled={exporting} sx={{ textTransform: 'none' }}>
-            Annuler
+            {t('contrat.cancel')}
           </Button>
           <Button
             onClick={doExport}
@@ -812,7 +818,7 @@ const GestionContratsModernInner = () => {
             startIcon={exporting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <PictureAsPdfIcon />}
             sx={{ bgcolor: '#16a34a', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#15803d' } }}
           >
-            {exporting ? 'Export en cours…' : 'Télécharger PDF'}
+            {exporting ? t('contrat.exporting') : t('contrat.downloadPdf')}
           </Button>
         </DialogActions>
       </Dialog>

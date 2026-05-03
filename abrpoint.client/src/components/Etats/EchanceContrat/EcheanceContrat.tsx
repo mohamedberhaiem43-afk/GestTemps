@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircularProgress } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { useTranslation } from 'react-i18next';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -55,10 +56,11 @@ const fmt = (d: any) => {
 const toIso = (d: Date) => dayjs(d).format('YYYY-MM-DD');
 
 function EcheanceContratInner() {
+  const { t } = useTranslation();
   const { soccod, uticod, hasPermission } = useAuth();
 
   if (!hasPermission('Rapports et Statistiques', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter l'échéance des contrats." />;
+    return <AccessDenied message={t('echeanceContrat.noConsultRight')} />;
   }
 
   // Période par défaut : aujourd'hui → fin du mois courant.
@@ -97,8 +99,8 @@ function EcheanceContratInner() {
       setCurrentPage(1);
     } catch (e: any) {
       const msg = e?.response?.status === 403
-        ? "Action interdite : vous n'avez pas la permission."
-        : 'Erreur lors de la récupération des contrats.';
+        ? t('echeanceContrat.errors.forbidden')
+        : t('echeanceContrat.errors.fetchError');
       setError(msg);
       setContrats([]);
     } finally {
@@ -117,14 +119,22 @@ function EcheanceContratInner() {
       document.body.appendChild(link); link.click(); link.remove();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setError(e?.response?.status === 403 ? 'Accès refusé à la génération du rapport.' : 'Erreur lors de la génération du rapport.');
+      setError(e?.response?.status === 403 ? t('echeanceContrat.errors.reportForbidden') : t('echeanceContrat.errors.reportError'));
     }
   };
 
   const handleExportExcel = () => {
     if (!contrats.length) return;
-    const title = [`Échéance de Contrats — ${fmt(echdeb)} au ${fmt(echfin)}`];
-    const headers = ['Matricule', 'Nom & Prénom', 'N° Contrat', 'Date Contrat', 'Date Début', 'Date Fin', 'Jours Restants'];
+    const title = [t('echeanceContrat.excel.title', { start: fmt(echdeb), end: fmt(echfin) })];
+    const headers = [
+      t('echeanceContrat.excel.headers.matricule'),
+      t('echeanceContrat.excel.headers.name'),
+      t('echeanceContrat.excel.headers.contractNo'),
+      t('echeanceContrat.excel.headers.contractDate'),
+      t('echeanceContrat.excel.headers.startDate'),
+      t('echeanceContrat.excel.headers.endDate'),
+      t('echeanceContrat.excel.headers.daysLeft'),
+    ];
     const rows = contrats.map((c) => {
       const days = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : 0;
       return [c.empmat || '', c.emplib || '', c.concod || '', fmt(c.condat), fmt(c.empemb), fmt(c.empsort), days];
@@ -133,7 +143,7 @@ function EcheanceContratInner() {
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
     ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Echeance');
+    XLSX.utils.book_append_sheet(wb, ws, t('echeanceContrat.excel.sheetName'));
     const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     saveAs(new Blob([buf], { type: 'application/octet-stream' }), `echeance-contrats-${annee}.xlsx`);
   };
@@ -167,8 +177,8 @@ function EcheanceContratInner() {
       <div className="ea-header">
         <div className="ea-header-left">
           <div>
-            <h2 className="ea-title">Échéance des Contrats</h2>
-            <p className="ea-subtitle">Suivi des fins de contrat et anticipation des renouvellements</p>
+            <h2 className="ea-title">{t('echeanceContrat.title')}</h2>
+            <p className="ea-subtitle">{t('echeanceContrat.subtitle')}</p>
           </div>
           <div className="ea-header-divider" />
           <div className="ea-year-select">
@@ -177,7 +187,7 @@ function EcheanceContratInner() {
               value={annee} onChange={(e) => setAnnee(e.target.value)}
               style={{ background: 'transparent', border: 'none', fontSize: 13, fontWeight: 700, color: '#334155', outline: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
             >
-              {['2027', '2026', '2025', '2024'].map((y) => <option key={y} value={y}>Année {y}</option>)}
+              {['2027', '2026', '2025', '2024'].map((y) => <option key={y} value={y}>{t('echeanceContrat.yearLabel', { year: y })}</option>)}
             </select>
           </div>
         </div>
@@ -187,16 +197,16 @@ function EcheanceContratInner() {
       <div className="ea-filter-section">
         <div className="ea-filter-row">
           <div className="ea-filter-field-narrow">
-            <label className="ea-filter-label">Échéance Début</label>
+            <label className="ea-filter-label">{t('echeanceContrat.filter.echStart')}</label>
             <input type="date" className="ea-filter-input" value={echdeb} onChange={(e) => setEchdeb(e.target.value)} />
           </div>
           <div className="ea-filter-field-narrow">
-            <label className="ea-filter-label">Échéance Fin</label>
+            <label className="ea-filter-label">{t('echeanceContrat.filter.echEnd')}</label>
             <input type="date" className="ea-filter-input" value={echfin} onChange={(e) => setEchfin(e.target.value)} />
           </div>
           <button className="ea-search-btn" onClick={handleSearch} disabled={isLoading}>
             {isLoading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon sx={{ fontSize: 15 }} />}
-            RECHERCHE
+            {t('echeanceContrat.filter.search')}
           </button>
         </div>
         {error && (
@@ -210,38 +220,38 @@ function EcheanceContratInner() {
       <div className="ea-summary-grid">
         <div className="ea-summary-card ea-card-border-blue">
           <div className="ea-summary-card-top">
-            <span className="ea-summary-label">Contrats à échéance</span>
+            <span className="ea-summary-label">{t('echeanceContrat.summary.totalCards')}</span>
             <div className="ea-summary-icon ea-icon-bg-blue"><EventBusyIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{stats.total}<span className="ea-summary-unit">Contrats</span></div>
-          <div className="ea-summary-footer">Sur la période sélectionnée</div>
+          <div className="ea-summary-value">{stats.total}<span className="ea-summary-unit">{t('echeanceContrat.summary.totalUnit')}</span></div>
+          <div className="ea-summary-footer">{t('echeanceContrat.summary.totalFooter')}</div>
         </div>
 
         <div className="ea-summary-card ea-card-border-green">
           <div className="ea-summary-card-top">
-            <span className="ea-summary-label">Employés concernés</span>
+            <span className="ea-summary-label">{t('echeanceContrat.summary.employees')}</span>
             <div className="ea-summary-icon ea-icon-bg-green"><GroupIcon sx={{ fontSize: 19 }} /></div>
           </div>
           <div className="ea-summary-value">{stats.employes}</div>
-          <div className="ea-summary-footer">Distinct sur la période</div>
+          <div className="ea-summary-footer">{t('echeanceContrat.summary.employeesFooter')}</div>
         </div>
 
         <div className="ea-summary-card ea-card-border-amber">
           <div className="ea-summary-card-top">
-            <span className="ea-summary-label">Urgents (≤ 7j)</span>
+            <span className="ea-summary-label">{t('echeanceContrat.summary.urgent')}</span>
             <div className="ea-summary-icon ea-icon-bg-orange"><HourglassEmptyIcon sx={{ fontSize: 19 }} /></div>
           </div>
           <div className="ea-summary-value">{stats.urgents}</div>
-          <div className="ea-summary-footer">À renouveler très prochainement</div>
+          <div className="ea-summary-footer">{t('echeanceContrat.summary.urgentFooter')}</div>
         </div>
 
         <div className="ea-summary-card ea-card-border-red">
           <div className="ea-summary-card-top">
-            <span className="ea-summary-label">Déjà échus</span>
+            <span className="ea-summary-label">{t('echeanceContrat.summary.expired')}</span>
             <div className="ea-summary-icon ea-icon-bg-red"><AssignmentLateIcon sx={{ fontSize: 19 }} /></div>
           </div>
           <div className="ea-summary-value">{stats.echus}</div>
-          <div className="ea-summary-footer">Action immédiate requise</div>
+          <div className="ea-summary-footer">{t('echeanceContrat.summary.expiredFooter')}</div>
         </div>
       </div>
 
@@ -249,15 +259,15 @@ function EcheanceContratInner() {
       <div className="ea-table-section">
         <div className="ea-table-header">
           <div>
-            <div className="ea-table-title"><CheckCircleOutlineIcon /> Registre des Échéances</div>
-            <div className="ea-table-subtitle">Période du {fmt(echdeb)} au {fmt(echfin)}</div>
+            <div className="ea-table-title"><CheckCircleOutlineIcon /> {t('echeanceContrat.table.title')}</div>
+            <div className="ea-table-subtitle">{t('echeanceContrat.table.subtitle', { start: fmt(echdeb), end: fmt(echfin) })}</div>
           </div>
           <div className="ea-table-actions">
             <button className="ea-export-btn" onClick={handleExportExcel} disabled={!contrats.length}>
-              <DownloadIcon sx={{ fontSize: 13 }} /> EXPORTER EXCEL
+              <DownloadIcon sx={{ fontSize: 13 }} /> {t('echeanceContrat.table.exportExcel')}
             </button>
             <button className="ea-export-btn" onClick={handlePrintReport}>
-              <PrintIcon sx={{ fontSize: 13 }} /> IMPRIMER PDF
+              <PrintIcon sx={{ fontSize: 13 }} /> {t('echeanceContrat.table.printPdf')}
             </button>
           </div>
         </div>
@@ -270,21 +280,21 @@ function EcheanceContratInner() {
               <table className="ea-table">
                 <thead>
                   <tr>
-                    <th>Matricule</th>
-                    <th>Collaborateur</th>
-                    <th>N° Contrat</th>
-                    <th>Date Contrat</th>
-                    <th>Date Début</th>
-                    <th>Date Fin</th>
-                    <th className="ea-th-right">Jours Restants</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th>{t('echeanceContrat.table.headers.matricule')}</th>
+                    <th>{t('echeanceContrat.table.headers.collaborator')}</th>
+                    <th>{t('echeanceContrat.table.headers.contractNo')}</th>
+                    <th>{t('echeanceContrat.table.headers.contractDate')}</th>
+                    <th>{t('echeanceContrat.table.headers.startDate')}</th>
+                    <th>{t('echeanceContrat.table.headers.endDate')}</th>
+                    <th className="ea-th-right">{t('echeanceContrat.table.headers.daysLeft')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('echeanceContrat.table.headers.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginated.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="ea-no-data">
-                        {searchTriggered ? 'Aucun contrat n\'arrive à échéance sur cette période.' : 'Cliquez sur RECHERCHE pour charger les données.'}
+                        {searchTriggered ? t('echeanceContrat.table.noData') : t('echeanceContrat.table.clickSearch')}
                       </td>
                     </tr>
                   ) : (
@@ -307,13 +317,13 @@ function EcheanceContratInner() {
                           </td>
                           <td className="ea-td-right">
                             <span className={`ea-abs-badge ${urgencyClass(days)}`}>
-                              {days < 0 ? `Échu (${Math.abs(days)}j)` : `${days}j`}
+                              {days < 0 ? t('echeanceContrat.table.expiredBadge', { days: Math.abs(days) }) : t('echeanceContrat.table.daysShort', { days })}
                             </span>
                           </td>
                           <td className="ea-actions">
-                            <button className="ea-action-btn" onClick={() => handleRenew(c)} title="Renouveler ce contrat">
+                            <button className="ea-action-btn" onClick={() => handleRenew(c)} title={t('echeanceContrat.table.renewTooltip')}>
                               <RefreshIcon sx={{ fontSize: 13 }} />
-                              <span className="ea-action-label">Renouveler</span>
+                              <span className="ea-action-label">{t('echeanceContrat.table.renew')}</span>
                             </button>
                           </td>
                         </tr>
@@ -327,7 +337,11 @@ function EcheanceContratInner() {
             {contrats.length > 0 && (
               <div className="ea-table-footer">
                 <span className="ea-table-footer-info">
-                  Affichage de {Math.min((currentPage - 1) * pageSize + 1, contrats.length)} à {Math.min(currentPage * pageSize, contrats.length)} sur {contrats.length} contrat(s)
+                  {t('echeanceContrat.table.pagination', {
+                    start: Math.min((currentPage - 1) * pageSize + 1, contrats.length),
+                    end: Math.min(currentPage * pageSize, contrats.length),
+                    total: contrats.length,
+                  })}
                 </span>
                 <div className="ea-pagination">
                   <button className="ea-page-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>

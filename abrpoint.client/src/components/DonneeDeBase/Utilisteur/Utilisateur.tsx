@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { Alert, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
+import { useTranslation, Trans } from "react-i18next";
 import SaisieUtilisateur, { SaisieUtilisateurHandle } from "./SaisieUtilisateur";
 import { QueryClientProvider, QueryClient, useQuery } from "react-query";
 import UserProvider, { useUserContext } from "../../helper/UserProvider";
@@ -29,6 +30,7 @@ const queryClient = new QueryClient();
 
 // ── Inner component ──────────────────────────────────────────────
 function UtilisateurContent() {
+  const { t } = useTranslation();
   const { selectedUser, setSelectedUser } = useUserContext();
   const saisieRef = useRef<SaisieUtilisateurHandle>(null);
 
@@ -112,8 +114,8 @@ function UtilisateurContent() {
 
   const getStatusDisplay = (user: any) => {
     const isActive = user.utiactif === 'Oui' || user.utiactif === '1';
-    if (isActive) return { label: 'Actif', className: 'um-status-active' };
-    return { label: 'Inactif', className: 'um-status-inactive' };
+    if (isActive) return { label: t('utilisateur.status.active'), className: 'um-status-active' };
+    return { label: t('utilisateur.status.inactive'), className: 'um-status-inactive' };
   };
 
   const getInitials = (user: any) => {
@@ -138,10 +140,10 @@ function UtilisateurContent() {
   const handleToggleStatus = (user: any) => {
     toggleStatus(user.uticod, {
       onSuccess: () => {
-        setSnackbar({ open: true, message: "Statut mis à jour", severity: "success" });
+        setSnackbar({ open: true, message: t('utilisateur.msg.statusUpdated'), severity: "success" });
         refetch();
       },
-      onError: () => setSnackbar({ open: true, message: "Erreur lors de la mise à jour", severity: "error" })
+      onError: () => setSnackbar({ open: true, message: t('utilisateur.msg.statusUpdateError'), severity: "error" })
     });
   };
 
@@ -149,11 +151,11 @@ function UtilisateurContent() {
     if (!userToProcess) return;
     deleteUser(userToProcess.uticod, {
       onSuccess: () => {
-        setSnackbar({ open: true, message: "Utilisateur supprimé", severity: "success" });
+        setSnackbar({ open: true, message: t('utilisateur.msg.userDeleted'), severity: "success" });
         setDeleteDialogOpen(false);
         refetch();
       },
-      onError: () => setSnackbar({ open: true, message: "Erreur lors de la suppression", severity: "error" })
+      onError: () => setSnackbar({ open: true, message: t('utilisateur.msg.deleteError'), severity: "error" })
     });
   };
 
@@ -161,10 +163,10 @@ function UtilisateurContent() {
     if (!userToProcess || !newPassword) return;
     resetPassword({ uticod: userToProcess.uticod, newPassword }, {
       onSuccess: () => {
-        setSnackbar({ open: true, message: "Mot de passe réinitialisé", severity: "success" });
+        setSnackbar({ open: true, message: t('utilisateur.msg.passwordReset'), severity: "success" });
         setResetDialogOpen(false);
       },
-      onError: () => setSnackbar({ open: true, message: "Erreur lors de la réinitialisation", severity: "error" })
+      onError: () => setSnackbar({ open: true, message: t('utilisateur.msg.resetError'), severity: "error" })
     });
   };
 
@@ -173,12 +175,12 @@ function UtilisateurContent() {
       {/* Page Header */}
       <div className="um-page-header">
         <div className="um-header-left">
-          <h1 className="um-page-title">Gestion des Utilisateurs</h1>
+          <h1 className="um-page-title">{t('utilisateur.page.title')}</h1>
           <div className="um-header-search">
             <Search sx={{ fontSize: 18 }} />
             <input
               type="text"
-              placeholder="Rechercher dans le répertoire..."
+              placeholder={t('utilisateur.page.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -187,11 +189,11 @@ function UtilisateurContent() {
         <div className="um-header-right">
           <a href="/dashboard/droit-accees" className="um-btn-permissions" style={{ textDecoration: 'none' }}>
             <Shield sx={{ fontSize: 16 }} />
-            Autorisations
+            {t('utilisateur.page.permissions')}
           </a>
           <button className="um-btn-add" onClick={() => setShowAddModal(true)}>
             <Add sx={{ fontSize: 18 }} />
-            Nouvel Utilisateur
+            {t('utilisateur.page.newUser')}
           </button>
         </div>
       </div>
@@ -205,7 +207,7 @@ function UtilisateurContent() {
             </div>
             <span className="um-kpi-badge um-kpi-badge-green">+{Math.max(1, Math.round(stats.total * 0.04))}%</span>
           </div>
-          <p className="um-kpi-label">Total Utilisateurs</p>
+          <p className="um-kpi-label">{t('utilisateur.kpi.totalUsers')}</p>
           <p className="um-kpi-value">{stats.total}</p>
         </div>
         <div className="um-kpi-card">
@@ -213,9 +215,9 @@ function UtilisateurContent() {
             <div className="um-kpi-icon um-kpi-icon-green">
               <Bolt sx={{ fontSize: 22 }} />
             </div>
-            <span className="um-kpi-live">Actif</span>
+            <span className="um-kpi-live">{t('utilisateur.kpi.activeBadge')}</span>
           </div>
-          <p className="um-kpi-label">Actifs</p>
+          <p className="um-kpi-label">{t('utilisateur.kpi.active')}</p>
           <p className="um-kpi-value">{stats.active}</p>
         </div>
         <div className="um-kpi-card">
@@ -225,7 +227,7 @@ function UtilisateurContent() {
             </div>
             <span className="um-kpi-badge um-kpi-badge-gray">{stats.admins}</span>
           </div>
-          <p className="um-kpi-label">Administrateurs</p>
+          <p className="um-kpi-label">{t('utilisateur.kpi.administrators')}</p>
           <p className="um-kpi-value">{stats.admins}</p>
         </div>
         <div className="um-kpi-card">
@@ -235,7 +237,7 @@ function UtilisateurContent() {
             </div>
             <span className="um-kpi-badge um-kpi-badge-red">{stats.total - stats.with2FA}</span>
           </div>
-          <p className="um-kpi-label">Sans 2FA</p>
+          <p className="um-kpi-label">{t('utilisateur.kpi.without2fa')}</p>
           <p className="um-kpi-value">{stats.total - stats.with2FA}</p>
         </div>
       </div>
@@ -247,27 +249,27 @@ function UtilisateurContent() {
           <div className="um-filters">
             <div className="um-filter-select-wrap">
               <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-                <option value="all">Tous les Rôles</option>
-                <option value="admin">Administrateur</option>
-                <option value="rh">Responsable RH</option>
-                <option value="superviseur">Superviseur</option>
-                <option value="manager">Manager</option>
-                <option value="standard">Standard</option>
+                <option value="all">{t('utilisateur.filters.allRoles')}</option>
+                <option value="admin">{t('utilisateur.filters.administrator')}</option>
+                <option value="rh">{t('utilisateur.filters.rh')}</option>
+                <option value="superviseur">{t('utilisateur.filters.supervisor')}</option>
+                <option value="manager">{t('utilisateur.filters.manager')}</option>
+                <option value="standard">{t('utilisateur.filters.standard')}</option>
               </select>
               <ExpandMore sx={{ fontSize: 18 }} />
             </div>
             <div className="um-filter-select-wrap">
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="all">Tous les Statuts</option>
-                <option value="active">Actif</option>
-                <option value="inactive">Inactif</option>
+                <option value="all">{t('utilisateur.filters.allStatuses')}</option>
+                <option value="active">{t('utilisateur.filters.active')}</option>
+                <option value="inactive">{t('utilisateur.filters.inactive')}</option>
               </select>
               <ExpandMore sx={{ fontSize: 18 }} />
             </div>
           </div>
           <button className="um-btn-export">
             <FileDownload sx={{ fontSize: 18 }} />
-            Exporter CSV
+            {t('utilisateur.page.exportCsv')}
           </button>
         </div>
 
@@ -276,11 +278,11 @@ function UtilisateurContent() {
           <table className="um-table">
             <thead>
               <tr>
-                <th>Utilisateur</th>
-                <th>Rôle</th>
-                <th>Statut</th>
-                <th>Email</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th>{t('utilisateur.table.user')}</th>
+                <th>{t('utilisateur.table.role')}</th>
+                <th>{t('utilisateur.table.status')}</th>
+                <th>{t('utilisateur.table.email')}</th>
+                <th style={{ textAlign: 'right' }}>{t('utilisateur.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -289,7 +291,7 @@ function UtilisateurContent() {
                   <td colSpan={5}>
                     <div className="um-loading">
                       <div className="um-spinner" />
-                      Chargement...
+                      {t('utilisateur.page.loading')}
                     </div>
                   </td>
                 </tr>
@@ -298,7 +300,7 @@ function UtilisateurContent() {
                   <td colSpan={5}>
                     <div className="um-empty">
                       <Group sx={{ fontSize: 48, opacity: 0.3 }} />
-                      <p>Aucun utilisateur trouvé</p>
+                      <p>{t('utilisateur.page.noUsers')}</p>
                     </div>
                   </td>
                 </tr>
@@ -337,16 +339,16 @@ function UtilisateurContent() {
                       <td className="um-email-cell">{user.utimail || '—'}</td>
                       <td>
                         <div className="um-actions">
-                          <button className="um-action-btn" title="Modifier" onClick={(e) => { e.stopPropagation(); setSelectedUser(user.uticod); setShowAddModal(true); }}>
+                          <button className="um-action-btn" title={t('utilisateur.actions.edit')} onClick={(e) => { e.stopPropagation(); setSelectedUser(user.uticod); setShowAddModal(true); }}>
                             <Edit sx={{ fontSize: 18 }} />
                           </button>
-                          <button className="um-action-btn" title="Réinitialiser mot de passe" onClick={(e) => { e.stopPropagation(); handleResetClick(user); }}>
+                          <button className="um-action-btn" title={t('utilisateur.actions.resetPassword')} onClick={(e) => { e.stopPropagation(); handleResetClick(user); }}>
                             <LockReset sx={{ fontSize: 18 }} />
                           </button>
-                          <button className="um-action-btn" title={isActive ? "Désactiver" : "Activer"} onClick={(e) => { e.stopPropagation(); handleToggleStatus(user); }}>
+                          <button className="um-action-btn" title={isActive ? t('utilisateur.actions.deactivate') : t('utilisateur.actions.activate')} onClick={(e) => { e.stopPropagation(); handleToggleStatus(user); }}>
                             <Bolt sx={{ fontSize: 18, color: isActive ? '#16a34a' : '#94a3b8' }} />
                           </button>
-                          <button className="um-action-btn um-action-btn-danger" title="Supprimer" onClick={(e) => { e.stopPropagation(); handleDeleteClick(user); }}>
+                          <button className="um-action-btn um-action-btn-danger" title={t('utilisateur.actions.delete')} onClick={(e) => { e.stopPropagation(); handleDeleteClick(user); }}>
                             <Delete sx={{ fontSize: 18 }} />
                           </button>
                         </div>
@@ -362,7 +364,7 @@ function UtilisateurContent() {
         {/* Pagination */}
         <div className="um-pagination">
           <p className="um-pagination-info">
-            Affichage de {filteredUsers.length} sur {users.length} utilisateurs
+            {t('utilisateur.page.paginationInfo', { filtered: filteredUsers.length, total: users.length })}
           </p>
         </div>
       </div>
@@ -374,9 +376,9 @@ function UtilisateurContent() {
             <div className="um-modal-header">
               <h3>
                 {selectedUser ? (
-                  <><Edit sx={{ fontSize: 20, verticalAlign: 'middle', mr: 1 }} /> Modifier l'Utilisateur</>
+                  <><Edit sx={{ fontSize: 20, verticalAlign: 'middle', mr: 1 }} /> {t('utilisateur.modal.editTitle')}</>
                 ) : (
-                  <><Add sx={{ fontSize: 20, verticalAlign: 'middle', mr: 1 }} /> Nouvel Utilisateur</>
+                  <><Add sx={{ fontSize: 20, verticalAlign: 'middle', mr: 1 }} /> {t('utilisateur.modal.newTitle')}</>
                 )}
               </h3>
               <button className="um-modal-close" onClick={() => { setShowAddModal(false); setSelectedUser(null); }}>
@@ -392,17 +394,17 @@ function UtilisateurContent() {
             </div>
             <div className="um-modal-footer">
               <button className="um-btn-cancel" onClick={() => { setShowAddModal(false); setSelectedUser(null); }}>
-                Annuler
+                {t('utilisateur.modal.cancel')}
               </button>
               <button
                 className="um-btn-save"
                 onClick={async () => {
                   const success = await saisieRef.current?.handleSave();
                   if (success) {
-                    setSnackbar({ 
-                      open: true, 
-                      message: selectedUser ? "Utilisateur mis à jour avec succès" : "Utilisateur créé avec succès", 
-                      severity: "success" 
+                    setSnackbar({
+                      open: true,
+                      message: selectedUser ? t('utilisateur.msg.userUpdated') : t('utilisateur.msg.userCreated'),
+                      severity: "success"
                     });
                     refetch();
                     setShowAddModal(false);
@@ -410,7 +412,7 @@ function UtilisateurContent() {
                   }
                 }}
               >
-                Enregistrer
+                {t('utilisateur.modal.save')}
               </button>
             </div>
           </div>
@@ -434,34 +436,46 @@ function UtilisateurContent() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: '12px' } }}>
-        <DialogTitle sx={{ fontWeight: 800, color: '#dc2626' }}>Confirmer la suppression</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: '#dc2626' }}>{t('utilisateur.delete.title')}</DialogTitle>
         <DialogContent>
-          <p>Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{userToProcess?.utiprn} {userToProcess?.utinom}</strong> ?</p>
-          <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>Cette action supprimera également tous ses droits et accès.</p>
+          <p>
+            <Trans
+              i18nKey="utilisateur.delete.message"
+              values={{ name: `${userToProcess?.utiprn ?? ''} ${userToProcess?.utinom ?? ''}`.trim() }}
+              components={{ 0: <strong /> }}
+            />
+          </p>
+          <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>{t('utilisateur.delete.warning')}</p>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} color="inherit">Annuler</Button>
-          <Button onClick={confirmDelete} variant="contained" color="error">Supprimer définitivement</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} color="inherit">{t('utilisateur.delete.cancel')}</Button>
+          <Button onClick={confirmDelete} variant="contained" color="error">{t('utilisateur.delete.confirm')}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Reset Password Dialog */}
       <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)} PaperProps={{ sx: { borderRadius: '12px', width: '350px' } }}>
-        <DialogTitle sx={{ fontWeight: 800 }}>Réinitialiser le mot de passe</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{t('utilisateur.reset.title')}</DialogTitle>
         <DialogContent>
-          <p style={{ fontSize: '14px', marginBottom: '16px' }}>Nouveau mot de passe pour <strong>{userToProcess?.utiprn}</strong> :</p>
+          <p style={{ fontSize: '14px', marginBottom: '16px' }}>
+            <Trans
+              i18nKey="utilisateur.reset.prompt"
+              values={{ name: userToProcess?.utiprn ?? '' }}
+              components={{ 0: <strong /> }}
+            />
+          </p>
           <TextField
             fullWidth
             type="password"
             size="small"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Entrez le nouveau mot de passe"
+            placeholder={t('utilisateur.reset.placeholder')}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setResetDialogOpen(false)} color="inherit">Annuler</Button>
-          <Button onClick={confirmReset} variant="contained" disabled={!newPassword}>Réinitialiser</Button>
+          <Button onClick={() => setResetDialogOpen(false)} color="inherit">{t('utilisateur.reset.cancel')}</Button>
+          <Button onClick={confirmReset} variant="contained" disabled={!newPassword}>{t('utilisateur.reset.confirm')}</Button>
         </DialogActions>
       </Dialog>
     </div>

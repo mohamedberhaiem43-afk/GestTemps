@@ -7,10 +7,12 @@ import {
 } from "@mui/material";
 import "./Part2.css";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AffichageProps from "../../../../models/AffichageProps";
 import InputComponent from "../../../Inputs/Input";
 
 const Part2: React.FC<AffichageProps> = ({ parametre, onChange }) => {
+  const { t } = useTranslation();
   const [paie, setPaie] = useState(parametre?.paie);
   const [paiearrondi, setPaiearrondi] = useState(parametre?.paiearrondi);
   const [parhnuitspec, setParhnuitspec] = useState(parametre?.parhnuitspec);
@@ -37,7 +39,7 @@ const Part2: React.FC<AffichageProps> = ({ parametre, onChange }) => {
     <FormGroup>
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <InputLabel shrink={true} id="intpaie-label">Intégration Paie</InputLabel>
+          <InputLabel shrink={true} id="intpaie-label">{t('paramSoc.general.part2.integrationPaie')}</InputLabel>
           <Select
             variant="standard"
             size="small"
@@ -54,7 +56,7 @@ const Part2: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         </Grid>
 
         <Grid item xs={6}>
-          <InputLabel shrink={true} id="arrondi-label">Arrondir le cumul heures de paie</InputLabel>
+          <InputLabel shrink={true} id="arrondi-label">{t('paramSoc.general.part2.arrondirCumul')}</InputLabel>
           <Select
             variant="standard"
             labelId="arrondi-label"
@@ -73,7 +75,7 @@ const Part2: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={6}>
           <InputComponent
             type={"text"}
-            label={"Diviser Hre de nuit à intégrer par"}
+            label={t('paramSoc.general.part2.diviserNuit')}
             value={parjhnlibre}
             setValue={setParjhnlibre}
           />
@@ -81,7 +83,7 @@ const Part2: React.FC<AffichageProps> = ({ parametre, onChange }) => {
         <Grid item xs={6}>
           <InputComponent
             type={"text"}
-            label={"Intitulé Nuit Spéciale"}
+            label={t('paramSoc.general.part2.intituleNuit')}
             value={parhnuitspec}
             setValue={setParhnuitspec}
           />

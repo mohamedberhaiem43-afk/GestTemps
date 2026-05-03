@@ -12,6 +12,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import PersonIcon from '@mui/icons-material/Person';
 import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../helper/AuthProvider';
 import useGetSolde from '../../../../hooks/soldeCongeHooks/useGetSolde';
 import useGetEmployeesLibs from '../../../../hooks/employeHooks/useGetEmployeesLibs';
@@ -22,6 +23,7 @@ import { Solde } from '../../../../models/Solde';
 const queryClient = new QueryClient();
 
 function SoldeCongeAdminInner() {
+  const { t } = useTranslation();
   const { soccod } = useAuth();
   const queryClientLocal = useQueryClient();
 
@@ -85,7 +87,7 @@ function SoldeCongeAdminInner() {
 
     const numValue = parseFloat(value);
     if (isNaN(numValue) || numValue < 0) {
-      setSnackbar({ open: true, message: 'Valeur invalide. Entrez un nombre positif.', severity: 'error' });
+      setSnackbar({ open: true, message: t('conge.soldeAdmin.msg.invalid'), severity: 'error' });
       return;
     }
 
@@ -116,7 +118,7 @@ function SoldeCongeAdminInner() {
 
       setSnackbar({
         open: true,
-        message: `Solde de ${emplib} mis à jour avec succès`,
+        message: t('conge.soldeAdmin.msg.updateSuccess', { name: emplib }),
         severity: 'success'
       });
 
@@ -133,7 +135,7 @@ function SoldeCongeAdminInner() {
       console.error('Save error:', err);
       setSnackbar({
         open: true,
-        message: "Erreur lors de l'enregistrement du solde",
+        message: t('conge.soldeAdmin.msg.saveError'),
         severity: 'error'
       });
     }
@@ -159,12 +161,12 @@ function SoldeCongeAdminInner() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#0f172a', fontFamily: 'Manrope' }}>
-            Affectation des Soldes de Congé
+            {t('conge.soldeAdmin.title')}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
             <EventIcon sx={{ fontSize: 16, color: '#64748b' }} />
             <Typography sx={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>
-              Gestion par année — {selectedYear}
+              {t('conge.soldeAdmin.yearLabel', { year: selectedYear })}
             </Typography>
           </Box>
         </Box>
@@ -190,7 +192,7 @@ function SoldeCongeAdminInner() {
             onClick={() => queryClientLocal.invalidateQueries('soldes')}
             sx={{ textTransform: 'none', fontWeight: 700, color: '#0040a1' }}
           >
-            Actualiser
+            {t('conge.soldeAdmin.refresh')}
           </Button>
         </Stack>
       </Box>
@@ -203,7 +205,7 @@ function SoldeCongeAdminInner() {
               <PersonIcon sx={{ fontSize: 20 }} />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Total Employés</Typography>
+              <Typography sx={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>{t('conge.soldeAdmin.stats.totalEmployees')}</Typography>
               <Typography sx={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{totalEmployees}</Typography>
             </Box>
           </Box>
@@ -215,7 +217,7 @@ function SoldeCongeAdminInner() {
               <BeachAccessIcon sx={{ fontSize: 20 }} />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Avec Solde</Typography>
+              <Typography sx={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>{t('conge.soldeAdmin.stats.withSolde')}</Typography>
               <Typography sx={{ fontSize: '24px', fontWeight: 800, color: '#059669' }}>{withSolde}</Typography>
             </Box>
           </Box>
@@ -227,7 +229,7 @@ function SoldeCongeAdminInner() {
               <EventIcon sx={{ fontSize: 20 }} />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Total Jours Affectés</Typography>
+              <Typography sx={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>{t('conge.soldeAdmin.stats.totalDays')}</Typography>
               <Typography sx={{ fontSize: '24px', fontWeight: 800, color: '#ca8a04' }}>{totalSolde.toFixed(1)}</Typography>
             </Box>
           </Box>
@@ -238,7 +240,7 @@ function SoldeCongeAdminInner() {
       <Box sx={{ mb: 2 }}>
         <TextField
           size="small"
-          placeholder="Rechercher un employé..."
+          placeholder={t('conge.soldeAdmin.search')}
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           InputProps={{
@@ -271,33 +273,33 @@ function SoldeCongeAdminInner() {
                   fontWeight: 800, fontSize: '11px', textTransform: 'uppercase',
                   letterSpacing: '0.08em', color: '#64748b', bgcolor: '#f8fafc', py: 2
                 }}>
-                  Matricule
+                  {t('conge.soldeAdmin.headers.matricule')}
                 </TableCell>
                 <TableCell sx={{
                   fontWeight: 800, fontSize: '11px', textTransform: 'uppercase',
                   letterSpacing: '0.08em', color: '#64748b', bgcolor: '#f8fafc', py: 2
                 }}>
-                  Employé
+                  {t('conge.soldeAdmin.headers.employee')}
                 </TableCell>
                 <TableCell sx={{
                   fontWeight: 800, fontSize: '11px', textTransform: 'uppercase',
                   letterSpacing: '0.08em', color: '#64748b', bgcolor: '#f8fafc', py: 2
                 }}>
-                  Statut
+                  {t('conge.soldeAdmin.headers.status')}
                 </TableCell>
                 <TableCell align="center" sx={{
                   fontWeight: 800, fontSize: '11px', textTransform: 'uppercase',
                   letterSpacing: '0.08em', color: '#64748b', bgcolor: '#f8fafc', py: 2,
                   minWidth: 180
                 }}>
-                  Solde (jours)
+                  {t('conge.soldeAdmin.headers.balance')}
                 </TableCell>
                 <TableCell align="center" sx={{
                   fontWeight: 800, fontSize: '11px', textTransform: 'uppercase',
                   letterSpacing: '0.08em', color: '#64748b', bgcolor: '#f8fafc', py: 2,
                   width: 100
                 }}>
-                  Action
+                  {t('conge.soldeAdmin.headers.action')}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -307,7 +309,7 @@ function SoldeCongeAdminInner() {
                   <TableCell colSpan={5}>
                     <Box sx={{ textAlign: 'center', py: 6 }}>
                       <PersonIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 1 }} />
-                      <Typography sx={{ color: '#94a3b8', fontWeight: 600 }}>Aucun employé trouvé</Typography>
+                      <Typography sx={{ color: '#94a3b8', fontWeight: 600 }}>{t('conge.soldeAdmin.noEmployees')}</Typography>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -349,7 +351,7 @@ function SoldeCongeAdminInner() {
                       <TableCell>
                         {hasSolde ? (
                           <Chip
-                            label="Affecté"
+                            label={t('conge.soldeAdmin.status.assigned')}
                             size="small"
                             sx={{
                               bgcolor: 'rgba(5,150,105,0.1)', color: '#059669',
@@ -358,7 +360,7 @@ function SoldeCongeAdminInner() {
                           />
                         ) : (
                           <Chip
-                            label="Non affecté"
+                            label={t('conge.soldeAdmin.status.notAssigned')}
                             size="small"
                             sx={{
                               bgcolor: 'rgba(234,179,8,0.1)', color: '#ca8a04',
@@ -397,7 +399,7 @@ function SoldeCongeAdminInner() {
                         />
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title="Enregistrer">
+                        <Tooltip title={t('conge.soldeAdmin.tooltip.save')}>
                           <span>
                             <IconButton
                               size="small"

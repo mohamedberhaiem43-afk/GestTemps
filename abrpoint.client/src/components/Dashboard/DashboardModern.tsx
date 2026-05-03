@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box, Typography, CircularProgress, Alert, Avatar, Chip, Button,
   Select, MenuItem, FormControl, Dialog, DialogTitle, DialogContent, IconButton,
@@ -69,6 +70,7 @@ export default function DashboardModern() {
 }
 
 function DashboardModernAdmin() {
+  const { t } = useTranslation();
   const { soccod } = useAuth();
   const [filterDateRange, setFilterDateRange] = useState<'today' | 'week' | 'month'>('today');
   const [filterDepartment, setFilterDepartment] = useState('all');
@@ -195,7 +197,7 @@ function DashboardModernAdmin() {
   );
 
   if (error) return (
-    <Box sx={{ p: 3 }}><Alert severity="error">Erreur lors du chargement du tableau de bord</Alert></Box>
+    <Box sx={{ p: 3 }}><Alert severity="error">{t('dashboard.loadError')}</Alert></Box>
   );
 
   return (
@@ -203,11 +205,11 @@ function DashboardModernAdmin() {
       {/* Welcome header */}
       <Box className="db-welcome">
         <Box>
-          <Typography className="db-title">Vue d'ensemble</Typography>
-          <Typography className="db-subtitle">Mise à jour aujourd'hui, le {today}</Typography>
+          <Typography className="db-title">{t('dashboard.title')}</Typography>
+          <Typography className="db-subtitle">{t('dashboard.updatedToday', { date: today })}</Typography>
         </Box>
         <Button startIcon={<FileDownloadIcon />} className="db-export-btn" onClick={handleExportReport}>
-          Exporter le rapport
+          {t('dashboard.exportReport')}
         </Button>
       </Box>
 
@@ -219,9 +221,9 @@ function DashboardModernAdmin() {
           </Box>
           <FormControl size="small" variant="standard" sx={{ minWidth: 160 }}>
             <Select value={filterDateRange} onChange={e => setFilterDateRange(e.target.value as any)} disableUnderline sx={{ fontSize: '13px', fontWeight: 600 }}>
-              <MenuItem value="today">Aujourd'hui</MenuItem>
-              <MenuItem value="week">Cette semaine</MenuItem>
-              <MenuItem value="month">Ce mois</MenuItem>
+              <MenuItem value="today">{t('dashboard.today')}</MenuItem>
+              <MenuItem value="week">{t('dashboard.thisWeek')}</MenuItem>
+              <MenuItem value="month">{t('dashboard.thisMonth')}</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -231,13 +233,13 @@ function DashboardModernAdmin() {
           </Box>
           <FormControl size="small" variant="standard" sx={{ minWidth: 180 }}>
             <Select value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)} disableUnderline sx={{ fontSize: '13px', fontWeight: 600 }}>
-              <MenuItem value="all">Tous les Départements</MenuItem>
+              <MenuItem value="all">{t('dashboard.allDepartments')}</MenuItem>
               {directionLibs.map((d: any) => <MenuItem key={d.dircod} value={d.dircod}>{d.dirlib}</MenuItem>)}
             </Select>
           </FormControl>
         </Box>
         <Button className="db-filter-apply-btn" startIcon={<FilterListIcon />}>
-          Appliquer les filtres
+          {t('dashboard.applyFilters')}
         </Button>
       </Box>
 
@@ -245,7 +247,7 @@ function DashboardModernAdmin() {
       <Box className="db-kpi-grid">
         <KpiCard
           icon={<HowToRegIcon sx={{ fontSize: 20 }} />}
-          label="Taux de Présence"
+          label={t('dashboard.presenceRate')}
           value={`${presenceRate}%`}
           trend={dashboardData?.pourcentagePresence}
           trendPositive
@@ -253,7 +255,7 @@ function DashboardModernAdmin() {
         />
         <KpiCard
           icon={<PersonOffIcon sx={{ fontSize: 20 }} />}
-          label="Taux d'Absentéisme"
+          label={t('dashboard.absenceRate')}
           value={`${absenceRate}%`}
           trend={dashboardData?.evolutionAbsences}
           trendPositive={false}
@@ -261,16 +263,16 @@ function DashboardModernAdmin() {
         />
         <KpiCard
           icon={<ScheduleIcon sx={{ fontSize: 20 }} />}
-          label="Ponctualité"
+          label={t('dashboard.punctuality')}
           value={dashboardData?.pourcentagePonctualite != null ? `${dashboardData.pourcentagePonctualite.toFixed(1)}%` : '--'}
-          trendLabel="Moyenne"
+          trendLabel={t('dashboard.average')}
           iconBg="rgba(81,95,116,0.1)" iconColor="#515f74"
         />
         <KpiCard
           icon={<MoreTimeIcon sx={{ fontSize: 20 }} />}
-          label="Heures Supp. Cumulées"
+          label={t('dashboard.overtimeAccumulated')}
           value={dashboardData?.heuresTravaillees != null ? `${dashboardData.heuresTravaillees.toFixed(0)} hrs` : '--'}
-          trendLabel="Ce mois"
+          trendLabel={t('dashboard.thisMonth')}
           iconBg="rgba(0,81,54,0.1)" iconColor="#005136"
         />
       </Box>
@@ -279,7 +281,7 @@ function DashboardModernAdmin() {
       <Box className="db-bento-top">
         {/* Total employees */}
         <Box className="db-bento-employees">
-          <Typography className="db-bento-label">Total Employés</Typography>
+          <Typography className="db-bento-label">{t('dashboard.totalEmployees')}</Typography>
           <Box className="db-bento-emp-value">
             <Typography className="db-bento-big-num">{dashboardData?.effectifTotal ?? '--'}</Typography>
             {dashboardData && <Box className="db-bento-trend-badge"><TrendingUpIcon sx={{ fontSize: 14 }} /> +12%</Box>}
@@ -299,11 +301,11 @@ function DashboardModernAdmin() {
         {/* Congés en cours */}
         <Box className="db-bento-conges" onClick={() => setOpenCongeDialog(true)} sx={{ cursor: 'pointer' }}>
           <Box className="db-bento-conges-top">
-            <Typography className="db-bento-label">Congés en cours</Typography>
+            <Typography className="db-bento-label">{t('dashboard.ongoingLeaves')}</Typography>
             <Box className="db-bento-icon-wrap-green"><EventAvailableIcon sx={{ fontSize: 20 }} /></Box>
           </Box>
           <Typography className="db-bento-medium-num">{demandesData?.length ?? dashboardData?.totalDemandesEnAttente ?? '--'}</Typography>
-          <Typography className="db-bento-sub">Demandes en attente d'approbation</Typography>
+          <Typography className="db-bento-sub">{t('dashboard.pendingApproval')}</Typography>
           <Box className="db-bento-progress">
             <Box className="db-bento-progress-fill" style={{ width: '75%' }} />
           </Box>
@@ -312,12 +314,12 @@ function DashboardModernAdmin() {
         {/* Alertes contrat */}
         <Box className="db-bento-alerts" onClick={() => setOpenContractDialog(true)} sx={{ cursor: 'pointer' }}>
           <Box className="db-bento-alerts-top">
-            <Typography className="db-bento-label-error">Alertes Contrat</Typography>
+            <Typography className="db-bento-label-error">{t('dashboard.contractAlerts')}</Typography>
             <Box className="db-bento-icon-wrap-error"><PriorityHighIcon sx={{ fontSize: 20 }} /></Box>
           </Box>
           <Typography className="db-bento-medium-num">{expiringContracts.length || 0}</Typography>
           <Typography className="db-bento-sub-error">
-            Contrats échus ce mois →
+            {t('dashboard.contractsExpiringMonth')}
           </Typography>
         </Box>
       </Box>
@@ -328,12 +330,12 @@ function DashboardModernAdmin() {
         <Box className="db-chart-card">
           <Box className="db-chart-header">
             <Box>
-              <Typography className="db-chart-title">Tendances de recrutement</Typography>
-              <Typography className="db-chart-sub">Évolution mensuelle {dayjs().year()}</Typography>
+              <Typography className="db-chart-title">{t('dashboard.recruitmentTrends')}</Typography>
+              <Typography className="db-chart-sub">{t('dashboard.monthlyEvolution', { year: dayjs().year() })}</Typography>
             </Box>
             <Box className="db-chart-legend">
-              <Box className="db-legend-item"><Box className="db-legend-dot" style={{ background: '#0040a1' }} /><Typography className="db-legend-label">Entrées</Typography></Box>
-              <Box className="db-legend-item"><Box className="db-legend-dot" style={{ background: '#515f74' }} /><Typography className="db-legend-label">Départs</Typography></Box>
+              <Box className="db-legend-item"><Box className="db-legend-dot" style={{ background: '#0040a1' }} /><Typography className="db-legend-label">{t('dashboard.entries')}</Typography></Box>
+              <Box className="db-legend-item"><Box className="db-legend-dot" style={{ background: '#515f74' }} /><Typography className="db-legend-label">{t('dashboard.exits')}</Typography></Box>
             </Box>
           </Box>
           <EvolutionChart data={Array.isArray(evolutionData) ? evolutionData : []} isLoading={loadingEvolution} />
@@ -342,44 +344,44 @@ function DashboardModernAdmin() {
         {/* Recent absences */}
         <Box className="db-absences-card">
           <Box className="db-absences-header">
-            <Typography className="db-chart-title">Absences récentes</Typography>
+            <Typography className="db-chart-title">{t('dashboard.recentAbsences')}</Typography>
           </Box>
           <Box className="db-absences-list">
             {dashboardData && dashboardData.totalAbsences > 0 ? (
               <Box className="db-absence-item">
                 <Avatar sx={{ width: 40, height: 40, background: '#0040a1', fontSize: '13px', fontWeight: 700 }}>A</Avatar>
                 <Box sx={{ flex: 1 }}>
-                  <Typography className="db-absence-name">Absences du jour</Typography>
-                  <Typography className="db-absence-type">Total: {dashboardData.totalAbsences}</Typography>
+                  <Typography className="db-absence-name">{t('dashboard.todaysAbsences')}</Typography>
+                  <Typography className="db-absence-type">{t('dashboard.total')}: {dashboardData.totalAbsences}</Typography>
                 </Box>
-                <Chip label="Actif" size="small" sx={{ background: 'rgba(0,81,54,0.1)', color: '#005136', fontWeight: 700, fontSize: '10px' }} />
+                <Chip label={t('dashboard.active')} size="small" sx={{ background: 'rgba(0,81,54,0.1)', color: '#005136', fontWeight: 700, fontSize: '10px' }} />
               </Box>
             ) : (
               <Typography sx={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', py: 3 }}>
-                Aucune absence enregistrée
+                {t('dashboard.noAbsence')}
               </Typography>
             )}
             {dashboardData && dashboardData.nombreEmployesEnRetard > 0 && (
               <Box className="db-absence-item">
                 <Avatar sx={{ width: 40, height: 40, background: '#ba1a1a', fontSize: '13px', fontWeight: 700 }}>R</Avatar>
                 <Box sx={{ flex: 1 }}>
-                  <Typography className="db-absence-name">Retards du jour</Typography>
-                  <Typography className="db-absence-type">Total: {dashboardData.nombreEmployesEnRetard}</Typography>
+                  <Typography className="db-absence-name">{t('dashboard.todaysLate')}</Typography>
+                  <Typography className="db-absence-type">{t('dashboard.total')}: {dashboardData.nombreEmployesEnRetard}</Typography>
                 </Box>
-                <Chip label="Actif" size="small" sx={{ background: 'rgba(186,26,26,0.1)', color: '#ba1a1a', fontWeight: 700, fontSize: '10px' }} />
+                <Chip label={t('dashboard.active')} size="small" sx={{ background: 'rgba(186,26,26,0.1)', color: '#ba1a1a', fontWeight: 700, fontSize: '10px' }} />
               </Box>
             )}
           </Box>
-          <Button className="db-see-all-btn" fullWidth>Voir tout le calendrier</Button>
+          <Button className="db-see-all-btn" fullWidth>{t('dashboard.viewAllCalendar')}</Button>
         </Box>
       </Box>
 
       {/* Bottom row */}
       <Box className="db-bottom-row">
-    
+
         {/* Contract renewals */}
         <Box className="db-renewals-card">
-          <Typography className="db-chart-title" sx={{ mb: 2 }}>Prochains renouvellements de contrat</Typography>
+          <Typography className="db-chart-title" sx={{ mb: 2 }}>{t('dashboard.nextRenewals')}</Typography>
           {expiringContracts.length > 0 ? (
             expiringContracts.slice(0, 5).map((c: any, i: number) => {
               const daysLeft = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : 0;
@@ -392,18 +394,18 @@ function DashboardModernAdmin() {
                 >
                   <Box>
                     <Typography className="db-renewal-name">{c.emplib || c.empcod}</Typography>
-                    <Typography className="db-renewal-type">{c.contype || 'CDD'} — échéance {c.empsort ? dayjs(c.empsort).format('DD/MM/YYYY') : '-'}</Typography>
+                    <Typography className="db-renewal-type">{c.contype || 'CDD'} — {c.empsort ? dayjs(c.empsort).format('DD/MM/YYYY') : '-'}</Typography>
                   </Box>
                   <Box sx={{ textAlign: 'right' }}>
-                    <Typography className={daysLeft <= 7 ? 'db-renewal-days-error' : 'db-renewal-days-primary'}>{daysLeft}j restants</Typography>
-                    <Typography className="db-renewal-action">Renouveler</Typography>
+                    <Typography className={daysLeft <= 7 ? 'db-renewal-days-error' : 'db-renewal-days-primary'}>{t('dashboard.daysLeft', { days: daysLeft })}</Typography>
+                    <Typography className="db-renewal-action">{t('dashboard.renew')}</Typography>
                   </Box>
                 </Box>
               );
             })
           ) : (
             <Typography sx={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', py: 3 }}>
-              Aucun renouvellement imminent ce mois
+              {t('dashboard.noRenewal')}
             </Typography>
           )}
         </Box>
@@ -417,8 +419,8 @@ function DashboardModernAdmin() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <EventAvailableIcon sx={{ color: 'white', fontSize: 24 }} />
             <Box>
-              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '16px', fontFamily: 'Manrope, sans-serif' }}>Demandes de Congé en Attente</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{demandesData?.length || 0} demande(s) trouvée(s)</Typography>
+              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '16px', fontFamily: 'Manrope, sans-serif' }}>{t('dashboard.congeRequestsPending')}</Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{t('dashboard.requestsFound', { count: demandesData?.length || 0 })}</Typography>
             </Box>
           </Box>
           <IconButton onClick={() => setOpenCongeDialog(false)} sx={{ color: 'white' }}>
@@ -437,8 +439,8 @@ function DashboardModernAdmin() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <PriorityHighIcon sx={{ color: 'white', fontSize: 24 }} />
             <Box>
-              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '16px', fontFamily: 'Manrope, sans-serif' }}>Contrats Échus ce Mois</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{expiringContracts.length} contrat(s) arrivent à expiration</Typography>
+              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '16px', fontFamily: 'Manrope, sans-serif' }}>{t('dashboard.contractsExpiring')}</Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{t('dashboard.contractsExpiringSub', { count: expiringContracts.length })}</Typography>
             </Box>
           </Box>
           <IconButton onClick={() => setOpenContractDialog(false)} sx={{ color: 'white' }}>
@@ -448,14 +450,22 @@ function DashboardModernAdmin() {
         <DialogContent sx={{ p: 2 }}>
           {!expiringContracts.length ? (
             <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography sx={{ color: '#059669', fontWeight: 700, fontSize: '14px' }}>✅ Aucun contrat n'expire ce mois</Typography>
+              <Typography sx={{ color: '#059669', fontWeight: 700, fontSize: '14px' }}>✅ {t('dashboard.noContractExpiring')}</Typography>
             </Box>
           ) : (
             <TableContainer component={Paper} sx={{ borderRadius: '10px', mt: 1 }}>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ background: '#fef2f2' }}>
-                    {['Matricule', 'Employé', 'Type', 'Date Embauche', 'Date Échéance', 'Jours Restants', 'Action'].map(h => (
+                    {[
+                      t('dashboard.columns.matricule'),
+                      t('dashboard.columns.employee'),
+                      t('dashboard.columns.type'),
+                      t('dashboard.columns.hireDate'),
+                      t('dashboard.columns.dueDate'),
+                      t('dashboard.columns.daysRemaining'),
+                      t('dashboard.columns.action'),
+                    ].map(h => (
                       <TableCell key={h} sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#991b1b' }}>{h}</TableCell>
                     ))}
                   </TableRow>
@@ -472,7 +482,7 @@ function DashboardModernAdmin() {
                         <TableCell sx={{ fontWeight: 700, color: '#ba1a1a' }}>{c.empsort ? dayjs(c.empsort).format('DD/MM/YYYY') : '-'}</TableCell>
                         <TableCell>
                           <Chip
-                            label={`${daysLeft}j`}
+                            label={t('dashboard.daysLeft', { days: daysLeft })}
                             size="small"
                             sx={{
                               background: daysLeft <= 7 ? '#fee2e2' : daysLeft <= 15 ? '#fef3c7' : '#dcfce7',
@@ -489,7 +499,7 @@ function DashboardModernAdmin() {
                             onClick={() => { setOpenContractDialog(false); setRenewTarget(c as unknown as Contrat); }}
                             sx={{ textTransform: 'none', fontWeight: 700, fontSize: '11px', px: 1.5, py: 0.5, background: '#0040a1', '&:hover': { background: '#003280' } }}
                           >
-                            Renouveler
+                            {t('dashboard.renew')}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -511,17 +521,25 @@ function DashboardModernAdmin() {
             maxWidth: { xs: '50%', sm: '500px' },
           },
         }}>
-        <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700 }}>Pointages non complètes</DialogTitle>
+        <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700 }}>{t('dashboard.pointagesIncomplete')}</DialogTitle>
         <DialogContent>
           {loadingPointages ? <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress /></Box>
-            : errorPointages ? <Alert severity="error">Erreur lors de la récupération.</Alert>
-              : !pointagesData?.length ? <Alert severity="info">Aucun pointage non complet trouvé.</Alert>
+            : errorPointages ? <Alert severity="error">{t('dashboard.fetchError')}</Alert>
+              : !pointagesData?.length ? <Alert severity="info">{t('dashboard.noIncompletePointage')}</Alert>
                 : (
                   <TableContainer component={Paper} sx={{ mt: 1, borderRadius: '10px' }}>
                     <Table size="small">
                       <TableHead>
                         <TableRow sx={{ background: '#f8fafc' }}>
-                          {['Matricule', 'Nom', 'Département', 'Date', 'Arrivée', 'Départ', 'Commentaire'].map(h => (
+                          {[
+                            t('dashboard.columns.matricule'),
+                            t('dashboard.columns.name'),
+                            t('dashboard.columns.department'),
+                            t('dashboard.columns.date'),
+                            t('dashboard.columns.arrival'),
+                            t('dashboard.columns.departure'),
+                            t('dashboard.columns.comment'),
+                          ].map(h => (
                             <TableCell key={h} sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b' }}>{h}</TableCell>
                           ))}
                         </TableRow>

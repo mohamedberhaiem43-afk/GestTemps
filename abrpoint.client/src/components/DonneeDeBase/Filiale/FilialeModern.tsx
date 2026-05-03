@@ -8,6 +8,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import SearchIcon from '@mui/icons-material/Search';
+import { useTranslation } from 'react-i18next';
 import useAddSite from '../../../hooks/siteHooks/useAddSite';
 import useUpdateSite from '../../../hooks/siteHooks/useUpdateSite';
 import useGetSites from '../../../hooks/siteHooks/useGetSites';
@@ -24,6 +25,7 @@ const emptyForm: FilialeModel = {
 };
 
 function FilialeModernContent() {
+  const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
   const [form, setForm] = useState<FilialeModel>({ ...emptyForm, soccod: soccod || '' });
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
@@ -49,7 +51,7 @@ function FilialeModernContent() {
   }, [sites, search]);
 
   if (!hasPermission('Données de Base', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter les filiales." />;
+    return <AccessDenied message={t('donneeBase.filiale.noConsultRight')} />;
   }
 
   const set = (field: keyof FilialeModel) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -59,22 +61,22 @@ function FilialeModernContent() {
 
   const handleSubmit = () => {
     if (!form.sitcod || !form.sitlib) {
-      setSnack({ open: true, msg: 'Code et Libellé sont obligatoires.', sev: 'error' });
+      setSnack({ open: true, msg: t('donneeBase.filiale.codeRequired'), sev: 'error' });
       return;
     }
     const payload = { ...form, soccod: soccod || '' };
     const onSuccess = () => {
-      setSnack({ open: true, msg: isEditMode ? 'Filiale mise à jour.' : 'Filiale ajoutée.', sev: 'success' });
+      setSnack({ open: true, msg: isEditMode ? t('donneeBase.filiale.msgUpdated') : t('donneeBase.filiale.msgAdded'), sev: 'success' });
       setForm({ ...emptyForm, soccod: soccod || '' });
       refetch();
     };
-    const onError = () => setSnack({ open: true, msg: 'Erreur lors de l\'enregistrement.', sev: 'error' });
+    const onError = () => setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
     if (isEditMode) { updateSite(payload, { onSuccess, onError }); } else { addSite(payload, { onSuccess, onError }); }
   };
 
   const handleEdit = (row: FilialeModel) => { setForm(row); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleDelete = (row: FilialeModel) => {
-    if (window.confirm('Supprimer cette filiale ?')) {
+    if (window.confirm(t('donneeBase.filiale.deleteConfirm'))) {
       deleteSite({ sitcod: row.sitcod }, { onSuccess: () => refetch() });
     }
   };
@@ -83,15 +85,15 @@ function FilialeModernContent() {
     <Box className="ref-container">
       <Box className="ref-header">
         <Box>
-          <Typography className="ref-header-title">Données de base</Typography>
-          <Typography className="ref-header-heading">Gestion des Filiales</Typography>
-          <Typography className="ref-header-sub">Configurer les sites et filiales de votre société</Typography>
+          <Typography className="ref-header-title">{t('donneeBase.breadcrumb')}</Typography>
+          <Typography className="ref-header-heading">{t('donneeBase.filiale.heading')}</Typography>
+          <Typography className="ref-header-sub">{t('donneeBase.filiale.subtitle')}</Typography>
         </Box>
         <Box className="ref-header-actions">
-          {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>Annuler</Button>}
+          {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>{t('donneeBase.common.cancel')}</Button>}
           {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
             <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isSaving}>
-              {isSaving ? 'Enregistrement...' : isEditMode ? 'Mettre à jour' : 'Enregistrer'}
+              {isSaving ? t('donneeBase.filiale.saving') : isEditMode ? t('donneeBase.common.update') : t('donneeBase.common.save')}
             </Button>
           )}
         </Box>
@@ -101,27 +103,27 @@ function FilialeModernContent() {
         {/* PRIMARY: Table at top (Portefeuille des filiales) */}
         <Box className="ref-table-section">
           <Box className="ref-table-header">
-            <Typography className="ref-table-title">Portefeuille des Filiales ({filtered.length})</Typography>
+            <Typography className="ref-table-title">{t('donneeBase.filiale.tableTitle', { count: filtered.length })}</Typography>
             <Box className="ref-table-search">
               <SearchIcon sx={{ fontSize: 16, color: '#8896a8' }} />
-              <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input type="text" placeholder={t('donneeBase.common.search')} value={search} onChange={e => setSearch(e.target.value)} />
             </Box>
           </Box>
           <Box className="ref-table-container">
             <table className="ref-table">
               <thead>
                 <tr>
-                  <th style={{ width: 80 }}>Actions</th>
-                  <th>Code</th>
-                  <th>Nom</th>
-                  <th>Tél</th>
-                  <th>Email</th>
-                  <th>Hrs/Mois</th>
+                  <th style={{ width: 80 }}>{t('donneeBase.common.actions')}</th>
+                  <th>{t('donneeBase.common.code')}</th>
+                  <th>{t('donneeBase.filiale.headers.name')}</th>
+                  <th>{t('donneeBase.filiale.headers.phone')}</th>
+                  <th>{t('donneeBase.filiale.headers.email')}</th>
+                  <th>{t('donneeBase.filiale.headers.hoursMonth')}</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="ref-empty">Aucune filiale trouvée.</td></tr>
+                  <tr><td colSpan={6} className="ref-empty">{t('donneeBase.filiale.noResults')}</td></tr>
                 ) : filtered.map(s => {
                   const isSelected = isEditMode && form.sitcod === s.sitcod;
                   return (
@@ -148,7 +150,7 @@ function FilialeModernContent() {
               </tbody>
             </table>
           </Box>
-          <Box className="ref-table-footer"><span>Affichage de {filtered.length} filiales</span></Box>
+          <Box className="ref-table-footer"><span>{t('donneeBase.filiale.footerCount', { count: filtered.length })}</span></Box>
         </Box>
 
         {/* SECONDARY: Contextual sub-header */}
@@ -157,10 +159,10 @@ function FilialeModernContent() {
             <Box className="ref-details-icon"><BusinessIcon fontSize="small" /></Box>
             <Box>
               <Typography className="ref-details-title">
-                {isEditMode ? <>Détails de la filiale : <span className="ref-details-code">{form.sitcod}</span></> : 'Nouvelle filiale'}
+                {isEditMode ? <>{t('donneeBase.filiale.details.titleEdit')} <span className="ref-details-code">{form.sitcod}</span></> : t('donneeBase.filiale.details.titleNew')}
               </Typography>
               <Typography className="ref-details-sub">
-                {isEditMode ? 'Modifiez les informations de la filiale sélectionnée.' : "Renseignez les informations de la nouvelle filiale."}
+                {isEditMode ? t('donneeBase.filiale.details.subEdit') : t('donneeBase.filiale.details.subNew')}
               </Typography>
             </Box>
           </Box>
@@ -170,16 +172,16 @@ function FilialeModernContent() {
         <Box className="ref-card">
           <Box className="ref-card-header">
             <Box className="ref-card-icon"><BusinessIcon fontSize="small" /></Box>
-            <Typography className="ref-card-title">Identification</Typography>
+            <Typography className="ref-card-title">{t('donneeBase.filiale.card.identification')}</Typography>
           </Box>
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field">
-              <label>Code Filiale</label>
-              <input type="text" value={form.sitcod} onChange={set('sitcod')} readOnly={isEditMode} placeholder="S01" />
+              <label>{t('donneeBase.filiale.field.code')}</label>
+              <input type="text" value={form.sitcod} onChange={set('sitcod')} readOnly={isEditMode} placeholder={t('donneeBase.filiale.placeholder.code')} />
             </Box>
             <Box className="ref-field">
-              <label>Nom Filiale</label>
-              <input type="text" value={form.sitlib} onChange={set('sitlib')} placeholder="Siège Casablanca" />
+              <label>{t('donneeBase.filiale.field.name')}</label>
+              <input type="text" value={form.sitlib} onChange={set('sitlib')} placeholder={t('donneeBase.filiale.placeholder.name')} />
             </Box>
           </Box>
         </Box>
@@ -188,24 +190,24 @@ function FilialeModernContent() {
         <Box className="ref-card">
           <Box className="ref-card-header">
             <Box className="ref-card-icon"><LocationOnIcon fontSize="small" /></Box>
-            <Typography className="ref-card-title">Coordonnées</Typography>
+            <Typography className="ref-card-title">{t('donneeBase.filiale.card.contact')}</Typography>
           </Box>
           <Box className="ref-form-grid ref-form-grid--2">
             <Box className="ref-field" style={{ gridColumn: 'span 2' }}>
-              <label>Adresse</label>
-              <input type="text" value={form.sitadr} onChange={set('sitadr')} placeholder="123 Avenue Mohammed V" />
+              <label>{t('donneeBase.filiale.field.address')}</label>
+              <input type="text" value={form.sitadr} onChange={set('sitadr')} placeholder={t('donneeBase.filiale.placeholder.address')} />
             </Box>
             <Box className="ref-field">
-              <label>Téléphone</label>
-              <input type="tel" value={form.sittel} onChange={set('sittel')} placeholder="+212 5XX XXX XXX" />
+              <label>{t('donneeBase.filiale.field.phone')}</label>
+              <input type="tel" value={form.sittel} onChange={set('sittel')} placeholder={t('donneeBase.filiale.placeholder.phone')} />
             </Box>
             <Box className="ref-field">
-              <label>Fax</label>
+              <label>{t('donneeBase.filiale.field.fax')}</label>
               <input type="tel" value={form.sitfax} onChange={set('sitfax')} />
             </Box>
             <Box className="ref-field" style={{ gridColumn: 'span 2' }}>
-              <label>Email</label>
-              <input type="email" value={form.sitemail} onChange={set('sitemail')} placeholder="contact@filiale.ma" />
+              <label>{t('donneeBase.filiale.field.email')}</label>
+              <input type="email" value={form.sitemail} onChange={set('sitemail')} placeholder={t('donneeBase.filiale.placeholder.email')} />
             </Box>
           </Box>
         </Box>
@@ -214,19 +216,19 @@ function FilialeModernContent() {
         <Box className="ref-card">
           <Box className="ref-card-header">
             <Box className="ref-card-icon"><ScheduleIcon fontSize="small" /></Box>
-            <Typography className="ref-card-title">Paramètres Travail</Typography>
+            <Typography className="ref-card-title">{t('donneeBase.filiale.card.workParams')}</Typography>
           </Box>
           <Box className="ref-form-grid ref-form-grid--3">
             <Box className="ref-field">
-              <label>Heures / Mois</label>
+              <label>{t('donneeBase.filiale.field.hoursMonth')}</label>
               <input type="number" value={form.sitmois} onChange={set('sitmois')} placeholder="191" />
             </Box>
             <Box className="ref-field">
-              <label>Congés / An</label>
+              <label>{t('donneeBase.filiale.field.leavesYear')}</label>
               <input type="number" value={form.sitconge} onChange={set('sitconge')} placeholder="18" />
             </Box>
             <Box className="ref-field">
-              <label>Congés / Mois</label>
+              <label>{t('donneeBase.filiale.field.leavesMonth')}</label>
               <input type="number" value={form.sitcongem} onChange={set('sitcongem')} placeholder="1.5" />
             </Box>
           </Box>

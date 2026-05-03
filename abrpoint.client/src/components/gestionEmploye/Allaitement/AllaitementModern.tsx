@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { ListAllaitementModern } from './ListeAllaitementModern';
 import AllaitementSaisieModern from './AllaitementSaisieModern';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -8,6 +9,7 @@ import './AllaitementModern.css';
 
 export const AllaitementModern: React.FC = () => {
   const queryClient = new QueryClient();
+  const { t } = useTranslation();
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -17,10 +19,10 @@ export const AllaitementModern: React.FC = () => {
           {/* HEADER */}
           <Box className="allaitement-header">
             <Typography className="allaitement-title">
-              Gestion de l'Allaitement
+              {t('allaitement.title')}
             </Typography>
             <Typography className="allaitement-subtitle">
-              Configurez et suivez les périodes d'allaitement des collaboratrices.
+              {t('allaitement.subtitle')}
             </Typography>
           </Box>
 
@@ -39,15 +41,14 @@ export const AllaitementModern: React.FC = () => {
               {/* INFO CARD */}
               <Box className="allaitement-info-card">
                 <Typography className="info-title">
-                  Conformité Légale
+                  {t('allaitement.infoTitle')}
                 </Typography>
                 <Typography className="info-text">
-                  Le temps d'allaitement est comptabilisé comme temps de travail effectif.
-                  Assurez-vous que les créneaux respectent la convention collective en vigueur.
+                  {t('allaitement.infoText')}
                 </Typography>
 
                 <button className="info-button">
-                  Consulter le guide RH
+                  {t('allaitement.infoButton')}
                 </button>
               </Box>
             </Box>

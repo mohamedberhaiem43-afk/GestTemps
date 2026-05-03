@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { Box, Button, CircularProgress, IconButton, Menu, MenuItem,
   Autocomplete, TextField, TextField as MuiTextField, Snackbar, Alert } from '@mui/material';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 import apiInstance from '../API/apiInstance';
 import { DocumentVault } from '../../models/DocumentVault';
@@ -10,6 +11,7 @@ import useGetEmployee from '../../hooks/employeHooks/useGetEmployee';
 import './CoffreFortModern.css';
 
 const CoffreFortModern = () => {
+  const { t, i18n } = useTranslation();
   const { soccod, uticod, authReady, isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
 
@@ -31,6 +33,7 @@ const CoffreFortModern = () => {
     if (!empMap || typeof empMap !== 'object') return [] as Array<{ code: string; lib: string }>;
     return Object.entries(empMap as Record<string, string>).map(([code, lib]) => ({ code, lib }));
   }, [empMap]);
+  const allowedEmpcodes = useMemo(() => new Set(employeeOptions.map((o) => o.code)), [employeeOptions]);
 
   // Empcod du coffre actuellement consulté. Pour un employé : toujours soi-même.
   // Pour un admin/manager : peut être un employé sélectionné (consultation), ou soi-même
@@ -54,6 +57,16 @@ const CoffreFortModern = () => {
     // effectiveEmpcod recalcule à chaque changement de targetEmpcod → recharge auto.
   }, [soccod, effectiveEmpcod, authReady]);
 
+  // Safety net: for managers, never allow selecting/viewing an employee outside their service.
+  useEffect(() => {
+    if (!isManager || !targetEmpcod) return;
+    if (!allowedEmpcodes.has(targetEmpcod)) {
+      setTargetEmpcod('');
+      setUploadMessage('');
+      setSnack({ open: true, sev: 'error', msg: t('coffreFort.snack.accessDeniedService') });
+    }
+  }, [isManager, targetEmpcod, allowedEmpcodes]);
+
   const fetchDocuments = async () => {
     try {
       setIsLoading(true);
@@ -64,7 +77,7 @@ const CoffreFortModern = () => {
       // 403 : le backend a refusé (manager hors service, etc.) — on retombe sur une liste vide.
       if (err?.response?.status === 403) {
         setDocuments([]);
-        setSnack({ open: true, sev: 'error', msg: "Vous n'avez pas le droit de consulter ce coffre-fort." });
+        setSnack({ open: true, sev: 'error', msg: t('coffreFort.snack.accessDeniedVault') });
       }
     } finally {
       setIsLoading(false);
@@ -113,7 +126,11 @@ const CoffreFortModern = () => {
       await apiInstance.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setSnack({ open: true, sev: 'success', msg: isDepositForOther ? 'Document déposé et employé notifié.' : 'Document ajouté.' });
+      setSnack({
+        open: true,
+        sev: 'success',
+        msg: isDepositForOther ? t('coffreFort.snack.uploadedAndNotified') : t('coffreFort.snack.uploaded'),
+      });
       // On rafraîchit toujours : en mode consultation d'un autre employé (targetEmpcod défini),
       // c'est ce coffre qui est affiché, donc le nouveau document doit y apparaître.
       // En mode personnel (cible vide), on recharge sa propre liste.
@@ -123,7 +140,11 @@ const CoffreFortModern = () => {
       if (isDepositForOther) { setUploadMessage(''); }
     } catch (err: any) {
       console.error("Erreur d'upload", err);
-      setSnack({ open: true, sev: 'error', msg: err?.response?.data?.message || err?.response?.data || "Erreur lors du dépôt du document." });
+      setSnack({
+        open: true,
+        sev: 'error',
+        msg: err?.response?.data?.message || err?.response?.data || t('coffreFort.snack.uploadError'),
+      });
     } finally {
       setUploading(false);
       // Reset l'input pour permettre de re-sélectionner le même fichier après une erreur.
@@ -162,6 +183,29 @@ const CoffreFortModern = () => {
   const contracts   = documents.filter(d => match(d.docType, 'contrat', 'contract'));
   const certificates = documents.filter(d => match(d.docType, 'attestation', 'certificat', 'certificate', 'badge'));
 
+  // Stable category keys for displaying docType chips with translations.
+  type DocCategory = 'paySlip' | 'contract' | 'certificate' | 'other';
+  const getDocCategory = (docType: string): DocCategory => {
+    if (match(docType, 'paie', 'fiche', 'salary', 'bulletin')) return 'paySlip';
+    if (match(docType, 'contrat', 'contract')) return 'contract';
+    if (match(docType, 'attestation', 'certificat', 'certificate', 'badge')) return 'certificate';
+    return 'other';
+  };
+  const docCategoryLabel = (docType: string): string => {
+    const cat = getDocCategory(docType);
+    if (cat === 'paySlip') return t('coffreFort.menu.paySlip');
+    if (cat === 'contract') return t('coffreFort.menu.contract');
+    if (cat === 'certificate') return t('coffreFort.menu.certificate');
+    return docType || t('coffreFort.menu.other');
+  };
+  const docCategoryClass = (docType: string): string => {
+    const cat = getDocCategory(docType);
+    if (cat === 'paySlip') return 'pay-slip';
+    if (cat === 'contract') return 'contract';
+    if (cat === 'certificate') return 'certificate';
+    return 'other';
+  };
+
 
   if (isLoading) {
     return (
@@ -171,19 +215,19 @@ const CoffreFortModern = () => {
     );
   }
 
+  const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
+
   return (
     <Box className="coffre-fort-container">
       {/* Page Header */}
       <section className="vault-header">
         <div className="vault-title-section">
-          <label className="vault-badge">{isViewingOther ? 'Consultation Administrateur' : 'Session Authentifiée Active'}</label>
+          <label className="vault-badge">{isViewingOther ? t('coffreFort.badge.adminView') : t('coffreFort.badge.authenticated')}</label>
           <h1 className="vault-title">
-            {isViewingOther ? `Coffre-fort de ${targetLabel}` : 'Coffre-fort Numérique'}
+            {isViewingOther ? t('coffreFort.title.ofEmployee', { name: targetLabel }) : t('coffreFort.title.default')}
           </h1>
           <p className="vault-description">
-            {isViewingOther
-              ? "Vous consultez le coffre-fort numérique de cet employé. Vous pouvez y ajouter de nouveaux documents — l'employé sera notifié à chaque dépôt."
-              : "Votre archive sécurisée et cryptée pour vos actifs administratifs personnels. Tous les documents sont stockés avec un cryptage de bout en bout et une validation d'horodatage."}
+            {isViewingOther ? t('coffreFort.description.ofEmployee') : t('coffreFort.description.default')}
           </p>
         </div>
 
@@ -191,15 +235,15 @@ const CoffreFortModern = () => {
           <div className="stats-top">
             <span className="material-symbols-outlined" style={{ color: '#0040a1', fontSize: '2rem' }}>verified_user</span>
             <div style={{ textAlign: 'right' }}>
-              <span className="stats-label" style={{ display: 'block', fontSize: '0.6rem' }}>État du Coffre</span>
+              <span className="stats-label" style={{ display: 'block', fontSize: '0.6rem' }}>{t('coffreFort.stats.vaultState')}</span>
               <div className="status-indicator">
-                <span className="status-dot"></span> Sécurisé
+                <span className="status-dot"></span> {t('coffreFort.stats.secured')}
               </div>
             </div>
           </div>
           <div className="stats-value-container">
             <div className="stats-number">{documents.length}</div>
-            <span className="stats-label">Documents Totaux Cryptés</span>
+            <span className="stats-label">{t('coffreFort.stats.totalDocs')}</span>
           </div>
         </div>
       </section>
@@ -209,9 +253,9 @@ const CoffreFortModern = () => {
         <section style={{ marginBottom: '2rem', padding: '1rem 1.25rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
             <span className="material-symbols-outlined" style={{ color: '#0040a1' }}>admin_panel_settings</span>
-            <strong style={{ fontSize: '0.9rem' }}>Consulter / déposer dans le coffre d'un employé</strong>
+            <strong style={{ fontSize: '0.9rem' }}>{t('coffreFort.admin.consultDeposit')}</strong>
             <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
-              {isAdmin ? '(tous les employés)' : '(employés de votre service uniquement)'}
+              {isAdmin ? t('coffreFort.admin.scopeAll') : t('coffreFort.admin.scopeService')}
             </span>
             {isViewingOther && (
               <Button
@@ -219,7 +263,7 @@ const CoffreFortModern = () => {
                 onClick={() => { setTargetEmpcod(''); setUploadMessage(''); }}
                 sx={{ ml: 'auto', textTransform: 'none', fontSize: '0.75rem' }}
               >
-                ← Revenir à mon coffre
+                {t('coffreFort.admin.backToMyVault')}
               </Button>
             )}
           </div>
@@ -231,11 +275,11 @@ const CoffreFortModern = () => {
               isOptionEqualToValue={(a, b) => a.code === b.code}
               value={employeeOptions.find(o => o.code === targetEmpcod) || null}
               onChange={(_, val) => setTargetEmpcod(val?.code || '')}
-              renderInput={(params) => <TextField {...params} placeholder="Sélectionner un employé pour consulter son coffre…" />}
+              renderInput={(params) => <TextField {...params} placeholder={t('coffreFort.admin.selectEmployeePlaceholder')} />}
             />
             <MuiTextField
               size="small"
-              placeholder="Message (optionnel) — joint à la notification de dépôt"
+              placeholder={t('coffreFort.admin.messagePlaceholder')}
               value={uploadMessage}
               onChange={(e) => setUploadMessage(e.target.value)}
               disabled={!targetEmpcod}
@@ -243,7 +287,11 @@ const CoffreFortModern = () => {
           </Box>
           {isViewingOther && (
             <p style={{ marginTop: 8, fontSize: '0.75rem', color: '#0f5132' }}>
-              Vous consultez le coffre de <strong>{targetLabel}</strong>. Tout document que vous y ajouterez sera déposé dans ce coffre et l'employé sera notifié.
+              <Trans
+                i18nKey="coffreFort.admin.viewingNotice"
+                values={{ name: targetLabel }}
+                components={{ 0: <strong /> }}
+              />
             </p>
           )}
         </section>
@@ -253,8 +301,8 @@ const CoffreFortModern = () => {
       <section style={{ marginBottom: '3rem' }}>
         <div className="folder-section-header">
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Collections</h3>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Parcourir les répertoires organisés</p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>{t('coffreFort.collections.title')}</h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>{t('coffreFort.collections.subtitle')}</p>
           </div>
         </div>
 
@@ -263,8 +311,8 @@ const CoffreFortModern = () => {
             <div className="folder-icon-wrapper">
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
             </div>
-            <h4 className="folder-name">Fiches de Paie</h4>
-            <p className="folder-info">{paySlips.length} Documents</p>
+            <h4 className="folder-name">{t('coffreFort.collections.paySlips')}</h4>
+            <p className="folder-info">{t('coffreFort.collections.documentsCount', { count: paySlips.length })}</p>
             <div className="folder-progress-bar">
               <div className="progress-fill" style={{ width: `${Math.min(100, (paySlips.length / 24) * 100)}%` }}></div>
             </div>
@@ -274,8 +322,8 @@ const CoffreFortModern = () => {
             <div className="folder-icon-wrapper">
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
             </div>
-            <h4 className="folder-name">Contrats</h4>
-            <p className="folder-info">{contracts.length} Documents</p>
+            <h4 className="folder-name">{t('coffreFort.collections.contracts')}</h4>
+            <p className="folder-info">{t('coffreFort.collections.documentsCount', { count: contracts.length })}</p>
             <div className="folder-progress-bar">
               <div className="progress-fill" style={{ width: `${Math.min(100, (contracts.length / 5) * 100)}%` }}></div>
             </div>
@@ -285,8 +333,8 @@ const CoffreFortModern = () => {
             <div className="folder-icon-wrapper">
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>badge</span>
             </div>
-            <h4 className="folder-name">Attestations</h4>
-            <p className="folder-info">{certificates.length} Documents</p>
+            <h4 className="folder-name">{t('coffreFort.collections.certificates')}</h4>
+            <p className="folder-info">{t('coffreFort.collections.documentsCount', { count: certificates.length })}</p>
             <div className="folder-progress-bar">
               <div className="progress-fill" style={{ width: `${Math.min(100, (certificates.length / 10) * 100)}%` }}></div>
             </div>
@@ -297,7 +345,7 @@ const CoffreFortModern = () => {
               <span className="material-symbols-outlined">add</span>
             </div>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              {uploading ? "Chargement..." : "Nouvel Actif"}
+              {uploading ? t('coffreFort.collections.loading') : t('coffreFort.collections.newAsset')}
             </span>
           </div>
 
@@ -307,24 +355,24 @@ const CoffreFortModern = () => {
             onClose={() => setAnchorEl(null)}
           >
             <MenuItem onClick={() => { setSelectedType('Fiche de paie'); document.getElementById('vault-upload-input')?.click(); setAnchorEl(null); }}>
-              Fiche de Paie
+              {t('coffreFort.menu.paySlip')}
             </MenuItem>
             <MenuItem onClick={() => { setSelectedType('Contrat'); document.getElementById('vault-upload-input')?.click(); setAnchorEl(null); }}>
-              Contrat
+              {t('coffreFort.menu.contract')}
             </MenuItem>
             <MenuItem onClick={() => { setSelectedType('Attestation'); document.getElementById('vault-upload-input')?.click(); setAnchorEl(null); }}>
-              Attestation
+              {t('coffreFort.menu.certificate')}
             </MenuItem>
             <MenuItem onClick={() => { setSelectedType('Autre'); document.getElementById('vault-upload-input')?.click(); setAnchorEl(null); }}>
-              Autre
+              {t('coffreFort.menu.other')}
             </MenuItem>
           </Menu>
 
-          <input 
-            type="file" 
-            id="vault-upload-input" 
-            style={{ display: 'none' }} 
-            onChange={handleFileUpload} 
+          <input
+            type="file"
+            id="vault-upload-input"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
           />
         </div>
       </section>
@@ -333,28 +381,28 @@ const CoffreFortModern = () => {
       <section>
         <div className="section-header-flex">
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Documents Récents</h3>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Actifs validés téléchargés récemment</p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>{t('coffreFort.recent.title')}</h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>{t('coffreFort.recent.subtitle')}</p>
           </div>
-          <Button sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.8rem' }}>Voir tout l'archive</Button>
+          <Button sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.8rem' }}>{t('coffreFort.recent.viewAll')}</Button>
         </div>
 
         <div className="vault-table-wrapper">
           <table className="vault-table">
             <thead>
               <tr>
-                <th>Nom du Document</th>
-                <th>Type</th>
-                <th>Date de Modification</th>
-                <th>Taille</th>
-                <th style={{ textAlign: 'center' }}>Action</th>
+                <th>{t('coffreFort.table.documentName')}</th>
+                <th>{t('coffreFort.table.type')}</th>
+                <th>{t('coffreFort.table.modificationDate')}</th>
+                <th>{t('coffreFort.table.size')}</th>
+                <th style={{ textAlign: 'center' }}>{t('coffreFort.table.action')}</th>
               </tr>
             </thead>
             <tbody>
               {documents.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-                    Aucun document dans votre coffre-fort.
+                    {t('coffreFort.table.empty')}
                   </td>
                 </tr>
               ) : (
@@ -368,29 +416,29 @@ const CoffreFortModern = () => {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <div className="doc-main-name">{doc.docName}</div>
-                            <span className="type-chip" style={{ fontSize: '0.6rem', padding: '0.1rem 0.4rem', background: '#f2f4f6', opacity: 0.8 }}>{doc.docType}</span>
+                            <span className="type-chip" style={{ fontSize: '0.6rem', padding: '0.1rem 0.4rem', background: '#f2f4f6', opacity: 0.8 }}>{docCategoryLabel(doc.docType)}</span>
                           </div>
                           {doc.isSigned ? (
                             <div className="doc-status-tag">
                               <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>verified</span>
-                              Signature Numérique Valide
+                              {t('coffreFort.status.validSignature')}
                             </div>
                           ) : (
                             <div className="doc-status-tag" style={{ color: '#9a3412' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>pending</span>
-                              En attente de signature
+                              {t('coffreFort.status.pendingSignature')}
                             </div>
                           )}
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span className={`type-chip type-${doc.docType === 'Fiche de paie' ? 'pay-slip' : doc.docType === 'Contrat' ? 'contract' : 'certificate'}`}>
-                        {doc.docType}
+                      <span className={`type-chip type-${docCategoryClass(doc.docType)}`}>
+                        {docCategoryLabel(doc.docType)}
                       </span>
                     </td>
                     <td style={{ fontSize: '0.85rem', color: '#424654' }}>
-                      {new Date(doc.docDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(doc.docDate).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td style={{ fontSize: '0.85rem', color: '#424654' }}>
                       {formatSize(doc.docSize)}
@@ -398,23 +446,23 @@ const CoffreFortModern = () => {
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
                         {!doc.isSigned && (
-                          <Button 
-                            variant="contained" 
+                          <Button
+                            variant="contained"
                             size="small"
-                            sx={{ 
-                              fontSize: '0.65rem', 
-                              fontWeight: 800, 
-                              bgcolor: '#0040a1', 
+                            sx={{
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              bgcolor: '#0040a1',
                               borderRadius: '0.5rem',
                               textTransform: 'uppercase',
                               padding: '0.4rem 0.8rem'
                             }}
                             onClick={() => navigate(`/dashboard/sign-document?id=${doc.id}`)}
                           >
-                            Signer
+                            {t('coffreFort.actions.sign')}
                           </Button>
                         )}
-                        <IconButton 
+                        <IconButton
                           className="download-btn"
                           onClick={() => handleDownload(doc.id, doc.docName)}
                         >

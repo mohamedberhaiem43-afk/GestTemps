@@ -39,7 +39,29 @@ interface EtatGlobalData {
   jourtrv: number; tothre: string; jferier: number; jftrv: number;
   hftrv: string; hnuit: string; jconge: number;
   hs50: string; hs25: string; csf: string;
-} 
+}
+
+// Stable enum keys for week status used for CSS class selection.
+type WeekStatusKey = 'ok' | 'sick' | 'paidLeave' | 'overtime' | 'absence';
+
+interface WeekStatus {
+  key: WeekStatusKey;
+  // numeric value used by some labels (overtime amount, paid leave days, absence days)
+  value?: number;
+}
+
+const classifyWeekStatus = (w: { maladie?: number; nbJourCngPaye?: number; hreSupSemaine?: number; totalAbsence?: number } | undefined): WeekStatus | null => {
+  if (!w) return null;
+  const mal = w.maladie ?? 0;
+  const conge = w.nbJourCngPaye ?? 0;
+  const hs = w.hreSupSemaine ?? 0;
+  const abs = w.totalAbsence ?? 0;
+  if (mal > 0) return { key: 'sick' };
+  if (conge > 0) return { key: 'paidLeave', value: conge };
+  if (hs > 0) return { key: 'overtime', value: hs };
+  if (abs > 0) return { key: 'absence', value: abs };
+  return { key: 'ok' };
+};
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const fmtMin = (minutes: number) => {
@@ -65,58 +87,59 @@ const getCurrentMonth = () => String(new Date().getMonth() + 1);
 const getCurrentYear  = () => new Date().getFullYear().toString();
 
 // ── Weekly detail columns ────────────────────────────────────────────────────
-const WEEK_COLS = [
-  { key: 'tothre',            label: 'Nb. Heures' },
-  { key: 'nbJours',           label: 'Nb. Jours' },
-  { key: 'retard',            label: 'Retard', fmt: (v: number) => fmtMin(v) },
-  { key: 'heuresSupTranche1', label: 'HS25' },
-  { key: 'heuresSupTranche2', label: 'HS50' },
-  { key: 'hreSupSemaine',     label: 'HS' },
-  { key: 'jourFerier',        label: 'J.Fériés' },
-  { key: 'heureFerier',       label: 'H.Fériés' },
-  { key: 'nbhFerierTrv',      label: 'H.Fér.Trv' },
-  { key: 'hreFerieTrv',       label: 'H.Fér.Trv1' },
-  { key: 'hreFerieTrv2',      label: 'H.Fér.Trv2' },
-  { key: 'nbJourFerier',      label: 'J.Fér.Trv' },
-  { key: 'hreAllaitement',    label: 'Allaitement' },
-  { key: 'absnp',             label: 'Abs N/Payé' },
-  { key: 'caltype',           label: 'Calend' },
-  { key: 'totalAbsence',      label: 'H.Absences' },
-  { key: 'nbJourPointer',     label: 'J.Pointés' },
-  { key: 'panier',            label: 'Panier' },
-  { key: 'nbNuits',           label: 'Nb.Nuits' },
-  { key: 'nbJourCngPaye',     label: 'Congé Payé' },
-  { key: 'nbHeureConge',      label: 'H.Congé' },
-  { key: 'hcsf',              label: 'H.Spéc.Fam' },
-  { key: 'heuresNormales',    label: 'H.Normales' },
-  { key: 'jourRepos',         label: 'J.Repos' },
-  { key: 'hreNuits',          label: 'H.Nuits' },
-  { key: 'heureRepos',        label: 'H.Repos' },
-  { key: 'deplacement',       label: 'Déplacement' },
-  { key: 'act',               label: 'ACT' },
-  { key: 'fm',                label: 'Formation' },
-  { key: 'absj',              label: 'Abs.Just' },
-  { key: 'ct',                label: 'Arrêt Tech.' },
-  { key: 'maladie',           label: 'Maladie' },
-  { key: 'absnj',             label: 'Abs.NJ' },
-  { key: 'csf',               label: 'C.Spéc.Fam' },
-  { key: 'css',               label: 'CSS' },
-  { key: 'map',               label: 'MAP' },
-  { key: 'jourSamediTrv',     label: 'Sam.Trv' },
-  { key: 'hreSamediTrv',      label: 'H.Sam.Trv' },
+// Column keys are stable identifiers; localized labels are looked up via t('pointageMois.detail.columns.<key>')
+const WEEK_COLS: Array<{ key: string; fmt?: (v: number) => string }> = [
+  { key: 'tothre' },
+  { key: 'nbJours' },
+  { key: 'retard', fmt: (v: number) => fmtMin(v) },
+  { key: 'heuresSupTranche1' },
+  { key: 'heuresSupTranche2' },
+  { key: 'hreSupSemaine' },
+  { key: 'jourFerier' },
+  { key: 'heureFerier' },
+  { key: 'nbhFerierTrv' },
+  { key: 'hreFerieTrv' },
+  { key: 'hreFerieTrv2' },
+  { key: 'nbJourFerier' },
+  { key: 'hreAllaitement' },
+  { key: 'absnp' },
+  { key: 'caltype' },
+  { key: 'totalAbsence' },
+  { key: 'nbJourPointer' },
+  { key: 'panier' },
+  { key: 'nbNuits' },
+  { key: 'nbJourCngPaye' },
+  { key: 'nbHeureConge' },
+  { key: 'hcsf' },
+  { key: 'heuresNormales' },
+  { key: 'jourRepos' },
+  { key: 'hreNuits' },
+  { key: 'heureRepos' },
+  { key: 'deplacement' },
+  { key: 'act' },
+  { key: 'fm' },
+  { key: 'absj' },
+  { key: 'ct' },
+  { key: 'maladie' },
+  { key: 'absnj' },
+  { key: 'csf' },
+  { key: 'css' },
+  { key: 'map' },
+  { key: 'jourSamediTrv' },
+  { key: 'hreSamediTrv' },
 ];
 
 // ── Main inner component ─────────────────────────────────────────────────────
 function PointageDuMoisContent() {
   const { soccod, isManager, sercod: managerSercod, hasPermission } = useAuth();
+  const { t } = useTranslation();
   const isManagerScoped = Boolean(isManager && managerSercod);
-  
+
   const canModify = hasPermission('Paie et Rémunération', 'modify');
 
   if (!hasPermission('Paie et Rémunération', 'consult')) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter le pointage du mois." />;
+    return <AccessDenied message={t('pointageMois.noConsultRight')} />;
   }
-  const { t } = useTranslation();
   const context = useDateMoisPointageRange();
   const dateRange = context?.dateRange;
   const setDateRange = context?.setDateRange;
@@ -168,7 +191,7 @@ function PointageDuMoisContent() {
             id: `${emp.empCod}-retard-S${idx + 1}`,
             type: 'retard', empCod: emp.empCod, empLib: emp.empLib, empMat: emp.empMat,
             weekIdx: idx + 1, value: r.retard ?? 0,
-            label: `Retard de ${fmtMin(r.retard ?? 0)} en Semaine ${idx + 1}`,
+            label: t('pointageMois.alerts.delayLabel', { time: fmtMin(r.retard ?? 0), week: idx + 1 }),
             severity: 'warn',
           });
         }
@@ -177,14 +200,14 @@ function PointageDuMoisContent() {
             id: `${emp.empCod}-absnj-S${idx + 1}`,
             type: 'absnj', empCod: emp.empCod, empLib: emp.empLib, empMat: emp.empMat,
             weekIdx: idx + 1, value: r.absnj ?? 0,
-            label: `Absence non justifiée (${(r.absnj ?? 0).toFixed(1)}j) en Semaine ${idx + 1}`,
+            label: t('pointageMois.alerts.absenceLabel', { value: (r.absnj ?? 0).toFixed(1), week: idx + 1 }),
             severity: 'err',
           });
         }
       });
     });
     return alerts;
-  }, [pointageMois]);
+  }, [pointageMois, t]);
 
   const filteredAlerts = useMemo(() =>
     alertFilter === 'all' ? alertsData : alertsData.filter(a => a.type === alertFilter),
@@ -215,7 +238,7 @@ function PointageDuMoisContent() {
 
   const handleSearch = () => {
     if (selectedEmpcods.length === 0) {
-      setSnack({ open: true, msg: 'Veuillez sélectionner au moins un employé.', sev: 'warning' });
+      setSnack({ open: true, msg: t('pointageMois.filters.selectAtLeastOne'), sev: 'warning' });
       return;
     }
     setDateRange?.((prev: any) => ({
@@ -255,15 +278,16 @@ function PointageDuMoisContent() {
     [pointageMois]);
 
   // Service distribution
+  const otherLabel = t('pointageMois.distribution.other');
   const serviceDistrib = useMemo(() => {
     const map: Record<string, number> = {};
     pointageMois.forEach(emp => {
-      const svc = services[emp.empSite] || emp.empSite || 'Autre';
+      const svc = services[emp.empSite] || emp.empSite || otherLabel;
       const hrs = emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.tothre ?? 0), 0) ?? 0;
       map[svc] = (map[svc] ?? 0) + hrs;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  }, [pointageMois, services]);
+  }, [pointageMois, services, otherLabel]);
 
   // Alert counts
   const retardsCount = useMemo(() =>
@@ -281,7 +305,7 @@ function PointageDuMoisContent() {
     [pointageMois]);
 
   const handleExportOne = async () => {
-    if (!selectedEmp || !totals) { toast.error('Sélectionnez un employé'); return; }
+    if (!selectedEmp || !totals) { toast.error(t('pointageMois.errors.selectEmployee')); return; }
     try {
       const year = parseInt(ctxAnnee), month = parseInt(ctxMois);
       const blob = await generateEtatGlobal({
@@ -298,11 +322,11 @@ function PointageDuMoisContent() {
         }],
       });
       downloadPDF(blob, `EtatGlobal_${selectedEmp.empMat}_${ctxMois}_${ctxAnnee}.pdf`);
-    } catch { toast.error('Erreur génération rapport'); }
+    } catch { toast.error(t('pointageMois.errors.reportError')); }
   };
 
   const handleExportAll = async () => {
-    if (!pointageMois.length) { toast.error('Aucune donnée'); return; }
+    if (!pointageMois.length) { toast.error(t('pointageMois.errors.noData')); return; }
     try {
       const year = parseInt(ctxAnnee), month = parseInt(ctxMois);
       const data: EtatGlobalData[] = pointageMois.map(emp => {
@@ -326,7 +350,7 @@ function PointageDuMoisContent() {
         data,
       });
       downloadPDF(blob, `EtatGlobal_Tous_${ctxMois}_${ctxAnnee}.pdf`);
-    } catch { toast.error('Erreur génération rapport'); }
+    } catch { toast.error(t('pointageMois.errors.reportError')); }
   };
 
   const monthLabel = new Date(parseInt(ctxAnnee), parseInt(ctxMois) - 1, 1)
@@ -342,22 +366,63 @@ function PointageDuMoisContent() {
     return `${m}min`;
   };
 
+  // Map week status enum key → CSS class for desktop / mobile rendering
+  const statusToClass = (key: WeekStatusKey): string => {
+    switch (key) {
+      case 'sick': return 'pdm-week-neg';
+      case 'paidLeave': return 'pdm-week-pos';
+      case 'overtime': return 'pdm-week-pos';
+      case 'absence': return 'pdm-week-neg';
+      case 'ok':
+      default: return 'pdm-week-ok';
+    }
+  };
+
+  const statusToMobileColor = (key: WeekStatusKey): string => {
+    switch (key) {
+      case 'sick': return '#ba1a1a';
+      case 'paidLeave': return '#0040a1';
+      case 'overtime': return '#0040a1';
+      case 'absence': return '#ba1a1a';
+      case 'ok':
+      default: return '#005136';
+    }
+  };
+
+  // Localized week label given a stable status key + numeric value
+  const labelForStatus = (st: WeekStatus, short: boolean): string => {
+    switch (st.key) {
+      case 'sick': return short ? t('pointageMois.table.labels.sickShort') : t('pointageMois.table.labels.sick');
+      case 'paidLeave': return short
+        ? t('pointageMois.table.labels.paidLeaveShort')
+        : t('pointageMois.table.labels.paidLeave', { count: Math.round(st.value ?? 0) });
+      case 'overtime': return t('pointageMois.table.labels.overtime', {
+        value: short ? (st.value ?? 0).toFixed(0) : (st.value ?? 0).toFixed(2),
+      });
+      case 'absence': return short
+        ? t('pointageMois.table.labels.absenceShort')
+        : t('pointageMois.table.labels.absence', { value: (st.value ?? 0).toFixed(1) });
+      case 'ok':
+      default: return short ? t('pointageMois.table.labels.okShort') : t('pointageMois.table.labels.ok');
+    }
+  };
+
   return (
     <Box className="pdm-container">
       {/* ── Page Header ── */}
       <Box className="pdm-header" sx={{ flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
         <Box>
-          <Typography className="pdm-title" sx={{ fontSize: { xs: '28px', md: '36px' } }}>Pointage du mois</Typography>
-          <Typography className="pdm-subtitle">Suivi architectural des heures de présence</Typography>
+          <Typography className="pdm-title" sx={{ fontSize: { xs: '28px', md: '36px' } }}>{t('pointageMois.title')}</Typography>
+          <Typography className="pdm-subtitle">{t('pointageMois.subtitle')}</Typography>
         </Box>
         <Box className="pdm-header-actions" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' }, flexWrap: 'wrap' }}>
-          <Tooltip title="Rapport employé sélectionné">
+          <Tooltip title={t('pointageMois.exportSelected')}>
             <IconButton className="pdm-export-btn" onClick={handleExportOne} disabled={!selectedEmp}
               sx={{ borderRadius: '12px', padding: '10px' }}>
               <PictureAsPdfIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Rapport tous les employés">
+          <Tooltip title={t('pointageMois.exportAll')}>
             <IconButton className="pdm-export-btn" onClick={handleExportAll} disabled={!pointageMois.length}
               sx={{ borderRadius: '12px', padding: '10px' }}>
               <PictureAsPdfIcon />
@@ -365,7 +430,7 @@ function PointageDuMoisContent() {
           </Tooltip>
           {canModify && <IntegrationPaieButton pointageMoisData={pointageMois as any} rubriques={rubriques} mois={ctxMois} annee={ctxAnnee} />}
           <Button className="pdm-export-btn" startIcon={<DownloadIcon />} onClick={handleExportAll} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            Exporter
+            {t('pointageMois.export')}
           </Button>
         </Box>
       </Box>
@@ -374,10 +439,10 @@ function PointageDuMoisContent() {
       <Paper className="pdm-filter-bar" elevation={0}>
         <Box className="pdm-filter-grid">
           <Box className="pdm-filter-field">
-            <label>Employés</label>
+            <label>{t('pointageMois.filters.employees')}</label>
             <FormControl size="small" fullWidth>
               <Select multiple value={selectedEmpcods} onChange={(e) => setSelectedEmpcods(e.target.value as string[])}
-                renderValue={(sel) => `${(sel as string[]).length} sélectionné(s)`}
+                renderValue={(sel) => t('pointageMois.filters.selectedCount', { count: (sel as string[]).length })}
                 sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
                 {Object.entries(employeesLibs).map(([k, v]) => (
                   <MenuItem key={k} value={k}>{String(v)}</MenuItem>
@@ -386,40 +451,40 @@ function PointageDuMoisContent() {
             </FormControl>
           </Box>
           <Box className="pdm-filter-field">
-            <label>Filiale</label>
+            <label>{t('pointageMois.filters.branch')}</label>
             <FormControl size="small" fullWidth>
               <Select value={selectedFiliale} onChange={(e) => setSelectedFiliale(e.target.value)}
                 sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
-                <MenuItem value="">Toutes les filiales</MenuItem>
+                <MenuItem value="">{t('pointageMois.filters.allBranches')}</MenuItem>
                 {Object.entries(filiale).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
               </Select>
             </FormControl>
           </Box>
           <Box className="pdm-filter-field">
-            <label>Service</label>
+            <label>{t('pointageMois.filters.service')}</label>
             <FormControl size="small" fullWidth>
               <Select value={selectedService} onChange={(e) => setSelectedService(e.target.value)}
                 disabled={isManagerScoped}
                 sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
-                <MenuItem value="">{isManagerScoped ? 'Mon service' : 'Tous les services'}</MenuItem>
+                <MenuItem value="">{isManagerScoped ? t('pointageMois.filters.myService') : t('pointageMois.filters.allServices')}</MenuItem>
                 {Object.entries(services).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
               </Select>
             </FormControl>
           </Box>
           <Box className="pdm-filter-field">
-            <label>Régime</label>
+            <label>{t('pointageMois.filters.regime')}</label>
             <FormControl size="small" fullWidth>
               <Select value={selectedRegime} onChange={(e) => setSelectedRegime(e.target.value)}
                 sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
-                <MenuItem value="">Tous les régimes</MenuItem>
-                <MenuItem value="M">35 Heures</MenuItem>
-                <MenuItem value="H">39 Heures</MenuItem>
-                <MenuItem value="F">Forfait Jours</MenuItem>
+                <MenuItem value="">{t('pointageMois.filters.allRegimes')}</MenuItem>
+                <MenuItem value="M">{t('pointageMois.filters.regime35')}</MenuItem>
+                <MenuItem value="H">{t('pointageMois.filters.regime39')}</MenuItem>
+                <MenuItem value="F">{t('pointageMois.filters.regimeFlat')}</MenuItem>
               </Select>
             </FormControl>
           </Box>
           <Box className="pdm-filter-field">
-            <label>Période</label>
+            <label>{t('pointageMois.filters.period')}</label>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, background: '#fff', borderRadius: '12px', px: 2, py: 0.5 }}>
               <ScheduleIcon sx={{ color: '#0040a1', fontSize: 18 }} />
               <TextField size="small" type="month" variant="standard"
@@ -432,7 +497,7 @@ function PointageDuMoisContent() {
           </Box>
           <Box className="pdm-filter-field pdm-filter-field--action">
             <Button className="pdm-search-btn" startIcon={<SearchIcon />} onClick={handleSearch}>
-              Rechercher
+              {t('pointageMois.filters.search')}
             </Button>
           </Box>
         </Box>
@@ -440,7 +505,7 @@ function PointageDuMoisContent() {
           <input type="checkbox" id="majorer" checked={majorerHeures} onChange={(e) => setMajorerHeures(e.target.checked)}
             style={{ accentColor: '#0040a1' }} />
           <label htmlFor="majorer" style={{ fontSize: 12, color: '#64748b', cursor: 'pointer' }}>
-            Majorer heures fériées et congés
+            {t('pointageMois.filters.majorHolidays')}
           </label>
         </Box>
       </Paper>
@@ -460,7 +525,7 @@ function PointageDuMoisContent() {
             <Box className="pdm-mobile-ledger">
               {pointageMois.length === 0 ? (
                 <Typography sx={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', py: 4 }}>
-                  Aucune donnée — sélectionnez des employés et cliquez Rechercher
+                  {t('pointageMois.table.noData')}
                 </Typography>
               ) : (
                 pointageMois.map((emp) => {
@@ -487,21 +552,13 @@ function PointageDuMoisContent() {
                           if (!w) return (
                             <Box key={i} className="pdm-mobile-week-chip">
                               <Typography className="pdm-mobile-week-hrs" style={{ color: '#c3c6d6' }}>—</Typography>
-                              <Typography className="pdm-mobile-week-label">S{i+1}</Typography>
+                              <Typography className="pdm-mobile-week-label">{t('pointageMois.table.weekShort', { n: i + 1 })}</Typography>
                             </Box>
                           );
                           const hrs = (w.tothre ?? 0).toFixed(2);
-                          const hs = w.hreSupSemaine ?? 0;
-                          const abs = w.totalAbsence ?? 0;
-                          const conge = w.nbJourCngPaye ?? 0;
-                          const mal = w.maladie ?? 0;
-                          let label: string;
-                          let color: string;
-                          if (mal > 0) { label = 'Mal'; color = '#ba1a1a'; }
-                          else if (conge > 0) { label = `CP`; color = '#0040a1'; }
-                          else if (hs > 0) { label = `+${hs.toFixed(0)}h`; color = '#0040a1'; }
-                          else if (abs > 0) { label = `Abs`; color = '#ba1a1a'; }
-                          else { label = 'Ok'; color = '#005136'; }
+                          const status = classifyWeekStatus(w)!;
+                          const label = labelForStatus(status, true);
+                          const color = statusToMobileColor(status.key);
                           return (
                             <Box key={i} className="pdm-mobile-week-chip"
                               onClick={(e) => { e.stopPropagation(); setNumSem(i + 1); setSelectedWeekDetails(w.weekDetails as any); setOpenDialog(true); }}>
@@ -512,7 +569,7 @@ function PointageDuMoisContent() {
                         })}
                       </Box>
                       <Box className="pdm-mobile-cumul">
-                        <Typography className="pdm-mobile-cumul-sub">Total mois</Typography>
+                        <Typography className="pdm-mobile-cumul-sub">{t('pointageMois.table.totalMonth')}</Typography>
                         <Typography className="pdm-mobile-cumul-val">{formatTotalHours(cumul)}</Typography>
                       </Box>
                     </Box>
@@ -526,15 +583,15 @@ function PointageDuMoisContent() {
               <table className="pdm-table">
                 <thead>
                   <tr>
-                    <th>Employé</th>
-                    <th>Matricule</th>
-                    {Array.from({ length: 6 }, (_, i) => <th key={i}>S{i + 1}</th>)}
-                    <th className="pdm-th-right">Cumul</th>
+                    <th>{t('pointageMois.table.employee')}</th>
+                    <th>{t('pointageMois.table.matricule')}</th>
+                    {Array.from({ length: 6 }, (_, i) => <th key={i}>{t('pointageMois.table.weekShort', { n: i + 1 })}</th>)}
+                    <th className="pdm-th-right">{t('pointageMois.table.cumul')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pointageMois.length === 0 ? (
-                    <tr><td colSpan={10} className="pdm-empty">Aucune donnée — sélectionnez des employés et cliquez Rechercher</td></tr>
+                    <tr><td colSpan={10} className="pdm-empty">{t('pointageMois.table.noData')}</td></tr>
                   ) : (
                     pointageMois.map((emp) => {
                       const weeks = emp.heuresSupplementairesResultats ?? [];
@@ -562,17 +619,9 @@ function PointageDuMoisContent() {
                               </td>
                             );
                             const hrs = (w.tothre ?? 0).toFixed(2);
-                            const hs = w.hreSupSemaine ?? 0;
-                            const abs = w.totalAbsence ?? 0;
-                            const conge = w.nbJourCngPaye ?? 0;
-                            const mal = w.maladie ?? 0;
-                            let label: string;
-                            let cls: string;
-                            if (mal > 0) { label = 'Maladie'; cls = 'pdm-week-neg'; }
-                            else if (conge > 0) { label = `CP (${conge.toFixed(0)}j)`; cls = 'pdm-week-pos'; }
-                            else if (hs > 0) { label = `+${hs.toFixed(2)}h`; cls = 'pdm-week-pos'; }
-                            else if (abs > 0) { label = `Abs ${abs.toFixed(1)}j`; cls = 'pdm-week-neg'; }
-                            else { label = 'Ok'; cls = 'pdm-week-ok'; }
+                            const status = classifyWeekStatus(w)!;
+                            const label = labelForStatus(status, false);
+                            const cls = statusToClass(status.key);
                             return (
                               <td key={i}>
                                 <Box className="pdm-week-cell"
@@ -585,7 +634,7 @@ function PointageDuMoisContent() {
                           })}
                           <td className="pdm-td-right">
                             <Typography className="pdm-cumul">{formatTotalHours(cumul)}</Typography>
-                            <Typography className="pdm-cumul-sub">Total mois</Typography>
+                            <Typography className="pdm-cumul-sub">{t('pointageMois.table.totalMonth')}</Typography>
                           </td>
                         </tr>
                       );
@@ -601,18 +650,18 @@ function PointageDuMoisContent() {
             <Paper className="pdm-detail-card" elevation={0}>
               <Box className="pdm-detail-header">
                 <Typography className="pdm-detail-title">
-                  Détail semaines — {selectedEmp.empLib}
+                  {t('pointageMois.detail.title', { name: selectedEmp.empLib })}
                 </Typography>
-                <Typography className="pdm-detail-hint">Double-clic sur une ligne pour voir le détail journalier</Typography>
+                <Typography className="pdm-detail-hint">{t('pointageMois.detail.hint')}</Typography>
               </Box>
               <TableContainer sx={{ maxHeight: 320 }}>
                 <Table size="small" stickyHeader>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654' }}>Sem.</TableCell>
+                      <TableCell sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654' }}>{t('pointageMois.detail.weekShort')}</TableCell>
                       {WEEK_COLS.map(c => (
                         <TableCell key={c.key} sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654', whiteSpace: 'nowrap' }}>
-                          {c.label}
+                          {t(`pointageMois.detail.columns.${c.key}`)}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -637,7 +686,7 @@ function PointageDuMoisContent() {
                     ))}
                     {totals && (
                       <TableRow sx={{ backgroundColor: '#eff6ff' }}>
-                        <TableCell sx={{ fontWeight: 800, color: '#0040a1' }}>Total</TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: '#0040a1' }}>{t('pointageMois.detail.total')}</TableCell>
                         {WEEK_COLS.map(c => (
                           <TableCell key={c.key} sx={{ fontWeight: 700, color: '#0040a1', fontSize: 12 }}>
                             {c.key === 'retard'
@@ -660,11 +709,11 @@ function PointageDuMoisContent() {
             {/* Total Heures Travaillées - Primary card */}
             <Paper className="pdm-summary-card pdm-summary-card--primary" elevation={0}>
               <Box className="pdm-summary-content">
-                <Typography className="pdm-summary-label">Total Heures Travaillées</Typography>
+                <Typography className="pdm-summary-label">{t('pointageMois.summary.totalHours')}</Typography>
                 <Typography className="pdm-summary-value" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHours > 0 ? formatTotalHours(totalHours) : '0h'}</Typography>
                 <Box className="pdm-summary-trend">
                   <TrendingUpIcon sx={{ fontSize: 16 }} />
-                  <span>{pointageMois.length} employé(s)</span>
+                  <span>{t('pointageMois.summary.employeesCount', { count: pointageMois.length })}</span>
                 </Box>
               </Box>
               <ScheduleIcon className="pdm-summary-deco" />
@@ -673,11 +722,11 @@ function PointageDuMoisContent() {
             {/* Heures Supplémentaires - Light card */}
             <Paper className="pdm-summary-card pdm-summary-card--light" elevation={0}>
               <Box className="pdm-summary-content">
-                <Typography className="pdm-summary-label pdm-summary-label--dark">Heures Supplémentaires</Typography>
+                <Typography className="pdm-summary-label pdm-summary-label--dark">{t('pointageMois.summary.overtime')}</Typography>
                 <Typography className="pdm-summary-value pdm-summary-value--dark" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHS > 0 ? formatTotalHours(totalHS) : '0h'}</Typography>
                 <Box className="pdm-summary-trend pdm-summary-trend--green">
                   <CheckCircleIcon sx={{ fontSize: 16 }} />
-                  <span>Dans les quotas légaux</span>
+                  <span>{t('pointageMois.summary.withinLegalQuotas')}</span>
                 </Box>
               </Box>
             </Paper>
@@ -685,7 +734,7 @@ function PointageDuMoisContent() {
             {/* Jours Absences - Light card */}
             <Paper className="pdm-summary-card pdm-summary-card--light" elevation={0}>
               <Box className="pdm-summary-content">
-                <Typography className="pdm-summary-label pdm-summary-label--dark">Jours Fériés / Absences</Typography>
+                <Typography className="pdm-summary-label pdm-summary-label--dark">{t('pointageMois.summary.holidaysAbsences')}</Typography>
                 <Typography className="pdm-summary-value pdm-summary-value--dark" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalAbsences.toFixed(0)}j</Typography>
                 <Box className="pdm-summary-trend pdm-summary-trend--muted">
                   <EventNoteIcon sx={{ fontSize: 16 }} />
@@ -700,14 +749,14 @@ function PointageDuMoisContent() {
             {/* Service distribution */}
             <Paper className="pdm-distrib-card" elevation={0}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                <Typography className="pdm-distrib-title" sx={{ mb: 0 }}>Répartition par Service</Typography>
+                <Typography className="pdm-distrib-title" sx={{ mb: 0 }}>{t('pointageMois.distribution.title')}</Typography>
                 <Button sx={{ fontSize: '13px', fontWeight: 700, color: '#0040a1', textTransform: 'none' }}>
-                  Voir détails
+                  {t('pointageMois.distribution.viewDetails')}
                 </Button>
               </Box>
               <Box className="pdm-distrib-bars">
                 {serviceDistrib.length === 0 ? (
-                  <Typography sx={{ color: '#94a3b8', fontSize: 13 }}>Aucune donnée</Typography>
+                  <Typography sx={{ color: '#94a3b8', fontSize: 13 }}>{t('pointageMois.distribution.noData')}</Typography>
                 ) : serviceDistrib.map(([svc, hrs]) => {
                   const max = serviceDistrib[0][1];
                   const pct = max > 0 ? (hrs / max) * 100 : 0;
@@ -729,33 +778,33 @@ function PointageDuMoisContent() {
             {/* Alerts card */}
             <Paper className="pdm-alerts-card" elevation={0}>
               <Box>
-                <Typography className="pdm-alerts-title">Alertes</Typography>
-                <Typography className="pdm-alerts-sub">Écarts de pointage détectés ce mois-ci.</Typography>
+                <Typography className="pdm-alerts-title">{t('pointageMois.alerts.title')}</Typography>
+                <Typography className="pdm-alerts-sub">{t('pointageMois.alerts.subtitle')}</Typography>
                 <Box className="pdm-alert-item pdm-alert-item--warn">
                   <Box className="pdm-alert-icon pdm-alert-icon--warn"><WarningIcon sx={{ color: '#f59e0b', fontSize: 20 }} /></Box>
                   <Box>
-                    <Typography className="pdm-alert-title">{retardsCount} Retards récurrents</Typography>
-                    <Typography className="pdm-alert-sub">Employé(s) concerné(s)</Typography>
+                    <Typography className="pdm-alert-title">{t('pointageMois.alerts.recurringDelays', { count: retardsCount })}</Typography>
+                    <Typography className="pdm-alert-sub">{t('pointageMois.alerts.concernedEmployees')}</Typography>
                   </Box>
                 </Box>
                 <Box className="pdm-alert-item pdm-alert-item--err">
                   <Box className="pdm-alert-icon pdm-alert-icon--err"><ErrorIcon sx={{ color: '#ef4444', fontSize: 20 }} /></Box>
                   <Box>
-                    <Typography className="pdm-alert-title">{absNJCount} Oublis de sortie</Typography>
-                    <Typography className="pdm-alert-sub">Absences non justifiées</Typography>
+                    <Typography className="pdm-alert-title">{t('pointageMois.alerts.exitOmissions', { count: absNJCount })}</Typography>
+                    <Typography className="pdm-alert-sub">{t('pointageMois.alerts.unjustifiedAbsences')}</Typography>
                   </Box>
                 </Box>
                 {employesAvecPosteManquant > 0 && (
                   <Box className="pdm-alert-item pdm-alert-item--err">
                     <Box className="pdm-alert-icon pdm-alert-icon--err"><ErrorIcon sx={{ color: '#ef4444', fontSize: 20 }} /></Box>
                     <Box>
-                      <Typography className="pdm-alert-title">{employesAvecPosteManquant} employé(s) avec poste non résolu</Typography>
-                      <Typography className="pdm-alert-sub">Vérifier les rattachements Lcategories ou le Poscod par défaut</Typography>
+                      <Typography className="pdm-alert-title">{t('pointageMois.alerts.missingPoste', { count: employesAvecPosteManquant })}</Typography>
+                      <Typography className="pdm-alert-sub">{t('pointageMois.alerts.checkAttachments')}</Typography>
                     </Box>
                   </Box>
                 )}
               </Box>
-              <button className="pdm-alert-btn" onClick={() => { setTreatedAlerts({}); setAlertFilter('all'); setOpenAlertsDialog(true); }}>Traiter les alertes</button>
+              <button className="pdm-alert-btn" onClick={() => { setTreatedAlerts({}); setAlertFilter('all'); setOpenAlertsDialog(true); }}>{t('pointageMois.alerts.treatBtn')}</button>
             </Paper>
           </Box>
         </>
@@ -806,25 +855,29 @@ function PointageDuMoisContent() {
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, fontSize: '18px', pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <WarningIcon sx={{ color: '#f59e0b', fontSize: 24 }} />
-            Traitement des Alertes — {monthLabel}
+            {t('pointageMois.alerts.dialogTitle', { period: monthLabel })}
           </Box>
           <IconButton onClick={() => setOpenAlertsDialog(false)}><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
           {/* Stats bar */}
           <Box sx={{ display: 'flex', gap: 2, px: 3, py: 2, bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-            <Chip label={`${alertsData.length} Total`} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#e2e8f0', color: '#334155' }} />
-            <Chip label={`${pendingCount} En attente`} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#fef3c7', color: '#92400e' }} />
-            <Chip label={`${treatedCount} Traitées`} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#d1fae5', color: '#065f46' }} />
-            <Chip label={`${ignoredCount} Ignorées`} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#e2e8f0', color: '#64748b' }} />
+            <Chip label={t('pointageMois.alerts.totalChip', { count: alertsData.length })} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#e2e8f0', color: '#334155' }} />
+            <Chip label={t('pointageMois.alerts.pendingChip', { count: pendingCount })} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#fef3c7', color: '#92400e' }} />
+            <Chip label={t('pointageMois.alerts.treatedChip', { count: treatedCount })} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#d1fae5', color: '#065f46' }} />
+            <Chip label={t('pointageMois.alerts.ignoredChip', { count: ignoredCount })} size="small" sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#e2e8f0', color: '#64748b' }} />
           </Box>
 
           {/* Filter + Actions bar */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 3, py: 1.5, borderBottom: '1px solid #f1f5f9' }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              {([['all', 'Toutes'], ['retard', 'Retards'], ['absnj', 'Abs. NJ']] as const).map(([val, lbl]) => (
+              {([
+                ['all', t('pointageMois.alerts.filterAll')],
+                ['retard', t('pointageMois.alerts.filterDelays')],
+                ['absnj', t('pointageMois.alerts.filterAbsences')],
+              ] as const).map(([val, lbl]) => (
                 <Button key={val} size="small"
-                  onClick={() => setAlertFilter(val)}
+                  onClick={() => setAlertFilter(val as 'all' | 'retard' | 'absnj')}
                   sx={{
                     fontWeight: 700, fontSize: '12px', textTransform: 'none', borderRadius: '8px',
                     bgcolor: alertFilter === val ? '#0040a1' : 'transparent',
@@ -843,7 +896,7 @@ function PointageDuMoisContent() {
                   setTreatedAlerts(newTreated);
                 }}
                 sx={{ fontWeight: 700, fontSize: '11px', textTransform: 'none', color: '#059669' }}>
-                Tout traiter
+                {t('pointageMois.alerts.treatAll')}
               </Button>
               <Button size="small"
                 onClick={() => {
@@ -852,7 +905,7 @@ function PointageDuMoisContent() {
                   setTreatedAlerts(newTreated);
                 }}
                 sx={{ fontWeight: 700, fontSize: '11px', textTransform: 'none', color: '#94a3b8' }}>
-                Tout ignorer
+                {t('pointageMois.alerts.ignoreAll')}
               </Button>
             </Box>
           </Box>
@@ -863,7 +916,7 @@ function PointageDuMoisContent() {
               <Box sx={{ textAlign: 'center', py: 6 }}>
                 <CheckCircleIcon sx={{ fontSize: 48, color: '#d1d5db', mb: 1 }} />
                 <Typography sx={{ color: '#94a3b8', fontWeight: 600, fontSize: '14px' }}>
-                  Aucune alerte à afficher
+                  {t('pointageMois.alerts.noAlerts')}
                 </Typography>
               </Box>
             ) : (
@@ -899,7 +952,7 @@ function PointageDuMoisContent() {
                         </Typography>
                         <Chip label={alert.empMat} size="small"
                           sx={{ fontSize: '10px', fontWeight: 700, height: 20, bgcolor: '#e2e8f0', color: '#475569' }} />
-                        <Chip label={`S${alert.weekIdx}`} size="small"
+                        <Chip label={t('pointageMois.alerts.weekShort', { n: alert.weekIdx })} size="small"
                           sx={{ fontSize: '10px', fontWeight: 700, height: 20, bgcolor: '#eff6ff', color: '#0040a1' }} />
                       </Box>
                       <Typography sx={{ fontSize: '12px', color: '#64748b', fontWeight: 500, mt: 0.25 }}>
@@ -909,21 +962,21 @@ function PointageDuMoisContent() {
 
                     {/* Status / Actions */}
                     {isTraite ? (
-                      <Chip icon={<CheckIcon sx={{ fontSize: 14 }} />} label="Traité" size="small"
+                      <Chip icon={<CheckIcon sx={{ fontSize: 14 }} />} label={t('pointageMois.alerts.treatedBadge')} size="small"
                         sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#d1fae5', color: '#065f46' }} />
                     ) : isIgnore ? (
-                      <Chip label="Ignoré" size="small"
+                      <Chip label={t('pointageMois.alerts.ignoredBadge')} size="small"
                         sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#f1f5f9', color: '#94a3b8' }} />
                     ) : (
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="Marquer comme traité">
+                        <Tooltip title={t('pointageMois.alerts.markTreated')}>
                           <IconButton size="small"
                             onClick={() => setTreatedAlerts(prev => ({ ...prev, [alert.id]: 'traite' }))}
                             sx={{ bgcolor: '#d1fae5', color: '#059669', borderRadius: '8px', '&:hover': { bgcolor: '#a7f3d0' } }}>
                             <CheckIcon sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Ignorer">
+                        <Tooltip title={t('pointageMois.alerts.ignore')}>
                           <IconButton size="small"
                             onClick={() => setTreatedAlerts(prev => ({ ...prev, [alert.id]: 'ignore' }))}
                             sx={{ bgcolor: '#f1f5f9', color: '#94a3b8', borderRadius: '8px', '&:hover': { bgcolor: '#e2e8f0' } }}>
@@ -941,13 +994,15 @@ function PointageDuMoisContent() {
           {/* Footer actions */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 3, py: 2, borderTop: '1px solid #e2e8f0', bgcolor: '#f8fafc' }}>
             <Typography sx={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
-              {pendingCount > 0 ? `${pendingCount} alerte(s) en attente` : '✅ Toutes les alertes ont été traitées'}
+              {pendingCount > 0
+                ? t('pointageMois.alerts.pendingFooter', { count: pendingCount })
+                : t('pointageMois.alerts.allTreated')}
             </Typography>
             <Button
               variant="contained"
               disabled={pendingCount > 0}
               onClick={() => {
-                setSnack({ open: true, msg: `${alertsData.length} alerte(s) traitée(s) avec succès`, sev: 'success' });
+                setSnack({ open: true, msg: t('pointageMois.alerts.successProcessed', { count: alertsData.length }), sev: 'success' });
                 setOpenAlertsDialog(false);
               }}
               sx={{
@@ -956,7 +1011,7 @@ function PointageDuMoisContent() {
                 color: pendingCount > 0 ? '#94a3b8' : '#fff',
                 '&:hover': { bgcolor: pendingCount > 0 ? '#e2e8f0' : '#003080' },
               }}>
-              Confirmer le traitement
+              {t('pointageMois.alerts.confirmTreatment')}
             </Button>
           </Box>
         </DialogContent>

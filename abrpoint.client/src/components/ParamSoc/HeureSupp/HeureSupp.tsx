@@ -28,6 +28,7 @@ import useGetParTranche from "../../../hooks/partrancheHooks/useGetParTranche";
 import ParTranche from "../../../models/ParTranche";
 import useGetSocHeures from "../../../hooks/societeHooks/useGetSocHeures";
 import { useAuth } from "../../helper/AuthProvider";
+import { useTranslation } from "react-i18next";
 
 interface HeureSuppProps {
   onChange?: (value: any) => void;
@@ -43,6 +44,7 @@ interface TrancheData {
 }
 
 const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
+  const { t } = useTranslation();
   // Extract soccod at the top level of the component
   const { soccod } = useAuth();
   
@@ -178,13 +180,13 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
   }, [parametres, partranche, socheures]);
 
   const radioOptions = [
-    { value: '0', label: 'Param. Catégorie' },
-    { value: '1', label: 'Param. Poste' },
-    { value: '4', label: 'Heures sup. Mensuel' },
-    { value: '3', label: 'Calcul H.Sup Hebdomadaire' },
-    { value: '2', label: 'Tranche heure max trav./jour' },
-    { value: '6', label: 'Cumul des heures sup/jour' },
-    { value: '5', label: 'H.Sup Hebdomadaire+Mens' }
+    { value: '0', label: t('paramSoc.heuresSup.method.paramCategorie') },
+    { value: '1', label: t('paramSoc.heuresSup.method.paramPoste') },
+    { value: '4', label: t('paramSoc.heuresSup.method.hsupMensuel') },
+    { value: '3', label: t('paramSoc.heuresSup.method.hsupHebdo') },
+    { value: '2', label: t('paramSoc.heuresSup.method.trancheMaxJour') },
+    { value: '6', label: t('paramSoc.heuresSup.method.cumulHsupJour') },
+    { value: '5', label: t('paramSoc.heuresSup.method.hsupHebdoMens') }
   ];
   
   const Taux = [0, 25, 50, 75, 100];
@@ -321,7 +323,7 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
         <Grid container xs={12} md={6} mt={-4}>
           <Grid xs={6} md={6}>
             <Paper elevation={1} sx={{ padding: 2 }}>
-              <Typography variant="h6" color="primary" gutterBottom>Horaire</Typography>
+              <Typography variant="h6" color="primary" gutterBottom>{t('paramSoc.heuresSup.horaire')}</Typography>
               <Grid display={"flex"} gap={15}>
                 <RadioGroup name="method-horaire" value={hsuphebd} onChange={(e) => setMethCalcHor(e.target.value)}>
                   {radioOptions.map((option, index) => (
@@ -338,11 +340,11 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
           </Grid>
           <Grid xs={6} md={6}>
             <Paper elevation={1} sx={{ padding: 2 }}>
-              <Typography variant="h6" color="primary">Mensuel</Typography>
+              <Typography variant="h6" color="primary">{t('paramSoc.heuresSup.mensuelTitle')}</Typography>
               <Grid ml={5}>
-                <CheckboxComponent label='Cadre' value={parcadre == '1'} setValue={checked => setParcadre(checked ? '1' : '0')} />
-                <CheckboxComponent label='Maitrise' value={parmaitrise == '1'} setValue={checked => setParmaitrise(checked ? '1' : '0')} />
-                <CheckboxComponent label='Exécutant' value={parexec == '1'} setValue={checked => setParexec(checked ? '1' : '0')} />
+                <CheckboxComponent label={t('paramSoc.heuresSup.cadre')} value={parcadre == '1'} setValue={checked => setParcadre(checked ? '1' : '0')} />
+                <CheckboxComponent label={t('paramSoc.heuresSup.maitrise')} value={parmaitrise == '1'} setValue={checked => setParmaitrise(checked ? '1' : '0')} />
+                <CheckboxComponent label={t('paramSoc.heuresSup.executant')} value={parexec == '1'} setValue={checked => setParexec(checked ? '1' : '0')} />
               </Grid>
               <Grid display={"flex"} gap={15} mt={-3.5}>
                 <RadioGroup name="method-mensuel" value={hsuphebdm} onChange={(e) => setMethCalcMen(e.target.value)}>
@@ -355,7 +357,7 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
                     />
                   ))}
                 </RadioGroup>
-                <CheckboxComponent label="Semaine Complète" value={parscomplet == '1'} setValue={checked => setParscomplet(checked ? '1' : '0')} />
+                <CheckboxComponent label={t('paramSoc.heuresSup.semaineComplete')} value={parscomplet == '1'} setValue={checked => setParscomplet(checked ? '1' : '0')} />
               </Grid>
             </Paper>
           </Grid>
@@ -366,12 +368,12 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell width={1}>Calendrier</TableCell>
-                        <TableCell>Tranche 1</TableCell>
-                        <TableCell>Taux 1</TableCell>
-                        <TableCell width={1}>Tranche 2</TableCell>
-                        <TableCell>Taux 2</TableCell>
-                        <TableCell width={50}>Action</TableCell>
+                        <TableCell width={1}>{t('paramSoc.heuresSup.calendrier')}</TableCell>
+                        <TableCell>{t('paramSoc.heuresSup.tranche1')}</TableCell>
+                        <TableCell>{t('paramSoc.heuresSup.taux1')}</TableCell>
+                        <TableCell width={1}>{t('paramSoc.heuresSup.tranche2')}</TableCell>
+                        <TableCell>{t('paramSoc.heuresSup.taux2')}</TableCell>
+                        <TableCell width={50}>{t('paramSoc.heuresSup.action')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -390,18 +392,18 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
         <Grid container spacing={3} mt={-2}>
           <Grid item xs={6} md={6}>
             <Select fullWidth variant="standard" value={parelimftrv} onChange={(e) => setParelimftrv(e.target.value)}>
-              <MenuItem value="0">0- Compter Férié Travaillé</MenuItem>
-              <MenuItem value="1">1- Eliminer Férié Travaillé des Hres Sup. et Normale</MenuItem>
-              <MenuItem value="2">2- Eliminer Férié Travaillé des Hres Sup. + Ajout H.N</MenuItem>
-              <MenuItem value="3">3- Eliminer Férié Trv-Repos des Hres Sup. + Ajout H.N</MenuItem>
+              <MenuItem value="0">{t('paramSoc.heuresSup.elim0')}</MenuItem>
+              <MenuItem value="1">{t('paramSoc.heuresSup.elim1')}</MenuItem>
+              <MenuItem value="2">{t('paramSoc.heuresSup.elim2')}</MenuItem>
+              <MenuItem value="3">{t('paramSoc.heuresSup.elim3')}</MenuItem>
             </Select>
           </Grid>
           <Grid item xs={6} md={6}>
             <Select fullWidth variant="standard" value={parreptrv} onChange={(e) => setParreptrv(e.target.value)}>
-              <MenuItem value="0">0- Ne pas gérer Repos Travaillés avec les heures normales</MenuItem>
-              <MenuItem value="1">1- Gérer Repos Travaillés avec les heures normales</MenuItem>
-              <MenuItem value="2">2- Ne pas gérer Dimanche Travaillés avec les heures normales</MenuItem>
-              <MenuItem value="3">3- Ne pas gérer Samedi-Dimanche Travaillés avec les heures normales</MenuItem>
+              <MenuItem value="0">{t('paramSoc.heuresSup.rep0')}</MenuItem>
+              <MenuItem value="1">{t('paramSoc.heuresSup.rep1')}</MenuItem>
+              <MenuItem value="2">{t('paramSoc.heuresSup.rep2')}</MenuItem>
+              <MenuItem value="3">{t('paramSoc.heuresSup.rep3')}</MenuItem>
             </Select>
           </Grid>
         </Grid>
@@ -409,15 +411,15 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
           <Grid item xs={6} md={6}>
             <FormControl fullWidth variant="standard">
               <InputLabel id="socpresence-label">
-                Début de calcul des heures normales
+                {t('paramSoc.heuresSup.debutCalculLabel')}
               </InputLabel>
               <Select
                 labelId="socpresence-label"
                 value={socpresence}
                 onChange={(e) => setSocpresence(e.target.value)}
               >
-                <MenuItem value="P">Premier du mois</MenuItem>
-                <MenuItem value="L">Lundi semaine 1</MenuItem>
+                <MenuItem value="P">{t('paramSoc.heuresSup.premierMois')}</MenuItem>
+                <MenuItem value="L">{t('paramSoc.heuresSup.lundiSemaine')}</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -425,15 +427,15 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
           <Grid item xs={6} md={6}>
             <FormControl fullWidth variant="standard">
               <InputLabel id="sochsup-label">
-                Calcul des heures supplémentaires
+                {t('paramSoc.heuresSup.calculHsupLabel')}
               </InputLabel>
               <Select
                 labelId="sochsup-label"
                 value={sochsup}
                 onChange={(e) => setSochsup(e.target.value)}
               >
-                <MenuItem value="P">Premier du mois</MenuItem>
-                <MenuItem value="L">Lundi semaine 1</MenuItem>
+                <MenuItem value="P">{t('paramSoc.heuresSup.premierMois')}</MenuItem>
+                <MenuItem value="L">{t('paramSoc.heuresSup.lundiSemaine')}</MenuItem>
               </Select>
             </FormControl>
           </Grid>

@@ -14,7 +14,7 @@ import usePurgePointeuse from "../../hooks/pointeuseHooks/usePurgePointeuse";
 import apiInstance from "../API/apiInstance";
 import { useAuth } from "../helper/AuthProvider";
 import AccessDenied from "../helper/AccessDenied";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import BreadcrumbNavigation from "../helper/BreadcrumbNavigation";
 
 export default function Pointeuse() {
@@ -99,16 +99,16 @@ export default function Pointeuse() {
     try {
       if (selected) {
         await apiInstance.put(`/Pointeuse`, payload);
-        setSnackbar({ open: true, message: "Pointeuse modifiée avec succès", severity: "success" });
+        setSnackbar({ open: true, message: t("pointeuse.list.msgUpdated"), severity: "success" });
       } else {
         await apiInstance.post(`/Pointeuse`, payload);
-        setSnackbar({ open: true, message: "Pointeuse ajoutée avec succès", severity: "success" });
+        setSnackbar({ open: true, message: t("pointeuse.list.msgAdded"), severity: "success" });
       }
       resetForm();
       setDialogOpen(false);
       refetch();
     } catch (error) {
-      setSnackbar({ open: true, message: "Erreur lors de l'enregistrement", severity: "error" });
+      setSnackbar({ open: true, message: t("pointeuse.list.msgSaveError"), severity: "error" });
     }
   };
 
@@ -118,7 +118,7 @@ export default function Pointeuse() {
       deletePointeuse(deleteTarget.poicod, {
         onSuccess: () => {
           refetch();
-          setSnackbar({ open: true, message: "Pointeuse supprimée", severity: "success" });
+          setSnackbar({ open: true, message: t("pointeuse.list.msgDeleted"), severity: "success" });
         },
       });
     }
@@ -138,10 +138,10 @@ export default function Pointeuse() {
       },
       {
         onSuccess: () => {
-          setSnackbar({ open: true, message: "Purge effectuée avec succès", severity: "success" });
+          setSnackbar({ open: true, message: t("pointeuse.list.msgPurgeOk"), severity: "success" });
         },
         onError: (err: any) => {
-          setSnackbar({ open: true, message: `Erreur purge: ${err.message}`, severity: "error" });
+          setSnackbar({ open: true, message: t("pointeuse.list.msgPurgeError", { msg: err.message }), severity: "error" });
         },
       }
     );
@@ -162,7 +162,7 @@ export default function Pointeuse() {
   };
 
   if (!hasPermission("Pointage et Temps", "consult")) {
-    return <AccessDenied message="Vous n'avez pas le droit de consulter la liste des pointeuses." />;
+    return <AccessDenied message={t("pointeuse.list.noConsultRight")} />;
   }
 
   const paginatedData = pointeuses.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -205,10 +205,10 @@ export default function Pointeuse() {
             <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: colors.primaryBg, display: "flex" }}>
               <span className="material-symbols-outlined" style={{ color: colors.primary, fontSize: 22 }}>dns</span>
             </Box>
-            <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" }}>Total</Typography>
+            <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" }}>{t("pointeuse.list.stats.total")}</Typography>
           </Box>
           <Typography sx={{ fontSize: 32, fontWeight: 900, fontFamily: "'Manrope', sans-serif", color: colors.text }}>{String(total).padStart(2, "0")}</Typography>
-          <Typography sx={{ fontSize: 12, color: colors.textSecondary, mt: 0.5 }}>Terminaux enregistrés</Typography>
+          <Typography sx={{ fontSize: 12, color: colors.textSecondary, mt: 0.5 }}>{t("pointeuse.list.stats.totalSub")}</Typography>
         </Paper>
 
         {/* Online */}
@@ -223,10 +223,10 @@ export default function Pointeuse() {
             <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: colors.tertiaryBg, display: "flex" }}>
               <span className="material-symbols-outlined" style={{ color: colors.tertiary, fontSize: 22 }}>check_circle</span>
             </Box>
-            <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" }}>En Ligne</Typography>
+            <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" }}>{t("pointeuse.list.stats.online")}</Typography>
           </Box>
           <Typography sx={{ fontSize: 32, fontWeight: 900, fontFamily: "'Manrope', sans-serif", color: colors.text }}>{String(online).padStart(2, "0")}</Typography>
-          <Typography sx={{ fontSize: 12, color: colors.tertiary, mt: 0.5 }}>Connectés & Actifs</Typography>
+          <Typography sx={{ fontSize: 12, color: colors.tertiary, mt: 0.5 }}>{t("pointeuse.list.stats.onlineSub")}</Typography>
         </Paper>
 
         {/* Offline */}
@@ -241,10 +241,10 @@ export default function Pointeuse() {
             <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: colors.errorBg, display: "flex" }}>
               <span className="material-symbols-outlined" style={{ color: colors.error, fontSize: 22 }}>error</span>
             </Box>
-            <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" }}>Hors Ligne</Typography>
+            <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" }}>{t("pointeuse.list.stats.offline")}</Typography>
           </Box>
           <Typography sx={{ fontSize: 32, fontWeight: 900, fontFamily: "'Manrope', sans-serif", color: colors.text }}>{String(offline).padStart(2, "0")}</Typography>
-          <Typography sx={{ fontSize: 12, color: colors.error, mt: 0.5 }}>Échec de connexion</Typography>
+          <Typography sx={{ fontSize: 12, color: colors.error, mt: 0.5 }}>{t("pointeuse.list.stats.offlineSub")}</Typography>
         </Paper>
 
         {/* Sync */}
@@ -259,12 +259,12 @@ export default function Pointeuse() {
             <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: colors.secondaryBg, display: "flex" }}>
               <span className="material-symbols-outlined" style={{ color: colors.secondary, fontSize: 22 }}>sync</span>
             </Box>
-            <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" }}>Synchronisation</Typography>
+            <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" }}>{t("pointeuse.list.stats.sync")}</Typography>
           </Box>
           <Typography sx={{ fontSize: 18, fontWeight: 900, fontFamily: "'Manrope', sans-serif", color: colors.text }}>
             {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
           </Typography>
-          <Typography sx={{ fontSize: 12, color: colors.textSecondary, mt: 0.5 }}>Dernière mise à jour</Typography>
+          <Typography sx={{ fontSize: 12, color: colors.textSecondary, mt: 0.5 }}>{t("pointeuse.list.stats.syncSub")}</Typography>
         </Paper>
       </Box>
 
@@ -284,10 +284,10 @@ export default function Pointeuse() {
         }}>
           <Box>
             <Typography sx={{ fontSize: 22, fontWeight: 700, fontFamily: "'Manrope', sans-serif", color: isDark ? "#93c5fd" : "#0040a1" }}>
-              {selected ? "Modifier Terminal" : t("navigation.clockingList") || "Configuration Terminal"}
+              {selected ? t("pointeuse.list.config.editTitle") : t("pointeuse.list.config.newTitle")}
             </Typography>
             <Typography sx={{ fontSize: 13, color: colors.textSecondary, mt: 0.5 }}>
-              {selected ? "Modifier les paramètres réseau de la pointeuse" : "Ajouter ou modifier les paramètres réseau d'une pointeuse."}
+              {selected ? t("pointeuse.list.config.editSubtitle") : t("pointeuse.list.config.newSubtitle")}
             </Typography>
           </Box>
           <Button
@@ -313,7 +313,7 @@ export default function Pointeuse() {
               transition: "all 0.3s",
             }}
           >
-            {selected ? "Modifier" : "Nouveau Terminal"}
+            {selected ? t("pointeuse.list.config.editBtn") : t("pointeuse.list.config.newBtn")}
           </Button>
         </Box>
       </Paper>
@@ -331,15 +331,15 @@ export default function Pointeuse() {
           borderBottom: `1px solid ${colors.border}`,
         }}>
           <Typography sx={{ fontSize: 18, fontWeight: 700, fontFamily: "'Manrope', sans-serif", color: colors.text }}>
-            Liste des Terminaux
+            {t("pointeuse.list.table.title")}
           </Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Tooltip title="Filtrer">
+            <Tooltip title={t("pointeuse.list.table.filter")}>
               <IconButton sx={{ color: colors.textSecondary, "&:hover": { bgcolor: colors.surfaceLow } }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>filter_list</span>
               </IconButton>
             </Tooltip>
-            <Tooltip title="Exporter">
+            <Tooltip title={t("pointeuse.list.table.export")}>
               <IconButton sx={{ color: colors.textSecondary, "&:hover": { bgcolor: colors.surfaceLow } }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>download</span>
               </IconButton>
@@ -361,12 +361,12 @@ export default function Pointeuse() {
                     sx={{ color: colors.primary, "&.Mui-checked": { color: colors.primary } }}
                   />
                 </TableCell>
-                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase" }}>Code Pointeuse</TableCell>
-                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase" }}>Libellé</TableCell>
-                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase" }}>Adresse IP</TableCell>
-                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase", textAlign: "center" }}>N° Port</TableCell>
-                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase", textAlign: "center" }}>Statut</TableCell>
-                <TableCell sx={{ px: 4, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase", textAlign: "right" }}>Actions</TableCell>
+                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase" }}>{t("pointeuse.list.table.code")}</TableCell>
+                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase" }}>{t("pointeuse.list.table.label")}</TableCell>
+                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase" }}>{t("pointeuse.list.table.ip")}</TableCell>
+                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase", textAlign: "center" }}>{t("pointeuse.list.table.port")}</TableCell>
+                <TableCell sx={{ px: 2, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase", textAlign: "center" }}>{t("pointeuse.list.table.status")}</TableCell>
+                <TableCell sx={{ px: 4, py: 2, fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: 1.2, textTransform: "uppercase", textAlign: "right" }}>{t("pointeuse.list.table.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -411,7 +411,7 @@ export default function Pointeuse() {
                     <TableCell sx={{ px: 2, py: 2.5, textAlign: "center" }}>
                       <Chip
                         icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: isOnline ? colors.tertiary : colors.error, ml: 1 }} />}
-                        label={isOnline ? "CONNECTÉ" : "DÉCONNECTÉ"}
+                        label={isOnline ? t("pointeuse.list.table.connected") : t("pointeuse.list.table.disconnected")}
                         size="small"
                         sx={{
                           fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
@@ -424,17 +424,17 @@ export default function Pointeuse() {
                     </TableCell>
                     <TableCell sx={{ px: 4, py: 2.5, textAlign: "right" }}>
                       <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
-                        <Tooltip title="Purger">
+                        <Tooltip title={t("pointeuse.list.table.purge")}>
                           <IconButton size="small" onClick={(e) => { e.stopPropagation(); handlePurge(p); }} sx={{ color: colors.textSecondary, "&:hover": { color: colors.primary } }}>
                             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>sync</span>
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Modifier">
+                        <Tooltip title={t("pointeuse.list.table.edit")}>
                           <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelected(p); }} sx={{ color: colors.textSecondary, "&:hover": { color: colors.primary } }}>
                             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Supprimer">
+                        <Tooltip title={t("pointeuse.list.table.delete")}>
                           <IconButton size="small" onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); setDeleteDialogOpen(true); }} sx={{ color: colors.textSecondary, "&:hover": { color: colors.error } }}>
                             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
                           </IconButton>
@@ -448,7 +448,7 @@ export default function Pointeuse() {
                 <TableRow>
                   <TableCell colSpan={7} sx={{ textAlign: "center", py: 8, color: colors.textSecondary }}>
                     <span className="material-symbols-outlined" style={{ fontSize: 48, display: "block", marginBottom: 8, opacity: 0.3 }}>devices_other</span>
-                    Aucun terminal enregistré
+                    {t("pointeuse.list.table.noTerminal")}
                   </TableCell>
                 </TableRow>
               )}
@@ -464,7 +464,7 @@ export default function Pointeuse() {
           borderTop: `1px solid ${colors.border}`,
         }}>
           <Typography sx={{ fontSize: 11, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1 }}>
-            Affichage {page * rowsPerPage + 1}-{Math.min((page + 1) * rowsPerPage, total)} sur {total} terminaux
+            {t("pointeuse.list.table.pagination", { start: page * rowsPerPage + 1, end: Math.min((page + 1) * rowsPerPage, total), total })}
           </Typography>
           <Box sx={{ display: "flex", gap: 0.5 }}>
             <Button size="small" disabled={page === 0} onClick={() => setPage(page - 1)} sx={{
@@ -472,7 +472,7 @@ export default function Pointeuse() {
               color: colors.textSecondary,
               border: `1px solid ${colors.border}`,
               borderRadius: 1,
-            }}>Préc</Button>
+            }}>{t("pointeuse.list.table.prev")}</Button>
             {Array.from({ length: Math.ceil(total / rowsPerPage) }, (_, i) => (
               <Button key={i} size="small" onClick={() => setPage(i)} sx={{
                 minWidth: 32, px: 1, fontSize: 12, fontWeight: 600,
@@ -488,7 +488,7 @@ export default function Pointeuse() {
               color: colors.textSecondary,
               border: `1px solid ${colors.border}`,
               borderRadius: 1,
-            }}>Suiv</Button>
+            }}>{t("pointeuse.list.table.next")}</Button>
           </Box>
         </Box>
       </Paper>
@@ -496,14 +496,14 @@ export default function Pointeuse() {
       {/* ── Add/Edit Dialog ── */}
       <Dialog open={dialogOpen} onClose={() => { setDialogOpen(false); resetForm(); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700, color: colors.text }}>
-          {selected ? "Modifier Terminal" : "Nouveau Terminal"}
+          {selected ? t("pointeuse.list.dialog.editTitle") : t("pointeuse.list.dialog.newTitle")}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 2.5, mt: 1 }}>
             <Box>
-              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>Code</Typography>
+              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>{t("pointeuse.list.dialog.code")}</Typography>
               <TextField
-                fullWidth size="small" placeholder="Ex: PT-001"
+                fullWidth size="small" placeholder={t("pointeuse.list.dialog.codePlaceholder")}
                 name="poicod" value={formData.poicod}
                 onChange={(e) => setFormData(prev => ({ ...prev, poicod: e.target.value }))}
                 disabled={!!selected}
@@ -511,34 +511,34 @@ export default function Pointeuse() {
               />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>Libellé</Typography>
+              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>{t("pointeuse.list.dialog.label")}</Typography>
               <TextField
-                fullWidth size="small" placeholder="Ex: RANDA USINE 1"
+                fullWidth size="small" placeholder={t("pointeuse.list.dialog.labelPlaceholder")}
                 name="poilib" value={formData.poilib || ""}
                 onChange={(e) => setFormData(prev => ({ ...prev, poilib: e.target.value }))}
                 variant="outlined"
               />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>Adresse IP</Typography>
+              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>{t("pointeuse.list.dialog.ip")}</Typography>
               <TextField
-                fullWidth size="small" placeholder="192.168.1.100"
+                fullWidth size="small" placeholder={t("pointeuse.list.dialog.ipPlaceholder")}
                 value={ipInput}
                 onChange={(e) => setIpInput(e.target.value)}
                 variant="outlined"
               />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>N° Port</Typography>
+              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>{t("pointeuse.list.dialog.port")}</Typography>
               <TextField
-                fullWidth size="small" placeholder="4370" type="number"
+                fullWidth size="small" placeholder={t("pointeuse.list.dialog.portPlaceholder")} type="number"
                 name="poiport" value={formData.poiport || ""}
                 onChange={(e) => setFormData(prev => ({ ...prev, poiport: parseInt(e.target.value) || undefined }))}
                 variant="outlined"
               />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>Logiciel / Com</Typography>
+              <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 1, ml: 0.5 }}>{t("pointeuse.list.dialog.com")}</Typography>
               <FormControl fullWidth size="small">
                 <Select
                   name="poicom" value={formData.poicom || "D"}
@@ -552,7 +552,7 @@ export default function Pointeuse() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { setDialogOpen(false); resetForm(); }} sx={{ color: colors.textSecondary, textTransform: "none" }}>Annuler</Button>
+          <Button onClick={() => { setDialogOpen(false); resetForm(); }} sx={{ color: colors.textSecondary, textTransform: "none" }}>{t("pointeuse.list.dialog.cancel")}</Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
@@ -565,23 +565,27 @@ export default function Pointeuse() {
               transition: "all 0.2s",
             }}
           >
-            Enregistrer
+            {t("pointeuse.list.dialog.save")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* ── Delete Confirmation Dialog ── */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs">
-        <DialogTitle sx={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700 }}>Confirmer la suppression</DialogTitle>
+        <DialogTitle sx={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700 }}>{t("pointeuse.list.dialog.deleteTitle")}</DialogTitle>
         <DialogContent>
           <Typography sx={{ color: colors.textSecondary }}>
-            Êtes-vous sûr de vouloir supprimer la pointeuse <strong>{deleteTarget?.poicod}</strong> ?
+            <Trans
+              i18nKey="pointeuse.list.dialog.deleteConfirm"
+              values={{ code: deleteTarget?.poicod ?? '' }}
+              components={{ strong: <strong /> }}
+            />
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: colors.textSecondary, textTransform: "none" }}>Annuler</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: colors.textSecondary, textTransform: "none" }}>{t("pointeuse.list.dialog.cancel")}</Button>
           <Button variant="contained" color="error" onClick={handleDelete} sx={{ borderRadius: 2, fontWeight: 600, textTransform: "none" }}>
-            Supprimer
+            {t("pointeuse.list.dialog.deleteBtn")}
           </Button>
         </DialogActions>
       </Dialog>

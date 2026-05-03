@@ -3,6 +3,7 @@ import InputComponent from "../../Inputs/Input";
 import SelectInputComponent from "../../SelectInputComponent/SelectInputComponent";
 import { useEffect, useState } from "react";
 import { Print, Search } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 import useGetEmployeesLibs from "../../../hooks/employeHooks/useGetEmployeesLibs";
 import { useDateRange } from "../../Pointeuse/EtatPeriodique/FilterContext";
 import { useAuth } from "../../helper/AuthProvider";
@@ -10,28 +11,29 @@ import apiInstance from "../../API/apiInstance";
 import { useEmployeeFilter } from "../../../hooks/employeHooks/useEmployeeFilter";
 
 function FilterCahierConge() {
+    const { t } = useTranslation();
     const { soccod } = useAuth();
     const regime = {
-        'M': "Mensuelle",
-        'H': "Horaire"
+        'M': t('cahierConge.filter.regimeMonthly'),
+        'H': t('cahierConge.filter.regimeHourly')
     };
 
     const justifiedOptions = {
-        '': 'Tous les types',
-        '1': 'Justifiée',
-        '0': 'Non justifiée'
+        '': t('cahierConge.filter.justifiedOptions.all'),
+        '1': t('cahierConge.filter.justifiedOptions.yes'),
+        '0': t('cahierConge.filter.justifiedOptions.no')
     };
 
     const absenceTypeOptions = {
-        '': 'Tous les types',
-        '1': 'CSF',
-        '2': 'Justifiée',
-        '3': 'Non justifiée',
-        '4': 'MAP',
-        '5': 'CSS',
-        '6': 'FM',
-        '8': 'Accident du travail',
-        '9': 'Maladie'
+        '': t('cahierConge.filter.absenceTypeOptions.all'),
+        '1': t('cahierConge.filter.absenceTypeOptions.csf'),
+        '2': t('cahierConge.filter.absenceTypeOptions.justified'),
+        '3': t('cahierConge.filter.absenceTypeOptions.notJustified'),
+        '4': t('cahierConge.filter.absenceTypeOptions.map'),
+        '5': t('cahierConge.filter.absenceTypeOptions.css'),
+        '6': t('cahierConge.filter.absenceTypeOptions.fm'),
+        '8': t('cahierConge.filter.absenceTypeOptions.workAccident'),
+        '9': t('cahierConge.filter.absenceTypeOptions.sickness')
     };
 
     const {
@@ -158,7 +160,7 @@ function FilterCahierConge() {
                 <Grid item xs={1.5}>
                     {filiale && (
                         <SelectInputComponent
-                            label='Filiale'
+                            label={t('cahierConge.filter.filiale')}
                             value={selectedFiliale}
                             setValue={setSelectedFiliale}
                             maplist={filiale}
@@ -168,7 +170,7 @@ function FilterCahierConge() {
                 <Grid item xs={1.5}>
                     {services && (
                         <SelectInputComponent
-                            label='Service'
+                            label={t('cahierConge.filter.service')}
                             value={selectedService}
                             setValue={setSelectedService}
                             maplist={services}
@@ -177,7 +179,7 @@ function FilterCahierConge() {
                 </Grid>
                 <Grid item xs={1}>
                     <SelectInputComponent
-                        label='Regime'
+                        label={t('cahierConge.filter.regime')}
                         value={selectedRegime}
                         setValue={setSelectedRegime}
                         maplist={regime}
@@ -185,7 +187,7 @@ function FilterCahierConge() {
                 </Grid>
                 <Grid item xs={1.2}>
                     <SelectInputComponent
-                        label='Absence Justifiée'
+                        label={t('cahierConge.filter.absenceJustified')}
                         value={justified}
                         setValue={setJustified}
                         maplist={justifiedOptions}
@@ -193,7 +195,7 @@ function FilterCahierConge() {
                 </Grid>
                 <Grid item xs={1.5}>
                     <SelectInputComponent
-                        label='Type Absence'
+                        label={t('cahierConge.filter.absenceType')}
                         value={absenceType}
                         setValue={setAbsenceType}
                         maplist={absenceTypeOptions}
@@ -201,7 +203,7 @@ function FilterCahierConge() {
                 </Grid>
                 <Grid item xs={1.5}>
                     <SelectInputComponent
-                        label='Employes'
+                        label={t('cahierConge.filter.employees')}
                         value={selectedEmpcods ?? []}
                         setValue={setSelectedEmpcods}
                         maplist={emplibs}
@@ -211,7 +213,7 @@ function FilterCahierConge() {
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
-                        label='Mois'
+                        label={t('cahierConge.filter.month')}
                         value={mois}
                         setValue={setMois}
                     />
@@ -219,7 +221,7 @@ function FilterCahierConge() {
                 <Grid item xs={0.6}>
                     <InputComponent
                         type='number'
-                        label='Annee'
+                        label={t('cahierConge.filter.year')}
                         value={annee}
                         setValue={setAnnee}
                     />
@@ -227,7 +229,7 @@ function FilterCahierConge() {
                 <Grid item xs={1}>
                     <InputComponent
                         type='date'
-                        label='Date Debut'
+                        label={t('cahierConge.filter.dateStart')}
                         value={dateDebut}
                         setValue={setStartDate}
                     />
@@ -235,7 +237,7 @@ function FilterCahierConge() {
                 <Grid item xs={1}>
                     <InputComponent
                         type='date'
-                        label='Date Fin'
+                        label={t('cahierConge.filter.dateEnd')}
                         value={dateFin}
                         setValue={setEndDate}
                     />
@@ -264,7 +266,7 @@ function FilterCahierConge() {
                     <Typography variant="body2" color={hasEffectiveEmployees ? "text.secondary" : "warning.main"}>
                         {hasEffectiveEmployees
                             ? effectiveEmployeesLabel
-                            : "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe ou ajustez la filiale, le service ou le regime."}
+                            : t('cahierConge.filter.noEmpFilterLong')}
                     </Typography>
                 </Grid>
             </Grid>
