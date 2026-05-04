@@ -46,7 +46,10 @@ export type HeuresSupplementairesResultat =
     missingPosteDates?: string[];
 }
 export interface PointageMois {
-    empCod: string;
+    // Backend DTO field is `EmpCode` (sérialisé en `empCode`). On expose
+    // aussi un alias `empCod` pour les anciens consommateurs.
+    empCode: string;
+    empCod?: string;
     empMat: string;
     empLib: string;
     empReg: string;

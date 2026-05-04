@@ -182,15 +182,15 @@ function PointageDuMoisContent() {
   // ── Alerts data ──
   const alertsData = useMemo(() => {
     const alerts: {
-      id: string; type: 'retard' | 'absnj'; empCod: string; empLib: string; empMat: string;
+      id: string; type: 'retard' | 'absnj'; empCode: string; empLib: string; empMat: string;
       weekIdx: number; value: number; label: string; severity: 'warn' | 'err';
     }[] = [];
     pointageMois.forEach(emp => {
       (emp.heuresSupplementairesResultats ?? []).forEach((r, idx) => {
         if ((r.retard ?? 0) > 30) {
           alerts.push({
-            id: `${emp.empCod}-retard-S${idx + 1}`,
-            type: 'retard', empCod: emp.empCod, empLib: emp.empLib, empMat: emp.empMat,
+            id: `${emp.empCode}-retard-S${idx + 1}`,
+            type: 'retard', empCode: emp.empCode, empLib: emp.empLib, empMat: emp.empMat,
             weekIdx: idx + 1, value: r.retard ?? 0,
             label: t('pointageMois.alerts.delayLabel', { time: fmtMin(r.retard ?? 0), week: idx + 1 }),
             severity: 'warn',
@@ -198,8 +198,8 @@ function PointageDuMoisContent() {
         }
         if ((r.absnj ?? 0) > 0) {
           alerts.push({
-            id: `${emp.empCod}-absnj-S${idx + 1}`,
-            type: 'absnj', empCod: emp.empCod, empLib: emp.empLib, empMat: emp.empMat,
+            id: `${emp.empCode}-absnj-S${idx + 1}`,
+            type: 'absnj', empCode: emp.empCode, empLib: emp.empLib, empMat: emp.empMat,
             weekIdx: idx + 1, value: r.absnj ?? 0,
             label: t('pointageMois.alerts.absenceLabel', { value: (r.absnj ?? 0).toFixed(1), week: idx + 1 }),
             severity: 'err',
@@ -273,7 +273,17 @@ function PointageDuMoisContent() {
       sum + (emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.hreSupSemaine ?? 0), 0) ?? 0), 0),
     [pointageMois]);
 
-  const totalAbsences = useMemo(() =>
+  // Jours fériés + jours d'absence (j Ouvrable, j Justifié, j Non Justifié, j Non Payé).
+  // `totalAbsence` côté backend agrège des HEURES (cf. OptimizedPresenceService.cs:456),
+  // donc on ne l'utilise PAS ici — on additionne les compteurs en jours.
+  const totalHolidayAbsenceDays = useMemo(() =>
+    pointageMois.reduce((sum, emp) =>
+      sum + (emp.heuresSupplementairesResultats?.reduce((s, r) =>
+        s + (r.nbJourFerier ?? 0) + (r.absj ?? 0) + (r.absnj ?? 0) + (r.absnp ?? 0), 0) ?? 0), 0),
+    [pointageMois]);
+
+  // Total absence en heures (utile pour le sous-titre du KPI).
+  const totalAbsenceHours = useMemo(() =>
     pointageMois.reduce((sum, emp) =>
       sum + (emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.totalAbsence ?? 0), 0) ?? 0), 0),
     [pointageMois]);
@@ -539,9 +549,9 @@ function PointageDuMoisContent() {
                 pointageMois.map((emp) => {
                   const weeks = emp.heuresSupplementairesResultats ?? [];
                   const cumul = weeks.reduce((s, r) => s + (r.tothre ?? 0), 0);
-                  const isSelected = selectedEmp?.empCod === emp.empCod;
+                  const isSelected = selectedEmp?.empCode === emp.empCode;
                   return (
-                    <Box key={emp.empCod}
+                    <Box key={emp.empCode}
                       className={`pdm-mobile-card${isSelected ? ' pdm-mobile-card--selected' : ''}`}
                       onClick={() => setSelectedEmp(isSelected ? null : emp)}>
                       <Box className="pdm-mobile-card-top">
@@ -549,10 +559,10 @@ function PointageDuMoisContent() {
                         <Box className="pdm-mobile-card-info">
                           <Typography className="pdm-mobile-card-name">{emp.empLib}</Typography>
                           <Typography className="pdm-mobile-card-sub">
-                            {emp.empMat} · {emp.empReg}
+                            {emp.empMat ? `#${emp.empMat}` : '—'} · {emp.empReg}
                           </Typography>
                         </Box>
-                        <Chip label={emp.empMat} size="small" className="pdm-mat-chip" />
+                        <Chip label={emp.empMat || '—'} size="small" className="pdm-mat-chip" />
                       </Box>
                       <Box className="pdm-mobile-weeks">
                         {Array.from({ length: 6 }, (_, i) => {
@@ -604,9 +614,9 @@ function PointageDuMoisContent() {
                     pointageMois.map((emp) => {
                       const weeks = emp.heuresSupplementairesResultats ?? [];
                       const cumul = weeks.reduce((s, r) => s + (r.tothre ?? 0), 0);
-                      const isSelected = selectedEmp?.empCod === emp.empCod;
+                      const isSelected = selectedEmp?.empCode === emp.empCode;
                       return (
-                        <tr key={emp.empCod} className={isSelected ? 'pdm-row--selected' : ''}
+                        <tr key={emp.empCode} className={isSelected ? 'pdm-row--selected' : ''}
                           onClick={() => setSelectedEmp(isSelected ? null : emp)}
                           style={{ cursor: 'pointer' }}>
                           <td>
@@ -614,11 +624,15 @@ function PointageDuMoisContent() {
                               <Avatar className="pdm-avatar">{emp.empLib?.charAt(0) ?? '?'}</Avatar>
                               <Box>
                                 <Typography className="pdm-emp-name">{emp.empLib}</Typography>
-                                <Typography className="pdm-emp-reg">{emp.empReg}</Typography>
+                                <Typography className="pdm-emp-reg">
+                                  {emp.empMat ? `#${emp.empMat}` : '—'} · {emp.empReg}
+                                </Typography>
                               </Box>
                             </Box>
                           </td>
-                          <td><Chip label={emp.empMat} size="small" className="pdm-mat-chip" /></td>
+                          <td>
+                            <Chip label={emp.empMat || '—'} size="small" className="pdm-mat-chip" />
+                          </td>
                           {Array.from({ length: 6 }, (_, i) => {
                             const w = weeks[i];
                             if (!w) return (
@@ -743,10 +757,10 @@ function PointageDuMoisContent() {
             <Paper className="pdm-summary-card pdm-summary-card--light" elevation={0}>
               <Box className="pdm-summary-content">
                 <Typography className="pdm-summary-label pdm-summary-label--dark">{t('pointageMois.summary.holidaysAbsences')}</Typography>
-                <Typography className="pdm-summary-value pdm-summary-value--dark" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalAbsences.toFixed(0)}j</Typography>
+                <Typography className="pdm-summary-value pdm-summary-value--dark" sx={{ fontSize: { xs: '36px', md: '48px' } }}>{totalHolidayAbsenceDays.toFixed(0)}j</Typography>
                 <Box className="pdm-summary-trend pdm-summary-trend--muted">
                   <EventNoteIcon sx={{ fontSize: 16 }} />
-                  <span>{monthLabel}</span>
+                  <span>{totalAbsenceHours > 0 ? `${monthLabel} · ${formatTotalHours(totalAbsenceHours)}` : monthLabel}</span>
                 </Box>
               </Box>
             </Paper>
