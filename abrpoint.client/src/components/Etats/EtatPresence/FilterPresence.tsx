@@ -8,6 +8,7 @@ import { EmployeeContext } from "../../Pointeuse/EtatPeriodique/EmployeeContext"
 import { useAuth } from "../../helper/AuthProvider";
 import apiInstance from "../../API/apiInstance";
 import { useEmployeeFilter } from "../../../hooks/employeHooks/useEmployeeFilter";
+import EmployeeMultiSelectDropdown from "../../helper/EmployeeMultiSelectDropdown";
 import '../CahierConge/CahierConge.css';
 
 function FilterPresence() {
@@ -195,21 +196,13 @@ function FilterPresence() {
           <input className="cc-filter-input" type="number" value={annee} onChange={(e) => setAnnee(e.target.value)} />
         </div>
 
-        <div className="cc-filter-field">
+        <div className="cc-filter-field" style={{ minWidth: 220 }}>
           <label className="cc-filter-label">{t('etats.filter.employees')}</label>
-          <select
-            className="cc-filter-select"
-            multiple
+          <EmployeeMultiSelectDropdown
+            options={Object.entries((emplibs || {}) as Record<string, string>).map(([code, label]) => ({ code, label: String(label) }))}
             value={selectedEmpCodes}
-            onChange={(e) => {
-              const values = Array.from(e.target.selectedOptions).map((option) => option.value);
-              handleEmployeeSelection(values);
-            }}
-          >
-            {Object.entries((emplibs || {}) as Record<string, string>).map(([cod, lib]) => (
-              <option key={cod} value={cod}>{lib}</option>
-            ))}
-          </select>
+            onChange={handleEmployeeSelection}
+          />
         </div>
 
         <button className="cc-search-btn" onClick={handleApplyFilter} disabled={!hasEffectiveEmployees}>

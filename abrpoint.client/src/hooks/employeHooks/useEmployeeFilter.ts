@@ -45,7 +45,12 @@ export function useEmployeeFilter(): UseEmployeeFilterReturn {
             .filter((employee) => employee.actif === 'A')
             .filter((employee) => !selectedFiliale || employee.sitcod === selectedFiliale)
             .filter((employee) => !selectedService || employee.sercod === selectedService)
-            .filter((employee) => !selectedRegime || employee.empreg === selectedRegime)
+            // "T" est le sentinel "tous régimes" partagé avec le backend (cf. PresenceRepository.cs:494) :
+            // il ne correspond à aucun empreg réel ("M" mensuel / "H" horaire), donc on le considère
+            // comme un no-op de filtrage. Sans ça, dès qu'un écran initialise selectedRegime="T", la
+            // liste effective est vide → le bouton recherche reste désactivé et le dropdown employés
+            // n'affiche rien.
+            .filter((employee) => !selectedRegime || selectedRegime === 'T' || employee.empreg === selectedRegime)
             .map((employee) => employee.empcod);
     }, [accessibleEmployees, selectedEmpCodes, selectedFiliale, selectedService, selectedRegime]);
 

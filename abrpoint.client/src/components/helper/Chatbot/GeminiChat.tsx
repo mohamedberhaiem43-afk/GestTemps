@@ -236,7 +236,7 @@ Posez-moi votre question !`;
           // Le translate compense la moitié de la hauteur du FAB pour un centrage
           // pixel-perfect indépendamment de sa taille.
           position: 'fixed',
-          right: 24,
+          right: '-20px',
           top: '50%',
           transform: 'translateY(-50%)',
           zIndex: 1200,
