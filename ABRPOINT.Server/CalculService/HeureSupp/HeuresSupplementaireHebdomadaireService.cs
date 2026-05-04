@@ -391,6 +391,16 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
                     }
 
+                    // [HS DIAG] Log temporaire — à retirer une fois le calcul vérifié.
+                    Console.WriteLine(
+                        $"[HS DIAG] soccod={soccod} empcod={empcod} reg={empreg} niv={empniveau} " +
+                        $"S{i} ({result.WeekStartDate:yyyy-MM-dd}→{result.WeekEndDate:yyyy-MM-dd}) " +
+                        $"hasSupp={hasSupp} NbhCalendSem={result.NbhCalendSem} " +
+                        $"NbHeuresDebutCalcul={result.NbHeuresDebutCalcul} Tothre={result.Tothre} " +
+                        $"HreSupSemaine={result.HreSupSemaine} " +
+                        $"Tr1={result.HeuresSupTranche1}/{tranche1} Tr2={result.HeuresSupTranche2}/{tranche2}"
+                    );
+
                     results.Add(result);
                 }
 

@@ -109,21 +109,23 @@ export default function BasicGrid() {
   const { mutate: addEmploye } = useAddEmploye();
   const { mutate: updateEmploye } = useUpdateEmploye();
 
+  // Ancre la date à midi UTC pour empêcher les décalages de jour lors de la
+  // sérialisation JSON (Date.toISOString convertit en UTC). Sans ça, en GMT+1
+  // une saisie « 2026-05-04 » devient « 2026-05-03T23:00Z » → enregistrée en
+  // base comme 2026-05-03 (la veille).
   const formatDate = (date: any): Date | null => {
     if (!date) return null;
-    
+    let y: number, m: number, d: number;
     if (date instanceof Date && !isNaN(date.getTime())) {
-      return date;
-    }
-    
-    if (typeof date === 'string') {
+      y = date.getFullYear(); m = date.getMonth(); d = date.getDate();
+    } else if (typeof date === 'string') {
       const parsedDate = dayjs(date);
-      if (parsedDate.isValid()) {
-        return parsedDate.toDate();
-      }
+      if (!parsedDate.isValid()) return null;
+      y = parsedDate.year(); m = parsedDate.month(); d = parsedDate.date();
+    } else {
+      return null;
     }
-    
-    return null;
+    return new Date(Date.UTC(y, m, d, 12, 0, 0));
   };
 
   const saveEmp = () => {

@@ -507,11 +507,23 @@ const EmployeModernInner = () => {
     const handleSelect = (name: string) => (event: any) =>
         setFormData(prev => ({ ...prev, [name]: event.target.value }));
 
+    // Ancre la date à midi UTC pour empêcher les décalages de jour lors de la
+    // sérialisation JSON (Date.toISOString convertit en UTC). Sans ça, en GMT+1
+    // une saisie « 2026-05-04 » devient « 2026-05-03T23:00Z » → enregistrée en
+    // base comme 2026-05-03 (la veille).
     const formatDate = (date: any): Date | null => {
         if (!date) return null;
-        if (date instanceof Date && !isNaN(date.getTime())) return date;
-        if (typeof date === 'string') { const d = dayjs(date); if (d.isValid()) return d.toDate(); }
-        return null;
+        let y: number, m: number, d: number;
+        if (date instanceof Date && !isNaN(date.getTime())) {
+            y = date.getFullYear(); m = date.getMonth(); d = date.getDate();
+        } else if (typeof date === 'string') {
+            const dj = dayjs(date);
+            if (!dj.isValid()) return null;
+            y = dj.year(); m = dj.month(); d = dj.date();
+        } else {
+            return null;
+        }
+        return new Date(Date.UTC(y, m, d, 12, 0, 0));
     };
 
     const handleApplyScanData = (data: Partial<Employe>) => {
