@@ -4,6 +4,7 @@ import { createTheme, CssBaseline } from "@mui/material";
 import DashboardLayoutBasic from "./components/navigation/Navigation";
 import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./components/helper/AuthProvider";
+import CookieConsent from "./components/helper/CookieConsent";
 
 // ── Color tokens ──
 const lightTokens = {
@@ -310,6 +311,9 @@ function AppContent() {
           <AuthProvider>
             <DashboardLayoutBasic />
           </AuthProvider>
+          {/* Bannière RGPD : s'affiche au premier chargement, hors AuthProvider
+              pour rester accessible avant login. */}
+          <CookieConsent />
         </Router>
       </ThemeProvider>
     </ThemeModeContext.Provider>

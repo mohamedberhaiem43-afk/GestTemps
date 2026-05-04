@@ -37,4 +37,14 @@ public partial class Solde : BaseEntity
     /// </summary>
     [Column("cetjours")]
     public float? Cetjours { get; set; }
+
+    /// <summary>Droit annuel RTT acquis pour l'année courante (en jours).
+    /// Renseigné par RttCalculationService selon la méthode définie sur Employe.</summary>
+    [Column("rtt_jours")]
+    public float? RttJours { get; set; }
+
+    /// <summary>Jours RTT déjà consommés sur l'année courante.
+    /// Incrémenté automatiquement à chaque acceptation d'une demande de congé Abscng='R'.</summary>
+    [Column("rtt_utilises")]
+    public float? RttUtilises { get; set; }
 }

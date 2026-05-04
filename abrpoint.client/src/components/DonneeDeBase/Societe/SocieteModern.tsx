@@ -53,30 +53,28 @@ const FIELD_LIMITS: Partial<Record<keyof SocieteModel, number>> = {
   socrespar: 30,
 };
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const getTypeBadge = (type: string) => {
   const t = (type || '').toLowerCase();
-  if (t.includes('siÃ¨ge') || t.includes('siege') || t === 's') return 'soc-type-badge--siege';
+  if (t.includes('siège') || t.includes('siege') || t === 's') return 'soc-type-badge--siege';
   if (t.includes('groupe') || t === 'g') return 'soc-type-badge--groupe';
   return 'soc-type-badge--filiale';
 };
 
-const getTypeLabel = (type: string) => {
-  if (!type) return 'â€”';
-  const t = type.toLowerCase();
-  if (t.includes('siÃ¨ge') || t.includes('siege') || t === 's') return 'SiÃ¨ge';
-  if (t.includes('groupe') || t === 'g') return 'Groupe';
-  if (t.includes('filiale') || t === 'f') return 'Filiale';
-  return type;
-};
-
-// â”€â”€ Inner Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SocieteModernContent() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const [form, setForm] = useState<SocieteModel>(emptyForm);
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
   const [filterType, setFilterType] = useState('');
+
+  const getTypeLabel = (type: string) => {
+    if (!type) return '—';
+    const tp = type.toLowerCase();
+    if (tp.includes('siège') || tp.includes('siege') || tp === 's') return t('societe.type.siege');
+    if (tp.includes('groupe') || tp === 'g') return t('societe.type.groupe');
+    if (tp.includes('filiale') || tp === 'f') return t('societe.type.filiale');
+    return type;
+  };
 
   const { mutate: addSociete, isLoading: isAdding } = useAddSociete();
   const { mutate: updateSociete, isLoading: isUpdating } = useUpdateSociete();
@@ -87,27 +85,25 @@ function SocieteModernContent() {
   const isEditMode = form.soccod !== '' && form.soccod !== emptyForm.soccod && societes.some(s => s.soccod === form.soccod);
   const isLoading = isAdding || isUpdating;
 
-  const canAdd = hasPermission('DonnÃ©es de Base', 'add');
-  const canModify = hasPermission('DonnÃ©es de Base', 'modify');
-  const canDelete = hasPermission('DonnÃ©es de Base', 'delete');
+  const canAdd = hasPermission('Données de Base', 'add');
+  const canModify = hasPermission('Données de Base', 'modify');
+  const canDelete = hasPermission('Données de Base', 'delete');
 
-  if (!hasPermission('DonnÃ©es de Base', 'consult')) {
+  if (!hasPermission('Données de Base', 'consult')) {
     return <AccessDenied message={t('societe.noConsultRight')} />;
   }
 
-  // â”€â”€ Filtered data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const filteredSocietes = useMemo(() => {
     const list = Array.isArray(societes) ? societes : [];
     if (!filterType) return list;
     return list.filter(s => {
-      const t = (s.soctype || '').toLowerCase();
-      if (filterType === 'filiales') return t.includes('filiale') || t === 'f';
-      if (filterType === 'groupes') return t.includes('groupe') || t === 'g';
+      const tp = (s.soctype || '').toLowerCase();
+      if (filterType === 'filiales') return tp.includes('filiale') || tp === 'f';
+      if (filterType === 'groupes') return tp.includes('groupe') || tp === 'g';
       return true;
     });
   }, [societes, filterType]);
 
-  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const set = (field: keyof SocieteModel) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const val = e.target.value;
     let parsedValue: string | number | null = val;
@@ -123,7 +119,7 @@ function SocieteModernContent() {
     setForm(prev => ({ ...prev, [field]: parsedValue }));
   };
 
-    const handleSubmit = () => {
+  const handleSubmit = () => {
     const normalized: SocieteModel = {
       ...form,
       soccod: (form.soccod || '').trim().toUpperCase(),
@@ -203,7 +199,7 @@ function SocieteModernContent() {
 
   return (
     <Box className="soc-container">
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* Header */}
       <Box className="soc-header">
         <Box>
           <Typography className="soc-title">{t('societe.title')}</Typography>
@@ -271,7 +267,7 @@ function SocieteModernContent() {
                               <DeleteOutlineIcon sx={{ fontSize: 16 }} />
                             </button>
                           )}
-                          {!canModify && !canDelete && <Typography variant="caption">â€”</Typography>}
+                          {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
                         </Box>
                       </td>
                       <td style={{ fontWeight: 700, color: '#0f172a' }}>{soc.soccod}</td>
@@ -283,13 +279,13 @@ function SocieteModernContent() {
                       </td>
                       <td>
                         <Box className="soc-contact-cell">
-                          <span className="soc-contact-name">{soc.soctel || 'â€”'}</span>
-                          <span className="soc-contact-sub">{soc.socemail || 'â€”'}</span>
+                          <span className="soc-contact-name">{soc.soctel || '—'}</span>
+                          <span className="soc-contact-sub">{soc.socemail || '—'}</span>
                         </Box>
                       </td>
-                      <td style={{ fontWeight: 500, color: '#334155' }}>{soc.socresp || 'â€”'}</td>
+                      <td style={{ fontWeight: 500, color: '#334155' }}>{soc.socresp || '—'}</td>
                       <td style={{ color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {soc.socadr || 'â€”'}
+                        {soc.socadr || '—'}
                       </td>
                     </tr>
                   );
@@ -300,7 +296,11 @@ function SocieteModernContent() {
         </Box>
         <Box className="soc-table-footer">
           <span className="soc-table-footer-info">
-            Affichage de {filteredSocietes.length > 0 ? 1 : 0} Ã  {filteredSocietes.length} sur {filteredSocietes.length} sociÃ©tÃ©s
+            {t('societe.pagination', {
+              start: filteredSocietes.length > 0 ? 1 : 0,
+              end: filteredSocietes.length,
+              total: filteredSocietes.length,
+            })}
           </span>
           <Box className="soc-pagination">
             <button className="soc-page-btn" disabled><ChevronLeftIcon sx={{ fontSize: 16 }} /></button>
@@ -310,143 +310,149 @@ function SocieteModernContent() {
         </Box>
       </Box>
 
-      {/* â”€â”€ SECONDARY SECTION: Contextual sub-header + Form â”€â”€ */}
+      {/* SECONDARY SECTION: Contextual sub-header + Form */}
       <Box className="soc-details-header">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box className="soc-details-icon"><FingerprintIcon fontSize="small" /></Box>
           <Box>
             <Typography className="soc-details-title">
-              {isEditMode ? <>DÃ©tails de l'entitÃ© : <span className="soc-details-code">{form.soccod}</span></> : 'Nouvelle sociÃ©tÃ©'}
+              {isEditMode
+                ? t('societe.detailsTitle', { code: form.soccod })
+                : t('societe.newDetailsTitle')}
             </Typography>
             <Typography className="soc-details-sub">
-              {isEditMode ? "Modifiez les informations de l'entitÃ© sÃ©lectionnÃ©e." : 'Renseignez les informations de la nouvelle entitÃ©.'}
+              {isEditMode ? t('societe.editSubtitle') : t('societe.newSubtitle')}
             </Typography>
           </Box>
         </Box>
         <Box className="soc-header-actions">
           {isEditMode && (
             <Button className="soc-export-btn" onClick={handleCancel} sx={{ color: '#ba1a1a !important' }}>
-              Annuler
+              {t('societe.cancel')}
             </Button>
           )}
           {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
             <Button className="soc-save-btn" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>
-              {isLoading ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Enregistrer'}
+              {isLoading
+                ? t('societe.saving')
+                : isEditMode
+                  ? t('societe.saveChanges')
+                  : t('societe.save')}
             </Button>
           )}
         </Box>
       </Box>
 
-      {/* â”€â”€ Bento Form Grid â”€â”€ */}
+      {/* Bento Form Grid */}
       <Box className="soc-bento-grid">
         {/* Card: Identification */}
         <Box className="soc-card soc-card--id">
           <Box className="soc-card-header">
             <Box className="soc-card-icon"><FingerprintIcon fontSize="small" /></Box>
-            <Typography className="soc-card-title">Identification</Typography>
+            <Typography className="soc-card-title">{t('societe.card.identification')}</Typography>
           </Box>
           <Box className="soc-form-grid">
             <Box className="soc-field">
-              <label>Code SociÃ©tÃ©</label>
+              <label>{t('societe.form.companyCode')}</label>
               <input type="text" value={form.soccod} onChange={set('soccod')} readOnly={isEditMode} maxLength={2} />
             </Box>
             <Box className="soc-field">
-              <label>LibellÃ©</label>
+              <label>{t('societe.form.label')}</label>
               <input type="text" value={form.soclib} onChange={set('soclib')} />
             </Box>
             <Box className="soc-field">
-              <label>SociÃ©tÃ© MÃ¨re</label>
+              <label>{t('societe.form.parentCompany')}</label>
               <select value={form.socmere || ''} onChange={set('socmere')}>
-                <option value="">Aucune</option>
+                <option value="">{t('societe.form.none')}</option>
                 {(Array.isArray(societes) ? societes : []).filter(s => s.soccod !== form.soccod).map(s => (
                   <option key={s.soccod} value={s.soccod}>{s.soclib}</option>
                 ))}
               </select>
             </Box>
             <Box className="soc-field">
-              <label>Type de SociÃ©tÃ©</label>
+              <label>{t('societe.form.companyType')}</label>
               <select value={form.soctype || ''} onChange={set('soctype')}>
-                <option value="">SÃ©lectionner...</option>
-                <option value="S">SiÃ¨ge</option>
-                <option value="G">Groupe</option>
-                <option value="F">Filiale</option>
+                <option value="">{t('societe.form.selectPlaceholder')}</option>
+                <option value="S">{t('societe.type.siege')}</option>
+                <option value="G">{t('societe.type.groupe')}</option>
+                <option value="F">{t('societe.type.filiale')}</option>
               </select>
             </Box>
             <Box className="soc-field soc-field--full" sx={{ mt: 1 }}>
-              <label>Logo de la SociÃ©tÃ©</label>
+              <label>{t('societe.form.companyLogo')}</label>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
-                 {localStorage.getItem('societeImage') && (
-                    <img
-                       src={resolveAssetUrl(localStorage.getItem('societeImage'))}
-                       alt="Logo"
-                       style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '8px', border: '1px solid #eee' }}
-                    />
-                 )}
-                 <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                       const file = e.target.files?.[0];
-                       if (!file) return;
-                       const target = form.soccod || form.soccod === '' ? form.soccod : '';
-                       if (!target) {
-                          setSnack({ open: true, msg: 'SÃ©lectionnez ou enregistrez la sociÃ©tÃ© avant d\'uploader le logo.', sev: 'warning' as any });
-                          return;
-                       }
-                       try {
-                          const fd = new FormData();
-                          fd.append('file', file);
-                          const r = await apiInstance.post(`/Parametres/upload-logo/${target}`, fd, {
-                             headers: { 'Content-Type': 'multipart/form-data' },
-                          });
-                          const filePath: string | undefined = r.data?.filePath;
-                          if (filePath) {
-                             localStorage.setItem('societeImage', filePath);
-                             window.dispatchEvent(new Event('imageUpdated'));
-                             setSnack({ open: true, msg: 'Logo mis Ã  jour avec succÃ¨s.', sev: 'success' });
-                          }
-                       } catch (err: any) {
-                          setSnack({ open: true, msg: err?.response?.data?.message || 'Erreur lors de l\'upload du logo.', sev: 'error' });
-                       }
-                    }}
-                    style={{ fontSize: '12px' }}
-                 />
+                {localStorage.getItem('societeImage') && (
+                  <img
+                    src={resolveAssetUrl(localStorage.getItem('societeImage'))}
+                    alt="Logo"
+                    style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '8px', border: '1px solid #eee' }}
+                  />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const target = form.soccod || form.soccod === '' ? form.soccod : '';
+                    if (!target) {
+                      setSnack({ open: true, msg: t('societe.logo.selectFirst'), sev: 'warning' as any });
+                      return;
+                    }
+                    try {
+                      const fd = new FormData();
+                      fd.append('file', file);
+                      const r = await apiInstance.post(`/Parametres/upload-logo/${target}`, fd, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                      });
+                      const filePath: string | undefined = r.data?.filePath;
+                      if (filePath) {
+                        localStorage.setItem('societeImage', filePath);
+                        window.dispatchEvent(new Event('imageUpdated'));
+                        setSnack({ open: true, msg: t('societe.logo.uploadSuccess'), sev: 'success' });
+                      }
+                    } catch (err: any) {
+                      setSnack({ open: true, msg: err?.response?.data?.message || t('societe.logo.uploadError'), sev: 'error' });
+                    }
+                  }}
+                  style={{ fontSize: '12px' }}
+                />
               </Box>
             </Box>
           </Box>
         </Box>
 
-        {/* Card: CoordonnÃ©es */}
+        {/* Card: Coordonnées */}
         <Box className="soc-card soc-card--coord">
           <Box className="soc-card-header">
             <Box className="soc-card-icon"><LocationOnIcon fontSize="small" /></Box>
-            <Typography className="soc-card-title">CoordonnÃ©es</Typography>
+            <Typography className="soc-card-title">{t('societe.card.coordinates')}</Typography>
           </Box>
           <Box className="soc-form-grid soc-form-grid--2">
             <Box className="soc-field soc-field--full">
-              <label>Num Rue</label>
+              <label>{t('societe.form.streetNumber')}</label>
               <input type="text" value={form.socadr} onChange={set('socadr')} />
             </Box>
             <Box className="soc-field">
-              <label>Ville</label>
+              <label>{t('societe.form.city')}</label>
               <input type="text" value={form.socville} onChange={set('socville')} placeholder="Casablanca" />
             </Box>
             <Box className="soc-field">
-              <label>E-mail</label>
+              <label>{t('societe.form.email')}</label>
               <input type="email" value={form.socemail} onChange={set('socemail')} />
             </Box>
             <Box className="soc-field">
-              <label>TÃ©lÃ©phone</label>
+              <label>{t('societe.form.phone')}</label>
               <input type="tel" value={form.soctel} onChange={set('soctel')} />
             </Box>
             <Box className="soc-field">
-              <label>Fax</label>
+              <label>{t('societe.form.fax')}</label>
               <input type="tel" value={form.socfax} onChange={set('socfax')} />
             </Box>
             <Box className="soc-field soc-field--full">
-              <label>Responsable RH</label>
+              <label>{t('societe.form.hrManager')}</label>
               <select value={form.socresp || ''} onChange={set('socresp')}>
-                <option value="">SÃ©lectionner un responsable...</option>
+                <option value="">{t('societe.form.selectManager')}</option>
                 {users.map((u: any) => (
                   <option key={u.uticod} value={u.uticod}>
                     {u.utiprn} {u.utinom} ({u.uticod})
@@ -457,47 +463,47 @@ function SocieteModernContent() {
           </Box>
         </Box>
 
-        {/* Card: ParamÃ¨tres Fiscaux */}
+        {/* Card: Paramètres Fiscaux */}
         <Box className="soc-card soc-card--fiscal">
           <Box className="soc-card-header">
             <Box className="soc-card-icon"><AccountBalanceIcon fontSize="small" /></Box>
-            <Typography className="soc-card-title">ParamÃ¨tres Fiscaux</Typography>
+            <Typography className="soc-card-title">{t('societe.card.fiscal')}</Typography>
           </Box>
           <Box className="soc-form-grid soc-form-grid--4">
             <Box className="soc-field">
-              <label>RÃ©gime Fiscal</label>
+              <label>{t('societe.form.taxRegime')}</label>
               <select value={form.socreg} onChange={set('socreg')}>
-                <option value={0}>RÃ©gime Normal</option>
-                <option value={1}>RÃ©gime SimplifiÃ©</option>
+                <option value={0}>{t('societe.form.regimeNormal')}</option>
+                <option value={1}>{t('societe.form.regimeSimplified')}</option>
               </select>
             </Box>
             <Box className="soc-field">
-              <label>Valeur SMIG</label>
+              <label>{t('societe.form.smigValue')}</label>
               <input type="text" value={form.socsmig ?? ''} onChange={set('socsmig')} />
             </Box>
             <Box className="soc-field" style={{ gridColumn: 'span 2' }}>
-              <label>N.CCB (Compte Bancaire)</label>
+              <label>{t('societe.form.bankAccount')}</label>
               <input type="text" value={form.socccb} onChange={set('socccb')} />
             </Box>
             <Box className="soc-divider" />
             <Box className="soc-field soc-field--tva">
-              <label>TVA (Base)</label>
+              <label>{t('societe.form.tvaBase')}</label>
               <input type="text" value={form.soctva} onChange={set('soctva')} />
             </Box>
             <Box className="soc-field soc-field--tva">
-              <label>TVA 1</label>
+              <label>{t('societe.form.tva1')}</label>
               <input type="text" value={form.soctva1} onChange={set('soctva1')} />
             </Box>
             <Box className="soc-field soc-field--tva">
-              <label>TVA 2</label>
+              <label>{t('societe.form.tva2')}</label>
               <input type="text" value={form.soctva2} onChange={set('soctva2')} />
             </Box>
             <Box className="soc-field soc-field--tva">
-              <label>TVA 3</label>
+              <label>{t('societe.form.tva3')}</label>
               <input type="text" value={form.soctva3} onChange={set('soctva3')} />
             </Box>
             <Box className="soc-field soc-field--tva">
-              <label>TVA 000</label>
+              <label>{t('societe.form.tva000')}</label>
               <input type="text" value={form.soctva000} readOnly />
             </Box>
           </Box>
@@ -507,22 +513,22 @@ function SocieteModernContent() {
         <Box className="soc-card soc-card--work">
           <Box className="soc-card-header">
             <Box className="soc-card-icon"><ScheduleIcon fontSize="small" /></Box>
-            <Typography className="soc-card-title">Travail</Typography>
+            <Typography className="soc-card-title">{t('societe.card.work')}</Typography>
           </Box>
           <Box className="soc-form-grid">
             <Box className="soc-field soc-field--big">
-              <label>Heures / Mois</label>
+              <label>{t('societe.form.hoursPerMonth')}</label>
               <input type="number" value={form.socmois} onChange={set('socmois')} />
-              <span className="soc-field-hint">Standard lÃ©gal par dÃ©faut</span>
+              <span className="soc-field-hint">{t('societe.form.legalDefault')}</span>
             </Box>
             <Box className="soc-info-box">
-              <p>Ce paramÃ¨tre impacte le calcul automatique des heures supplÃ©mentaires et de la paie nette.</p>
+              <p>{t('societe.form.workInfo')}</p>
             </Box>
           </Box>
         </Box>
       </Box>
 
-      {/* â”€â”€ Snackbar â”€â”€ */}
+      {/* Snackbar */}
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
         <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
           {snack.msg}
@@ -533,5 +539,3 @@ function SocieteModernContent() {
 }
 
 export default SocieteModernContent;
-
-

@@ -233,6 +233,29 @@ public partial class Employe : BaseEntity
     [StringLength(1)]
     public string? Empcmp { get; set; }
 
+    /// <summary>
+    /// Méthode d'acquisition des jours de RTT (loi française).
+    /// 'N' = non éligible (défaut), 'M' = saisie manuelle, 'H' = calcul horaire (>35h/sem),
+    /// 'F' = forfait jours.
+    /// </summary>
+    [Column("emp_rtt_methode")]
+    [StringLength(1)]
+    public string? EmpRttMethode { get; set; }
+
+    /// <summary>Méthode 'M' : nombre annuel de jours RTT saisi par l'admin.</summary>
+    [Column("emp_rtt_jours_annuel")]
+    public float? EmpRttJoursAnnuel { get; set; }
+
+    /// <summary>Méthode 'H' : heures hebdomadaires contractuelles (ex 39).
+    /// Le crédit RTT est calculé sur l'écart avec les 35h légales.</summary>
+    [Column("emp_rtt_heures_contrat")]
+    public float? EmpRttHeuresContrat { get; set; }
+
+    /// <summary>Méthode 'F' : nombre de jours du forfait jours annuel
+    /// (218 par défaut en France pour un cadre).</summary>
+    [Column("emp_rtt_forfait_jours")]
+    public int? EmpRttForfaitJours { get; set; }
+
     [NotMapped]
     public string? Utirole { get; set; }
 

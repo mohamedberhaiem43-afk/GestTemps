@@ -58,5 +58,19 @@ namespace ABRPOINT.Server.Dtaos
         /// Employee regime (H=Horaire, M=Mensuel)
         /// </summary>
         public string? Empreg { get; set; }
+
+        /// <summary>
+        /// Solde RTT — null si l'employé n'est pas éligible (méthode 'N' ou non définie).
+        /// L'UI mobile/web utilise cette nullité pour décider d'afficher la carte ou non.
+        /// </summary>
+        public RttKpiDto? Rtt { get; set; }
+    }
+
+    public class RttKpiDto
+    {
+        public string Methode { get; set; } = "N";
+        public float DroitAnnuel { get; set; }
+        public float Pris { get; set; }
+        public float Solde { get; set; }
     }
 }

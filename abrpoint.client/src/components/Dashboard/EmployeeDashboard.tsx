@@ -51,6 +51,8 @@ export default function EmployeeDashboard() {
     objective: kpiData?.objectifHebdomadaire ?? 0,
     pending: kpiData?.demandesEnAttente ?? 0,
     workedPercent: kpiData?.pourcentageObjectif ?? 0,
+    // null si l'employé n'est pas éligible RTT côté fiche (méthode 'N' ou non définie).
+    rtt: (kpiData as any)?.rtt ?? null as null | { methode: string; droitAnnuel: number; pris: number; solde: number },
   }), [kpiData]);
 
   // Chart data from KPI endpoint's weekly tracking. Les clés (LUN, MAR…) restent
@@ -132,8 +134,8 @@ export default function EmployeeDashboard() {
         </div>
       </section>
 
-      {/* KPI Bento Row */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      {/* KPI Bento Row — passe à 4 colonnes si l'employé a un solde RTT à afficher. */}
+      <section className={`grid grid-cols-1 ${kpis.rtt ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-6 mb-10`}>
         <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 transition-all">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-blue-50 text-[#0040a1] rounded-xl flex items-center justify-center">
@@ -180,6 +182,30 @@ export default function EmployeeDashboard() {
           </div>
           <p className="mt-4 text-xs text-slate-400 font-medium italic">{t('employeeDashboard.nextReview')}</p>
         </div>
+
+        {/* Carte RTT — affichée seulement si la méthode RTT n'est pas 'N'. */}
+        {kpis.rtt && (
+          <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                <span className="material-symbols-outlined">work_history</span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('conge.rtt.card.label')}</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{kpis.rtt.solde.toFixed(1)}</span>
+              <span className="text-slate-400 font-medium">
+                {kpis.rtt.droitAnnuel > 0
+                  ? `sur ${kpis.rtt.droitAnnuel.toFixed(1)} ${t('conge.rtt.card.unit')}`
+                  : t('conge.rtt.card.unit')}
+              </span>
+            </div>
+            <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                style={{ width: `${kpis.rtt.droitAnnuel > 0 ? Math.min((kpis.rtt.solde / kpis.rtt.droitAnnuel) * 100, 100) : 0}%` }} />
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Main Content Area */}

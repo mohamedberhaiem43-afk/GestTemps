@@ -11,6 +11,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import PersonIcon from '@mui/icons-material/Person';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../helper/AuthProvider';
@@ -19,6 +20,7 @@ import useGetEmployeesLibs from '../../../../hooks/employeHooks/useGetEmployeesL
 import useAddSolde from '../../../../hooks/soldeCongeHooks/useAddSolde';
 import useUpdateSolde from '../../../../hooks/soldeCongeHooks/useUpdateSolde';
 import { Solde } from '../../../../models/Solde';
+import apiInstance from '../../../API/apiInstance';
 
 const queryClient = new QueryClient();
 
@@ -193,6 +195,35 @@ function SoldeCongeAdminInner() {
             sx={{ textTransform: 'none', fontWeight: 700, color: '#0040a1' }}
           >
             {t('conge.soldeAdmin.refresh')}
+          </Button>
+
+          <Button
+            startIcon={<EventBusyIcon />}
+            onClick={async () => {
+              if (!soccod) return;
+              const ok = window.confirm(t('conge.rtt.admin.closeYearConfirm'));
+              if (!ok) return;
+              try {
+                const target = Number(selectedYear) + 1; // recalcul pour l'année suivante
+                const res = await apiInstance.post(`/Rtt/reset-year/${soccod}/${target}`);
+                const count = res.data?.count ?? 0;
+                setSnackbar({
+                  open: true,
+                  severity: 'success',
+                  message: t('conge.rtt.admin.closeYearSuccess', { count }),
+                });
+                queryClientLocal.invalidateQueries('soldes');
+              } catch {
+                setSnackbar({
+                  open: true,
+                  severity: 'error',
+                  message: t('conge.rtt.admin.closeYearConfirm'),
+                });
+              }
+            }}
+            sx={{ textTransform: 'none', fontWeight: 700, color: '#10b981' }}
+          >
+            {t('conge.rtt.admin.closeYearBtn')}
           </Button>
         </Stack>
       </Box>

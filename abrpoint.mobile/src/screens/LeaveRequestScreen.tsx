@@ -14,10 +14,18 @@ import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
 
+interface RttKpi {
+  methode: string; // 'N' | 'M' | 'H' | 'F'
+  droitAnnuel: number;
+  pris: number;
+  solde: number;
+}
+
 interface KPISummary {
   soldeConge: number;
   congeAcquis: number;
   demandesEnAttente: number;
+  rtt: RttKpi | null;
 }
 
 export default function LeaveRequestScreen({ navigation }: any) {
@@ -135,6 +143,16 @@ export default function LeaveRequestScreen({ navigation }: any) {
           soldeConge: data.soldeConge || 0,
           congeAcquis: data.congeAcquis || 0,
           demandesEnAttente: data.demandesEnAttente || 0,
+          // Le backend ne renvoie `rtt` que si l'employé est éligible (méthode ≠ 'N').
+          // Null signifie que l'UI ne doit pas afficher la carte RTT.
+          rtt: data.rtt
+            ? {
+                methode: data.rtt.methode,
+                droitAnnuel: data.rtt.droitAnnuel || 0,
+                pris: data.rtt.pris || 0,
+                solde: data.rtt.solde || 0,
+              }
+            : null,
         });
       }
     } catch (error) {
@@ -312,24 +330,40 @@ export default function LeaveRequestScreen({ navigation }: any) {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Balances Section : on n'expose que le solde de congé réel calculé par le
-            backend. La carte « RTT acquis » a été retirée car la valeur affichée était
-            statique (8.0h) et n'est pas remontée par /get-my-kpis. */}
+        {/* Balances Section : Solde CP + Solde RTT (RTT affiché uniquement si
+            l'employé est configuré comme éligible côté fiche employé). */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>SOLDE DE CONGÉ</Text>
-          <View style={styles.balanceCardSolo}>
-            <MaterialCommunityIcons name="beach-access" size={28} color={COLORS.primary} />
-            <View style={styles.balanceContent}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                <Text style={styles.balanceValue}>{(kpiSummary?.soldeConge ?? 0).toFixed(1)}</Text>
-                <Text style={styles.balanceUnit}>jours</Text>
+          <Text style={styles.sectionLabel}>SOLDES</Text>
+          <View style={kpiSummary?.rtt ? styles.balancesGrid : undefined}>
+            <View style={kpiSummary?.rtt ? styles.balanceCardHalf : styles.balanceCardSolo}>
+              <MaterialCommunityIcons name="beach-access" size={28} color={COLORS.primary} />
+              <View style={styles.balanceContent}>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                  <Text style={styles.balanceValue}>{(kpiSummary?.soldeConge ?? 0).toFixed(1)}</Text>
+                  <Text style={styles.balanceUnit}>j</Text>
+                </View>
+                <Text style={styles.balanceName}>
+                  {kpiSummary?.congeAcquis
+                    ? `CP · sur ${kpiSummary.congeAcquis.toFixed(1)} acquis`
+                    : 'Congés payés'}
+                </Text>
               </View>
-              <Text style={styles.balanceName}>
-                {kpiSummary?.congeAcquis
-                  ? `sur ${kpiSummary.congeAcquis.toFixed(1)} acquis`
-                  : 'Congés payés disponibles'}
-              </Text>
             </View>
+
+            {kpiSummary?.rtt && (
+              <View style={styles.balanceCardHalf}>
+                <MaterialCommunityIcons name="work-history" size={28} color="#10b981" />
+                <View style={styles.balanceContent}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                    <Text style={[styles.balanceValue, { color: '#065f46' }]}>{kpiSummary.rtt.solde.toFixed(1)}</Text>
+                    <Text style={styles.balanceUnit}>j</Text>
+                  </View>
+                  <Text style={styles.balanceName}>
+                    {`RTT · sur ${kpiSummary.rtt.droitAnnuel.toFixed(1)} acquis`}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
@@ -543,6 +577,12 @@ const styles = StyleSheet.create({
   balanceCardSolo: {
     backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 20,
     flexDirection: 'row', alignItems: 'center', gap: 16,
+  },
+  balancesGrid: { flexDirection: 'row', gap: 12 },
+  balanceCardHalf: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   balanceContent: { gap: 4 },
   balanceValue: { fontSize: 32, fontWeight: '800', color: COLORS.primary, letterSpacing: -1 },

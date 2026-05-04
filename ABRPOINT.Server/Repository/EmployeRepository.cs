@@ -28,12 +28,14 @@ namespace ABRPOINT.Server.Repository
         private readonly ICongeCalculationService _congeCalculationService;
         private readonly IMapper _mapper;
         private readonly ILogger<EmployeRepository> _logger;
+        private readonly ABRPOINT.Server.CalculService.Rtt.IRttCalculationService _rttService;
 
         public EmployeRepository(ApplicationDbContext dbContext, ISiteRepository siteRepository, ICalendrierRepository icalendrierRepository,
             IParametreRepository parametreRepository, ICongeRepository congeRepository, IMapper mapper, ILogger<EmployeRepository> logger,
             IHeureRetardService retardService, IPosteRepository posteRepository, IJourFerieRepository ferierRepository,
             IUtilisateurRepository utilisateurRepository, IautoriserRepository autorisationRepository,
-            ICongeCalculationService congeCalculationService)
+            ICongeCalculationService congeCalculationService,
+            ABRPOINT.Server.CalculService.Rtt.IRttCalculationService rttService)
         {
             _dbContext = dbContext;
             _siteRepository = siteRepository;
@@ -48,6 +50,7 @@ namespace ABRPOINT.Server.Repository
             _congeCalculationService = congeCalculationService;
             _mapper = mapper;
             _logger = logger;
+            _rttService = rttService;
         }
 
 
@@ -1956,6 +1959,27 @@ namespace ABRPOINT.Server.Repository
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Erreur lors de la récupération des KPIs pour l'employé {uticod}");
+            }
+
+            // Solde RTT — n'est exposé que si l'employé est éligible (méthode ≠ 'N').
+            // En cas d'échec on laisse Rtt à null pour que l'UI masque la carte sans erreur.
+            try
+            {
+                var rttDto = await _rttService.GetRttSoldeAsync(soccod, uticod);
+                if (rttDto != null && rttDto.Methode != "N")
+                {
+                    result.Rtt = new RttKpiDto
+                    {
+                        Methode = rttDto.Methode,
+                        DroitAnnuel = rttDto.DroitAnnuel,
+                        Pris = rttDto.Pris,
+                        Solde = rttDto.Solde,
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Impossible de récupérer le solde RTT pour {uticod}");
             }
 
             return result;

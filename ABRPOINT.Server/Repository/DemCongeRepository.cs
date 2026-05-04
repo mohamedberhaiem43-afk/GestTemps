@@ -1,3 +1,4 @@
+using ABRPOINT.Server.CalculService.Rtt;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
@@ -11,11 +12,18 @@ namespace ABRPOINT.Server.Repository
         private readonly ApplicationDbContext _dbContext;
         private readonly IUtilisateurRepository _utilisateurRepository;
         private readonly IEmailService _emailService;
-        public DemCongeRepository(ApplicationDbContext dbContext, IUtilisateurRepository utilisateurRepository, IEmailService emailService)
+        private readonly IRttCalculationService _rttService;
+
+        public DemCongeRepository(
+            ApplicationDbContext dbContext,
+            IUtilisateurRepository utilisateurRepository,
+            IEmailService emailService,
+            IRttCalculationService rttService)
         {
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
             _emailService = emailService;
+            _rttService = rttService;
         }
         public async Task AddAsync(Demconge demconge)
         {
@@ -332,6 +340,24 @@ namespace ABRPOINT.Server.Repository
                     await _dbContext.Conges.AddAsync(conge);
                     // Save changes in a single transaction
                     await _dbContext.SaveChangesAsync();
+
+                    // Si la demande accepte un congé de type RTT (Abscng='R'), décrémente
+                    // automatiquement le solde RTT de l'employé. Le test sur Abscng utilise
+                    // la table Absence (clé Abscod) plutôt qu'un champ dénormalisé.
+                    try
+                    {
+                        var abscng = await _dbContext.Absences
+                            .Where(a => a.Soccod == soccod && a.Abscod == demConge.Abscod)
+                            .Select(a => a.Abscng)
+                            .FirstOrDefaultAsync();
+
+                        if (abscng == "R" && demConge.Connbjour.HasValue)
+                        {
+                            var year = (demConge.Condep ?? DateTime.Now).Year;
+                            await _rttService.IncrementUsedAsync(soccod, demConge.Empcod, year, demConge.Connbjour.Value);
+                        }
+                    }
+                    catch { /* l'acceptation reste valide même si la maj du solde RTT échoue */ }
 
                     // Notify Employee — synchrone : Task.Run capturait le DbContext scopé
                     // qui était disposé avant l'exécution → l'email n'était jamais envoyé.

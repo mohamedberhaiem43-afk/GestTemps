@@ -226,10 +226,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 // Get parameters ONCE
                 var paramSupp = await _parametreRepository.GetSuppAndFerierParamAsync(soccod, empniveau);
 
-                // [HS DIAG] Charge tous les Lcalendsocs de l'année pour pouvoir imprimer
-                // les CalNbh journaliers réellement persistés (à retirer une fois validé).
-                var allDays = (await _calendrierRepository.GetAnneeCalendrierAsync(soccod, annee)).ToList();
-
                 // Get par tranche info ONCE
                 IList<Partranche> partranche = await _parTrancheRepository.GetPartranche(soccod);
                 float? tranche1 = 0, tranche2 = 0;
@@ -379,8 +375,14 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                             result.HeuresNormales -= res.NbhFerierTrv;
                         }
 
-                        if (result.NbHeuresDebutCalcul > result.NbhCalendSem)
-                            heuresSupp = result.NbHeuresDebutCalcul - result.NbhCalendSem;
+                        // ⚠ On compare désormais Tothre (le total affiché à l'utilisateur :
+                        // travaillé + férié payé + congé payé, après ajustements Parreptrv)
+                        // à l'objectif hebdo. Avant, on utilisait NbHeuresDebutCalcul qui
+                        // pouvait diverger de Tothre (notamment via les heures férié calculées
+                        // sur le poste plutôt que sur le calendrier), produisant des HS
+                        // « +1h » sans correspondance avec ce que l'utilisateur lisait.
+                        if (result.Tothre > result.NbhCalendSem)
+                            heuresSupp = result.Tothre - result.NbhCalendSem;
 
                         if (paramSupp.EliminerFerier != "0" && empreg == "H")
                         {
@@ -394,26 +396,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         heuresSupp -= result.HeuresSupTranche1;
                         result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
                     }
-
-                    // [HS DIAG] Log temporaire — à retirer une fois le calcul vérifié.
-                    var weekDays = allDays
-                        .Where(d => d.CalDate.HasValue
-                                    && d.CalDate.Value.Date >= startDate.Value.Date
-                                    && d.CalDate.Value.Date <= endDate.Value.Date)
-                        .OrderBy(d => d.CalDate)
-                        .ToList();
-                    var dailyDump = string.Join(" | ", weekDays.Select(d =>
-                        $"{d.CalDate:MM-dd}({d.CalDate?.DayOfWeek.ToString().Substring(0, 3)})={d.CalNbh}"));
-
-                    Console.WriteLine(
-                        $"[HS DIAG] soccod={soccod} empcod={empcod} reg={empreg} niv={empniveau} " +
-                        $"S{i} ({result.WeekStartDate:yyyy-MM-dd}→{result.WeekEndDate:yyyy-MM-dd}) " +
-                        $"hasSupp={hasSupp} NbhCalendSem={result.NbhCalendSem} " +
-                        $"NbHeuresDebutCalcul={result.NbHeuresDebutCalcul} Tothre={result.Tothre} " +
-                        $"HreSupSemaine={result.HreSupSemaine} " +
-                        $"Tr1={result.HeuresSupTranche1}/{tranche1} Tr2={result.HeuresSupTranche2}/{tranche2}"
-                    );
-                    Console.WriteLine($"[HS DIAG] └ days S{i}: {dailyDump}");
 
                     results.Add(result);
                 }

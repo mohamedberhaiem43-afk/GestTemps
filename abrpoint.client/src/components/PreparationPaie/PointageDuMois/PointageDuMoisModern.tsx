@@ -243,14 +243,22 @@ function PointageDuMoisContent() {
   }, [isManagerScoped, managerSercod]);
 
   const handleSearch = () => {
-    if (selectedEmpcods.length === 0) {
-      setSnack({ open: true, msg: t('pointageMois.filters.selectAtLeastOne'), sev: 'warning' });
+    // Sélection vide = "Tous les employés" → on injecte la liste complète chargée
+    // par le hook (filtrée par filiale/service/régime). Avant on bloquait avec un
+    // warning, ce qui imposait une sélection manuelle inutile.
+    const empcodsToSearch = selectedEmpcods.length === 0
+      ? Object.keys(employeesLibs)
+      : selectedEmpcods;
+
+    if (empcodsToSearch.length === 0) {
+      setSnack({ open: true, msg: t('pointageMois.filters.noEmployeeAvailable'), sev: 'warning' });
       return;
     }
+
     setDateRange?.((prev: any) => ({
       ...prev, mois, annee,
       selectedFiliale, selectedService, selectedRegime,
-      semaine: '0', empcods: selectedEmpcods,
+      semaine: '0', empcods: empcodsToSearch,
     }));
   };
 

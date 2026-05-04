@@ -1,4 +1,12 @@
 {
+  "cookieConsent": {
+    "title": "Ce site utilise des cookies",
+    "body1": "ABRPOINT utilise des cookies et traite des données personnelles pour assurer le bon fonctionnement de l'application (authentification, préférences de session, sécurité) et améliorer votre expérience.",
+    "body2": "Aucune donnée n'est partagée avec des tiers à des fins publicitaires. Conformément au RGPD, vous pouvez accepter l'usage de tous les cookies ou refuser les cookies non strictement nécessaires.",
+    "changeLater": "Vous pouvez modifier vos préférences à tout moment depuis les paramètres de votre profil.",
+    "reject": "Refuser les cookies",
+    "accept": "Accepter les cookies"
+  },
   "navigation": {
     "dashboard": "Tableau de bord",
     "dataBase": "Donnée De Base",
@@ -672,6 +680,7 @@
       "search": "Rechercher",
       "majorHolidays": "Majorer heures fériées et congés",
       "selectAtLeastOne": "Veuillez sélectionner au moins un employé.",
+      "noEmployeeAvailable": "Aucun employé disponible avec les filtres actuels.",
       "allEmployees": "Tous les employés"
     },
     "table": {
@@ -1009,6 +1018,33 @@
     }
   },
   "conge": {
+    "rtt": {
+      "title": "RTT (Réduction du Temps de Travail)",
+      "card": {
+        "label": "Solde RTT",
+        "unit": "jours",
+        "acquired": "Acquis",
+        "taken": "Pris"
+      },
+      "method": {
+        "N": "Non éligible",
+        "M": "Saisie manuelle",
+        "H": "Calcul horaire (>35h/sem)",
+        "F": "Forfait jours"
+      },
+      "field": {
+        "method": "Méthode RTT",
+        "methodHelp": "Définit comment les jours de RTT sont acquis pour cet employé.",
+        "joursAnnuel": "Jours RTT annuels",
+        "heuresContrat": "Heures hebdo contractuelles",
+        "forfaitJours": "Jours forfait annuels"
+      },
+      "admin": {
+        "closeYearBtn": "Clôturer l'année RTT",
+        "closeYearConfirm": "Les soldes RTT non consommés seront perdus et les nouveaux droits seront calculés pour l'année suivante. Continuer ?",
+        "closeYearSuccess": "{{count}} employé(s) traité(s)."
+      }
+    },
     "orderNumber": "N° Ordre",
     "address": "Adresse de congé",
     "added": "Congé ajouté avec succès",
@@ -2333,7 +2369,46 @@
       "address": "Adresse",
       "city": "Ville",
       "email": "E-mail",
-      "work": "Travail"
+      "work": "Travail",
+      "coordinates": "Coordonnées",
+      "fiscal": "Paramètres Fiscaux"
+    },
+    "save": "Enregistrer",
+    "saveChanges": "Enregistrer les modifications",
+    "saving": "Enregistrement...",
+    "form": {
+      "companyCode": "Code Société",
+      "label": "Libellé",
+      "parentCompany": "Société Mère",
+      "none": "Aucune",
+      "companyType": "Type de Société",
+      "selectPlaceholder": "Sélectionner...",
+      "companyLogo": "Logo de la Société",
+      "streetNumber": "Num Rue",
+      "city": "Ville",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "fax": "Fax",
+      "hrManager": "Responsable RH",
+      "selectManager": "Sélectionner un responsable...",
+      "taxRegime": "Régime Fiscal",
+      "regimeNormal": "Régime Normal",
+      "regimeSimplified": "Régime Simplifié",
+      "smigValue": "Valeur SMIG",
+      "bankAccount": "N.CCB (Compte Bancaire)",
+      "tvaBase": "TVA (Base)",
+      "tva1": "TVA 1",
+      "tva2": "TVA 2",
+      "tva3": "TVA 3",
+      "tva000": "TVA 000",
+      "hoursPerMonth": "Heures / Mois",
+      "legalDefault": "Standard légal par défaut",
+      "workInfo": "Ce paramètre impacte le calcul automatique des heures supplémentaires et de la paie nette."
+    },
+    "logo": {
+      "selectFirst": "Sélectionnez ou enregistrez la société avant d'uploader le logo.",
+      "uploadSuccess": "Logo mis à jour avec succès.",
+      "uploadError": "Erreur lors de l'upload du logo."
     }
   },
   "profile": {

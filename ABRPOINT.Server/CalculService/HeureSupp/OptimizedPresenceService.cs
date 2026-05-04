@@ -813,12 +813,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     }
                 }
 
-                // 🔹 BATCH 3: Get parameter values once (utilisés en aval pour
-                // d'autres calculs ; on ne les applique plus pour écraser CalNbh —
-                // la config Calendrier est la source de vérité.)
-                var nbhFerier = await _parametreRepository.GetNbhFerierAsync(soccod);
-                var nbhConge = await _parametreRepository.GetNbhCongeAsync(soccod);
-
                 // 🔹 Process each day with cached data (NO MORE N+1 QUERIES!)
                 // ⚠ On NE mute PLUS day.CalNbh pour les jours fériés / congés.
                 // Avant, on remplaçait CalNbh par nbhFerier (par défaut 8h depuis
@@ -888,16 +882,6 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 var selectedWeek = weeks[weekNumber - 1];
 
                 float weekHours = selectedWeek.Sum(d => d.CalNbh ?? 0);
-
-                // [HS DIAG INNER] Dump per-day breakdown post-mutation (à retirer une fois validé).
-                Console.WriteLine($"[HS DIAG INNER] semaine={weekNumber} caltype={type} nbhFerier={nbhFerier} nbhConge={nbhConge}");
-                foreach (var d in selectedWeek)
-                {
-                    var dt = d.CalDate?.Date;
-                    bool isF = dt.HasValue && ferierSet.Contains(dt.Value);
-                    bool isC = dt.HasValue && congesByDate.ContainsKey(dt.Value);
-                    Console.WriteLine($"[HS DIAG INNER]   {dt:MM-dd}({dt?.DayOfWeek.ToString().Substring(0,3)}) CalNbh={d.CalNbh} ferier={isF} conge={isC}");
-                }
                 DateTime? weekStart = selectedWeek.First().CalDate;
                 DateTime? weekEnd = selectedWeek.Last().CalDate;
 

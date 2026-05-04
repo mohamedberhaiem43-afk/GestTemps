@@ -1,4 +1,12 @@
 {
+  "cookieConsent": {
+    "title": "This website uses cookies",
+    "body1": "ABRPOINT uses cookies and processes personal data to keep the application running properly (authentication, session preferences, security) and to improve your experience.",
+    "body2": "No data is shared with third parties for advertising purposes. In accordance with GDPR, you can accept all cookies or reject the non-essential ones.",
+    "changeLater": "You can change your preferences at any time from your profile settings.",
+    "reject": "Reject cookies",
+    "accept": "Accept cookies"
+  },
   "navigation": {
     "dashboard": "Dashboard",
     "dataBase": "Base Data",
@@ -539,6 +547,7 @@
       "search": "Search",
       "majorHolidays": "Boost holiday and leave hours",
       "selectAtLeastOne": "Please select at least one employee.",
+      "noEmployeeAvailable": "No employee matches the current filters.",
       "allEmployees": "All employees"
     },
     "table": {
@@ -1009,6 +1018,33 @@
     }
   },
   "conge": {
+    "rtt": {
+      "title": "RTT (French statutory rest days)",
+      "card": {
+        "label": "RTT balance",
+        "unit": "days",
+        "acquired": "Earned",
+        "taken": "Taken"
+      },
+      "method": {
+        "N": "Not eligible",
+        "M": "Manual entry",
+        "H": "Hourly calculation (>35h/week)",
+        "F": "Yearly day forfait"
+      },
+      "field": {
+        "method": "RTT method",
+        "methodHelp": "Defines how RTT days are accrued for this employee.",
+        "joursAnnuel": "Annual RTT days",
+        "heuresContrat": "Contractual weekly hours",
+        "forfaitJours": "Yearly forfait days"
+      },
+      "admin": {
+        "closeYearBtn": "Close RTT year",
+        "closeYearConfirm": "Unused RTT balances will be lost and new entitlements will be computed for the next year. Continue?",
+        "closeYearSuccess": "{{count}} employee(s) processed."
+      }
+    },
     "orderNumber": "Order No",
     "address": "Leave address",
     "added": "Leave added successfully",
@@ -2334,7 +2370,46 @@
       "address": "Address",
       "city": "City",
       "email": "Email",
-      "work": "Work"
+      "work": "Work",
+      "coordinates": "Contact details",
+      "fiscal": "Tax settings"
+    },
+    "save": "Save",
+    "saveChanges": "Save changes",
+    "saving": "Saving...",
+    "form": {
+      "companyCode": "Company code",
+      "label": "Label",
+      "parentCompany": "Parent company",
+      "none": "None",
+      "companyType": "Company type",
+      "selectPlaceholder": "Select...",
+      "companyLogo": "Company logo",
+      "streetNumber": "Street",
+      "city": "City",
+      "email": "Email",
+      "phone": "Phone",
+      "fax": "Fax",
+      "hrManager": "HR manager",
+      "selectManager": "Select a manager...",
+      "taxRegime": "Tax regime",
+      "regimeNormal": "Standard regime",
+      "regimeSimplified": "Simplified regime",
+      "smigValue": "SMIG value",
+      "bankAccount": "Bank account number",
+      "tvaBase": "VAT (Base)",
+      "tva1": "VAT 1",
+      "tva2": "VAT 2",
+      "tva3": "VAT 3",
+      "tva000": "VAT 000",
+      "hoursPerMonth": "Hours / Month",
+      "legalDefault": "Legal default",
+      "workInfo": "This parameter affects the automatic calculation of overtime and net pay."
+    },
+    "logo": {
+      "selectFirst": "Select or save the company before uploading a logo.",
+      "uploadSuccess": "Logo updated successfully.",
+      "uploadError": "Error while uploading the logo."
     }
   },
   "profile": {

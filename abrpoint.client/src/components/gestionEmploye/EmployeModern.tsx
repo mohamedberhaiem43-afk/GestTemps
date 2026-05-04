@@ -27,6 +27,7 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import AddIcon from '@mui/icons-material/Add';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -1212,6 +1213,88 @@ const EmployeModernInner = () => {
                                         </Box>
                                     </Paper>
                                 </Box>
+
+                                {/* RTT — Réduction du Temps de Travail */}
+                                <Paper elevation={0} sx={sectionCard}>
+                                    <Box sx={sectionHeader()}>
+                                        <Box sx={iconBox('rgba(16,185,129,0.08)')}>
+                                            <EventNoteIcon sx={{ color: '#10b981', fontSize: 18 }} />
+                                        </Box>
+                                        <Typography sx={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: '#0d1f3c' }}>
+                                            {t('conge.rtt.title')}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                                        <Box>
+                                            <Typography sx={labelStyle}>{t('conge.rtt.field.method')}</Typography>
+                                            <FormControl fullWidth size="small">
+                                                <Select
+                                                    value={formData.empRttMethode || 'N'}
+                                                    onChange={handleSelect('empRttMethode')}
+                                                    sx={selectStyle}
+                                                >
+                                                    <MenuItem value="N">{t('conge.rtt.method.N')}</MenuItem>
+                                                    <MenuItem value="M">{t('conge.rtt.method.M')}</MenuItem>
+                                                    <MenuItem value="H">{t('conge.rtt.method.H')}</MenuItem>
+                                                    <MenuItem value="F">{t('conge.rtt.method.F')}</MenuItem>
+                                                </Select>
+                                            </FormControl>
+                                            <Typography sx={{ fontSize: '11px', color: '#94a3b8', mt: 0.5 }}>
+                                                {t('conge.rtt.field.methodHelp')}
+                                            </Typography>
+                                        </Box>
+
+                                        {/* Champ conditionnel selon la méthode choisie. */}
+                                        {formData.empRttMethode === 'M' && (
+                                            <Box>
+                                                <Typography sx={labelStyle}>{t('conge.rtt.field.joursAnnuel')}</Typography>
+                                                <TextField
+                                                    name="empRttJoursAnnuel"
+                                                    type="number"
+                                                    inputProps={{ step: 0.5, min: 0 }}
+                                                    value={formData.empRttJoursAnnuel ?? ''}
+                                                    onChange={handleField}
+                                                    size="small"
+                                                    fullWidth
+                                                    sx={fieldStyle}
+                                                    placeholder="12"
+                                                />
+                                            </Box>
+                                        )}
+                                        {formData.empRttMethode === 'H' && (
+                                            <Box>
+                                                <Typography sx={labelStyle}>{t('conge.rtt.field.heuresContrat')}</Typography>
+                                                <TextField
+                                                    name="empRttHeuresContrat"
+                                                    type="number"
+                                                    inputProps={{ step: 0.5, min: 35 }}
+                                                    value={formData.empRttHeuresContrat ?? ''}
+                                                    onChange={handleField}
+                                                    size="small"
+                                                    fullWidth
+                                                    sx={fieldStyle}
+                                                    placeholder="39"
+                                                />
+                                            </Box>
+                                        )}
+                                        {formData.empRttMethode === 'F' && (
+                                            <Box>
+                                                <Typography sx={labelStyle}>{t('conge.rtt.field.forfaitJours')}</Typography>
+                                                <TextField
+                                                    name="empRttForfaitJours"
+                                                    type="number"
+                                                    inputProps={{ step: 1, min: 0 }}
+                                                    value={formData.empRttForfaitJours ?? ''}
+                                                    onChange={handleField}
+                                                    size="small"
+                                                    fullWidth
+                                                    sx={fieldStyle}
+                                                    placeholder="218"
+                                                />
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </Paper>
 
                                 {/* Rémunération */}
                                 <Paper elevation={0} sx={{

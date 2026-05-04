@@ -57,5 +57,13 @@ export default interface Employe {
     seccod: string | null;
     poscod: string | null;
     parmois: string | null;
+    /** Méthode RTT : 'N' non éligible, 'M' manuel, 'H' horaire, 'F' forfait jours. */
+    empRttMethode?: string | null;
+    /** Méthode 'M' : nombre annuel de jours RTT saisi par l'admin. */
+    empRttJoursAnnuel?: number | null;
+    /** Méthode 'H' : heures hebdomadaires contractuelles (ex: 39). */
+    empRttHeuresContrat?: number | null;
+    /** Méthode 'F' : nombre de jours du forfait annuel (218 par défaut). */
+    empRttForfaitJours?: number | null;
     utirole?: string;
 }

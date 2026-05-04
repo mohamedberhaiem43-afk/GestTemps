@@ -4,6 +4,7 @@ using ABRPOINT.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ABRPOINT.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260504225405_AddRttFieldsToEmployeAndSolde")]
+    partial class AddRttFieldsToEmployeAndSolde
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -97,7 +100,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Abscod");
 
-                    b.ToTable("absence", (string)null);
+                    b.ToTable("absence");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Aide", b =>
@@ -128,7 +131,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("aide", (string)null);
+                    b.ToTable("aide");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Allaitement", b =>
@@ -207,7 +210,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("allaitement", (string)null);
+                    b.ToTable("allaitement");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Anomalie", b =>
@@ -258,7 +261,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("anomalie", (string)null);
+                    b.ToTable("anomalie");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Article", b =>
@@ -304,7 +307,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("article", (string)null);
+                    b.ToTable("article");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.AuditLog", b =>
@@ -319,16 +322,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime>("DateAction")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("RetentionDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("TableName")
@@ -341,7 +335,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLog", (string)null);
+                    b.ToTable("AuditLog");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Autoriser", b =>
@@ -433,7 +427,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Concod");
 
-                    b.ToTable("autoriser", (string)null);
+                    b.ToTable("autoriser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Avance", b =>
@@ -491,7 +485,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasIndex("Empcod", "Soccod", "Sitcod");
 
-                    b.ToTable("avance", (string)null);
+                    b.ToTable("avance");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Banque", b =>
@@ -538,7 +532,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("banque", (string)null);
+                    b.ToTable("banque");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Billet", b =>
@@ -583,7 +577,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("billet", (string)null);
+                    b.ToTable("billet");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Calendsoc", b =>
@@ -651,7 +645,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "CalAn", "CalMois", "CalSem");
 
-                    b.ToTable("calendsoc", (string)null);
+                    b.ToTable("calendsoc");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Categorie", b =>
@@ -750,7 +744,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Catcod", "Soccod");
 
-                    b.ToTable("categorie", (string)null);
+                    b.ToTable("categorie");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Cloture", b =>
@@ -801,7 +795,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("titcod");
 
-                    b.ToTable("cloture", (string)null);
+                    b.ToTable("cloture");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Cnss", b =>
@@ -864,7 +858,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("cnss", (string)null);
+                    b.ToTable("cnss");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Coltable", b =>
@@ -922,7 +916,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("typech");
 
-                    b.ToTable("coltable", (string)null);
+                    b.ToTable("coltable");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Compenser", b =>
@@ -1017,7 +1011,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Concod", "Soccod");
 
-                    b.ToTable("compenser", (string)null);
+                    b.ToTable("compenser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Conge", b =>
@@ -1116,7 +1110,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("conge", (string)null);
+                    b.ToTable("conge");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Congenon", b =>
@@ -1148,7 +1142,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("congenon", (string)null);
+                    b.ToTable("congenon");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Contrat", b =>
@@ -1281,8 +1275,9 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("empsort");
 
                     b.Property<string>("Emptel")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)")
                         .HasColumnName("emptel");
 
                     b.Property<string>("Quacod")
@@ -1310,13 +1305,13 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("socresp");
 
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)")
                         .HasColumnName("vilcod");
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("contrat", (string)null);
+                    b.ToTable("contrat");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Contrat2", b =>
@@ -1477,11 +1472,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("socresp");
 
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)")
                         .HasColumnName("vilcod");
 
-                    b.ToTable("contrat2", (string)null);
+                    b.ToTable("contrat2");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Defaut", b =>
@@ -1508,7 +1503,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("defaut", (string)null);
+                    b.ToTable("defaut");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.DemandeAutorisation", b =>
@@ -1601,7 +1596,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("demande_autorisation", (string)null);
+                    b.ToTable("demande_autorisation");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Demconge", b =>
@@ -1700,7 +1695,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("demconge", (string)null);
+                    b.ToTable("demconge");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Direction", b =>
@@ -1759,7 +1754,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Dircod", "Soccod");
 
-                    b.ToTable("direction", (string)null);
+                    b.ToTable("direction");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Dmpoint", b =>
@@ -1819,7 +1814,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Empcod", "Soccod", "Dmdat");
 
-                    b.ToTable("dmpoint", (string)null);
+                    b.ToTable("dmpoint");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Dmpresence", b =>
@@ -1877,7 +1872,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("dmpresence", (string)null);
+                    b.ToTable("dmpresence");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.DocumentVault", b =>
@@ -1960,7 +1955,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("documentvault", (string)null);
+                    b.ToTable("documentvault");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Donne", b =>
@@ -2002,7 +1997,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("donne", (string)null);
+                    b.ToTable("donne");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Echelle", b =>
@@ -2109,7 +2104,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("echelle", (string)null);
+                    b.ToTable("echelle");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empaff", b =>
@@ -2245,11 +2240,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("soccod");
 
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)")
                         .HasColumnName("vilcod");
 
-                    b.ToTable("empaff", (string)null);
+                    b.ToTable("empaff");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empcat", b =>
@@ -2289,7 +2284,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("empcat", (string)null);
+                    b.ToTable("empcat");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empchg", b =>
@@ -2320,7 +2315,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("empchg", (string)null);
+                    b.ToTable("empchg");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empchoisie", b =>
@@ -2359,7 +2354,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Empcod", "Soccod");
 
-                    b.ToTable("empchoisie", (string)null);
+                    b.ToTable("empchoisie");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empgrh", b =>
@@ -2396,7 +2391,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("soclib");
 
-                    b.ToTable("empgrh", (string)null);
+                    b.ToTable("empgrh");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Employe", b =>
@@ -2691,13 +2686,13 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("sercod");
 
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)")
                         .HasColumnName("vilcod");
 
                     b.HasKey("Empcod", "Soccod", "Sitcod");
 
-                    b.ToTable("employe", (string)null);
+                    b.ToTable("employe");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Emprnd", b =>
@@ -2765,7 +2760,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("emprnd", (string)null);
+                    b.ToTable("emprnd");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empuser", b =>
@@ -2802,7 +2797,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("empuser", (string)null);
+                    b.ToTable("empuser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Ferier", b =>
@@ -2863,7 +2858,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Ferdate");
 
-                    b.ToTable("ferier", (string)null);
+                    b.ToTable("ferier");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Fonction", b =>
@@ -2912,7 +2907,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Foncod");
 
-                    b.ToTable("fonction", (string)null);
+                    b.ToTable("fonction");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Grille", b =>
@@ -3037,7 +3032,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("grille", (string)null);
+                    b.ToTable("grille");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Hsalaire", b =>
@@ -3255,7 +3250,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("hsalaire", (string)null);
+                    b.ToTable("hsalaire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lcalendsoc", b =>
@@ -3328,7 +3323,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Caltype", "CalDate");
 
-                    b.ToTable("lcalendsoc", (string)null);
+                    b.ToTable("lcalendsoc");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lcategorie", b =>
@@ -3477,7 +3472,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Ordre");
 
-                    b.ToTable("lcategorie", (string)null);
+                    b.ToTable("lcategorie");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lcontrat", b =>
@@ -3530,7 +3525,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Concod", "Empcod");
 
-                    b.ToTable("lcontrat", (string)null);
+                    b.ToTable("lcontrat");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lferier", b =>
@@ -3566,7 +3561,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("lferier", (string)null);
+                    b.ToTable("lferier");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lmotifpoint", b =>
@@ -3620,7 +3615,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("soccod")
                         .IsFixedLength();
 
-                    b.ToTable("lmotifpoint", (string)null);
+                    b.ToTable("lmotifpoint");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lplanhoraire", b =>
@@ -3692,7 +3687,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("lplanhoraire", (string)null);
+                    b.ToTable("lplanhoraire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lpointjour", b =>
@@ -3861,7 +3856,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("lpointjour", (string)null);
+                    b.ToTable("lpointjour");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lpointmoi", b =>
@@ -3937,7 +3932,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("vartype");
 
-                    b.ToTable("lpointmois", (string)null);
+                    b.ToTable("lpointmois");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lposte", b =>
@@ -3993,7 +3988,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Codposte", "Soccod");
 
-                    b.ToTable("lposte", (string)null);
+                    b.ToTable("lposte");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lpret", b =>
@@ -4054,7 +4049,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("titcod");
 
-                    b.ToTable("lpret", (string)null);
+                    b.ToTable("lpret");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lregleremp", b =>
@@ -4104,7 +4099,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("lregleremp", (string)null);
+                    b.ToTable("lregleremp");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lsalaire", b =>
@@ -4189,102 +4184,23 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(5)")
                         .HasColumnName("tothre");
 
-                    b.ToTable("lsalaire", (string)null);
+                    b.ToTable("lsalaire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Mission", b =>
                 {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("Abscod")
-                        .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)")
                         .HasColumnName("abscod");
-
-                    b.Property<string>("Conadrdep")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("conadrdep");
-
-                    b.Property<string>("Conamdep")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("conamdep");
-
-                    b.Property<string>("Conamret")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("conamret");
-
-                    b.Property<string>("Concod")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasColumnName("concod");
-
-                    b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
-                        .HasColumnName("condat");
-
-                    b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
-                        .HasColumnName("condep");
-
-                    b.Property<string>("Condepense")
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("char(100)")
-                        .HasColumnName("condepense")
-                        .IsFixedLength();
-
-                    b.Property<string>("Condest")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("condest");
-
-                    b.Property<string>("Conjour")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("conjour");
-
-                    b.Property<double?>("Conmnt")
-                        .HasColumnType("float")
-                        .HasColumnName("conmnt");
-
-                    b.Property<string>("Conmodep")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("conmodep");
-
-                    b.Property<string>("Conmotif")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("conmotif");
-
-                    b.Property<float?>("Connbjour")
-                        .HasColumnType("real")
-                        .HasColumnName("connbjour");
-
-                    b.Property<string>("Conref")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("conref");
-
-                    b.Property<string>("Conresp")
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
-                        .HasColumnName("conresp");
-
-                    b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
-                        .HasColumnName("conret");
-
-                    b.Property<string>("Consanc")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("consanc");
-
-                    b.Property<string>("Contransp")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("contransp");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime")
@@ -4295,20 +4211,62 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
+                        .IsRequired()
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)")
                         .HasColumnName("empcod");
+
+                    b.Property<double?>("Misbudget")
+                        .HasColumnType("float")
+                        .HasColumnName("misbudget");
+
+                    b.Property<DateTime>("Misdatedeb")
+                        .HasColumnType("datetime")
+                        .HasColumnName("misdatedeb");
+
+                    b.Property<DateTime>("Misdatefin")
+                        .HasColumnType("datetime")
+                        .HasColumnName("misdatefin");
+
+                    b.Property<string>("Misdest")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("misdest");
+
+                    b.Property<string>("Misetat")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending")
+                        .HasColumnName("misetat");
+
+                    b.Property<string>("Misnote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("misnote");
+
+                    b.Property<string>("Misobj")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("misobj");
 
                     b.Property<DateTime?>("RetentionDate")
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("mission", (string)null);
+                    b.HasKey("Id");
+
+                    b.HasIndex("Soccod", "Empcod");
+
+                    b.ToTable("mission");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Modeopr", b =>
@@ -4357,7 +4315,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("modeopr", (string)null);
+                    b.ToTable("modeopr");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Module", b =>
@@ -4414,7 +4372,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("module", (string)null);
+                    b.ToTable("module");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Moduser", b =>
@@ -4480,7 +4438,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Ordre");
 
-                    b.ToTable("moduser", (string)null);
+                    b.ToTable("moduser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Motifpoint", b =>
@@ -4529,7 +4487,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("soccod")
                         .IsFixedLength();
 
-                    b.ToTable("motifpoint", (string)null);
+                    b.ToTable("motifpoint");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Nation", b =>
@@ -4558,7 +4516,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Natcod");
 
-                    b.ToTable("nation", (string)null);
+                    b.ToTable("nation");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.NoteDeFrais", b =>
@@ -4605,6 +4563,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("justificatif");
 
+                    b.Property<int>("MissionId")
+                        .HasColumnType("int")
+                        .HasColumnName("missionid");
+
                     b.Property<double>("Montant")
                         .HasColumnType("float")
                         .HasColumnName("montant");
@@ -4632,7 +4594,175 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("notedefrais", (string)null);
+                    b.HasIndex("MissionId");
+
+                    b.ToTable("notedefrais");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("notif_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("body");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DataJson")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("data_json");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("read_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("Soccod")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("notifications");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.NotificationPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("np_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit")
+                        .HasColumnName("enabled");
+
+                    b.Property<bool>("InappEnabled")
+                        .HasColumnType("bit")
+                        .HasColumnName("inapp_enabled");
+
+                    b.Property<bool>("PushEnabled")
+                        .HasColumnType("bit")
+                        .HasColumnName("push_enabled");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("notification_preferences");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.NotificationUserSettings", b =>
+                {
+                    b.Property<string>("Uticod")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("uticod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("QuietEnabled")
+                        .HasColumnType("bit")
+                        .HasColumnName("quiet_enabled");
+
+                    b.Property<string>("QuietEnd")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)")
+                        .HasColumnName("quiet_end");
+
+                    b.Property<string>("QuietMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("quiet_mode");
+
+                    b.Property<string>("QuietStart")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)")
+                        .HasColumnName("quiet_start");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Uticod");
+
+                    b.ToTable("notification_user_settings");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Opbarre", b =>
@@ -4699,7 +4829,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("unite");
 
-                    b.ToTable("opbarre", (string)null);
+                    b.ToTable("opbarre");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Operation", b =>
@@ -4749,7 +4879,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("operation", (string)null);
+                    b.ToTable("operation");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Paieuser", b =>
@@ -4781,7 +4911,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("paieuser", (string)null);
+                    b.ToTable("paieuser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Paquet", b =>
@@ -4841,7 +4971,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(25)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("paquet", (string)null);
+                    b.ToTable("paquet");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parametre", b =>
@@ -5081,6 +5211,15 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("parcadre");
 
+                    b.Property<string>("Parcetdatelim")
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)")
+                        .HasColumnName("parcetdatelim");
+
+                    b.Property<float?>("Parcetmaxjours")
+                        .HasColumnType("real")
+                        .HasColumnName("parcetmaxjours");
+
                     b.Property<string>("Pardecimal")
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)")
@@ -5155,6 +5294,11 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<int?>("Parminhjour")
                         .HasColumnType("int")
                         .HasColumnName("parminhjour");
+
+                    b.Property<string>("Parmodemp")
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)")
+                        .HasColumnName("parmodemp");
 
                     b.Property<string>("Parnrepas")
                         .HasMaxLength(1)
@@ -5301,7 +5445,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod");
 
-                    b.ToTable("parametre", (string)null);
+                    b.ToTable("parametre");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Paramsite", b =>
@@ -5765,7 +5909,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("xonoff");
 
-                    b.ToTable("paramsite", (string)null);
+                    b.ToTable("paramsite");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parapprent", b =>
@@ -5804,7 +5948,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("parapprent", (string)null);
+                    b.ToTable("parapprent");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parposte", b =>
@@ -5853,7 +5997,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("parposte", (string)null);
+                    b.ToTable("parposte");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parpostsite", b =>
@@ -5907,7 +6051,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("sitcod");
 
-                    b.ToTable("parpostsite", (string)null);
+                    b.ToTable("parpostsite");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Partranche", b =>
@@ -5961,7 +6105,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Caltype", "Empreg");
 
-                    b.ToTable("partranche", (string)null);
+                    b.ToTable("partranche");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Partranchsite", b =>
@@ -6018,7 +6162,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("partranchsite", (string)null);
+                    b.ToTable("partranchsite");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Planhoraire", b =>
@@ -6064,7 +6208,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("planhoraire", (string)null);
+                    b.ToTable("planhoraire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointacce", b =>
@@ -6155,7 +6299,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("valider");
 
-                    b.ToTable("pointacce", (string)null);
+                    b.ToTable("pointacce");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointdroit", b =>
@@ -6204,7 +6348,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Poicod", "Soccod", "Uticod");
 
-                    b.ToTable("pointdroit", (string)null);
+                    b.ToTable("pointdroit");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointeuse", b =>
@@ -6271,7 +6415,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Poicod", "Soccod");
 
-                    b.ToTable("pointeuse", (string)null);
+                    b.ToTable("pointeuse");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointheure", b =>
@@ -6325,7 +6469,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("pointheure", (string)null);
+                    b.ToTable("pointheure");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointmoisj", b =>
@@ -7106,7 +7250,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("pointmoisj", (string)null);
+                    b.ToTable("pointmoisj");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointsemainej", b =>
@@ -7244,7 +7388,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("pointsemainej", (string)null);
+                    b.ToTable("pointsemainej");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointuser", b =>
@@ -7326,7 +7470,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("USETYPE");
 
-                    b.ToTable("pointuser", (string)null);
+                    b.ToTable("pointuser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Poste", b =>
@@ -7964,7 +8108,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Codposte");
 
-                    b.ToTable("poste", (string)null);
+                    b.ToTable("poste");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Postemploye", b =>
@@ -8196,7 +8340,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("postemploye", (string)null);
+                    b.ToTable("postemploye");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Postesite", b =>
@@ -8233,7 +8377,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("postesite", (string)null);
+                    b.ToTable("postesite");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Presence", b =>
@@ -8488,7 +8632,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Empcod", "Predat");
 
-                    b.ToTable("presence", (string)null);
+                    b.ToTable("presence");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Presencej", b =>
@@ -9023,7 +9167,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("presencej", (string)null);
+                    b.ToTable("presencej");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pret", b =>
@@ -9090,7 +9234,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("pret", (string)null);
+                    b.ToTable("pret");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Probarre", b =>
@@ -9165,7 +9309,119 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("probarre", (string)null);
+                    b.ToTable("probarre");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.PushReminderLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("prl_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Empcod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("empcod");
+
+                    b.Property<DateTime>("ForDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("for_date");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Soccod")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("push_reminder_log");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.PushToken", b =>
+                {
+                    b.Property<int>("PtId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("pt_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PtId"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("bit")
+                        .HasColumnName("active");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Platform")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("platform");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("Soccod")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("token");
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("PtId");
+
+                    b.ToTable("push_tokens");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Qualif", b =>
@@ -9204,7 +9460,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Quacod", "Soccod");
 
-                    b.ToTable("qualif", (string)null);
+                    b.ToTable("qualif");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Qualjrl", b =>
@@ -9276,7 +9532,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("qualjrl", (string)null);
+                    b.ToTable("qualjrl");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Qualmen", b =>
@@ -9349,7 +9605,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("titcod");
 
-                    b.ToTable("qualmens", (string)null);
+                    b.ToTable("qualmens");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.RefreshToken", b =>
@@ -9395,7 +9651,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("refresh_tokens", (string)null);
+                    b.ToTable("refresh_tokens");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Regleremp", b =>
@@ -9480,7 +9736,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("regleremp", (string)null);
+                    b.ToTable("regleremp");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rendjour", b =>
@@ -9550,7 +9806,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("float")
                         .HasColumnName("totpre");
 
-                    b.ToTable("rendjour", (string)null);
+                    b.ToTable("rendjour");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Repo", b =>
@@ -9610,7 +9866,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("repos", (string)null);
+                    b.ToTable("repos");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rndbareme", b =>
@@ -9667,7 +9923,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("rndbareme", (string)null);
+                    b.ToTable("rndbareme");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Role", b =>
@@ -9717,7 +9973,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("RoleId");
 
-                    b.ToTable("roles", (string)null);
+                    b.ToTable("roles");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.RolePermission", b =>
@@ -9775,7 +10031,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasIndex("RpRoleId");
 
-                    b.ToTable("role_permissions", (string)null);
+                    b.ToTable("role_permissions");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.RolePointdroit", b =>
@@ -9837,7 +10093,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasIndex("RpdRoleId");
 
-                    b.ToTable("role_pointdroit", (string)null);
+                    b.ToTable("role_pointdroit");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rubrique", b =>
@@ -9895,7 +10151,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Rubcod", "Soccod");
 
-                    b.ToTable("rubrique", (string)null);
+                    b.ToTable("rubrique");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rubtype", b =>
@@ -9922,7 +10178,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("rubtype");
 
-                    b.ToTable("rubtype", (string)null);
+                    b.ToTable("rubtype");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Salaire", b =>
@@ -10144,7 +10400,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("salaire", (string)null);
+                    b.ToTable("salaire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Sanction", b =>
@@ -10229,7 +10485,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("sanction", (string)null);
+                    b.ToTable("sanction");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Section", b =>
@@ -10272,7 +10528,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Seccod", "Soccod");
 
-                    b.ToTable("section", (string)null);
+                    b.ToTable("section");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Semaine", b =>
@@ -10356,7 +10612,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("semaine", (string)null);
+                    b.ToTable("semaine");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Service", b =>
@@ -10399,7 +10655,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Sercod", "Soccod");
 
-                    b.ToTable("service", (string)null);
+                    b.ToTable("service");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Site", b =>
@@ -10485,7 +10741,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Sitcod", "Soccod");
 
-                    b.ToTable("site", (string)null);
+                    b.ToTable("site");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Societe", b =>
@@ -10619,6 +10875,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("soctype");
 
+                    b.Property<string>("Socville")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)")
+                        .HasColumnName("socville");
+
                     b.HasKey("Soccod");
 
                     b.ToTable("Societe", (string)null);
@@ -10653,7 +10914,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("SOC_LIB");
 
-                    b.ToTable("socsage", (string)null);
+                    b.ToTable("socsage");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Socuser", b =>
@@ -10692,7 +10953,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Uticod", "Sitcod");
 
-                    b.ToTable("socuser", (string)null);
+                    b.ToTable("socuser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Solde", b =>
@@ -10711,6 +10972,10 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("annee");
+
+                    b.Property<float?>("Cetjours")
+                        .HasColumnType("real")
+                        .HasColumnName("cetjours");
 
                     b.Property<float?>("Conge")
                         .HasColumnType("real")
@@ -10734,7 +10999,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Empcod", "Soccod");
 
-                    b.ToTable("solde", (string)null);
+                    b.ToTable("solde");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Soldecmp", b =>
@@ -10765,7 +11030,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("soldecmp", (string)null);
+                    b.ToTable("soldecmp");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Suivemp", b =>
@@ -10827,7 +11092,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("temprod");
 
-                    b.ToTable("suivemp", (string)null);
+                    b.ToTable("suivemp");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.SuvCalend", b =>
@@ -10888,7 +11153,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("suv_calend", (string)null);
+                    b.ToTable("suv_calend");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TAmort", b =>
@@ -10944,7 +11209,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("t_amorts", (string)null);
+                    b.ToTable("t_amorts");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TPret", b =>
@@ -11083,7 +11348,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.ToTable("t_pret", (string)null);
+                    b.ToTable("t_pret");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TRemboursement", b =>
@@ -11150,7 +11415,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)");
 
-                    b.ToTable("t_remboursement", (string)null);
+                    b.ToTable("t_remboursement");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TSal", b =>
@@ -11194,7 +11459,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("SA_CompteurNumero");
 
-                    b.ToTable("t_sal", (string)null);
+                    b.ToTable("t_sal");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TTyperemb", b =>
@@ -11223,7 +11488,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("t_typeremb", (string)null);
+                    b.ToTable("t_typeremb");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Titre", b =>
@@ -11270,7 +11535,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(1)")
                         .HasColumnName("tittype");
 
-                    b.ToTable("titre", (string)null);
+                    b.ToTable("titre");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Tmpclp651021", b =>
@@ -11608,7 +11873,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnType("nvarchar(10)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("~TMPCLP651021", (string)null);
+                    b.ToTable("~TMPCLP651021");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Utilisateur", b =>
@@ -11687,14 +11952,14 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Uticod");
 
-                    b.ToTable("utilisateur", (string)null);
+                    b.ToTable("utilisateur");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Ville", b =>
                 {
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)")
                         .HasColumnName("vilcod");
 
                     b.Property<DateTime?>("CreatedAt")
@@ -11710,13 +11975,13 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Villib")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("villib");
 
                     b.HasKey("Vilcod");
 
-                    b.ToTable("ville", (string)null);
+                    b.ToTable("ville");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Avance", b =>
@@ -11726,6 +11991,17 @@ namespace ABRPOINT.Server.Migrations
                         .HasForeignKey("Empcod", "Soccod", "Sitcod");
 
                     b.Navigation("Employe");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.NoteDeFrais", b =>
+                {
+                    b.HasOne("ABRPOINT.Server.Models.Mission", "Mission")
+                        .WithMany()
+                        .HasForeignKey("MissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Mission");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.RolePermission", b =>

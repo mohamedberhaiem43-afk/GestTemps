@@ -64,6 +64,7 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IparTrancheRepository, ParTrancheRepository>();
             builder.Services.AddScoped<IReportsGenerationService, ReportsGenerationService>();
             builder.Services.AddScoped<ICongeCalculationService, CongeCalculationService>();
+            builder.Services.AddScoped<ABRPOINT.Server.CalculService.Rtt.IRttCalculationService, ABRPOINT.Server.CalculService.Rtt.RttCalculationService>();
             builder.Services.AddScoped<IHeuresSupplementaireHebdomadairesService, HeuresSupplementairesHebdomadairesService>();
             builder.Services.AddScoped<IDmpointService, DmpointService>();
             builder.Services.AddScoped<IModuleRepository, ModuleRepository>();
