@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useTranslation } from "react-i18next";
 import { useUserContext } from "../../helper/UserProvider";
 import RolesService from "../../../services/RolesService/RolesService";
 import ModuserService from "../../../services/ModuserService/ModuserService";
@@ -59,6 +60,7 @@ function getModuleIconClass(modlib: string): string {
 }
 
 export default function DroitAccees(_props: DroitAcceesProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { selectedRole } = useUserContext();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -199,7 +201,7 @@ export default function DroitAccees(_props: DroitAcceesProps) {
       <div className="aut-matrix-header">
         <h3 className="aut-matrix-title">
           <Shield sx={{ fontSize: 18, color: '#3b82f6' }} />
-          Matrice des Permissions
+          {t('donneeDeBase.utilisateur.permissionsMatrix')}
         </h3>
         {selectedRoleData && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -212,7 +214,7 @@ export default function DroitAccees(_props: DroitAcceesProps) {
             {hasChanges && (
               <button className="aut-perm-save-btn" onClick={handleSave} disabled={saveMutation.isLoading || isSyncing}>
                 <Save sx={{ fontSize: 14 }} />
-                {saveMutation.isLoading || isSyncing ? 'Synchronisation...' : 'Enregistrer'}
+                {saveMutation.isLoading || isSyncing ? t('donneeDeBase.utilisateur.syncing') : t('donneeDeBase.utilisateur.save')}
               </button>
             )}
           </div>
@@ -224,12 +226,12 @@ export default function DroitAccees(_props: DroitAcceesProps) {
           <table className="aut-matrix-table">
             <thead>
               <tr>
-                <th>Module</th>
-                <th>Consultation</th>
-                <th>Ajout</th>
-                <th>Modification</th>
-                <th>Suppression</th>
-                <th>Tout</th>
+                <th>{t('donneeDeBase.utilisateur.module')}</th>
+                <th>{t('donneeDeBase.utilisateur.consult')}</th>
+                <th>{t('donneeDeBase.utilisateur.add')}</th>
+                <th>{t('donneeDeBase.utilisateur.modify')}</th>
+                <th>{t('donneeDeBase.utilisateur.deletePerm')}</th>
+                <th>{t('donneeDeBase.utilisateur.all')}</th>
               </tr>
             </thead>
             <tbody>
@@ -296,10 +298,10 @@ export default function DroitAccees(_props: DroitAcceesProps) {
             <Shield sx={{ fontSize: 48 }} />
           </div>
           <div className="aut-matrix-empty-text">
-            {rolesLoading ? 'Chargement des permissions...' : 'Aucun rôle sélectionné'}
+            {rolesLoading ? t('donneeDeBase.utilisateur.permissionsLoading') : t('donneeDeBase.utilisateur.noRoleSelected')}
           </div>
           <div className="aut-matrix-empty-hint">
-            {rolesLoading ? 'Veuillez patienter' : 'Sélectionnez un rôle dans la liste pour voir et modifier ses permissions'}
+            {rolesLoading ? t('donneeDeBase.utilisateur.pleaseWait') : t('donneeDeBase.utilisateur.selectRoleHint')}
           </div>
         </div>
       )}

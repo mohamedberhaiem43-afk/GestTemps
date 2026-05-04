@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../config/env';
 
@@ -24,15 +25,41 @@ interface Props {
   navigation: any;
 }
 
+// Hauteur visible de la barre (sans le padding bas dynamique). Sert aux écrans
+// pour calculer le `paddingBottom` de leur ScrollView via `useTabBarPadding`.
+export const TAB_BAR_HEIGHT = 64;
+
+/**
+ * Hook utilitaire à utiliser dans les écrans qui posent un `<BottomTabBar />`.
+ * Renvoie le `paddingBottom` à appliquer au contentContainerStyle de leur ScrollView
+ * pour que le dernier élément ne soit jamais masqué par la barre + les boutons de
+ * navigation système (gesture bar iOS, nav bar Android Samsung en mode 3-boutons).
+ */
+export function useTabBarPadding(extra: number = 16): number {
+  const insets = useSafeAreaInsets();
+  return TAB_BAR_HEIGHT + insets.bottom + extra;
+}
+
 /**
  * Barre de navigation persistante affichée au bas des écrans principaux côté employé.
  * On reste sur le stack navigator natif (pas de switch en BottomTabNavigator) pour
  * minimiser le risque de régression — chaque tab fait juste un navigate. L'item actif
  * est mis en avant via `active`.
+ *
+ * Le padding bas est calculé dynamiquement avec `useSafeAreaInsets()` pour ne pas
+ * être recouvert par la barre de navigation système (gestures iOS, boutons Samsung).
+ * Avant, on utilisait `Platform.select({ ios: 24, android: 12 })` ce qui faisait
+ * disparaître les labels et rendait la moitié inférieure des items intoutchable
+ * sur les Galaxy avec barre de gestes activée.
  */
 export default function BottomTabBar({ active, navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  // Sur Android on garde un minimum de 8px même si insets.bottom est 0 (cas mode
+  // 3-boutons sur certains constructeurs où Android ne les reporte pas comme inset).
+  const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
+
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: bottomPad + 6 }]}>
       {TABS.map((tab) => {
         const isActive = tab.key === active;
         return (
@@ -72,7 +99,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingTop: 8,
-    paddingBottom: Platform.select({ ios: 24, android: 12 }),
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: COLORS.outlineVariant,

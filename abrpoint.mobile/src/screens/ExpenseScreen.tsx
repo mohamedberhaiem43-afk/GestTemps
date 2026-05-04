@@ -11,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
-import BottomTabBar from '../components/BottomTabBar';
+import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 
 // Catégories alignées sur la web (CATEGORY_KEYS de RemboursementModern).
 const CATEGORIES = [
@@ -42,6 +42,7 @@ const fmtDate = (d: any) => {
 
 export default function ExpenseScreen({ navigation }: any) {
   const { user } = useAuth();
+  const tabBarPadding = useTabBarPadding();
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -187,7 +188,7 @@ export default function ExpenseScreen({ navigation }: any) {
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         showsVerticalScrollIndicator={false}
       >
         {/* En-tête avec bouton d'ajout — équivalent rmb-header / rmb-new-btn */}

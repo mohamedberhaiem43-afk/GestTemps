@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, RefreshControl, Modal, FlatList,
@@ -11,7 +11,7 @@ import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 import TimePickerModal from '../components/TimePickerModal';
-import BottomTabBar from '../components/BottomTabBar';
+import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 
 // ── Types ──
 interface DemandeAutorisation {
@@ -76,6 +76,7 @@ const fmtDuration = (hours: number | null | undefined) => {
 
 export default function DemandeAutorisationScreen({ navigation }: any) {
   const { user, isEmployee, isAdmin, isManager } = useAuth();
+  const tabBarPadding = useTabBarPadding();
   const [demandes, setDemandes] = useState<DemandeAutorisation[]>([]);
   const [absences, setAbsences] = useState<AbsenceOption[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -279,28 +280,28 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* ── Top App Bar ── */}
       <View style={styles.topAppBar}>
-        <View style={styles.topAppLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-            <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
-          </TouchableOpacity>
-          <Text style={styles.logoText}>LEDGER HR</Text>
-        </View>
-        <View style={styles.profileImageWrapper}>
-          <MaterialCommunityIcons name="account-circle-outline" size={32} color="#cbd5e1" />
-        </View>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
+        </TouchableOpacity>
+        <Text style={styles.topAppTitle}>Demandes de sortie</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Hero Card ── */}
         <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.heroCard}>
-          <Text style={styles.heroTitle}>Demandes de sortie</Text>
-          <Text style={styles.heroSub}>Gestion et suivi des demandes de sortie</Text>
-          <TouchableOpacity style={styles.addBtn} onPress={openNewForm}>
-            <Text style={styles.addBtnText}>+ Nouvelle sortie</Text>
+          <View style={styles.heroIconBubble}>
+            <MaterialCommunityIcons name="logout-variant" size={24} color="#fff" />
+          </View>
+          <Text style={styles.heroTitle}>Mes demandes de sortie</Text>
+          <Text style={styles.heroSub}>Suivez l'état de vos sorties et créez-en de nouvelles.</Text>
+          <TouchableOpacity style={styles.addBtn} onPress={openNewForm} activeOpacity={0.85}>
+            <MaterialCommunityIcons name="plus-circle" size={18} color="#fff" />
+            <Text style={styles.addBtnText}>Nouvelle sortie</Text>
           </TouchableOpacity>
         </LinearGradient>
 
@@ -567,31 +568,39 @@ const styles = StyleSheet.create({
 
   // ── Top Bar ──
   topAppBar: {
-    height: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, backgroundColor: COLORS.background,
+    height: 56, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 12, backgroundColor: COLORS.background,
+    borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerHigh,
   },
-  topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
-  profileImageWrapper: {
-    width: 40, height: 40, borderRadius: 20, overflow: 'hidden',
-    borderWidth: 2, borderColor: COLORS.surfaceContainerHigh,
+  backButton: {
+    width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
+  },
+  topAppTitle: {
+    fontFamily: 'Manrope', fontWeight: '800', fontSize: 17,
+    color: COLORS.onSurface, letterSpacing: -0.3,
   },
 
   // ── Scroll ──
   scrollContent: { padding: 20, paddingBottom: 100 },
 
   // ── Hero ──
-  heroCard: { borderRadius: 18, padding: 18, marginBottom: 18 },
-  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  heroSub: { color: 'rgba(255,255,255,0.9)', marginTop: 4, fontSize: 12 },
-  // BUG FIX: addBtn & addBtnText were missing from StyleSheet
-  addBtn: {
-    marginTop: 12, backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12, paddingVertical: 10, alignItems: 'center',
+  heroCard: { borderRadius: 18, padding: 20, marginBottom: 20 },
+  heroIconBubble: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 12,
   },
-  addBtnText: { color: '#fff', fontWeight: '700' },
+  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  heroSub: { color: 'rgba(255,255,255,0.9)', marginTop: 6, fontSize: 13, lineHeight: 18 },
+  addBtn: {
+    marginTop: 14, backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    alignSelf: 'flex-start',
+  },
+  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   // ── Stats ──
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },

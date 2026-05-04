@@ -13,8 +13,18 @@ const emptyForm: Societe = {
     soccod: '', soclib: '', socresp: '', socadr: '', socville: '', soctel: '', socfax: '',
     socemail: '', socccb: '', soctva: '', soctva1: '', soctva2: '', soctva3: '',
     soctva000: '000', socreg: 0, socmois: 0.0, soctype: '', socpresence: '',
-    sochsup: '', socmere: '', socsmig: '', soclibar: '', socadrar: '', socrespar: ''
+    sochsup: '', socmere: '', socsmig: null, soclibar: '', socadrar: '', socrespar: ''
 };
+
+// SMIG est saisi en texte côté UI mais doit partir en `double?` côté backend.
+// On accepte les virgules et espaces (ex: "1 200,50") et on retourne null pour
+// chaîne vide / format invalide afin d'éviter l'erreur de désérialisation.
+function parseSmig(raw: string): number | null {
+    const cleaned = raw.replace(/\s/g, '').replace(',', '.').trim();
+    if (cleaned === '') return null;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+}
 
 interface SaisieSocieteProps {
     societeToEdit?: Societe | null;
@@ -92,7 +102,7 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
                             />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label="Société Mére" type="text" value={societeData.socmere}
+                            <InputComponent label={t('donneeSociete.parentCompany')} type="text" value={societeData.socmere}
                                 setValue={(value: any) => setSocieteData({ ...societeData, socmere: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
@@ -100,59 +110,59 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
                                 setValue={(value: any) => setSocieteData({ ...societeData, soclib: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label="Adresse" type="text" value={societeData.socadr}
+                            <InputComponent label={t('donneeSociete.address')} type="text" value={societeData.socadr}
                                 setValue={(value: any) => setSocieteData({ ...societeData, socadr: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label="Tél" type="text" value={societeData.soctel}
+                            <InputComponent label={t('donneeSociete.phone')} type="text" value={societeData.soctel}
                                 setValue={(value: any) => setSocieteData({ ...societeData, soctel: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label="Fax" type="text" value={societeData.socfax}
+                            <InputComponent label={t('donneeSociete.fax')} type="text" value={societeData.socfax}
                                 setValue={(value: any) => setSocieteData({ ...societeData, socfax: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label="E-Mail" type="email" value={societeData.socemail}
+                            <InputComponent label={t('donneeSociete.email')} type="email" value={societeData.socemail}
                                 setValue={(value: any) => setSocieteData({ ...societeData, socemail: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label="Responsable" type="text" value={societeData.socresp}
+                            <InputComponent label={t('donneeSociete.responsible')} type="text" value={societeData.socresp}
                                 setValue={(value: any) => setSocieteData({ ...societeData, socresp: value })} />
                         </Grid>
                         <Grid item xs={1} md={6}>
-                            <InputComponent label="Régime" type="number" value={societeData.socreg.toString()}
+                            <InputComponent label={t('donneeSociete.regime')} type="number" value={societeData.socreg.toString()}
                                 setValue={(value: any) => setSocieteData({ ...societeData, socreg: parseInt(value, 10) || 0 })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label="Valeur SMIG" type="text" value={societeData.socsmig}
-                                setValue={(value: any) => setSocieteData({ ...societeData, socsmig: value })} />
+                            <InputComponent label={t('donneeSociete.smigValue')} type="text" value={societeData.socsmig ?? ''}
+                                setValue={(value: any) => setSocieteData({ ...societeData, socsmig: parseSmig(String(value)) })} />
                         </Grid>
                         <Grid item xs={2} md={6}>
-                            <InputComponent label="Nb. Heures par Mois" type="number" value={societeData.socmois}
+                            <InputComponent label={t('donneeSociete.hoursPerMonth')} type="number" value={societeData.socmois}
                                 setValue={(value: any) => setSocieteData({ ...societeData, socmois: value })} />
                         </Grid>
                         <Grid item xs={1} md={6}>
-                            <InputComponent label="N.CCB" type="text" value={societeData.socccb}
+                            <InputComponent label={t('donneeSociete.ccb')} type="text" value={societeData.socccb}
                                 setValue={(value: any) => setSocieteData({ ...societeData, socccb: value })} />
                         </Grid>
                         <Grid item xs={1} md={6}>
-                            <InputComponent label="Code TVA" type="text" value={societeData.soctva}
+                            <InputComponent label={t('donneeSociete.tvaCode')} type="text" value={societeData.soctva}
                                 setValue={(value: any) => setSocieteData({ ...societeData, soctva: value })} />
                         </Grid>
                         <Grid item xs={1} md={6}>
-                            <InputComponent label="Code TVA 1" type="text" value={societeData.soctva1}
+                            <InputComponent label={t('donneeSociete.tvaCode1')} type="text" value={societeData.soctva1}
                                 setValue={(value: any) => setSocieteData({ ...societeData, soctva1: value })} />
                         </Grid>
                         <Grid item xs={1} md={6}>
-                            <InputComponent label="Code TVA 2" type="text" value={societeData.soctva2}
+                            <InputComponent label={t('donneeSociete.tvaCode2')} type="text" value={societeData.soctva2}
                                 setValue={(value: any) => setSocieteData({ ...societeData, soctva2: value })} />
                         </Grid>
                         <Grid item xs={1} md={6}>
-                            <InputComponent label="Code TVA 3" type="text" value={societeData.soctva3}
+                            <InputComponent label={t('donneeSociete.tvaCode3')} type="text" value={societeData.soctva3}
                                 setValue={(value: any) => setSocieteData({ ...societeData, soctva3: value })} />
                         </Grid>
                         <Grid item xs={1.3} md={6}>
-                            <InputComponent label="Code TVA 000" type="text" value={societeData.soctva000}
+                            <InputComponent label={t('donneeSociete.tvaCode000')} type="text" value={societeData.soctva000}
                                 setValue={(value: any) => setSocieteData({ ...societeData, soctva000: value })} readOnly />
                         </Grid>
                     </Grid>

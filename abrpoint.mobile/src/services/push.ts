@@ -47,21 +47,33 @@ export async function registerForPushAsync(soccod?: string): Promise<{ token: st
   }
 
   try {
+    // Sur iOS, on demande explicitement les permissions son + alert + badge.
+    // Sans ça, certaines installations héritent d'un mode silencieux par défaut.
     const existing = await Notifications.getPermissionsAsync();
     let status = existing.status;
     if (status !== 'granted') {
-      const req = await Notifications.requestPermissionsAsync();
+      const req = await Notifications.requestPermissionsAsync({
+        ios: { allowAlert: true, allowBadge: true, allowSound: true },
+      });
       status = req.status;
     }
     if (status !== 'granted') return null;
 
     if (Platform.OS === 'android') {
-      // Channel obligatoire sur Android pour des notifs visibles + sons.
+      // Channel obligatoire sur Android 8+ pour des notifs visibles + sons.
+      // `sound: 'default'` force la sonnerie système à se déclencher (sans ce
+      // champ, le canal hérite du mode silencieux selon la version d'Android).
+      // `enableVibrate` + `enableLights` pour que la notif soit perceptible.
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Default',
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#0040a1',
+        sound: 'default',
+        enableVibrate: true,
+        enableLights: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        showBadge: true,
       });
     }
 

@@ -23,6 +23,8 @@ import { QueryClient, QueryClientProvider } from "react-query";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const queryClient = new QueryClient();
 
@@ -60,7 +62,10 @@ function CalendrierContent() {
   const { data = [], refetch } = useGetCalendrierSociete(selectedYear);
   // const { data: availableYears = [], isLoading: loadingYears } = useGetCalendrier();
   const availableYears = ["2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030", "2031", "2032", "2035", "2036", "2037"];
-  const { data: cumulData = [], refetch: refetchCumul } = useGetCummulMensuelle(selectedYear);
+  // cumulData garde sa raison d'être pour les écrans qui consomment encore l'agrégat
+  // côté backend (ex. CumulHeuresMensuelle), mais le tableau ci-dessous se base
+  // désormais directement sur `data` (entrées journalières) pour rester réactif.
+  const { refetch: refetchCumul } = useGetCummulMensuelle(selectedYear);
 
   // Caltype actif pour la société/année courante. Avant, on passait `soccod`
   // par erreur en tant que caltype au PUT — le backend filtrait alors sur
@@ -72,11 +77,68 @@ function CalendrierContent() {
     return first?.caltype || '';
   }, [data]);
 
-  // Form State
+  // Form State — initialisé avec les valeurs par défaut, mais synchronisé avec
+  // les données du serveur via le useEffect plus bas dès qu'elles arrivent.
   const [allDay, setAllDay] = useState(8);
   const [samedi, setSamedi] = useState(5);
   const [jourRepos, setJourRepos] = useState("0");
   const [tousLesMois, setTousLesMois] = useState(false);
+
+  // Synchronise les champs du panneau Configuration avec ce que la base contient
+  // pour le mois affiché. Sans ça, après chaque navigation/rechargement on retombait
+  // sur 8h/5h/dimanche au lieu d'afficher la config réelle (bug : toujours mêmes
+  // valeurs même après modification).
+  useEffect(() => {
+    if (!Array.isArray(data) || data.length === 0) return;
+    const monthEntries = (data as CalendarEntry[]).filter(e => e.calMois === selectedMonth);
+    if (monthEntries.length === 0) return;
+
+    // Quel(s) jour(s) sont à 0h sur le mois → c'est le jour de repos paramétré.
+    const restDays = new Set<number>();
+    monthEntries.forEach(e => {
+      if (!e.calDate) return;
+      if ((e.calNbh ?? 0) === 0) restDays.add(new Date(e.calDate).getDay());
+    });
+
+    let detectedRest = '0';
+    if (restDays.has(6) && restDays.has(0)) detectedRest = 'samdim';
+    else if (restDays.size > 0) detectedRest = String([...restDays][0]);
+
+    // Heures du samedi : prend la 1re entrée samedi non-marquée repos.
+    const satEntry = monthEntries.find(e => e.calDate && new Date(e.calDate).getDay() === 6 && (e.calNbh ?? 0) > 0);
+
+    // Heures par jour ouvré (Lun-Ven) : prend la valeur la plus fréquente.
+    const weekHours: Record<number, number> = {};
+    monthEntries.forEach(e => {
+      if (!e.calDate) return;
+      const dow = new Date(e.calDate).getDay();
+      if (dow >= 1 && dow <= 5 && (e.calNbh ?? 0) > 0) {
+        weekHours[e.calNbh] = (weekHours[e.calNbh] || 0) + 1;
+      }
+    });
+    const dominantWeekHours = Object.entries(weekHours).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+    if (dominantWeekHours) setAllDay(Number(dominantWeekHours));
+    if (satEntry) setSamedi(satEntry.calNbh);
+    else if (restDays.has(6)) setSamedi(0);
+    setJourRepos(detectedRest);
+  }, [data, selectedMonth]);
+
+  // Heures hebdomadaires recalculées automatiquement à partir des champs édités
+  // (5 jours ouvrés × heures/jour + heures samedi, déduites du jour de repos).
+  const weeklyHours = useMemo(() => {
+    const restSet = new Set<number>();
+    if (jourRepos === 'samdim') { restSet.add(6); restSet.add(0); }
+    else restSet.add(Number(jourRepos));
+
+    let total = 0;
+    for (let dow = 1; dow <= 5; dow++) {
+      if (!restSet.has(dow)) total += allDay;
+    }
+    if (!restSet.has(6)) total += samedi;
+    // Le dimanche n'est jamais payé par défaut, on n'ajoute rien si 0 (jourRepos par défaut).
+    return total;
+  }, [allDay, samedi, jourRepos]);
 
   // Feedback Message
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -170,6 +232,43 @@ function CalendrierContent() {
     });
   };
 
+  // Génération PDF côté client : on imprime le tableau annuel + la config courante.
+  // Pas d'aller-retour serveur — jsPDF + autotable suffisent pour ce volume.
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const title = t('paramSoc.calendrier.heading');
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${title} — ${selectedYear}`, 40, 50);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const configLine = [
+      `${t('paramSoc.calendrier.config.hoursPerDay')}: ${allDay}h`,
+      `${t('paramSoc.calendrier.config.saturdayHours')}: ${samedi}h`,
+      `${t('paramSoc.calendrier.config.weeklyHours')}: ${weeklyHours}h`,
+    ].join('   |   ');
+    doc.text(configLine, 40, 72);
+
+    autoTable(doc, {
+      startY: 95,
+      head: [[
+        t('paramSoc.calendrier.headers.month'),
+        t('paramSoc.calendrier.headers.daysPerMonth'),
+        t('paramSoc.calendrier.headers.hoursPerMonth'),
+        t('paramSoc.calendrier.headers.openHours'),
+        t('paramSoc.calendrier.headers.hoursPerDay'),
+      ]],
+      body: annualStats.map(m => [m.name, String(m.jm), String(m.hm), String(m.ho), String(m.hj)]),
+      headStyles: { fillColor: [0, 64, 161], halign: 'center' },
+      bodyStyles: { halign: 'center' },
+      columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } },
+      styles: { fontSize: 9, cellPadding: 6 },
+    });
+
+    doc.save(`calendrier-${soccod}-${selectedYear}.pdf`);
+  };
+
   const handleCloneYear = () => {
     cloneCalendrier.mutate(Number(sourceYear), {
       onSuccess: () => {
@@ -212,22 +311,32 @@ function CalendrierContent() {
     return { totalHours, workedDays };
   }, [filteredData]);
 
-  // Annual Stats Formatting
+  // Statistiques annuelles agrégées DIRECTEMENT depuis les entrées journalières
+  // (Lcalendsoc) au lieu de la table de cumul backend qui n'est jamais mise à jour
+  // par le PUT update-calendrier — c'était la cause du tableau "toujours statique".
   const annualStats = useMemo(() => {
-    const monthsData = MONTHS.map((name, i) => {
+    const dailyEntries = Array.isArray(data) ? (data as CalendarEntry[]) : [];
+
+    return MONTHS.map((name, i) => {
       const monthNum = (i + 1).toString().padStart(2, '0');
-      const entry = (Array.isArray(cumulData) ? cumulData : []).find((c: any) => c.calMois === monthNum);
+      const monthEntries = dailyEntries.filter(e => e.calMois === monthNum);
+
+      // jm = jours travaillés (calNbh > 0), hm = total heures, ho = jours calendaires
+      // ouverts (jours non-repos), hj = moyenne heures/jour ouvré.
+      const jm = monthEntries.filter(e => (e.calNbh ?? 0) > 0).length;
+      const hm = monthEntries.reduce((s, e) => s + (e.calNbh ?? 0), 0);
+      const ho = monthEntries.length;
+      const hj = jm > 0 ? Math.round((hm / jm) * 10) / 10 : 0;
+
       return {
         name,
-        jm: entry?.calTrav ?? "-",
-        hm: entry?.calNbh ?? "-",
-        ho: entry?.calHouv ?? "-",
-        hj: entry?.calHjour ?? "-",
-        perf: entry?.calNbh ? 100 : 0
+        jm: monthEntries.length === 0 ? '-' : jm,
+        hm: monthEntries.length === 0 ? '-' : Math.round(hm * 10) / 10,
+        ho: monthEntries.length === 0 ? '-' : ho,
+        hj: jm === 0 ? '-' : hj,
       };
     });
-    return monthsData;
-  }, [cumulData]);
+  }, [data, MONTHS]);
 
   return (
     <div className="bg-surface text-on-surface min-h-screen flex font-body w-full">
@@ -339,7 +448,7 @@ function CalendrierContent() {
               </div>
             </div>
             <div className="flex flex-wrap gap-3 w-full md:w-auto">
-              <button className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-surface-container-lowest text-on-surface text-xs sm:text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2">
+              <button onClick={handleDownloadPdf} className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-surface-container-lowest text-on-surface text-xs sm:text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2">
                 <Download size={16} /> <span className="hidden sm:inline">{t('paramSoc.calendrier.downloadPdf')}</span> PDF
               </button>
               <button onClick={handleSave} className="flex-1 md:flex-none px-4 sm:px-6 py-2.5 bg-primary text-on-primary text-xs sm:text-sm font-bold font-headline rounded-xl shadow-sm hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2">
@@ -366,7 +475,6 @@ function CalendrierContent() {
                     <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">{t('paramSoc.calendrier.headers.hoursPerMonth')}</th>
                     <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">{t('paramSoc.calendrier.headers.openHours')}</th>
                     <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-center">{t('paramSoc.calendrier.headers.hoursPerDay')}</th>
-                    <th className="px-6 py-4 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant text-right">{t('paramSoc.calendrier.headers.performance')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
@@ -377,12 +485,6 @@ function CalendrierContent() {
                       <td className="px-6 py-4 font-headline font-bold text-sm text-center text-primary">{month.hm}</td>
                       <td className="px-6 py-4 font-label font-medium text-sm text-center text-on-surface-variant">{month.ho}</td>
                       <td className="px-6 py-4 font-label font-medium text-sm text-center">{month.hj}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase ${month.perf > 0 ? 'bg-tertiary-container/10 text-tertiary' : 'bg-surface-container-high text-outline'}`}>
-                          <span className={`w-2 h-2 rounded-full ${month.perf > 0 ? 'bg-tertiary' : 'bg-outline'}`}></span>
-                          {month.perf}%
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -440,6 +542,13 @@ function CalendrierContent() {
                   <option value="6">{t('paramSoc.calendrier.days.samedi')}</option>
                   <option value="samdim">{t('paramSoc.calendrier.days.samdim')}</option>
                 </select>
+              </div>
+
+              {/* Heures hebdomadaires recalculées automatiquement à partir des
+                  champs ci-dessus — affichage informatif, non éditable. */}
+              <div className="bg-primary/5 rounded-xl px-4 py-3 flex items-center justify-between border border-primary/10">
+                <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">{t('paramSoc.calendrier.config.weeklyHours')}</span>
+                <span className="text-lg font-headline font-black text-primary">{weeklyHours}h</span>
               </div>
 
               <div className="pt-4 border-t border-outline-variant/20">

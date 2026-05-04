@@ -1777,6 +1777,7 @@
         "hoursPerDay": "Heures par jour",
         "saturdayHours": "Samedi (Heures)",
         "restDay": "Jour de repos",
+        "weeklyHours": "Heures par semaine",
         "applyAllMonths": "Appliquer à tous les mois",
         "saveSettings": "Enregistrer les réglages",
         "initYear": "Initialiser une année",
@@ -2015,9 +2016,25 @@
   },
   "donneeSociete": {
     "updated": "Société modifiée avec succès !",
+    "updateError": "Échec de la modification de la société. Veuillez réessayer.",
     "requiredFields": "Le code et le libellé sont obligatoires !",
     "added": "Société ajoutée avec succès !",
-    "addError": "Échec de l'ajout de la société. Veuillez réessayer."
+    "addError": "Échec de l'ajout de la société. Veuillez réessayer.",
+    "parentCompany": "Société Mère",
+    "address": "Adresse",
+    "phone": "Tél",
+    "fax": "Fax",
+    "email": "E-Mail",
+    "responsible": "Responsable",
+    "regime": "Régime",
+    "smigValue": "Valeur SMIG",
+    "hoursPerMonth": "Nb. Heures par Mois",
+    "ccb": "N.CCB",
+    "tvaCode": "Code TVA",
+    "tvaCode1": "Code TVA 1",
+    "tvaCode2": "Code TVA 2",
+    "tvaCode3": "Code TVA 3",
+    "tvaCode000": "Code TVA 000"
   },
   "donneeBase": {
     "breadcrumb": "Données de base",
@@ -4319,6 +4336,262 @@
         "sendFailed": "Échec de l'envoi. Réessayez plus tard."
       },
       "successMessage": "Votre message a bien été envoyé. Notre équipe revient vers vous rapidement."
+    }
+  },
+  "alerts": {
+    "actionForbidden": "Action interdite",
+    "close": "Fermer"
+  },
+  "about": {
+    "nav": {
+      "pricing": "Tarifs",
+      "current": "À propos",
+      "myDashboard": "Mon Dashboard",
+      "login": "Connexion",
+      "freeTrial": "Essai gratuit"
+    },
+    "hero": {
+      "kicker": "À propos de Concorde",
+      "title1": "La plateforme de gestion",
+      "title2": "du temps pensée pour les RH",
+      "lead": "Concorde Workforce est une solution SaaS qui digitalise et centralise la gestion du temps de travail : pointage, présence, congés, autorisations de sortie, plannings, sanctions, contrats et reporting RH.",
+      "leadIntro": "Elle ",
+      "leadStrong": "ne gère pas la paie elle-même",
+      "leadEnd": " — elle prépare les états mensuels exportables vers votre logiciel de paie existant."
+    },
+    "pillars": {
+      "punch": {
+        "title": "Pointage multi-canal",
+        "text": "Pointeuses biométriques, badgeuses, pointage web et mobile — toutes les sources de présence remontent dans un même registre, géo-localisé et horodaté."
+      },
+      "leave": {
+        "title": "Congés & autorisations",
+        "text": "Demandes en self-service, validations en cascade par le manager, soldes calculés en temps réel et historique consultable par employé."
+      },
+      "schedule": {
+        "title": "Plannings et horaires",
+        "text": "Modélisation fine des classes horaires, postes de travail, jours fériés et règles d'heures supplémentaires — y compris les shifts de nuit et les régimes mixtes."
+      },
+      "reporting": {
+        "title": "Reporting RH",
+        "text": "États de présence, absences, retards, échéances de contrats et tableaux de bord pour les directions — exportables PDF / Excel à tout moment."
+      },
+      "secure": {
+        "title": "Conforme & sécurisé",
+        "text": "Chiffrement TLS 1.3 en transit, AES-256 au repos, traçabilité complète des accès, conformité RGPD et hébergement souverain."
+      },
+      "multi": {
+        "title": "Multi-société, multi-site",
+        "text": "Une seule installation pour piloter plusieurs entités juridiques, plusieurs sites et plusieurs filiales avec leurs propres calendriers et règles métier."
+      }
+    },
+    "vision": {
+      "approachKicker": "Notre approche",
+      "approachTitle": "Des règles métier modélisables, pas figées",
+      "approachText": "Chaque entreprise a ses propres conventions : tolérances d'arrivée, calcul d'heures supplémentaires, jours fériés payés ou non, panier de nuit, ancienneté requise pour certains droits… Concorde modélise tout ça via des paramètres société et des plannings personnalisables — pas de code à écrire, pas d'export à retravailler.",
+      "tenantKicker": "Multi-tenant by design",
+      "tenantTitle": "Une instance par entreprise, isolée",
+      "tenantText": "Chaque tenant dispose de sa propre base de données, de son propre slug et de son propre périmètre d'accès. Aucune donnée ne croise entre clients. La provisioning est automatique au signup avec une période d'essai de 14 jours."
+    },
+    "cta": {
+      "title": "Envie d'essayer Concorde ?",
+      "subtitle": "14 jours d'essai gratuits, sans carte bancaire. Vous gardez la main sur vos données à tout moment.",
+      "goDashboard": "Aller au dashboard",
+      "startTrial": "Démarrer l'essai gratuit",
+      "viewPricing": "Voir les tarifs"
+    },
+    "footer": {
+      "brand": "Concorde Workforce",
+      "rights": "© {{year}} Concorde Workforce. Tous droits réservés."
+    }
+  },
+  "dashboardWidgets": {
+    "depassMax": {
+      "title": "Employés dépassant 12h dans J-1",
+      "matricule": "Matricule",
+      "name": "Nom",
+      "date": "Date",
+      "hours": "Heures",
+      "noData": "Aucun employé en dépassement"
+    }
+  },
+  "donneeDeBase": {
+    "common": {
+      "delete": "Supprimer",
+      "edit": "Modifier",
+      "errorLoading": "Erreur lors du chargement",
+      "saveError": "Erreur lors de l'enregistrement",
+      "deleteError": "Erreur lors de la suppression"
+    },
+    "direction": {
+      "code": "Code",
+      "label": "Libellé",
+      "location": "Localisation",
+      "email": "Email",
+      "responsible": "Responsable",
+      "invalidEmail": "Email invalide",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette direction ?",
+      "addNew": "Ajouter une direction"
+    },
+    "service": {
+      "code": "Code",
+      "soccod": "Code société",
+      "label": "Libellé",
+      "external": "Externe",
+      "headcount": "Effectif",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce service ?",
+      "addNew": "Ajouter un service",
+      "importExcel": "Importer Excel"
+    },
+    "filiale": {
+      "editTitle": "✏️ Modifier la Filiale",
+      "newTitle": "➕ Nouvelle Filiale",
+      "code": "Code Filiale",
+      "name": "Nom Filiale",
+      "phone": "Téléphone",
+      "fax": "Fax",
+      "address": "Adresse",
+      "email": "Email",
+      "monthlyHours": "Nb. Heures / Mois",
+      "leaveDays": "Nb. Congés",
+      "mainSite": "Site Principal",
+      "exempt": "Exonéré de TFP-FOP",
+      "saving": "Enregistrement...",
+      "save": "Enregistrer",
+      "update": "Modifier",
+      "newBtn": "Nouveau",
+      "cancel": "Annuler",
+      "requiredFields": "Le code et le nom sont obligatoires.",
+      "saveSuccess": "Filiale enregistrée avec succès !",
+      "updateSuccess": "Filiale modifiée avec succès !",
+      "saveError": "Erreur lors de l'enregistrement.",
+      "updateError": "Erreur lors de la modification.",
+      "list": {
+        "edit": "Modifier",
+        "code": "Code",
+        "label": "Libellé",
+        "address": "Adresse",
+        "phone": "Téléphone",
+        "email": "Email",
+        "months": "Mois",
+        "leaves": "Congés",
+        "society": "Société",
+        "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette Filiale ?"
+      }
+    },
+    "societe": {
+      "list": {
+        "actions": "Actions",
+        "edit": "Modifier",
+        "code": "Code",
+        "label": "Libellé",
+        "type": "Type",
+        "phone": "Tél",
+        "fax": "Fax",
+        "email": "E-Mail",
+        "responsible": "Responsable",
+        "address": "Adresse",
+        "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette société ?"
+      }
+    },
+    "utilisateur": {
+      "roles": "Rôles",
+      "addRole": "Ajouter un rôle",
+      "roleName": "Nom du rôle",
+      "roleDescOptional": "Description (optionnel)",
+      "cancel": "Annuler",
+      "create": "Créer",
+      "search": "Rechercher un rôle...",
+      "loading": "Chargement...",
+      "systemRole": "Rôle système",
+      "customRole": "Rôle personnalisé",
+      "delete": "Supprimer",
+      "noRolesFound": "Aucun rôle trouvé",
+      "confirmDeleteRole": "Supprimer ce rôle ?",
+      "permissionsMatrix": "Matrice des Permissions",
+      "syncing": "Synchronisation...",
+      "save": "Enregistrer",
+      "module": "Module",
+      "consult": "Consultation",
+      "add": "Ajout",
+      "modify": "Modification",
+      "deletePerm": "Suppression",
+      "all": "Tout",
+      "permissionsLoading": "Chargement des permissions...",
+      "noRoleSelected": "Aucun rôle sélectionné",
+      "pleaseWait": "Veuillez patienter",
+      "selectRoleHint": "Sélectionnez un rôle dans la liste pour voir et modifier ses permissions"
+    }
+  },
+  "employeeDashboard": {
+    "loading": "Chargement...",
+    "greeting": "Bonjour, {{firstName}}.",
+    "weekSummary": "Voici un résumé de votre activité pour la semaine du {{date}}.",
+    "newRequest": "Nouvelle Demande",
+    "remainingLeave": "Congés Restants",
+    "daysAcquired": "/ {{count}} jours acquis",
+    "daysAcquiredEmpty": "/ — jours acquis",
+    "workTime": "Temps de travail",
+    "workTarget": "h / {{target}}h",
+    "workTargetEmpty": "h / —",
+    "weekObjective": "{{percent}}% de l'objectif hebdomadaire",
+    "pending": "En Attente",
+    "pendingRequests": "demandes",
+    "nextReview": "Prochaine revue prévue demain",
+    "punchTracking": "Suivi des Pointages",
+    "week": "Semaine",
+    "month": "Mois",
+    "hoursLabel": "HEURES",
+    "dailyTarget": "Objectif {{hours}}h/jour",
+    "recentRequests": "Dernières Demandes",
+    "viewAll": "Voir tout",
+    "paidLeave": "Congés Payés",
+    "validated": "Validé",
+    "pendingShort": "Attente",
+    "refused": "Refusé",
+    "noRecentRequest": "Aucune demande récente",
+    "paySlips": "Bulletins de paie",
+    "paySlipsSubtitle": "Consulter mes derniers bulletins",
+    "vault": "Coffre-fort Numérique",
+    "vaultSubtitle": "Documents et signatures",
+    "internalSupport": "Support Interne",
+    "internalSupportSubtitle": "Besoin d'aide administrative ?",
+    "hrNews": "Nouveauté RH",
+    "remoteGuideTitle": "Guide de la Politique de Télétravail 2024",
+    "remoteGuideText": "Découvrez les nouvelles modalités de flexibilité applicables à partir du 1er Novembre pour tous les cadres seniors.",
+    "readDocument": "Lire le document",
+    "defaultName": "Employé",
+    "serverTime": "Heure Serveur",
+    "gpsActive": "GPS Actif",
+    "punchIn": "Pointer l'entrée",
+    "attendanceMarked": "Présence marquée avec succès !",
+    "attendanceError": "Erreur lors du pointage",
+    "activitySummary": "Résumé d'activité",
+    "workTimeMobile": "Temps de Travail",
+    "workTimeOf": "/ 35h",
+    "leavesShort": "Congés",
+    "daysShort": "j.",
+    "requestsLabel": "Demandes",
+    "punchTrackingMobile": "Suivi de Pointage",
+    "goalReached": "Objectif Atteint",
+    "inProgress": "En progression",
+    "legendStart": "0h",
+    "legendTarget": "Objectif : 8h/jour",
+    "quickAccess": "Accès Rapide",
+    "periodicReport": "État Périodique",
+    "periodicReportSubtitle": "Rapports et analyses RH",
+    "expenseNotes": "Notes de Frais",
+    "expenseSubtitle": "Saisir un remboursement",
+    "hrSupport": "Support RH",
+    "hrSubtitle": "Aide et assistance",
+    "weekdaysShort": {
+      "mon": "LUN",
+      "tue": "MAR",
+      "wed": "MER",
+      "thu": "JEU",
+      "fri": "VEN",
+      "sat": "SAM",
+      "sun": "DIM"
     }
   }
 }

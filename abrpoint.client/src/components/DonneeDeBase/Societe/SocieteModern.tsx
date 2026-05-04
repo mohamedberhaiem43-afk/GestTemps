@@ -27,7 +27,7 @@ const emptyForm: SocieteModel = {
   soccod: '', soclib: '', socresp: '', socadr: '', socville: '', soctel: '', socfax: '',
   socemail: '', socccb: '', soctva: '', soctva1: '', soctva2: '', soctva3: '',
   soctva000: '000', socreg: 0, socmois: 0.0, soctype: '', socpresence: '',
-  sochsup: '', socmere: '', socsmig: '', soclibar: '', socadrar: '', socrespar: ''
+  sochsup: '', socmere: '', socsmig: null, soclibar: '', socadrar: '', socrespar: ''
 };
 const FIELD_LIMITS: Partial<Record<keyof SocieteModel, number>> = {
   soccod: 2,
@@ -110,7 +110,17 @@ function SocieteModernContent() {
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const set = (field: keyof SocieteModel) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const val = e.target.value;
-    setForm(prev => ({ ...prev, [field]: field === 'socreg' || field === 'socmois' ? Number(val) || 0 : val }));
+    let parsedValue: string | number | null = val;
+
+    if (field === 'socreg' || field === 'socmois') {
+      parsedValue = Number(val) || 0;
+    }
+    if (field === 'socsmig') {
+      parsedValue = val === '' ? null : Number(val);
+      if (parsedValue !== null && Number.isNaN(parsedValue)) parsedValue = null;
+    }
+
+    setForm(prev => ({ ...prev, [field]: parsedValue }));
   };
 
     const handleSubmit = () => {
@@ -134,7 +144,7 @@ function SocieteModernContent() {
       socpresence: (form.socpresence || '').trim(),
       sochsup: (form.sochsup || '').trim(),
       socmere: (form.socmere || '').trim().toUpperCase(),
-      socsmig: String(form.socsmig || '').trim(),
+      socsmig: form.socsmig === null ? null : form.socsmig,
       soclibar: (form.soclibar || '').trim(),
       socadrar: (form.socadrar || '').trim(),
       socrespar: (form.socrespar || '').trim(),
@@ -463,7 +473,7 @@ function SocieteModernContent() {
             </Box>
             <Box className="soc-field">
               <label>Valeur SMIG</label>
-              <input type="text" value={form.socsmig} onChange={set('socsmig')} />
+              <input type="text" value={form.socsmig ?? ''} onChange={set('socsmig')} />
             </Box>
             <Box className="soc-field" style={{ gridColumn: 'span 2' }}>
               <label>N.CCB (Compte Bancaire)</label>

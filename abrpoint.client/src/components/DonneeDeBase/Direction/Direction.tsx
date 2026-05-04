@@ -7,6 +7,7 @@ import {
 } from 'material-react-table';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 import { DirectionModel } from '../../../models/DirectionModel';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -16,6 +17,7 @@ import './Direction.css'
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 const DirectionTable = () => {
+  const { t } = useTranslation();
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const [editedDirections, setEditedDirections] = useState<Record<string, DirectionModel>>({});
   const [directions, setDirections] = useState<DirectionModel[]>([]);
@@ -26,7 +28,7 @@ const DirectionTable = () => {
   const soccod = sessionStorage.getItem('soccod') || '01';
 
   const openDeleteConfirmModal = (row: MRT_Row<DirectionModel>) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm(t('donneeDeBase.direction.confirmDelete'))) {
       apiInstance.delete(`/Directions/${row.original.soccod}/${row.original.dircod}`)
         .then(() => {
           setDirections((prev) => prev.filter((dir) => dir.dircod !== row.original.dircod));
@@ -61,7 +63,7 @@ const DirectionTable = () => {
   const columns = useMemo<MRT_ColumnDef<DirectionModel>[]>(() => [
     {
       accessorKey: 'dircod',
-      header: 'Code',
+      header: t('donneeDeBase.direction.code'),
     //   enableEditing:false,
       size: 80,
       muiEditTextFieldProps: ({ cell }) => ({
@@ -81,7 +83,7 @@ const DirectionTable = () => {
     },
     {
       accessorKey: 'dirlib',
-      header: 'Libellé',
+      header: t('donneeDeBase.direction.label'),
       size: 260,
       muiEditTextFieldProps: ({ cell }) => ({
         onBlur: (event) => {
@@ -100,7 +102,7 @@ const DirectionTable = () => {
     },
     {
       accessorKey: 'dirloc',
-      header: 'Location',
+      header: t('donneeDeBase.direction.location'),
       muiEditTextFieldProps: ({ cell }) => ({
         onBlur: (event) => {
           const rowId = cell.row.id;
@@ -118,7 +120,7 @@ const DirectionTable = () => {
     },
     {
       accessorKey: 'diremail',
-      header: 'Email',
+      header: t('donneeDeBase.direction.email'),
       muiEditTextFieldProps: ({ cell }) => ({
         type: 'email',
         error: !!validationErrors[cell.id],
@@ -130,7 +132,7 @@ const DirectionTable = () => {
 
           setValidationErrors({
             ...validationErrors,
-            [cell.id]: isValidEmail ? undefined : 'Invalid Email',
+            [cell.id]: isValidEmail ? undefined : t('donneeDeBase.direction.invalidEmail'),
           });
 
           setEditedDirections((prev) => ({
@@ -145,7 +147,7 @@ const DirectionTable = () => {
     },
     {
       accessorKey: 'dirresp',
-      header: 'Responsable',
+      header: t('donneeDeBase.direction.responsible'),
       editVariant: 'select',
       editSelectOptions: users.map(u => ({
         label: `${u.utiprn} ${u.utinom}`,
@@ -166,7 +168,7 @@ const DirectionTable = () => {
         },
       }),
     },
-  ], [validationErrors, users]);
+  ], [validationErrors, users, t]);
 
   const handleSaveDirections = async () => {
     if (Object.values(validationErrors).some((error) => !!error)) return;
@@ -227,7 +229,7 @@ const handleEditDirections = async()=>{
     muiToolbarAlertBannerProps: isError
       ? {
           color: 'error',
-          children: 'Error loading data',
+          children: t('donneeDeBase.common.errorLoading'),
         }
       : undefined,
     muiTableContainerProps: {
@@ -246,7 +248,7 @@ const handleEditDirections = async()=>{
     onCreatingRowSave: handleSaveDirections,
     renderRowActions: ({ row }) => (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        <Tooltip title="Delete">
+        <Tooltip title={t('donneeDeBase.common.delete')}>
           <IconButton color="error" onClick={() => openDeleteConfirmModal(row)}>
             <DeleteIcon />
           </IconButton>
@@ -265,7 +267,7 @@ const handleEditDirections = async()=>{
       </Box>
     ),
     renderTopToolbarCustomActions: ({ table }) => (
-      <Tooltip title="Create New User">
+      <Tooltip title={t('donneeDeBase.direction.addNew')}>
         <IconButton
           color="primary"
           onClick={() => {

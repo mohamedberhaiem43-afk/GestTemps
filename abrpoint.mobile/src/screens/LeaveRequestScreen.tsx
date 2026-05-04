@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
-import BottomTabBar from '../components/BottomTabBar';
+import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
 
@@ -18,11 +18,11 @@ interface KPISummary {
   soldeConge: number;
   congeAcquis: number;
   demandesEnAttente: number;
-  rttAcquis?: number; // Added for the new UI
 }
 
 export default function LeaveRequestScreen({ navigation }: any) {
   const { user } = useAuth();
+  const tabBarPadding = useTabBarPadding();
   const [requests, setRequests] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -135,7 +135,6 @@ export default function LeaveRequestScreen({ navigation }: any) {
           soldeConge: data.soldeConge || 0,
           congeAcquis: data.congeAcquis || 0,
           demandesEnAttente: data.demandesEnAttente || 0,
-          rttAcquis: 8.0, // Static for now as per template or fetch if available
         });
       }
     } catch (error) {
@@ -310,26 +309,26 @@ export default function LeaveRequestScreen({ navigation }: any) {
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Balances Section */}
+        {/* Balances Section : on n'expose que le solde de congé réel calculé par le
+            backend. La carte « RTT acquis » a été retirée car la valeur affichée était
+            statique (8.0h) et n'est pas remontée par /get-my-kpis. */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>SOLDES ACTUELS</Text>
-          <View style={styles.balanceGrid}>
-            <View style={styles.balanceCard}>
-              <MaterialCommunityIcons name="beach-access" size={24} color={COLORS.primary} />
-              <View style={styles.balanceContent}>
-                <Text style={styles.balanceValue}>{kpiSummary?.soldeConge?.toFixed(1) || '24.5'}</Text>
-                <Text style={styles.balanceName}>Congés Payés</Text>
+          <Text style={styles.sectionLabel}>SOLDE DE CONGÉ</Text>
+          <View style={styles.balanceCardSolo}>
+            <MaterialCommunityIcons name="beach-access" size={28} color={COLORS.primary} />
+            <View style={styles.balanceContent}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                <Text style={styles.balanceValue}>{(kpiSummary?.soldeConge ?? 0).toFixed(1)}</Text>
+                <Text style={styles.balanceUnit}>jours</Text>
               </View>
-            </View>
-            <View style={styles.balanceCard}>
-              <MaterialCommunityIcons name="event-repeat" size={24} color={COLORS.tertiary} />
-              <View style={styles.balanceContent}>
-                <Text style={[styles.balanceValue, { color: COLORS.tertiary }]}>{kpiSummary?.rttAcquis?.toFixed(1) || '8.0'}</Text>
-                <Text style={styles.balanceName}>RTT acquis</Text>
-              </View>
+              <Text style={styles.balanceName}>
+                {kpiSummary?.congeAcquis
+                  ? `sur ${kpiSummary.congeAcquis.toFixed(1)} acquis`
+                  : 'Congés payés disponibles'}
+              </Text>
             </View>
           </View>
         </View>
@@ -423,9 +422,10 @@ export default function LeaveRequestScreen({ navigation }: any) {
         </View>
       </ScrollView>
 
-      {/* FAB */}
+      {/* FAB — positionné dynamiquement au-dessus de la BottomTabBar pour ne pas
+           se faire masquer par les boutons de navigation système (Samsung). */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: tabBarPadding + 16 }]}
         onPress={() => { setEditingConcod(null); setForm(defaultForm); setShowForm(true); }}
         activeOpacity={0.9}
       >
@@ -540,8 +540,13 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 20,
     flexDirection: 'column', gap: 16,
   },
+  balanceCardSolo: {
+    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+  },
   balanceContent: { gap: 4 },
   balanceValue: { fontSize: 32, fontWeight: '800', color: COLORS.primary, letterSpacing: -1 },
+  balanceUnit: { fontSize: 14, fontWeight: '600', color: COLORS.onSurfaceVariant },
   balanceName: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
   calendarCard: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: 24, padding: 24, marginBottom: 32 },
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
@@ -574,7 +579,7 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
   emptyRequests: { padding: 40, alignItems: 'center' },
   emptyRequestsText: { fontSize: 14, color: COLORS.outline, fontWeight: '500' },
-  fab: { position: 'absolute', bottom: 100, right: 24, zIndex: 100 },
+  fab: { position: 'absolute', right: 24, zIndex: 100 },
   fabGradient: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12 },
   bottomNav: {
     position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,

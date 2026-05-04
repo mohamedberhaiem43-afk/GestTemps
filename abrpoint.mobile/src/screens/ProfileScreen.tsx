@@ -8,12 +8,13 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
-import BottomTabBar from '../components/BottomTabBar';
+import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation, route }: any) {
   const { user, logout } = useAuth();
+  const tabBarPadding = useTabBarPadding();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,7 +103,7 @@ export default function ProfileScreen({ navigation, route }: any) {
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Hero Section */}

@@ -1,6 +1,7 @@
 import { Alert, AlertTitle, IconButton, Snackbar } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type ForbiddenMessageProps = {
   message: string;
@@ -11,6 +12,7 @@ export default function ForbiddenMessage({
   message,
   autoHideDuration = 6000,
 }: ForbiddenMessageProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
 
   const handleClose = (_?: React.SyntheticEvent | Event, reason?: string) => {
@@ -30,7 +32,7 @@ export default function ForbiddenMessage({
         onClose={handleClose}
         action={
           <IconButton
-            aria-label="fermer"
+            aria-label={t('alerts.close')}
             size="small"
             onClick={() => setOpen(false)}
           >
@@ -39,7 +41,7 @@ export default function ForbiddenMessage({
         }
         sx={{ width: "100%" }}
       >
-        <AlertTitle>Action interdite</AlertTitle>
+        <AlertTitle>{t('alerts.actionForbidden')}</AlertTitle>
         {message}
       </Alert>
     </Snackbar>

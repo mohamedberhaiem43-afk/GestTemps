@@ -28,6 +28,7 @@ import useUpdateParTranche from '../../hooks/partrancheHooks/useUpdateParTranche
 import useUpdateSocHeures from '../../hooks/societeHooks/useUpdateSocHeures';
 import useGetParTranche from '../../hooks/partrancheHooks/useGetParTranche';
 import useGetSocHeures from '../../hooks/societeHooks/useGetSocHeures';
+import useGetCalendrier from '../../hooks/calendrierHooks/useGetCalendriers';
 import { Parametre } from '../../models/Parametre';
 import ParTranche from '../../models/ParTranche';
 import './ParamSocModern.css';
@@ -38,6 +39,7 @@ export default function ParamSocModern() {
   const { data: parametres, refetch } = useGetParametres();
   const { data: partranche } = useGetParTranche();
   const { data: socheures } = useGetSocHeures();
+  const { data: calendriers = {} } = useGetCalendrier();
 
   const updateParametreMutation = useUpdateParametres();
   const updateParTrancheMutation = useUpdateParTranche();
@@ -52,8 +54,7 @@ export default function ParamSocModern() {
   const [tranchesM, setTranchesM] = useState<ParTranche[]>([]);
   const [socHeuresData, setSocHeuresData] = useState({ socpresence: 'P', sochsup: 'P' });
 
-  // Liste des calendriers disponibles
-  const calendriersList = ['CAL001', 'CAL002', 'CAL003', 'CAL004', 'Standard', 'Aménagé', 'Flexible'];
+  const calendriersList = Object.entries(calendriers ?? {}).map(([caltype, callib]) => ({ caltype, callib }));
 
   useEffect(() => {
     if (parametres) setFormData(parametres);
@@ -317,7 +318,7 @@ export default function ParamSocModern() {
                           >
                             <MenuItem value="">{t('paramSoc.common.selectPlaceholder')}</MenuItem>
                             {calendriersList.map((cal) => (
-                              <MenuItem key={cal} value={cal}>{cal}</MenuItem>
+                              <MenuItem key={cal.caltype} value={cal.caltype}>{cal.callib || cal.caltype}</MenuItem>
                             ))}
                           </Select>
                         </td>
@@ -354,7 +355,7 @@ export default function ParamSocModern() {
                           >
                             <MenuItem value="">{t('paramSoc.common.selectPlaceholder')}</MenuItem>
                             {calendriersList.map((cal) => (
-                              <MenuItem key={cal} value={cal}>{cal}</MenuItem>
+                              <MenuItem key={cal.caltype} value={cal.caltype}>{cal.callib || cal.caltype}</MenuItem>
                             ))}
                           </Select>
                         </td>

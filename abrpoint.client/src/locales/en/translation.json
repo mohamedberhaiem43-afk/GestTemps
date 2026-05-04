@@ -1778,6 +1778,7 @@
         "hoursPerDay": "Hours per day",
         "saturdayHours": "Saturday (Hours)",
         "restDay": "Rest day",
+        "weeklyHours": "Hours per week",
         "applyAllMonths": "Apply to all months",
         "saveSettings": "Save settings",
         "initYear": "Initialize a year",
@@ -2018,7 +2019,23 @@
     "requiredFields": "Code and Label are required!",
     "added": "Company added successfully!",
     "addError": "Failed to add Company. Please try again.",
-    "updated": "Company updated successfully!"
+    "updated": "Company updated successfully!",
+    "updateError": "Failed to update company. Please try again.",
+    "parentCompany": "Parent company",
+    "address": "Address",
+    "phone": "Phone",
+    "fax": "Fax",
+    "email": "E-Mail",
+    "responsible": "Manager",
+    "regime": "Regime",
+    "smigValue": "SMIG value",
+    "hoursPerMonth": "Hours per month",
+    "ccb": "CCB no.",
+    "tvaCode": "VAT code",
+    "tvaCode1": "VAT code 1",
+    "tvaCode2": "VAT code 2",
+    "tvaCode3": "VAT code 3",
+    "tvaCode000": "VAT code 000"
   },
   "donneeBase": {
     "breadcrumb": "Base data",
@@ -4320,6 +4337,262 @@
         "sendFailed": "Failed to send. Please try again later."
       },
       "successMessage": "Your message was sent successfully. Our team will get back to you shortly."
+    }
+  },
+  "alerts": {
+    "actionForbidden": "Action forbidden",
+    "close": "Close"
+  },
+  "about": {
+    "nav": {
+      "pricing": "Pricing",
+      "current": "About",
+      "myDashboard": "My dashboard",
+      "login": "Sign in",
+      "freeTrial": "Free trial"
+    },
+    "hero": {
+      "kicker": "About Concorde",
+      "title1": "The workforce time platform",
+      "title2": "designed for HR teams",
+      "lead": "Concorde Workforce is a SaaS solution that digitizes and centralizes work-time management: clocking, attendance, leave, exit authorizations, schedules, sanctions, contracts and HR reporting.",
+      "leadIntro": "It ",
+      "leadStrong": "does not run payroll itself",
+      "leadEnd": " — it prepares monthly summaries that you can export to your existing payroll software."
+    },
+    "pillars": {
+      "punch": {
+        "title": "Multi-channel clocking",
+        "text": "Biometric devices, badge readers, web and mobile clock-in — every attendance source feeds the same register, geo-tagged and time-stamped."
+      },
+      "leave": {
+        "title": "Leave & exit authorizations",
+        "text": "Self-service requests, cascading manager approvals, balances computed in real time, and full per-employee history."
+      },
+      "schedule": {
+        "title": "Schedules and shifts",
+        "text": "Fine-grained modeling of time classes, work positions, public holidays and overtime rules — including night shifts and mixed regimes."
+      },
+      "reporting": {
+        "title": "HR reporting",
+        "text": "Attendance, absence, lateness, contract end-date and management dashboards — exportable to PDF / Excel at any time."
+      },
+      "secure": {
+        "title": "Compliant & secure",
+        "text": "TLS 1.3 in transit, AES-256 at rest, full access traceability, GDPR compliance and sovereign hosting."
+      },
+      "multi": {
+        "title": "Multi-company, multi-site",
+        "text": "A single deployment to run multiple legal entities, sites and branches — each with their own calendars and business rules."
+      }
+    },
+    "vision": {
+      "approachKicker": "Our approach",
+      "approachTitle": "Modelable business rules, not hardcoded",
+      "approachText": "Every company has its own conventions: arrival tolerance, overtime calculation, paid or unpaid public holidays, night-shift meal allowance, seniority required for certain rights… Concorde models all of this via company parameters and customizable schedules — no code to write, no export to rework.",
+      "tenantKicker": "Multi-tenant by design",
+      "tenantTitle": "One isolated instance per company",
+      "tenantText": "Each tenant has its own database, its own slug, and its own access scope. No data is ever shared across customers. Provisioning is automatic at signup with a 14-day free trial."
+    },
+    "cta": {
+      "title": "Want to try Concorde?",
+      "subtitle": "14-day free trial, no credit card required. You stay in control of your data at all times.",
+      "goDashboard": "Go to dashboard",
+      "startTrial": "Start free trial",
+      "viewPricing": "View pricing"
+    },
+    "footer": {
+      "brand": "Concorde Workforce",
+      "rights": "© {{year}} Concorde Workforce. All rights reserved."
+    }
+  },
+  "dashboardWidgets": {
+    "depassMax": {
+      "title": "Employees exceeding 12h on D-1",
+      "matricule": "Employee #",
+      "name": "Name",
+      "date": "Date",
+      "hours": "Hours",
+      "noData": "No employee over the limit"
+    }
+  },
+  "donneeDeBase": {
+    "common": {
+      "delete": "Delete",
+      "edit": "Edit",
+      "errorLoading": "Error while loading",
+      "saveError": "Error while saving",
+      "deleteError": "Error while deleting"
+    },
+    "direction": {
+      "code": "Code",
+      "label": "Label",
+      "location": "Location",
+      "email": "Email",
+      "responsible": "Manager",
+      "invalidEmail": "Invalid email",
+      "confirmDelete": "Are you sure you want to delete this direction?",
+      "addNew": "Add direction"
+    },
+    "service": {
+      "code": "Code",
+      "soccod": "Company code",
+      "label": "Label",
+      "external": "External",
+      "headcount": "Headcount",
+      "confirmDelete": "Are you sure you want to delete this service?",
+      "addNew": "Add service",
+      "importExcel": "Import Excel"
+    },
+    "filiale": {
+      "editTitle": "✏️ Edit branch",
+      "newTitle": "➕ New branch",
+      "code": "Branch code",
+      "name": "Branch name",
+      "phone": "Phone",
+      "fax": "Fax",
+      "address": "Address",
+      "email": "Email",
+      "monthlyHours": "Hours / month",
+      "leaveDays": "Leave days",
+      "mainSite": "Main site",
+      "exempt": "Exempt from TFP-FOP",
+      "saving": "Saving...",
+      "save": "Save",
+      "update": "Update",
+      "newBtn": "New",
+      "cancel": "Cancel",
+      "requiredFields": "Code and name are required.",
+      "saveSuccess": "Branch saved successfully!",
+      "updateSuccess": "Branch updated successfully!",
+      "saveError": "Error while saving.",
+      "updateError": "Error while updating.",
+      "list": {
+        "edit": "Edit",
+        "code": "Code",
+        "label": "Label",
+        "address": "Address",
+        "phone": "Phone",
+        "email": "Email",
+        "months": "Months",
+        "leaves": "Leave",
+        "society": "Company",
+        "confirmDelete": "Are you sure you want to delete this branch?"
+      }
+    },
+    "societe": {
+      "list": {
+        "actions": "Actions",
+        "edit": "Edit",
+        "code": "Code",
+        "label": "Label",
+        "type": "Type",
+        "phone": "Phone",
+        "fax": "Fax",
+        "email": "E-Mail",
+        "responsible": "Manager",
+        "address": "Address",
+        "confirmDelete": "Are you sure you want to delete this company?"
+      }
+    },
+    "utilisateur": {
+      "roles": "Roles",
+      "addRole": "Add a role",
+      "roleName": "Role name",
+      "roleDescOptional": "Description (optional)",
+      "cancel": "Cancel",
+      "create": "Create",
+      "search": "Search a role...",
+      "loading": "Loading...",
+      "systemRole": "System role",
+      "customRole": "Custom role",
+      "delete": "Delete",
+      "noRolesFound": "No role found",
+      "confirmDeleteRole": "Delete this role?",
+      "permissionsMatrix": "Permissions matrix",
+      "syncing": "Syncing...",
+      "save": "Save",
+      "module": "Module",
+      "consult": "Consult",
+      "add": "Add",
+      "modify": "Modify",
+      "deletePerm": "Delete",
+      "all": "All",
+      "permissionsLoading": "Loading permissions...",
+      "noRoleSelected": "No role selected",
+      "pleaseWait": "Please wait",
+      "selectRoleHint": "Select a role from the list to view and edit its permissions"
+    }
+  },
+  "employeeDashboard": {
+    "loading": "Loading...",
+    "greeting": "Hello, {{firstName}}.",
+    "weekSummary": "Here is a summary of your activity for the week of {{date}}.",
+    "newRequest": "New request",
+    "remainingLeave": "Remaining leave",
+    "daysAcquired": "/ {{count}} days acquired",
+    "daysAcquiredEmpty": "/ — days acquired",
+    "workTime": "Work time",
+    "workTarget": "h / {{target}}h",
+    "workTargetEmpty": "h / —",
+    "weekObjective": "{{percent}}% of weekly target",
+    "pending": "Pending",
+    "pendingRequests": "requests",
+    "nextReview": "Next review scheduled tomorrow",
+    "punchTracking": "Clocking history",
+    "week": "Week",
+    "month": "Month",
+    "hoursLabel": "HOURS",
+    "dailyTarget": "Target {{hours}}h/day",
+    "recentRequests": "Recent requests",
+    "viewAll": "View all",
+    "paidLeave": "Paid leave",
+    "validated": "Validated",
+    "pendingShort": "Pending",
+    "refused": "Refused",
+    "noRecentRequest": "No recent request",
+    "paySlips": "Pay slips",
+    "paySlipsSubtitle": "Browse my latest pay slips",
+    "vault": "Digital vault",
+    "vaultSubtitle": "Documents and signatures",
+    "internalSupport": "Internal support",
+    "internalSupportSubtitle": "Need administrative help?",
+    "hrNews": "HR news",
+    "remoteGuideTitle": "Remote-work policy guide 2024",
+    "remoteGuideText": "Discover the new flexibility rules effective from November 1st for all senior staff.",
+    "readDocument": "Read the document",
+    "defaultName": "Employee",
+    "serverTime": "Server time",
+    "gpsActive": "GPS Active",
+    "punchIn": "Clock in",
+    "attendanceMarked": "Attendance marked successfully!",
+    "attendanceError": "Error while clocking",
+    "activitySummary": "Activity summary",
+    "workTimeMobile": "Work time",
+    "workTimeOf": "/ 35h",
+    "leavesShort": "Leave",
+    "daysShort": "d.",
+    "requestsLabel": "Requests",
+    "punchTrackingMobile": "Clocking history",
+    "goalReached": "Target reached",
+    "inProgress": "In progress",
+    "legendStart": "0h",
+    "legendTarget": "Target: 8h/day",
+    "quickAccess": "Quick access",
+    "periodicReport": "Periodic report",
+    "periodicReportSubtitle": "HR reports & analytics",
+    "expenseNotes": "Expense notes",
+    "expenseSubtitle": "Submit a reimbursement",
+    "hrSupport": "HR support",
+    "hrSubtitle": "Help and assistance",
+    "weekdaysShort": {
+      "mon": "MON",
+      "tue": "TUE",
+      "wed": "WED",
+      "thu": "THU",
+      "fri": "FRI",
+      "sat": "SAT",
+      "sun": "SUN"
     }
   }
 }

@@ -8,7 +8,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
-import BottomTabBar from '../components/BottomTabBar';
+import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 import { withCacheFallback } from '../services/cache';
 
 type DayKey = 'lun' | 'mar' | 'mer' | 'jeu' | 'ven' | 'sam' | 'dim';
@@ -93,6 +93,7 @@ function dayTotalMinutes(slot: DaySlots): number {
 
 export default function ScheduleScreen({ navigation }: any) {
   const { user } = useAuth();
+  const tabBarPadding = useTabBarPadding();
   const [rows, setRows] = useState<HoraireRow[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -158,7 +159,7 @@ export default function ScheduleScreen({ navigation }: any) {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >

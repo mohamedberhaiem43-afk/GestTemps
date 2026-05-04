@@ -6,6 +6,7 @@ import {
   useMaterialReactTable,
 } from 'material-react-table';
 import { Box,Snackbar,Alert, CircularProgress, IconButton, Tooltip, Checkbox } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -16,6 +17,7 @@ import './Service.css'
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import ExcelImportButton from '../shared/ExcelImportButton';
 const Service = () => {
+  const { t } = useTranslation();
   const soccod = sessionStorage.getItem('soccod') || '01';
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const [editedServices, setEditedServices] = useState<Record<string, ServiceModel>>({});
@@ -26,7 +28,7 @@ const Service = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const openDeleteConfirmModal = (row: MRT_Row<ServiceModel>) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
+    if (window.confirm(t('donneeDeBase.service.confirmDelete'))) {
       apiInstance.delete(`/Services/${row.original.soccod}/${row.original.sercod}`)
         .then(() => {
           setServices((prev) => prev.filter((service) => service.sercod !== row.original.sercod));
@@ -53,7 +55,7 @@ const Service = () => {
   const columns = useMemo<MRT_ColumnDef<ServiceModel>[]>(() => [
     {
       accessorKey: 'sercod',
-      header: 'Code',
+      header: t('donneeDeBase.service.code'),
       size: 60,
       muiEditTextFieldProps: ({ cell }) => ({
         onBlur: (event) => {
@@ -72,7 +74,7 @@ const Service = () => {
     },
     {
       accessorKey: 'soccod',
-      header: 'Soc. Code',
+      header: t('donneeDeBase.service.soccod'),
       size: 60,
       muiEditTextFieldProps: ({ cell }) => ({
         onBlur: (event) => {
@@ -91,7 +93,7 @@ const Service = () => {
     },
     {
       accessorKey: 'serlib',
-      header: 'Libellé',
+      header: t('donneeDeBase.service.label'),
       size: 200,
       muiEditTextFieldProps: ({ cell }) => ({
         onBlur: (event) => {
@@ -110,7 +112,7 @@ const Service = () => {
     },
     {
       accessorKey: 'serloc',
-      header: 'Externe',
+      header: t('donneeDeBase.service.external'),
       size: 60,
       Cell: ({ cell }) => (
         <Checkbox
@@ -131,7 +133,7 @@ const Service = () => {
     },
     {
       accessorKey: 'effectif',
-      header: 'Effectif',
+      header: t('donneeDeBase.service.headcount'),
       size: 60,
       muiEditTextFieldProps: ({ cell }) => ({
         type: 'number',
@@ -149,7 +151,7 @@ const Service = () => {
         },
       }),
     },
-  ], []);
+  ], [t]);
 
  const handleSaveServices = async () => {
   if (Object.values(validationErrors).some((error) => !!error)) return;
@@ -215,7 +217,7 @@ const Service = () => {
     muiToolbarAlertBannerProps: isError
       ? {
           color: 'error',
-          children: 'Error loading data',
+          children: t('donneeDeBase.common.errorLoading'),
         }
       : undefined,
     muiTableContainerProps: {
@@ -233,7 +235,7 @@ const Service = () => {
     onCreatingRowSave: handleSaveServices,
     renderRowActions: ({ row }) => (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        <Tooltip title="Delete">
+        <Tooltip title={t('donneeDeBase.common.delete')}>
           <IconButton color="error" onClick={() => openDeleteConfirmModal(row)}>
             <DeleteIcon />
           </IconButton>
@@ -253,7 +255,7 @@ const Service = () => {
     ),
     renderTopToolbarCustomActions: ({ table }) => (
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-        <Tooltip title="Create New Service">
+        <Tooltip title={t('donneeDeBase.service.addNew')}>
           <IconButton
             color="primary"
             onClick={() => {
@@ -271,7 +273,7 @@ const Service = () => {
             // Refresh local list après import
             apiInstance.get(`/Services/get-services/${soccod}`).then(r => setServices(r.data)).catch(() => {});
           }}
-          label="Importer Excel"
+          label={t('donneeDeBase.service.importExcel')}
         />
       </Box>
     ),

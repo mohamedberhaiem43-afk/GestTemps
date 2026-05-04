@@ -9,7 +9,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
-import BottomTabBar from '../components/BottomTabBar';
+import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 import { withCacheFallback } from '../services/cache';
 import { captureCurrentPosition } from '../services/geolocation';
 
@@ -40,6 +40,7 @@ interface VaultDoc {
 
 export default function HomeScreen({ navigation }: any) {
   const { user, logout, isEmployee, isAdmin, isManager } = useAuth();
+  const tabBarPadding = useTabBarPadding();
   const [todayStatus, setTodayStatus] = useState<TodayStatus>({ hasEntry: false, hasExit: false });
   const [kpiSummary, setKpiSummary] = useState<KPISummary | null>(null);
   const [recentDocs, setRecentDocs] = useState<VaultDoc[]>([]);
@@ -245,7 +246,7 @@ export default function HomeScreen({ navigation }: any) {
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Welcome Section */}

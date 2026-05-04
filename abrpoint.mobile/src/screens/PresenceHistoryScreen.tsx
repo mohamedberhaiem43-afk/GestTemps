@@ -7,7 +7,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
-import BottomTabBar from '../components/BottomTabBar';
+import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 import { withCacheFallback } from '../services/cache';
 
 type DayStatus = 'present' | 'late' | 'absent' | 'repos' | 'conge' | 'ferier' | 'partial';
@@ -85,6 +85,7 @@ function formatHM(totalMinutes: number): string {
 
 export default function PresenceHistoryScreen({ navigation }: any) {
   const { user } = useAuth();
+  const tabBarPadding = useTabBarPadding();
   const today = useMemo(() => new Date(), []);
   const [refMonth, setRefMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [presences, setPresences] = useState<any[]>([]);
@@ -234,7 +235,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Calendrier compact */}

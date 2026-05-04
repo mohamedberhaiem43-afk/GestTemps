@@ -4,6 +4,7 @@ import {
     Paper, Typography, Divider, TextField, Snackbar, Alert
 } from '@mui/material';
 import { Save, Refresh, Cancel } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { FilialeList } from './FilialeList';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import useAddSite from '../../../hooks/siteHooks/useAddSite';
@@ -22,6 +23,7 @@ interface FilialeFormProps {
 
 function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
     const { soccod } = useAuth(); // ✅ HERE
+    const { t } = useTranslation();
 
     const emptyForm: FilialeModel = {
         sitcod: '',
@@ -74,17 +76,17 @@ function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
 
     const handleSubmit = () => {
         if (!formData.sitcod || !formData.sitlib) {
-            setSnackbar({ open: true, message: 'Le code et le nom sont obligatoires.', severity: 'error' });
+            setSnackbar({ open: true, message: t('donneeDeBase.filiale.requiredFields'), severity: 'error' });
             return;
         }
 
         const onSuccess = () => {
             refetch();
-            setSnackbar({ open: true, message: isEditMode ? 'Filiale modifiée avec succès !' : 'Filiale enregistrée avec succès !', severity: 'success' });
+            setSnackbar({ open: true, message: isEditMode ? t('donneeDeBase.filiale.updateSuccess') : t('donneeDeBase.filiale.saveSuccess'), severity: 'success' });
             handleReset();
         };
         const onError = () => {
-            setSnackbar({ open: true, message: isEditMode ? 'Erreur lors de la modification.' : "Erreur lors de l'enregistrement.", severity: 'error' });
+            setSnackbar({ open: true, message: isEditMode ? t('donneeDeBase.filiale.updateError') : t('donneeDeBase.filiale.saveError'), severity: 'error' });
         };
 
         if (isEditMode) {
@@ -97,14 +99,14 @@ function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
     return (
         <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
             <Typography variant="h6" fontWeight={600} mb={1} color="primary">
-                {isEditMode ? '✏️ Modifier la Filiale' : '➕ Nouvelle Filiale'}
+                {isEditMode ? t('donneeDeBase.filiale.editTitle') : t('donneeDeBase.filiale.newTitle')}
             </Typography>
             <Divider sx={{ mb: 3 }} />
 
             <Grid container spacing={2}>
                 <Grid item xs={2} sm={6} md={3}>
                     <TextField
-                        fullWidth size="small" label="Code Filiale" id="sitcod"
+                        fullWidth size="small" label={t('donneeDeBase.filiale.code')} id="sitcod"
                         value={formData.sitcod} onChange={handleChange}
                         disabled={isEditMode}
                         required
@@ -112,44 +114,44 @@ function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
                 </Grid>
                 <Grid item xs={3} sm={6} md={3}>
                     <TextField
-                        fullWidth size="small" label="Nom Filiale" id="sitlib"
+                        fullWidth size="small" label={t('donneeDeBase.filiale.name')} id="sitlib"
                         value={formData.sitlib} onChange={handleChange}
                         required
                     />
                 </Grid>
                 <Grid item xs={3} sm={6} md={3}>
                     <TextField
-                        fullWidth size="small" label="Téléphone" id="sittel"
+                        fullWidth size="small" label={t('donneeDeBase.filiale.phone')} id="sittel"
                         value={formData.sittel} onChange={handleChange}
                     />
                 </Grid>
                 <Grid item xs={3} sm={6} md={3}>
                     <TextField
-                        fullWidth size="small" label="Fax" id="sitfax"
+                        fullWidth size="small" label={t('donneeDeBase.filiale.fax')} id="sitfax"
                         value={formData.sitfax} onChange={handleChange}
                     />
                 </Grid>
                 <Grid item xs={3} sm={6} md={4}>
                     <TextField
-                        fullWidth size="small" label="Adresse" id="sitadr"
+                        fullWidth size="small" label={t('donneeDeBase.filiale.address')} id="sitadr"
                         value={formData.sitadr} onChange={handleChange}
                     />
                 </Grid>
                 <Grid item xs={3} sm={6} md={4}>
                     <TextField
-                        fullWidth size="small" label="Email" id="sitemail"
+                        fullWidth size="small" label={t('donneeDeBase.filiale.email')} id="sitemail"
                         type="email" value={formData.sitemail} onChange={handleChange}
                     />
                 </Grid>
                 <Grid item xs={1} sm={6} md={2}>
                     <TextField
-                        fullWidth size="small" label="Nb. Heures / Mois" id="sitmois"
+                        fullWidth size="small" label={t('donneeDeBase.filiale.monthlyHours')} id="sitmois"
                         type="number" value={formData.sitmois} onChange={handleChange}
                     />
                 </Grid>
                 <Grid item xs={2} sm={6} md={2}>
                     <TextField
-                        fullWidth size="small" label="Nb. Congés" id="sitconge"
+                        fullWidth size="small" label={t('donneeDeBase.filiale.leaveDays')} id="sitconge"
                         type="number" value={formData.sitconge} onChange={handleChange}
                     />
                 </Grid>
@@ -158,13 +160,13 @@ function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
                 <Grid item xs={1} sm={6} md={3}>
                     <FormControlLabel
                         control={<Checkbox size="small" checked={sitPrincipale} onChange={e => setSitPrincipale(e.target.checked)} />}
-                        label="Site Principal"
+                        label={t('donneeDeBase.filiale.mainSite')}
                     />
                 </Grid>
                 <Grid item xs={1} sm={6} md={3}>
                     <FormControlLabel
                         control={<Checkbox size="small" checked={exonere} onChange={e => setExonere(e.target.checked)} />}
-                        label="Exonéré de TFP-FOP"
+                        label={t('donneeDeBase.filiale.exempt')}
                     />
                 </Grid>
             </Grid>
@@ -176,14 +178,14 @@ function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
                     onClick={handleSubmit} disabled={isLoading}
                     size="small"
                 >
-                    {isLoading ? 'Enregistrement...' : isEditMode ? 'Modifier' : 'Enregistrer'}
+                    {isLoading ? t('donneeDeBase.filiale.saving') : isEditMode ? t('donneeDeBase.filiale.update') : t('donneeDeBase.filiale.save')}
                 </Button>
                 <Button
                     variant="outlined" startIcon={<Refresh />}
                     onClick={handleReset} disabled={isLoading}
                     size="small"
                 >
-                    Nouveau
+                    {t('donneeDeBase.filiale.newBtn')}
                 </Button>
                 {isEditMode && (
                     <Button
@@ -191,7 +193,7 @@ function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
                         onClick={handleReset} disabled={isLoading}
                         size="small"
                     >
-                        Annuler
+                        {t('donneeDeBase.filiale.cancel')}
                     </Button>
                 )}
             </Box>

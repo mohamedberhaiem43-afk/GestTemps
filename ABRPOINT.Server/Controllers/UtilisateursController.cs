@@ -4,6 +4,7 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,16 +29,19 @@ namespace GestionDesTickets.Server.Controllers
         private readonly IUtilisateurRepository _utilisateurRepository;
         private readonly IConfiguration _configuration;
         private readonly ICurrentTenant _currentTenant;
+        private readonly EncryptionService _encryptionService;
         public UtilisateursController(
             IConfiguration configuration,
             ApplicationDbContext dbContext,
             IUtilisateurRepository utilisateurRepository,
-            ICurrentTenant currentTenant)
+            ICurrentTenant currentTenant,
+            EncryptionService encryptionService)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
             _currentTenant = currentTenant;
+            _encryptionService = encryptionService;
         }
         private bool IsHttpsRequest()
         {
@@ -700,6 +704,17 @@ namespace GestionDesTickets.Server.Controllers
             try
             {
                 UtiProfile profile = await _utilisateurRepository.GetProfileAsync(soccod,uticod);
+
+                // Empcin / Emptel / Empsbase / Empsbrut / Empsnet sont stockés chiffrés AES en base
+                // (cf. EmployesController.cs:353-357 où la même règle est appliquée à GET /Employes).
+                // Sans déchiffrement ici, le mobile affichait du base64 illisible dans la fiche profil
+                // (« CIN », « Téléphone fixe »). On déchiffre côté serveur pour garder la clé hors du client.
+                if (profile?.Employee != null)
+                {
+                    profile.Employee.Empcin = _encryptionService.Decrypt(profile.Employee.Empcin);
+                    profile.Employee.Emptel = _encryptionService.Decrypt(profile.Employee.Emptel);
+                }
+
                 return profile;
             }
             catch (Exception)

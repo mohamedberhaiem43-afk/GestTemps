@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 import useGetProfile from '../../hooks/profileHooks/useGetProfile';
 import useGetMyKPIs from '../../hooks/useGetMyKPIs';
@@ -13,6 +14,7 @@ dayjs.locale('fr');
 
 export default function EmployeeDashboardMobile() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { userName, soccod, uticod, isAdmin } = useAuth();
   const [serverTime, setServerTime] = useState(dayjs().format('HH:mm'));
 
@@ -41,10 +43,10 @@ export default function EmployeeDashboardMobile() {
       },
       {
         onSuccess: () => {
-          setSnackbar({ open: true, message: 'Présence marquée avec succès !', severity: 'success' });
+          setSnackbar({ open: true, message: t('employeeDashboard.attendanceMarked'), severity: 'success' });
         },
         onError: (err: any) => {
-          setSnackbar({ open: true, message: err?.response?.data?.message || 'Erreur lors du pointage', severity: 'error' });
+          setSnackbar({ open: true, message: err?.response?.data?.message || t('employeeDashboard.attendanceError'), severity: 'error' });
         }
       }
     );
@@ -72,7 +74,7 @@ export default function EmployeeDashboardMobile() {
   }, [kpiData]);
 
   const today = dayjs().format('dddd, D MMMM');
-  const firstName = userName?.split(' ')[0] || profile?.emplib?.split(' ')[0] || 'Employé';
+  const firstName = userName?.split(' ')[0] || profile?.emplib?.split(' ')[0] || t('employeeDashboard.defaultName');
 
   return (
     <div className="bg-[#f7f9fb] min-h-screen font-['Inter'] text-[#191c1e] pb-24">
@@ -81,7 +83,7 @@ export default function EmployeeDashboardMobile() {
         <section className="mb-8">
           <p className="font-['Inter'] uppercase tracking-wider text-slate-500 text-[10px] font-bold mb-1">{today}</p>
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-['Manrope'] font-extrabold text-[#191c1e] tracking-tight">Bonjour, {firstName}</h1>
+            <h1 className="text-3xl font-['Manrope'] font-extrabold text-[#191c1e] tracking-tight">{t('employeeDashboard.greeting', { firstName }).replace('.', '')}</h1>
             {loadingKPIs && <CircularProgress size={20} sx={{ color: '#0040a1' }} />}
           </div>
         </section>
@@ -92,12 +94,12 @@ export default function EmployeeDashboardMobile() {
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-10">
                 <div>
-                  <span className="font-['Inter'] text-[10px] font-semibold uppercase tracking-widest text-white/70">Heure Serveur</span>
+                  <span className="font-['Inter'] text-[10px] font-semibold uppercase tracking-widest text-white/70">{t('employeeDashboard.serverTime')}</span>
                   <div className="text-4xl font-['Manrope'] font-extrabold text-white mt-1">{serverTime}</div>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-md">
                   <span className="material-symbols-outlined text-[14px] text-white">location_on</span>
-                  <span className="text-[10px] font-['Inter'] font-bold text-white tracking-wide uppercase">GPS Actif</span>
+                  <span className="text-[10px] font-['Inter'] font-bold text-white tracking-wide uppercase">{t('employeeDashboard.gpsActive')}</span>
                 </div>
               </div>
               <button
@@ -110,7 +112,7 @@ export default function EmployeeDashboardMobile() {
                 ) : (
                   <>
                     <span className="material-symbols-outlined">login</span>
-                    Pointer l'entrée
+                    {t('employeeDashboard.punchIn')}
                   </>
                 )}
               </button>
@@ -124,17 +126,17 @@ export default function EmployeeDashboardMobile() {
         {/* Summary Grid */}
         <section className="mb-10">
           <div className="flex items-end justify-between mb-4">
-            <h2 className="font-['Manrope'] font-bold text-lg">Résumé d'activité</h2>
-            <span className="font-['Inter'] text-[10px] uppercase font-bold text-[#0040a1] tracking-tighter">Voir tout</span>
+            <h2 className="font-['Manrope'] font-bold text-lg">{t('employeeDashboard.activitySummary')}</h2>
+            <span className="font-['Inter'] text-[10px] uppercase font-bold text-[#0040a1] tracking-tighter">{t('employeeDashboard.viewAll')}</span>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {/* Worked Hours (Full width) */}
             <div className="col-span-2 bg-white p-5 rounded-2xl flex items-center justify-between border border-slate-100 shadow-sm">
               <div>
-                <span className="font-['Inter'] text-[10px] uppercase font-bold text-slate-400 tracking-wider">Temps de Travail</span>
+                <span className="font-['Inter'] text-[10px] uppercase font-bold text-slate-400 tracking-wider">{t('employeeDashboard.workTimeMobile')}</span>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl font-['Manrope'] font-extrabold">{kpis.worked.toFixed(1)}h</span>
-                  <span className="text-sm font-['Inter'] text-slate-400">/ 35h</span>
+                  <span className="text-sm font-['Inter'] text-slate-400">{t('employeeDashboard.workTimeOf')}</span>
                 </div>
               </div>
               <div className="w-14 h-14 relative flex items-center justify-center">
@@ -157,8 +159,8 @@ export default function EmployeeDashboardMobile() {
               <div className="w-10 h-10 bg-blue-50 text-[#0040a1] rounded-xl flex items-center justify-center mb-3">
                 <span className="material-symbols-outlined">event_available</span>
               </div>
-              <span className="font-['Inter'] text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Congés</span>
-              <div className="text-xl font-['Manrope'] font-extrabold mt-1">{kpis.solde.toFixed(1)} j.</div>
+              <span className="font-['Inter'] text-[10px] uppercase font-bold text-slate-400 tracking-wider block">{t('employeeDashboard.leavesShort')}</span>
+              <div className="text-xl font-['Manrope'] font-extrabold mt-1">{kpis.solde.toFixed(1)} {t('employeeDashboard.daysShort')}</div>
             </div>
 
             {/* Pending Requests */}
@@ -169,7 +171,7 @@ export default function EmployeeDashboardMobile() {
               <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-3">
                 <span className="material-symbols-outlined">pending_actions</span>
               </div>
-              <span className="font-['Inter'] text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Demandes</span>
+              <span className="font-['Inter'] text-[10px] uppercase font-bold text-slate-400 tracking-wider block">{t('employeeDashboard.requestsLabel')}</span>
               <div className="text-xl font-['Manrope'] font-extrabold mt-1">
                 {loadingLeaves ? '...' : (leaveRequests?.length || 0).toString().padStart(2, '0')}
               </div>
@@ -181,9 +183,9 @@ export default function EmployeeDashboardMobile() {
         <section className="mb-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="font-['Manrope'] font-bold text-md">Suivi de Pointage</h2>
+              <h2 className="font-['Manrope'] font-bold text-md">{t('employeeDashboard.punchTrackingMobile')}</h2>
               <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[9px] font-bold uppercase rounded-full">
-                {kpis.workedPercent >= 100 ? 'Objectif Atteint' : 'En progression'}
+                {kpis.workedPercent >= 100 ? t('employeeDashboard.goalReached') : t('employeeDashboard.inProgress')}
               </span>
             </div>
             {/* Bar chart area */}
@@ -211,15 +213,15 @@ export default function EmployeeDashboardMobile() {
             </div>
             {/* Hours legend */}
             <div className="flex justify-between mt-3 px-1">
-              <span className="text-[9px] text-slate-400 font-['Inter']">0h</span>
-              <span className="text-[9px] text-slate-400 font-['Inter']">Objectif : 8h/jour</span>
+              <span className="text-[9px] text-slate-400 font-['Inter']">{t('employeeDashboard.legendStart')}</span>
+              <span className="text-[9px] text-slate-400 font-['Inter']">{t('employeeDashboard.legendTarget')}</span>
             </div>
           </div>
         </section>
 
         {/* Quick Access Section */}
         <section className="mb-10">
-          <h2 className="font-['Manrope'] font-bold text-lg mb-4">Accès Rapide</h2>
+          <h2 className="font-['Manrope'] font-bold text-lg mb-4">{t('employeeDashboard.quickAccess')}</h2>
           <div className="grid grid-cols-1 gap-4">
             {isAdmin && (
               <button
@@ -230,8 +232,8 @@ export default function EmployeeDashboardMobile() {
                   <span className="material-symbols-outlined text-2xl">analytics</span>
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-bold">État Périodique</p>
-                  <p className="text-xs text-purple-600/70">Rapports et analyses RH</p>
+                  <p className="text-sm font-bold">{t('employeeDashboard.periodicReport')}</p>
+                  <p className="text-xs text-purple-600/70">{t('employeeDashboard.periodicReportSubtitle')}</p>
                 </div>
               </button>
             )}
@@ -243,8 +245,8 @@ export default function EmployeeDashboardMobile() {
                 <span className="material-symbols-outlined text-2xl">receipt_long</span>
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold">Bulletins de paie</p>
-                <p className="text-xs opacity-70">Consulter mes derniers bulletins</p>
+                <p className="text-sm font-bold">{t('employeeDashboard.paySlips')}</p>
+                <p className="text-xs opacity-70">{t('employeeDashboard.paySlipsSubtitle')}</p>
               </div>
             </button>
             <button
@@ -255,8 +257,8 @@ export default function EmployeeDashboardMobile() {
                 <span className="material-symbols-outlined text-2xl">shield</span>
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold">Coffre-fort Numérique</p>
-                <p className="text-xs text-slate-500">Documents et signatures</p>
+                <p className="text-sm font-bold">{t('employeeDashboard.vault')}</p>
+                <p className="text-xs text-slate-500">{t('employeeDashboard.vaultSubtitle')}</p>
               </div>
             </button>
             <button
@@ -267,8 +269,8 @@ export default function EmployeeDashboardMobile() {
                 <span className="material-symbols-outlined text-2xl">receipt</span>
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold">Notes de Frais</p>
-                <p className="text-xs text-orange-600/70">Saisir un remboursement</p>
+                <p className="text-sm font-bold">{t('employeeDashboard.expenseNotes')}</p>
+                <p className="text-xs text-orange-600/70">{t('employeeDashboard.expenseSubtitle')}</p>
               </div>
             </button>
             <button
@@ -279,8 +281,8 @@ export default function EmployeeDashboardMobile() {
                 <span className="material-symbols-outlined text-2xl">support_agent</span>
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold">Support RH</p>
-                <p className="text-xs text-emerald-600/70">Aide et assistance</p>
+                <p className="text-sm font-bold">{t('employeeDashboard.hrSupport')}</p>
+                <p className="text-xs text-emerald-600/70">{t('employeeDashboard.hrSubtitle')}</p>
               </div>
             </button>
           </div>

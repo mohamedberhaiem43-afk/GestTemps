@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
+import { useTranslation } from 'react-i18next';
 import { Societe } from '../../../models/Societe';
 import DataList from '../../lists/list';
 import useGetSocietes from '../../../hooks/societeHooks/useGetSocietes';
@@ -12,6 +13,7 @@ interface SocieteListProps {
 }
 
 export function SocieteList({ onEdit }: SocieteListProps) {
+    const { t } = useTranslation();
     const { mutate: deleteSociete } = useDeleteSociete();
     const { data: Societes = [],refetch } = useGetSocietes();
 
@@ -21,10 +23,10 @@ export function SocieteList({ onEdit }: SocieteListProps) {
         () => [
              {
                 id: 'actions',
-                header: 'Actions',
+                header: t('donneeDeBase.societe.list.actions'),
                 size: 80,
                 Cell: ({ row }) => (
-                    <Tooltip title="Modifier">
+                    <Tooltip title={t('donneeDeBase.societe.list.edit')}>
                         <IconButton size="small" onClick={() => onEdit(row.original)}>
                             <Edit fontSize="small" />
                         </IconButton>
@@ -33,54 +35,54 @@ export function SocieteList({ onEdit }: SocieteListProps) {
             },
             {
                 accessorKey: 'soccod',
-                header: 'Code',
+                header: t('donneeDeBase.societe.list.code'),
                 size: 60,
             },
             {
                 accessorKey: 'soclib',
-                header: 'Libellé',
+                header: t('donneeDeBase.societe.list.label'),
                 size: 300,
             },
             {
                 accessorKey: 'soctype',
-                header: 'Type',
+                header: t('donneeDeBase.societe.list.type'),
                 size: 60,
             },
             {
                 accessorKey: 'soctel',
-                header: 'Tél',
+                header: t('donneeDeBase.societe.list.phone'),
                 size: 100,
             },
             {
                 accessorKey: 'socfax',
-                header: 'Fax',
+                header: t('donneeDeBase.societe.list.fax'),
                 size: 100,
             },
             {
                 accessorKey: 'socemail',
-                header: 'E-Mail',
+                header: t('donneeDeBase.societe.list.email'),
                 size: 100,
             },
             {
                 accessorKey: 'socresp',
-                header: 'Responsable',
+                header: t('donneeDeBase.societe.list.responsible'),
                 size: 60,
             },
             {
                 accessorKey: 'socadr',
-                header: 'Adresse',
+                header: t('donneeDeBase.societe.list.address'),
                 size: 350,
             }
         ],
-        [onEdit]
+        [onEdit, t]
     );
 
     return (
         <>
-        <DataList 
+        <DataList
                 data={Societes}
                 columns={columns}
-                message="Êtes-vous sûr de vouloir supprimer cette Societe ?"
+                message={t('donneeDeBase.societe.list.confirmDelete')}
                 deleteMethod={deleteSociete}
                 refetchMethod={refetch}
                 idKey="soccod" reportGeneration1={undefined} reportGeneration2={undefined} reportGeneration3={undefined}

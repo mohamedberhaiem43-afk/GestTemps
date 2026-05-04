@@ -8,7 +8,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
-import BottomTabBar from '../components/BottomTabBar';
+import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 import { withCacheFallback } from '../services/cache';
 
 interface HolidayRow {
@@ -58,6 +58,7 @@ function formatRelative(d: number): string {
 
 export default function HolidaysScreen({ navigation }: any) {
   const { user } = useAuth();
+  const tabBarPadding = useTabBarPadding();
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
@@ -143,7 +144,7 @@ export default function HolidaysScreen({ navigation }: any) {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >

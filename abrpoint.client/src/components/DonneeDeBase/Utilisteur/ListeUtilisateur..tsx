@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useTranslation } from 'react-i18next';
 import { useUserContext } from '../../helper/UserProvider';
 import RolesService from '../../../services/RolesService/RolesService';
 import { Role, ROLE_COLORS } from '../../../models/Role';
 import { Search, People, Add, Delete, Check } from '@mui/icons-material';
 
 export default function ListeUtilisateur() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { selectedRole, setSelectedRole } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +50,7 @@ export default function ListeUtilisateur() {
   const handleDeleteRole = (e: React.MouseEvent, roleId: number, isSystem: boolean) => {
     e.stopPropagation();
     if (isSystem) return;
-    if (confirm('Supprimer ce rôle ?')) deleteMutation.mutate(roleId);
+    if (confirm(t('donneeDeBase.utilisateur.confirmDeleteRole'))) deleteMutation.mutate(roleId);
   };
 
   return (
@@ -56,9 +58,9 @@ export default function ListeUtilisateur() {
       <div className="aut-user-panel-header">
         <h3 className="aut-user-panel-title">
           <People sx={{ fontSize: 18, mr: 0.5 }} />
-          Rôles
+          {t('donneeDeBase.utilisateur.roles')}
         </h3>
-        <button className="aut-role-add-btn" onClick={() => setShowAddForm(!showAddForm)} title="Ajouter un rôle">
+        <button className="aut-role-add-btn" onClick={() => setShowAddForm(!showAddForm)} title={t('donneeDeBase.utilisateur.addRole')}>
           <Add sx={{ fontSize: 18 }} />
         </button>
       </div>
@@ -69,14 +71,14 @@ export default function ListeUtilisateur() {
           <input
             className="aut-role-form-input"
             type="text"
-            placeholder="Nom du rôle"
+            placeholder={t('donneeDeBase.utilisateur.roleName')}
             value={newRoleName}
             onChange={(e) => setNewRoleName(e.target.value)}
           />
           <input
             className="aut-role-form-input"
             type="text"
-            placeholder="Description (optionnel)"
+            placeholder={t('donneeDeBase.utilisateur.roleDescOptional')}
             value={newRoleDesc}
             onChange={(e) => setNewRoleDesc(e.target.value)}
           />
@@ -91,9 +93,9 @@ export default function ListeUtilisateur() {
             ))}
           </div>
           <div className="aut-role-form-actions">
-            <button className="aut-role-form-cancel" onClick={() => setShowAddForm(false)}>Annuler</button>
+            <button className="aut-role-form-cancel" onClick={() => setShowAddForm(false)}>{t('donneeDeBase.utilisateur.cancel')}</button>
             <button className="aut-role-form-save" onClick={handleAddRole} disabled={!newRoleName.trim()}>
-              <Check sx={{ fontSize: 14 }} /> Créer
+              <Check sx={{ fontSize: 14 }} /> {t('donneeDeBase.utilisateur.create')}
             </button>
           </div>
         </div>
@@ -108,7 +110,7 @@ export default function ListeUtilisateur() {
           <input
             className="aut-filter-input"
             type="text"
-            placeholder="Rechercher un rôle..."
+            placeholder={t('donneeDeBase.utilisateur.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -118,7 +120,7 @@ export default function ListeUtilisateur() {
       {/* Roles List */}
       <div className="aut-user-list">
         {isLoading ? (
-          <div className="aut-loading"><div className="aut-spinner" /> Chargement...</div>
+          <div className="aut-loading"><div className="aut-spinner" /> {t('donneeDeBase.utilisateur.loading')}</div>
         ) : (
           filteredRoles.map((role: Role) => (
             <div
@@ -153,14 +155,14 @@ export default function ListeUtilisateur() {
                   )}
                 </div>
                 <div className="aut-user-email" style={{ fontSize: '11px' }}>
-                  {role.roleDescription || (role.roleIsSystem ? 'Rôle système' : 'Rôle personnalisé')}
+                  {role.roleDescription || (role.roleIsSystem ? t('donneeDeBase.utilisateur.systemRole') : t('donneeDeBase.utilisateur.customRole'))}
                 </div>
               </div>
               {!role.roleIsSystem && (
                 <button
                   className="aut-role-delete-btn"
                   onClick={(e) => handleDeleteRole(e, role.roleId!, false)}
-                  title="Supprimer"
+                  title={t('donneeDeBase.utilisateur.delete')}
                 >
                   <Delete sx={{ fontSize: 14 }} />
                 </button>
@@ -170,7 +172,7 @@ export default function ListeUtilisateur() {
         )}
         {filteredRoles.length === 0 && !isLoading && (
           <div className="aut-loading" style={{ padding: '24px' }}>
-            Aucun rôle trouvé
+            {t('donneeDeBase.utilisateur.noRolesFound')}
           </div>
         )}
       </div>
