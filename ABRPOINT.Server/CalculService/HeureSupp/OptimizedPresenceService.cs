@@ -374,6 +374,13 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
     Accumulators acc,HashSet<string> countedSanctions,HashSet<string> countedConges,IDictionary<string, string> weekDetails,string soccod,string empcod,
     DateTime debutReelDate,DateTime? empemb, DateTime? empsort, string? empferepos = "0")
         {
+            // 🆕 Skip future dates entirely — un jour qui n'est pas encore arrivé ne peut
+            // pas compter comme une absence (ni dans nbJours, ni dans totalAbsence,
+            // ni dans absnj/absnp). On n'ajoute même pas l'entrée weekDetails pour que
+            // l'UI n'affiche pas la journée future comme « Absent ».
+            if (date.Date > DateTime.Today)
+                return;
+
             // 🆕 Helper function to check if date is within employment period
             bool IsWithinEmploymentPeriod(DateTime checkDate)
             {

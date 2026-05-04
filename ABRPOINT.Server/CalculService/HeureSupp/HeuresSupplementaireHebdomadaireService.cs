@@ -262,6 +262,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     if (startDate == null || endDate == null)
                         break;
 
+                    // 🆕 Stop processing weeks that haven't started yet — pas de "semaines fantômes"
+                    // remplies de zéros (ou pire, comptées comme absences) pour des semaines
+                    // entièrement dans le futur.
+                    if (startDate.Value.Date > DateTime.Today)
+                        break;
+
                     result.NbhCalendSem = hours;
                     result.WeekStartDate = startDate;
                     result.WeekEndDate = endDate;

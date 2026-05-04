@@ -104,7 +104,6 @@ const WEEK_COLS: Array<{ key: string; fmt?: (v: number) => string }> = [
   { key: 'nbJourFerier' },
   { key: 'hreAllaitement' },
   { key: 'absnp' },
-  { key: 'caltype' },
   { key: 'totalAbsence' },
   { key: 'nbJourPointer' },
   { key: 'panier' },
@@ -160,6 +159,7 @@ function PointageDuMoisContent() {
   const [selectedWeekDetails, setSelectedWeekDetails] = useState<Record<string, string> | null>(null);
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'info' as any });
   const [openAlertsDialog, setOpenAlertsDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [treatedAlerts, setTreatedAlerts] = useState<Record<string, 'traite' | 'ignore'>>({});
   const [alertFilter, setAlertFilter] = useState<'all' | 'retard' | 'absnj'>('all');
 
@@ -254,8 +254,7 @@ function PointageDuMoisContent() {
     if (!selectedEmp?.heuresSupplementairesResultats) return null;
     return selectedEmp.heuresSupplementairesResultats.reduce((acc, r) => {
       WEEK_COLS.forEach(({ key }) => {
-        if (key === 'caltype') { acc[key] = (acc[key] ?? '') + (r[key as keyof typeof r] ?? ''); }
-        else if (key === 'retard') { acc[key] = (acc[key] ?? 0) + (r.retard ?? 0); }
+        if (key === 'retard') { acc[key] = (acc[key] ?? 0) + (r.retard ?? 0); }
         else { acc[key] = (acc[key] ?? 0) + (Number(r[key as keyof typeof r]) || 0); }
       });
       return acc;
@@ -553,7 +552,7 @@ function PointageDuMoisContent() {
                   return (
                     <Box key={emp.empCode}
                       className={`pdm-mobile-card${isSelected ? ' pdm-mobile-card--selected' : ''}`}
-                      onClick={() => setSelectedEmp(isSelected ? null : emp)}>
+                      onClick={() => { setSelectedEmp(emp); setOpenDetailDialog(true); }}>
                       <Box className="pdm-mobile-card-top">
                         <Avatar className="pdm-avatar">{emp.empLib?.charAt(0) ?? '?'}</Avatar>
                         <Box className="pdm-mobile-card-info">
@@ -617,7 +616,7 @@ function PointageDuMoisContent() {
                       const isSelected = selectedEmp?.empCode === emp.empCode;
                       return (
                         <tr key={emp.empCode} className={isSelected ? 'pdm-row--selected' : ''}
-                          onClick={() => setSelectedEmp(isSelected ? null : emp)}
+                          onClick={() => { setSelectedEmp(emp); setOpenDetailDialog(true); }}
                           style={{ cursor: 'pointer' }}>
                           <td>
                             <Box className="pdm-emp-cell">
@@ -667,64 +666,7 @@ function PointageDuMoisContent() {
             </Box>
           </Paper>
 
-          {/* ── Detail table for selected employee ── */}
-          {selectedEmp && (
-            <Paper className="pdm-detail-card" elevation={0}>
-              <Box className="pdm-detail-header">
-                <Typography className="pdm-detail-title">
-                  {t('pointageMois.detail.title', { name: selectedEmp.empLib })}
-                </Typography>
-                <Typography className="pdm-detail-hint">{t('pointageMois.detail.hint')}</Typography>
-              </Box>
-              <TableContainer sx={{ maxHeight: 320 }}>
-                <Table size="small" stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654' }}>{t('pointageMois.detail.weekShort')}</TableCell>
-                      {WEEK_COLS.map(c => (
-                        <TableCell key={c.key} sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654', whiteSpace: 'nowrap' }}>
-                          {t(`pointageMois.detail.columns.${c.key}`)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {selectedEmp.heuresSupplementairesResultats?.map((r, idx) => (
-                      <TableRow key={idx} hover sx={{ cursor: 'pointer' }}
-                        onDoubleClick={() => { setNumSem(idx + 1); setSelectedWeekDetails(r.weekDetails as any); setOpenDialog(true); }}>
-                        <TableCell sx={{ fontWeight: 700 }}>{idx + 1}</TableCell>
-                        {WEEK_COLS.map(c => (
-                          <TableCell key={c.key} sx={{ fontSize: 12 }}>
-                            {c.key === 'retard'
-                              ? fmtMin(r.retard ?? 0)
-                              : c.key === 'caltype'
-                              ? (r.caltype ?? '0')
-                              : c.fmt
-                              ? c.fmt(Number(r[c.key as keyof typeof r]) || 0)
-                              : (Number(r[c.key as keyof typeof r]) || 0).toFixed(2)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                    {totals && (
-                      <TableRow sx={{ backgroundColor: '#eff6ff' }}>
-                        <TableCell sx={{ fontWeight: 800, color: '#0040a1' }}>{t('pointageMois.detail.total')}</TableCell>
-                        {WEEK_COLS.map(c => (
-                          <TableCell key={c.key} sx={{ fontWeight: 700, color: '#0040a1', fontSize: 12 }}>
-                            {c.key === 'retard'
-                              ? fmtMin(totals.retard ?? 0)
-                              : c.key === 'caltype'
-                              ? String(totals.caltype ?? '').slice(-2)
-                              : (Number(totals[c.key]) || 0).toFixed(2)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
-          )}
+          {/* Detail table for selected employee — shown in popup, see <Dialog> below */}
 
           {/* ── Summary Cards ── */}
           <Box className="pdm-summary-grid" sx={{ gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: { xs: 2, md: 4 } }}>
@@ -831,6 +773,69 @@ function PointageDuMoisContent() {
           </Box>
         </>
       )}
+
+      {/* ── Employee weekly breakdown dialog ── */}
+      <Dialog open={openDetailDialog && !!selectedEmp} onClose={() => setOpenDetailDialog(false)} maxWidth="xl" fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Manrope, sans-serif', fontWeight: 800 }}>
+          <Box>
+            <Typography sx={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+              {selectedEmp ? t('pointageMois.detail.title', { name: selectedEmp.empLib }) : ''}
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: '#64748b', fontWeight: 500, mt: 0.5 }}>
+              {t('pointageMois.detail.hint')}
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setOpenDetailDialog(false)}><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {selectedEmp && (
+            <TableContainer sx={{ maxHeight: '65vh' }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654' }}>{t('pointageMois.detail.weekShort')}</TableCell>
+                    {WEEK_COLS.map(c => (
+                      <TableCell key={c.key} sx={{ backgroundColor: '#e6e8ea', fontWeight: 700, fontSize: 11, color: '#424654', whiteSpace: 'nowrap' }}>
+                        {t(`pointageMois.detail.columns.${c.key}`)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {selectedEmp.heuresSupplementairesResultats?.map((r, idx) => (
+                    <TableRow key={idx} hover sx={{ cursor: 'pointer' }}
+                      onDoubleClick={() => { setNumSem(idx + 1); setSelectedWeekDetails(r.weekDetails as any); setOpenDialog(true); }}>
+                      <TableCell sx={{ fontWeight: 700 }}>{idx + 1}</TableCell>
+                      {WEEK_COLS.map(c => (
+                        <TableCell key={c.key} sx={{ fontSize: 12 }}>
+                          {c.key === 'retard'
+                            ? fmtMin(r.retard ?? 0)
+                            : c.fmt
+                            ? c.fmt(Number(r[c.key as keyof typeof r]) || 0)
+                            : (Number(r[c.key as keyof typeof r]) || 0).toFixed(2)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                  {totals && (
+                    <TableRow sx={{ backgroundColor: '#eff6ff' }}>
+                      <TableCell sx={{ fontWeight: 800, color: '#0040a1' }}>{t('pointageMois.detail.total')}</TableCell>
+                      {WEEK_COLS.map(c => (
+                        <TableCell key={c.key} sx={{ fontWeight: 700, color: '#0040a1', fontSize: 12 }}>
+                          {c.key === 'retard'
+                            ? fmtMin(totals.retard ?? 0)
+                            : (Number(totals[c.key]) || 0).toFixed(2)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Week detail dialog ── */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth
