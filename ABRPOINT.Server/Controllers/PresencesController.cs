@@ -178,7 +178,11 @@ namespace ABRPOINT.Server.Controllers
             [FromQuery] string? poicod = null,
             [FromQuery] double? lat = null,
             [FromQuery] double? lon = null,
-            [FromQuery] double? acc = null)
+            [FromQuery] double? acc = null,
+            // Horodatage côté client (téléphone). Le mobile envoie l'instant local de
+            // l'utilisateur — c'est sa montre qui fait foi, pas l'horloge du serveur
+            // (qui peut être dans un autre fuseau ou désynchronisée).
+            [FromQuery] DateTime? clientTime = null)
         {
             try
             {
@@ -218,7 +222,11 @@ namespace ABRPOINT.Server.Controllers
                     }
                 }
 
-                var result = await _presenceRepository.AddPresenceAsync(soccod, empcod, DateTime.Now, poicod ?? "");
+                // Si le mobile fournit un horodatage local, on s'en sert (DateTimeKind.Local
+                // après bind ASP.NET) ; sinon repli sur l'horloge serveur pour les anciens
+                // clients ou les pointages déclenchés via web.
+                var stamp = clientTime ?? DateTime.Now;
+                var result = await _presenceRepository.AddPresenceAsync(soccod, empcod, stamp, poicod ?? "");
                 if (result == null)
                     return NotFound(new { message = "Employé introuvable" });
 

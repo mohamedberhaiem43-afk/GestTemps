@@ -84,6 +84,8 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
   const [showAbsencePicker, setShowAbsencePicker] = useState(false);
 
   // Form state
+  const [formConcod, setFormConcod] = useState('');
+  const [formCondat, setFormCondat] = useState(new Date());
   const [formCondep, setFormCondep] = useState(new Date());
   const [formConret, setFormConret] = useState(new Date());
   const [formConmotif, setFormConmotif] = useState('');
@@ -146,8 +148,17 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
+  const generateConcod = () => {
+    // Numéro d'ordre : DA + AAMMJJHHmm (équivalent du generateNumeroOrdre côté web).
+    const n = new Date();
+    const pad = (x: number) => String(x).padStart(2, '0');
+    return `DA${String(n.getFullYear()).slice(-2)}${pad(n.getMonth() + 1)}${pad(n.getDate())}${pad(n.getHours())}${pad(n.getMinutes())}`;
+  };
+
   const openNewForm = () => {
     setEditDemande(null);
+    setFormConcod(generateConcod());
+    setFormCondat(new Date());
     setFormCondep(new Date());
     setFormConret(new Date());
     setFormConmotif('');
@@ -159,6 +170,8 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
 
   const openEditForm = (d: DemandeAutorisation) => {
     setEditDemande(d);
+    setFormConcod(d.concod || '');
+    setFormCondat(d.condat ? new Date(d.condat) : new Date());
     setFormCondep(d.condep ? new Date(d.condep) : new Date());
     setFormConret(d.conret ? new Date(d.conret) : new Date());
     setFormConmotif(d.conmotif || '');
@@ -181,8 +194,8 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
       const payload = {
         soccod: user.soccod,
         empcod: user.uticod,
-        concod: editDemande?.concod || `DA${Date.now().toString().slice(-6)}`,
-        condat: new Date().toISOString().split('T')[0],
+        concod: formConcod || generateConcod(),
+        condat: formCondat.toISOString().split('T')[0],
         condep: formCondep.toISOString(),
         conret: formConret.toISOString(),
         conmotif: formConmotif,
@@ -405,6 +418,22 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
             </View>
 
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {/* Numéro d'ordre + Date de demande : lecture seule, alignés sur la maquette web */}
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeBtn}>
+                  <Text style={styles.label}>N° d'ordre</Text>
+                  <View style={[styles.pickerBtn, styles.readonlyField]}>
+                    <Text style={styles.pickerBtnText}>{formConcod || '—'}</Text>
+                  </View>
+                </View>
+                <View style={styles.dateTimeBtn}>
+                  <Text style={styles.label}>Date de demande</Text>
+                  <View style={[styles.pickerBtn, styles.readonlyField]}>
+                    <Text style={styles.pickerBtnText}>{fmtDate(formCondat.toISOString())}</Text>
+                  </View>
+                </View>
+              </View>
+
               <Text style={styles.label}>Type de sortie</Text>
               <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowAbsencePicker(true)}>
                 <Text style={styles.pickerBtnText}>{getSelectedAbsenceLabel()}</Text>
@@ -651,6 +680,7 @@ const styles = StyleSheet.create({
   },
   pickerBtnText: { fontSize: 14, color: COLORS.onSurface, flex: 1 },
   pickerArrow:   { fontSize: 12, color: COLORS.outline },
+  readonlyField: { backgroundColor: COLORS.surfaceContainerHigh, opacity: 0.85 },
   dateTimeRow:   { flexDirection: 'row', gap: 8 },
   dateTimeBtn:   { flex: 1 },
   durationCard: {

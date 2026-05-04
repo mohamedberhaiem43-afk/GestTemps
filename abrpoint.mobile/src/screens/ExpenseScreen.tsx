@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Alert, RefreshControl, Image, Dimensions, ActivityIndicator,
+  Alert, RefreshControl, Image, ActivityIndicator, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,30 +9,52 @@ import * as ImagePicker from 'expo-image-picker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS, THEME } from '../config/env';
+import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
+import BottomTabBar from '../components/BottomTabBar';
 
-const { width } = Dimensions.get('window');
-
+// Catégories alignées sur la web (CATEGORY_KEYS de RemboursementModern).
 const CATEGORIES = [
-  { id: 'Auto', label: 'Auto', icon: 'car-outline' },
-  { id: 'Repas', label: 'Repas', icon: 'silverware-fork-knife' },
-  { id: 'HÃ´tel', label: 'Nuit', icon: 'bed-outline' },
+  { id: 'Transport', label: 'Transport', icon: 'car-outline' },
+  { id: 'Repas',     label: 'Repas',     icon: 'silverware-fork-knife' },
+  { id: 'Equipement', label: 'Équipement', icon: 'tools' },
+  { id: 'Logement',  label: 'Logement',  icon: 'bed-outline' },
+  { id: 'Autre',     label: 'Autre',     icon: 'tag-outline' },
 ];
+
+const STATUS_FILTERS = [
+  { key: 'all',        label: 'Tous' },
+  { key: 'pending',    label: 'En attente' },
+  { key: 'approved',   label: 'Validés' },
+  { key: 'reimbursed', label: 'Remboursés' },
+  { key: 'rejected',   label: 'Refusés' },
+] as const;
+
+type StatusFilter = typeof STATUS_FILTERS[number]['key'];
+
+const fmtMoney = (n: number) =>
+  (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const fmtDate = (d: any) => {
+  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  catch { return '—'; }
+};
 
 export default function ExpenseScreen({ navigation }: any) {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<any[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  // Form
-  const defaultForm = { titre: '', categorie: 'Repas', montant: '', dateDepense: new Date() };
+  const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  // Form (modal)
+  const defaultForm = { titre: '', categorie: 'Repas', montant: '', projet: '', dateDepense: new Date() };
   const [form, setForm] = useState(defaultForm);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'reimbursed' | 'rejected'>('all');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => { loadExpenses(); }, [user]);
 
@@ -49,75 +71,96 @@ export default function ExpenseScreen({ navigation }: any) {
 
   const handleCapture = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Erreur', 'AccÃ¨s camÃ©ra requis'); return; }
+    if (status !== 'granted') { Alert.alert('Erreur', 'Accès caméra requis'); return; }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: true });
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
-    }
+    if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
+  };
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ImagePicker.MediaTypeOptions.Images });
+    if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
+  };
+
+  const openNewForm = () => {
+    setForm(defaultForm);
+    setImageUri(null);
+    setShowForm(true);
   };
 
   const handleSubmit = async () => {
-    if (!form.montant) {
-      Alert.alert('Erreur', 'Veuillez saisir un montant');
+    if (!form.titre.trim()) { Alert.alert('Erreur', 'Veuillez saisir un motif'); return; }
+    if (!form.montant || isNaN(parseFloat(form.montant.replace(',', '.')))) {
+      Alert.alert('Erreur', 'Veuillez saisir un montant valide');
       return;
     }
     if (!user?.soccod || !user?.uticod) return;
+
+    setSubmitting(true);
     try {
       await apiService.createExpense({
         soccod: user.soccod,
         empcod: user.uticod,
-        titre: form.titre || `${form.categorie} - ${form.dateDepense.toLocaleDateString('fr-FR')}`,
+        titre: form.titre,
         categorie: form.categorie,
         montant: parseFloat(form.montant.replace(',', '.')),
         dateDepense: form.dateDepense.toISOString().split('T')[0],
+        projet: form.projet || undefined,
       }, imageUri || undefined);
-      Alert.alert('âœ… SuccÃ¨s', 'Note de frais soumise');
+      Alert.alert('Succès', 'Note de frais soumise');
+      setShowForm(false);
       setForm(defaultForm);
       setImageUri(null);
       loadExpenses();
-    } catch (e) { Alert.alert('Erreur', 'Impossible d\'ajouter la note de frais'); }
+    } catch (e) {
+      Alert.alert('Erreur', "Impossible d'ajouter la note de frais");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const totalMonthly = useMemo(() => {
-    const now = new Date();
-    return expenses
-      .filter(e => {
-        const d = new Date(e.dateDepense);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      })
-      .reduce((sum, e) => sum + (e.montant || 0), 0);
+  // Stats — alignées sur les rmb-stat-card du web (Pending, Reimbursed, YTD).
+  const stats = useMemo(() => {
+    const yearStart = new Date(new Date().getFullYear(), 0, 1);
+    let pendingTotal = 0, reimbursedTotal = 0, ytdTotal = 0;
+    for (const e of expenses) {
+      const m = Number(e.montant) || 0;
+      const etat = (e.etat || '').toLowerCase();
+      const d = e.dateDepense ? new Date(e.dateDepense) : null;
+      if (etat === 'pending') pendingTotal += m;
+      if (etat === 'reimbursed') reimbursedTotal += m;
+      if (d && d >= yearStart) ytdTotal += m;
+    }
+    return { pendingTotal, reimbursedTotal, ytdTotal };
   }, [expenses]);
-
-  const pendingCount = useMemo(
-    () => expenses.filter((e) => (e.etat || '').toLowerCase() === 'pending').length,
-    [expenses]
-  );
 
   const filteredExpenses = useMemo(() => {
     const q = search.trim().toLowerCase();
     return expenses.filter((e) => {
       const st = (e.etat || '').toLowerCase();
-      const statusOk =
-        statusFilter === 'all' ||
-        (statusFilter === 'pending' && st === 'pending') ||
-        (statusFilter === 'approved' && st === 'approved') ||
-        (statusFilter === 'reimbursed' && st === 'reimbursed') ||
-        (statusFilter === 'rejected' && st === 'rejected');
-      const searchOk =
-        !q ||
-        (e.titre || '').toLowerCase().includes(q) ||
-        (e.categorie || '').toLowerCase().includes(q);
+      const statusOk = statusFilter === 'all' || st === statusFilter;
+      const searchOk = !q
+        || (e.titre || '').toLowerCase().includes(q)
+        || (e.categorie || '').toLowerCase().includes(q)
+        || (e.projet || '').toLowerCase().includes(q);
       return statusOk && searchOk;
     });
   }, [expenses, search, statusFilter]);
 
   const getStatusInfo = (etat: string) => {
-    switch (etat) {
-      case 'Reimbursed': return { label: 'RemboursÃ©', color: COLORS.secondary, bgColor: COLORS.secondaryContainer };
-      case 'Approved': return { label: 'ValidÃ©', color: COLORS.onTertiaryFixedVariant, bgColor: COLORS.tertiaryFixed };
-      case 'Rejected': return { label: 'RefusÃ©', color: COLORS.error, bgColor: COLORS.errorContainer };
-      default: return { label: 'En attente', color: '#b45309', bgColor: '#fff4e5' };
-    }
+    const k = (etat || '').toLowerCase();
+    if (k === 'reimbursed') return { label: 'REMBOURSÉ', color: '#0040a1', bg: '#dbeafe' };
+    if (k === 'approved')   return { label: 'VALIDÉ',    color: '#059669', bg: '#dcfce7' };
+    if (k === 'rejected')   return { label: 'REFUSÉ',    color: '#dc2626', bg: '#fee2e2' };
+    return                       { label: 'EN ATTENTE', color: '#b45309', bg: '#fef3c7' };
+  };
+
+  const getCategoryIcon = (cat: string): any => {
+    const c = (cat || '').toLowerCase();
+    if (c.includes('transport') || c.includes('auto')) return 'car-outline';
+    if (c.includes('repas')) return 'silverware-fork-knife';
+    if (c.includes('equip')) return 'tools';
+    if (c.includes('logem') || c.includes('hot')) return 'bed-outline';
+    return 'tag-outline';
   };
 
   if (loading && !refreshing) {
@@ -130,16 +173,12 @@ export default function ExpenseScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* TopAppBar */}
       <View style={styles.topAppBar}>
         <View style={styles.topAppLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.profileWrapper}>
-            <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDnSDj32L-3hiURsWE-8dyndY5Vob55JI-ysQwhQeIM_tnHeShD8oab7NBYYJClipiU2o4lTm37B4aY2eG1CjuEiqTjfIXmR8lgj97UKSzTQlxsDdJKKYw5CsiN4zG9VmNDCNrnHtQQujcwSL_F-_8Hgls94iuGqodihiE16lsbE3cnwi3yj98C7n0kBmiAJilI0NXBZ4XrkYFezVCqQEg2kbsUz2j561Xh9D2gYW9mtxXsB_I7C35f0FLt6zgteyoGQcGLuZrKx-U' }}
-              style={styles.profileImage}
-            />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.primary} />
           </TouchableOpacity>
-          <Text style={styles.logoText}>L'Architecte RH</Text>
+          <Text style={styles.logoText}>Notes de frais</Text>
         </View>
         <TouchableOpacity style={styles.iconButton}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
@@ -151,214 +190,234 @@ export default function ExpenseScreen({ navigation }: any) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.subHeader}>Gestion financiÃ¨re</Text>
-          <Text style={styles.mainTitle}>Notes de Frais</Text>
-        </View>
-
-        {/* Bento Stats & Actions */}
-        <View style={styles.bentoContainer}>
-          {/* Monthly Distribution */}
-          <View style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <View>
-                <Text style={styles.chartLabel}>TOTAL MENSUEL</Text>
-                <Text style={styles.chartValue}>{totalMonthly.toLocaleString('fr-FR')} â‚¬</Text>
-              </View>
-              <View style={styles.chartTrend}>
-                <Text style={styles.trendValue}>+12%</Text>
-                <Text style={styles.trendLabel}>vs mois dernier</Text>
-              </View>
-            </View>
-            
-            <View style={styles.chartBars}>
-              <View style={[styles.bar, { height: '40%', backgroundColor: COLORS.surfaceContainerLow }]} />
-              <View style={[styles.bar, { height: '60%', backgroundColor: COLORS.surfaceContainerLow }]} />
-              <View style={[styles.bar, { height: '85%', backgroundColor: COLORS.primaryContainer }]} />
-              <View style={[styles.bar, { height: '45%', backgroundColor: COLORS.surfaceContainerLow }]} />
-              <View style={[styles.bar, { height: '30%', backgroundColor: COLORS.surfaceContainerLow }]} />
-              <View style={[styles.bar, { height: '100%', backgroundColor: COLORS.primary }]} />
-            </View>
-            
-            <View style={styles.chartLegend}>
-              <Text style={styles.legendText}>TRANSPORT</Text>
-              <Text style={styles.legendText}>REPAS</Text>
-              <Text style={styles.legendText}>LOGEMENT</Text>
-            </View>
-            <View style={styles.kpiInlineRow}>
-              <Text style={styles.kpiInlineText}>Demandes en attente: {pendingCount}</Text>
-            </View>
+        {/* En-tête avec bouton d'ajout — équivalent rmb-header / rmb-new-btn */}
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.subHeader}>Gestion financière</Text>
+            <Text style={styles.mainTitle}>Mes notes de frais</Text>
           </View>
-
-          {/* New Expense Action */}
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryContainer]}
-            style={styles.actionCard}
-          >
-            <View style={styles.actionHeader}>
-              <Text style={styles.actionTitle}>Nouveau Frais</Text>
-              <Text style={styles.actionSubTitle}>Capturez vos reÃ§us instantanÃ©ment</Text>
-            </View>
-            
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryStack}>
-              {CATEGORIES.map(cat => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[styles.categoryBtn, form.categorie === cat.id && styles.categoryBtnActive]}
-                  onPress={() => setForm({ ...form, categorie: cat.id })}
-                >
-                  <MaterialCommunityIcons name={cat.icon as any} size={24} color="#fff" />
-                  <Text style={styles.categoryLabel}>{cat.label.toUpperCase()}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </LinearGradient>
-        </View>
-
-        {/* Submission Form */}
-        <View style={styles.formContainer}>
-          <Text style={styles.sectionHeader}>DÃ‰TAILS DE LA DÃ‰PENSE</Text>
-          
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>MONTANT & DEVISE</Text>
-            <View style={styles.amountRow}>
-              <TextInput
-                style={styles.amountInput}
-                keyboardType="decimal-pad"
-                placeholder="0.00"
-                placeholderTextColor={COLORS.primary}
-                value={form.montant}
-                onChangeText={(t) => setForm({ ...form, montant: t })}
-              />
-              <View style={styles.currencyBadge}>
-                <Text style={styles.currencyText}>EUR</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>JUSTIFICATIF</Text>
-            <TouchableOpacity style={styles.uploadArea} onPress={handleCapture}>
-              <View style={styles.uploadIconWrapper}>
-                <MaterialCommunityIcons name="camera-plus" size={24} color={COLORS.primary} />
-              </View>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={styles.uploadedPreview} />
-              ) : (
-                <Text style={styles.uploadText}>Prendre une photo ou {"\n"}choisir un reÃ§u</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <MaterialCommunityIcons name="send" size={20} color="#fff" />
-            <Text style={styles.submitButtonText}>SOUMETTRE LA NOTE</Text>
+          <TouchableOpacity style={styles.newBtn} onPress={openNewForm}>
+            <MaterialCommunityIcons name="plus" size={18} color="#fff" />
+            <Text style={styles.newBtnText}>Nouveau</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Recent Expenses */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Frais RÃ©cents</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>VOIR TOUT</Text>
-            </TouchableOpacity>
+        {/* 3 stats cards — équivalent rmb-stats-grid */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { borderLeftColor: '#f59e0b' }]}>
+            <Text style={styles.statLabel}>EN ATTENTE</Text>
+            <View style={styles.statValueRow}>
+              <Text style={[styles.statValue, { color: '#b45309' }]}>{fmtMoney(stats.pendingTotal)}</Text>
+              <Text style={styles.statCurrency}>€</Text>
+            </View>
+          </View>
+          <View style={[styles.statCard, { borderLeftColor: '#0040a1' }]}>
+            <Text style={styles.statLabel}>REMBOURSÉ</Text>
+            <View style={styles.statValueRow}>
+              <Text style={[styles.statValue, { color: '#0040a1' }]}>{fmtMoney(stats.reimbursedTotal)}</Text>
+              <Text style={styles.statCurrency}>€</Text>
+            </View>
+          </View>
+          <View style={[styles.statCard, { borderLeftColor: '#059669' }]}>
+            <Text style={styles.statLabel}>TOTAL ANNÉE</Text>
+            <View style={styles.statValueRow}>
+              <Text style={[styles.statValue, { color: '#059669' }]}>{fmtMoney(stats.ytdTotal)}</Text>
+              <Text style={styles.statCurrency}>€</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Liste + filtres — équivalent rmb-table-card */}
+        <View style={styles.tableCard}>
+          <View style={styles.tableToolbar}>
+            <Text style={styles.tableTitle}>Mes dépenses</Text>
+            <Text style={styles.tableCount}>{filteredExpenses.length}</Text>
           </View>
 
-          <View style={styles.filterBar}>
-            <View style={styles.searchBox}>
-              <MaterialCommunityIcons name="magnify" size={18} color={COLORS.outline} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Rechercher un titre ou catégorie"
-                placeholderTextColor={COLORS.outline}
-                value={search}
-                onChangeText={setSearch}
-              />
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-              {[
-                { key: 'all', label: 'Tous' },
-                { key: 'pending', label: 'En attente' },
-                { key: 'approved', label: 'Validés' },
-                { key: 'reimbursed', label: 'Remboursés' },
-                { key: 'rejected', label: 'Refusés' },
-              ].map((c) => (
-                <TouchableOpacity
-                  key={c.key}
-                  style={[styles.filterChip, statusFilter === c.key && styles.filterChipActive]}
-                  onPress={() => setStatusFilter(c.key as any)}
-                >
-                  <Text style={[styles.filterChipText, statusFilter === c.key && styles.filterChipTextActive]}>
-                    {c.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+          <View style={styles.searchBox}>
+            <MaterialCommunityIcons name="magnify" size={18} color={COLORS.outline} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Rechercher par motif, catégorie, projet…"
+              placeholderTextColor={COLORS.outline}
+              value={search}
+              onChangeText={setSearch}
+            />
           </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+            {STATUS_FILTERS.map((c) => (
+              <TouchableOpacity
+                key={c.key}
+                style={[styles.chip, statusFilter === c.key && styles.chipActive]}
+                onPress={() => setStatusFilter(c.key)}
+              >
+                <Text style={[styles.chipText, statusFilter === c.key && styles.chipTextActive]}>{c.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
           <View style={styles.expenseList}>
-            {filteredExpenses.map((exp, idx) => {
-              const status = getStatusInfo(exp.etat);
-              const iconName = exp.categorie === 'Auto' ? 'car-outline' : exp.categorie === 'HÃ´tel' ? 'bed-outline' : 'silverware-fork-knife';
-              return (
-                <View key={exp.id || idx} style={styles.expenseItem}>
-                  <View style={styles.expenseLeft}>
-                    <View style={styles.expenseIconWrapper}>
-                      <MaterialCommunityIcons name={iconName as any} size={24} color={COLORS.secondary} />
-                    </View>
-                    <View style={styles.expenseInfo}>
-                      <Text style={styles.expenseTitre}>{exp.titre}</Text>
-                      <Text style={styles.expenseMeta}>
-                        {new Date(exp.dateDepense).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} â€¢ {exp.categorie.toUpperCase()}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.expenseRight}>
-                    <Text style={styles.expenseAmount}>{exp.montant?.toFixed(2)} â‚¬</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
-                      <Text style={[styles.statusText, { color: status.color }]}>{status.label.toUpperCase()}</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-            {filteredExpenses.length === 0 && (
+            {filteredExpenses.length === 0 ? (
               <View style={styles.emptyState}>
+                <MaterialCommunityIcons name="file-document-outline" size={48} color={COLORS.outlineVariant} />
                 <Text style={styles.emptyText}>Aucune dépense trouvée</Text>
               </View>
+            ) : (
+              filteredExpenses.map((exp, idx) => {
+                const status = getStatusInfo(exp.etat);
+                const iconName = getCategoryIcon(exp.categorie);
+                return (
+                  <View key={exp.id || idx} style={styles.expenseItem}>
+                    <View style={styles.expenseLeft}>
+                      <View style={styles.expenseIconWrapper}>
+                        <MaterialCommunityIcons name={iconName} size={22} color={COLORS.primary} />
+                      </View>
+                      <View style={styles.expenseInfo}>
+                        <Text style={styles.expenseTitre} numberOfLines={1}>{exp.titre || '—'}</Text>
+                        {!!exp.projet && <Text style={styles.expenseSub} numberOfLines={1}>{exp.projet}</Text>}
+                        <Text style={styles.expenseMeta}>
+                          {fmtDate(exp.dateDepense)} • {(exp.categorie || '').toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.expenseRight}>
+                      <Text style={styles.expenseAmount}>{fmtMoney(exp.montant)} €</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+                        <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+                        <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })
             )}
           </View>
         </View>
       </ScrollView>
 
-      {/* BottomNavBar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>TABLEAU</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
-          <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>CONGÃ‰S</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
-          <MaterialCommunityIcons name="exit-to-app" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>SORTIES</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('PresenceHistory')}>
-          <MaterialCommunityIcons name="history" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>POINTAGE</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <MaterialCommunityIcons name="receipt-long" size={24} color={COLORS.primary} />
-          <Text style={[styles.navLabel, { color: COLORS.primary }]}>FRAIS</Text>
-        </TouchableOpacity>
-      </View>
+      {/* ── Modal de saisie — équivalent du Dialog du web ── */}
+      <Modal visible={showForm} transparent animationType="slide" onRequestClose={() => setShowForm(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Nouvelle note de frais</Text>
+              <TouchableOpacity onPress={() => setShowForm(false)}>
+                <MaterialCommunityIcons name="close" size={22} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
 
-      <DatePickerModal visible={showDatePicker} value={form.dateDepense}
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.label}>Motif *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ex. Déjeuner client"
+                placeholderTextColor={COLORS.outline}
+                value={form.titre}
+                onChangeText={(t) => setForm({ ...form, titre: t })}
+              />
+
+              <Text style={styles.label}>Date de la dépense *</Text>
+              <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.inputText}>
+                  {form.dateDepense.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.label}>Catégorie *</Text>
+              <View style={styles.categoryGrid}>
+                {CATEGORIES.map((c) => {
+                  const active = form.categorie === c.id;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={[styles.categoryChip, active && styles.categoryChipActive]}
+                      onPress={() => setForm({ ...form, categorie: c.id })}
+                    >
+                      <MaterialCommunityIcons name={c.icon as any} size={18} color={active ? '#fff' : COLORS.primary} />
+                      <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>{c.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.label}>Montant (€) *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0.00"
+                placeholderTextColor={COLORS.outline}
+                keyboardType="decimal-pad"
+                value={form.montant}
+                onChangeText={(t) => setForm({ ...form, montant: t })}
+              />
+
+              <Text style={styles.label}>Projet (optionnel)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ex. Mission Acme - Q2"
+                placeholderTextColor={COLORS.outline}
+                value={form.projet}
+                onChangeText={(t) => setForm({ ...form, projet: t })}
+              />
+
+              <Text style={styles.label}>Justificatif</Text>
+              <View style={styles.uploadArea}>
+                {imageUri ? (
+                  <Image source={{ uri: imageUri }} style={styles.uploadedPreview} />
+                ) : (
+                  <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+                    <MaterialCommunityIcons name="cloud-upload-outline" size={32} color={COLORS.primary} />
+                    <Text style={styles.uploadText}>Joindre un reçu (image ou PDF)</Text>
+                  </View>
+                )}
+                <View style={styles.uploadActions}>
+                  <TouchableOpacity style={styles.uploadBtn} onPress={handleCapture}>
+                    <MaterialCommunityIcons name="camera-outline" size={16} color={COLORS.primary} />
+                    <Text style={styles.uploadBtnText}>Photo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.uploadBtn} onPress={handlePickImage}>
+                    <MaterialCommunityIcons name="image-outline" size={16} color={COLORS.primary} />
+                    <Text style={styles.uploadBtnText}>Galerie</Text>
+                  </TouchableOpacity>
+                  {imageUri && (
+                    <TouchableOpacity style={[styles.uploadBtn, { backgroundColor: '#fee2e2' }]} onPress={() => setImageUri(null)}>
+                      <MaterialCommunityIcons name="trash-can-outline" size={16} color="#dc2626" />
+                      <Text style={[styles.uploadBtnText, { color: '#dc2626' }]}>Retirer</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
+                <LinearGradient
+                  colors={[COLORS.primary, COLORS.primaryContainer]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={styles.submitGradient}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="send" size={18} color="#fff" />
+                      <Text style={styles.submitText}>Soumettre la dépense</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <DatePickerModal
+        visible={showDatePicker}
+        value={form.dateDepense}
         onChange={(d) => { setForm({ ...form, dateDepense: d }); setShowDatePicker(false); }}
-        onClose={() => setShowDatePicker(false)} title="Date de dÃ©pense" />
+        onClose={() => setShowDatePicker(false)}
+        title="Date de dépense"
+      />
+
+      <BottomTabBar active="requests" navigation={navigation} />
     </SafeAreaView>
   );
 }
@@ -366,107 +425,125 @@ export default function ExpenseScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
   topAppBar: {
     height: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, backgroundColor: COLORS.background,
   },
   topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  profileWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
-  profileImage: { width: '100%', height: '100%' },
-  logoText: { fontFamily: 'Manrope', fontWeight: '800', fontSize: 18, color: COLORS.primary, letterSpacing: -0.5 },
   iconButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 },
-  headerTitleContainer: { marginBottom: 32 },
+  logoText: { fontFamily: 'Manrope', fontWeight: '800', fontSize: 18, color: COLORS.primary, letterSpacing: -0.3 },
+
+  scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 110 },
+
+  headerRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18 },
   subHeader: { fontSize: 10, fontWeight: '700', color: COLORS.secondary, letterSpacing: 1.2, textTransform: 'uppercase' },
-  mainTitle: { fontSize: 32, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -0.5 },
-  bentoContainer: { gap: 16, marginBottom: 32 },
-  chartCard: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 24, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 16 },
-  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24 },
-  chartLabel: { fontSize: 10, fontWeight: '700', color: COLORS.secondary, letterSpacing: 1 },
-  chartValue: { fontSize: 28, fontWeight: '800', color: COLORS.primary, letterSpacing: -1 },
-  chartTrend: { alignItems: 'flex-end' },
-  trendValue: { fontSize: 14, fontWeight: '800', color: COLORS.tertiary },
-  trendLabel: { fontSize: 9, color: COLORS.outline, fontWeight: '600' },
-  chartBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 80, marginBottom: 12 },
-  bar: { flex: 1, borderRadius: 4 },
-  chartLegend: { flexDirection: 'row', justifyContent: 'space-between' },
-  legendText: { fontSize: 9, fontWeight: '800', color: COLORS.outline, letterSpacing: 0.5 },
-  kpiInlineRow: { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.surfaceContainerLow },
-  kpiInlineText: { fontSize: 12, fontWeight: '700', color: COLORS.onSurfaceVariant },
-  actionCard: { borderRadius: 16, padding: 24, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 4 },
-  actionHeader: { marginBottom: 20 },
-  actionTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  actionSubTitle: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-  categoryStack: { gap: 12 },
-  categoryBtn: { width: 80, height: 80, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  categoryBtnActive: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.3)' },
-  categoryLabel: { fontSize: 9, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
-  formContainer: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: 24, padding: 24, marginBottom: 32 },
-  sectionHeader: { fontSize: 12, fontWeight: '800', color: COLORS.onSurface, letterSpacing: 1.5, marginBottom: 24 },
-  fieldGroup: { marginBottom: 24 },
-  fieldLabel: { fontSize: 10, fontWeight: '800', color: COLORS.secondary, letterSpacing: 1, marginBottom: 12 },
-  amountRow: { flexDirection: 'row', gap: 12 },
-  amountInput: { flex: 1, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 12, padding: 16, fontSize: 24, fontWeight: '800', color: COLORS.primary },
-  currencyBadge: { width: 80, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  currencyText: { fontSize: 16, fontWeight: '800', color: COLORS.primary },
-  uploadArea: { borderWidth: 2, borderStyle: 'dashed', borderColor: COLORS.outlineVariant, borderRadius: 16, padding: 32, alignItems: 'center', gap: 12, backgroundColor: COLORS.surfaceContainerLowest },
-  uploadIconWrapper: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.primaryFixed, justifyContent: 'center', alignItems: 'center' },
-  uploadText: { fontSize: 11, fontWeight: '700', color: COLORS.outline, textAlign: 'center', lineHeight: 16 },
-  uploadedPreview: { width: '100%', height: 100, borderRadius: 8, resizeMode: 'cover' },
-  submitButton: { backgroundColor: COLORS.primary, borderRadius: 16, paddingVertical: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 4 },
-  submitButtonText: { color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
-  section: { marginBottom: 24 },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: COLORS.onSurface, letterSpacing: 1.5, textTransform: 'uppercase' },
-  seeAllText: { fontSize: 10, fontWeight: '800', color: COLORS.primary },
-  filterBar: { gap: 10, marginBottom: 14 },
+  mainTitle: { fontSize: 24, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -0.4, marginTop: 2 },
+  newBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: COLORS.primary, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 10,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
+  },
+  newBtnText: { color: '#fff', fontWeight: '800', fontSize: 12, letterSpacing: 0.3 },
+
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
+  statCard: {
+    flex: 1, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 12,
+    padding: 12, borderLeftWidth: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+  },
+  statLabel: { fontSize: 9, fontWeight: '800', color: COLORS.outline, letterSpacing: 0.6 },
+  statValueRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 6, gap: 2 },
+  statValue: { fontSize: 16, fontWeight: '800', letterSpacing: -0.3 },
+  statCurrency: { fontSize: 11, fontWeight: '700', color: COLORS.outline },
+
+  tableCard: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 14, marginBottom: 12 },
+  tableToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  tableTitle: { fontSize: 14, fontWeight: '800', color: COLORS.onSurface, letterSpacing: 0.3 },
+  tableCount: { fontSize: 11, fontWeight: '700', color: COLORS.outline, backgroundColor: COLORS.surfaceContainerLow, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+
   searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-    borderRadius: 12,
-    backgroundColor: COLORS.surfaceContainerLowest,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: COLORS.outlineVariant, borderRadius: 10,
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10,
   },
-  searchInput: { flex: 1, fontSize: 13, color: COLORS.onSurface },
-  chipsRow: { gap: 8, paddingRight: 8 },
-  filterChip: {
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: COLORS.surfaceContainerLowest,
+  searchInput: { flex: 1, fontSize: 13, color: COLORS.onSurface, padding: 0 },
+
+  chipsRow: { gap: 8, paddingRight: 8, paddingBottom: 12 },
+  chip: {
+    borderWidth: 1, borderColor: COLORS.outlineVariant, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 6, backgroundColor: COLORS.surfaceContainerLow,
   },
-  filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  filterChipText: { fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant },
-  filterChipTextActive: { color: '#fff' },
-  expenseList: { gap: 12 },
-  expenseItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16, elevation: 1 },
-  expenseLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  expenseIconWrapper: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' },
-  expenseInfo: { gap: 4 },
-  expenseTitre: { fontSize: 15, fontWeight: '700', color: COLORS.onSurface },
-  expenseMeta: { fontSize: 10, fontWeight: '700', color: COLORS.outline, letterSpacing: 0.5 },
+  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipText: { fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant },
+  chipTextActive: { color: '#fff' },
+
+  expenseList: { gap: 10 },
+  expenseItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 12,
+  },
+  expenseLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  expenseIconWrapper: { width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.primaryFixed, justifyContent: 'center', alignItems: 'center' },
+  expenseInfo: { flex: 1, gap: 2 },
+  expenseTitre: { fontSize: 13, fontWeight: '700', color: COLORS.onSurface },
+  expenseSub:   { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
+  expenseMeta:  { fontSize: 10, fontWeight: '700', color: COLORS.outline, letterSpacing: 0.4, marginTop: 2 },
   expenseRight: { alignItems: 'flex-end', gap: 6 },
   expenseAmount: { fontSize: 14, fontWeight: '800', color: COLORS.onSurface },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  statusText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.2 },
-  emptyState: { padding: 40, alignItems: 'center' },
-  emptyText: { fontSize: 14, color: COLORS.outline, fontWeight: '600' },
-  bottomNav: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', paddingBottom: 20,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
+
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  statusDot:   { width: 6, height: 6, borderRadius: 3 },
+  statusText:  { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+
+  emptyState: { alignItems: 'center', paddingVertical: 32, gap: 8 },
+  emptyText:  { fontSize: 13, color: COLORS.outline, fontWeight: '600' },
+
+  // ── Modal ──
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: COLORS.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%' },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerHigh,
   },
-  navItem: { alignItems: 'center', gap: 4 },
-  navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
+  modalTitle: { fontSize: 16, fontWeight: '800', color: COLORS.onSurface },
+  modalScroll: { padding: 16 },
+
+  label: { fontSize: 11, fontWeight: '800', color: COLORS.outline, letterSpacing: 0.6, marginBottom: 6, marginTop: 12 },
+  input: {
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, color: COLORS.onSurface,
+    borderWidth: 1, borderColor: COLORS.outlineVariant,
+  },
+  inputText: { fontSize: 14, color: COLORS.onSurface },
+
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  categoryChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: COLORS.surfaceContainerLow, borderWidth: 1, borderColor: COLORS.outlineVariant,
+  },
+  categoryChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  categoryChipText: { fontSize: 12, fontWeight: '700', color: COLORS.onSurfaceVariant },
+  categoryChipTextActive: { color: '#fff' },
+
+  uploadArea: {
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
+    borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.outlineVariant,
+    padding: 12, gap: 10,
+  },
+  uploadText: { fontSize: 12, color: COLORS.outline, fontWeight: '600', marginTop: 6 },
+  uploadedPreview: { width: '100%', height: 140, borderRadius: 8, resizeMode: 'cover' },
+  uploadActions: { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' },
+  uploadBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: COLORS.primaryFixed, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+  },
+  uploadBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+
+  submitBtn: { marginTop: 20, marginBottom: 12, borderRadius: 12, overflow: 'hidden' },
+  submitGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  submitText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 0.6 },
 });
-
-
-
-

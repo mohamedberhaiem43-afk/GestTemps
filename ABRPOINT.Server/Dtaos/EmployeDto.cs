@@ -19,5 +19,15 @@
         public string? Empniv { get; set; }
         public string? Empcontrat { get; set; }
         public string? Empemail { get; set; }
+        public string? Empsexe { get; set; }
+        public string? Empdnais { get; set; }
+        public string? Emplnais { get; set; }
+        public string? Empsitfam { get; set; }
+        public int? Empnbp { get; set; }
+        public string? Empcin { get; set; }
+        public string? Emptel { get; set; }
+        public string? Empmob { get; set; }
+        public string? Empadr { get; set; }
+        public string? Utirole { get; set; }
     }
 }

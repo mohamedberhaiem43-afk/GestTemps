@@ -229,6 +229,15 @@ class ApiService {
       params.append('lon', String(gps.longitude));
       if (gps.accuracy != null) params.append('acc', String(gps.accuracy));
     }
+    // Horodatage = horloge locale du téléphone, format "YYYY-MM-DDTHH:mm:ss"
+    // sans suffixe Z pour que le serveur le bind comme DateTimeKind.Unspecified
+    // (heure locale de l'utilisateur, pas UTC).
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const localStamp =
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+      `T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    params.append('clientTime', localStamp);
     const qs = params.toString();
     const response = await this.client.post(
       `/Presences/mark-presence/${soccod}/${empcod}${qs ? `?${qs}` : ''}`

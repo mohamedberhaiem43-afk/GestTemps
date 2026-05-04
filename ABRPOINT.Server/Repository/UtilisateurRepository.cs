@@ -403,6 +403,9 @@ namespace ABRPOINT.Server.Repository
             if (employe != null)
             {
                 profile.Employee = _mapper.Map<EmployeDto>(employe);
+                // Utirole vit sur Utilisateur (Employe.Utirole est [NotMapped]), on le copie
+                // explicitement pour que le mobile puisse l'afficher dans la fiche profil.
+                profile.Employee.Utirole = utilisateur.Utilisateur.Utirole;
             }
 
             return profile;
