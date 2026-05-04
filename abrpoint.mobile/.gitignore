@@ -1,0 +1,29 @@
+# Expo / React Native — ne jamais commiter les dossiers natifs.
+# `expo prebuild` les régénère à partir de app.json + node_modules à chaque build.
+# C'est ce qui évite le "No matching variant" sur EAS quand RN/Expo/AGP changent.
+android/
+ios/
+
+# Dépendances et caches
+node_modules/
+.expo/
+.expo-shared/
+
+# Métro bundler
+metro-cache/
+.metro-cache/
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Outils locaux
+.env*.local
+.DS_Store
+
+# Builds locaux
+*.apk
+*.aab
+*.ipa
