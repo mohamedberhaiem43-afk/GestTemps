@@ -6,55 +6,53 @@ import SchoolIcon from '@mui/icons-material/School';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import EmailIcon from '@mui/icons-material/Email';
-
-const cards = [
-  {
-    title: 'FAQ',
-    desc: 'Réponses aux questions les plus fréquentes sur la plateforme Concorde Workforce.',
-    icon: <HelpOutlineIcon sx={{ fontSize: 36 }} />,
-    href: '/dashboard/support/faq',
-    color: '#0040a1',
-  },
-  {
-    title: 'Formations au logiciel',
-    desc: 'Sessions de formation en ligne ou présentielles pour maîtriser chaque module.',
-    icon: <SchoolIcon sx={{ fontSize: 36 }} />,
-    href: '/dashboard/support/formations',
-    color: '#7c3aed',
-  },
-  {
-    title: 'Coaching sur mesure',
-    desc: "Accompagnement personnalisé d'un expert RH dédié à votre organisation.",
-    icon: <PsychologyIcon sx={{ fontSize: 36 }} />,
-    href: '/dashboard/support/coaching',
-    color: '#0891b2',
-  },
-  {
-    title: 'Pack de mise en place',
-    desc: 'Déploiement clés en main : paramétrage, import des données, formation des équipes.',
-    icon: <RocketLaunchIcon sx={{ fontSize: 36 }} />,
-    href: '/dashboard/support/pack-mise-en-place',
-    color: '#ea580c',
-  },
-  {
-    title: 'Contactez-nous',
-    desc: 'Notre équipe support répond à vos demandes par email, téléphone ou chat.',
-    icon: <EmailIcon sx={{ fontSize: 36 }} />,
-    href: '/dashboard/support/contact',
-    color: '#16a34a',
-  },
-];
+import { useTranslation } from 'react-i18next';
 
 const SupportPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const cards = [
+    {
+      key: 'faq',
+      icon: <HelpOutlineIcon sx={{ fontSize: 36 }} />,
+      href: '/dashboard/support/faq',
+      color: '#0040a1',
+    },
+    {
+      key: 'formations',
+      icon: <SchoolIcon sx={{ fontSize: 36 }} />,
+      href: '/dashboard/support/formations',
+      color: '#7c3aed',
+    },
+    {
+      key: 'coaching',
+      icon: <PsychologyIcon sx={{ fontSize: 36 }} />,
+      href: '/dashboard/support/coaching',
+      color: '#0891b2',
+    },
+    {
+      key: 'pack',
+      icon: <RocketLaunchIcon sx={{ fontSize: 36 }} />,
+      href: '/dashboard/support/pack-mise-en-place',
+      color: '#ea580c',
+    },
+    {
+      key: 'contact',
+      icon: <EmailIcon sx={{ fontSize: 36 }} />,
+      href: '/dashboard/support/contact',
+      color: '#16a34a',
+    },
+  ];
+
   return (
     <Box sx={{ p: { xs: 3, md: 5 }, maxWidth: 1280, mx: 'auto' }}>
       <Box sx={{ mb: 5 }}>
         <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#191c1e', letterSpacing: '-0.02em' }}>
-          Centre d'assistance
+          {t('support.home.title')}
         </Typography>
         <Typography sx={{ fontSize: 14, color: '#424654', mt: 1 }}>
-          Choisissez le type d'accompagnement qui correspond à votre besoin.
+          {t('support.home.subtitle')}
         </Typography>
       </Box>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
@@ -65,8 +63,12 @@ const SupportPage: React.FC = () => {
                 <Box sx={{ width: 56, height: 56, borderRadius: 2, bgcolor: `${c.color}15`, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
                   {c.icon}
                 </Box>
-                <Typography sx={{ fontSize: 18, fontWeight: 700, color: '#191c1e', mb: 0.5 }}>{c.title}</Typography>
-                <Typography sx={{ fontSize: 13, color: '#475569', lineHeight: 1.55 }}>{c.desc}</Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: '#191c1e', mb: 0.5 }}>
+                  {t(`support.home.cards.${c.key}.title`)}
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: '#475569', lineHeight: 1.55 }}>
+                  {t(`support.home.cards.${c.key}.desc`)}
+                </Typography>
               </CardContent>
             </CardActionArea>
           </Card>

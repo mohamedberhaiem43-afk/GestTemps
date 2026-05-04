@@ -4084,5 +4084,236 @@
       "saveError": "Error during save",
       "deleteConfirm": "Delete compensation #{{code}}?"
     }
+  },
+  "support": {
+    "common": {
+      "back": "Back to support center",
+      "contactUs": "Contact us",
+      "requestQuote": "Request a quote",
+      "bookSession": "Book a session"
+    },
+    "home": {
+      "title": "Support Center",
+      "subtitle": "Choose the type of assistance that fits your needs.",
+      "cards": {
+        "faq": {
+          "title": "FAQ",
+          "desc": "Answers to the most frequently asked questions about the Concorde Workforce platform."
+        },
+        "formations": {
+          "title": "Software training",
+          "desc": "Online or on-site training sessions to master every module."
+        },
+        "coaching": {
+          "title": "Tailored coaching",
+          "desc": "Personalized guidance from a dedicated HR expert for your organization."
+        },
+        "pack": {
+          "title": "Setup pack",
+          "desc": "Turnkey deployment: configuration, data import, team training."
+        },
+        "contact": {
+          "title": "Contact us",
+          "desc": "Our support team replies by email, phone or chat."
+        }
+      }
+    },
+    "faq": {
+      "title": "FAQ",
+      "subtitle": "Answers to common questions. If yours isn't here, contact us.",
+      "items": {
+        "addEmployee": {
+          "q": "How do I add a new employee?",
+          "a": "Go to Management → Employees → New employee. The code is generated automatically based on the Parmodemp setting configured for the company."
+        },
+        "overtime": {
+          "q": "How do I configure overtime calculation?",
+          "a": "In Master Data → Company, the \"Hours / Month\" field sets the legal standard. Per-category thresholds (executive, supervisor, operator) are tuned in Advanced Settings."
+        },
+        "loginIssue": {
+          "q": "Why can't an employee sign in after creation?",
+          "a": "Make sure the employee's email is filled in. The TenantEmailIndex is updated automatically on creation."
+        },
+        "importExcel": {
+          "q": "How do I import employees from Excel?",
+          "a": "On the employee list, use the \"Excel Import\" button at the top right. The template accepts columns Code, Last name, First name, Email, Function, Regime, etc."
+        },
+        "leaveCarryover": {
+          "q": "What happens to leave not taken by May 31?",
+          "a": "Paid leave not taken by that date is automatically transferred to the Time Savings Account (CET), capped at 10 days by default. Date and ceiling are configurable in Company → Settings."
+        },
+        "billing": {
+          "q": "How do I export my subscription?",
+          "a": "Your Stripe invoices are available from My Profile → Billing. You can also change your plan at any time from /dashboard/plan-configuration."
+        },
+        "contract": {
+          "q": "How do I generate a contract for an employee?",
+          "a": "Go to Vault → Template Library, pick a template, click \"Export for an employee\" and choose the target employee."
+        }
+      }
+    },
+    "formations": {
+      "title": "Software training",
+      "subtitle": "Sessions delivered by our expert trainers — included in the Standard and Premium plans.",
+      "footer": "To book a session, contact your Account Manager or write to <strong>formations@concorde-tech.fr</strong>.",
+      "modes": {
+        "remote": "Online",
+        "onsite": "On-site"
+      },
+      "audiences": {
+        "everyone": "Everyone",
+        "hrFinance": "HR / Finance",
+        "itOps": "IT / Ops",
+        "managers": "Managers"
+      },
+      "sessions": {
+        "intro": {
+          "title": "Platform onboarding",
+          "desc": "Comprehensive overview: navigation, key modules, first administrator actions."
+        },
+        "payroll": {
+          "title": "Payroll setup & accounting exports",
+          "desc": "Calculation rules, payroll book generation, DSN/SIG export."
+        },
+        "devices": {
+          "title": "Time-clock & device workshop",
+          "desc": "Installation, ZK / Suprema terminal sync, network troubleshooting."
+        },
+        "leaves": {
+          "title": "Leave & authorization module",
+          "desc": "Approval workflows, balances, holidays, CET transfers, exit authorizations."
+        }
+      }
+    },
+    "coaching": {
+      "title": "Tailored coaching",
+      "tagline": "Sharpen your mastery of Concorde-work-force",
+      "intro1": "Are you using Concorde-work-force and want to unlock its full potential to optimize your company's management?",
+      "intro2": "Whether you are a new user wanting to get a grip on the key features, or an experienced user wishing to refine specific processes, our personalized coaching hours are designed to meet your exact needs.",
+      "whyTitle": "Why choose tailored Concorde-work-force coaching?",
+      "reasons": {
+        "tailored": {
+          "title": "Coaching 100% tailored to your reality",
+          "body": "We take your business sector, company profile and specific challenges into account to deliver coaching that is relevant and actionable."
+        },
+        "concrete": {
+          "title": "Solve concrete issues",
+          "body": "Stuck on a feature? Want to set up a particular workflow? Our experts walk you through the solution step by step."
+        },
+        "key": {
+          "title": "Master the key features that matter to you",
+          "body": "Focus on the parts of the software that directly impact your day-to-day and gain efficiency."
+        },
+        "roi": {
+          "title": "An investment that pays off",
+          "body": "By optimizing your use of Concorde-work-force, you save time, reduce errors and improve overall productivity."
+        },
+        "prep": {
+          "title": "Up-front preparation for maximum efficiency",
+          "body": "By sharing your problem and/or the features you want to explore, our expert prepares targeted, high-impact coaching."
+        }
+      },
+      "howTitle": "How does it work?",
+      "steps": {
+        "needs": {
+          "title": "Express your needs",
+          "body": "When you order, you can detail your problem and/or the Concorde-work-force features you want guidance on."
+        },
+        "preparation": {
+          "title": "Personalized preparation",
+          "body": "Our Concorde-work-force expert will analyze your needs to prepare the coaching session optimally."
+        },
+        "session": {
+          "title": "One-to-one interactive coaching",
+          "body": "Get a one-hour live session where you can ask questions, share your screen and apply the expert's recommendations."
+        },
+        "autonomy": {
+          "title": "Build autonomy",
+          "body": "Our goal is to make you autonomous and confident in your use of Concorde-work-force."
+        }
+      },
+      "priceLabel": "Price",
+      "priceValue": "€180 excl. VAT",
+      "perHour": "/ hour",
+      "priceSubtitle": "A tailor-made investment for an optimal mastery of your management tool.",
+      "fundingTitle": "Important information about funding",
+      "fundingBody": "This personalized coaching service is not eligible for public funding earmarked for vocational training.",
+      "ctaTitle": "Ready to optimize your use of Concorde-work-force?",
+      "ctaBody": "Don't wait any longer to get the personalized guidance that will save you time and boost efficiency."
+    },
+    "pack": {
+      "title": "Setup Pack",
+      "tagline": "Save valuable time and ensure a smooth start with Concorde-work-force",
+      "intro1": "Are you a new Concorde-work-force user looking to migrate your existing data hassle-free? Opening a new branch and need a fast, efficient configuration?",
+      "intro2": "Our \"Setup Pack\" is the ideal solution for you!",
+      "whatTitle": "What is the Concorde-work-force Setup Pack?",
+      "whatBody": "Our team of Concorde-work-force specialists handles the initial configuration of your account, letting you fully focus on your core business. We walk you through every step to set up your Concorde-work-force environment to your specific needs.",
+      "whenTitle": "When should you call on our Setup Pack?",
+      "useCases": {
+        "start": {
+          "title": "Getting started with Concorde-work-force",
+          "body": "Simplify the import of data from your previous tool (companies, employees, etc.) and ensure a smooth transition."
+        },
+        "branch": {
+          "title": "Opening a new branch",
+          "body": "Configure your new Concorde-work-force workspace quickly and efficiently."
+        },
+        "expert": {
+          "title": "Need expert configuration",
+          "body": "Tap into our know-how to optimize your account from day one."
+        }
+      },
+      "includesTitle": "What our Setup Pack can include",
+      "includesNote": "Tailored to your quote — we adapt the scope to your context.",
+      "includes": {
+        "import": "Import of your existing data (companies, branches, employees, contracts, leave balances)",
+        "calendar": "Calendar setup (public holidays, weekly rest days, collective agreements)",
+        "rules": "Configuration of clock-in rules, time classes and work positions",
+        "users": "User account creation and access rights assignment (RBAC)",
+        "overtime": "Setup of overtime and absence calculation rules",
+        "devices": "Connection of existing biometric time-clocks",
+        "templates": "Document template customization (contracts, attestations, certificates)",
+        "test": "End-to-end test on a sample before going live",
+        "training": "Initial training for administrators (one 2-hour session)"
+      },
+      "pricingTitle": "Indicative pricing",
+      "pricingBody": "The pack is priced on quotation depending on the scope:",
+      "pricingSmall": "Small team (≤ 30 employees)",
+      "pricingMedium": "Mid-size team (≤ 200 employees)",
+      "pricingLarge": "Large organization",
+      "pricingSmallValue": "€1,800 excl. VAT",
+      "pricingMediumValue": "€4,500 excl. VAT",
+      "pricingLargeValue": "on quotation",
+      "ctaTitle": "Ready to get started quickly with Concorde-work-force?",
+      "ctaBody": "Entrust us with your initial setup and focus on what matters: your business."
+    },
+    "contact": {
+      "title": "Contact us",
+      "subtitle": "Our support team replies within 24 business hours (Premium: 2h guaranteed).",
+      "email": "Email",
+      "phone": "Phone",
+      "chat": "AI Chat",
+      "chatValue": "Floating button at the bottom right",
+      "formTitle": "Contact form",
+      "name": "Your name",
+      "yourEmail": "Your email",
+      "subject": "Subject",
+      "message": "Message",
+      "send": "Send",
+      "sending": "Sending…",
+      "subjects": {
+        "technical": "Technical question",
+        "training": "Training request",
+        "coaching": "Coaching request",
+        "pack": "Setup pack",
+        "billing": "Billing / subscription",
+        "other": "Other"
+      },
+      "errors": {
+        "requiredFields": "All fields are required.",
+        "sendFailed": "Failed to send. Please try again later."
+      },
+      "successMessage": "Your message was sent successfully. Our team will get back to you shortly."
+    }
   }
 }

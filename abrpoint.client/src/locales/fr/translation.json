@@ -4083,5 +4083,236 @@
       "saveError": "Erreur lors de l'enregistrement",
       "deleteConfirm": "Supprimer la compensation #{{code}} ?"
     }
+  },
+  "support": {
+    "common": {
+      "back": "Retour au centre d'assistance",
+      "contactUs": "Nous contacter",
+      "requestQuote": "Demander un devis",
+      "bookSession": "Réserver une session"
+    },
+    "home": {
+      "title": "Centre d'assistance",
+      "subtitle": "Choisissez le type d'accompagnement qui correspond à votre besoin.",
+      "cards": {
+        "faq": {
+          "title": "FAQ",
+          "desc": "Réponses aux questions les plus fréquentes sur la plateforme Concorde Workforce."
+        },
+        "formations": {
+          "title": "Formations au logiciel",
+          "desc": "Sessions de formation en ligne ou présentielles pour maîtriser chaque module."
+        },
+        "coaching": {
+          "title": "Coaching sur mesure",
+          "desc": "Accompagnement personnalisé d'un expert RH dédié à votre organisation."
+        },
+        "pack": {
+          "title": "Pack de mise en place",
+          "desc": "Déploiement clés en main : paramétrage, import des données, formation des équipes."
+        },
+        "contact": {
+          "title": "Contactez-nous",
+          "desc": "Notre équipe support répond à vos demandes par email, téléphone ou chat."
+        }
+      }
+    },
+    "faq": {
+      "title": "FAQ",
+      "subtitle": "Réponses aux questions fréquentes. Si la vôtre n'y figure pas, contactez-nous.",
+      "items": {
+        "addEmployee": {
+          "q": "Comment ajouter un nouvel employé ?",
+          "a": "Allez dans Gestion → Employés → Nouvel employé. Le code est généré automatiquement selon le paramètre Parmodemp configuré dans la société."
+        },
+        "overtime": {
+          "q": "Comment paramétrer le calcul des heures supplémentaires ?",
+          "a": "Dans Données de base → Société, le champ « Heures / Mois » fixe le standard légal. Les seuils par catégorie (cadre, maîtrise, exécution) se règlent dans Paramètres avancés."
+        },
+        "loginIssue": {
+          "q": "Pourquoi un employé ne peut-il pas se connecter après création ?",
+          "a": "Vérifiez que l'email de l'employé est bien renseigné. L'index TenantEmailIndex est mis à jour automatiquement à la création."
+        },
+        "importExcel": {
+          "q": "Comment importer des employés via Excel ?",
+          "a": "Sur la liste des employés, utilisez le bouton « Import Excel » en haut à droite. Le fichier modèle accepte les colonnes Code, Nom, Prénom, Email, Fonction, Régime, etc."
+        },
+        "leaveCarryover": {
+          "q": "Que se passe-t-il avec les congés non pris au 31 mai ?",
+          "a": "Les congés payés non pris à cette date sont automatiquement transférés vers le Compte Épargne Temps (CET), dans la limite de 10 jours par défaut. Date et plafond sont paramétrables dans Société → Paramètres."
+        },
+        "billing": {
+          "q": "Comment exporter mon abonnement ?",
+          "a": "Vos factures Stripe sont accessibles depuis Mon profil → Facturation. Vous pouvez aussi modifier votre plan à tout moment via /dashboard/plan-configuration."
+        },
+        "contract": {
+          "q": "Comment générer un contrat pour un employé ?",
+          "a": "Allez dans Coffre-fort → Bibliothèque de modèles, sélectionnez un modèle, cliquez sur « Exporter pour un employé » et choisissez l'employé cible."
+        }
+      }
+    },
+    "formations": {
+      "title": "Formations au logiciel",
+      "subtitle": "Sessions animées par nos formateurs experts — incluses dans les plans Standard et Premium.",
+      "footer": "Pour réserver une session, contactez votre Account Manager ou écrivez à <strong>formations@concorde-tech.fr</strong>.",
+      "modes": {
+        "remote": "Visio",
+        "onsite": "Présentiel"
+      },
+      "audiences": {
+        "everyone": "Tous publics",
+        "hrFinance": "RH / DAF",
+        "itOps": "IT / Ops",
+        "managers": "Managers"
+      },
+      "sessions": {
+        "intro": {
+          "title": "Prise en main de la plateforme",
+          "desc": "Tour d'horizon complet : navigation, modules clés, premiers gestes administrateur."
+        },
+        "payroll": {
+          "title": "Configuration paie & exports comptables",
+          "desc": "Paramétrage des règles de calcul, génération du livre de paie, export DSN/SIG."
+        },
+        "devices": {
+          "title": "Atelier badgeuses & pointeuses",
+          "desc": "Installation, synchronisation des terminaux ZK / Suprema, troubleshooting réseau."
+        },
+        "leaves": {
+          "title": "Module Congés & autorisations",
+          "desc": "Workflows de validation, soldes, jours fériés, transfert CET, autorisations de sortie."
+        }
+      }
+    },
+    "coaching": {
+      "title": "Coaching sur mesure",
+      "tagline": "Développez votre maîtrise de Concorde-work-force",
+      "intro1": "Vous utilisez Concorde-work-force et souhaitez exploiter tout son potentiel pour optimiser la gestion de votre entreprise ?",
+      "intro2": "Que vous soyez un nouvel utilisateur désireux de prendre en main les fonctionnalités clés, ou un utilisateur expérimenté souhaitant affiner vos processus spécifiques, nos heures de coaching personnalisées sont conçues pour répondre précisément à vos besoins.",
+      "whyTitle": "Pourquoi opter pour un coaching Concorde-work-force sur mesure ?",
+      "reasons": {
+        "tailored": {
+          "title": "Un accompagnement 100% adapté à votre réalité",
+          "body": "Nous prenons en compte votre domaine d'activité, la typologie de votre entreprise et vos défis spécifiques pour vous offrir un coaching pertinent et actionnable."
+        },
+        "concrete": {
+          "title": "Résolvez vos problématiques concrètes",
+          "body": "Vous rencontrez un blocage sur une fonctionnalité ? Vous souhaitez mettre en place un flux de travail particulier ? Nos experts vous guident pas à pas vers la solution."
+        },
+        "key": {
+          "title": "Maîtrisez les fonctionnalités clés qui vous importent",
+          "body": "Concentrez-vous sur les aspects du logiciel qui ont un impact direct sur votre quotidien et gagnez en efficacité."
+        },
+        "roi": {
+          "title": "Un investissement rentable pour votre performance",
+          "body": "En optimisant votre utilisation de Concorde-work-force, vous gagnez du temps, réduisez les erreurs et améliorez votre productivité globale."
+        },
+        "prep": {
+          "title": "Préparation en amont pour une efficacité maximale",
+          "body": "En nous exposant votre problématique et/ou les fonctionnalités que vous souhaitez explorer, notre expert préparera un accompagnement ciblé et performant."
+        }
+      },
+      "howTitle": "Comment ça marche ?",
+      "steps": {
+        "needs": {
+          "title": "Exprimez vos besoins",
+          "body": "Lors de votre commande, vous aurez la possibilité de détailler votre problématique et/ou les fonctionnalités de Concorde-work-force sur lesquelles vous souhaitez être accompagné."
+        },
+        "preparation": {
+          "title": "Préparation personnalisée",
+          "body": "Notre expert Concorde-work-force analysera vos besoins afin de préparer au mieux la séance de coaching."
+        },
+        "session": {
+          "title": "Coaching individuel et interactif",
+          "body": "Bénéficiez d'une heure d'accompagnement en direct, où vous pourrez poser vos questions, partager votre écran et mettre en pratique les conseils de notre expert."
+        },
+        "autonomy": {
+          "title": "Gagnez en autonomie",
+          "body": "Notre objectif est de vous rendre autonome et confiant dans votre utilisation de Concorde-work-force."
+        }
+      },
+      "priceLabel": "Tarif",
+      "priceValue": "180 € HT",
+      "perHour": "/ heure",
+      "priceSubtitle": "Un investissement sur mesure pour une maîtrise optimale de votre outil de gestion.",
+      "fundingTitle": "Information importante concernant le financement",
+      "fundingBody": "Cette prestation de coaching personnalisé n'est pas éligible à un financement par les fonds publics dédiés à la formation professionnelle.",
+      "ctaTitle": "Prêt à optimiser votre utilisation de Concorde-work-force ?",
+      "ctaBody": "N'attendez plus pour bénéficier d'un accompagnement personnalisé qui vous fera gagner en temps et en efficacité."
+    },
+    "pack": {
+      "title": "Pack de Mise en Place",
+      "tagline": "Gagnez un temps précieux et assurez un démarrage optimal sur Concorde-work-force",
+      "intro1": "Vous êtes un nouvel utilisateur de Concorde-work-force et vous souhaitez intégrer vos données existantes sans tracas ? Vous ouvrez une nouvelle filiale et avez besoin d'une configuration rapide et efficace ?",
+      "intro2": "Notre « Pack de Mise en Place » est la solution idéale pour vous !",
+      "whatTitle": "Qu'est-ce que le Pack de Mise en Place Concorde-work-force ?",
+      "whatBody": "Notre équipe de spécialistes Concorde-work-force prend en charge la configuration initiale de votre compte, vous permettant de vous concentrer pleinement sur votre cœur de métier. Nous vous accompagnons pas à pas pour paramétrer votre environnement Concorde-work-force selon vos besoins spécifiques.",
+      "whenTitle": "Quand faire appel à notre Pack de Mise en Place ?",
+      "useCases": {
+        "start": {
+          "title": "Démarrage sur Concorde-work-force",
+          "body": "Simplifiez l'importation des données de votre ancien outil (entreprises, employés, etc.) et assurez une transition fluide."
+        },
+        "branch": {
+          "title": "Ouverture d'une nouvelle filiale",
+          "body": "Configurez rapidement et efficacement votre nouvel espace Concorde-work-force."
+        },
+        "expert": {
+          "title": "Besoin d'une configuration experte",
+          "body": "Bénéficiez de notre savoir-faire pour optimiser votre compte dès le départ."
+        }
+      },
+      "includesTitle": "Ce que notre Pack de Mise en Place peut comprendre",
+      "includesNote": "Sur-mesure selon votre devis — nous adaptons le périmètre à votre contexte.",
+      "includes": {
+        "import": "Importation de vos données existantes (sociétés, filiales, employés, contrats, soldes de congés)",
+        "calendar": "Paramétrage du calendrier (jours fériés, repos hebdomadaires, conventions collectives)",
+        "rules": "Configuration des règles de pointage, classes horaires et postes de travail",
+        "users": "Création des comptes utilisateurs et attribution des droits d'accès (RBAC)",
+        "overtime": "Mise en place des règles de calcul des heures supplémentaires et absences",
+        "devices": "Connexion des badgeuses / pointeuses biométriques existantes",
+        "templates": "Personnalisation des modèles de documents (contrats, attestations, certificats)",
+        "test": "Test de bout en bout sur un échantillon avant la mise en production",
+        "training": "Formation initiale des administrateurs (1 session de 2h)"
+      },
+      "pricingTitle": "Tarification indicative",
+      "pricingBody": "Le pack est tarifé sur devis en fonction du périmètre :",
+      "pricingSmall": "Petite équipe (≤ 30 collaborateurs)",
+      "pricingMedium": "Moyenne équipe (≤ 200 collaborateurs)",
+      "pricingLarge": "Grande organisation",
+      "pricingSmallValue": "1 800 € HT",
+      "pricingMediumValue": "4 500 € HT",
+      "pricingLargeValue": "sur devis",
+      "ctaTitle": "Prêt à démarrer rapidement sur Concorde-work-force ?",
+      "ctaBody": "Confiez-nous votre paramétrage initial et concentrez-vous sur l'essentiel : votre activité."
+    },
+    "contact": {
+      "title": "Contactez-nous",
+      "subtitle": "Notre équipe support répond sous 24h ouvrées (Premium : 2h garanties).",
+      "email": "Email",
+      "phone": "Téléphone",
+      "chat": "Chat IA",
+      "chatValue": "Bouton flottant en bas à droite",
+      "formTitle": "Formulaire de contact",
+      "name": "Votre nom",
+      "yourEmail": "Votre email",
+      "subject": "Sujet",
+      "message": "Message",
+      "send": "Envoyer",
+      "sending": "Envoi…",
+      "subjects": {
+        "technical": "Question technique",
+        "training": "Demande de formation",
+        "coaching": "Demande de coaching",
+        "pack": "Pack de mise en place",
+        "billing": "Facturation / abonnement",
+        "other": "Autre"
+      },
+      "errors": {
+        "requiredFields": "Tous les champs sont requis.",
+        "sendFailed": "Échec de l'envoi. Réessayez plus tard."
+      },
+      "successMessage": "Votre message a bien été envoyé. Notre équipe revient vers vous rapidement."
+    }
   }
 }

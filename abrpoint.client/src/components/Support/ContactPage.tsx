@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, TextField, MenuItem, Snackbar, Alert, CircularProgress } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -6,63 +6,71 @@ import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 import SendIcon from '@mui/icons-material/Send';
+import { useTranslation } from 'react-i18next';
 import { sendSupportMessage } from '../../services/ContactService';
 
-const subjects = [
-  'Question technique',
-  'Demande de formation',
-  'Demande de coaching',
-  'Pack de mise en place',
-  'Facturation / abonnement',
-  'Autre',
-];
+const SUBJECT_KEYS = ['technical', 'training', 'coaching', 'pack', 'billing', 'other'];
 
 const ContactPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const subjectOptions = useMemo(
+    () => SUBJECT_KEYS.map(k => ({ key: k, label: t(`support.contact.subjects.${k}`) })),
+    [t]
+  );
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState(subjects[0]);
+  const [subjectKey, setSubjectKey] = useState(SUBJECT_KEYS[0]);
   const [message, setMessage] = useState('');
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as 'success' | 'error' });
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || !message.trim()) {
-      setSnack({ open: true, msg: 'Tous les champs sont requis.', sev: 'error' });
+      setSnack({ open: true, msg: t('support.contact.errors.requiredFields'), sev: 'error' });
       return;
     }
     setSending(true);
     try {
-      await sendSupportMessage({ name: name.trim(), email: email.trim(), subject, message: message.trim() });
-      setSnack({ open: true, msg: 'Votre message a bien été envoyé. Notre équipe revient vers vous rapidement.', sev: 'success' });
+      await sendSupportMessage({
+        name: name.trim(),
+        email: email.trim(),
+        subject: t(`support.contact.subjects.${subjectKey}`),
+        message: message.trim(),
+      });
+      setSnack({ open: true, msg: t('support.contact.successMessage'), sev: 'success' });
       setName('');
       setEmail('');
-      setSubject(subjects[0]);
+      setSubjectKey(SUBJECT_KEYS[0]);
       setMessage('');
     } catch (err: any) {
-      const msg = err?.response?.data?.error || "Échec de l'envoi. Réessayez plus tard.";
+      const msg = err?.response?.data?.error || t('support.contact.errors.sendFailed');
       setSnack({ open: true, msg, sev: 'error' });
     } finally {
       setSending(false);
     }
   };
 
+  const cards = [
+    { icon: <EmailIcon />, label: t('support.contact.email'), value: 'contact@concorde-tech.fr', color: '#16a34a' },
+    { icon: <PhoneIcon />, label: t('support.contact.phone'), value: '+33 1 86 76 12 34', color: '#0040a1' },
+    { icon: <ChatBubbleIcon />, label: t('support.contact.chat'), value: t('support.contact.chatValue'), color: '#7c3aed' },
+  ];
+
   return (
     <Box sx={{ p: { xs: 3, md: 5 }, maxWidth: 1100, mx: 'auto' }}>
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/dashboard/support')} sx={{ mb: 2, color: '#475569', textTransform: 'none', fontWeight: 600 }}>
-        Retour au centre d'assistance
+        {t('support.common.back')}
       </Button>
-      <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#191c1e', mb: 1 }}>Contactez-nous</Typography>
+      <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#191c1e', mb: 1 }}>{t('support.contact.title')}</Typography>
       <Typography sx={{ fontSize: 14, color: '#475569', mb: 4 }}>
-        Notre équipe support répond sous 24h ouvrées (Premium : 2h garanties).
+        {t('support.contact.subtitle')}
       </Typography>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2.5, mb: 4 }}>
-        {[
-          { icon: <EmailIcon />, label: 'Email', value: 'contact@concorde-tech.fr', color: '#16a34a' },
-          { icon: <PhoneIcon />, label: 'Téléphone', value: '+33 1 86 76 12 34', color: '#0040a1' },
-          { icon: <ChatBubbleIcon />, label: 'Chat IA', value: "Bouton flottant en bas à droite", color: '#7c3aed' },
-        ].map((c, i) => (
+        {cards.map((c, i) => (
           <Box key={i} sx={{ p: 3, borderRadius: 3, border: '1px solid #e2e8f0', bgcolor: '#fff', display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: `${c.color}15`, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{c.icon}</Box>
             <Box>
@@ -74,14 +82,14 @@ const ContactPage: React.FC = () => {
       </Box>
 
       <Box sx={{ p: 4, borderRadius: 3, border: '1px solid #e2e8f0', bgcolor: '#fff' }}>
-        <Typography sx={{ fontSize: 18, fontWeight: 700, mb: 3, color: '#191c1e' }}>Formulaire de contact</Typography>
+        <Typography sx={{ fontSize: 18, fontWeight: 700, mb: 3, color: '#191c1e' }}>{t('support.contact.formTitle')}</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5 }}>
-          <TextField label="Votre nom" size="small" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
-          <TextField label="Votre email" size="small" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth type="email" />
-          <TextField label="Sujet" size="small" select value={subject} onChange={(e) => setSubject(e.target.value)} sx={{ gridColumn: { md: 'span 2' } }}>
-            {subjects.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          <TextField label={t('support.contact.name')} size="small" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+          <TextField label={t('support.contact.yourEmail')} size="small" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth type="email" />
+          <TextField label={t('support.contact.subject')} size="small" select value={subjectKey} onChange={(e) => setSubjectKey(e.target.value)} sx={{ gridColumn: { md: 'span 2' } }}>
+            {subjectOptions.map((s) => <MenuItem key={s.key} value={s.key}>{s.label}</MenuItem>)}
           </TextField>
-          <TextField label="Message" size="small" value={message} onChange={(e) => setMessage(e.target.value)} multiline minRows={5} sx={{ gridColumn: { md: 'span 2' } }} />
+          <TextField label={t('support.contact.message')} size="small" value={message} onChange={(e) => setMessage(e.target.value)} multiline minRows={5} sx={{ gridColumn: { md: 'span 2' } }} />
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
           <Button
@@ -91,7 +99,7 @@ const ContactPage: React.FC = () => {
             disabled={sending}
             sx={{ bgcolor: '#16a34a', textTransform: 'none', fontWeight: 700, px: 4, py: 1.2, '&:hover': { bgcolor: '#15803d' } }}
           >
-            {sending ? 'Envoi…' : 'Envoyer'}
+            {sending ? t('support.contact.sending') : t('support.contact.send')}
           </Button>
         </Box>
       </Box>
