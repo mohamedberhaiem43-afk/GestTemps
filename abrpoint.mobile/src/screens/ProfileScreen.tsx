@@ -286,6 +286,22 @@ export default function ProfileScreen({ navigation, route }: any) {
           </View>
         </View>
 
+        {/* Mon emploi du temps (selon poste) */}
+        <TouchableOpacity
+          style={styles.prefRow}
+          onPress={() => navigation.navigate('Schedule')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.prefIconBox}>
+            <MaterialCommunityIcons name="calendar-clock" size={22} color={COLORS.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.prefTitle}>Mon emploi du temps</Text>
+            <Text style={styles.prefSub}>Horaires de travail selon votre poste</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
+        </TouchableOpacity>
+
         {/* Préférences notifications */}
         <TouchableOpacity
           style={styles.prefRow}

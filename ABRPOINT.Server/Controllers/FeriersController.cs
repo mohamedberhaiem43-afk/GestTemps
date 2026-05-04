@@ -24,6 +24,25 @@ namespace ABRPOINT.Server.Controllers
             return await _ferierRepository.GetAllAsync();
         }
 
+        // Liste des prochains jours fériés (ferdate >= today) pour la société + année.
+        // Utilisé par l'app mobile pour afficher la prochaine semaine de repos sans
+        // donner accès à toute la table.
+        [HttpGet("upcoming/{soccod}")]
+        public async Task<IActionResult> GetUpcoming(string soccod, [FromQuery] int? year = null)
+        {
+            var today = DateTime.Today;
+            var targetYear = year ?? today.Year;
+            var startDate = today.Year == targetYear ? today : new DateTime(targetYear, 1, 1);
+            var endDate = new DateTime(targetYear, 12, 31);
+
+            var feriers = await _ferierRepository.GetFeriersByPeriod(soccod, startDate, endDate);
+            var ordered = feriers
+                .Where(f => f.Ferdate.HasValue)
+                .OrderBy(f => f.Ferdate!.Value)
+                .ToList();
+            return Ok(ordered);
+        }
+
         // POST api/<DirectionsController>
         [HttpPost]
         [CanAddFerie]

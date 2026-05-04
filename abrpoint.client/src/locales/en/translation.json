@@ -530,13 +530,16 @@
       "allServices": "All services",
       "regime": "Regime",
       "allRegimes": "All regimes",
+      "regimeMonthly": "Monthly",
+      "regimeHourly": "Hourly",
       "regime35": "35 Hours",
       "regime39": "39 Hours",
       "regimeFlat": "Daily Package",
       "period": "Period",
       "search": "Search",
       "majorHolidays": "Boost holiday and leave hours",
-      "selectAtLeastOne": "Please select at least one employee."
+      "selectAtLeastOne": "Please select at least one employee.",
+      "allEmployees": "All employees"
     },
     "table": {
       "employee": "Employee",

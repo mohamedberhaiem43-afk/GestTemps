@@ -362,6 +362,17 @@ export default function HomeScreen({ navigation }: any) {
             </View>
             <Text style={styles.quickLabel}>Coffre</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Holidays')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#e0e7ff' }]}>
+              <MaterialCommunityIcons name="calendar-star" size={22} color={COLORS.primary} />
+            </View>
+            <Text style={styles.quickLabel}>Fériés</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Stats Grid */}

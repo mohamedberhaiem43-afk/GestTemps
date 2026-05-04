@@ -663,13 +663,16 @@
       "allServices": "Tous les services",
       "regime": "Régime",
       "allRegimes": "Tous les régimes",
+      "regimeMonthly": "Mensuelle",
+      "regimeHourly": "Horaire",
       "regime35": "35 Heures",
       "regime39": "39 Heures",
       "regimeFlat": "Forfait Jours",
       "period": "Période",
       "search": "Rechercher",
       "majorHolidays": "Majorer heures fériées et congés",
-      "selectAtLeastOne": "Veuillez sélectionner au moins un employé."
+      "selectAtLeastOne": "Veuillez sélectionner au moins un employé.",
+      "allEmployees": "Tous les employés"
     },
     "table": {
       "employee": "Employé",

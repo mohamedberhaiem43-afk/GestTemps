@@ -389,6 +389,13 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 return true;
             }
 
+            // 🆕 Skip days outside employment period — un employé non encore embauché
+            // ou déjà sorti ne peut pas être compté comme absent. Cela évite que les
+            // mois antérieurs à la date d'embauche / postérieurs à la date de sortie
+            // génèrent des absences fictives en base et dans l'UI.
+            if (!IsWithinEmploymentPeriod(date))
+                return;
+
             cache.PresencesByDate.TryGetValue(date.Date, out var presence);
 
             // 🆕 Apply employment period filter to absences

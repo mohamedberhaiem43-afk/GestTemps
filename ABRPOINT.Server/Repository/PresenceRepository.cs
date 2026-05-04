@@ -722,6 +722,13 @@ namespace ABRPOINT.Server.Repository
                         return true;
                     }
 
+                    // 🆕 Skip days outside the employment window — pas avant l'embauche, pas
+                    // après la sortie. Sans ce skip, l'état périodique listait ces jours
+                    // avec Codposte vide → l'UI les marquait "Absent" alors que l'employé
+                    // n'était pas (encore / plus) sous contrat.
+                    if (!IsWithinEmploymentPeriod(date))
+                        continue;
+
                     var effectivePoste = employePostes.GetValueOrDefault((Empcod: empcod, Date: date));
                     // Fallback to employee's default poste when Lcategories doesn't resolve a poste for this date
                     // (mirrors PostesController.GetEmployePoste step 3). Without this, absent days end up with empty

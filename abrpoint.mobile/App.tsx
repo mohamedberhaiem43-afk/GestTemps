@@ -23,6 +23,8 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import SignatureScreen from './src/screens/SignatureScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import NotificationPreferencesScreen from './src/screens/NotificationPreferencesScreen';
+import HolidaysScreen from './src/screens/HolidaysScreen';
+import ScheduleScreen from './src/screens/ScheduleScreen';
 
 // Manager Screens
 import EmployeeListScreen from './src/screens/manager/EmployeeListScreen';
@@ -62,6 +64,8 @@ function AppStack() {
       <Stack.Screen name="Signature" component={SignatureScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} />
+      <Stack.Screen name="Holidays" component={HolidaysScreen} />
+      <Stack.Screen name="Schedule" component={ScheduleScreen} />
       {/* Manager Screens - always registered, access controlled by UI */}
       <Stack.Screen name="EmployeeList" component={EmployeeListScreen} />
       <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />

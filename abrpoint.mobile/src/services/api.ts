@@ -647,10 +647,27 @@ class ApiService {
     return response.data;
   }
 
-  // Employee horaires
+  // Employee horaires (admin / manager — exige le droit "Gestion Employés")
   async getEmpHoraires(soccod: string, empcod: string) {
     const response = await this.client.get(`/Employes/get-emp-horaires/${soccod}/${empcod}`);
     return response.data;
+  }
+
+  // Self-service : l'employé consulte SES propres horaires sans permission spéciale
+  async getMyHoraires(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Employes/get-my-horaires/${soccod}/${empcod}`);
+    return response.data as Array<{
+      soccod: string; empcod: string;
+      codposte?: string | null; libposte?: string | null;
+      lunhdmat?: string | null; lunhfmat?: string | null; lunhdam?: string | null; lunhfam?: string | null; lunrepos?: string | null;
+      marhdmat?: string | null; marhfmat?: string | null; marhdam?: string | null; marhfam?: string | null; marrepos?: string | null;
+      merhdmat?: string | null; merhfmat?: string | null; merhdam?: string | null; merhfam?: string | null; merrepos?: string | null;
+      jeuhdmat?: string | null; jeuhfmat?: string | null; jeuhdam?: string | null; jeuhfam?: string | null; jeurepos?: string | null;
+      venhdmat?: string | null; venhfmat?: string | null; venhdam?: string | null; venhfam?: string | null; venrepos?: string | null;
+      samhdmat?: string | null; samhfmat?: string | null; samhdam?: string | null; samhfam?: string | null; samrepos?: string | null;
+      dimhdmat?: string | null; dimhfmat?: string | null; dimhdam?: string | null; dimhfam?: string | null; dimrepos?: string | null;
+      avantEnt?: number | null; avantSort?: number | null;
+    }>;
   }
 
   // Admin daily pointage - uses dedicated endpoint with absence detection
@@ -685,6 +702,23 @@ class ApiService {
     } catch {
       return [];
     }
+  }
+
+  // Holidays (jours fériés) — liste à partir d'aujourd'hui jusqu'à la fin de l'année visée
+  async getUpcomingHolidays(soccod: string, year?: number) {
+    const params = year ? { year } : undefined;
+    const response = await this.client.get(`/Feriers/upcoming/${soccod}`, { params });
+    return response.data as Array<{
+      annee?: string | null;
+      soccod?: string | null;
+      ferdate?: string | null;
+      fermotif?: string | null;
+      ferfixe?: string | null;
+      fertype?: string | null;
+      ferheure?: number | null;
+      fernpaye?: string | null;
+      fertrv?: string | null;
+    }>;
   }
 
   // Societies

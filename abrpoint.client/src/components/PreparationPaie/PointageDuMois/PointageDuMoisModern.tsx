@@ -160,6 +160,7 @@ function PointageDuMoisContent() {
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'info' as any });
   const [openAlertsDialog, setOpenAlertsDialog] = useState(false);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [showEmpDropdown, setShowEmpDropdown] = useState(false);
   const [treatedAlerts, setTreatedAlerts] = useState<Record<string, 'traite' | 'ignore'>>({});
   const [alertFilter, setAlertFilter] = useState<'all' | 'retard' | 'absnj'>('all');
 
@@ -455,17 +456,67 @@ function PointageDuMoisContent() {
       {/* ── Filter Bar ── */}
       <Paper className="pdm-filter-bar" elevation={0}>
         <Box className="pdm-filter-grid">
-          <Box className="pdm-filter-field">
+          <Box className="pdm-filter-field" sx={{ position: 'relative' }}>
             <label>{t('pointageMois.filters.employees')}</label>
-            <FormControl size="small" fullWidth>
-              <Select multiple value={selectedEmpcods} onChange={(e) => setSelectedEmpcods(e.target.value as string[])}
-                renderValue={(sel) => t('pointageMois.filters.selectedCount', { count: (sel as string[]).length })}
-                sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
-                {Object.entries(employeesLibs).map(([k, v]) => (
-                  <MenuItem key={k} value={k}>{String(v)}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box
+              onClick={() => setShowEmpDropdown(v => !v)}
+              sx={{
+                cursor: 'pointer', userSelect: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                minHeight: 38, padding: '8px 12px',
+                borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selectedEmpcods.length === 0
+                  ? t('pointageMois.filters.allEmployees')
+                  : selectedEmpcods.length === 1
+                    ? String((employeesLibs as Record<string, string>)[selectedEmpcods[0]] || selectedEmpcods[0])
+                    : t('pointageMois.filters.selectedCount', { count: selectedEmpcods.length })}
+              </span>
+              <span style={{ fontSize: 10, color: '#94a3b8' }}>▼</span>
+            </Box>
+            {showEmpDropdown && (
+              <Box sx={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1200,
+                backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 260, overflowY: 'auto', mt: 0.5,
+              }}>
+                <Box
+                  onClick={() => { setSelectedEmpcods([]); setShowEmpDropdown(false); }}
+                  sx={{
+                    padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1,
+                    borderBottom: '1px solid #f1f5f9', fontWeight: 600, fontSize: 13,
+                    color: selectedEmpcods.length === 0 ? '#0040a1' : '#334155',
+                  }}
+                >
+                  <input type="checkbox" readOnly checked={selectedEmpcods.length === 0} style={{ accentColor: '#0040a1' }} />
+                  {t('pointageMois.filters.allEmployees')}
+                </Box>
+                {Object.entries(employeesLibs as Record<string, string>).map(([code, name]) => {
+                  const checked = selectedEmpcods.includes(code);
+                  return (
+                    <Box
+                      key={code}
+                      onClick={() =>
+                        setSelectedEmpcods(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
+                      }
+                      sx={{
+                        padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1,
+                        fontSize: 13,
+                        color: checked ? '#0040a1' : '#334155',
+                        backgroundColor: checked ? '#f0f5ff' : 'transparent',
+                        '&:hover': { backgroundColor: checked ? '#e6efff' : '#f8fafc' },
+                      }}
+                    >
+                      <input type="checkbox" readOnly checked={checked} style={{ accentColor: '#0040a1' }} />
+                      {String(name)}
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
           </Box>
           <Box className="pdm-filter-field">
             <label>{t('pointageMois.filters.branch')}</label>
@@ -494,9 +545,8 @@ function PointageDuMoisContent() {
               <Select value={selectedRegime} onChange={(e) => setSelectedRegime(e.target.value)}
                 sx={{ borderRadius: '12px', backgroundColor: '#fff', fontSize: '13px' }}>
                 <MenuItem value="">{t('pointageMois.filters.allRegimes')}</MenuItem>
-                <MenuItem value="M">{t('pointageMois.filters.regime35')}</MenuItem>
-                <MenuItem value="H">{t('pointageMois.filters.regime39')}</MenuItem>
-                <MenuItem value="F">{t('pointageMois.filters.regimeFlat')}</MenuItem>
+                <MenuItem value="M">{t('pointageMois.filters.regimeMonthly')}</MenuItem>
+                <MenuItem value="H">{t('pointageMois.filters.regimeHourly')}</MenuItem>
               </Select>
             </FormControl>
           </Box>

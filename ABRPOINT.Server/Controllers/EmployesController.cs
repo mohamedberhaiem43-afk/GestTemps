@@ -256,6 +256,30 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // Variante self-service : un employé peut consulter SES propres horaires sans
+        // l'attribut [CanGetEmploye] (qui exige le droit "Gestion Employés"). Le JWT
+        // mobile stocke l'uticod (= empcod côté employé) dans NameIdentifier, donc on
+        // compare l'empcod de la route avec ce claim pour bloquer la consultation
+        // d'horaires d'un autre collaborateur.
+        [HttpGet("get-my-horaires/{soccod}/{empcod}")]
+        public async Task<IActionResult> GetMyHoraires(string soccod, string empcod)
+        {
+            try
+            {
+                var callerUticod = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(callerUticod) || !string.Equals(callerUticod, empcod, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Forbid();
+                }
+                var empHoraires = await _employeRepository.GetEmployesHoraire(soccod, empcod);
+                return Ok(empHoraires);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         [HttpGet("get-emp-depass-max/{soccod}/{uticod}")]
         [CanGetEmploye]
         public async Task<List<EmpDepassMxHre>> GetEmpDepassMxHres(string soccod, string uticod)
