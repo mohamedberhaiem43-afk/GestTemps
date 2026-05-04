@@ -1192,10 +1192,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 details.Add("Absent");
 
             if (sanction != null)
-                details.Add($"Sanction: {sanction.Abslib}");
+                details.Add($"Sanction[{sanction.Abscod}]: {sanction.Abslib}");
 
             if (conge != null)
-                details.Add($"Congé: {conge.Concod}");
+                details.Add($"Congé[{conge.Abscod}]: {conge.Concod}");
 
             if (isFerier)
                 details.Add("Férié");

@@ -102,6 +102,16 @@ namespace ABRPOINT.Server.Repository
                 if (string.IsNullOrEmpty(effectivePoste))
                     effectivePoste = emp.Poscod;
 
+                // Classe horaire « Selon pointage » (Categorie.Catperiode = 'S') : plusieurs
+                // postes coexistent dans la période, le bon est celui dont la plage de
+                // tolérance contient l'instant du pointage. Sans ce reroutage, tous les
+                // pointages atterriraient sur Lcategorie.Codposte (1er poste) et il faudrait
+                // attendre l'optimisation batch (PointageOptimizer) pour réaffecter — ce qui
+                // fausse les calculs temps réel (heures sup, retard, etc.).
+                var pointagePoste = await ResolveSelonPointagePosteAsync(soccod, emp.Catcod, date);
+                if (!string.IsNullOrEmpty(pointagePoste))
+                    effectivePoste = pointagePoste;
+
                 Poste? poste = null;
                 if (!string.IsNullOrEmpty(effectivePoste))
                     poste = await _posteRepository.GetPoste(soccod, effectivePoste);
@@ -2225,6 +2235,107 @@ namespace ABRPOINT.Server.Repository
             {
                 throw;
             }
+        }
+
+        // ── Selon pointage : choix du poste à l'instant du pointage ──────────────
+        // Une classe horaire de type 'S' (Categorie.Catperiode) regroupe plusieurs
+        // postes coexistant dans la même période (Lcategorie.Codposte + Categorie.
+        // Catsem2..Catsem6). À chaque pointage on doit déterminer lequel correspond
+        // à l'horaire réel de l'employé en se basant sur les plages de tolérance du
+        // jour de la semaine de chaque poste candidat.
+        private async Task<string?> ResolveSelonPointagePosteAsync(
+            string soccod, string? catcod, DateTime punchAt)
+        {
+            if (string.IsNullOrEmpty(catcod)) return null;
+
+            var categorie = await _dbContext.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Soccod == soccod && c.Catcod == catcod);
+
+            // Classe « Périodique » → un seul poste pour la période, pas de reroutage.
+            if (categorie?.Catperiode != "S") return null;
+
+            var dateOnly = punchAt.Date;
+
+            // Lcategorie active à la date — porte le poste principal de la période.
+            var lcat = await _dbContext.Lcategories
+                .AsNoTracking()
+                .Where(l => l.Soccod == soccod && l.Catcod == catcod
+                         && l.Catdu.HasValue && l.Catau.HasValue
+                         && l.Catdu.Value <= dateOnly && l.Catau.Value >= dateOnly)
+                .OrderByDescending(l => l.Catdu)
+                .FirstOrDefaultAsync();
+
+            var candidates = new List<string>();
+            if (!string.IsNullOrEmpty(lcat?.Codposte)) candidates.Add(lcat.Codposte!);
+            foreach (var extra in new[]
+            {
+                categorie.Catsem2, categorie.Catsem3, categorie.Catsem4,
+                categorie.Catsem5, categorie.Catsem6,
+            })
+            {
+                if (!string.IsNullOrEmpty(extra) && !candidates.Contains(extra))
+                    candidates.Add(extra!);
+            }
+            if (candidates.Count == 0) return null;
+
+            var postes = await _dbContext.Postes
+                .AsNoTracking()
+                .Where(p => p.Soccod == soccod && candidates.Contains(p.Codposte))
+                .ToListAsync();
+            if (postes.Count == 0) return null;
+
+            var punchTime = punchAt.TimeOfDay;
+
+            // 1) Match strict par plage de tolérance matin OU après-midi.
+            foreach (var p in postes)
+            {
+                var (mDeb, mFin, aDeb, aFin) = GetSelonPointageTolerancePlages(dateOnly, p);
+                if (mDeb.HasValue && mFin.HasValue && punchTime >= mDeb.Value && punchTime <= mFin.Value)
+                    return p.Codposte;
+                if (aDeb.HasValue && aFin.HasValue && punchTime >= aDeb.Value && punchTime <= aFin.Value)
+                    return p.Codposte;
+            }
+
+            // 2) Repli : poste candidat dont l'heure d'entrée prévue (matin sinon
+            //    après-midi) est la plus proche de l'instant du pointage.
+            Poste? closest = null;
+            double minDiffMinutes = double.MaxValue;
+            foreach (var p in postes)
+            {
+                var (mStart, _, eStart, _) = GenericMethodes.GetStartsWorkDay(dateOnly, p);
+                TimeSpan? entry = null;
+                if (!string.IsNullOrEmpty(mStart) && TimeSpan.TryParse(mStart, out var ms)) entry = ms;
+                else if (!string.IsNullOrEmpty(eStart) && TimeSpan.TryParse(eStart, out var es)) entry = es;
+                if (!entry.HasValue) continue;
+
+                var diff = Math.Abs((punchTime - entry.Value).TotalMinutes);
+                if (diff < minDiffMinutes)
+                {
+                    minDiffMinutes = diff;
+                    closest = p;
+                }
+            }
+            return closest?.Codposte;
+        }
+
+        private static (TimeSpan? mDeb, TimeSpan? mFin, TimeSpan? aDeb, TimeSpan? aFin)
+            GetSelonPointageTolerancePlages(DateTime date, Poste poste)
+        {
+            string? mDebRaw = null, mFinRaw = null, aDebRaw = null, aFinRaw = null;
+            switch (date.DayOfWeek)
+            {
+                case DayOfWeek.Monday:    mDebRaw = poste.Lunhdematin; mFinRaw = poste.Lunhfematin; aDebRaw = poste.Lunhdeamidi; aFinRaw = poste.Lunhfeamidi; break;
+                case DayOfWeek.Tuesday:   mDebRaw = poste.Marhdematin; mFinRaw = poste.Marhfematin; aDebRaw = poste.Marhdeamidi; aFinRaw = poste.Marhfeamidi; break;
+                case DayOfWeek.Wednesday: mDebRaw = poste.Merhdematin; mFinRaw = poste.Merhfematin; aDebRaw = poste.Merhdeamidi; aFinRaw = poste.Merhfeamidi; break;
+                case DayOfWeek.Thursday:  mDebRaw = poste.Jeuhdematin; mFinRaw = poste.Jeuhfematin; aDebRaw = poste.Jeuhdeamidi; aFinRaw = poste.Jeuhfeamidi; break;
+                case DayOfWeek.Friday:    mDebRaw = poste.Venhdematin; mFinRaw = poste.Venhfematin; aDebRaw = poste.Venhdeamidi; aFinRaw = poste.Venhfeamidi; break;
+                case DayOfWeek.Saturday:  mDebRaw = poste.Samhdematin; mFinRaw = poste.Samhfematin; aDebRaw = poste.Samhdeamidi; aFinRaw = poste.Samhfeamidi; break;
+                case DayOfWeek.Sunday:    mDebRaw = poste.Dimhdematin; mFinRaw = poste.Dimhfematin; aDebRaw = poste.Dimhdeamidi; aFinRaw = poste.Dimhfeamidi; break;
+            }
+            static TimeSpan? Parse(string? s) =>
+                !string.IsNullOrEmpty(s) && TimeSpan.TryParse(s, out var t) ? t : (TimeSpan?)null;
+            return (Parse(mDebRaw), Parse(mFinRaw), Parse(aDebRaw), Parse(aFinRaw));
         }
     }
 }

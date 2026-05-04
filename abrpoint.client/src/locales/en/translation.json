@@ -510,6 +510,16 @@
     "exportSelected": "Selected employee report",
     "exportAll": "All employees report",
     "export": "Export",
+    "exportExcelMonthly": "Monthly Excel export",
+    "excelDialog": {
+      "title": "Export monthly attendance",
+      "subtitle": "Generates an Excel file similar to the paper monthly sheet (one column per day, totals on the right).",
+      "includeLegend": "Include code legend",
+      "includeColors": "Include colors (legend and statuses)",
+      "cancel": "Cancel",
+      "generate": "Generate",
+      "generating": "Generating…"
+    },
     "filters": {
       "employees": "Employees",
       "selectedCount": "{{count}} selected",

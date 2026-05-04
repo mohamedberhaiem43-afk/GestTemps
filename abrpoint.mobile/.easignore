@@ -1,0 +1,15 @@
+# Forcer EAS à régénérer les dossiers natifs via `expo prebuild` à chaque build
+# plutôt que d'utiliser ceux commités dans le repo. Le dossier android/ commité
+# est figé pour une combinaison RN/Expo/AGP donnée et casse à chaque update
+# (cf. erreur "No variants exist" sur react-native-gesture-handler, reanimated,
+# screens, safe-area-context, vector-icons, worklets avec AGP 8.11 + RN 0.81).
+#
+# Ce fichier ne s'applique QU'à la création du contexte EAS Build : git et les
+# builds Gradle locaux continuent d'utiliser le android/ commité.
+android
+ios
+
+# Fichiers locaux qui n'ont rien à faire dans le build cloud
+node_modules
+.expo
+*.log

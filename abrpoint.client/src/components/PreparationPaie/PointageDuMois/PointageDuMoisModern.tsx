@@ -24,6 +24,7 @@ import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './Filte
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
 import useGetRubriquesPaire from '../../../hooks/rubriqueHooks/useGetRubriquePaire';
 import IntegrationPaieButton from '../../helper/IntegrationPaieButton';
+import PointageMensuelExportButton from './PointageMensuelExportButton';
 import { PointageMois } from '../../../models/PointageMois';
 import { useAuth } from '../../helper/AuthProvider';
 import { useTranslation } from 'react-i18next';
@@ -429,6 +430,13 @@ function PointageDuMoisContent() {
             </IconButton>
           </Tooltip>
           {canModify && <IntegrationPaieButton pointageMoisData={pointageMois as any} rubriques={rubriques} mois={ctxMois} annee={ctxAnnee} />}
+          <PointageMensuelExportButton
+            pointageMois={pointageMois}
+            mois={ctxMois}
+            annee={ctxAnnee}
+            soclib={sessionStorage.getItem('soclib') || ''}
+            services={services}
+          />
           <Button className="pdm-export-btn" startIcon={<DownloadIcon />} onClick={handleExportAll} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             {t('pointageMois.export')}
           </Button>

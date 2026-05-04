@@ -643,6 +643,16 @@
     "exportSelected": "Rapport employé sélectionné",
     "exportAll": "Rapport tous les employés",
     "export": "Exporter",
+    "exportExcelMonthly": "Export Excel mensuel",
+    "excelDialog": {
+      "title": "Export pointage mensuel",
+      "subtitle": "Génère un fichier Excel similaire à l'état mensuel papier (un colonne par jour, totaux à droite).",
+      "includeLegend": "Inclure la légende des codes",
+      "includeColors": "Inclure les couleurs (légende et statuts)",
+      "cancel": "Annuler",
+      "generate": "Générer",
+      "generating": "Génération…"
+    },
     "filters": {
       "employees": "Employés",
       "selectedCount": "{{count}} sélectionné(s)",
