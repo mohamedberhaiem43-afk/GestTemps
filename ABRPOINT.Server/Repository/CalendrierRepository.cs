@@ -72,39 +72,74 @@ namespace ABRPOINT.Server.Repository
                         .Where(s => s.Soccod == soccod && s.Caltype == caltype && s.CalAn == annee)
                         .ToListAsync();
                 }
-                // Convert jourRepos (string "0", "1", ..., "6") to a DayOfWeek enum value
-                DayOfWeek jourReposDayOfWeek = (DayOfWeek)Enum.Parse(typeof(DayOfWeek), jourRepos);
+
+                // Parse jourRepos en HashSet<DayOfWeek>. Le frontend envoie soit :
+                //   "0".."6" (un seul jour, format DayOfWeek)
+                //   "7"     (alias "Samedi + Dimanche", historiquement "samdim")
+                //   "1,5"   (plusieurs jours séparés par virgule)
+                //   "samdim" (legacy)
+                // Avant cette refonte, le code crashait sur "7" / "samdim" car
+                // Enum.Parse(DayOfWeek, "7") jette une ArgumentException → l'update
+                // entière échouait silencieusement (catch bas + Console.WriteLine).
+                var joursRepos = ParseJoursRepos(jourRepos);
 
                 foreach (var record in recordsToUpdate)
-                    {
-                        if (record.CalDate.HasValue)
-                        {
-                            var dayOfWeek = record.CalDate.Value.DayOfWeek;
+                {
+                    if (!record.CalDate.HasValue) continue;
 
-                            if (dayOfWeek == DayOfWeek.Saturday)
-                            {
-                                record.CalNbh = nbhSamedi; // 🔹 Update Saturdays
-                            }
-                            else if (dayOfWeek == jourReposDayOfWeek)
-                            {
-                                record.CalNbh = 0;
-                            }
-                            else
-                            {
-                                record.CalNbh = nbhJours; // 🔹 Update other days
-                            }
-                        }
+                    var dayOfWeek = record.CalDate.Value.DayOfWeek;
+
+                    if (joursRepos.Contains(dayOfWeek))
+                    {
+                        record.CalNbh = 0; // jour de repos → 0h
                     }
+                    else if (dayOfWeek == DayOfWeek.Saturday)
+                    {
+                        record.CalNbh = nbhSamedi;
+                    }
+                    else
+                    {
+                        record.CalNbh = nbhJours;
+                    }
+                }
 
                 _dbContext.Lcalendsocs.UpdateRange(recordsToUpdate);
                 await _dbContext.SaveChangesAsync();
-                
             }
             catch (Exception ex)
             {
                 // Handle exception if needed
                 Console.WriteLine($"An error occurred: {ex.Message}");
+                throw; // remonter l'erreur pour que l'UI affiche le toast d'échec
+                       // au lieu de croire que tout s'est bien passé.
             }
+        }
+
+        private static HashSet<DayOfWeek> ParseJoursRepos(string jourRepos)
+        {
+            var result = new HashSet<DayOfWeek>();
+            if (string.IsNullOrWhiteSpace(jourRepos)) return result;
+
+            foreach (var raw in jourRepos.Split(new[] { ',', '-', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var token = raw.Trim().ToLowerInvariant();
+                switch (token)
+                {
+                    case "samdim":
+                    case "7":
+                        result.Add(DayOfWeek.Saturday);
+                        result.Add(DayOfWeek.Sunday);
+                        break;
+                    case "dim": case "dimanche": case "0": result.Add(DayOfWeek.Sunday); break;
+                    case "lun": case "lundi":    case "1": result.Add(DayOfWeek.Monday); break;
+                    case "mar": case "mardi":    case "2": result.Add(DayOfWeek.Tuesday); break;
+                    case "mer": case "mercredi": case "3": result.Add(DayOfWeek.Wednesday); break;
+                    case "jeu": case "jeudi":    case "4": result.Add(DayOfWeek.Thursday); break;
+                    case "ven": case "vendredi": case "5": result.Add(DayOfWeek.Friday); break;
+                    case "sam": case "samedi":   case "6": result.Add(DayOfWeek.Saturday); break;
+                }
+            }
+            return result;
         }
 
         public async Task<IEnumerable<Lcalendsoc>> GetAnneeCalendrierAsync(string soccod,string annee)

@@ -1740,10 +1740,13 @@
         "vendredi": "Vendredi",
         "samedi": "Samedi",
         "dimanche": "Dimanche",
-        "samDim": "Sam-Dim"
+        "samDim": "Sam-Dim",
+        "samdim": "Samedi + Dimanche"
       },
       "settingsSavedFor": "Réglages enregistrés pour {{period}}",
+      "settingsSavedAll": "Réglages appliqués à tous les mois de {{year}}",
       "settingsSaveError": "Erreur lors de l'enregistrement des réglages.",
+      "noCaltype": "Aucun calendrier configuré pour cette année. Cliquez sur « Initialiser une année » d'abord.",
       "yearCreatedSuccess": "Planification {{year}} créée avec succès !",
       "yearCreateError": "Erreur lors de la création de l'année {{year}}.",
       "yearClonedSuccess": "Année {{year}} clonée avec succès !",

@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { Send, SmartToy, Close, Refresh, Navigation } from '@mui/icons-material';
 import { useAuth } from '../AuthProvider';
+import apiInstance from '../../API/apiInstance';
 
 interface Message {
   role: 'user' | 'model';
@@ -35,22 +36,36 @@ interface Message {
 const GeminiChat = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'model',
-      parts: [{ 
-        text: `Bonjour! 👋 Je suis votre assistant pour l'application de gestion de présence.
+  const { soccod, uticod, userName, roleName, isAdmin, isManager, isEmp, sercod } = useAuth();
 
-Je peux vous aider avec:
+  const buildWelcome = () => {
+    const greet = userName ? `Bonjour ${userName.split(' ')[0]}!` : 'Bonjour!';
+    const role = isAdmin ? 'administrateur' : isManager ? 'manager' : 'employé';
+    if (isAdmin || isManager) {
+      return `${greet} 👋 Je suis votre assistant intelligent (rôle: ${role}).
+
+Je peux vous aider avec :
+• Statistiques de présence et retards en temps réel
+• Pointage d'un employé sur un mois donné
+• Liste des absents / présents du jour
+• Heures supplémentaires d'un employé
 • Navigation dans l'application
-• Explication des fonctionnalités
-• Résolution de problèmes
-• Interprétation des données
-• Statistiques en temps réel
 
-Posez-moi une question!` 
-      }]
+Posez-moi votre question !`;
     }
+    return `${greet} 👋 Je suis votre assistant intelligent.
+
+Je peux vous aider avec :
+• Vos heures travaillées et heures supplémentaires
+• Votre solde de congés et vos demandes
+• Vos prochains jours fériés et votre emploi du temps
+• Navigation dans l'application
+
+Posez-moi votre question !`;
+  };
+
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'model', parts: [{ text: buildWelcome() }] }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -66,28 +81,13 @@ Posez-moi une question!`
   }, [messages]);
 
   const resetChat = () => {
-    setMessages([{
-      role: 'model',
-      parts: [{ 
-        text: `Bonjour! 👋 Je suis votre assistant pour l'application de gestion de présence.
-
-Je peux vous aider avec:
-• Navigation dans l'application
-• Explication des fonctionnalités
-• Résolution de problèmes
-• Interprétation des données
-• Statistiques en temps réel
-
-Posez-moi une question!` 
-      }]
-    }]);
+    setMessages([{ role: 'model', parts: [{ text: buildWelcome() }] }]);
   };
 
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsOpen(false);
   };
-  const { soccod } = useAuth();
   const extractNavigationFromResponse = (text: string): { path: string; label: string } | null => {
     // Détecter les chemins de navigation dans la réponse
     const navigationPatterns = [
@@ -138,44 +138,32 @@ Posez-moi une question!`
     setIsLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_REACT_APP_API_URL;
-      
-      if (!API_URL) {
-        throw new Error('URL API non configurée.');
-      }
-
       // Préparer l'historique de conversation pour le backend
       const conversationHistory = messages.map(msg => ({
         role: msg.role,
         content: msg.parts[0].text
       }));
 
-      // Appeler le backend au lieu de Gemini directement
-      const response = await fetch(`${API_URL}/AIAssistant/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // apiInstance injecte automatiquement le header X-Tenant-Slug et envoie le cookie JWT.
+      // Sans ça, le TenantResolverMiddleware répond 400 ("Tenant introuvable") et le controller
+      // n'a pas accès aux claims utilisateur pour personnaliser la réponse.
+      const { data } = await apiInstance.post('/AIAssistant/chat', {
         messages: conversationHistory,
         newMessage: currentInput,
         query: currentInput,
         currentPage: location.pathname,
-        soccod: soccod
-      })
+        soccod: soccod,
+        userContext: {
+          uticod,
+          userName,
+          roleName,
+          isAdmin,
+          isManager,
+          isEmp,
+          sercod,
+        },
       });
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Trop de requêtes. Veuillez patienter une minute.');
-        }
-        const errorText = await response.text();
-        console.error('API Error:', errorText);
-        throw new Error(`Erreur API: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      
       if (data.response) {
         const responseText = data.response;
         const navigationAction = extractNavigationFromResponse(responseText);
@@ -191,9 +179,19 @@ Posez-moi une question!`
       }
     } catch (error: any) {
       console.error('Error calling backend:', error);
+      const status = error?.response?.status;
+      const serverMsg =
+        error?.response?.data?.error
+        ?? (typeof error?.response?.data === 'string' ? error.response.data : null)
+        ?? error?.message;
+      const friendly = status === 429
+        ? 'Trop de requêtes. Veuillez patienter une minute.'
+        : status === 401
+          ? 'Session expirée, veuillez vous reconnecter.'
+          : serverMsg ?? 'Erreur inconnue';
       setMessages(prev => [...prev, {
         role: 'model',
-        parts: [{ text: `❌ Erreur: ${error.message}\n\nVeuillez réessayer ou reformuler votre question.` }]
+        parts: [{ text: `❌ Erreur: ${friendly}\n\nVeuillez réessayer ou reformuler votre question.` }]
       }]);
     } finally {
       setIsLoading(false);
@@ -207,13 +205,25 @@ Posez-moi une question!`
     }
   };
 
-  const quickQuestions = [
-    "Combien d'employés sont présents aujourd'hui ?",
-    "Qui est absent cette semaine ?",
-    "Comment exporter les données ?",
-    "Que signifie 'preretmateup' ?",
-    "Quels sont les repos à venir ?"
-  ];
+  // Suggestions adaptées au rôle. Les admins/managers voient des questions agrégées,
+  // un employé "lambda" voit des questions self-service. Évite de proposer des
+  // requêtes que le backend refusera ensuite par manque de droits.
+  const isPriviledged = isAdmin || isManager;
+  const quickQuestions = isPriviledged
+    ? [
+      "Combien d'employés sont présents aujourd'hui ?",
+      "Qui est en retard aujourd'hui ?",
+      "Qui est absent cette semaine ?",
+      "Combien d'heures supplémentaires ce mois ?",
+      "Quels sont les jours fériés à venir ?",
+    ]
+    : [
+      "Combien d'heures j'ai travaillé ce mois ?",
+      "Quel est mon solde de congé ?",
+      "Quels sont mes prochains jours fériés ?",
+      "Comment poser une demande de congé ?",
+      "Comment voir mon emploi du temps ?",
+    ];
 
   return (
     <>
@@ -222,15 +232,19 @@ Posez-moi une question!`
         aria-label="assistant"
         onClick={() => setIsOpen(true)}
         sx={{
+          // Ancre verticalement au milieu de l'écran, collé contre le bord droit.
+          // Le translate compense la moitié de la hauteur du FAB pour un centrage
+          // pixel-perfect indépendamment de sa taille.
           position: 'fixed',
-          bottom: 24,
           right: 24,
+          top: '50%',
+          transform: 'translateY(-50%)',
           zIndex: 1200,
           background: 'linear-gradient(135deg, #0040a1 0%, #1a6eff 100%)',
           boxShadow: '0 6px 20px rgba(0,64,161,0.35)',
           '&:hover': {
             background: 'linear-gradient(135deg, #003080 0%, #0040a1 100%)',
-            transform: 'scale(1.08)',
+            transform: 'translateY(-50%) scale(1.08)',
           },
           transition: 'all 0.2s',
         }}
@@ -241,19 +255,25 @@ Posez-moi une question!`
       <Dialog
         open={isOpen}
         onClose={() => setIsOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { height: '80vh', display: 'flex', flexDirection: 'column' }
-        }}
+        maxWidth={false}
+        // Le panneau glisse contre le bord droit (et non plus au centre) pour
+        // que l'utilisateur garde la page sous les yeux pendant la discussion.
         sx={{
           '& .MuiDialog-container': {
+            justifyContent: { xs: 'center', sm: 'flex-end' },
             alignItems: 'center',
           },
           '& .MuiDialog-paper': {
-            margin: { xs: 0, sm: '32px' },
-            width: { xs: '95%', sm: 'auto' },
-            maxWidth: { xs: '95%', sm: '600px' },
+            margin: { xs: 0, sm: 2 },
+            marginRight: { xs: 0, sm: 3 },
+            width: { xs: '100%', sm: 460 },
+            maxWidth: { xs: '100%', sm: 460 },
+            height: { xs: '100%', sm: '88vh' },
+            maxHeight: { xs: '100%', sm: '88vh' },
+            borderRadius: { xs: 0, sm: '20px' },
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
           },
         }}
       >

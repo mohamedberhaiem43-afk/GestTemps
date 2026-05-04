@@ -164,7 +164,11 @@ function PointageDuMoisContent() {
   const [treatedAlerts, setTreatedAlerts] = useState<Record<string, 'traite' | 'ignore'>>({});
   const [alertFilter, setAlertFilter] = useState<'all' | 'retard' | 'absnj'>('all');
 
-  const { data: employeesLibs = [] } = useGetEmployeesLibs(selectedFiliale, selectedService, undefined, selectedRegime);
+  // Le hook est typé `Record<string,string>[]` (le générique d'ApiClient.getAllWithParams),
+  // mais l'API renvoie en réalité un dictionnaire unique `{ empcod: emplib }`. On normalise
+  // ici en passant par `unknown` pour ne pas avoir à recaster à chaque usage.
+  const { data: employeesLibsRaw } = useGetEmployeesLibs(selectedFiliale, selectedService, undefined, selectedRegime);
+  const employeesLibs: Record<string, string> = (employeesLibsRaw as unknown as Record<string, string>) ?? {};
   const { data: rubriques = [] } = useGetRubriquesPaire();
 
   const empcods = dateRange?.empcods ?? [];
@@ -472,7 +476,7 @@ function PointageDuMoisContent() {
                 {selectedEmpcods.length === 0
                   ? t('pointageMois.filters.allEmployees')
                   : selectedEmpcods.length === 1
-                    ? String((employeesLibs as Record<string, string>)[selectedEmpcods[0]] || selectedEmpcods[0])
+                    ? String(employeesLibs[selectedEmpcods[0]] || selectedEmpcods[0])
                     : t('pointageMois.filters.selectedCount', { count: selectedEmpcods.length })}
               </span>
               <span style={{ fontSize: 10, color: '#94a3b8' }}>▼</span>
@@ -494,7 +498,7 @@ function PointageDuMoisContent() {
                   <input type="checkbox" readOnly checked={selectedEmpcods.length === 0} style={{ accentColor: '#0040a1' }} />
                   {t('pointageMois.filters.allEmployees')}
                 </Box>
-                {Object.entries(employeesLibs as Record<string, string>).map(([code, name]) => {
+                {Object.entries(employeesLibs).map(([code, name]) => {
                   const checked = selectedEmpcods.includes(code);
                   return (
                     <Box

@@ -1741,10 +1741,13 @@
         "vendredi": "Friday",
         "samedi": "Saturday",
         "dimanche": "Sunday",
-        "samDim": "Sat-Sun"
+        "samDim": "Sat-Sun",
+        "samdim": "Saturday + Sunday"
       },
       "settingsSavedFor": "Settings saved for {{period}}",
+      "settingsSavedAll": "Settings applied to every month of {{year}}",
       "settingsSaveError": "Error while saving settings.",
+      "noCaltype": "No calendar configured for this year. Click \"Initialize a year\" first.",
       "yearCreatedSuccess": "Schedule {{year}} created successfully!",
       "yearCreateError": "Error while creating year {{year}}.",
       "yearClonedSuccess": "Year {{year}} cloned successfully!",

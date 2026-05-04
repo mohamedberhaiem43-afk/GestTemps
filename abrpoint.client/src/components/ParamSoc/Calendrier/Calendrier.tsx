@@ -28,6 +28,7 @@ const queryClient = new QueryClient();
 
 interface CalendarEntry {
   soccod: string;
+  caltype?: string;
   calAn: string;
   calTrav: number;
   calNbh: number;
@@ -59,7 +60,17 @@ function CalendrierContent() {
   const { data = [], refetch } = useGetCalendrierSociete(selectedYear);
   // const { data: availableYears = [], isLoading: loadingYears } = useGetCalendrier();
   const availableYears = ["2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030", "2031", "2032", "2035", "2036", "2037"];
-  const { data: cumulData = [] } = useGetCummulMensuelle(selectedYear);
+  const { data: cumulData = [], refetch: refetchCumul } = useGetCummulMensuelle(selectedYear);
+
+  // Caltype actif pour la société/année courante. Avant, on passait `soccod`
+  // par erreur en tant que caltype au PUT — le backend filtrait alors sur
+  // `Caltype == soccod` et n'affectait aucune ligne (silencieusement). On le
+  // résout maintenant à partir des données chargées (premier `caltype` non vide).
+  const activeCaltype = useMemo(() => {
+    if (!Array.isArray(data)) return '';
+    const first = (data as CalendarEntry[]).find(e => !!e.caltype);
+    return first?.caltype || '';
+  }, [data]);
 
   // Form State
   const [allDay, setAllDay] = useState(8);
@@ -93,7 +104,7 @@ function CalendrierContent() {
   }, [selectedYear, selectedCalendrier, setSelectedCalendrier]);
 
   const updateCalendrier = useUpdateCalendrier(
-    soccod,
+    activeCaltype,
     selectedYear,
     selectedMonth,
     Number(allDay),
@@ -107,10 +118,20 @@ function CalendrierContent() {
 
   // Handlers
   const handleSave = () => {
+    if (!activeCaltype) {
+      showFeedback(t('paramSoc.calendrier.noCaltype'), 'error');
+      return;
+    }
     updateCalendrier.mutate(undefined, {
       onSuccess: () => {
         refetch();
-        showFeedback(t('paramSoc.calendrier.settingsSavedFor', { period: format(currentDate, 'MMMM yyyy', { locale: dateLocale }) }));
+        refetchCumul();
+        const period = format(currentDate, 'MMMM yyyy', { locale: dateLocale });
+        showFeedback(
+          tousLesMois
+            ? t('paramSoc.calendrier.settingsSavedAll', { year: selectedYear })
+            : t('paramSoc.calendrier.settingsSavedFor', { period })
+        );
       },
       onError: () => showFeedback(t('paramSoc.calendrier.settingsSaveError'), 'error'),
     });
@@ -417,6 +438,7 @@ function CalendrierContent() {
                   <option value="4">{t('paramSoc.calendrier.days.jeudi')}</option>
                   <option value="5">{t('paramSoc.calendrier.days.vendredi')}</option>
                   <option value="6">{t('paramSoc.calendrier.days.samedi')}</option>
+                  <option value="samdim">{t('paramSoc.calendrier.days.samdim')}</option>
                 </select>
               </div>
 
