@@ -128,10 +128,14 @@ function PosteCard({ code, label, selected, onClick }: { code: string; label: st
 }
 
 // ── Period Form Dialog ────────────────────────────────────────────────────────
-// Pour Non Périodique (frequence !== 'S') : 1 seul poste par période (codposte), catsem2..6 = null
-// Pour Selon Pointeuse (frequence === 'S') : rotation hebdomadaire, jusqu'à 6 postes
+// Deux types de classes :
+//   • Périodique (frequence === 'N') : 1 seul poste pour toute la période
+//     (codposte rempli, catsem2..6 = null).
+//   • Selon pointage (frequence === 'S') : plusieurs postes coexistent dans la
+//     même période, le système choisit celui qui correspond au pointage de
+//     l'employé. catsem2..catsem6 portent les postes additionnels.
 function PeriodFormDialog({
-  open, onClose, onSave, editData, postesMap, inheritCatcod, inheritCatlib, frequence, classeExists,
+  open, onClose, onSave, editData, postesMap, inheritCatcod, inheritCatlib, frequence, classeExists, onFrequenceChange,
 }: {
   open: boolean;
   onClose: () => void;
@@ -142,6 +146,9 @@ function PeriodFormDialog({
   inheritCatlib?: string;
   frequence: string;
   classeExists?: boolean;
+  // Permet à la dialog d'informer le parent quand l'utilisateur choisit le type
+  // (Périodique vs Selon pointage) à la création d'une nouvelle classe.
+  onFrequenceChange?: (freq: string) => void;
 }) {
   const { t } = useTranslation();
   const [catcod, setCatcod] = useState('');
@@ -149,9 +156,9 @@ function PeriodFormDialog({
   const [catdu, setCatdu] = useState('');
   const [catau, setCatau] = useState('');
   const [cathsup, setCathsup] = useState('0');
-  // Non Périodique : un seul poste par période
+  // Périodique : un seul poste par période
   const [singlePoste, setSinglePoste] = useState('');
-  // Selon Pointeuse : rotation hebdomadaire (jusqu'à 6 semaines)
+  // Selon pointage : plusieurs postes simultanément disponibles (jusqu'à 6)
   const [postes, setPostes] = useState<string[]>(['']);
 
   useEffect(() => {
@@ -271,6 +278,58 @@ function PeriodFormDialog({
       <Divider />
       <DialogContent sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
+        {/* Sélecteur de type — visible uniquement à la création d'une nouvelle
+            classe (pas en édition, pas quand on ajoute une période à une classe
+            existante : le type est figé pour la classe entière). */}
+        {!editData && !classeExists && onFrequenceChange && (
+          <Box>
+            <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
+              {t('classeHoraire.modern.dialog.frequenceTitle')}
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+              {[
+                { key: 'N', titleKey: 'classeHoraire.modern.dialog.frequencePeriodique', subKey: 'classeHoraire.modern.dialog.frequencePeriodiqueSub', icon: <ScheduleIcon sx={{ fontSize: 18 }} /> },
+                { key: 'S', titleKey: 'classeHoraire.modern.dialog.frequenceSelonPointage', subKey: 'classeHoraire.modern.dialog.frequenceSelonPointageSub', icon: <GroupIcon sx={{ fontSize: 18 }} /> },
+              ].map(opt => {
+                const active = frequence === opt.key;
+                return (
+                  <Box
+                    key={opt.key}
+                    onClick={() => onFrequenceChange(opt.key)}
+                    sx={{
+                      cursor: 'pointer',
+                      borderRadius: '10px',
+                      padding: '10px 12px',
+                      display: 'flex', gap: 1.2, alignItems: 'flex-start',
+                      border: active ? '2px solid #0040a1' : '1px solid #e2e8f0',
+                      background: active ? '#f0f5ff' : '#ffffff',
+                      transition: 'all 0.15s ease',
+                      '&:hover': { borderColor: '#0040a1', background: '#f8fafc' },
+                    }}
+                  >
+                    <Box sx={{
+                      width: 28, height: 28, borderRadius: '8px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: active ? '#0040a1' : '#e2e8f0', color: active ? 'white' : '#64748b',
+                      flexShrink: 0,
+                    }}>
+                      {opt.icon}
+                    </Box>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontSize: '13px', fontWeight: 700, color: active ? '#0040a1' : '#0f172a' }}>
+                        {t(opt.titleKey)}
+                      </Typography>
+                      <Typography sx={{ fontSize: '11px', color: '#64748b', mt: 0.3, lineHeight: 1.3 }}>
+                        {t(opt.subKey)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+        )}
+
         {/* Code + Libellé — masqués quand on ajoute à une classe existante */}
         {!isNewWithInherit && (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' }, gap: 2 }}>
@@ -339,7 +398,7 @@ function PeriodFormDialog({
               {postes.map((p, i) => (
                 <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Chip
-                    label={`S${i + 1}`}
+                    label={t('classeHoraire.modern.dialog.chipPosteShort', { n: i + 1 })}
                     size="small"
                     sx={{ background: '#dbeafe', color: '#1d4ed8', fontWeight: 700, fontSize: '10px', minWidth: 32 }}
                   />
@@ -758,6 +817,11 @@ function ClasseHoraireModernInner() {
                   setActivePeriod(null);
                   setSelectedClasseHoraire(null);
                   setClasseLib('');
+                  // Démarre toute nouvelle classe en mode Périodique par défaut ;
+                  // le user peut basculer en « Selon pointage » dans le dialog
+                  // de création de la 1re période.
+                  setClasseFreq('N');
+                  setFrequence('N');
                   // Pré-remplit le code via l'endpoint serveur d'auto-génération.
                   // L'utilisateur voit immédiatement le code qui sera attribué (et peut
                   // le modifier s'il préfère un code custom).
@@ -852,6 +916,10 @@ function ClasseHoraireModernInner() {
         inheritCatcod={!editPeriod ? classeCode : undefined}
         inheritCatlib={!editPeriod ? classeLib : undefined}
         classeExists={!!classeCode && classesList.some((r: any) => r.catcod === classeCode)}
+        // À la création d'une nouvelle classe, le user peut basculer entre
+        // Périodique ('N') et Selon pointage ('S'). resolvedFreq lit ensuite
+        // ce nouveau classeFreq pour piloter l'affichage du formulaire poste(s).
+        onFrequenceChange={(freq) => { setClasseFreq(freq); setFrequence(freq); }}
       />
 
       <AlertModal
