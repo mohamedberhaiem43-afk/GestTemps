@@ -226,6 +226,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 // Get parameters ONCE
                 var paramSupp = await _parametreRepository.GetSuppAndFerierParamAsync(soccod, empniveau);
 
+                // [HS DIAG] Charge tous les Lcalendsocs de l'année pour pouvoir imprimer
+                // les CalNbh journaliers réellement persistés (à retirer une fois validé).
+                var allDays = (await _calendrierRepository.GetAnneeCalendrierAsync(soccod, annee)).ToList();
+
                 // Get par tranche info ONCE
                 IList<Partranche> partranche = await _parTrancheRepository.GetPartranche(soccod);
                 float? tranche1 = 0, tranche2 = 0;
@@ -392,6 +396,15 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     }
 
                     // [HS DIAG] Log temporaire — à retirer une fois le calcul vérifié.
+                    var weekDays = allDays
+                        .Where(d => d.CalDate.HasValue
+                                    && d.CalDate.Value.Date >= startDate.Value.Date
+                                    && d.CalDate.Value.Date <= endDate.Value.Date)
+                        .OrderBy(d => d.CalDate)
+                        .ToList();
+                    var dailyDump = string.Join(" | ", weekDays.Select(d =>
+                        $"{d.CalDate:MM-dd}({d.CalDate?.DayOfWeek.ToString().Substring(0, 3)})={d.CalNbh}"));
+
                     Console.WriteLine(
                         $"[HS DIAG] soccod={soccod} empcod={empcod} reg={empreg} niv={empniveau} " +
                         $"S{i} ({result.WeekStartDate:yyyy-MM-dd}→{result.WeekEndDate:yyyy-MM-dd}) " +
@@ -400,6 +413,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         $"HreSupSemaine={result.HreSupSemaine} " +
                         $"Tr1={result.HeuresSupTranche1}/{tranche1} Tr2={result.HeuresSupTranche2}/{tranche2}"
                     );
+                    Console.WriteLine($"[HS DIAG] └ days S{i}: {dailyDump}");
 
                     results.Add(result);
                 }
