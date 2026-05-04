@@ -813,30 +813,24 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     }
                 }
 
-                // 🔹 BATCH 3: Get parameter values once
+                // 🔹 BATCH 3: Get parameter values once (utilisés en aval pour
+                // d'autres calculs ; on ne les applique plus pour écraser CalNbh —
+                // la config Calendrier est la source de vérité.)
                 var nbhFerier = await _parametreRepository.GetNbhFerierAsync(soccod);
                 var nbhConge = await _parametreRepository.GetNbhCongeAsync(soccod);
 
                 // 🔹 Process each day with cached data (NO MORE N+1 QUERIES!)
+                // ⚠ On NE mute PLUS day.CalNbh pour les jours fériés / congés.
+                // Avant, on remplaçait CalNbh par nbhFerier (par défaut 8h depuis
+                // `Parametre`), ce qui écrasait la valeur configurée par l'utilisateur
+                // dans le Calendrier (ex: 1h/jour). Conséquence : NbhCalendSem (objectif
+                // hebdo) gonflait à chaque jour férié/congé indépendamment du planning,
+                // et les heures supp n'étaient jamais déclenchées car les heures
+                // travaillées restaient inférieures à un objectif gonflé artificiellement.
+                // Le suivi férié/congé reste exact via `jourFerierWeek` / `heuresFerierWeek`
+                // calculés plus bas à partir du CalNbh d'origine.
                 foreach (var day in monthDays)
                 {
-                    var date = day.CalDate.Value.Date;
-
-                    // Check ferier from cache
-                    bool isFerier = ferierSet.Contains(date);
-
-                    // Check conge from cache
-                    congesByDate.TryGetValue(date, out var conge);
-
-                    if (isFerier)
-                    {
-                        day.CalNbh = nbhFerier;
-                    }
-                    else if (conge != null)
-                    {
-                        day.CalNbh = conge.Connbjour == 0.5 ? nbhConge / 2 : nbhConge;
-                    }
-
                     currentWeek.Add(day);
 
                     if (day.CalDate.Value.DayOfWeek == DayOfWeek.Sunday ||
