@@ -34,7 +34,8 @@ public class RagController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Health(CancellationToken ct)
     {
-        var sidecarOk = await _sidecar.HealthAsync(ct);
+        var enabled = _options.Enabled;
+        var sidecarOk = enabled && await _sidecar.HealthAsync(ct);
 
         var useOpenRouter = _options.Anthropic.UseOpenRouter;
         var openRouterKey = _config["OpenRouter:ApiKey"];
@@ -47,7 +48,8 @@ public class RagController : ControllerBase
 
         return Ok(new
         {
-            ok = sidecarOk && llmConfigured,
+            ok = enabled && sidecarOk && llmConfigured,
+            enabled,
             sidecar = sidecarOk,
             sidecarUrl = _options.Sidecar.BaseUrl,
             provider,

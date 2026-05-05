@@ -131,6 +131,10 @@ namespace ABRPOINT.Server.Services
                     o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
                     o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(180);
                     o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(180);
+                    // Sidecar sur le LAN Docker : un "Connection refused" veut dire que
+                    // rag-svc n'est pas démarré. Inutile d'enchaîner 3 retries — on limite
+                    // à 1 pour couper le bruit en logs et accélérer l'échec.
+                    o.Retry.MaxRetryAttempts = 1;
                 });
 
             builder.Services.AddScoped<IDocumentVaultService, DocumentVaultService>();

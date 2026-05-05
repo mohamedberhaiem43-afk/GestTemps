@@ -55,8 +55,20 @@ public sealed class ClaudeRagService : IClaudeRagService
 
         var sw = Stopwatch.StartNew();
 
-        // 1. Retrieve top-k via sidecar (filtré soccod côté Python).
-        var chunks = await _sidecar.RetrieveAsync(soccod, question, Math.Clamp(topK, 1, 20), ct);
+        // 1. Retrieve top-k via sidecar (filtré soccod côté Python). Si le sidecar est
+        //    indisponible (Connection refused), on continue avec un contexte vide plutôt
+        //    que de planter — l'utilisateur recevra une réponse "pas d'info" plutôt qu'une
+        //    erreur 500. La cause sera visible dans les logs et le healthcheck.
+        IReadOnlyList<RagChunk> chunks;
+        try
+        {
+            chunks = await _sidecar.RetrieveAsync(soccod, question, Math.Clamp(topK, 1, 20), ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Sidecar RAG indisponible pendant retrieve — réponse sans contexte");
+            chunks = Array.Empty<RagChunk>();
+        }
 
         // 2. Masquage PII avant inclusion dans le prompt.
         var contextBlocks = chunks

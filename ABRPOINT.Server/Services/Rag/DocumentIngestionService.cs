@@ -1,6 +1,7 @@
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace ABRPOINT.Server.Services.Rag;
 
@@ -8,15 +9,18 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
 {
     private readonly ApplicationDbContext _db;
     private readonly IRagSidecarService _sidecar;
+    private readonly RagOptions _options;
     private readonly ILogger<DocumentIngestionService> _logger;
 
     public DocumentIngestionService(
         ApplicationDbContext db,
         IRagSidecarService sidecar,
+        IOptions<RagOptions> options,
         ILogger<DocumentIngestionService> logger)
     {
         _db = db;
         _sidecar = sidecar;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -26,6 +30,15 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
         if (doc == null)
         {
             _logger.LogWarning("Ingestion: document {Id} not found", documentId);
+            return;
+        }
+
+        if (!_options.Enabled)
+        {
+            doc.Status = "failed";
+            doc.ErrorMessage = "Service IA désactivé (Rag:Enabled=false).";
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Ingestion ignorée pour document {Id} : RAG désactivé", documentId);
             return;
         }
 
@@ -49,6 +62,15 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
             doc.ErrorMessage = null;
             await _db.SaveChangesAsync(ct);
             _logger.LogInformation("Ingestion OK for {Id}: {Chunks} chunks across {Pages} pages", documentId, result.ChunksCount, result.Pages);
+        }
+        catch (HttpRequestException ex)
+        {
+            // Cas typique : sidecar non démarré ou Qdrant absent. Inutile de stack-tracer
+            // sur chaque upload — log court, message DB clair pour l'admin.
+            doc.Status = "failed";
+            doc.ErrorMessage = "Service IA injoignable (sidecar/Qdrant non démarré).";
+            await _db.SaveChangesAsync(CancellationToken.None);
+            _logger.LogWarning("Ingestion {Id} échouée — sidecar injoignable : {Msg}", documentId, ex.Message);
         }
         catch (Exception ex)
         {

@@ -6,6 +6,15 @@ namespace ABRPOINT.Server.Services.Rag;
 /// </summary>
 public sealed class RagOptions
 {
+    /// <summary>
+    /// Coupe-circuit global. Quand <c>false</c>, aucun appel HTTP n'est fait au sidecar
+    /// (utile quand qdrant/rag-svc ne sont pas déployés). Les controllers Documents/ChatRag
+    /// renvoient un 503 ou une réponse vide selon le cas, et l'ingestion marque les docs
+    /// comme <c>failed</c> avec un message "service IA désactivé".
+    /// Default true pour que la feature marche dès que le sidecar est lancé.
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
     public AnthropicOptions Anthropic { get; set; } = new();
     public SidecarOptions Sidecar { get; set; } = new();
     public IngestionOptions Ingestion { get; set; } = new();

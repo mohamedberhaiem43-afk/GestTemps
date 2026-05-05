@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ABRPOINT.Server.Tenancy;
+using Microsoft.Extensions.Options;
 
 namespace ABRPOINT.Server.Services.Rag;
 
@@ -14,6 +15,7 @@ namespace ABRPOINT.Server.Services.Rag;
 public sealed class RagSidecarService : IRagSidecarService
 {
     private readonly HttpClient _http;
+    private readonly RagOptions _options;
     private readonly ICurrentTenant _currentTenant;
     private readonly ILogger<RagSidecarService> _logger;
 
@@ -25,10 +27,12 @@ public sealed class RagSidecarService : IRagSidecarService
 
     public RagSidecarService(
         HttpClient http,
+        IOptions<RagOptions> options,
         ICurrentTenant currentTenant,
         ILogger<RagSidecarService> logger)
     {
         _http = http;
+        _options = options.Value;
         _currentTenant = currentTenant;
         _logger = logger;
     }
@@ -36,6 +40,7 @@ public sealed class RagSidecarService : IRagSidecarService
     public async Task<RagIngestResult> IngestAsync(string soccod, int documentId, string originalName, string contentType, Stream content, CancellationToken ct = default)
     {
         AssertSoccodMatchesTenant(soccod);
+        EnsureEnabledOrThrow();
 
         using var form = new MultipartFormDataContent();
         var streamContent = new StreamContent(content);
@@ -55,6 +60,7 @@ public sealed class RagSidecarService : IRagSidecarService
     public async Task<IReadOnlyList<RagChunk>> RetrieveAsync(string soccod, string query, int topK = 5, CancellationToken ct = default)
     {
         AssertSoccodMatchesTenant(soccod);
+        if (!_options.Enabled) return Array.Empty<RagChunk>();
 
         var request = new RetrieveRequest(soccod, query, topK);
         using var resp = await _http.PostAsJsonAsync("retrieve", request, JsonOpts, ct);
@@ -68,6 +74,7 @@ public sealed class RagSidecarService : IRagSidecarService
 
     public async Task<float[][]> EmbedAsync(IEnumerable<string> texts, CancellationToken ct = default)
     {
+        EnsureEnabledOrThrow();
         var request = new EmbedRequest(texts.ToArray());
         using var resp = await _http.PostAsJsonAsync("embed", request, JsonOpts, ct);
         await EnsureSuccess(resp, "embed");
@@ -79,6 +86,7 @@ public sealed class RagSidecarService : IRagSidecarService
     public async Task DeleteDocumentAsync(string soccod, int documentId, CancellationToken ct = default)
     {
         AssertSoccodMatchesTenant(soccod);
+        if (!_options.Enabled) return;
 
         using var resp = await _http.DeleteAsync($"documents/{Uri.EscapeDataString(soccod)}/{documentId}", ct);
         await EnsureSuccess(resp, "delete");
@@ -86,6 +94,7 @@ public sealed class RagSidecarService : IRagSidecarService
 
     public async Task<bool> HealthAsync(CancellationToken ct = default)
     {
+        if (!_options.Enabled) return false;
         try
         {
             using var resp = await _http.GetAsync("health", ct);
@@ -93,9 +102,16 @@ public sealed class RagSidecarService : IRagSidecarService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Sidecar health check failed");
+            // Log silencieux : le healthcheck est appelé en boucle, pas la peine de polluer.
+            _logger.LogDebug(ex, "Sidecar health check failed");
             return false;
         }
+    }
+
+    private void EnsureEnabledOrThrow()
+    {
+        if (!_options.Enabled)
+            throw new InvalidOperationException("RAG désactivé (Rag:Enabled=false). Démarrez qdrant + rag-svc puis activez la feature.");
     }
 
     /// <summary>
