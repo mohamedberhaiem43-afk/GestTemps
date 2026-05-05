@@ -17,9 +17,11 @@ type ParamMois = {
   moisfin: string;
 };
 
+// 30 par défaut (ramené à 28/29/31 selon le mois par clampDay()) pour couvrir
+// le mois entier quand l'admin n'a rien configuré dans Param. Société.
 const defaultParamMois: ParamMois = {
   joudeb: "01",
-  joufin: "28",
+  joufin: "30",
   moisdeb: "P",
   moisfin: "P",
 };

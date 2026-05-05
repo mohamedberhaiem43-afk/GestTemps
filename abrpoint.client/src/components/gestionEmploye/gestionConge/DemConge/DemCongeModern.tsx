@@ -26,6 +26,7 @@ import useGetCongeAbsenceLibs from '../../../../hooks/absenceHooks/useGetCongeAb
 import useGetEmployee from '../../../../hooks/employeHooks/useGetEmployee';
 import useGetDroitConge from '../../../../hooks/congeHooks/useGetDroitConge';
 import { useAuth } from '../../../helper/AuthProvider';
+import SuccessAnimation from '../../../helper/SuccessAnimation';
 import { Conge } from '../../../../models/Conge';
 import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
 import apiInstance from '../../../API/apiInstance';
@@ -463,6 +464,7 @@ function DemCongeModernInner() {
   const [formOpen, setFormOpen] = useState(false);
   const [editConge, setEditConge] = useState<Conge | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [successAnim, setSuccessAnim] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
   const [refuseConfirmOpen, setRefuseConfirmOpen] = useState(false);
   const [congeToRefuse, setCongeToRefuse] = useState<Conge | null>(null);
   const [acceptConfirmOpen, setAcceptConfirmOpen] = useState(false);
@@ -582,9 +584,33 @@ function DemCongeModernInner() {
               <Typography>{t('conge.demConge.noConsult')}</Typography>
             </Box>
           ) : displayData.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 6, color: '#94a3b8' }}>
-              <CalendarTodayIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
-              <Typography>{t('conge.demConge.noData')}</Typography>
+            <Box sx={{ textAlign: 'center', py: 6, px: 3, maxWidth: 460, mx: 'auto' }}>
+              {/* Empty state CTA : on transforme l'absence de demandes en
+                  message rassurant + raccourci pour en créer une nouvelle. */}
+              <Box
+                sx={{
+                  width: 64, height: 64, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #dcfce7 0%, #86efac 100%)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  mb: 1.5, boxShadow: '0 6px 16px rgba(22,101,52,0.15)',
+                }}
+              >
+                <CalendarTodayIcon sx={{ fontSize: 30, color: '#166534' }} />
+              </Box>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#065f46', mb: 0.5 }}>
+                {t('conge.demConge.emptyTitle')}
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, mb: 2 }}>
+                {t('conge.demConge.emptyHint')}
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => { setEditConge(null); setFormOpen(true); }}
+                sx={{ textTransform: 'none', fontWeight: 700, background: '#0040a1', '&:hover': { background: '#003280' } }}
+              >
+                {t('conge.demConge.emptyCta')}
+              </Button>
             </Box>
           ) : (
             <Box className="dcm-rows">
@@ -712,11 +738,17 @@ function DemCongeModernInner() {
       </Box>
 
       {/* Form Dialog */}
-      <CongeFormDialog 
-        open={formOpen} 
-        onClose={() => { setFormOpen(false); refetch(); }} 
-        editConge={editConge} 
-        onSuccess={() => showSnack(editConge ? t('conge.demConge.msg.updatedSuccess') : t('conge.demConge.msg.createdSuccess'), 'success')}
+      <CongeFormDialog
+        open={formOpen}
+        onClose={() => { setFormOpen(false); refetch(); }}
+        editConge={editConge}
+        onSuccess={() => {
+          const msg = editConge ? t('conge.demConge.msg.updatedSuccess') : t('conge.demConge.msg.createdSuccess');
+          showSnack(msg, 'success');
+          // Animation succès en plus du snackbar : feedback humain pour confirmer
+          // que la demande a bien été enregistrée.
+          setSuccessAnim({ open: true, message: editConge ? 'Demande mise à jour' : 'Demande envoyée !' });
+        }}
       />
 
       {/* Accept Confirmation Dialog */}
@@ -833,6 +865,12 @@ function DemCongeModernInner() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <SuccessAnimation
+        open={successAnim.open}
+        onClose={() => setSuccessAnim({ open: false, message: '' })}
+        message={successAnim.message}
+      />
     </Box>
   );
 }

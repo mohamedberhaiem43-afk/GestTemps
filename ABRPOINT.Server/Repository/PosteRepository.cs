@@ -269,6 +269,8 @@ namespace ABRPOINT.Server.Repository
             if (!TimeSpan.TryParse(eveningStartTime, out var eveningStart) ||
                 !TimeSpan.TryParse(eveningEndTime, out var eveningEnd))
             {
+                // Poste à plage continue (ex 08:00-17:00 avec pause incluse) : on
+                // déduit le repas, qui est compris dans la plage théorique.
                 workDuration = morningDuration - TimeSpan.FromMinutes(repasTime.Value);
             }
             else
@@ -278,7 +280,12 @@ namespace ABRPOINT.Server.Repository
                     ? eveningEnd - eveningStart
                     : (eveningEnd + TimeSpan.FromHours(24)) - eveningStart;
 
-                workDuration = morningDuration + eveningDuration - TimeSpan.FromMinutes(repasTime.Value);
+                // Plages séparées (matin + après-midi) : le gap entre les deux
+                // plages EST la pause-déjeuner et est déjà exclu naturellement de
+                // morningDuration + eveningDuration. Soustraire repasTime déduisait
+                // la pause une seconde fois et faussait Tothre (ex 7h théorique
+                // ramené à 6h, puis Tothre = 6 + (supp-retard)/60 au lieu de 7+...).
+                workDuration = morningDuration + eveningDuration;
             }
 
             return (float?)workDuration.TotalHours;

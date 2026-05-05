@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator, TextInput, Dimensions,
+  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator, TextInput, Dimensions, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -158,7 +158,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
             <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
           </TouchableOpacity>
-          <Text style={styles.logoText}>LEDGER HR</Text>
+          <Image source={require('../../assets/Concorde.png')} style={styles.logoImage} resizeMode="contain" />
         </View>
         <View style={styles.profileWrapper}>
           <MaterialCommunityIcons name="account-circle-outline" size={32} color="#cbd5e1" />
@@ -323,6 +323,7 @@ const styles = StyleSheet.create({
   topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
+  logoImage: { width: 110, height: 32 },
   profileWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.surfaceContainerHigh },
   scrollContent: { padding: 20, paddingBottom: 120 },
   editorialHeader: { marginBottom: 32 },

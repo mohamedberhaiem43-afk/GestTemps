@@ -139,8 +139,8 @@ namespace ABRPOINT.Server.Controllers
                 {
                     _ = _notify.NotifyUserAsync(
                         empcod,
-                        "✅ Congé accepté",
-                        "Votre demande de congé a été acceptée.",
+                        "✅ Votre congé est validé",
+                        "Bonne nouvelle : votre demande de congé est acceptée.",
                         new { type = "leave_request_accepted", concod, soccod });
                 }
 
@@ -181,8 +181,8 @@ namespace ABRPOINT.Server.Controllers
                 {
                     _ = _notify.NotifyUserAsync(
                         empcod,
-                        "❌ Congé refusé",
-                        "Votre demande de congé n'a pas été acceptée. Consultez l'app pour plus de détails.",
+                        "❌ Votre congé est refusé",
+                        "Votre demande n'a pas été acceptée. Consultez le motif dans Demandes et validations.",
                         new { type = "leave_request_refused", concod, soccod });
                 }
 
@@ -221,9 +221,11 @@ namespace ABRPOINT.Server.Controllers
                         .Select(e => e.Emplib)
                         .FirstOrDefaultAsync()
                         ?? conge.Empcod ?? "Un employé";
+                    // Formulation orientée action : le manager doit comprendre en 1 seconde
+                    // qu'il a un acte à poser, pas qu'il a "reçu un message".
                     _ = _notify.NotifyManagersAsync(
-                        "📥 Nouvelle demande de congé",
-                        $"{who} a soumis une demande de congé. Validez-la dans l'app.",
+                        "🗓️ Demande de congé à valider",
+                        $"{who} attend votre validation.",
                         new { type = "leave_request_created", concod = conge.Concod, soccod = conge.Soccod });
                 }
                 return Ok("Demande ajouté avec succées");

@@ -43,6 +43,7 @@ import EtatPresence from '../Etats/EtatPresence/EtatPresence';
 import EtatRetard from '../Etats/EtatRetard/EtatRetard';
 import EtatAbsence from '../Etats/EtatAbsence/EtatAbsence';
 import EmployeModern from '../gestionEmploye/EmployeModern';
+import EmployeProfileView from '../gestionEmploye/EmployeProfileView';
 import EffectifsGlobaux from '../gestionEmploye/EffectifsGlobaux';
 import CahierConge from '../Etats/CahierConge/CahierConge';
 import RemboursementModern from '../gestionEmploye/Remboursement/RemboursementModern';
@@ -56,7 +57,7 @@ import AdminVaultModern from '../gestionEmploye/Vault/AdminVaultModern';
 import ContractBuilderModern from '../gestionEmploye/Vault/ContractBuilderModern';
 import DocumentsModern from '../Rag/Documents/DocumentsModern';
 import RagAuditTable from '../Rag/Audit/RagAuditTable';
-import ChatRagDrawer from '../Rag/Chat/ChatRagDrawer';
+import UnifiedAssistantHub from '../helper/Chatbot/UnifiedAssistantHub';
 import LetterTemplatesModern from '../Rag/Letters/LetterTemplatesModern';
 import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
 import PricingPage from '../Pricing/PricingPage';
@@ -127,7 +128,6 @@ import {
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
-import GeminiChat from '../helper/Chatbot/GeminiChat';
 /* ══════════════════════════════════════════════════════ */
 /*  Types                                                 */
 /* ══════════════════════════════════════════════════════ */
@@ -294,7 +294,11 @@ const useNavigationItems = (): NavGroup[] => {
       ],
     },
     {
-      label: t('navigation.leave'),
+      // Hub centralisé "Demandes et validations" : regroupe tout ce sur quoi un manager
+      // attend une action (congé, autorisation, notes de frais...). Le label précédent
+      // "Congé" était trop restrictif — la structure permet d'ajouter de nouveaux types
+      // de demandes plus tard sans casser la navigation.
+      label: t('navigation.requestsAndValidations'),
       href: '/dashboard/conges',
       icon: CalendarDays,
       items: [
@@ -302,6 +306,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
+        ...(canSee('remboursement') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
       ],
@@ -338,7 +343,7 @@ const useNavigationItems = (): NavGroup[] => {
         // ...(canSee('accompte-salaire') ? [{ label: t('navigation.salaryAdvance'), href: '/dashboard/accompte-salaire', icon: Wallet }] : []),
         ...(canSee('pointage-du-mois') ? [{ label: t('navigation.monthlyClocking'), href: '/dashboard/pointage-du-mois', icon: Clock3 }] : []),
         ...(canSee('droit-de-conge') ? [{ label: t('navigation.leaveRights'), href: '/dashboard/droit-de-conge', icon: CalendarCheck }] : []),
-        ...(canSee('remboursement') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
+        // Notes de frais déplacé dans "Demandes et validations" (hub central de validation).
       ],
     }] : []),
     ...(!isTrialing ? [{
@@ -420,6 +425,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/fonction': content = <FonctionModern />; break;
     case '/dashboard/gestion-employe': content = <EffectifsGlobaux />; break;
     case '/dashboard/profil-employe': content = <EmployeModern />; break;
+    case '/dashboard/fiche-employe':  content = <EmployeProfileView />; break;
     case '/dashboard/remboursement': content = <RemboursementModern />; break;
     case '/dashboard/missions': content = <MissionPage />; break;
     case '/dashboard/gestion-utilisateur': content = <Utilisateur />; break;
@@ -768,17 +774,36 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // ── Tab Management State ──
   // Le label par défaut est lu depuis i18n pour rester cohérent avec la langue active.
+  // Limite max d'onglets affichés simultanément. Au-delà, on évince l'onglet
+  // le plus ancien (FIFO sur les non-dashboard) pour éviter la barre infinie.
+  const MAX_OPEN_TABS = 4;
+
   // Cas particulier : les onglets persistés en localStorage gardent leur label sauvegardé
   // (snapshot de la langue à l'ouverture) — un changement de langue ne renomme donc pas
-  // les onglets déjà ouverts. Seul le tab "Dashboard" initial réutilise t() à l'ouverture.
+  // les onglets déjà ouverts.
+  // À la 1re connexion (rien en localStorage) on démarre avec une barre VIDE :
+  // l'objectif UX est de ne rien afficher avant que l'utilisateur navigue lui-même
+  // sur une page. Avant, le tab "Dashboard" était auto-créé et encombrait la vue.
+  // On filtre aussi le tab Dashboard et tronque à MAX_OPEN_TABS pour migrer en
+  // douceur les utilisateurs ayant l'ancienne version persistée.
   const [openedTabs, setOpenedTabs] = React.useState<OpenedTab[]>(() => {
     const saved = localStorage.getItem('openedTabs');
-    return saved ? JSON.parse(saved) : [{ label: t('navigation.dashboard'), href: '/dashboard', icon: 'Home' }];
+    if (!saved) return [];
+    try {
+      const parsed: OpenedTab[] = JSON.parse(saved);
+      const filtered = parsed.filter(t => t.href !== '/dashboard').slice(-MAX_OPEN_TABS);
+      return filtered;
+    } catch {
+      return [];
+    }
   });
 
-  // Track navigation to add tabs
+  // Track navigation to add tabs (cap MAX_OPEN_TABS, FIFO eviction).
   React.useEffect(() => {
     if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales') return;
+    // Le dashboard est la page d'accueil par défaut, pas un onglet : on ne le
+    // crée pas dans la barre d'onglets pour ne pas l'encombrer dès le login.
+    if (canonicalPathname === '/dashboard' || pathname === '/dashboard') return;
 
     // Find the item in flattened navigation to get title and icon
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
@@ -788,9 +813,16 @@ function DashboardLayoutAccount(_props: DemoProps) {
     if (matched) {
       setOpenedTabs(prev => {
         if (prev.some(t => t.href === matched.href)) return prev;
-        const newTabs = [...prev, { label: matched.label, href: matched.href, icon: matched.icon?.name || 'LayoutGrid' }];
-        localStorage.setItem('openedTabs', JSON.stringify(newTabs));
-        return newTabs;
+        let next: OpenedTab[] = [...prev, { label: matched.label, href: matched.href, icon: matched.icon?.name || 'LayoutGrid' }];
+        // FIFO eviction si on dépasse la limite — on enlève le plus ancien
+        // (premier élément du tableau) sauf s'il s'agit de la page courante.
+        while (next.length > MAX_OPEN_TABS) {
+          const oldestIdx = next.findIndex(t => t.href !== pathname && t.href !== canonicalPathname);
+          if (oldestIdx === -1) break;
+          next.splice(oldestIdx, 1);
+        }
+        localStorage.setItem('openedTabs', JSON.stringify(next));
+        return next;
       });
     }
   }, [pathname, canonicalPathname, NAVIGATION]);
@@ -830,9 +862,10 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   const handleCloseAllTabs = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const dashboardTab: OpenedTab = { label: t('navigation.dashboard'), href: '/dashboard', icon: 'Home' };
-    setOpenedTabs([dashboardTab]);
-    localStorage.setItem('openedTabs', JSON.stringify([dashboardTab]));
+    // Tout fermer = barre vide. L'utilisateur revient au dashboard mais sans
+    // créer un onglet de plus (cohérent avec le comportement de 1re connexion).
+    setOpenedTabs([]);
+    localStorage.setItem('openedTabs', JSON.stringify([]));
     if (pathname !== '/dashboard') navigate('/dashboard');
   };
 
@@ -869,7 +902,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
         {/* L'assistant IA reste accessible aussi sur la landing publique pour aider
             les visiteurs à se renseigner sur les fonctionnalités / tarifs / inscription. */}
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-          <GeminiChat />
+          <UnifiedAssistantHub />
         </Box>
       </>
     );
@@ -1034,8 +1067,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
       {pathname !== '/' && (
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-          <GeminiChat />
-          <ChatRagDrawer />
+          <UnifiedAssistantHub />
         </Box>
       )}
     </>

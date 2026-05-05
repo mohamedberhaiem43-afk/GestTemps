@@ -31,6 +31,7 @@ import {
   Logout as LogoutIcon,
   DeleteOutline as DeleteIcon,
   Refresh as RefreshIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
@@ -80,14 +81,39 @@ const CATEGORIES: Record<string, CategoryMeta> = {
 const CATEGORY_LABEL: Record<string, string> = {
   reminder_in: 'Rappel entrée',
   reminder_out: 'Rappel sortie',
-  leave_request_created: 'Demande de congé',
+  leave_request_created: 'À valider',
   leave_request_accepted: 'Congé accepté',
   leave_request_refused: 'Congé refusé',
-  auth_request_created: 'Autorisation',
+  auth_request_created: 'À valider',
   auth_request_accepted: 'Autorisation acceptée',
   auth_request_refused: 'Autorisation refusée',
   test_push: 'Test',
 };
+
+/**
+ * Catégories qui appellent une action explicite (le manager doit valider/refuser).
+ * Sert à composer la bannière "Il vous reste X demandes à valider" en tête de popover :
+ * la plateforme pousse l'info au lieu de laisser l'utilisateur compter lui-même.
+ */
+const ACTIONABLE_CATEGORIES: Array<{
+  category: string;
+  singular: string;
+  plural: string;
+  route: string;
+}> = [
+  {
+    category: 'leave_request_created',
+    singular: 'demande de congé à valider',
+    plural: 'demandes de congé à valider',
+    route: '/dashboard/gestion-de-conge',
+  },
+  {
+    category: 'auth_request_created',
+    singular: 'autorisation de sortie à valider',
+    plural: 'autorisations de sortie à valider',
+    route: '/dashboard/demande-autorisation',
+  },
+];
 
 /* ══════════════════════════════════════════════════════ */
 /*  Component                                             */
@@ -189,6 +215,23 @@ function NotificationCenterInner() {
     [notifs]
   );
 
+  // Agrège les notifications non-lues par catégorie actionnable. Le but est de
+  // formuler la to-do plutôt que la liste brute : "Il vous reste 3 demandes à valider"
+  // au lieu de 3 lignes "Vous avez une notification".
+  const actionableSummary = useMemo(() => {
+    return ACTIONABLE_CATEGORIES
+      .map(meta => ({
+        ...meta,
+        count: notifs.filter(n => n.category === meta.category && !n.readAt).length,
+      }))
+      .filter(s => s.count > 0);
+  }, [notifs]);
+
+  const handleSummaryClick = (route: string) => {
+    handleClose();
+    navigate(route);
+  };
+
   return (
     <>
       <Tooltip title="Notifications">
@@ -254,6 +297,49 @@ function NotificationCenterInner() {
             </Tooltip>
           </Stack>
         </Box>
+
+        {/* Bannière "À faire" : pousse les actions en attente plutôt que d'attendre que
+            l'utilisateur les déduise de la liste. Cliquable, navigue à l'écran de validation. */}
+        {actionableSummary.length > 0 && !loading && (
+          <Box sx={{ px: 1.5, py: 1, bgcolor: '#fffbe6', borderBottom: '1px solid #fde68a' }}>
+            <Typography variant="caption" sx={{ display: 'block', px: 0.5, mb: 0.5, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Il vous reste à faire
+            </Typography>
+            <Stack spacing={0.5}>
+              {actionableSummary.map(s => {
+                const meta = CATEGORIES[s.category] || FALLBACK;
+                const label = `${s.count} ${s.count > 1 ? s.plural : s.singular}`;
+                return (
+                  <Box
+                    key={s.category}
+                    onClick={() => handleSummaryClick(s.route)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      px: 1,
+                      py: 0.75,
+                      borderRadius: 1.5,
+                      cursor: 'pointer',
+                      bgcolor: '#fff',
+                      border: '1px solid #fde68a',
+                      transition: 'all 0.15s',
+                      '&:hover': { bgcolor: meta.bg, borderColor: meta.color, transform: 'translateX(2px)' },
+                    }}
+                  >
+                    <Avatar sx={{ width: 28, height: 28, bgcolor: meta.bg, color: meta.color }}>
+                      {meta.icon}
+                    </Avatar>
+                    <Typography variant="body2" fontWeight={700} color="#0f172a" sx={{ flexGrow: 1 }}>
+                      {label}
+                    </Typography>
+                    <ChevronRightIcon sx={{ fontSize: 18, color: meta.color }} />
+                  </Box>
+                );
+              })}
+            </Stack>
+          </Box>
+        )}
 
         {/* List */}
         {loading ? (

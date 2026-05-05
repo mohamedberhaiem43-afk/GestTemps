@@ -762,6 +762,45 @@ class ApiService {
     const response = await this.client.get('/Pays');
     return response.data;
   }
+
+  // RAG (Assistant RH) — chat sur les documents juridiques du tenant.
+  // Le backend masque les PII (CIN) avant d'envoyer au LLM et journalise dans rag_chat_log.
+  async askRag(question: string, topK = 5) {
+    const response = await this.client.post('/ChatRag/ask', { question, topK }, {
+      timeout: 60000,
+    });
+    return response.data as {
+      logId: number;
+      answer: string;
+      sources: Array<{
+        documentId: number;
+        documentName: string;
+        page?: number | null;
+        snippet: string;
+        score: number;
+      }>;
+      tokensIn?: number | null;
+      tokensOut?: number | null;
+      latencyMs: number;
+    };
+  }
+
+  async sendRagFeedback(logId: number, score: number, comment?: string) {
+    const response = await this.client.post(`/ChatRag/${logId}/feedback`, { score, comment });
+    return response.data;
+  }
+
+  async ragHealth() {
+    const response = await this.client.get('/Rag/health');
+    return response.data as {
+      ok: boolean;
+      enabled: boolean;
+      sidecar: boolean;
+      provider: string;
+      llmConfigured: boolean;
+      model: string;
+    };
+  }
 }
 
 export const apiService = new ApiService();

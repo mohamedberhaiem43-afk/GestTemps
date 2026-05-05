@@ -117,9 +117,16 @@ namespace ABRPOINT.Server.Controllers
                 var result = await _repository.AddAsync(demande);
                 if (_notify != null)
                 {
+                    // Récupère le nom de l'employé pour rendre la notif intelligible au manager
+                    // sans qu'il ait à ouvrir l'écran ("X attend votre validation" >>> "Une demande a été soumise").
+                    var who = await _context.Employes.AsNoTracking()
+                        .Where(e => e.Soccod == demande.Soccod && e.Empcod == demande.Empcod)
+                        .Select(e => e.Emplib)
+                        .FirstOrDefaultAsync()
+                        ?? demande.Empcod ?? "Un collaborateur";
                     _ = _notify.NotifyManagersAsync(
-                        "📥 Nouvelle demande d'autorisation",
-                        $"Une nouvelle demande d'autorisation de sortie a été soumise.",
+                        "⏱️ Autorisation de sortie à valider",
+                        $"{who} attend votre validation.",
                         new { type = "auth_request_created", id = (result as DemandeAutorisation)?.Id, soccod = demande.Soccod });
                 }
                 return Ok(new { success = true, message = "Demande d'autorisation créée avec succès", data = result });
@@ -180,8 +187,8 @@ namespace ABRPOINT.Server.Controllers
                     if (!string.IsNullOrEmpty(demande?.Empcod))
                     {
                         _ = _notify.NotifyUserAsync(demande.Empcod,
-                            "✅ Autorisation acceptée",
-                            "Votre demande d'autorisation a été acceptée.",
+                            "✅ Votre autorisation est validée",
+                            "Bonne nouvelle : votre demande d'autorisation est acceptée.",
                             new { type = "auth_request_accepted", id });
                     }
                 }
@@ -208,8 +215,8 @@ namespace ABRPOINT.Server.Controllers
                     if (!string.IsNullOrEmpty(demande?.Empcod))
                     {
                         _ = _notify.NotifyUserAsync(demande.Empcod,
-                            "❌ Autorisation refusée",
-                            "Votre demande d'autorisation a été refusée. Détails dans l'app.",
+                            "❌ Votre autorisation est refusée",
+                            "Votre demande n'a pas été acceptée. Consultez le motif dans Demandes et validations.",
                             new { type = "auth_request_refused", id });
                     }
                 }

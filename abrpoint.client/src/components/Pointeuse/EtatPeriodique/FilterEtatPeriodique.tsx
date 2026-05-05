@@ -19,7 +19,11 @@ function FilterEtatPeriodique() {
         'M': "Mensuelle",
         'H': "Horaire"
     };
-    const [paramMois, setParamMois] = useState({ joudeb: '01', joufin: '28', moisdeb: 'P', moisfin: 'P' });
+    // Défaut 01 → 30 pour couvrir le mois entier quand l'admin n'a rien
+    // configuré dans Param. Société. Janvier (31j) tolère 30 sans perte ;
+    // Février obtient un overflow vers début mars (Date.toISOString
+    // normalise) — acceptable pour un filtre période.
+    const [paramMois, setParamMois] = useState({ joudeb: '01', joufin: '30', moisdeb: 'P', moisfin: 'P' });
     const presence = null;
     const [selectedEmpcods, setSelectedEmpcods] = useState<string[]>([]);
     const [filiale, setFiliale] = useState<Record<string,string>>({});
@@ -83,7 +87,12 @@ function FilterEtatPeriodique() {
         apiInstance.get(`/Parametres/deb-mois/${soccod}`)
             .then((res) => {
                 const { joudeb, joufin, moisdeb, moisfin } = res.data;
-                setParamMois({ joudeb, joufin, moisdeb, moisfin });
+                // Si l'admin n'a pas saisi de plage, on retombe sur 01 → 30 pour
+                // que le filtre couvre le mois entier au lieu de planter sur des
+                // valeurs vides.
+                const safeJoudeb = joudeb && String(joudeb).trim() !== '' ? joudeb : '01';
+                const safeJoufin = joufin && String(joufin).trim() !== '' ? joufin : '30';
+                setParamMois({ joudeb: safeJoudeb, joufin: safeJoufin, moisdeb, moisfin });
 
                 const currentYear = new Date().getFullYear();
                 let currentMonth = new Date().getMonth() + 1;
@@ -100,8 +109,8 @@ function FilterEtatPeriodique() {
                 const formattedStartMonth = String(startMonth).padStart(2, '0');
                 const formattedEndMonth = String(endMonth).padStart(2, '0');
 
-                const initialDateDebut = `${startYear}-${formattedStartMonth}-${joudeb}`;
-                const initialDateFin = `${endYear}-${formattedEndMonth}-${joufin}`;
+                const initialDateDebut = `${startYear}-${formattedStartMonth}-${safeJoudeb}`;
+                const initialDateFin = `${endYear}-${formattedEndMonth}-${safeJoufin}`;
                 //setMois(formattedStartMonth);
                 setAnnee(currentYear.toString());
                 setStartDate(initialDateDebut);

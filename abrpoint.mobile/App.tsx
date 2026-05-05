@@ -25,6 +25,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import NotificationPreferencesScreen from './src/screens/NotificationPreferencesScreen';
 import HolidaysScreen from './src/screens/HolidaysScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
+import ChatRagScreen from './src/screens/ChatRagScreen';
 
 // Manager Screens
 import EmployeeListScreen from './src/screens/manager/EmployeeListScreen';
@@ -66,6 +67,7 @@ function AppStack() {
       <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} />
       <Stack.Screen name="Holidays" component={HolidaysScreen} />
       <Stack.Screen name="Schedule" component={ScheduleScreen} />
+      <Stack.Screen name="ChatRag" component={ChatRagScreen} />
       {/* Manager Screens - always registered, access controlled by UI */}
       <Stack.Screen name="EmployeeList" component={EmployeeListScreen} />
       <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />

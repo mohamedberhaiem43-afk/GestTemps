@@ -40,6 +40,7 @@
     "renewal": "Renewal",
     "breastfeeding": "Breastfeeding",
     "leave": "Leave",
+    "requestsAndValidations": "Requests & Approvals",
     "leaveRequest": "Leave Request",
     "leaveBalance": "Leave Balance",
     "leaveTitle": "Leave Title",
@@ -189,6 +190,8 @@
       "actions": "Actions"
     },
     "noEmployee": "No collaborator found",
+    "emptyTitle": "No collaborators yet",
+    "emptyHint": "Import your team in 1 minute via Excel, or create profiles one by one — your KPIs and schedules will update automatically.",
     "paginationInfo": "Showing <0>{{start}}</0> to <1>{{end}}</1> of <2>{{total}}</2> collaborators",
     "deleteConfirm": "Do you really want to delete employee \"{{name}}\"?",
     "deleteError": "Error during deletion"
@@ -1087,6 +1090,9 @@
       },
       "noConsult": "Access denied. You do not have consultation rights.",
       "noData": "No leave request",
+      "emptyTitle": "No requests yet",
+      "emptyHint": "All clear! Create a new leave request in a few clicks — approval and balance are computed automatically.",
+      "emptyCta": "New request",
       "daysWorked_one": "{{count}} working day",
       "daysWorked_other": "{{count}} working days",
       "actions": {

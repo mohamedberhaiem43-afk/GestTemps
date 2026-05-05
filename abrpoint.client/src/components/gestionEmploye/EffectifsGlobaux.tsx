@@ -225,7 +225,10 @@ const EffectifsGlobaux = () => {
   const totalPages = Math.ceil(filteredEmployees.length / rowsPerPage);
 
   const handleViewEmployee = (empcod: string) => {
-    navigate(`/dashboard/profil-employe?id=${empcod}`);
+    // L'œil ouvre la fiche CV (lecture seule, présentable) plutôt que le
+    // formulaire de modification. L'admin peut basculer en édition depuis
+    // la fiche elle-même via le bouton "Modifier".
+    navigate(`/dashboard/fiche-employe?id=${empcod}`);
   };
 
   const handleEditEmployee = (empcod: string) => {
@@ -506,8 +509,41 @@ const EffectifsGlobaux = () => {
             <TableBody>
               {paginatedEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="empty-cell">
-                    <Typography>{t('effectifs.noEmployee')}</Typography>
+                  <TableCell colSpan={7} className="empty-cell" sx={{ py: 5 }}>
+                    {/* Dead-end transformé en CTA : on utilise le vide pour
+                        rassurer (« en 1 minute ») et orienter l'admin vers
+                        l'import/création — bien plus engageant qu'un simple
+                        « aucun résultat ». */}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, textAlign: 'center', maxWidth: 420, mx: 'auto' }}>
+                      <Box
+                        sx={{
+                          width: 64, height: 64, borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #dae2ff 0%, #b2c5ff 100%)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: '0 6px 16px rgba(0,64,161,0.15)',
+                        }}
+                      >
+                        <PersonAddIcon sx={{ fontSize: 30, color: '#0040a1' }} />
+                      </Box>
+                      <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#0040a1' }}>
+                        {t('effectifs.emptyTitle')}
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+                        {t('effectifs.emptyHint')}
+                      </Typography>
+                      {canAdd && (
+                        <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                          <Button
+                            variant="contained"
+                            startIcon={<PersonAddIcon />}
+                            onClick={handleAddEmployee}
+                            sx={{ textTransform: 'none', fontWeight: 700, background: '#0040a1', '&:hover': { background: '#003280' } }}
+                          >
+                            {t('effectifs.addCollaborator')}
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : (

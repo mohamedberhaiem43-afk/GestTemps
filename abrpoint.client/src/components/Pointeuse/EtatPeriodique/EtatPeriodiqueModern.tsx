@@ -477,7 +477,9 @@ function EtatPeriodiqueModernInner() {
 
   const [filiale, setFiliale] = useState<Record<string, string>>({});
   const [services, setServices] = useState<Record<string, string>>({});
-  const [paramMois, setParamMois] = useState({ joudeb: '01', joufin: '28', moisdeb: 'P', moisfin: 'P' });
+  // Défaut 01 → 30 pour couvrir le mois entier quand la conf société n'est
+  // pas définie. Voir FilterEtatPeriodique pour la même politique.
+  const [paramMois, setParamMois] = useState({ joudeb: '01', joufin: '30', moisdeb: 'P', moisfin: 'P' });
   const [selectedFiliale, setSelectedFiliale] = useState(sessionStorage.getItem('sitcod') ?? '');
   const [selectedService, setSelectedService] = useState(isManagerScoped ? (managerSercod ?? '') : '');
   const [selectedRegime, setSelectedRegime] = useState('');
@@ -549,13 +551,17 @@ function EtatPeriodiqueModernInner() {
     }).catch(console.error);
     apiInstance.get(`/Parametres/deb-mois/${soccod}`).then(r => {
       const { joudeb, joufin, moisdeb, moisfin } = r.data;
-      setParamMois({ joudeb, joufin, moisdeb, moisfin });
+      // Si l'admin n'a pas saisi joudeb/joufin, on retombe sur 01 → 30 pour
+      // que le filtre couvre le mois entier au lieu de générer des dates vides.
+      const safeJoudeb = joudeb && String(joudeb).trim() !== '' ? joudeb : '01';
+      const safeJoufin = joufin && String(joufin).trim() !== '' ? joufin : '30';
+      setParamMois({ joudeb: safeJoudeb, joufin: safeJoufin, moisdeb, moisfin });
       const yr = new Date().getFullYear(), mo = new Date().getMonth() + 1;
       let sm = moisdeb === 'P' ? mo - 1 : mo, em = moisfin === 'P' ? mo - 1 : mo;
       let sy = sm === 0 ? yr - 1 : yr, ey = em === 0 ? yr - 1 : yr;
       sm = sm === 0 ? 12 : sm; em = em === 0 ? 12 : em;
-      setDateDebut(`${sy}-${String(sm).padStart(2, '0')}-${joudeb}`);
-      setDateFin(`${ey}-${String(em).padStart(2, '0')}-${joufin}`);
+      setDateDebut(`${sy}-${String(sm).padStart(2, '0')}-${safeJoudeb}`);
+      setDateFin(`${ey}-${String(em).padStart(2, '0')}-${safeJoufin}`);
     }).catch(console.error);
   }, [soccod, isManagerScoped, managerSercod]);
 

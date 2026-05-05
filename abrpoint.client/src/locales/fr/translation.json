@@ -40,6 +40,7 @@
     "renewal": "Renouvellement",
     "breastfeeding": "Allaitement",
     "leave": "Conge",
+    "requestsAndValidations": "Demandes et validations",
     "leaveRequest": "Demande De Conge",
     "leaveBalance": "Solde De Conge",
     "leaveTitle": "Titre De Conge",
@@ -189,6 +190,8 @@
       "actions": "Actions"
     },
     "noEmployee": "Aucun collaborateur trouvé",
+    "emptyTitle": "Aucun collaborateur pour le moment",
+    "emptyHint": "Importez votre équipe en 1 minute via Excel, ou créez les fiches une par une — vos KPIs et plannings se mettront à jour automatiquement.",
     "paginationInfo": "Affichage de <0>{{start}}</0> à <1>{{end}}</1> sur <2>{{total}}</2> collaborateurs",
     "deleteConfirm": "Voulez-vous vraiment supprimer l'employé \"{{name}}\" ?",
     "deleteError": "Erreur lors de la suppression"
@@ -1087,6 +1090,9 @@
       },
       "noConsult": "Accès refusé. Vous n'avez pas les droits de consultation.",
       "noData": "Aucune demande de congé",
+      "emptyTitle": "Aucune demande pour le moment",
+      "emptyHint": "Tout est validé ! Créez une nouvelle demande de congé en quelques clics — l'approbation et le solde sont calculés automatiquement.",
+      "emptyCta": "Nouvelle demande",
       "daysWorked_one": "{{count}} jour ouvré",
       "daysWorked_other": "{{count}} jours ouvrés",
       "actions": {

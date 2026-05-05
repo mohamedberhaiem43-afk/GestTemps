@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Alert, RefreshControl, Image, ActivityIndicator, Modal,
+  Alert, RefreshControl, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
@@ -297,54 +296,54 @@ export default function ExpenseScreen({ navigation }: any) {
         </View>
       </ScrollView>
 
-      {/* ── Modal de saisie — équivalent du Dialog du web ── */}
-      <Modal visible={showForm} transparent animationType="slide" onRequestClose={() => setShowForm(false)}>
+      {/* ── Form Overlay (style LeaveRequestScreen) ── */}
+      {showForm && (
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nouvelle note de frais</Text>
+          <View style={styles.formCard}>
+            <View style={styles.formHeader}>
+              <Text style={styles.formHeaderTitle}>Nouvelle note de frais</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}>
-                <MaterialCommunityIcons name="close" size={22} color={COLORS.outline} />
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-              <Text style={styles.label}>Motif *</Text>
+            <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.label}>Catégorie</Text>
+              <View style={styles.typeRow}>
+                {CATEGORIES.map((c) => {
+                  const active = form.categorie === c.id;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={[styles.typeBtn, active && styles.typeBtnActive]}
+                      onPress={() => setForm({ ...form, categorie: c.id })}
+                    >
+                      <Text style={[styles.typeText, active && styles.typeTextActive]}>{c.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.label}>Motif</Text>
               <TextInput
-                style={styles.input}
+                style={styles.textInput}
                 placeholder="Ex. Déjeuner client"
                 placeholderTextColor={COLORS.outline}
                 value={form.titre}
                 onChangeText={(t) => setForm({ ...form, titre: t })}
               />
 
-              <Text style={styles.label}>Date de la dépense *</Text>
-              <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.inputText}>
+              <Text style={styles.label}>Date de la dépense</Text>
+              <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.dateInputText}>
                   {form.dateDepense.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
                 </Text>
+                <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
               </TouchableOpacity>
 
-              <Text style={styles.label}>Catégorie *</Text>
-              <View style={styles.categoryGrid}>
-                {CATEGORIES.map((c) => {
-                  const active = form.categorie === c.id;
-                  return (
-                    <TouchableOpacity
-                      key={c.id}
-                      style={[styles.categoryChip, active && styles.categoryChipActive]}
-                      onPress={() => setForm({ ...form, categorie: c.id })}
-                    >
-                      <MaterialCommunityIcons name={c.icon as any} size={18} color={active ? '#fff' : COLORS.primary} />
-                      <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>{c.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.label}>Montant (€) *</Text>
+              <Text style={styles.label}>Montant (€)</Text>
               <TextInput
-                style={styles.input}
+                style={styles.textInput}
                 placeholder="0.00"
                 placeholderTextColor={COLORS.outline}
                 keyboardType="decimal-pad"
@@ -354,7 +353,7 @@ export default function ExpenseScreen({ navigation }: any) {
 
               <Text style={styles.label}>Projet (optionnel)</Text>
               <TextInput
-                style={styles.input}
+                style={styles.textInput}
                 placeholder="Ex. Mission Acme - Q2"
                 placeholderTextColor={COLORS.outline}
                 value={form.projet}
@@ -389,26 +388,19 @@ export default function ExpenseScreen({ navigation }: any) {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
-                <LinearGradient
-                  colors={[COLORS.primary, COLORS.primaryContainer]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={styles.submitGradient}
-                >
+              <View style={styles.formFooter}>
+                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
                   {submitting ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <>
-                      <MaterialCommunityIcons name="send" size={18} color="#fff" />
-                      <Text style={styles.submitText}>Soumettre la dépense</Text>
-                    </>
+                    <Text style={styles.submitBtnText}>SOUMETTRE LA DÉPENSE</Text>
                   )}
-                </LinearGradient>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      )}
 
       <DatePickerModal
         visible={showDatePicker}
@@ -502,33 +494,49 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 32, gap: 8 },
   emptyText:  { fontSize: 13, color: COLORS.outline, fontWeight: '600' },
 
-  // ── Modal ──
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: COLORS.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%' },
-  modalHeader: {
+  // ── Form Overlay (aligné sur LeaveRequestScreen) ──
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  formCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    maxHeight: '90%',
+  },
+  formHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerHigh,
+    marginBottom: 24,
   },
-  modalTitle: { fontSize: 16, fontWeight: '800', color: COLORS.onSurface },
-  modalScroll: { padding: 16 },
+  formHeaderTitle: { fontSize: 20, fontWeight: '800', color: COLORS.onSurface },
+  formScroll: { flexGrow: 0 },
 
-  label: { fontSize: 11, fontWeight: '800', color: COLORS.outline, letterSpacing: 0.6, marginBottom: 6, marginTop: 12 },
-  input: {
-    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, color: COLORS.onSurface,
-    borderWidth: 1, borderColor: COLORS.outlineVariant,
+  label: {
+    fontSize: 12, fontWeight: '700', color: COLORS.outline,
+    marginBottom: 8, marginTop: 16, letterSpacing: 0.5,
   },
-  inputText: { fontSize: 14, color: COLORS.onSurface },
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  typeBtn: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: COLORS.surfaceContainerLow,
+  },
+  typeBtnActive: { backgroundColor: COLORS.primary },
+  typeText: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
+  typeTextActive: { color: '#fff' },
 
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: COLORS.surfaceContainerLow, borderWidth: 1, borderColor: COLORS.outlineVariant,
+  textInput: {
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
+    padding: 16, fontSize: 14, color: COLORS.onSurface,
   },
-  categoryChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  categoryChipText: { fontSize: 12, fontWeight: '700', color: COLORS.onSurfaceVariant },
-  categoryChipTextActive: { color: '#fff' },
+  dateInput: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 16,
+  },
+  dateInputText: { fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
 
   uploadArea: {
     backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
@@ -544,7 +552,10 @@ const styles = StyleSheet.create({
   },
   uploadBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
 
-  submitBtn: { marginTop: 20, marginBottom: 12, borderRadius: 12, overflow: 'hidden' },
-  submitGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
-  submitText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 0.6 },
+  formFooter: { marginTop: 32, marginBottom: 24 },
+  submitBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 16,
+    paddingVertical: 18, alignItems: 'center',
+  },
+  submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
 });

@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box, Typography, CircularProgress, Alert, Avatar, Chip, Button,
   Select, MenuItem, FormControl, Dialog, DialogTitle, DialogContent, IconButton,
-  Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper
+  Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper,
+  Switch, FormControlLabel, Stack, Tooltip, Menu, ListItemIcon, ListItemText, Divider
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -16,7 +17,19 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import TuneIcon from '@mui/icons-material/Tune';
+import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import BoltIcon from '@mui/icons-material/Bolt';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import DescriptionIcon from '@mui/icons-material/Description';
+import ArticleIcon from '@mui/icons-material/Article';
+import EditCalendarIcon from '@mui/icons-material/EditCalendar';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useAuth } from '../helper/AuthProvider';
 import useGetDashboardData from '../../hooks/dashboardHooks/useGetDashboardData';
 import useGetEvolution from '../../hooks/dashboardHooks/useGetEvolution';
@@ -69,6 +82,46 @@ export default function DashboardModern() {
   return <DashboardModernAdmin />;
 }
 
+// Widgets personnalisables — l'utilisateur peut afficher/masquer chaque section.
+// Les préférences sont persistées par utilisateur dans localStorage afin que la
+// disposition du dashboard suive l'utilisateur d'un device à l'autre (même
+// navigateur/profil).
+type WidgetKey =
+  | 'recap'         // bandeau récap textuel des tâches
+  | 'kpis'          // grille des 4 KPI cards
+  | 'totalEmployees'// bento "effectif total"
+  | 'ongoingLeaves' // bento "congés en cours"
+  | 'contractAlerts'// bento "alertes contrat"
+  | 'evolution'     // graphique évolution
+  | 'absences'      // panel absences récentes
+  | 'renewals';     // panel renouvellements
+
+const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
+  { key: 'recap', label: 'Récapitulatif des tâches' },
+  { key: 'kpis', label: 'Indicateurs clés (KPI)' },
+  { key: 'totalEmployees', label: 'Effectif total' },
+  { key: 'ongoingLeaves', label: 'Congés en cours' },
+  { key: 'contractAlerts', label: 'Alertes contrat' },
+  { key: 'evolution', label: 'Tendances de recrutement' },
+  { key: 'absences', label: 'Absences récentes' },
+  { key: 'renewals', label: 'Prochains renouvellements' },
+];
+
+const DEFAULT_VISIBILITY: Record<WidgetKey, boolean> = {
+  recap: true, kpis: true, totalEmployees: true, ongoingLeaves: true,
+  contractAlerts: true, evolution: true, absences: true, renewals: true,
+};
+
+function loadVisibility(soccod: string | undefined | null): Record<WidgetKey, boolean> {
+  if (!soccod) return DEFAULT_VISIBILITY;
+  try {
+    const raw = localStorage.getItem(`dashboardWidgets_${soccod}`);
+    if (!raw) return DEFAULT_VISIBILITY;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_VISIBILITY, ...parsed };
+  } catch { return DEFAULT_VISIBILITY; }
+}
+
 function DashboardModernAdmin() {
   const { t } = useTranslation();
   const { soccod } = useAuth();
@@ -78,6 +131,22 @@ function DashboardModernAdmin() {
   const [openPointageDialog, setOpenPointageDialog] = useState(false);
   const [openContractDialog, setOpenContractDialog] = useState(false);
   const [renewTarget, setRenewTarget] = useState<Contrat | null>(null);
+  const [openCustomize, setOpenCustomize] = useState(false);
+  const [visibility, setVisibility] = useState<Record<WidgetKey, boolean>>(() => loadVisibility(soccod));
+  const [quickAnchor, setQuickAnchor] = useState<HTMLElement | null>(null);
+  const navigate = useNavigate();
+
+  // Persister à chaque changement, et resync si soccod change (multi-tenant).
+  useEffect(() => { setVisibility(loadVisibility(soccod)); }, [soccod]);
+  useEffect(() => {
+    if (!soccod) return;
+    try { localStorage.setItem(`dashboardWidgets_${soccod}`, JSON.stringify(visibility)); }
+    catch { /* quota plein, on ignore */ }
+  }, [visibility, soccod]);
+
+  const toggleWidget = (key: WidgetKey) =>
+    setVisibility((v) => ({ ...v, [key]: !v[key] }));
+  const resetWidgets = () => setVisibility(DEFAULT_VISIBILITY);
 
   const { data: expiringContracts = [] } = useGetExpiringContracts(soccod);
   const { data: directionsResponse } = useGetDirectionLibs();
@@ -176,18 +245,231 @@ function DashboardModernAdmin() {
       lines.push('');
     }
 
-    // Create and download file
-    const bom = '\uFEFF'; // UTF-8 BOM for Excel
-    const csvContent = bom + lines.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Rapport_TableauDeBord_${dayjs().format('YYYY-MM-DD_HHmm')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Le CSV historique est conserv\u00E9 en commentaire pour tra\u00E7abilit\u00E9 \u2014 l'export
+    // produit d\u00E9sormais un PDF pr\u00E9sentable (jspdf + autotable).
+    void lines; // legacy var, plus utilis\u00E9e
+
+    // \u2500\u2500 PDF pr\u00E9sentable \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 14;
+
+    // Palette assortie au dashboard (db-* dans DashboardModern.css).
+    const C_PRIMARY: [number, number, number] = [0, 64, 161];
+    const C_PRIMARY_LIGHT: [number, number, number] = [218, 226, 255];
+    const C_SUCCESS: [number, number, number] = [4, 120, 87];
+    const C_WARN: [number, number, number] = [180, 83, 9];
+    const C_DANGER: [number, number, number] = [186, 26, 26];
+    const C_TEXT: [number, number, number] = [25, 28, 30];
+    const C_MUTED: [number, number, number] = [115, 119, 133];
+
+    // Header bandeau couleur primaire.
+    doc.setFillColor(...C_PRIMARY);
+    doc.rect(0, 0, pageW, 32, 'F');
+    doc.setFillColor(...C_PRIMARY_LIGHT);
+    doc.rect(0, 30, pageW, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('RAPPORT TABLEAU DE BORD', margin, 14);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const periodeLabel = filterDateRange === 'today'
+      ? "Aujourd'hui"
+      : filterDateRange === 'week' ? 'Cette semaine' : 'Ce mois';
+    doc.text(
+      `G\u00E9n\u00E9r\u00E9 le ${dayjs().format('DD/MM/YYYY HH:mm')}  \u2022  P\u00E9riode : ${periodeLabel}  \u2022  D\u00E9partement : ${filterDepartment === 'all' ? 'Tous' : filterDepartment}`,
+      margin, 22
+    );
+
+    let y = 42;
+
+    // Synth\u00E8se ex\u00E9cutive : 3 phrases neutres, lisibles d'un coup d'\u0153il.
+    doc.setTextColor(...C_TEXT);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('Synth\u00E8se ex\u00E9cutive', margin, y);
+    y += 6;
+
+    const summaryLines = [
+      `Sur la p\u00E9riode, ${dashboardData?.effectifPresent ?? 0} employ\u00E9(s) pr\u00E9sents sur ${dashboardData?.effectifTotal ?? 0} (${presenceRate}%).`,
+      `${dashboardData?.totalAbsences ?? 0} absence(s) enregistr\u00E9e(s) et ${dashboardData?.nombreEmployesEnRetard ?? 0} retard(s).`,
+      `${dashboardData?.totalDemandesEnAttente ?? 0} demande(s) en attente de validation.`,
+    ];
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(...C_MUTED);
+    summaryLines.forEach((line) => {
+      doc.text(`\u2022  ${line}`, margin, y);
+      y += 5;
+    });
+    y += 4;
+
+    // KPI cards 2x2 \u2014 bordure l\u00E9g\u00E8re, accent gauche color\u00E9, valeur en gros.
+    const cardW = (pageW - margin * 2 - 8) / 2;
+    const cardH = 24;
+    const drawKpiCard = (
+      x: number, yPos: number, label: string, value: string,
+      accent: [number, number, number]
+    ) => {
+      doc.setDrawColor(...C_PRIMARY_LIGHT);
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(x, yPos, cardW, cardH, 2, 2, 'FD');
+      doc.setFillColor(...accent);
+      doc.rect(x, yPos, 3, cardH, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...C_MUTED);
+      doc.text(label.toUpperCase(), x + 8, yPos + 7);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(...accent);
+      doc.text(value, x + 8, yPos + 18);
+    };
+
+    const kpiX1 = margin;
+    const kpiX2 = margin + cardW + 8;
+
+    drawKpiCard(kpiX1, y, 'Taux de pr\u00E9sence', `${presenceRate}%`, C_PRIMARY);
+    drawKpiCard(kpiX2, y, 'Ponctualit\u00E9', dashboardData?.pourcentagePonctualite != null
+      ? `${Number(dashboardData.pourcentagePonctualite).toFixed(1)}%` : '--', C_SUCCESS);
+    y += cardH + 6;
+    drawKpiCard(kpiX1, y, 'Heures suppl\u00E9mentaires (sem.)',
+      '--', C_WARN);
+    drawKpiCard(kpiX2, y, 'Demandes en attente',
+      `${dashboardData?.totalDemandesEnAttente ?? 0}`, C_DANGER);
+    y += cardH + 8;
+
+    // Indicateurs d\u00E9taill\u00E9s.
+    autoTable(doc, {
+      startY: y,
+      theme: 'plain',
+      head: [['Indicateur', 'Valeur']],
+      body: [
+        ['Effectif total', `${dashboardData?.effectifTotal ?? '--'}`],
+        ['Effectif pr\u00E9sent', `${dashboardData?.effectifPresent ?? '--'}`],
+        ["Taux d'absent\u00E9isme", `${absenceRate}%`],
+        ['Total absences', `${dashboardData?.totalAbsences ?? 0}`],
+        ['Employ\u00E9s en retard', `${dashboardData?.nombreEmployesEnRetard ?? 0}`],
+        ['Minutes de retard cumul\u00E9es', `${dashboardData?.nombreRetards ?? 0} min`],
+        ['Heures travaill\u00E9es (p\u00E9riode)', dashboardData?.heuresTravaillees != null
+          ? `${Number(dashboardData.heuresTravaillees).toFixed(1)} h` : '--'],
+      ],
+      headStyles: { fillColor: C_PRIMARY, textColor: 255, fontSize: 9, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 9, textColor: C_TEXT, lineColor: [230, 232, 234], lineWidth: 0.1 },
+      alternateRowStyles: { fillColor: [248, 249, 251] },
+      columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+      margin: { left: margin, right: margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
+
+    // Demandes de cong\u00E9 en attente.
+    if (demandesData && demandesData.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(...C_TEXT);
+      doc.text(`Demandes de cong\u00E9 en attente (${demandesData.length})`, margin, y);
+      y += 4;
+      autoTable(doc, {
+        startY: y,
+        theme: 'striped',
+        head: [['Matricule', 'Employ\u00E9', 'Type', 'D\u00E9but', 'Fin', 'Statut']],
+        body: demandesData.map((d: any) => [
+          d.empcod || '',
+          d.emplib || '',
+          d.cgntype || d.abscod || '',
+          d.cgndatedebut ? dayjs(d.cgndatedebut).format('DD/MM/YYYY')
+            : d.condep ? dayjs(d.condep).format('DD/MM/YYYY') : '',
+          d.cgndatefin ? dayjs(d.cgndatefin).format('DD/MM/YYYY')
+            : d.conret ? dayjs(d.conret).format('DD/MM/YYYY') : '',
+          d.cgnstatut || 'En attente',
+        ]),
+        headStyles: { fillColor: C_PRIMARY, textColor: 255, fontSize: 9 },
+        bodyStyles: { fontSize: 8, textColor: C_TEXT },
+        alternateRowStyles: { fillColor: [248, 249, 251] },
+        margin: { left: margin, right: margin },
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+    }
+
+    // Contrats \u00E9chus.
+    if (expiringContracts.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(...C_TEXT);
+      doc.text(`Contrats arrivant \u00E0 \u00E9ch\u00E9ance (${expiringContracts.length})`, margin, y);
+      y += 4;
+      autoTable(doc, {
+        startY: y,
+        theme: 'striped',
+        head: [['Matricule', 'Employ\u00E9', 'Type', '\u00C9ch\u00E9ance', 'Jours restants']],
+        body: expiringContracts.map((c: any) => {
+          const daysLeft = c.empsort
+            ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000)
+            : 0;
+          return [
+            c.empcod || '',
+            c.emplib || '',
+            c.contype || 'CDD',
+            c.empsort ? dayjs(c.empsort).format('DD/MM/YYYY') : '',
+            `${daysLeft} j`,
+          ];
+        }),
+        headStyles: { fillColor: C_WARN, textColor: 255, fontSize: 9 },
+        bodyStyles: { fontSize: 8, textColor: C_TEXT },
+        alternateRowStyles: { fillColor: [254, 252, 232] },
+        margin: { left: margin, right: margin },
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+    }
+
+    // Pointages incomplets.
+    if (pointagesData && pointagesData.length > 0) {
+      if (y > pageH - 50) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(...C_TEXT);
+      doc.text(`Pointages incomplets (${pointagesData.length})`, margin, y);
+      y += 4;
+      autoTable(doc, {
+        startY: y,
+        theme: 'striped',
+        head: [['Matricule', 'Nom', 'D\u00E9partement', 'Date', 'Arriv\u00E9e', 'D\u00E9part', 'Motif']],
+        body: pointagesData.map((row: any) => [
+          row.empcod || '',
+          row.emplib || '',
+          row.departement || '',
+          row.predat ? dayjs(row.predat).format('DD/MM/YYYY') : '',
+          row.preentmatup || '\u2014',
+          row.presortamidiup || row.presortmatup || '\u2014',
+          row.motif || '',
+        ]),
+        headStyles: { fillColor: C_DANGER, textColor: 255, fontSize: 9 },
+        bodyStyles: { fontSize: 8, textColor: C_TEXT },
+        alternateRowStyles: { fillColor: [254, 242, 242] },
+        margin: { left: margin, right: margin },
+      });
+    }
+
+    // Footer pagin\u00E9 sur toutes les pages.
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(...C_PRIMARY_LIGHT);
+      doc.setLineWidth(0.3);
+      doc.line(margin, pageH - 12, pageW - margin, pageH - 12);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...C_MUTED);
+      doc.text('Concorde Work Force \u2014 Rapport confidentiel', margin, pageH - 6);
+      doc.text(`Page ${i} / ${totalPages}`, pageW - margin, pageH - 6, { align: 'right' });
+    }
+
+    doc.save(`Rapport_TableauDeBord_${dayjs().format('YYYY-MM-DD_HHmm')}.pdf`);
   };
 
   if (isLoading) return (
@@ -208,10 +490,200 @@ function DashboardModernAdmin() {
           <Typography className="db-title">{t('dashboard.title')}</Typography>
           <Typography className="db-subtitle">{t('dashboard.updatedToday', { date: today })}</Typography>
         </Box>
-        <Button startIcon={<FileDownloadIcon />} className="db-export-btn" onClick={handleExportReport}>
-          {t('dashboard.exportReport')}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {/* Bouton Actions rapides : raccourcis vers les écrans les plus
+              utilisés (créer un employé, courrier, demande, etc.) sans
+              avoir à parcourir le menu latéral. */}
+          <Tooltip title="Actions rapides">
+            <Button
+              startIcon={<BoltIcon />}
+              variant="contained"
+              onClick={(e) => setQuickAnchor(e.currentTarget)}
+              sx={{
+                textTransform: 'none', fontWeight: 700, fontSize: 13,
+                background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+                boxShadow: '0 4px 12px rgba(245,158,11,0.35)',
+                '&:hover': { background: 'linear-gradient(135deg, #d97706 0%, #ea580c 100%)' },
+              }}
+            >
+              Actions rapides
+            </Button>
+          </Tooltip>
+          <Tooltip title="Personnaliser le tableau de bord">
+            <Button
+              startIcon={<TuneIcon />}
+              variant="outlined"
+              onClick={() => setOpenCustomize(true)}
+              sx={{
+                textTransform: 'none', fontWeight: 700, fontSize: 13,
+                borderColor: '#dae2ff', color: '#0040a1',
+                '&:hover': { borderColor: '#0040a1', background: 'rgba(0,64,161,0.04)' },
+              }}
+            >
+              Personnaliser
+            </Button>
+          </Tooltip>
+          <Button startIcon={<FileDownloadIcon />} className="db-export-btn" onClick={handleExportReport}>
+            {t('dashboard.exportReport')}
+          </Button>
+        </Box>
       </Box>
+
+      {/* Menu déroulant Quick Actions — chaque entrée est un raccourci
+          navigation vers l'écran qui héberge le formulaire de création.
+          On ferme le menu après chaque clic pour ne pas masquer la page. */}
+      <Menu
+        anchorEl={quickAnchor}
+        open={!!quickAnchor}
+        onClose={() => setQuickAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: { minWidth: 260, mt: 1, borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' },
+        }}
+      >
+        <Box sx={{ px: 2, py: 1, background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 800, color: '#92400e', letterSpacing: 0.5 }}>
+            ⚡ ACTIONS RAPIDES
+          </Typography>
+        </Box>
+        <Divider />
+        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/profil-employe?new=true'); }}>
+          <ListItemIcon><PersonAddIcon fontSize="small" sx={{ color: '#0040a1' }} /></ListItemIcon>
+          <ListItemText
+            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Ajouter un collaborateur</Typography>}
+            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Créer une fiche employé</Typography>}
+          />
+        </MenuItem>
+        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/contrat/contrat'); }}>
+          <ListItemIcon><DescriptionIcon fontSize="small" sx={{ color: '#005136' }} /></ListItemIcon>
+          <ListItemText
+            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Gérer les contrats</Typography>}
+            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Nouveau contrat ou avenant</Typography>}
+          />
+        </MenuItem>
+        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/courriers'); }}>
+          <ListItemIcon><ArticleIcon fontSize="small" sx={{ color: '#6d28d9' }} /></ListItemIcon>
+          <ListItemText
+            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Générer un courrier</Typography>}
+            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Attestation, lettre, avenant…</Typography>}
+          />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/etat-periodique'); }}>
+          <ListItemIcon><EditCalendarIcon fontSize="small" sx={{ color: '#b45309' }} /></ListItemIcon>
+          <ListItemText
+            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Saisir un pointage</Typography>}
+            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Corriger entrée/sortie</Typography>}
+          />
+        </MenuItem>
+        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/documents'); }}>
+          <ListItemIcon><UploadFileIcon fontSize="small" sx={{ color: '#0e7490' }} /></ListItemIcon>
+          <ListItemText
+            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Téléverser un document</Typography>}
+            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Convention, règlement, accord</Typography>}
+          />
+        </MenuItem>
+      </Menu>
+
+      {/* Récapitulatif des tâches — bandeau textuel actionnable au-dessus des
+          widgets. Chaque chip est cliquable et ouvre la section détaillée
+          correspondante (dialog congé, dialog contrats, etc.). */}
+      {visibility.recap && (
+        <Box
+          sx={{
+            display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center',
+            background: 'linear-gradient(135deg, #f0f4ff 0%, #fafbff 100%)',
+            border: '1px solid #dae2ff', borderRadius: '14px',
+            px: 2, py: 1.5, mb: 2,
+          }}
+        >
+          <PlaylistAddCheckIcon sx={{ color: '#0040a1', fontSize: 20 }} />
+          <Typography sx={{ fontSize: 12, fontWeight: 800, color: '#0040a1', letterSpacing: 0.5, mr: 1 }}>
+            À FAIRE AUJOURD'HUI
+          </Typography>
+          {(() => {
+            const items: Array<{ label: string; color: string; bg: string; onClick?: () => void; emoji?: string }> = [];
+
+            const pendingLeaves = demandesData?.length ?? dashboardData?.totalDemandesEnAttente ?? 0;
+            if (pendingLeaves > 0) {
+              items.push({
+                label: `${pendingLeaves} demande(s) de congé à valider`,
+                color: '#92400e', bg: '#fef3c7', emoji: '📋',
+                onClick: () => setOpenCongeDialog(true),
+              });
+            }
+
+            const urgentContracts = expiringContracts.filter((c: any) => {
+              const d = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : Infinity;
+              return d <= 7;
+            }).length;
+            if (urgentContracts > 0) {
+              items.push({
+                label: `${urgentContracts} contrat(s) expirent dans 7 jours`,
+                color: '#991b1b', bg: '#fee2e2', emoji: '⚠️',
+                onClick: () => setOpenContractDialog(true),
+              });
+            } else if (expiringContracts.length > 0) {
+              items.push({
+                label: `${expiringContracts.length} contrat(s) à renouveler ce mois`,
+                color: '#92400e', bg: '#fef3c7', emoji: '📝',
+                onClick: () => setOpenContractDialog(true),
+              });
+            }
+
+            const lateCount = dashboardData?.nombreEmployesEnRetard ?? 0;
+            if (lateCount > 0) {
+              items.push({
+                label: `${lateCount} employé(s) en retard`,
+                color: '#991b1b', bg: '#fee2e2', emoji: '⏰',
+              });
+            }
+
+            const incompletePointages = pointagesData?.length ?? 0;
+            if (incompletePointages > 0) {
+              items.push({
+                label: `${incompletePointages} pointage(s) incomplet(s)`,
+                color: '#6d28d9', bg: '#ede9fe', emoji: '🔍',
+                onClick: () => setOpenPointageDialog(true),
+              });
+            }
+
+            const absences = dashboardData?.totalAbsences ?? 0;
+            if (absences > 0) {
+              items.push({
+                label: `${absences} absence(s) du jour`,
+                color: '#0040a1', bg: '#dae2ff', emoji: '👤',
+              });
+            }
+
+            if (items.length === 0) {
+              return (
+                <Chip
+                  label="✅ Tout est à jour — aucune action urgente"
+                  size="small"
+                  sx={{ background: '#dcfce7', color: '#166534', fontWeight: 700, fontSize: 12 }}
+                />
+              );
+            }
+
+            return items.map((item, i) => (
+              <Chip
+                key={i}
+                label={`${item.emoji ?? ''} ${item.label}`}
+                onClick={item.onClick}
+                size="small"
+                sx={{
+                  background: item.bg, color: item.color,
+                  fontWeight: 700, fontSize: 12,
+                  cursor: item.onClick ? 'pointer' : 'default',
+                  '&:hover': item.onClick ? { filter: 'brightness(0.95)' } : undefined,
+                }}
+              />
+            ));
+          })()}
+        </Box>
+      )}
 
       {/* Filter bar */}
       <Box className="db-filter-bar">
@@ -244,6 +716,7 @@ function DashboardModernAdmin() {
       </Box>
 
       {/* KPI Row */}
+      {visibility.kpis && (
       <Box className="db-kpi-grid">
         <KpiCard
           icon={<HowToRegIcon sx={{ fontSize: 20 }} />}
@@ -276,10 +749,12 @@ function DashboardModernAdmin() {
           iconBg="rgba(0,81,54,0.1)" iconColor="#005136"
         />
       </Box>
+      )}
 
-      {/* Bento grid */}
+      {/* Bento grid : Total employees / Congés / Alertes contrat */}
+      {(visibility.totalEmployees || visibility.ongoingLeaves || visibility.contractAlerts) && (
       <Box className="db-bento-top">
-        {/* Total employees */}
+        {visibility.totalEmployees && (
         <Box className="db-bento-employees">
           <Typography className="db-bento-label">{t('dashboard.totalEmployees')}</Typography>
           <Box className="db-bento-emp-value">
@@ -297,8 +772,9 @@ function DashboardModernAdmin() {
             </Avatar>
           </Box>
         </Box>
+        )}
 
-        {/* Congés en cours */}
+        {visibility.ongoingLeaves && (
         <Box className="db-bento-conges" onClick={() => setOpenCongeDialog(true)} sx={{ cursor: 'pointer' }}>
           <Box className="db-bento-conges-top">
             <Typography className="db-bento-label">{t('dashboard.ongoingLeaves')}</Typography>
@@ -310,8 +786,9 @@ function DashboardModernAdmin() {
             <Box className="db-bento-progress-fill" style={{ width: '75%' }} />
           </Box>
         </Box>
+        )}
 
-        {/* Alertes contrat */}
+        {visibility.contractAlerts && (
         <Box className="db-bento-alerts" onClick={() => setOpenContractDialog(true)} sx={{ cursor: 'pointer' }}>
           <Box className="db-bento-alerts-top">
             <Typography className="db-bento-label-error">{t('dashboard.contractAlerts')}</Typography>
@@ -322,11 +799,14 @@ function DashboardModernAdmin() {
             {t('dashboard.contractsExpiringMonth')}
           </Typography>
         </Box>
+        )}
       </Box>
+      )}
 
-      {/* Charts + Absences */}
+      {/* Charts + Absences : graphique d'évolution + panel absences récentes */}
+      {(visibility.evolution || visibility.absences) && (
       <Box className="db-charts-row">
-        {/* Evolution chart */}
+        {visibility.evolution && (
         <Box className="db-chart-card">
           <Box className="db-chart-header">
             <Box>
@@ -340,8 +820,9 @@ function DashboardModernAdmin() {
           </Box>
           <EvolutionChart data={Array.isArray(evolutionData) ? evolutionData : []} isLoading={loadingEvolution} />
         </Box>
+        )}
 
-        {/* Recent absences */}
+        {visibility.absences && (
         <Box className="db-absences-card">
           <Box className="db-absences-header">
             <Typography className="db-chart-title">{t('dashboard.recentAbsences')}</Typography>
@@ -374,9 +855,12 @@ function DashboardModernAdmin() {
           </Box>
           <Button className="db-see-all-btn" fullWidth>{t('dashboard.viewAllCalendar')}</Button>
         </Box>
+        )}
       </Box>
+      )}
 
       {/* Bottom row */}
+      {visibility.renewals && (
       <Box className="db-bottom-row">
 
         {/* Contract renewals */}
@@ -410,6 +894,7 @@ function DashboardModernAdmin() {
           )}
         </Box>
       </Box>
+      )}
 
       {/* Dialogs */}
       {/* Conge Dialog - Redesigned */}
@@ -569,6 +1054,65 @@ function DashboardModernAdmin() {
         onClose={() => setRenewTarget(null)}
         onSuccess={() => { setRenewTarget(null); }}
       />
+
+      {/* Customize Widgets Dialog : sélection des widgets visibles, persistée
+          en localStorage par tenant. Chaque utilisateur peut adapter le dashboard
+          à son rôle (un manager n'a pas besoin de voir les renouvellements de
+          contrats par exemple). */}
+      <Dialog
+        open={openCustomize}
+        onClose={() => setOpenCustomize(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, color: '#0040a1' }}>
+          <TuneIcon /> Personnaliser
+          <Box sx={{ flex: 1 }} />
+          <IconButton size="small" onClick={() => setOpenCustomize(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Choisissez les éléments à afficher dans votre tableau de bord. Vos préférences
+            sont sauvegardées automatiquement.
+          </Typography>
+          <Stack spacing={1}>
+            {ALL_WIDGETS.map((w) => (
+              <FormControlLabel
+                key={w.key}
+                control={
+                  <Switch
+                    checked={visibility[w.key]}
+                    onChange={() => toggleWidget(w.key)}
+                    color="primary"
+                  />
+                }
+                label={<Typography sx={{ fontSize: 14, fontWeight: 600 }}>{w.label}</Typography>}
+                sx={{ m: 0, justifyContent: 'space-between', width: '100%' }}
+                labelPlacement="start"
+              />
+            ))}
+          </Stack>
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+            <Button
+              startIcon={<RestartAltIcon />}
+              onClick={resetWidgets}
+              sx={{ textTransform: 'none', color: '#737785' }}
+            >
+              Réinitialiser
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => setOpenCustomize(false)}
+              sx={{ textTransform: 'none', fontWeight: 700, background: '#0040a1' }}
+            >
+              Fermer
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

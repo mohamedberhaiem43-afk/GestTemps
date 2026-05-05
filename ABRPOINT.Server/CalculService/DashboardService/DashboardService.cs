@@ -94,7 +94,6 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                 // 4. Heures / Retards
                 // =========================
                 float? heuresTravaillees = 0;
-                float? heuresSupplementaires = 0;
                 int retards = 0;
                 int entreesEnRetard = 0;
                 int pointagesIncomplets = 0;
@@ -115,7 +114,6 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                     };
 
                     heuresTravaillees += GenericMethodes.ConvertHHmmToDouble(p.Tothre) + GenericMethodes.ConvertHHmmToDouble(p.Tothsup);
-                    heuresSupplementaires += GenericMethodes.ConvertHHmmToDouble(p.Tothsup);
                     (var sup,var retard) = await _calcHeuresService.CalculateDayWorkMetrics(dto);
                     retards += retard;
                     if (retard > 0) entreesEnRetard++;
@@ -124,8 +122,54 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                         pointagesIncomplets++;
                 }
 
+                // ── Heures supplémentaires HEBDOMADAIRES ────────────────────────────
+                // Au lieu de sommer Tothsup jour par jour (qui compte tout dépassement
+                // quotidien comme heure supp), on délègue au service hebdomadaire qui ne
+                // déclenche les HS qu'après dépassement du seuil hebdo (NbhCalendSem,
+                // typiquement 40h ou 35h selon convention). Plus conforme au droit du
+                // travail tunisien et plus précis pour la paie.
+                float heuresSupplementaires = 0;
+                var moisAnneeKeys = presences
+                    .Where(p => p.Predat.HasValue)
+                    .Select(p => new { p.Empcod, Mois = p.Predat!.Value.Month.ToString("D2"), Annee = p.Predat!.Value.Year.ToString() })
+                    .Distinct()
+                    .ToList();
+
+                // Charger Empreg/Empniv des employés concernés en une seule requête.
+                var empcodsHs = moisAnneeKeys.Select(k => k.Empcod).Distinct().ToList();
+                var empsParams = await _context.Employes
+                    .Where(e => e.Soccod == soccod && empcodsHs.Contains(e.Empcod))
+                    .Select(e => new { e.Empcod, e.Empreg, e.Empniv })
+                    .ToDictionaryAsync(e => e.Empcod);
+
+                foreach (var key in moisAnneeKeys)
+                {
+                    if (!empsParams.TryGetValue(key.Empcod, out var emp)) continue;
+                    try
+                    {
+                        var weeks = await _heureSuppService.CalculerHeuresSupplementairesMultiSemaines(
+                            soccod, key.Empcod, key.Mois, key.Annee, emp.Empreg ?? "", emp.Empniv ?? "");
+
+                        foreach (var w in weeks)
+                        {
+                            // On ne compte que les HS des semaines qui chevauchent la
+                            // période demandée (sinon un dashboard "du 1 au 10" sommerait
+                            // les HS d'une semaine 1-7 qui s'étend hors période).
+                            if (!w.WeekStartDate.HasValue || !w.WeekEndDate.HasValue) continue;
+                            if (w.WeekEndDate.Value.Date < dateDebut.Date) continue;
+                            if (w.WeekStartDate.Value.Date > dateFin.Date) continue;
+                            heuresSupplementaires += w.HreSupSemaine ?? 0;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Un employé sans poste/calendrier valide : on l'ignore plutôt
+                        // que de faire planter le dashboard entier.
+                    }
+                }
+
                 dashboardData.HeuresTravaillees = MathF.Round((float)heuresTravaillees, 2);
-                dashboardData.HeuresSupplementaires = MathF.Round((float)heuresSupplementaires, 2);
+                dashboardData.HeuresSupplementaires = MathF.Round(heuresSupplementaires, 2);
                 dashboardData.NombreRetards = retards;
                 dashboardData.NombreEmployesEnRetard = entreesEnRetard;
                 dashboardData.PointagesIncomplets = pointagesIncomplets;

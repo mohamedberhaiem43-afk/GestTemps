@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, RefreshControl, Modal, FlatList,
+  TextInput, Alert, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -82,7 +82,6 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editDemande, setEditDemande] = useState<DemandeAutorisation | null>(null);
-  const [showAbsencePicker, setShowAbsencePicker] = useState(false);
 
   // Form state
   const [formConcod, setFormConcod] = useState('');
@@ -262,11 +261,6 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
     ]);
   };
 
-  const getSelectedAbsenceLabel = () => {
-    const found = absences.find((a) => a.abscod === formAbscod);
-    return found ? `${found.abscod} - ${found.abslib}` : 'Sélectionner un type...';
-  };
-
   const calcDuration = () => {
     const diff = (formConret.getTime() - formCondep.getTime()) / 3600000;
     return Math.max(0, Math.round(diff * 100) / 100);
@@ -400,64 +394,56 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         </View>
       </ScrollView>
 
-      {/* ── Form Modal ── */}
-      <Modal visible={showForm} animationType="slide" transparent={true}>
+      {/* ── Form Overlay (style LeaveRequestScreen) ── */}
+      {showForm && (
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {editDemande ? '✏️ Modifier la demande de sortie' : '📝 Nouvelle demande de sortie'}
+          <View style={styles.formCard}>
+            <View style={styles.formHeader}>
+              <Text style={styles.formHeaderTitle}>
+                {editDemande ? 'Modifier la demande' : 'Nouvelle Demande'}
               </Text>
               <TouchableOpacity onPress={() => { setShowForm(false); setEditDemande(null); }}>
-                <Text style={styles.modalClose}>✕</Text>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalHero}>
-              <Text style={styles.modalHeroTitle}>Saisie de sortie</Text>
-              <Text style={styles.modalHeroSub}>Remplissez les détails de votre sortie pour une validation rapide.</Text>
-            </View>
-
-            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-              {/* Numéro d'ordre + Date de demande : lecture seule, alignés sur la maquette web */}
-              <View style={styles.dateTimeRow}>
-                <View style={styles.dateTimeBtn}>
-                  <Text style={styles.label}>N° d'ordre</Text>
-                  <View style={[styles.pickerBtn, styles.readonlyField]}>
-                    <Text style={styles.pickerBtnText}>{formConcod || '—'}</Text>
-                  </View>
-                </View>
-                <View style={styles.dateTimeBtn}>
-                  <Text style={styles.label}>Date de demande</Text>
-                  <View style={[styles.pickerBtn, styles.readonlyField]}>
-                    <Text style={styles.pickerBtnText}>{fmtDate(formCondat.toISOString())}</Text>
-                  </View>
-                </View>
-              </View>
-
+            <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.label}>Type de sortie</Text>
-              <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowAbsencePicker(true)}>
-                <Text style={styles.pickerBtnText}>{getSelectedAbsenceLabel()}</Text>
-                <Text style={styles.pickerArrow}>▼</Text>
-              </TouchableOpacity>
+              <View style={styles.typeRow}>
+                {absences.map((abs) => (
+                  <TouchableOpacity
+                    key={abs.abscod}
+                    style={[styles.typeBtn, formAbscod === abs.abscod && styles.typeBtnActive]}
+                    onPress={() => setFormAbscod(abs.abscod)}
+                  >
+                    <Text style={[styles.typeText, formAbscod === abs.abscod && styles.typeTextActive]}>
+                      {abs.abslib || abs.abscod}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-              <Text style={styles.label}>Date/Heure début</Text>
+              <Text style={styles.label}>Date / Heure de début</Text>
               <View style={styles.dateTimeRow}>
-                <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowDepDatePicker(true)}>
-                  <Text style={styles.pickerBtnText}>📅 {fmtDate(formCondep.toISOString())}</Text>
+                <TouchableOpacity style={[styles.dateInput, styles.dateTimeBtn]} onPress={() => setShowDepDatePicker(true)}>
+                  <Text style={styles.dateInputText}>{fmtDate(formCondep.toISOString())}</Text>
+                  <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowDepTimePicker(true)}>
-                  <Text style={styles.pickerBtnText}>🕐 {fmtTime(formCondep.toISOString())}</Text>
+                <TouchableOpacity style={[styles.dateInput, styles.dateTimeBtn]} onPress={() => setShowDepTimePicker(true)}>
+                  <Text style={styles.dateInputText}>{fmtTime(formCondep.toISOString())}</Text>
+                  <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>Date/Heure fin</Text>
+              <Text style={styles.label}>Date / Heure de fin</Text>
               <View style={styles.dateTimeRow}>
-                <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowRetDatePicker(true)}>
-                  <Text style={styles.pickerBtnText}>📅 {fmtDate(formConret.toISOString())}</Text>
+                <TouchableOpacity style={[styles.dateInput, styles.dateTimeBtn]} onPress={() => setShowRetDatePicker(true)}>
+                  <Text style={styles.dateInputText}>{fmtDate(formConret.toISOString())}</Text>
+                  <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.pickerBtn, styles.dateTimeBtn]} onPress={() => setShowRetTimePicker(true)}>
-                  <Text style={styles.pickerBtnText}>🕐 {fmtTime(formConret.toISOString())}</Text>
+                <TouchableOpacity style={[styles.dateInput, styles.dateTimeBtn]} onPress={() => setShowRetTimePicker(true)}>
+                  <Text style={styles.dateInputText}>{fmtTime(formConret.toISOString())}</Text>
+                  <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
 
@@ -466,54 +452,27 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
                 <Text style={styles.durationValue}>{fmtDuration(calcDuration())}</Text>
               </View>
 
-              <Text style={styles.label}>Motif *</Text>
+              <Text style={styles.label}>Motif</Text>
               <TextInput
-                style={[styles.input, { height: 70 }]}
+                style={styles.motifInput}
                 value={formConmotif}
                 multiline
                 onChangeText={setFormConmotif}
-                placeholder="Raison de la sortie..."
-                placeholderTextColor="#aaa"
+                placeholder="Raison de la sortie…"
+                placeholderTextColor={COLORS.outline}
               />
 
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                <Text style={styles.submitBtnText}>
-                  {editDemande ? '📤 Modifier la sortie' : '📤 Envoyer la sortie'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.formFooter}>
+                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+                  <Text style={styles.submitBtnText}>
+                    {editDemande ? 'METTRE À JOUR' : 'ENVOYER LA DEMANDE'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </View>
-      </Modal>
-
-      {/* ── Absence Picker Modal ── */}
-      <Modal visible={showAbsencePicker} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.pickerModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Type de sortie</Text>
-              <TouchableOpacity onPress={() => setShowAbsencePicker(false)}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={absences}
-              keyExtractor={(item) => `${item.abscod}-${item.soccod}`}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.absenceItem, item.abscod === formAbscod && styles.absenceItemActive]}
-                  onPress={() => { setFormAbscod(item.abscod); setShowAbsencePicker(false); }}
-                >
-                  <Text style={[styles.absenceItemText, item.abscod === formAbscod && styles.absenceItemTextActive]}>
-                    {item.abscod} - {item.abslib}
-                  </Text>
-                  {item.abscng === 'B' && <Text style={styles.defaultBadge}>Défaut</Text>}
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </View>
-      </Modal>
+      )}
 
       {/* ── Date Pickers ── */}
       <DatePickerModal
@@ -652,74 +611,66 @@ const styles = StyleSheet.create({
   },
   emptyBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
-  // ── Modal Shared ──
-  // BUG FIX: all modal styles were missing from StyleSheet
+  // ── Form Overlay (aligné sur LeaveRequestScreen) ──
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end',
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 1000,
   },
-  modalContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+  formCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
     maxHeight: '85%',
   },
-  pickerModalContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '60%',
-  },
-  modalHeader: {
+  formHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerHigh,
+    marginBottom: 24,
   },
-  modalTitle: { fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
-  modalClose: { fontSize: 18, color: COLORS.outline, padding: 4 },
-  modalScroll: { padding: 16 },
-  modalHero: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 16, padding: 16, marginHorizontal: 16, marginBottom: 12 },
-  modalHeroTitle: { fontSize: 16, fontWeight: '800', color: COLORS.onSurface },
-  modalHeroSub: { fontSize: 12, color: COLORS.onSurfaceVariant, marginTop: 6, lineHeight: 18 },
+  formHeaderTitle: { fontSize: 20, fontWeight: '800', color: COLORS.onSurface },
+  formScroll: { flexGrow: 0 },
 
   // ── Form Fields ──
   label: {
     fontSize: 12, fontWeight: '700', color: COLORS.outline,
-    marginTop: 12, marginBottom: 6, letterSpacing: 0.5,
+    marginBottom: 8, marginTop: 16, letterSpacing: 0.5,
   },
-  pickerBtn: {
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  typeBtn: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: COLORS.surfaceContainerLow,
+  },
+  typeBtnActive: { backgroundColor: COLORS.primary },
+  typeText: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
+  typeTextActive: { color: '#fff' },
+
+  dateInput: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 14,
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 16,
   },
-  pickerBtnText: { fontSize: 14, color: COLORS.onSurface, flex: 1 },
-  pickerArrow:   { fontSize: 12, color: COLORS.outline },
-  readonlyField: { backgroundColor: COLORS.surfaceContainerHigh, opacity: 0.85 },
-  dateTimeRow:   { flexDirection: 'row', gap: 8 },
-  dateTimeBtn:   { flex: 1 },
+  dateInputText: { fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
+  dateTimeRow: { flexDirection: 'row', gap: 8 },
+  dateTimeBtn: { flex: 1 },
+
   durationCard: {
-    marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: 'rgba(0,86,210,0.06)', borderRadius: 12, padding: 12,
   },
   durationLabel: { fontSize: 12, color: COLORS.primary, fontWeight: '700' },
   durationValue: { fontSize: 16, color: COLORS.primary, fontWeight: '800' },
-  input: {
+
+  motifInput: {
     backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
     padding: 14, fontSize: 14, color: COLORS.onSurface,
+    minHeight: 80, textAlignVertical: 'top',
   },
-  submitBtn: {
-    marginTop: 16, backgroundColor: COLORS.primary,
-    borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 8,
-  },
-  // BUG FIX: submitBtnText was missing from StyleSheet
-  submitBtnText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 1 },
 
-  // ── Absence Picker List ──
-  absenceItem: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 14, borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerHigh,
+  formFooter: { marginTop: 32, marginBottom: 24 },
+  submitBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 16,
+    paddingVertical: 18, alignItems: 'center',
   },
-  absenceItemActive:     { backgroundColor: COLORS.primaryFixed },
-  absenceItemText:       { fontSize: 14, color: COLORS.onSurface },
-  absenceItemTextActive: { color: COLORS.primary, fontWeight: '700' },
-  defaultBadge: {
-    fontSize: 10, fontWeight: '700', color: COLORS.primary,
-    backgroundColor: COLORS.primaryFixed, paddingHorizontal: 8,
-    paddingVertical: 3, borderRadius: 999,
-  },
+  submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
 });

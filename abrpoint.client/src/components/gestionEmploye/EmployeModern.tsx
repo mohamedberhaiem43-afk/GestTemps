@@ -41,6 +41,7 @@ import { EmployeeContext, EmployeeProvider } from '../Pointeuse/EtatPeriodique/E
 import useAddEmploye from '../../hooks/employeHooks/useAddEmploye';
 import useUpdateEmploye from '../../hooks/employeHooks/useUpdateEmploye';
 import { useAuth } from '../helper/AuthProvider';
+import SuccessAnimation from '../helper/SuccessAnimation';
 import Employe from '../../models/Employe';
 import apiInstance from '../API/apiInstance';
 import useGetDirectionLibs from '../../hooks/directionHooks/useGetDirectionLibs';
@@ -233,6 +234,7 @@ const EmployeModernInner = () => {
     const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [severity, setSeverity] = useState<'success' | 'error'>('success');
+    const [showSuccessAnim, setShowSuccessAnim] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isFetching, setIsFetching] = useState(false);
     const [mode, setMode] = useState<'save' | 'update'>('save');
@@ -605,6 +607,9 @@ const EmployeModernInner = () => {
             queryClient.invalidateQueries('employe');
             queryClient.invalidateQueries(['employee-horaires', soccod, formData.empcod]);
             setIsSaving(false);
+            // Animation succès joue à chaque save/update — confirmation visuelle
+            // au-delà du snackbar discret en haut.
+            setShowSuccessAnim(true);
             if (mode === 'save') {
                 showSnackbar(res?.message || t('employe.createdSuccess'), 'success');
                 setMode('update');
@@ -1465,6 +1470,15 @@ const EmployeModernInner = () => {
                     {message}
                 </Alert>
             </Snackbar>
+
+            {/* Animation de succès — disque vert + checkmark + halo pulsant
+                centré, qui se fane en ~1.6s. Renforce la confirmation visuelle
+                après save/update sans bloquer l'utilisateur. */}
+            <SuccessAnimation
+                open={showSuccessAnim}
+                onClose={() => setShowSuccessAnim(false)}
+                message={mode === 'save' ? 'Collaborateur créé !' : 'Modifications enregistrées'}
+            />
         </Box>
 );
 };

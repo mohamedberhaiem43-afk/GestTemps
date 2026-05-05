@@ -23,12 +23,20 @@ interface TodayStatus {
   isRepos?: boolean;
 }
 
+interface RttKpi {
+  methode: string; // 'N' | 'M' | 'H' | 'F'
+  droitAnnuel: number;
+  pris: number;
+  solde: number;
+}
+
 interface KPISummary {
   soldeConge: number;
   congeAcquis: number;
   heuresTravailleesSemaine: number;
   demandesEnAttente: number;
   pourcentageObjectif: number;
+  rtt: RttKpi | null;
 }
 
 interface VaultDoc {
@@ -125,6 +133,15 @@ export default function HomeScreen({ navigation }: any) {
           heuresTravailleesSemaine: data.heuresTravailleesSemaine || 0,
           demandesEnAttente: data.demandesEnAttente || 0,
           pourcentageObjectif: data.pourcentageObjectif || 0,
+          // Le backend ne renvoie `rtt` que si l'employé est éligible (méthode ≠ 'N').
+          rtt: data.rtt
+            ? {
+                methode: data.rtt.methode,
+                droitAnnuel: data.rtt.droitAnnuel || 0,
+                pris: data.rtt.pris || 0,
+                solde: data.rtt.solde || 0,
+              }
+            : null,
         });
       }
     } catch (error) {
@@ -194,8 +211,16 @@ export default function HomeScreen({ navigation }: any) {
         ? '⚠️ Position non autorisée — activez la localisation dans les réglages'
         : '⚠️ Position indisponible — pointage validé sans GPS';
       Alert.alert('✅ Pointage enregistré', gpsHint);
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible de pointer');
+    } catch (error: any) {
+      // Le backend renvoie 422 avec {message, code} pour les pointages hors
+      // période d'emploi (avant Empemb / après Empsort) ou hors zone GPS.
+      // On affiche le message serveur tel quel quand il existe.
+      const status = error?.response?.status;
+      const serverMsg = error?.response?.data?.message;
+      const text = serverMsg ?? (status === 401
+        ? 'Session expirée, veuillez vous reconnecter.'
+        : 'Impossible de pointer');
+      Alert.alert('Pointage refusé', text);
     } finally {
       setPointing(false);
     }
@@ -219,7 +244,7 @@ export default function HomeScreen({ navigation }: any) {
           <TouchableOpacity style={styles.iconButton}>
             <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
           </TouchableOpacity>
-          <Text style={styles.logoText}>LEDGER HR</Text>
+          <Image source={require('../../assets/Concorde.png')} style={styles.logoImage} resizeMode="contain" />
         </View>
         <View style={styles.topAppRight}>
           <TouchableOpacity
@@ -411,6 +436,46 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         </View>
 
+        {/* Carte RTT — affichée uniquement si l'employé est éligible (méthode ≠ 'N'
+            côté backend). Style aligné sur la carte solde CP de LeaveRequestScreen. */}
+        {kpiSummary?.rtt && (
+          <TouchableOpacity
+            style={styles.rttCard}
+            onPress={() => navigation.navigate('LeaveRequest')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.rttIconWrap}>
+              <MaterialCommunityIcons name="briefcase-clock-outline" size={24} color="#10b981" />
+            </View>
+            <View style={styles.rttContent}>
+              <Text style={styles.rttLabel}>SOLDE RTT</Text>
+              <View style={styles.rttValueRow}>
+                <Text style={styles.rttValue}>{kpiSummary.rtt.solde.toFixed(1)}</Text>
+                <Text style={styles.rttUnit}>j</Text>
+                <Text style={styles.rttSub}>
+                  {`· sur ${kpiSummary.rtt.droitAnnuel.toFixed(1)} acquis`}
+                </Text>
+              </View>
+              <View style={styles.rttProgressBar}>
+                <View
+                  style={[
+                    styles.rttProgressFill,
+                    {
+                      width: `${
+                        kpiSummary.rtt.droitAnnuel > 0
+                          ? Math.min(100, (kpiSummary.rtt.pris / kpiSummary.rtt.droitAnnuel) * 100)
+                          : 0
+                      }%`,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.rttFooter}>{kpiSummary.rtt.pris.toFixed(1)} j pris cette année</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color="#10b981" />
+          </TouchableOpacity>
+        )}
+
         {/* Attendance Graph Section */}
         <View style={styles.attendanceSection}>
           <View style={styles.sectionHeader}>
@@ -457,6 +522,22 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </ScrollView>
 
+      {/* FAB Assistant RH (chat RAG sur les documents juridiques du tenant) */}
+      <TouchableOpacity
+        style={[styles.ragFab, { bottom: tabBarPadding - 8 }]}
+        onPress={() => navigation.navigate('ChatRag')}
+        activeOpacity={0.85}
+      >
+        <LinearGradient
+          colors={['#7c3aed', '#5b21b6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.ragFabGradient}
+        >
+          <MaterialCommunityIcons name="scale-balance" size={26} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
+
       <BottomTabBar active="home" navigation={navigation} />
     </SafeAreaView>
   );
@@ -471,6 +552,7 @@ const styles = StyleSheet.create({
   topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
+  logoImage: { width: 110, height: 32 },
   topAppRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   notificationWrapper: { position: 'relative', padding: 4 },
   notificationBadge: {
@@ -597,6 +679,57 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.onSurface,
     letterSpacing: 0.3,
+  },
+  rttCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#10b981',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  rttIconWrap: {
+    width: 48, height: 48, borderRadius: 14,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  rttContent: { flex: 1, gap: 4 },
+  rttLabel: { fontSize: 9, fontWeight: '800', color: '#065f46', letterSpacing: 1 },
+  rttValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  rttValue: { fontSize: 26, fontWeight: '900', color: '#065f46', letterSpacing: -0.5 },
+  rttUnit: { fontSize: 12, fontWeight: '700', color: '#10b981' },
+  rttSub: { fontSize: 10, fontWeight: '600', color: COLORS.outline, marginLeft: 4 },
+  rttProgressBar: {
+    height: 4, backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderRadius: 2, overflow: 'hidden', marginTop: 4,
+  },
+  rttProgressFill: { height: '100%', backgroundColor: '#10b981', borderRadius: 2 },
+  rttFooter: { fontSize: 10, color: COLORS.outline, fontWeight: '600', marginTop: 2 },
+  ragFab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#5b21b6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  ragFabGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

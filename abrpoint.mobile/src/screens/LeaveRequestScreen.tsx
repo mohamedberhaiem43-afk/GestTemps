@@ -318,7 +318,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
             <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
           </TouchableOpacity>
-          <Text style={styles.logoText}>LEDGER HR</Text>
+          <Image source={require('../../assets/Concorde.png')} style={styles.logoImage} resizeMode="contain" />
         </View>
         <View style={styles.profileImageWrapper}>
           <MaterialCommunityIcons name="account-circle-outline" size={32} color="#cbd5e1" />
@@ -565,6 +565,7 @@ const styles = StyleSheet.create({
   topAppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
+  logoImage: { width: 110, height: 32 },
   profileImageWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.surfaceContainerHigh },
   scrollContent: { padding: 20, paddingBottom: 100 },
   section: { marginBottom: 24 },

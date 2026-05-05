@@ -1,10 +1,12 @@
 ﻿using ABRPOINT.Server.Annotations.EtatPriodiqueAttributes;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -16,13 +18,15 @@ namespace ABRPOINT.Server.Controllers
         private readonly IPresenceRepository _presenceRepository;
         private readonly IPointageOptimizerService _pointageOptimizerService;
         private readonly IReportsGenerationService _reportGenerationService;
+        private readonly ApplicationDbContext _db;
         private readonly ILogger<PresencesController>? _logger;
         private readonly Services.IGeoZoneValidator? _geoValidator;
-        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null)
+        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ApplicationDbContext db, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null)
         {
             _presenceRepository = presenceRepository;
             _reportGenerationService = reportGenerationService;
             _pointageOptimizerService = pointageOptimizerService;
+            _db = db;
             _logger = logger;
             _geoValidator = geoValidator;
         }
@@ -226,6 +230,39 @@ namespace ABRPOINT.Server.Controllers
                 // après bind ASP.NET) ; sinon repli sur l'horloge serveur pour les anciens
                 // clients ou les pointages déclenchés via web.
                 var stamp = clientTime ?? DateTime.Now;
+
+                // Garde-fou : refuser tout pointage avant date d'embauche ou après date
+                // de sortie. Sans ça un employé sorti continuerait à pouvoir pointer
+                // (mobile, badge oublié, etc.) ou un nouvel arrivant pourrait pointer
+                // rétroactivement sur des dates pré-embauche → distorsion paie/KPIs.
+                var empInfo = await _db.Employes
+                    .AsNoTracking()
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .Select(e => new { e.Empemb, e.Empsort, e.Emplib, e.Empmat })
+                    .FirstOrDefaultAsync();
+                if (empInfo == null)
+                    return NotFound(new { message = "Employé introuvable" });
+
+                if (empInfo.Empemb.HasValue && stamp.Date < empInfo.Empemb.Value.Date)
+                {
+                    return UnprocessableEntity(new
+                    {
+                        message = $"Pointage refusé : la date est antérieure à la date d'embauche ({empInfo.Empemb.Value:dd/MM/yyyy}).",
+                        code = "before_hire_date",
+                        empemb = empInfo.Empemb,
+                    });
+                }
+
+                if (empInfo.Empsort.HasValue && stamp.Date > empInfo.Empsort.Value.Date)
+                {
+                    return UnprocessableEntity(new
+                    {
+                        message = $"Pointage refusé : l'employé est sorti depuis le {empInfo.Empsort.Value:dd/MM/yyyy}.",
+                        code = "after_exit_date",
+                        empsort = empInfo.Empsort,
+                    });
+                }
+
                 var result = await _presenceRepository.AddPresenceAsync(soccod, empcod, stamp, poicod ?? "");
                 if (result == null)
                     return NotFound(new { message = "Employé introuvable" });
