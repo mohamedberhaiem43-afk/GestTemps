@@ -1,7 +1,7 @@
 volumes:
   sqlserver-data:
   uploads_data:
-  letsencrypt_data:  # ← nouveau volume partagé
+  letsencrypt_data:  # certificat SSL partagé nginx ⇄ certbot
   qdrant_data:       # index vectoriel persistant (RAG)
 
 networks:
@@ -12,12 +12,12 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"  # ← exposer le port HTTPS
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - uploads_data:/app/uploads:ro
-      - letsencrypt_data:/etc/letsencrypt:ro  # ← certificat SSL
-      - /var/www/certbot:/var/www/certbot:ro  # ← challenge certbot
+      - letsencrypt_data:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
     depends_on:
       - abrpoint.server
       - abrpoint.client
@@ -27,7 +27,7 @@ services:
   certbot:
     image: certbot/certbot
     volumes:
-      - letsencrypt_data:/etc/letsencrypt  # ← même volume que nginx
+      - letsencrypt_data:/etc/letsencrypt
       - /var/www/certbot:/var/www/certbot
     command: certonly --webroot -w /var/www/certbot -d concorde-work-force.com --email mohamedberhaiem43@gmail.com --agree-tos --non-interactive
 
@@ -77,13 +77,19 @@ services:
       DatabaseInitialization__AdminEmail: "admin@abrpoint.local"
       DatabaseInitialization__AdminPassword: "123"
       DatabaseInitialization__ApplicationCode: "GRH"
-      # RAG : URL du sidecar dans le réseau Docker + secrets injectés via .env.
+      # ── RAG ACTIVÉ ────────────────────────────────────────────────────
+      # OpenRouter (clé déjà dans appsettings.json) → modèle Llama 3.3 gratuit.
+      # Pour basculer sur Anthropic direct, mettez Rag__Anthropic__UseOpenRouter à "false"
+      # et fournissez ANTHROPIC_API_KEY dans un fichier .env à côté du compose.
+      Rag__Enabled: "true"
       Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
       Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
       Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
     depends_on:
       abrpoint.database:
         condition: service_healthy
+      rag-svc:
+        condition: service_started
     networks:
       - app-network
     expose:
@@ -125,7 +131,6 @@ services:
       QDRANT_URL: "http://qdrant:6333"
       EMBED_MODEL: "intfloat/multilingual-e5-large"
       EMBED_DEVICE: "cpu"
-      # SIDECAR_KEY doit etre fourni via .env ou depuis l'orchestrateur. Vide en dev.
       SIDECAR_KEY: "${RAG_SIDECAR_KEY:-}"
       LOG_LEVEL: "INFO"
     depends_on:
