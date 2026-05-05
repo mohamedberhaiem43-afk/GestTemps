@@ -3,7 +3,7 @@
     "title": "Ce site utilise des cookies",
     "body1": "ABRPOINT utilise des cookies et traite des données personnelles pour assurer le bon fonctionnement de l'application (authentification, préférences de session, sécurité) et améliorer votre expérience.",
     "body2": "Aucune donnée n'est partagée avec des tiers à des fins publicitaires. Conformément au RGPD, vous pouvez accepter l'usage de tous les cookies ou refuser les cookies non strictement nécessaires.",
-    "aiProcessor": "Assistant IA : vos questions et les extraits récupérés peuvent être envoyés à Anthropic (région UE, sous-traitant RGPD) pour générer des réponses. Aucune donnée n'est utilisée pour entraîner le modèle. Les CIN sont automatiquement masqués avant transmission.",
+    "aiProcessor": "Assistant IA : vos questions et les extraits récupérés sont envoyés à un fournisseur LLM (par défaut OpenRouter routant vers un modèle Llama / DeepSeek / Gemini ; en option directement Anthropic en région UE) pour générer des réponses. Les sous-traitants sont conformes RGPD. Aucune donnée n'est utilisée pour entraîner le modèle. Les CIN sont automatiquement masqués avant transmission.",
     "changeLater": "Vous pouvez modifier vos préférences à tout moment depuis les paramètres de votre profil.",
     "reject": "Refuser les cookies",
     "accept": "Accepter les cookies"

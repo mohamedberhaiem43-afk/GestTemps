@@ -16,32 +16,46 @@ public class RagController : ControllerBase
 {
     private readonly IRagSidecarService _sidecar;
     private readonly RagOptions _options;
+    private readonly IConfiguration _config;
 
-    public RagController(IRagSidecarService sidecar, IOptions<RagOptions> options)
+    public RagController(IRagSidecarService sidecar, IOptions<RagOptions> options, IConfiguration config)
     {
         _sidecar = sidecar;
         _options = options.Value;
+        _config = config;
     }
 
     /// <summary>
-    /// Sanity check : sidecar joignable + clé Anthropic présente. Ne consomme aucun
-    /// crédit Anthropic — on vérifie juste la présence de la clé. Le vrai test bout-en-bout
-    /// se fait via un POST /Rag/{soccod}/ask en PR3.
+    /// Sanity check : sidecar joignable + clé LLM présente (OpenRouter par défaut,
+    /// Anthropic direct si <c>UseOpenRouter=false</c>). Ne consomme aucun crédit —
+    /// on vérifie juste la présence de la clé.
     /// </summary>
     [HttpGet("health")]
     [AllowAnonymous]
     public async Task<IActionResult> Health(CancellationToken ct)
     {
         var sidecarOk = await _sidecar.HealthAsync(ct);
-        var anthropicConfigured = !string.IsNullOrEmpty(_options.Anthropic.ApiKey);
+
+        var useOpenRouter = _options.Anthropic.UseOpenRouter;
+        var openRouterKey = _config["OpenRouter:ApiKey"];
+        var llmConfigured = useOpenRouter
+            ? !string.IsNullOrEmpty(openRouterKey)
+            : !string.IsNullOrEmpty(_options.Anthropic.ApiKey);
+
+        var provider = useOpenRouter ? "openrouter" : "anthropic";
+        var activeModel = useOpenRouter ? _options.Anthropic.OpenRouterModel : _options.Anthropic.Model;
 
         return Ok(new
         {
-            ok = sidecarOk && anthropicConfigured,
+            ok = sidecarOk && llmConfigured,
             sidecar = sidecarOk,
             sidecarUrl = _options.Sidecar.BaseUrl,
-            anthropicConfigured,
-            anthropicModel = _options.Anthropic.Model
+            provider,
+            llmConfigured,
+            model = activeModel,
+            // Champs legacy (pour ne pas casser le frontend) :
+            anthropicConfigured = llmConfigured,
+            anthropicModel = activeModel
         });
     }
 }

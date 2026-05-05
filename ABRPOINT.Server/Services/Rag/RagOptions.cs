@@ -14,6 +14,22 @@ public sealed class RagOptions
 
 public sealed class AnthropicOptions
 {
+    /// <summary>
+    /// Quand true (défaut), le service RAG passe par OpenRouter (clé partagée
+    /// <c>OpenRouter:ApiKey</c> déjà présente dans appsettings) au format Chat
+    /// Completions. Permet de démarrer sans budget Anthropic dédié et d'utiliser
+    /// un modèle gratuit (<c>OpenRouterModel</c>). Quand false, on appelle
+    /// directement l'API Messages Anthropic avec <c>ApiKey</c> ci-dessous.
+    /// </summary>
+    public bool UseOpenRouter { get; set; } = true;
+
+    /// <summary>
+    /// Modèle OpenRouter utilisé quand <see cref="UseOpenRouter"/> est true.
+    /// Défaut : Llama 3.3 70B Instruct gratuit — bon compromis multilingue FR/EN
+    /// + fenêtre de contexte 128k pour ingérer des extraits de conventions.
+    /// </summary>
+    public string OpenRouterModel { get; set; } = "meta-llama/llama-3.3-70b-instruct:free";
+
     public string BaseUrl { get; set; } = "https://api.anthropic.com";
     public string ApiKey { get; set; } = string.Empty;
     public string Model { get; set; } = "claude-sonnet-4-6";

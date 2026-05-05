@@ -18,6 +18,7 @@ public sealed class ClaudeRagService : IClaudeRagService
     private readonly IRagSidecarService _sidecar;
     private readonly HttpClient _http;
     private readonly RagOptions _options;
+    private readonly IConfiguration _config;
     private readonly ApplicationDbContext _db;
     private readonly ICurrentTenant _currentTenant;
     private readonly ILogger<ClaudeRagService> _logger;
@@ -30,6 +31,7 @@ public sealed class ClaudeRagService : IClaudeRagService
         IRagSidecarService sidecar,
         HttpClient http,
         IOptions<RagOptions> options,
+        IConfiguration config,
         ApplicationDbContext db,
         ICurrentTenant currentTenant,
         ILogger<ClaudeRagService> logger)
@@ -37,6 +39,7 @@ public sealed class ClaudeRagService : IClaudeRagService
         _sidecar = sidecar;
         _http = http;
         _options = options.Value;
+        _config = config;
         _db = db;
         _currentTenant = currentTenant;
         _logger = logger;
@@ -83,11 +86,8 @@ Réponds en français, dans un ton professionnel et concis.";
 
         var userMessage = $"Question : {question}\n\nExtraits disponibles :\n{contextText}";
 
-        // 4. Appel Claude (Anthropic Messages API).
-        if (string.IsNullOrEmpty(_options.Anthropic.ApiKey))
-            throw new InvalidOperationException("ANTHROPIC_API_KEY non configurée.");
-
-        var (answer, tokensIn, tokensOut) = await CallClaudeAsync(systemPrompt, userMessage, ct);
+        // 4. Appel LLM (OpenRouter par défaut, Anthropic direct si configuré).
+        var (answer, tokensIn, tokensOut) = await CallLlmAsync(systemPrompt, userMessage, ct);
 
         sw.Stop();
         var latencyMs = (int)sw.ElapsedMilliseconds;
@@ -132,8 +132,6 @@ Réponds en français, dans un ton professionnel et concis.";
     public async Task<string> PolishAsync(string content, string? toneHint, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(content)) return content;
-        if (string.IsNullOrEmpty(_options.Anthropic.ApiKey))
-            throw new InvalidOperationException("ANTHROPIC_API_KEY non configurée.");
 
         var tone = string.IsNullOrWhiteSpace(toneHint) ? "professionnel et formel" : toneHint!.Trim();
         var systemPrompt = $@"Tu es un assistant rédactionnel RH. On te fournit un courrier français au format HTML
@@ -144,7 +142,7 @@ Réponds en français, dans un ton professionnel et concis.";
 - les noms propres et dates inchangés.
 Ne commente pas, ne préfixe pas — renvoie directement le HTML reformulé.";
 
-        var (answer, _, _) = await CallClaudeAsync(systemPrompt, content, ct);
+        var (answer, _, _) = await CallLlmAsync(systemPrompt, content, ct);
         return answer;
     }
 
@@ -162,7 +160,84 @@ Ne commente pas, ne préfixe pas — renvoie directement le HTML reformulé.";
         return true;
     }
 
-    private async Task<(string Answer, int? TokensIn, int? TokensOut)> CallClaudeAsync(string systemPrompt, string userMessage, CancellationToken ct)
+    /// <summary>
+    /// Dispatcher : appelle OpenRouter (Chat Completions, OpenAI-compatible) par défaut,
+    /// ou Anthropic direct (Messages) si l'utilisateur a configuré une clé Anthropic
+    /// avec <c>UseOpenRouter=false</c>.
+    /// </summary>
+    private async Task<(string Answer, int? TokensIn, int? TokensOut)> CallLlmAsync(string systemPrompt, string userMessage, CancellationToken ct)
+    {
+        if (_options.Anthropic.UseOpenRouter)
+        {
+            return await CallOpenRouterAsync(systemPrompt, userMessage, ct);
+        }
+        if (string.IsNullOrEmpty(_options.Anthropic.ApiKey))
+            throw new InvalidOperationException("Aucune clé LLM configurée (Rag:Anthropic:ApiKey ou OpenRouter:ApiKey).");
+        return await CallAnthropicAsync(systemPrompt, userMessage, ct);
+    }
+
+    private async Task<(string Answer, int? TokensIn, int? TokensOut)> CallOpenRouterAsync(string systemPrompt, string userMessage, CancellationToken ct)
+    {
+        var key = _config["OpenRouter:ApiKey"];
+        if (string.IsNullOrEmpty(key))
+            throw new InvalidOperationException("OpenRouter:ApiKey non configurée.");
+
+        var model = _options.Anthropic.OpenRouterModel;
+
+        // Format Chat Completions (OpenAI-compatible). OpenRouter accepte aussi
+        // optionnellement les headers HTTP-Referer/X-Title pour l'attribution.
+        var requestBody = new
+        {
+            model,
+            max_tokens = _options.Anthropic.MaxTokens,
+            temperature = _options.Anthropic.Temperature,
+            messages = new[]
+            {
+                new { role = "system", content = systemPrompt },
+                new { role = "user", content = userMessage }
+            }
+        };
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+        req.Headers.TryAddWithoutValidation("HTTP-Referer", "https://abrpoint");
+        req.Headers.TryAddWithoutValidation("X-Title", "ABRPOINT GestTemps RAG");
+        req.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+        using var resp = await _http.SendAsync(req, ct);
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            _logger.LogError("OpenRouter error {Status}: {Body}", (int)resp.StatusCode, raw);
+            throw new HttpRequestException($"OpenRouter error {(int)resp.StatusCode}: {raw}");
+        }
+
+        using var doc = JsonDocument.Parse(raw);
+        var root = doc.RootElement;
+
+        // Réponse Chat Completions : { choices:[{ message:{ content } }], usage:{ prompt_tokens, completion_tokens } }
+        var text = "";
+        if (root.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0)
+        {
+            var msg = choices[0].GetProperty("message");
+            if (msg.TryGetProperty("content", out var contentEl))
+            {
+                text = contentEl.GetString() ?? "";
+            }
+        }
+
+        int? inT = null, outT = null;
+        if (root.TryGetProperty("usage", out var usage))
+        {
+            if (usage.TryGetProperty("prompt_tokens", out var i) && i.ValueKind == JsonValueKind.Number) inT = i.GetInt32();
+            if (usage.TryGetProperty("completion_tokens", out var o) && o.ValueKind == JsonValueKind.Number) outT = o.GetInt32();
+        }
+
+        return (string.IsNullOrEmpty(text) ? "(réponse vide)" : text, inT, outT);
+    }
+
+    private async Task<(string Answer, int? TokensIn, int? TokensOut)> CallAnthropicAsync(string systemPrompt, string userMessage, CancellationToken ct)
     {
         var requestBody = new
         {
@@ -187,11 +262,10 @@ Ne commente pas, ne préfixe pas — renvoie directement le HTML reformulé.";
 
         if (!resp.IsSuccessStatusCode)
         {
-            _logger.LogError("Claude API error {Status}: {Body}", (int)resp.StatusCode, raw);
+            _logger.LogError("Anthropic error {Status}: {Body}", (int)resp.StatusCode, raw);
             throw new HttpRequestException($"Anthropic API error {(int)resp.StatusCode}: {raw}");
         }
 
-        // Réponse Anthropic Messages API : { content: [{type:"text", text:"..."}], usage:{input_tokens, output_tokens} }
         using var doc = JsonDocument.Parse(raw);
         var root = doc.RootElement;
 
