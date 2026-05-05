@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public static class BaseDataSchemaMigrator
 {
-    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded);
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded);
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
@@ -47,7 +47,19 @@ public static class BaseDataSchemaMigrator
         // peut pas remplir rétroactivement les missions des notes déjà saisies.
         var nfMission = await AddColumnIfMissingAsync(db, "notedefrais", "missionid", "INT NULL", ct);
 
-        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission);
+        // RTT (Réduction du Temps de Travail, loi française) :
+        // 4 colonnes sur employe (config par employé) + 2 colonnes sur solde (droit annuel + consommé).
+        // Toutes nullables : un tenant qui n'utilise pas le RTT garde son comportement actuel
+        // (EmpRttMethode = NULL → traité comme 'N' / non éligible côté service).
+        var rttMethode = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_methode", "NVARCHAR(1) NULL", ct);
+        var rttJoursA = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_jours_annuel", "REAL NULL", ct);
+        var rttHeuresC = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_heures_contrat", "REAL NULL", ct);
+        var rttForfait = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_forfait_jours", "INT NULL", ct);
+        var rttSoldeJ = await AddColumnIfMissingAsync(db, "solde", "rtt_jours", "REAL NULL", ct);
+        var rttSoldeU = await AddColumnIfMissingAsync(db, "solde", "rtt_utilises", "REAL NULL", ct);
+        var rttColumnsAdded = rttMethode || rttJoursA || rttHeuresC || rttForfait || rttSoldeJ || rttSoldeU;
+
+        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded);
     }
 
     private static async Task<bool> EnsureMissionTableAsync(ApplicationDbContext db, CancellationToken ct)
