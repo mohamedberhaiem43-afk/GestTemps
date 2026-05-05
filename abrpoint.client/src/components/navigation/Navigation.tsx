@@ -54,6 +54,10 @@ import QualificationModern from '../DonneeDeBase/Qualification/QualificationMode
 import CoffreFortModern from '../gestionEmploye/CoffreFortModern';
 import AdminVaultModern from '../gestionEmploye/Vault/AdminVaultModern';
 import ContractBuilderModern from '../gestionEmploye/Vault/ContractBuilderModern';
+import DocumentsModern from '../Rag/Documents/DocumentsModern';
+import RagAuditTable from '../Rag/Audit/RagAuditTable';
+import ChatRagDrawer from '../Rag/Chat/ChatRagDrawer';
+import LetterTemplatesModern from '../Rag/Letters/LetterTemplatesModern';
 import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
 import PricingPage from '../Pricing/PricingPage';
 import AboutPage from '../About/AboutPage';
@@ -118,6 +122,7 @@ import {
   DollarSign,
   LogOut,
   XCircle,
+  History,
 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -198,6 +203,9 @@ const useNavigationItems = (): NavGroup[] => {
     'sign-document': 'Gestion Employés',
     'admin-vault': 'Gestion Employés',
     'template-builder': 'Administration',
+    'documents': 'Administration',
+    'courriers': 'Administration',
+    'rag-audit': 'Administration',
   };
 
   const canSee = (segment: string) => {
@@ -353,6 +361,9 @@ const useNavigationItems = (): NavGroup[] => {
         { label: t('navigation.users'), href: '/dashboard/gestion-utilisateur', icon: Users },
         { label: t('navigation.accessRights'), href: '/dashboard/droit-accees', icon: Shield },
         { label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText },
+        { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
+        { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
+        { label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History },
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
@@ -441,6 +452,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/calendrier-societe': content = <Calendrier />; break;
     case '/dashboard/chat-bot': content = <Box p={3}>{t('navigation.chatBotPrompt')}</Box>; break;
     case '/dashboard/template-builder': content = <ContractBuilderModern />; break;
+    case '/dashboard/documents': content = <DocumentsModern />; break;
+    case '/dashboard/courriers': content = <LetterTemplatesModern />; break;
+    case '/dashboard/rag-audit': content = <RagAuditTable />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
     case '/dashboard/pricing': content = <PricingPage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
@@ -1021,6 +1035,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
       {pathname !== '/' && (
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
           <GeminiChat />
+          <ChatRagDrawer />
         </Box>
       )}
     </>

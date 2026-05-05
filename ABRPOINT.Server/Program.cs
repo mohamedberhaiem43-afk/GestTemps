@@ -92,6 +92,29 @@ builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddControllers().AddJsonOptions(x =>
                 x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
+// Rate limiting RAG : 60 questions/heure par utilisateur (lu depuis le claim NameIdentifier).
+// Empêche un utilisateur unique de saturer Claude — un éventuel client mobile partagé
+// retombe sur l'IP. Configuré ici, attaché par [EnableRateLimiting("rag-ask")] sur l'endpoint.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("rag-ask", httpContext =>
+    {
+        var partitionKey = httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "anon";
+        var perHour = builder.Configuration.GetValue<int?>("Rag:RateLimit:QuestionsPerUserPerHour") ?? 60;
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = perHour,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0
+            });
+    });
+});
+
 builder.Services.AddAutoMapper(typeof(MappingProfiles));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -282,6 +305,7 @@ if (!string.IsNullOrWhiteSpace(masterConnection))
 }
 
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

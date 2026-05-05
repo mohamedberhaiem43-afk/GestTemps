@@ -77,6 +77,9 @@ export default function CookieConsent() {
         <Typography sx={{ fontSize: 14, color: '#475569', lineHeight: 1.6, mb: 1.5 }}>
           {t('cookieConsent.body2')}
         </Typography>
+        <Typography sx={{ fontSize: 13, color: '#475569', lineHeight: 1.6, mb: 1.5, fontStyle: 'italic' }}>
+          {t('cookieConsent.aiProcessor')}
+        </Typography>
         <Typography sx={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, mb: 3 }}>
           {t('cookieConsent.changeLater')}
         </Typography>

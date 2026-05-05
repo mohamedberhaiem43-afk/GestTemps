@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public static class BaseDataSchemaMigrator
 {
-    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded);
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded, bool RagTablesCreated);
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
@@ -59,7 +59,79 @@ public static class BaseDataSchemaMigrator
         var rttSoldeU = await AddColumnIfMissingAsync(db, "solde", "rtt_utilises", "REAL NULL", ct);
         var rttColumnsAdded = rttMethode || rttJoursA || rttHeuresC || rttForfait || rttSoldeJ || rttSoldeU;
 
-        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded);
+        // RAG (Retrieval-Augmented Generation) : 3 tables créées d'un coup si la première
+        // n'existe pas. Le sidecar Python parle directement à Qdrant ; ces tables ne servent
+        // qu'à persister les métadonnées documents/templates et le journal d'audit RGPD.
+        var ragDocsCreated = await EnsureRagDocumentTableAsync(db, ct);
+        var ragLettersCreated = await EnsureRagLetterTemplateTableAsync(db, ct);
+        var ragLogsCreated = await EnsureRagChatLogTableAsync(db, ct);
+        var ragTablesCreated = ragDocsCreated || ragLettersCreated || ragLogsCreated;
+
+        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated);
+    }
+
+    private static async Task<bool> EnsureRagDocumentTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        if (await TableExistsAsync(db, "rag_document", ct)) return false;
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE [rag_document] (
+    [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_rag_document] PRIMARY KEY,
+    [soccod] NVARCHAR(6) NOT NULL,
+    [filename] NVARCHAR(260) NOT NULL,
+    [original_name] NVARCHAR(260) NOT NULL,
+    [content_type] NVARCHAR(80) NOT NULL,
+    [size_bytes] BIGINT NOT NULL,
+    [category] NVARCHAR(20) NOT NULL CONSTRAINT [DF_rag_document_category] DEFAULT 'autre',
+    [uploaded_by] NVARCHAR(20) NULL,
+    [uploaded_at] DATETIME NOT NULL CONSTRAINT [DF_rag_document_uploaded_at] DEFAULT GETUTCDATE(),
+    [status] NVARCHAR(12) NOT NULL CONSTRAINT [DF_rag_document_status] DEFAULT 'pending',
+    [chunks_count] INT NULL,
+    [error_message] NVARCHAR(500) NULL
+);
+CREATE INDEX [IX_rag_document_soccod_uploaded_at] ON [rag_document]([soccod], [uploaded_at] DESC);", ct);
+        return true;
+    }
+
+    private static async Task<bool> EnsureRagLetterTemplateTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        if (await TableExistsAsync(db, "rag_letter_template", ct)) return false;
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE [rag_letter_template] (
+    [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_rag_letter_template] PRIMARY KEY,
+    [soccod] NVARCHAR(6) NOT NULL,
+    [name] NVARCHAR(120) NOT NULL,
+    [description] NVARCHAR(500) NULL,
+    [body_html] NVARCHAR(MAX) NOT NULL,
+    [placeholders_json] NVARCHAR(MAX) NULL,
+    [category] NVARCHAR(20) NULL,
+    [created_at] DATETIME NOT NULL CONSTRAINT [DF_rag_letter_template_created_at] DEFAULT GETUTCDATE(),
+    [updated_at] DATETIME NULL
+);
+CREATE INDEX [IX_rag_letter_template_soccod_name] ON [rag_letter_template]([soccod], [name]);", ct);
+        return true;
+    }
+
+    private static async Task<bool> EnsureRagChatLogTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        if (await TableExistsAsync(db, "rag_chat_log", ct)) return false;
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE [rag_chat_log] (
+    [id] BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_rag_chat_log] PRIMARY KEY,
+    [soccod] NVARCHAR(6) NOT NULL,
+    [uticod] NVARCHAR(20) NULL,
+    [category] NVARCHAR(20) NOT NULL CONSTRAINT [DF_rag_chat_log_category] DEFAULT 'chat',
+    [question] NVARCHAR(1000) NULL,
+    [answer] NVARCHAR(MAX) NULL,
+    [sources_json] NVARCHAR(MAX) NULL,
+    [tokens_in] INT NULL,
+    [tokens_out] INT NULL,
+    [latency_ms] INT NULL,
+    [created_at] DATETIME NOT NULL CONSTRAINT [DF_rag_chat_log_created_at] DEFAULT GETUTCDATE(),
+    [feedback_score] TINYINT NULL,
+    [feedback_comment] NVARCHAR(500) NULL
+);
+CREATE INDEX [IX_rag_chat_log_soccod_created_at] ON [rag_chat_log]([soccod], [created_at] DESC);", ct);
+        return true;
     }
 
     private static async Task<bool> EnsureMissionTableAsync(ApplicationDbContext db, CancellationToken ct)

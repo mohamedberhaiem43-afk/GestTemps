@@ -2,6 +2,7 @@ volumes:
   sqlserver-data:
   uploads_data:
   letsencrypt_data:  # ← nouveau volume partagé
+  qdrant_data:       # index vectoriel persistant (RAG)
 
 networks:
   app-network:
@@ -76,6 +77,10 @@ services:
       DatabaseInitialization__AdminEmail: "admin@abrpoint.local"
       DatabaseInitialization__AdminPassword: "123"
       DatabaseInitialization__ApplicationCode: "GRH"
+      # RAG : URL du sidecar dans le réseau Docker + secrets injectés via .env.
+      Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
+      Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
+      Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
     depends_on:
       abrpoint.database:
         condition: service_healthy
@@ -91,5 +96,41 @@ services:
       - "80"
     depends_on:
       - abrpoint.server
+    networks:
+      - app-network
+
+  # ──────────────────────────────────────────────────────────────────────
+  # RAG : vector store + sidecar Python (LangChain + multilingual-e5-large)
+  # Le backend .NET parle au sidecar via http://rag-svc:8080 (réseau interne).
+  # Aucune exposition publique — toujours derrière nginx-proxy si besoin.
+  # ──────────────────────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.12.0
+    container_name: abrpoint.qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+    expose:
+      - "6333"
+      - "6334"
+    networks:
+      - app-network
+
+  rag-svc:
+    container_name: abrpoint.rag-svc
+    build:
+      context: ./services/rag
+      dockerfile: Dockerfile
+    image: abrpoint-rag-svc:local
+    environment:
+      QDRANT_URL: "http://qdrant:6333"
+      EMBED_MODEL: "intfloat/multilingual-e5-large"
+      EMBED_DEVICE: "cpu"
+      # SIDECAR_KEY doit etre fourni via .env ou depuis l'orchestrateur. Vide en dev.
+      SIDECAR_KEY: "${RAG_SIDECAR_KEY:-}"
+      LOG_LEVEL: "INFO"
+    depends_on:
+      - qdrant
+    expose:
+      - "8080"
     networks:
       - app-network

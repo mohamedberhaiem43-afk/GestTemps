@@ -9,6 +9,8 @@ using ABRPOINT.Server.CalculService.HeureSupp;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Repository;
+using ABRPOINT.Server.Services.Rag;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.SemanticKernel;
 
 namespace ABRPOINT.Server.Services
@@ -103,6 +105,50 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddLogging();
 
+            // RAG : façade HTTP vers le sidecar Python rag-svc.
+            // Auth par header partagé X-Sidecar-Key + résilience Polly v8 (retry + circuit breaker).
+            builder.Services.Configure<RagOptions>(builder.Configuration.GetSection("Rag"));
+            builder.Services
+                .AddHttpClient<IRagSidecarService, RagSidecarService>((sp, http) =>
+                {
+                    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RagOptions>>().Value;
+                    var baseUrl = opts.Sidecar.BaseUrl.TrimEnd('/') + "/";
+                    http.BaseAddress = new Uri(baseUrl);
+                    http.Timeout = TimeSpan.FromSeconds(Math.Max(10, opts.Sidecar.TimeoutSeconds));
+                    if (!string.IsNullOrEmpty(opts.Sidecar.ApiKey))
+                    {
+                        http.DefaultRequestHeaders.Add("X-Sidecar-Key", opts.Sidecar.ApiKey);
+                    }
+                })
+                .AddStandardResilienceHandler(o =>
+                {
+                    // Le timeout total doit accommoder l'ingestion d'un PDF lourd ; le retry interne
+                    // ne réessaie pas une ingestion réussie côté Python (idempotence assurée par
+                    // upsert Qdrant sur la clé document_id+chunk_idx).
+                    o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
+                    o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(150);
+                    o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+                });
+
+            builder.Services.AddScoped<IDocumentVaultService, DocumentVaultService>();
+            builder.Services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
+            builder.Services.AddScoped<ILetterGenerationService, LetterGenerationService>();
+
+            // ClaudeRagService a son propre HttpClient (timeout long pour la génération).
+            // Polly standard ajoute retry + circuit breaker. La clé Anthropic est dans RagOptions
+            // et ajoutée via header x-api-key au moment de l'appel (pas en DefaultRequestHeaders
+            // pour éviter de fuiter dans des logs HttpClient verbose).
+            builder.Services
+                .AddHttpClient<IClaudeRagService, ClaudeRagService>((sp, http) =>
+                {
+                    http.Timeout = TimeSpan.FromSeconds(120);
+                })
+                .AddStandardResilienceHandler(o =>
+                {
+                    o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
+                    o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(150);
+                    o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+                });
         }
     }
 }

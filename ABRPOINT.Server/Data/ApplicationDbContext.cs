@@ -258,6 +258,9 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<Notification> Notifications { get; set; }
     public virtual DbSet<NotificationPreference> NotificationPreferences { get; set; }
     public virtual DbSet<NotificationUserSettings> NotificationUserSettings { get; set; }
+    public virtual DbSet<RagDocument> RagDocuments { get; set; }
+    public virtual DbSet<RagChatLog> RagChatLogs { get; set; }
+    public virtual DbSet<RagLetterTemplate> RagLetterTemplates { get; set; }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

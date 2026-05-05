@@ -3,6 +3,7 @@
     "title": "Ce site utilise des cookies",
     "body1": "ABRPOINT utilise des cookies et traite des données personnelles pour assurer le bon fonctionnement de l'application (authentification, préférences de session, sécurité) et améliorer votre expérience.",
     "body2": "Aucune donnée n'est partagée avec des tiers à des fins publicitaires. Conformément au RGPD, vous pouvez accepter l'usage de tous les cookies ou refuser les cookies non strictement nécessaires.",
+    "aiProcessor": "Assistant IA : vos questions et les extraits récupérés peuvent être envoyés à Anthropic (région UE, sous-traitant RGPD) pour générer des réponses. Aucune donnée n'est utilisée pour entraîner le modèle. Les CIN sont automatiquement masqués avant transmission.",
     "changeLater": "Vous pouvez modifier vos préférences à tout moment depuis les paramètres de votre profil.",
     "reject": "Refuser les cookies",
     "accept": "Accepter les cookies"
@@ -79,6 +80,9 @@
     "balanceAllocation": "Affectation Soldes",
     "timeSavingAccount": "Compte Épargne Temps",
     "contractTemplates": "Modèles de Contrats",
+    "legalDocuments": "Documents juridiques",
+    "letterTemplates": "Modèles de courrier",
+    "ragAudit": "Historique IA",
     "recent": "Récent",
     "account": "Compte",
     "myProfile": "Mon Profil",
@@ -4668,6 +4672,121 @@
       "fri": "VEN",
       "sat": "SAM",
       "sun": "DIM"
+    }
+  },
+  "rag": {
+    "documents": {
+      "title": "Documents juridiques",
+      "subtitle": "Conventions collectives, règlement intérieur, accords… indexés pour l'assistant IA.",
+      "adminOnly": "Cette page est réservée aux administrateurs.",
+      "uploadCta": "Téléverser un document",
+      "supportedFormats": "PDF, DOCX, TXT, MD — max 25 Mo",
+      "unsupportedType": "Format de fichier non pris en charge.",
+      "tooLarge": "Fichier trop volumineux (max 25 Mo).",
+      "uploadOk": "Document téléversé. L'indexation démarre.",
+      "uploadError": "Échec du téléversement.",
+      "deleteConfirm": "Supprimer ce document et tous ses index ?",
+      "deletedOk": "Document supprimé.",
+      "deleteError": "Échec de la suppression.",
+      "reindexQueued": "Réindexation lancée.",
+      "reindexError": "Impossible de relancer l'indexation.",
+      "downloadError": "Téléchargement impossible.",
+      "empty": "Aucun document. Téléversez votre première convention pour démarrer.",
+      "healthOk": "Service IA OK",
+      "healthDegraded": "Service IA dégradé",
+      "categories": {
+        "convention": "Convention collective",
+        "reglement": "Règlement intérieur",
+        "accord": "Accord d'entreprise",
+        "autre": "Autre"
+      },
+      "status": {
+        "pending": "Indexation…",
+        "indexed": "Indexé",
+        "failed": "Échec"
+      },
+      "col": {
+        "name": "Nom",
+        "category": "Catégorie",
+        "size": "Taille",
+        "uploadedAt": "Téléversé le",
+        "status": "Statut",
+        "chunks": "Fragments",
+        "actions": "Actions"
+      },
+      "actions": {
+        "download": "Télécharger",
+        "reindex": "Réindexer",
+        "delete": "Supprimer"
+      }
+    },
+    "chat": {
+      "title": "Assistant juridique",
+      "placeholder": "Posez une question juridique ou RH…",
+      "thinking": "L'assistant cherche dans vos documents…",
+      "welcome": "Posez une question sur vos conventions, accords et règlements. Les réponses citent les sources avec page.",
+      "disclaimer": "Réponses fondées sur vos documents. Vérifiez toujours avec un juriste.",
+      "rateLimited": "Vous avez atteint la limite de questions par heure. Réessayez plus tard.",
+      "askError": "Une erreur est survenue. Réessayez."
+    },
+    "audit": {
+      "title": "Historique des conversations IA",
+      "subtitle": "Toutes les questions posées par votre équipe à l'assistant IA, conservées 12 mois (RGPD).",
+      "adminOnly": "Réservé aux administrateurs.",
+      "empty": "Aucune conversation enregistrée pour le moment.",
+      "sourceCount": "{{count}} source utilisée",
+      "sourceCount_plural": "{{count}} sources utilisées",
+      "col": {
+        "date": "Date",
+        "user": "Utilisateur",
+        "question": "Question",
+        "answer": "Réponse",
+        "tokens": "Tokens (in/out)",
+        "latency": "Latence",
+        "feedback": "Avis"
+      }
+    },
+    "letters": {
+      "title": "Modèles de courrier",
+      "subtitle": "Créez des modèles HTML avec des variables {{empnom}}, {{soclib}}… puis générez DOCX/PDF en un clic.",
+      "adminOnly": "Réservé aux administrateurs.",
+      "newTemplate": "Nouveau modèle",
+      "edit": "Modifier le modèle",
+      "empty": "Aucun modèle. Créez votre premier modèle pour démarrer.",
+      "requiredFields": "Le nom et le contenu sont requis.",
+      "savedOk": "Modèle enregistré.",
+      "saveError": "Échec de l'enregistrement.",
+      "deleteConfirm": "Supprimer ce modèle ?",
+      "deletedOk": "Modèle supprimé.",
+      "deleteError": "Échec de la suppression.",
+      "generateError": "La génération a échoué.",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "generateCta": "Générer un courrier",
+      "generateAndDownload": "Générer et télécharger",
+      "polishWithAi": "Améliorer la rédaction avec l'IA",
+      "polishHint": "Claude reformulera le ton dans un registre formel français. Le contenu informatif et les noms restent inchangés.",
+      "placeholdersHelp": "Variables disponibles : {{empnom}}, {{empprenom}}, {{empcod}}, {{empcin}}, {{empadr}}, {{emptel}}, {{empfonc}}, {{empemb}}, {{soclib}}, {{socadr}}, {{socville}}, {{socemail}}, {{soctel}}, {{contype}}, {{condat}}, {{today}}.",
+      "bodyPlaceholder": "<p>Madame, Monsieur {{empnom}},</p><p>Nous vous confirmons votre embauche en tant que {{empfonc}} à compter du {{empemb}}…</p>",
+      "field": {
+        "name": "Nom du modèle",
+        "category": "Catégorie",
+        "description": "Description",
+        "body": "Corps HTML du courrier",
+        "employee": "Employé"
+      },
+      "col": {
+        "name": "Nom",
+        "description": "Description",
+        "placeholders": "Variables",
+        "updatedAt": "Modifié le",
+        "actions": "Actions"
+      },
+      "actions": {
+        "generate": "Générer",
+        "edit": "Modifier",
+        "delete": "Supprimer"
+      }
     }
   }
 }

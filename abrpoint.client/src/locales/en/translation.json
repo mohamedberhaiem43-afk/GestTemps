@@ -3,6 +3,7 @@
     "title": "This website uses cookies",
     "body1": "ABRPOINT uses cookies and processes personal data to keep the application running properly (authentication, session preferences, security) and to improve your experience.",
     "body2": "No data is shared with third parties for advertising purposes. In accordance with GDPR, you can accept all cookies or reject the non-essential ones.",
+    "aiProcessor": "AI assistant: your questions and the retrieved excerpts may be sent to Anthropic (EU region, GDPR processor) to generate answers. No data is used to train the model. National IDs are automatically masked before transmission.",
     "changeLater": "You can change your preferences at any time from your profile settings.",
     "reject": "Reject cookies",
     "accept": "Accept cookies"
@@ -79,6 +80,9 @@
     "balanceAllocation": "Balance Allocation",
     "timeSavingAccount": "Time Saving Account",
     "contractTemplates": "Contract Templates",
+    "legalDocuments": "Legal Documents",
+    "letterTemplates": "Letter Templates",
+    "ragAudit": "AI History",
     "recent": "Recent",
     "account": "Account",
     "myProfile": "My Profile",
@@ -4669,6 +4673,121 @@
       "fri": "FRI",
       "sat": "SAT",
       "sun": "SUN"
+    }
+  },
+  "rag": {
+    "documents": {
+      "title": "Legal Documents",
+      "subtitle": "Collective agreements, internal rules, company agreements… indexed for the AI assistant.",
+      "adminOnly": "This page is reserved for administrators.",
+      "uploadCta": "Upload a document",
+      "supportedFormats": "PDF, DOCX, TXT, MD — max 25 MB",
+      "unsupportedType": "Unsupported file type.",
+      "tooLarge": "File too large (max 25 MB).",
+      "uploadOk": "Document uploaded. Indexing started.",
+      "uploadError": "Upload failed.",
+      "deleteConfirm": "Delete this document and all its indexes?",
+      "deletedOk": "Document deleted.",
+      "deleteError": "Failed to delete.",
+      "reindexQueued": "Reindex queued.",
+      "reindexError": "Failed to reindex.",
+      "downloadError": "Download failed.",
+      "empty": "No documents yet. Upload your first agreement to get started.",
+      "healthOk": "AI service OK",
+      "healthDegraded": "AI service degraded",
+      "categories": {
+        "convention": "Collective agreement",
+        "reglement": "Internal rules",
+        "accord": "Company agreement",
+        "autre": "Other"
+      },
+      "status": {
+        "pending": "Indexing…",
+        "indexed": "Indexed",
+        "failed": "Failed"
+      },
+      "col": {
+        "name": "Name",
+        "category": "Category",
+        "size": "Size",
+        "uploadedAt": "Uploaded",
+        "status": "Status",
+        "chunks": "Chunks",
+        "actions": "Actions"
+      },
+      "actions": {
+        "download": "Download",
+        "reindex": "Reindex",
+        "delete": "Delete"
+      }
+    },
+    "chat": {
+      "title": "Legal Assistant",
+      "placeholder": "Ask a legal or HR question…",
+      "thinking": "The assistant is searching your documents…",
+      "welcome": "Ask about your collective agreements, internal rules or company agreements. Answers cite the source with page numbers.",
+      "disclaimer": "Answers based on your documents. Always confirm with a lawyer.",
+      "rateLimited": "You've reached the hourly question limit. Please try again later.",
+      "askError": "Something went wrong. Please retry."
+    },
+    "audit": {
+      "title": "AI Conversation History",
+      "subtitle": "All questions sent by your team to the AI assistant, retained for 12 months (GDPR).",
+      "adminOnly": "Administrators only.",
+      "empty": "No conversations recorded yet.",
+      "sourceCount": "{{count}} source used",
+      "sourceCount_plural": "{{count}} sources used",
+      "col": {
+        "date": "Date",
+        "user": "User",
+        "question": "Question",
+        "answer": "Answer",
+        "tokens": "Tokens (in/out)",
+        "latency": "Latency",
+        "feedback": "Feedback"
+      }
+    },
+    "letters": {
+      "title": "Letter Templates",
+      "subtitle": "Create HTML templates with {{empnom}}, {{soclib}}… variables, then generate DOCX/PDF in one click.",
+      "adminOnly": "Administrators only.",
+      "newTemplate": "New template",
+      "edit": "Edit template",
+      "empty": "No templates yet. Create your first one to get started.",
+      "requiredFields": "Name and body are required.",
+      "savedOk": "Template saved.",
+      "saveError": "Failed to save.",
+      "deleteConfirm": "Delete this template?",
+      "deletedOk": "Template deleted.",
+      "deleteError": "Failed to delete.",
+      "generateError": "Generation failed.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "generateCta": "Generate letter",
+      "generateAndDownload": "Generate and download",
+      "polishWithAi": "Polish writing with AI",
+      "polishHint": "Claude will rewrite the tone in formal French. Informative content and names remain unchanged.",
+      "placeholdersHelp": "Available variables: {{empnom}}, {{empprenom}}, {{empcod}}, {{empcin}}, {{empadr}}, {{emptel}}, {{empfonc}}, {{empemb}}, {{soclib}}, {{socadr}}, {{socville}}, {{socemail}}, {{soctel}}, {{contype}}, {{condat}}, {{today}}.",
+      "bodyPlaceholder": "<p>Dear {{empnom}},</p><p>We confirm your appointment as {{empfonc}} starting on {{empemb}}…</p>",
+      "field": {
+        "name": "Template name",
+        "category": "Category",
+        "description": "Description",
+        "body": "HTML body",
+        "employee": "Employee"
+      },
+      "col": {
+        "name": "Name",
+        "description": "Description",
+        "placeholders": "Variables",
+        "updatedAt": "Updated",
+        "actions": "Actions"
+      },
+      "actions": {
+        "generate": "Generate",
+        "edit": "Edit",
+        "delete": "Delete"
+      }
     }
   }
 }
