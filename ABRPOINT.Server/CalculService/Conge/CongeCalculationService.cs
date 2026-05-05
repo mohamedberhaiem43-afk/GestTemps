@@ -67,49 +67,61 @@ namespace ABRPOINT.Server.CalculService.Conge
             }
         }
 
+        // Constantes loi française (Code du travail, article L. 3141-3) :
+        // 5 semaines de congés payés × 6 jours ouvrables = 30 jours / an = 2,5 j / mois.
+        private const double FRENCH_LEGAL_DAYS_PER_YEAR = 30.0;
+        private const double DEFAULT_WORKING_DAYS_PER_MONTH = 26.0; // jours ouvrables fallback
+        private const double DEFAULT_HOURS_PER_MONTH = 208.0;       // 26 × 8
+        private const double DEFAULT_HOURS_PER_DAY = 8.0;
+
         private async Task<object> Calc_solde_conge(string soccod, string empcod, string moisdeb, string moisfin, string annee)
         {
             double droitConge = 0;
+            double droitmensuelle = 0;
+            double sa = 0;
+            int anciente = 0;
+            float congeRecue = 0;
+            int parecart = 5;
 
-            // 🟢 Initial balance from the 'solde' table
+            // 🟢 Initial balance from the 'solde' table (report N-1 + saisie admin éventuelle)
             var soldeEntry = await _dbContext.Soldes.FirstOrDefaultAsync(s => s.Soccod == soccod && s.Empcod == empcod);
             if (soldeEntry != null)
             {
                 droitConge = soldeEntry.Conge ?? 0;
             }
 
-            double nbheuret = 208;
-            double nbjourt = 26;
-            double nbheurejour = 8;
-            double droitmensuelle = 0;
-            double nbtravmois = 0;
-            double sa = 0;
-            int anciente = 0;
-            float congeRecue = 0;
-            int parecart = 5;
-
             var employe = await _dbContext.Employes.FirstOrDefaultAsync(e => e.Soccod == soccod && e.Empcod == empcod);
+            // Tolérant : si l'employé ou la date d'embauche manque, on retourne un état vide
+            // au lieu de jeter (cassait l'écran KPI dès qu'un employé n'avait pas de date).
             if (employe == null || employe.Empemb == null)
-                throw new ArgumentNullException("Données employé ou date d'embauche manquantes");
+                return new { anciente = 0, cm = 0.0, droitConge = 0.0, sa = 0.0 };
 
             string caltype = employe.Caltype;
             var site = await _siteRepository.GetBySitcodAsync(soccod, employe.Sitcod);
-            if (site == null)
-                throw new ArgumentNullException("Données site manquantes");
 
-            double cm = site.Sitconge.HasValue ? (double)site.Sitconge.Value / 12 : 0;
+            // 🟢 Droit annuel : on prend la config Site (Sitconge) si fournie, sinon on
+            // applique le minimum légal français de 30 jours ouvrables (2,5 j/mois).
+            double droitAnnuel = (site?.Sitconge.HasValue == true && site.Sitconge.Value > 0)
+                ? (double)site.Sitconge.Value
+                : FRENCH_LEGAL_DAYS_PER_YEAR;
+            double cm = droitAnnuel / 12.0;
 
-            if ((site.Sitsancm == "1" && employe.Empreg == "M") ||
-                (site.Sitsanch == "1" && employe.Empreg == "H"))
+            // Ancienneté : ignorée si la convention site la "sanctionne" pour ce type d'employé.
+            if (site != null && (
+                (site.Sitsancm == "1" && employe.Empreg == "M") ||
+                (site.Sitsanch == "1" && employe.Empreg == "H")))
+            {
                 anciente = 0;
+            }
             else
             {
                 anciente = int.Parse(annee) - employe.Empemb.Value.Year;
-                if (anciente != 0 &&employe.Empemb.HasValue && employe.Empemb.Value.AddYears(anciente) > new DateTime(int.Parse(annee), 1, 1))
+                if (anciente != 0 && employe.Empemb.Value.AddYears(anciente) > new DateTime(int.Parse(annee), 1, 1))
                     anciente--;
             }
 
-            if (anciente != 0 && anciente > 0)
+            // Bonus ancienneté (convention) : 1 jour supplémentaire tous les `parecart` ans.
+            if (anciente > 0)
             {
                 parecart = await _parametreRepository.GetParancempAsync(soccod);
                 if (parecart > 0)
@@ -117,52 +129,96 @@ namespace ABRPOINT.Server.CalculService.Conge
             }
 
             int targetYear = int.Parse(annee);
-            int startMonth = 1;
 
-            // 🟢 Determine the starting month for rights accrual
-            if (employe.Empemb.HasValue)
+            // 🟢 Mois de démarrage de l'acquisition. Année antérieure à l'embauche → aucun droit.
+            int startMonth = 1;
+            int hireDayInStartMonth = 1;
+            if (employe.Empemb.Value.Year == targetYear)
             {
-                if (employe.Empemb.Value.Year == targetYear)
-                {
-                    startMonth = employe.Empemb.Value.Month;
-                }
-                else if (employe.Empemb.Value.Year > targetYear)
-                {
-                    // No rights if the employee wasn't hired yet in that year
-                    return new { anciente = 0, cm, droitConge = 0.0, sa = 0.0 };
-                }
+                startMonth = employe.Empemb.Value.Month;
+                hireDayInStartMonth = employe.Empemb.Value.Day;
+            }
+            else if (employe.Empemb.Value.Year > targetYear)
+            {
+                return new { anciente = 0, cm, droitConge = 0.0, sa = 0.0 };
             }
 
-            for (int i = 0; i < int.Parse(moisfin.TrimStart('0')); i++)
+            // Mois de sortie éventuelle : pas de droit acquis après la date de sortie.
+            int? exitMonth = null;
+            if (employe.Empsort.HasValue && employe.Empsort.Value.Year == targetYear)
+            {
+                exitMonth = employe.Empsort.Value.Month;
+            }
+            else if (employe.Empsort.HasValue && employe.Empsort.Value.Year < targetYear)
+            {
+                return new { anciente, cm, droitConge = 0.0, sa = 0.0 };
+            }
+
+            int finalMonth = int.Parse(moisfin.TrimStart('0'));
+
+            for (int i = 0; i < finalMonth; i++)
             {
                 int currentMonthInt = i + 1;
                 string currentMonth = currentMonthInt.ToString("D2");
-                var calendsoc = await _calendrierRepository.GetCalendrierAsync(soccod, annee, currentMonth, caltype);
+
+                // Cumul des congés déjà reçus / posés (déduit du droit en fin de calcul).
                 float nbConge = await _congeRepository.GetNbCongeRecueAsync(soccod, empcod, annee, currentMonth);
-
                 if (!float.IsInfinity(nbConge) && !float.IsNaN(nbConge))
-                {
                     congeRecue += nbConge;
-                }
 
-                // 🟢 Only accrue rights if the month is >= recruitment month
-                if (currentMonthInt >= startMonth && calendsoc != null)
+                // Pas d'acquisition avant le mois d'embauche ni après la sortie.
+                if (currentMonthInt < startMonth) continue;
+                if (exitMonth.HasValue && currentMonthInt > exitMonth.Value) continue;
+
+                var calendsoc = await _calendrierRepository.GetCalendrierAsync(soccod, annee, currentMonth, caltype);
+
+                // Fallbacks conformes à la loi : si le calendrier n'est pas configuré,
+                // on suppose un mois standard (26 jours ouvrables, 208h/8h par jour).
+                double nbjourt = (calendsoc?.CalTrav ?? 0) > 0 ? (double)calendsoc!.CalTrav! : DEFAULT_WORKING_DAYS_PER_MONTH;
+                double nbheuret = (calendsoc?.CalNbh ?? 0) > 0 ? (double)calendsoc!.CalNbh! : DEFAULT_HOURS_PER_MONTH;
+                double nbheurejour = (calendsoc?.CalHjour ?? 0) > 0 ? (double)calendsoc!.CalHjour! : DEFAULT_HOURS_PER_DAY;
+
+                // Pro-rata du mois d'embauche : (jours restants après embauche) / total mois.
+                // Permet à un salarié embauché le 15 d'un mois de 30 jours d'acquérir
+                // ~50 % du droit mensuel pour ce mois — règle la plus fréquente en France.
+                double prorataMoisEmbauche = 1.0;
+                if (currentMonthInt == startMonth && hireDayInStartMonth > 1)
                 {
-                    nbheuret = (double)calendsoc.CalNbh;
-                    nbjourt = (double)calendsoc.CalTrav;
-                    nbheurejour = (double)calendsoc.CalHjour;
-
-                    nbtravmois = Math.Max(0, nbjourt - await calc_absences_par_mois(soccod, currentMonth, annee, empcod));
-
-                    if (employe.Empreg == "M" && nbjourt != 0)
-                        droitmensuelle += (nbtravmois * cm) / nbjourt;
-                    else if (employe.Empreg == "H" && nbheuret != 0)
-                        droitmensuelle += (nbtravmois * nbheurejour * cm) / nbheuret;
+                    int daysInMonth = DateTime.DaysInMonth(targetYear, currentMonthInt);
+                    prorataMoisEmbauche = Math.Max(0.0, (daysInMonth - hireDayInStartMonth + 1.0) / daysInMonth);
                 }
+
+                // Pro-rata du mois de sortie : (jours travaillés avant sortie) / total mois.
+                double prorataMoisSortie = 1.0;
+                if (exitMonth.HasValue && currentMonthInt == exitMonth.Value && employe.Empsort.HasValue)
+                {
+                    int daysInMonth = DateTime.DaysInMonth(targetYear, currentMonthInt);
+                    prorataMoisSortie = Math.Max(0.0, (double)employe.Empsort.Value.Day / daysInMonth);
+                }
+
+                // Jours travaillés effectifs = jours ouvrables - absences sanctionnantes.
+                double absences = await calc_absences_par_mois(soccod, currentMonth, annee, empcod);
+                double nbtravmois = Math.Max(0, nbjourt - absences);
+
+                double creditMois;
+                if (employe.Empreg == "H" && nbheuret != 0)
+                {
+                    creditMois = (nbtravmois * nbheurejour * cm) / nbheuret;
+                }
+                else if (nbjourt != 0)
+                {
+                    creditMois = (nbtravmois * cm) / nbjourt;
+                }
+                else
+                {
+                    creditMois = 0;
+                }
+
+                droitmensuelle += creditMois * prorataMoisEmbauche * prorataMoisSortie;
             }
 
-            if (anciente < parecart)
-                anciente = 0;
+            // Le bonus d'ancienneté ne s'applique qu'au-delà du palier (loi convention).
+            if (anciente < parecart) anciente = 0;
 
             droitConge += droitmensuelle;
             sa = droitConge - congeRecue;

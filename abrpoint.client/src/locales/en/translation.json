@@ -2861,7 +2861,8 @@
       "B": "Exit Authorization (AS)",
       "5": "Unpaid Leave (CSS)",
       "7": "Reprimand (B)",
-      "V": "Warning (V)"
+      "V": "Warning (V)",
+      "R": "RTT (French statutory rest days)"
     },
     "periodicite": {
       "A": "Calendar Year",

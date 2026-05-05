@@ -46,16 +46,38 @@ public class RttCalculationService : IRttCalculationService
         if (employe == null)
             return new RttSoldeDto { Methode = "N", Annee = year.ToString() };
 
-        var methode = string.IsNullOrEmpty(employe.EmpRttMethode) ? "N" : employe.EmpRttMethode;
+        var methode = string.IsNullOrEmpty(employe.EmpRttMethode) ? "N" : employe.EmpRttMethode!;
+
+        // Si l'employé n'est pas éligible, on renvoie un solde vide.
+        if (methode == "N")
+        {
+            return new RttSoldeDto { Methode = "N", Annee = year.ToString() };
+        }
+
         var solde = await _db.Soldes
             .FirstOrDefaultAsync(s => s.Soccod == soccod && s.Empcod == empcod);
 
+        // Auto-recalcul si :
+        //  - la ligne solde n'existe pas,
+        //  - rtt_jours est null (jamais calculé),
+        //  - ou l'année a changé (clôture implicite).
+        // Évite à l'admin de cliquer "Recalculer" manuellement à chaque ajout/modif d'employé.
+        bool needsRecompute =
+            solde == null
+            || solde.RttJours == null
+            || (!string.IsNullOrEmpty(solde.Annee) && solde.Annee != year.ToString());
+
+        if (needsRecompute)
+        {
+            return await RecalculateRttForEmployeeAsync(soccod, empcod, year);
+        }
+
         return new RttSoldeDto
         {
-            Methode = methode!,
-            DroitAnnuel = solde?.RttJours ?? 0f,
-            Pris = solde?.RttUtilises ?? 0f,
-            Annee = solde?.Annee ?? year.ToString(),
+            Methode = methode,
+            DroitAnnuel = solde!.RttJours ?? 0f,
+            Pris = solde.RttUtilises ?? 0f,
+            Annee = solde.Annee ?? year.ToString(),
         };
     }
 
