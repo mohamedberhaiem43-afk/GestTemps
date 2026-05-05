@@ -162,6 +162,11 @@ namespace ABRPOINT.Server.Repository
             target.Poscod = source.Poscod;
             target.Empferepos = source.Empferepos;
             target.Empcmp = source.Empcmp;
+            // Champs RTT (loi française) — propagés lors d'une résurrection soft-delete.
+            target.EmpRttMethode = source.EmpRttMethode;
+            target.EmpRttJoursAnnuel = source.EmpRttJoursAnnuel;
+            target.EmpRttHeuresContrat = source.EmpRttHeuresContrat;
+            target.EmpRttForfaitJours = source.EmpRttForfaitJours;
         }
 
         public async Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod)
@@ -1457,6 +1462,11 @@ namespace ABRPOINT.Server.Repository
                     existing.Poscod = employe.Poscod;
                     existing.Empferepos = employe.Empferepos;
                     existing.Empcmp = employe.Empcmp;
+                    // Champs RTT (loi française).
+                    existing.EmpRttMethode = employe.EmpRttMethode;
+                    existing.EmpRttJoursAnnuel = employe.EmpRttJoursAnnuel;
+                    existing.EmpRttHeuresContrat = employe.EmpRttHeuresContrat;
+                    existing.EmpRttForfaitJours = employe.EmpRttForfaitJours;
 
                     await _dbContext.SaveChangesAsync();
 

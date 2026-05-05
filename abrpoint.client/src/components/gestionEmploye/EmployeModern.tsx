@@ -579,6 +579,15 @@ const EmployeModernInner = () => {
         // UPDATE sur (Soccod, Sitcod, Empcod) qui ne matche aucune ligne, et toutes les modifs
         // (dont catcod) sont silencieusement perdues alors que le GET (filtré sur Soccod+Empcod)
         // continue de renvoyer la ligne intacte.
+        // Normalise les champs numériques optionnels : un input vidé donne `""`,
+        // que le binder ASP.NET ne sait pas convertir en float?/int? → "The X field is required"
+        // ou "The value '' is not valid". On force null pour rester nullable côté backend.
+        const numOrNull = (v: any): number | null => {
+            if (v === null || v === undefined || v === '') return null;
+            const n = Number(v);
+            return Number.isFinite(n) ? n : null;
+        };
+
         const payload: Employe = {
             ...formData,
             soccod: soccod || '',
@@ -586,6 +595,11 @@ const EmployeModernInner = () => {
             empemb: formatDate(formData.empemb), empretraite: formatDate(formData.empretraite),
             empsort: formatDate(formData.empsort), empdcin: formatDate(formData.empdcin) || new Date(),
             empoptim: formatDate(formData.empoptim),
+            // RTT — méthode défaut 'N' si rien sélectionné, valeurs numériques nullables.
+            empRttMethode: formData.empRttMethode || 'N',
+            empRttJoursAnnuel: numOrNull(formData.empRttJoursAnnuel),
+            empRttHeuresContrat: numOrNull(formData.empRttHeuresContrat),
+            empRttForfaitJours: numOrNull(formData.empRttForfaitJours),
         };
         const onSuccess = async (res: any) => {
             queryClient.invalidateQueries('employe');
