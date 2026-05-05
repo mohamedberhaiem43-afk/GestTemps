@@ -4092,7 +4092,7 @@
       "state": "État",
       "dateStart": "Date de début",
       "dateEnd": "Date de fin",
-      "budget": "Budget alloué (DT)",
+      "budget": "Budget alloué (€)",
       "note": "Note",
       "cancel": "Annuler",
       "save": "Enregistrer"

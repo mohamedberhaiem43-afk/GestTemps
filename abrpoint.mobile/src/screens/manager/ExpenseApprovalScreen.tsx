@@ -31,7 +31,7 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
   const onRefresh = async () => { setRefreshing(true); await loadExpenses(); setRefreshing(false); };
 
   const handleApprove = (exp: any) => {
-    Alert.alert('Approuver', `Approuver "${exp.titre}" (${exp.montant} TND) ?`, [
+    Alert.alert('Approuver', `Approuver "${exp.titre}" (${(exp.montant ?? 0).toFixed(2)} €) ?`, [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Approuver', onPress: async () => {
         try {
@@ -107,7 +107,7 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
     catch { return d; }
   };
 
-  const fmtMoney = (n: number) => n?.toLocaleString('fr-FR', { style: 'currency', currency: 'TND' }) || '-';
+  const fmtMoney = (n: number) => n?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || '-';
 
   return (
     <SafeAreaView style={styles.container}>

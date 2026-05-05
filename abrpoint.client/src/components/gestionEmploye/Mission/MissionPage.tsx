@@ -269,7 +269,7 @@ const MissionPage: React.FC = () => {
                 </Typography>
               </Box>
               <Typography sx={{ p: 1.5, fontSize: 13, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-                {m.misbudget != null ? `${m.misbudget.toFixed(2)} DT` : '—'}
+                {m.misbudget != null ? `${m.misbudget.toFixed(2)} €` : '—'}
               </Typography>
               <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
                 <Chip

@@ -10,6 +10,7 @@ import {
   Typography,
   Alert,
   Snackbar,
+  Tooltip,
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import * as XLSX from 'xlsx';
@@ -217,7 +218,11 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
           rows.push({
             Matricule: emp.empMat,
             'Code Rubrique': rubrique.rubcod,
-            Valeur: parseFloat(valeur.toFixed(2)),
+            // Pas d'arrondi à 2 décimales : on transmet la valeur exacte au moteur
+            // de paie (un écart de 0.01 h = 36 secondes peut induire un mismatch
+            // payroll). On plafonne à 4 décimales pour absorber le bruit flottant
+            // sans tronquer l'information utile.
+            Valeur: Number(valeur.toFixed(4)),
           });
         }
       });
@@ -288,17 +293,36 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
   const previewData = generateExcelData().slice(0, 5);
   const totalRows = generateExcelData().length;
 
+  // Le bouton n'a de sens que si l'admin a configuré au moins une rubrique paie.
+  // Avant : il restait désactivé tant que `pointageMoisData` était vide ce qui
+  // déroutait les utilisateurs ayant vu la table se remplir (la prop pouvait
+  // arriver vide à l'instant T à cause de la mise à jour asynchrone du hook).
+  // Maintenant : on garde la cliquabilité même sans pointage chargé, et on bloque
+  // explicitement (avec tooltip) si la conf rubriques est absente.
+  const hasRubriques = Array.isArray(rubriques) && rubriques.length > 0;
+  const hasPointage = Array.isArray(pointageMoisData) && pointageMoisData.length > 0;
+  const disabled = !hasRubriques;
+  const tooltipMsg = !hasRubriques
+    ? 'Aucune rubrique paie configurée. Définissez les rubriques avant l\'intégration.'
+    : !hasPointage
+      ? 'Lancez une recherche pour charger les données du mois, puis intégrez.'
+      : '';
+
   return (
     <>
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<UploadFileIcon />}
-        onClick={() => setOpenDialog(true)}
-        disabled={!pointageMoisData || pointageMoisData.length === 0}
-      >
-        Intégrer
-      </Button>
+      <Tooltip title={tooltipMsg} arrow disableHoverListener={!tooltipMsg}>
+        <span>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<UploadFileIcon />}
+            onClick={() => setOpenDialog(true)}
+            disabled={disabled}
+          >
+            Intégrer
+          </Button>
+        </span>
+      </Tooltip>
 
       <Dialog
         open={openDialog}

@@ -276,7 +276,11 @@ namespace ABRPOINT.Server.Repository
                     tempDate = tempDate.AddDays(-daysToMonday);
                 }
 
-                result.DebutCalc = tempDate.Day-1;
+                // Le `- 1` historique décalait le début de mois d'un jour en arrière
+                // (Joudeb=25 → début affiché le 24). On garde le jour exact issu de la
+                // configuration / de l'ajustement Lundi ; aucun consommateur ne dépend
+                // du décalage (cf. PresenceRepository.GetXXXByPeriode et CalendrierRepository).
+                result.DebutCalc = tempDate.Day;
 
                 return result;
             }
@@ -325,7 +329,9 @@ namespace ABRPOINT.Server.Repository
                     tempDate = tempDate.AddDays(-daysToMonday);
                 }
 
-                result.DebutCalc = tempDate.Day - 1;
+                // Voir GetParametreMoisPointageAsync : `- 1` retiré pour respecter le
+                // jour exact de Joudeb (corrige le décalage J-1 visible en pointage du mois).
+                result.DebutCalc = tempDate.Day;
 
                 return result;
             }

@@ -78,7 +78,10 @@ function getStatusClass(status: string): string {
 }
 
 function formatMontant(value: number): string {
-    return value.toLocaleString('fr-TN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    // Locale fr-FR + 2 décimales : la devise affichée à côté est l'euro (cf. les
+    // pastilles "€" dans les stat cards et la liste). L'ancienne config fr-TN/3 dec.
+    // était un héritage TND incohérent avec le reste de l'UI.
+    return value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Helper to normalize API response (handles $values wrapper from .NET)
@@ -300,7 +303,7 @@ function RemboursementModernContent() {
                 e.titre,
                 e.categorie,
                 dayjs(e.dateDepense).format('DD/MM/YYYY'),
-                e.montant.toFixed(3),
+                e.montant.toFixed(2),
                 e.projet || '',
                 getStatusLabel(e.etat),
             ];

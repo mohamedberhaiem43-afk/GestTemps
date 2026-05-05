@@ -523,9 +523,10 @@ function DashboardModernAdmin() {
               Personnaliser
             </Button>
           </Tooltip>
-          <Button startIcon={<FileDownloadIcon />} className="db-export-btn" onClick={handleExportReport}>
-            {t('dashboard.exportReport')}
-          </Button>
+          {/* Le bouton "Exporter le rapport" a été déplacé dans la barre de filtres
+              (à la place de l'ancien "Appliquer filtres" qui n'avait pas de handler) :
+              les filtres s'appliquent déjà automatiquement, et placer l'export à
+              côté des filtres rend l'action contextuelle ("filtre + export"). */}
         </Box>
       </Box>
 
@@ -710,8 +711,12 @@ function DashboardModernAdmin() {
             </Select>
           </FormControl>
         </Box>
-        <Button className="db-filter-apply-btn" startIcon={<FilterListIcon />}>
-          {t('dashboard.applyFilters')}
+        <Button
+          className="db-filter-apply-btn"
+          startIcon={<FileDownloadIcon />}
+          onClick={handleExportReport}
+        >
+          {t('dashboard.exportReport')}
         </Button>
       </Box>
 

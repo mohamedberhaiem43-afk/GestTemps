@@ -4093,7 +4093,7 @@
       "state": "Status",
       "dateStart": "Start date",
       "dateEnd": "End date",
-      "budget": "Allocated budget (DT)",
+      "budget": "Allocated budget (€)",
       "note": "Note",
       "cancel": "Cancel",
       "save": "Save"

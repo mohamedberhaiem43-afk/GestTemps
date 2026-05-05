@@ -610,7 +610,13 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 if (presence.Totcmp != null)
                    acc.TotalHours += presence.Totcmp.Value;
 
-                if (presence.Prerepos == "1" && isRepos)
+                // Repos travaillé : on se fie au calendrier (`isRepos` calculé depuis le
+                // planning de l'employé) plutôt qu'au flag `Prerepos` stocké sur le pointage.
+                // Raison : `Prerepos` n'est pas toujours mis à "1" (notamment si la conf des
+                // jours de repos a évolué après la saisie du pointage), ce qui faisait
+                // disparaître les heures de repos travaillées (ex : Présent 02:30 affiché
+                // mais HeureRepos = 0 sur la fiche mensuelle).
+                if (isRepos)
                 {
                     acc.HeureRepos += heuresLimitees;
                     acc.JourRepos++;
@@ -1185,27 +1191,28 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         private string GetWeekDetails(Presence presence, DateTime date, SanctionDto sanction,
                                      CongeDto conge, bool isFerier, bool isRepos)
         {
-            // Build detailed string showing all info for the day
-            var details = new List<string>();
-
+            // UN seul statut par jour, choisi par priorité — l'utilisateur ne doit pas
+            // décoder une concaténation type "Absent | Repos | Férié". Règle métier :
+            // un fait observé (Présent / Congé / Sanction) prime sur un statut calendrier
+            // (Férié / Repos), qui prime sur la valeur par défaut "Absent".
+            //
+            // Ordre : Présent > Congé > Sanction > Férié > Repos > Absent.
             if (presence != null)
-                details.Add($"Présent: {presence.Tothre}");
-            else
-                details.Add("Absent");
-
-            if (sanction != null)
-                details.Add($"Sanction[{sanction.Abscod}]: {sanction.Abslib}");
+                return $"Présent: {presence.Tothre}";
 
             if (conge != null)
-                details.Add($"Congé[{conge.Abscod}]: {conge.Concod}");
+                return $"Congé[{conge.Abscod}]: {conge.Concod}";
+
+            if (sanction != null)
+                return $"Sanction[{sanction.Abscod}]: {sanction.Abslib}";
 
             if (isFerier)
-                details.Add("Férié");
+                return "Férié";
 
             if (isRepos)
-                details.Add("Repos");
+                return "Repos";
 
-            return string.Join(" | ", details);
+            return "Absent";
         }
     }
 }

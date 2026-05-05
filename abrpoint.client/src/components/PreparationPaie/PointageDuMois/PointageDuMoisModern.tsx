@@ -71,6 +71,19 @@ const fmtMin = (minutes: number) => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
+/**
+ * Formate un nombre d'heures SANS arrondir à 2 décimales (qui masquait des
+ * écarts payroll : 5h04 affiché en 5.07h ou 5.04h selon le contexte).
+ * On conserve la précision réelle, en plafonnant à 4 décimales pour éviter
+ * le bruit du flottant ("5.916666666666667" → "5.9167") et en supprimant
+ * les zéros de queue ("5.0" → "5", "5.10" → "5.1").
+ */
+const fmtHours = (v: number | null | undefined): string => {
+  const n = Number(v ?? 0);
+  if (!Number.isFinite(n)) return '0';
+  return Number(n.toFixed(4)).toString();
+};
+
 const downloadPDF = (blob: Blob, filename: string) => {
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -337,11 +350,11 @@ function PointageDuMoisContent() {
         datefin: formatDate(new Date(year, month, 0).toISOString()),
         data: [{
           empmat: selectedEmp.empMat, emplib: selectedEmp.empLib, empreg: selectedEmp.empReg,
-          jourtrv: totals.nbJours ?? 0, tothre: (totals.tothre ?? 0).toFixed(2),
+          jourtrv: totals.nbJours ?? 0, tothre: fmtHours(totals.tothre),
           jferier: totals.jourFerier ?? 0, jftrv: totals.nbJourFerier ?? 0,
-          hftrv: (totals.nbhFerierTrv ?? 0).toFixed(2), hnuit: (totals.hreNuits ?? 0).toFixed(2),
-          jconge: totals.nbJourCngPaye ?? 0, hs50: (totals.heuresSupTranche2 ?? 0).toFixed(2),
-          hs25: (totals.heuresSupTranche1 ?? 0).toFixed(2), csf: (totals.csf ?? 0).toFixed(2),
+          hftrv: fmtHours(totals.nbhFerierTrv), hnuit: fmtHours(totals.hreNuits),
+          jconge: totals.nbJourCngPaye ?? 0, hs50: fmtHours(totals.heuresSupTranche2),
+          hs25: fmtHours(totals.heuresSupTranche1), csf: fmtHours(totals.csf),
         }],
       });
       downloadPDF(blob, `EtatGlobal_${selectedEmp.empMat}_${ctxMois}_${ctxAnnee}.pdf`);
@@ -362,9 +375,9 @@ function PointageDuMoisContent() {
           csf: a.csf + (r.csf ?? 0),
         }), { nbJours:0,tothre:0,jourFerier:0,nbJourFerier:0,nbhFerierTrv:0,hreNuits:0,nbJourCngPaye:0,hs50:0,hs25:0,csf:0 }) ?? { nbJours:0,tothre:0,jourFerier:0,nbJourFerier:0,nbhFerierTrv:0,hreNuits:0,nbJourCngPaye:0,hs50:0,hs25:0,csf:0 };
         return { empmat: emp.empMat, emplib: emp.empLib, empreg: emp.empReg,
-          jourtrv: t2.nbJours, tothre: t2.tothre.toFixed(2), jferier: t2.jourFerier,
-          jftrv: t2.nbJourFerier, hftrv: t2.nbhFerierTrv.toFixed(2), hnuit: t2.hreNuits.toFixed(2),
-          jconge: t2.nbJourCngPaye, hs50: t2.hs50.toFixed(2), hs25: t2.hs25.toFixed(2), csf: t2.csf.toFixed(2) };
+          jourtrv: t2.nbJours, tothre: fmtHours(t2.tothre), jferier: t2.jourFerier,
+          jftrv: t2.nbJourFerier, hftrv: fmtHours(t2.nbhFerierTrv), hnuit: fmtHours(t2.hreNuits),
+          jconge: t2.nbJourCngPaye, hs50: fmtHours(t2.hs50), hs25: fmtHours(t2.hs25), csf: fmtHours(t2.csf) };
       });
       const blob = await generateEtatGlobal({
         soccod, soclib: sessionStorage.getItem('soclib') || '',
@@ -634,7 +647,7 @@ function PointageDuMoisContent() {
                               <Typography className="pdm-mobile-week-label">{t('pointageMois.table.weekShort', { n: i + 1 })}</Typography>
                             </Box>
                           );
-                          const hrs = (w.tothre ?? 0).toFixed(2);
+                          const hrs = fmtHours(w.tothre);
                           const status = classifyWeekStatus(w)!;
                           const label = labelForStatus(status, true);
                           const color = statusToMobileColor(status.key);
@@ -701,7 +714,7 @@ function PointageDuMoisContent() {
                                 <Typography className="pdm-week-hrs" sx={{ color: '#c3c6d6' }}>—</Typography>
                               </td>
                             );
-                            const hrs = (w.tothre ?? 0).toFixed(2);
+                            const hrs = fmtHours(w.tothre);
                             const status = classifyWeekStatus(w)!;
                             const label = labelForStatus(status, false);
                             const cls = statusToClass(status.key);
@@ -875,7 +888,7 @@ function PointageDuMoisContent() {
                             ? fmtMin(r.retard ?? 0)
                             : c.fmt
                             ? c.fmt(Number(r[c.key as keyof typeof r]) || 0)
-                            : (Number(r[c.key as keyof typeof r]) || 0).toFixed(2)}
+                            : fmtHours(Number(r[c.key as keyof typeof r]))}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -887,7 +900,7 @@ function PointageDuMoisContent() {
                         <TableCell key={c.key} sx={{ fontWeight: 700, color: '#0040a1', fontSize: 12 }}>
                           {c.key === 'retard'
                             ? fmtMin(totals.retard ?? 0)
-                            : (Number(totals[c.key]) || 0).toFixed(2)}
+                            : fmtHours(Number(totals[c.key]))}
                         </TableCell>
                       ))}
                     </TableRow>
