@@ -125,9 +125,12 @@ namespace ABRPOINT.Server.Services
                     // Le timeout total doit accommoder l'ingestion d'un PDF lourd ; le retry interne
                     // ne réessaie pas une ingestion réussie côté Python (idempotence assurée par
                     // upsert Qdrant sur la clé document_id+chunk_idx).
+                    // Polly v8 exige : SamplingDuration >= 2 × AttemptTimeout, et
+                    // TotalRequestTimeout >= AttemptTimeout. On laisse une marge confortable
+                    // pour absorber l'ingestion d'un PDF lourd (chunking + embeddings côté Python).
                     o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
-                    o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(150);
-                    o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+                    o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(180);
+                    o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(180);
                 });
 
             builder.Services.AddScoped<IDocumentVaultService, DocumentVaultService>();
@@ -145,9 +148,12 @@ namespace ABRPOINT.Server.Services
                 })
                 .AddStandardResilienceHandler(o =>
                 {
+                    // Polly v8 exige : SamplingDuration >= 2 × AttemptTimeout, et
+                    // TotalRequestTimeout >= AttemptTimeout. On laisse une marge confortable
+                    // pour absorber l'ingestion d'un PDF lourd (chunking + embeddings côté Python).
                     o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
-                    o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(150);
-                    o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+                    o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(180);
+                    o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(180);
                 });
         }
     }
