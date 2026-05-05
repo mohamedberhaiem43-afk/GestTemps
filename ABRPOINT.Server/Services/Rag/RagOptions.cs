@@ -34,10 +34,12 @@ public sealed class AnthropicOptions
 
     /// <summary>
     /// Modèle OpenRouter utilisé quand <see cref="UseOpenRouter"/> est true.
-    /// Défaut : Llama 3.3 70B Instruct gratuit — bon compromis multilingue FR/EN
-    /// + fenêtre de contexte 128k pour ingérer des extraits de conventions.
+    /// Défaut : Gemini 2.0 Flash — modèle stable et très bon marché (~$0.075/M tokens),
+    /// déjà utilisé par le chatbot Gemini existant (clé OpenRouter partagée). Les modèles
+    /// `:free` sont régulièrement rate-limited en amont par leurs providers — préférer
+    /// un modèle payant léger pour la production.
     /// </summary>
-    public string OpenRouterModel { get; set; } = "meta-llama/llama-3.3-70b-instruct:free";
+    public string OpenRouterModel { get; set; } = "google/gemini-2.0-flash-001";
 
     public string BaseUrl { get; set; } = "https://api.anthropic.com";
     public string ApiKey { get; set; } = string.Empty;

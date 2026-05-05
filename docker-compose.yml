@@ -85,6 +85,10 @@ services:
       Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
       Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
       Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
+      # Modèle LLM via OpenRouter (clé déjà dans appsettings). Gemini 2.0 Flash est
+      # stable et très bon marché. Les modèles `:free` (llama-3.3, etc.) sont
+      # régulièrement rate-limited 429 en amont — éviter en prod.
+      Rag__Anthropic__OpenRouterModel: "google/gemini-2.0-flash-001"
     depends_on:
       abrpoint.database:
         condition: service_healthy
