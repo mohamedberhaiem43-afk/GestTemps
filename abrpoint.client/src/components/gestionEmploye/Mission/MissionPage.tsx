@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
   Box, Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, MenuItem, Chip, Snackbar, Alert, CircularProgress, Tooltip, InputAdornment
+  TextField, MenuItem, Chip, Snackbar, Alert, CircularProgress, Tooltip, InputAdornment, Skeleton
 } from '@mui/material';
+import { staggerSx } from '../../helper/animations/Stagger';
 import {
   Plus, Edit3, Trash2, Search, Briefcase, MapPin, Calendar, User as UserIcon, FileText
 } from 'lucide-react';
@@ -238,52 +239,71 @@ const MissionPage: React.FC = () => {
             </Typography>
           ))}
           {missionsQ.isLoading && (
-            <Box sx={{ gridColumn: '1 / -1', p: 4, textAlign: 'center' }}><CircularProgress size={24} /></Box>
+            // Skeleton rows : reproduit la silhouette de 4 lignes pour que l'œil ne
+            // perçoive pas un flash entre l'écran vide et la table peuplée.
+            [0, 1, 2, 3].map(rowIdx => (
+              <React.Fragment key={`sk-${rowIdx}`}>
+                {[0, 1, 2, 3, 4, 5, 6].map(colIdx => (
+                  <Box
+                    key={`sk-${rowIdx}-${colIdx}`}
+                    sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}
+                  >
+                    <Skeleton variant="text" sx={{ fontSize: 13, width: colIdx === 0 ? '80%' : colIdx === 6 ? 60 : '60%' }} />
+                  </Box>
+                ))}
+              </React.Fragment>
+            ))
           )}
           {!missionsQ.isLoading && filtered.length === 0 && (
             <Typography sx={{ gridColumn: '1 / -1', p: 4, textAlign: 'center', color: 'text.secondary' }}>
               {t('mission.table.empty')}
             </Typography>
           )}
-          {filtered.map(m => (
-            <React.Fragment key={m.id}>
-              <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
-                <FileText size={14} style={{ flexShrink: 0, opacity: 0.6 }} />
-                <Box>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{m.misobj}</Typography>
-                  {m.misnote && <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{m.misnote}</Typography>}
+          {filtered.map((m, idx) => {
+            // staggerSx ajoute un fade+translateY de 320 ms décalé de 40 ms par
+            // ligne (plafonné à 12 lignes). Appliqué à chaque cellule pour rester
+            // cohérent avec la grille CSS (pas de wrapper supplémentaire).
+            const cellStagger = staggerSx(idx);
+            return (
+              <React.Fragment key={m.id}>
+                <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, ...cellStagger }}>
+                  <FileText size={14} style={{ flexShrink: 0, opacity: 0.6 }} />
+                  <Box>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{m.misobj}</Typography>
+                    {m.misnote && <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{m.misnote}</Typography>}
+                  </Box>
                 </Box>
-              </Box>
-              <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
-                <UserIcon size={14} style={{ opacity: 0.6 }} />
-                <Typography sx={{ fontSize: 13 }}>{employeLabel(m.empcod)}</Typography>
-              </Box>
-              <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
-                {m.misdest && <MapPin size={14} style={{ opacity: 0.6 }} />}
-                <Typography sx={{ fontSize: 13 }}>{m.misdest || '—'}</Typography>
-              </Box>
-              <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Calendar size={14} style={{ opacity: 0.6 }} />
-                <Typography sx={{ fontSize: 12 }}>
-                  {dayjs(m.misdatedeb).format('DD/MM/YY')} → {dayjs(m.misdatefin).format('DD/MM/YY')}
+                <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, ...cellStagger }}>
+                  <UserIcon size={14} style={{ opacity: 0.6 }} />
+                  <Typography sx={{ fontSize: 13 }}>{employeLabel(m.empcod)}</Typography>
+                </Box>
+                <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, ...cellStagger }}>
+                  {m.misdest && <MapPin size={14} style={{ opacity: 0.6 }} />}
+                  <Typography sx={{ fontSize: 13 }}>{m.misdest || '—'}</Typography>
+                </Box>
+                <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, ...cellStagger }}>
+                  <Calendar size={14} style={{ opacity: 0.6 }} />
+                  <Typography sx={{ fontSize: 12 }}>
+                    {dayjs(m.misdatedeb).format('DD/MM/YY')} → {dayjs(m.misdatefin).format('DD/MM/YY')}
+                  </Typography>
+                </Box>
+                <Typography sx={{ p: 1.5, fontSize: 13, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', ...cellStagger }}>
+                  {m.misbudget != null ? `${m.misbudget.toFixed(2)} €` : '—'}
                 </Typography>
-              </Box>
-              <Typography sx={{ p: 1.5, fontSize: 13, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-                {m.misbudget != null ? `${m.misbudget.toFixed(2)} €` : '—'}
-              </Typography>
-              <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-                <Chip
-                  label={t(`mission.states.${m.misetat}`, m.misetat)}
-                  size="small"
-                  sx={{ bgcolor: `${STATE_COLORS[m.misetat] || '#94a3b8'}20`, color: STATE_COLORS[m.misetat] || '#94a3b8', fontWeight: 700, fontSize: 11 }}
-                />
-              </Box>
-              <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Tooltip title={t('mission.actions.edit')}><IconButton size="small" onClick={() => openEdit(m)}><Edit3 size={14} /></IconButton></Tooltip>
-                <Tooltip title={t('mission.actions.delete')}><IconButton size="small" onClick={() => setConfirmDelete(m)} sx={{ color: '#ef4444' }}><Trash2 size={14} /></IconButton></Tooltip>
-              </Box>
-            </React.Fragment>
-          ))}
+                <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', ...cellStagger }}>
+                  <Chip
+                    label={t(`mission.states.${m.misetat}`, m.misetat)}
+                    size="small"
+                    sx={{ bgcolor: `${STATE_COLORS[m.misetat] || '#94a3b8'}20`, color: STATE_COLORS[m.misetat] || '#94a3b8', fontWeight: 700, fontSize: 11 }}
+                  />
+                </Box>
+                <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 0.5, ...cellStagger }}>
+                  <Tooltip title={t('mission.actions.edit')}><IconButton size="small" onClick={() => openEdit(m)}><Edit3 size={14} /></IconButton></Tooltip>
+                  <Tooltip title={t('mission.actions.delete')}><IconButton size="small" onClick={() => setConfirmDelete(m)} sx={{ color: '#ef4444' }}><Trash2 size={14} /></IconButton></Tooltip>
+                </Box>
+              </React.Fragment>
+            );
+          })}
         </Box>
       </Box>
 

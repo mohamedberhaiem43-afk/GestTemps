@@ -75,6 +75,7 @@ import NotificationCenter from './NotificationCenter';
 import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './SidebarNavigationDualTier';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import TrialBanner from '../helper/TrialBanner';
+import PageFade from '../helper/animations/PageFade';
 
 /* ── Lucide icons ── */
 import {
@@ -898,7 +899,9 @@ function DashboardLayoutAccount(_props: DemoProps) {
   if (isPublicPage || isProfilePage) {
     return (
       <>
-        <DemoPageContent pathname={canonicalPathname} />
+        <PageFade routeKey={canonicalPathname}>
+          <DemoPageContent pathname={canonicalPathname} />
+        </PageFade>
         {/* L'assistant IA reste accessible aussi sur la landing publique pour aider
             les visiteurs à se renseigner sur les fonctionnalités / tarifs / inscription. */}
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
@@ -1062,7 +1065,9 @@ function DashboardLayoutAccount(_props: DemoProps) {
           )}
         </Box>
 
-        <DemoPageContent pathname={canonicalPathname} />
+        <PageFade routeKey={canonicalPathname}>
+          <DemoPageContent pathname={canonicalPathname} />
+        </PageFade>
       </SidebarNavigationDualTier>
 
       {pathname !== '/' && (

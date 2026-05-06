@@ -1,4 +1,5 @@
-import { Box, Typography, Button, TextField, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, InputAdornment, CircularProgress, Avatar } from "@mui/material";
+import { Box, Typography, Button, TextField, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, InputAdornment, Avatar, Skeleton } from "@mui/material";
+import { staggerSx } from '../helper/animations/Stagger';
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
@@ -269,10 +270,39 @@ const EffectifsGlobaux = () => {
   };
 
   if (isLoading) {
+    // Skeleton de la liste : on garde le même layout que la version peuplée
+    // (header + filtres + table) avec des silhouettes pulsantes — l'utilisateur
+    // perçoit immédiatement la structure de la page au lieu d'un spinner centré.
     return (
-      <Box className="effectifs-loading">
-        <CircularProgress size={60} />
-        <Typography mt={2}>{t('effectifs.loading')}</Typography>
+      <Box className="effectifs-container">
+        <Box className="effectifs-header">
+          <Box className="effectifs-header-left">
+            <Skeleton variant="text" width={140} height={16} sx={{ mb: 1 }} />
+            <Skeleton variant="text" width={280} height={36} sx={{ mb: 1 }} />
+            <Skeleton variant="text" width={420} height={16} />
+          </Box>
+        </Box>
+        <Box sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
+            {[0, 1, 2, 3].map(i => (
+              <Skeleton key={`fk-${i}`} variant="rounded" width={160} height={40} />
+            ))}
+          </Box>
+          <Paper sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #edf0f5' }}>
+            {[0, 1, 2, 3, 4, 5, 6].map(i => (
+              <Box key={`sk-eg-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, borderBottom: i === 6 ? 'none' : '1px solid #f1f5f9' }}>
+                <Skeleton variant="circular" width={40} height={40} />
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton variant="text" sx={{ fontSize: 14, width: '40%' }} />
+                  <Skeleton variant="text" sx={{ fontSize: 11, width: '25%' }} />
+                </Box>
+                <Skeleton variant="rounded" width={60} height={22} />
+                <Skeleton variant="text" width={80} />
+                <Skeleton variant="circular" width={24} height={24} />
+              </Box>
+            ))}
+          </Paper>
+        </Box>
       </Box>
     );
   }
@@ -547,8 +577,8 @@ const EffectifsGlobaux = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedEmployees.map((employee) => (
-                  <TableRow key={employee.empcod} className="table-row">
+                paginatedEmployees.map((employee, idx) => (
+                  <TableRow key={employee.empcod} className="table-row" sx={staggerSx(idx)}>
                     <TableCell>
                       <Box className="employee-cell">
                         <Avatar className="employee-avatar">

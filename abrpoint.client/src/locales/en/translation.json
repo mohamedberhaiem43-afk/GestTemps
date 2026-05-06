@@ -4049,11 +4049,11 @@
   "mission": {
     "header": {
       "title": "Mission Management",
-      "subtitle": "Every expense report must be linked to a mission of category \"Training and mission\" (abscng = 6).",
+      "subtitle": "Every expense report must be linked to a mission of category \"Training and mission\".",
       "newMission": "New mission"
     },
     "alerts": {
-      "noNatures": "No absence type with abscng = 6 is defined. Create one under \"Base data > Absence types\" before recording missions."
+      "noNatures": "No mission absence type is configured yet. Create one under \"Base data > Absence types\" before recording missions."
     },
     "filters": {
       "searchPlaceholder": "Search (object, destination, employee)...",
@@ -4086,8 +4086,8 @@
       "collaborator": "Employee",
       "selfHint": "Mission created for yourself.",
       "absenceNature": "Absence type (Training and mission)",
-      "absenceHintNone": "No nature with abscng = 6 available.",
-      "absenceHintAvailable": "Only natures with abscng = 6 are listed.",
+      "absenceHintNone": "No mission absence type available.",
+      "absenceHintAvailable": "Only mission absence types are listed.",
       "object": "Mission object",
       "destination": "Destination",
       "state": "Status",

@@ -59,6 +59,8 @@ import { Role } from '../../models/Role';
 import './EmployeModern.css';
 import { useQuery } from 'react-query';
 import useGetVillesLibs from '../../hooks/villeHooks/useGetVillesLibs';
+import { staggerSx } from '../helper/animations/Stagger';
+import { Skeleton } from '@mui/material';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const fieldStyle = {
@@ -652,7 +654,11 @@ const EmployeModernInner = () => {
                 // Mémorise le code créé pour que le dialog "Créer le contrat ?" l'utilise
                 // une fois la SuccessAnimation refermée (cf. onClose plus bas).
                 setPendingContractEmpcod(formData.empcod || null);
-                navigate(`/dashboard/gestion-employe?id=${formData.empcod}&new=false`);
+                // /dashboard/profil-employe est la route qui RENDU EmployeModern.
+                // /dashboard/gestion-employe pointe sur EffectifsGlobaux (liste) — un
+                // navigate vers cette URL démonterait le composant et perdrait l'état
+                // du dialog "Créer le contrat ?" qu'on s'apprête à ouvrir.
+                navigate(`/dashboard/profil-employe?id=${formData.empcod}&new=false`);
                 return;
             }
             // Mode update : le backend lève désormais une 404 explicite (KeyNotFoundException
@@ -740,8 +746,18 @@ const EmployeModernInner = () => {
             </Box>
             <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {isListLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} /></Box>
-                ) : filteredEmployees.map(emp => (
+                    // Skeleton lignes : 6 silhouettes d'item d'annuaire pour que le
+                    // panneau ait l'air « en cours de remplissage » plutôt que vide.
+                    [0, 1, 2, 3, 4, 5].map(i => (
+                        <Box key={`sk-emp-${i}`} sx={{ p: 1.5, borderRadius: '12px', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Skeleton variant="circular" width={32} height={32} />
+                            <Box sx={{ flex: 1 }}>
+                                <Skeleton variant="text" sx={{ fontSize: 13, width: '70%' }} />
+                                <Skeleton variant="text" sx={{ fontSize: 11, width: '50%' }} />
+                            </Box>
+                        </Box>
+                    ))
+                ) : filteredEmployees.map((emp, idx) => (
                     <Box
                         key={emp.empcod}
                         onClick={() => navigate(`/dashboard/profil-employe?id=${emp.empcod}`)}
@@ -752,7 +768,8 @@ const EmployeModernInner = () => {
                             transition: 'all 0.2s',
                             backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : 'transparent',
                             border: formData.empcod === emp.empcod ? '1px solid #cce0ff' : '1px solid transparent',
-                            '&:hover': { backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : '#f8fafc' }
+                            '&:hover': { backgroundColor: formData.empcod === emp.empcod ? '#f0f5ff' : '#f8fafc' },
+                            ...staggerSx(idx),
                         }}
                     >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

@@ -9,6 +9,7 @@ import useGetProfile from '../../hooks/profileHooks/useGetProfile';
 import useGetMyKPIs from '../../hooks/useGetMyKPIs';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
+import { useCountUp } from '../helper/animations/useCountUp';
 import './DashboardModern.css';
 import EmployeeDashboardMobile from './EmployeeDashboardMobile';
 
@@ -82,6 +83,18 @@ export default function EmployeeDashboard() {
     return data;
   }, [kpiData, t]);
 
+  // Compteurs animés sur les KPI principaux — interpole de 0 vers la cible en 700 ms,
+  // ease-out cubic. Donne au tableau de bord un sentiment « en direct » au lieu d'un
+  // saut de 0 à la valeur. Le solde et l'objectif gardent une décimale (jours, heures),
+  // les demandes pending sont entières.
+  const animatedSolde = useCountUp(kpis.solde, { decimals: 1 });
+  const animatedAcquired = useCountUp(kpis.acquired, { decimals: 1 });
+  const animatedWorked = useCountUp(kpis.worked, { decimals: 1 });
+  const animatedObjective = useCountUp(kpis.objective ?? 0, { decimals: 1 });
+  const animatedPending = useCountUp(kpis.pending, { decimals: 0 });
+  const animatedPercent = useCountUp(kpis.workedPercent ?? 0, { decimals: 0 });
+  const animatedRttSolde = useCountUp(kpis.rtt?.solde ?? 0, { decimals: 1 });
+
   // Heures cibles par jour ouvré pour la ligne pointillée. Calculé à partir de l'objectif
   // hebdo réel et du nombre de jours planifiés (jours sans repos/férié/congé). Fallback 7h.
   const dailyTargetHours = useMemo(() => {
@@ -102,9 +115,49 @@ export default function EmployeeDashboard() {
   }, [kpiData]);
 
   if (loadingProfile || loadingKPIs) {
+    // Skeleton du dashboard : on reproduit la silhouette des cartes pour que la
+    // mise en page n'apparaisse pas brutalement quand la donnée arrive. Mieux qu'un
+    // spinner centré (qui donnait l'impression d'un écran cassé pendant 1-2 s).
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#f7f9fb]">
-        <div className="animate-pulse text-xl font-['Manrope'] font-bold text-[#0040a1]">{t('employeeDashboard.loading')}</div>
+      <div className="min-h-screen bg-[#f7f9fb] font-['Inter'] text-[#191c1e] p-8">
+        <section className="mb-10">
+          <div className="h-9 w-72 bg-slate-200 rounded-md mb-3 animate-pulse" />
+          <div className="h-4 w-56 bg-slate-100 rounded-md animate-pulse" />
+        </section>
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="bg-white p-6 rounded-xl border border-transparent shadow-sm">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-11 h-11 bg-slate-100 rounded-xl animate-pulse" />
+                <div className="h-3 w-16 bg-slate-100 rounded animate-pulse" />
+              </div>
+              <div className="h-9 w-20 bg-slate-200 rounded-md mb-2 animate-pulse" />
+              <div className="h-3 w-32 bg-slate-100 rounded animate-pulse" />
+              <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full animate-pulse" />
+            </div>
+          ))}
+        </section>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 bg-white rounded-xl p-8 shadow-sm">
+            <div className="flex justify-between items-center mb-10">
+              <div className="h-5 w-48 bg-slate-200 rounded animate-pulse" />
+              <div className="h-7 w-32 bg-slate-100 rounded-lg animate-pulse" />
+            </div>
+            <div className="h-64 bg-slate-50 rounded-lg animate-pulse" />
+          </div>
+          <div className="lg:col-span-4 bg-white rounded-xl p-6 shadow-sm">
+            <div className="h-5 w-40 bg-slate-200 rounded mb-6 animate-pulse" />
+            {[0, 1, 2].map(i => (
+              <div key={i} className="flex items-center gap-4 mb-4">
+                <div className="w-10 h-10 rounded-full bg-slate-100 animate-pulse" />
+                <div className="flex-1">
+                  <div className="h-3 w-3/4 bg-slate-200 rounded mb-2 animate-pulse" />
+                  <div className="h-2 w-1/2 bg-slate-100 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -136,7 +189,7 @@ export default function EmployeeDashboard() {
 
       {/* KPI Bento Row — passe à 4 colonnes si l'employé a un solde RTT à afficher. */}
       <section className={`grid grid-cols-1 ${kpis.rtt ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-6 mb-10`}>
-        <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 transition-all">
+        <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-blue-50 text-[#0040a1] rounded-xl flex items-center justify-center">
               <span className="material-symbols-outlined">event_available</span>
@@ -144,15 +197,15 @@ export default function EmployeeDashboard() {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('employeeDashboard.remainingLeave')}</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{kpis.solde.toFixed(1)}</span>
-            <span className="text-slate-400 font-medium">{kpis.acquired > 0 ? t('employeeDashboard.daysAcquired', { count: Number(kpis.acquired.toFixed(1)) }) : t('employeeDashboard.daysAcquiredEmpty')}</span>
+            <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{animatedSolde}</span>
+            <span className="text-slate-400 font-medium">{kpis.acquired > 0 ? t('employeeDashboard.daysAcquired', { count: Number(animatedAcquired) }) : t('employeeDashboard.daysAcquiredEmpty')}</span>
           </div>
           <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
             <div className="h-full bg-[#0040a1] rounded-full transition-all duration-700" style={{ width: `${kpis.acquired > 0 ? Math.min((kpis.solde / kpis.acquired) * 100, 100) : 0}%` }}></div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 transition-all">
+        <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
               <span className="material-symbols-outlined">timer</span>
@@ -160,16 +213,16 @@ export default function EmployeeDashboard() {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('employeeDashboard.workTime')}</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{kpis.worked.toFixed(1)}</span>
-            <span className="text-slate-400 font-medium">{kpis.objective ? t('employeeDashboard.workTarget', { target: kpis.objective.toFixed(1) }) : t('employeeDashboard.workTargetEmpty')}</span>
+            <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{animatedWorked}</span>
+            <span className="text-slate-400 font-medium">{kpis.objective ? t('employeeDashboard.workTarget', { target: animatedObjective }) : t('employeeDashboard.workTargetEmpty')}</span>
           </div>
           <p className="mt-4 text-xs text-emerald-600 font-semibold flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">trending_up</span>
-            {t('employeeDashboard.weekObjective', { percent: kpis.workedPercent })}
+            {t('employeeDashboard.weekObjective', { percent: animatedPercent })}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 transition-all">
+        <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
               <span className="material-symbols-outlined">pending_actions</span>
@@ -177,7 +230,7 @@ export default function EmployeeDashboard() {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('employeeDashboard.pending')}</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{kpis.pending.toString().padStart(2, '0')}</span>
+            <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{Number(animatedPending).toString().padStart(2, '0')}</span>
             <span className="text-slate-400 font-medium">{t('employeeDashboard.pendingRequests')}</span>
           </div>
           <p className="mt-4 text-xs text-slate-400 font-medium italic">{t('employeeDashboard.nextReview')}</p>
@@ -185,7 +238,7 @@ export default function EmployeeDashboard() {
 
         {/* Carte RTT — affichée seulement si la méthode RTT n'est pas 'N'. */}
         {kpis.rtt && (
-          <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 transition-all">
+          <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
                 <span className="material-symbols-outlined">work_history</span>
@@ -193,7 +246,7 @@ export default function EmployeeDashboard() {
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('conge.rtt.card.label')}</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{kpis.rtt.solde.toFixed(1)}</span>
+              <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{animatedRttSolde}</span>
               <span className="text-slate-400 font-medium">
                 {kpis.rtt.droitAnnuel > 0
                   ? `sur ${kpis.rtt.droitAnnuel.toFixed(1)} ${t('conge.rtt.card.unit')}`
@@ -318,7 +371,7 @@ export default function EmployeeDashboard() {
           <div className="grid grid-cols-1 gap-4">
             <button 
               onClick={() => navigate('/dashboard/pointage-du-mois')}
-              className="flex items-center gap-4 p-4 bg-blue-50 text-[#0040a1] rounded-xl hover:bg-blue-100 transition-all group"
+              className="flex items-center gap-4 p-4 bg-blue-50 text-[#0040a1] rounded-xl hover:bg-blue-100 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 group"
             >
               <div className="p-2 bg-white rounded-lg shadow-sm">
                 <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">request_quote</span>
@@ -330,7 +383,7 @@ export default function EmployeeDashboard() {
             </button>
             <button
               onClick={() => navigate('/dashboard/coffre-fort')}
-              className="flex items-center gap-4 p-4 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all group"
+              className="flex items-center gap-4 p-4 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 group"
             >
               <div className="p-2 bg-white rounded-lg shadow-sm">
                 <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">shield</span>
@@ -342,7 +395,7 @@ export default function EmployeeDashboard() {
             </button>
             <button
               onClick={() => navigate('/dashboard/support')}
-              className="flex items-center gap-4 p-4 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-all group"
+              className="flex items-center gap-4 p-4 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 group"
             >
               <div className="p-2 bg-white rounded-lg shadow-sm">
                 <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">contact_support</span>

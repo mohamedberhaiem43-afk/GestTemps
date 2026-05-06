@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, Button, IconButton, Stack, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
+import Confetti from '../helper/animations/Confetti';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CloseIcon from '@mui/icons-material/Close';
@@ -102,6 +103,11 @@ export default function OnboardingNextStepHint({ currentStep, dataCount, hideWhe
   const navigate = useNavigate();
   const [state, setState] = useState<OnboardingState>(() => loadState(soccod ?? ''));
   const [hiddenLocally, setHiddenLocally] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  // Référence l'état de complétion observé au render précédent. Permet de
+  // détecter le passage `allDone: false → true` pour ne tirer le confetti
+  // qu'une fois (le re-render qui suit le toggle de l'étape finale).
+  const prevAllDoneRef = useRef<boolean>(false);
 
   const current = useMemo(() => STEPS.find(s => s.key === currentStep)!, [currentStep]);
   const next = useMemo(() => STEPS[current.index] /* index is 1-based, array is 0-based, so STEPS[current.index] = next */, [current]);
@@ -121,9 +127,30 @@ export default function OnboardingNextStepHint({ currentStep, dataCount, hideWhe
     }
   }, [dataCount, currentStep, soccod, state.done]);
 
+  // Détection du jalon « 5/5 » : on tire le confetti une seule fois quand
+  // toutes les étapes viennent d'être validées. Un flag dédié dans
+  // localStorage (`onboardingCelebrated_${soccod}`) garantit qu'un reload
+  // ne relance pas l'animation indéfiniment.
+  useEffect(() => {
+    const justCompleted = allDone && !prevAllDoneRef.current;
+    prevAllDoneRef.current = allDone;
+    if (!justCompleted) return;
+    const flagKey = `onboardingCelebrated_${soccod ?? ''}`;
+    try {
+      if (localStorage.getItem(flagKey)) return;
+      localStorage.setItem(flagKey, '1');
+    } catch { /* quota — ignore */ }
+    setShowConfetti(true);
+  }, [allDone, soccod]);
+
   // Conditions de masquage : tout est fait, l'utilisateur a globalement masqué le guide,
   // ou la page demande explicitement de cacher quand rien n'est en cours.
-  if (state.dismissed || hiddenLocally || allDone) return null;
+  if (state.dismissed || hiddenLocally || allDone) {
+    // Important : on continue à rendre <Confetti /> tant qu'il joue, même si
+    // la bannière elle-même est masquée — sinon le canvas est démonté avant
+    // la fin de l'animation au moment précis où on déclenche la célébration.
+    return showConfetti ? <Confetti onDone={() => setShowConfetti(false)} /> : null;
+  }
   if (hideWhenIdle && !isCurrentDone && (dataCount ?? 0) === 0) return null;
 
   const handleContinue = () => {

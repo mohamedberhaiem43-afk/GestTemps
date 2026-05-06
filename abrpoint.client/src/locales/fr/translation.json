@@ -4048,11 +4048,11 @@
   "mission": {
     "header": {
       "title": "Gestion des missions",
-      "subtitle": "Toute note de frais doit être rattachée à une mission de catégorie « Formation et mission » (abscng = 6).",
+      "subtitle": "Toute note de frais doit être rattachée à une mission de catégorie « Formation et mission ».",
       "newMission": "Nouvelle mission"
     },
     "alerts": {
-      "noNatures": "Aucune nature d'absence avec abscng = 6 n'est définie. Créez-en une dans « Données de base > Natures d'absences » avant de saisir des missions."
+      "noNatures": "Aucune nature d'absence configurée pour les missions n'est encore définie. Créez-en une dans « Données de base > Natures d'absences » avant de saisir des missions."
     },
     "filters": {
       "searchPlaceholder": "Rechercher (objet, destination, employé)...",
@@ -4085,8 +4085,8 @@
       "collaborator": "Collaborateur",
       "selfHint": "Mission créée pour vous-même.",
       "absenceNature": "Nature d'absence (Formation et mission)",
-      "absenceHintNone": "Aucune nature avec abscng = 6 disponible.",
-      "absenceHintAvailable": "Seules les natures abscng=6 sont listées.",
+      "absenceHintNone": "Aucune nature de mission disponible.",
+      "absenceHintAvailable": "Seules les natures associées aux missions sont listées.",
       "object": "Objet de la mission",
       "destination": "Destination",
       "state": "État",

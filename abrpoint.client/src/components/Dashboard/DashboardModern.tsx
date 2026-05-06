@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Box, Typography, CircularProgress, Alert, Avatar, Chip, Button,
+  Box, Typography, CircularProgress, Alert, Avatar, Chip, Button, Skeleton,
   Select, MenuItem, FormControl, Dialog, DialogTitle, DialogContent, IconButton,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper,
   Switch, FormControlLabel, Stack, Tooltip, Menu, ListItemIcon, ListItemText, Divider
@@ -474,8 +474,41 @@ function DashboardModernAdmin() {
   };
 
   if (isLoading) return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-      <CircularProgress size={48} sx={{ color: '#0040a1' }} />
+    // Skeleton dashboard admin : on reproduit le squelette des sections principales
+    // (header, 4 KPI, deux graphes, deux listes) plutôt qu'un spinner centré qui
+    // cache la mise en page pendant 1-2 s.
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      <Box sx={{ mb: 3 }}>
+        <Skeleton variant="text" width={280} height={32} />
+        <Skeleton variant="text" width={420} height={18} />
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+        {[0, 1, 2, 3].map(i => (
+          <Box key={`sk-kpi-${i}`} sx={{ p: 2.5, bgcolor: '#fff', borderRadius: 3, boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+            <Skeleton variant="rounded" width={36} height={36} sx={{ mb: 1.5 }} />
+            <Skeleton variant="text" sx={{ fontSize: 28, width: '50%' }} />
+            <Skeleton variant="text" sx={{ fontSize: 12, width: '70%' }} />
+          </Box>
+        ))}
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 2, mb: 3 }}>
+        <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 3, boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+          <Skeleton variant="text" sx={{ fontSize: 16, width: '30%', mb: 2 }} />
+          <Skeleton variant="rounded" height={220} />
+        </Box>
+        <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 3, boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+          <Skeleton variant="text" sx={{ fontSize: 16, width: '50%', mb: 2 }} />
+          {[0, 1, 2, 3].map(i => (
+            <Box key={`sk-l-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+              <Skeleton variant="circular" width={32} height={32} />
+              <Box sx={{ flex: 1 }}>
+                <Skeleton variant="text" sx={{ fontSize: 13, width: '70%' }} />
+                <Skeleton variant="text" sx={{ fontSize: 11, width: '50%' }} />
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      </Box>
     </Box>
   );
 

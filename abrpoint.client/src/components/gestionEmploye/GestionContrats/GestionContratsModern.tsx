@@ -16,6 +16,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { Skeleton } from '@mui/material';
+import { staggerSx } from '../../helper/animations/Stagger';
 import { Contrat } from '../../../models/Contrat';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
 import useDeleteContrat from '../../../hooks/contratHooks/useDeleteContrat';
@@ -661,7 +663,26 @@ const GestionContratsModernInner = () => {
           {/* Rows container */}
           <Box sx={{ flex: 1, overflow: 'auto', maxHeight: { xs: 'none', md: 480 }, scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent', '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { background: '#e2e8f0', borderRadius: 99 } }}>
             {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress size={36} /></Box>
+              // Skeleton table : 5 lignes silhouette sur la même grille que le rendu
+              // final, pour éviter le saut visuel quand la donnée arrive.
+              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                {[0, 1, 2, 3, 4].map(i => (
+                  <Box key={`sk-c-${i}`} sx={{ display: 'grid', gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', alignItems: 'center', px: 3, py: 1.8, borderBottom: '1px solid #f8fafc', gap: 2 }}>
+                    <Skeleton variant="text" sx={{ width: '70%', fontSize: 12 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Skeleton variant="circular" width={36} height={36} />
+                      <Box sx={{ flex: 1 }}>
+                        <Skeleton variant="text" sx={{ fontSize: 13, width: '80%' }} />
+                        <Skeleton variant="text" sx={{ fontSize: 11, width: '40%' }} />
+                      </Box>
+                    </Box>
+                    <Skeleton variant="text" sx={{ width: '85%' }} />
+                    <Skeleton variant="rounded" width={50} height={20} />
+                    <Skeleton variant="text" sx={{ width: '75%' }} />
+                    <Skeleton variant="circular" width={24} height={24} />
+                  </Box>
+                ))}
+              </Box>
             ) : filtered.length === 0 ? (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8 }}>
                 <Typography sx={{ color: '#94a3b8', fontSize: '13px' }}>{t('contrat.noContracts')}</Typography>
@@ -680,6 +701,7 @@ const GestionContratsModernInner = () => {
                       <Paper key={`m-${c.soccod}-${c.concod}`} elevation={0} sx={{
                         p: 2, borderRadius: '12px', border: '1px solid #edf0f5',
                         '&:hover': { boxShadow: '0 2px 8px rgba(15,23,42,0.08)' }, transition: 'box-shadow 0.15s',
+                        ...staggerSx(i),
                       }}>
                         {/* Top row: avatar + name + actions */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
@@ -726,7 +748,7 @@ const GestionContratsModernInner = () => {
                     const isExpired = c.empsort && dayjs(c.empsort).isBefore(today);
                     return (
                       <Box key={`${c.soccod}-${c.concod}`}
-                        sx={{ display: 'grid', gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', alignItems: 'center', px: 3, py: 1.8, borderBottom: '1px solid #f8fafc', transition: 'background-color 0.15s', '&:hover': { backgroundColor: '#f8faff' }, '&:last-child': { borderBottom: 'none' } }}>
+                        sx={{ display: 'grid', gridTemplateColumns: '130px 1fr 160px 90px 120px 60px', alignItems: 'center', px: 3, py: 1.8, borderBottom: '1px solid #f8fafc', transition: 'background-color 0.15s', '&:hover': { backgroundColor: '#f8faff' }, '&:last-child': { borderBottom: 'none' }, ...staggerSx(i) }}>
 
                         <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#0040a1', fontFamily: 'monospace' }}>
                           {c.concod}
