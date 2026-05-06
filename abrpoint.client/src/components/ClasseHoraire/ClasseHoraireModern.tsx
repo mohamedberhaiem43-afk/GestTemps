@@ -32,7 +32,7 @@ import AlertModal from '../AlertModal/AlertModal';
 import { useClasseHoraireContext, ClasseHoraireProvider } from '../helper/ClasseHoraireContext';
 import apiInstance from '../API/apiInstance';
 import PointageAdjustDialog from '../Pointeuse/Adjustment/PointageAdjustDialog';
-import OnboardingNextStepHint from '../dashboard/OnboardingNextStepHint';
+import OnboardingNextStepHint from '../Dashboard/OnboardingNextStepHint';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (val: any) => {

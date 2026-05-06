@@ -28,7 +28,7 @@ import { useAuth } from '../../helper/AuthProvider';
 import AlertModal from '../../AlertModal/AlertModal';
 import apiInstance from '../../API/apiInstance';
 import AccessDenied from '../../helper/AccessDenied';
-import OnboardingNextStepHint from '../../dashboard/OnboardingNextStepHint';
+import OnboardingNextStepHint from '../../Dashboard/OnboardingNextStepHint';
 import { useQuery } from 'react-query';
 import dayjs from 'dayjs';
 import './GestionContratsModern.css';

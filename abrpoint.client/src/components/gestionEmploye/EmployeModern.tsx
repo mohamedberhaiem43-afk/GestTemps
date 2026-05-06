@@ -42,7 +42,7 @@ import useAddEmploye from '../../hooks/employeHooks/useAddEmploye';
 import useUpdateEmploye from '../../hooks/employeHooks/useUpdateEmploye';
 import { useAuth } from '../helper/AuthProvider';
 import SuccessAnimation from '../helper/SuccessAnimation';
-import OnboardingNextStepHint from '../dashboard/OnboardingNextStepHint';
+import OnboardingNextStepHint from '../Dashboard/OnboardingNextStepHint';
 import Employe from '../../models/Employe';
 import apiInstance from '../API/apiInstance';
 import useGetDirectionLibs from '../../hooks/directionHooks/useGetDirectionLibs';

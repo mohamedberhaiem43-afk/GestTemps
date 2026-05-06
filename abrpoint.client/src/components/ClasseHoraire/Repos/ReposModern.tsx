@@ -24,7 +24,7 @@ import useDeleteRepos from '../../../hooks/Repos/useDeleteRepos';
 import { fetchJoursFeriesFr, toFerier } from '../../../hooks/Repos/useImportJoursFeriesFr';
 import AlertModal from '../../AlertModal/AlertModal';
 import { useAuth } from '../../helper/AuthProvider';
-import OnboardingNextStepHint from '../../dashboard/OnboardingNextStepHint';
+import OnboardingNextStepHint from '../../Dashboard/OnboardingNextStepHint';
 import AccessDenied from '../../helper/AccessDenied';
 import { Ferier } from '../../../models/Ferier';
 import './ReposModern.css';

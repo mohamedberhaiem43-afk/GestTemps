@@ -15,7 +15,7 @@ import AccessDenied from "../helper/AccessDenied";
 
 import CustomizedSnackbars from "../Snackbar/Snackbar";
 import AlertModal from "../AlertModal/AlertModal";
-import OnboardingNextStepHint from "../dashboard/OnboardingNextStepHint";
+import OnboardingNextStepHint from "../Dashboard/OnboardingNextStepHint";
 import "./PosteTravailModern.css";
 
 const emptySchedule = [
