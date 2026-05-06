@@ -143,15 +143,33 @@ public class AuthLookupController : ControllerBase
             user.UtiResetCodeExpiry = DateTime.UtcNow.AddMinutes(15);
             await tdb.SaveChangesAsync(ct);
 
-            var safeName = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(user.Utiprn) ? user.Utinom ?? email : $"{user.Utiprn} {user.Utinom}");
+            var displayName = string.IsNullOrWhiteSpace(user.Utiprn) ? user.Utinom ?? email : $"{user.Utiprn} {user.Utinom}";
+            var safeName = System.Net.WebUtility.HtmlEncode(displayName);
             var safeCode = System.Net.WebUtility.HtmlEncode(resetCode);
-            var subject = "GestTemps — Code de réinitialisation de votre mot de passe";
-            var body =
-                $"<p>Bonjour {safeName},</p>" +
-                "<p>Vous avez demandé la réinitialisation de votre mot de passe sur <strong>GestTemps</strong>.</p>" +
-                $"<p>Votre code de réinitialisation est : <strong style=\"font-size:20px;letter-spacing:4px\">{safeCode}</strong></p>" +
-                "<p>Ce code est valable 15 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>" +
-                "<p>Cordialement,<br/>L'équipe GestTemps</p>";
+            var subject = "Concorde Workforce — Code de réinitialisation";
+
+            // Code formaté en gros avec espacements pour faciliter la lecture / copie.
+            var codeBox =
+                $"<div style=\"text-align:center;margin:24px 0;\">" +
+                $"  <div style=\"display:inline-block;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:1px solid #bfdbfe;border-radius:14px;padding:20px 32px;\">" +
+                $"    <div style=\"font-size:11px;font-weight:700;color:#1e40af;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;\">Code de réinitialisation</div>" +
+                $"    <div style=\"font-size:34px;font-weight:800;color:#0040a1;letter-spacing:10px;font-family:'Courier New',monospace;\">{safeCode}</div>" +
+                $"  </div>" +
+                $"</div>";
+
+            var inner =
+                $"<p>Bonjour <strong>{safeName}</strong>,</p>" +
+                $"<p>Vous avez demandé la réinitialisation de votre mot de passe sur <strong>{Services.EmailTemplates.BrandName}</strong>.</p>" +
+                codeBox +
+                Services.EmailTemplates.StatusBanner(
+                    "Ce code expire dans 15 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.",
+                    Services.EmailTemplates.StatusKind.Warning) +
+                "<p style=\"margin-top:24px;\">Cordialement,<br/><strong>L'équipe Concorde Workforce</strong></p>";
+
+            var body = Services.EmailTemplates.Wrap(
+                title: "Réinitialisation de votre mot de passe",
+                preview: $"Votre code à usage unique : {resetCode}",
+                innerHtml: inner);
 
             await _emailService.SendEmailAsync(email, subject, body);
             return Ok(new { message = genericResponse });

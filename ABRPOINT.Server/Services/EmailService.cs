@@ -79,6 +79,40 @@ namespace ABRPOINT.Server.Services
             message.Sender = new MailboxAddress(_settings.FromName ?? string.Empty, _settings.FromEmail);
 
             var bodyBuilder = new BodyBuilder { HtmlBody = body };
+
+            // Si le HTML référence le logo via cid:concordeLogo (cas standard via
+            // EmailTemplates.Wrap), on attache le PNG en LinkedResource avec ce ContentId.
+            // → Le client mail affiche le logo sans avoir à charger une URL externe
+            // (qui serait souvent bloquée par défaut dans Gmail / Outlook).
+            if (!string.IsNullOrEmpty(body) && body.Contains("cid:" + EmailTemplates.LogoCid))
+            {
+                try
+                {
+                    var logoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Email", "concorde-logo.png");
+                    if (File.Exists(logoPath))
+                    {
+                        var image = bodyBuilder.LinkedResources.Add(logoPath);
+                        image.ContentId = EmailTemplates.LogoCid;
+                        image.ContentDisposition = new MimeKit.ContentDisposition(MimeKit.ContentDisposition.Inline);
+                        // Force Base64 sur la MimePart concrète (LinkedResources.Add renvoie un
+                        // MimeEntity dont ContentTransferEncoding n'est exposé que sur MimePart).
+                        if (image is MimeKit.MimePart mp)
+                        {
+                            mp.ContentTransferEncoding = ContentEncoding.Base64;
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Logo Concorde introuvable à {Path} — l'email sera envoyé sans header visuel.", logoPath);
+                    }
+                }
+                catch (Exception logoEx)
+                {
+                    // Best-effort : un échec d'attachement ne doit pas empêcher l'envoi.
+                    _logger.LogWarning(logoEx, "Échec d'attachement du logo Concorde dans l'email à {To}.", to);
+                }
+            }
+
             message.Body = bodyBuilder.ToMessageBody();
 
             using var client = new SmtpClient

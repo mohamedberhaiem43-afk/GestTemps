@@ -366,8 +366,28 @@ namespace ABRPOINT.Server.Repository
                         var user = await _dbContext.Utilisateurs.FindAsync(demConge.Empcod);
                         if (user != null && !string.IsNullOrEmpty(user.Utimail))
                         {
-                            await _emailService.SendEmailAsync(user.Utimail, "Demande de Congé Acceptée",
-                                $"Bonjour,<br/><br/>Votre demande de congé pour la période du <b>{demConge.Condep:dd/MM/yyyy}</b> au <b>{demConge.Conret:dd/MM/yyyy}</b> a été <b>acceptée</b>.<br/><br/>Cordialement,<br/>L'équipe GestTemps");
+                            var dep = demConge.Condep?.ToString("dd/MM/yyyy") ?? string.Empty;
+                            var ret = demConge.Conret?.ToString("dd/MM/yyyy") ?? string.Empty;
+                            var displayName = string.IsNullOrWhiteSpace(user.Utiprn) ? user.Utinom ?? "" : $"{user.Utiprn} {user.Utinom}";
+                            var safeName = System.Net.WebUtility.HtmlEncode(displayName);
+                            var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+                            {
+                                ["Période"] = $"<strong>{System.Net.WebUtility.HtmlEncode(dep)}</strong> → <strong>{System.Net.WebUtility.HtmlEncode(ret)}</strong>",
+                                ["Statut"] = "<span style=\"color:#059669;font-weight:700;\">✔ Acceptée</span>",
+                            });
+                            var inner =
+                                $"<p>Bonjour <strong>{safeName}</strong>,</p>" +
+                                $"<p>Bonne nouvelle : votre demande de congé vient d'être validée par votre responsable.</p>" +
+                                infoCard +
+                                Services.EmailTemplates.StatusBanner(
+                                    "Profitez bien de cette période de repos !",
+                                    Services.EmailTemplates.StatusKind.Success) +
+                                "<p style=\"margin-top:24px;\">Cordialement,<br/><strong>L'équipe Concorde Workforce</strong></p>";
+                            var body = Services.EmailTemplates.Wrap(
+                                title: "Votre demande de congé est acceptée",
+                                preview: $"Période du {dep} au {ret} validée",
+                                innerHtml: inner);
+                            await _emailService.SendEmailAsync(user.Utimail, "Concorde Workforce — Congé accepté", body);
                         }
                     }
                     catch { /* ne pas casser l'acceptation si l'email échoue */ }

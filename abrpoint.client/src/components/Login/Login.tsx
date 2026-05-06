@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert,
   InputAdornment, IconButton,
 } from '@mui/material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
@@ -43,6 +43,30 @@ export default function CredentialsSignInPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [forgotStep, setForgotStep] = useState<'email' | 'code' | 'reset'>('email');
   const [forgotLoading, setForgotLoading] = useState(false);
+  // Mode « setup » : l'utilisateur arrive depuis l'email de bienvenue avec un token
+  // unique. On le bascule directement sur l'étape « définir mon mot de passe »,
+  // email + code pré-remplis et verrouillés (il n'a qu'à choisir son MDP).
+  const [setupMode, setSetupMode] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('setup') === '1') {
+      const e = searchParams.get('email') ?? '';
+      const c = searchParams.get('code') ?? '';
+      if (e && c) {
+        setSetupMode(true);
+        setShowForgotPassword(true);
+        setForgotEmail(e);
+        setResetCode(c);
+        setForgotStep('reset');
+        // On nettoie l'URL pour éviter de relancer le flow à chaque re-render et de
+        // laisser le token traîner dans l'historique du navigateur.
+        const next = new URLSearchParams(searchParams);
+        next.delete('setup'); next.delete('email'); next.delete('code');
+        setSearchParams(next, { replace: true });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // En SaaS multi-tenant, la société et le site sont résolus côté backend depuis le
   // tenant courant + le Socuser de l'utilisateur. Plus besoin de les demander à l'écran.
@@ -395,6 +419,24 @@ export default function CredentialsSignInPage() {
             {/* Forgot Password Dialog */}
             {showForgotPassword && (
               <Box sx={{ mt: 2 }}>
+                {/* Bannière contextuelle en mode « setup » : l'utilisateur arrive
+                    depuis un email de bienvenue, il faut lui dire qu'il définit
+                    son MDP pour la première fois (et non qu'il « réinitialise »). */}
+                {setupMode && forgotStep === 'reset' && (
+                  <Box sx={{
+                    background: 'linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%)',
+                    border: '1px solid #bfdbfe', borderRadius: 2,
+                    p: 2, mb: 2,
+                  }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 800, color: '#0040a1', mb: 0.5 }}>
+                      Bienvenue sur Concorde Workforce
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, color: '#1e40af', lineHeight: 1.5 }}>
+                      Choisissez votre mot de passe pour activer votre compte
+                      ({forgotEmail}). Il vous servira à toutes vos prochaines connexions.
+                    </Typography>
+                  </Box>
+                )}
                 {forgotStep === 'email' && (
                   <Box className="login-field-group">
                     <Typography className="login-field-label" sx={{ mb: 1 }}>{t('login.forgotPromptEmail')}</Typography>
@@ -445,12 +487,24 @@ export default function CredentialsSignInPage() {
                   endIcon={forgotLoading ? <CircularProgress size={18} sx={{ color: '#ffffff' }} /> : <ArrowForwardIcon sx={{ color: '#ffffff' }} />}
                 >
                   <span style={{ color: '#ffffff' }}>
-                    {forgotLoading ? t('login.loading') : (forgotStep === 'email' ? t('login.sendCode') : forgotStep === 'code' ? t('login.verifyCode') : t('login.reset'))}
+                    {forgotLoading
+                      ? t('login.loading')
+                      : forgotStep === 'email'
+                        ? t('login.sendCode')
+                        : forgotStep === 'code'
+                          ? t('login.verifyCode')
+                          : (setupMode ? 'Activer mon compte' : t('login.reset'))}
                   </span>
                 </Button>
                 <Button
                   fullWidth
-                  onClick={() => { setShowForgotPassword(false); setForgotStep('email'); setError(null); setSuccess(null); }}
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setForgotStep('email');
+                    setSetupMode(false);
+                    setError(null);
+                    setSuccess(null);
+                  }}
                   sx={{ mt: 1, color: '#64748b', fontSize: '13px', textTransform: 'none' }}
                 >
                   {t('login.backToLogin')}

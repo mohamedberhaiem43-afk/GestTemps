@@ -253,8 +253,26 @@ namespace ABRPOINT.Server.Repository
                     var user = await _dbContext.Utilisateurs.FindAsync(demande.Empcod);
                     if (user != null && !string.IsNullOrEmpty(user.Utimail))
                     {
-                        await _emailService.SendEmailAsync(user.Utimail, "Demande d'Autorisation Approuvée",
-                            $"Bonjour,<br/><br/>Votre demande d'autorisation pour le <b>{demande.Condat:dd/MM/yyyy}</b> ({demande.Condep:HH:mm} à {demande.Conret:HH:mm}) a été <b>approuvée</b>.<br/><br/>Cordialement,<br/>L'équipe GestTemps");
+                        var dat = demande.Condat?.ToString("dd/MM/yyyy") ?? "";
+                        var dep = demande.Condep?.ToString("HH:mm") ?? "";
+                        var ret = demande.Conret?.ToString("HH:mm") ?? "";
+                        var displayName = string.IsNullOrWhiteSpace(user.Utiprn) ? user.Utinom ?? "" : $"{user.Utiprn} {user.Utinom}";
+                        var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+                        {
+                            ["Date"] = $"<strong>{System.Net.WebUtility.HtmlEncode(dat)}</strong>",
+                            ["Plage horaire"] = $"<strong>{System.Net.WebUtility.HtmlEncode(dep)}</strong> → <strong>{System.Net.WebUtility.HtmlEncode(ret)}</strong>",
+                            ["Statut"] = "<span style=\"color:#059669;font-weight:700;\">✔ Approuvée</span>",
+                        });
+                        var inner =
+                            $"<p>Bonjour <strong>{System.Net.WebUtility.HtmlEncode(displayName)}</strong>,</p>" +
+                            "<p>Votre demande d'autorisation d'absence vient d'être approuvée par votre responsable.</p>" +
+                            infoCard +
+                            "<p style=\"margin-top:24px;\">Cordialement,<br/><strong>L'équipe Concorde Workforce</strong></p>";
+                        var body = Services.EmailTemplates.Wrap(
+                            title: "Autorisation d'absence approuvée",
+                            preview: $"Le {dat} de {dep} à {ret}",
+                            innerHtml: inner);
+                        await _emailService.SendEmailAsync(user.Utimail, "Concorde Workforce — Autorisation approuvée", body);
                     }
                 }
                 catch { /* ne pas casser l'approbation si l'email échoue */ }
@@ -291,8 +309,33 @@ namespace ABRPOINT.Server.Repository
                     var user = await _dbContext.Utilisateurs.FindAsync(demande.Empcod);
                     if (user != null && !string.IsNullOrEmpty(user.Utimail))
                     {
-                        await _emailService.SendEmailAsync(user.Utimail, "Demande d'Autorisation Refusée",
-                            $"Bonjour,<br/><br/>Votre demande d'autorisation pour le <b>{demande.Condat:dd/MM/yyyy}</b> ({demande.Condep:HH:mm} à {demande.Conret:HH:mm}) a été <b>refusée</b>.{(string.IsNullOrWhiteSpace(commentaire) ? string.Empty : $"<br/><br/><i>Motif :</i> {System.Net.WebUtility.HtmlEncode(commentaire)}")}<br/><br/>Cordialement,<br/>L'équipe GestTemps");
+                        var dat = demande.Condat?.ToString("dd/MM/yyyy") ?? "";
+                        var dep = demande.Condep?.ToString("HH:mm") ?? "";
+                        var ret = demande.Conret?.ToString("HH:mm") ?? "";
+                        var displayName = string.IsNullOrWhiteSpace(user.Utiprn) ? user.Utinom ?? "" : $"{user.Utiprn} {user.Utinom}";
+                        var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+                        {
+                            ["Date"] = $"<strong>{System.Net.WebUtility.HtmlEncode(dat)}</strong>",
+                            ["Plage horaire"] = $"<strong>{System.Net.WebUtility.HtmlEncode(dep)}</strong> → <strong>{System.Net.WebUtility.HtmlEncode(ret)}</strong>",
+                            ["Statut"] = "<span style=\"color:#dc2626;font-weight:700;\">✖ Refusée</span>",
+                        });
+                        var motifBlock = string.IsNullOrWhiteSpace(commentaire)
+                            ? string.Empty
+                            : Services.EmailTemplates.StatusBanner(
+                                $"Motif : {commentaire}",
+                                Services.EmailTemplates.StatusKind.Error);
+                        var inner =
+                            $"<p>Bonjour <strong>{System.Net.WebUtility.HtmlEncode(displayName)}</strong>,</p>" +
+                            "<p>Votre demande d'autorisation d'absence n'a pas pu être validée par votre responsable.</p>" +
+                            infoCard +
+                            motifBlock +
+                            "<p>Pour plus d'informations, contactez votre responsable hiérarchique.</p>" +
+                            "<p style=\"margin-top:24px;\">Cordialement,<br/><strong>L'équipe Concorde Workforce</strong></p>";
+                        var body = Services.EmailTemplates.Wrap(
+                            title: "Autorisation d'absence refusée",
+                            preview: $"Le {dat} de {dep} à {ret}",
+                            innerHtml: inner);
+                        await _emailService.SendEmailAsync(user.Utimail, "Concorde Workforce — Autorisation refusée", body);
                     }
                 }
                 catch { /* ne pas casser le refus si l'email échoue */ }

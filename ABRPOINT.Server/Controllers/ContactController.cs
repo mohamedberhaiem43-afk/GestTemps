@@ -46,14 +46,21 @@ namespace ABRPOINT.Server.Controllers
             var safeMessage = System.Net.WebUtility.HtmlEncode(message).Replace("\n", "<br/>");
 
             var emailSubject = $"[Support] {subject}";
-            var body =
-                "<p><strong>Nouveau message support</strong></p>" +
-                "<ul>" +
-                $"<li><strong>Nom :</strong> {safeName}</li>" +
-                $"<li><strong>Email :</strong> {safeEmail}</li>" +
-                $"<li><strong>Sujet :</strong> {safeSubject}</li>" +
-                "</ul>" +
-                $"<p><strong>Message :</strong></p><p>{safeMessage}</p>";
+            var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+            {
+                ["Nom"] = safeName,
+                ["Email"] = safeEmail,
+                ["Sujet"] = safeSubject,
+            });
+            var inner =
+                "<p>Un visiteur a envoyé un message via le formulaire support.</p>" +
+                infoCard +
+                "<p style=\"font-size:13px;color:#475569;font-weight:700;margin-top:18px;\">Message :</p>" +
+                $"<div style=\"background:#f8fafc;border-left:3px solid #0040a1;padding:12px 18px;border-radius:6px;font-size:14px;line-height:1.55;color:#334155;\">{safeMessage}</div>";
+            var body = Services.EmailTemplates.Wrap(
+                title: "Nouveau message support",
+                preview: $"De {name} — {subject}",
+                innerHtml: inner);
 
             try
             {
@@ -93,16 +100,23 @@ namespace ABRPOINT.Server.Controllers
             var safeNeeds = System.Net.WebUtility.HtmlEncode(needs.Length == 0 ? "—" : needs).Replace("\n", "<br/>");
 
             var emailSubject = $"[Ventes] Demande Premium — {company}";
-            var body =
-                "<p><strong>Nouvelle demande commerciale Premium</strong></p>" +
-                "<ul>" +
-                $"<li><strong>Société :</strong> {safeCompany}</li>" +
-                $"<li><strong>Contact :</strong> {safeContact}</li>" +
-                $"<li><strong>Email :</strong> {safeEmail}</li>" +
-                $"<li><strong>Téléphone :</strong> {safePhone}</li>" +
-                $"<li><strong>Effectif :</strong> {safeHeadcount}</li>" +
-                "</ul>" +
-                $"<p><strong>Besoins :</strong></p><p>{safeNeeds}</p>";
+            var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+            {
+                ["Société"] = safeCompany,
+                ["Contact"] = safeContact,
+                ["Email"] = safeEmail,
+                ["Téléphone"] = safePhone,
+                ["Effectif"] = safeHeadcount,
+            });
+            var inner =
+                "<p>Une nouvelle entreprise est intéressée par l'offre Premium et attend votre rappel.</p>" +
+                infoCard +
+                "<p style=\"font-size:13px;color:#475569;font-weight:700;margin-top:18px;\">Besoins exprimés :</p>" +
+                $"<div style=\"background:#f8fafc;border-left:3px solid #0040a1;padding:12px 18px;border-radius:6px;font-size:14px;line-height:1.55;color:#334155;\">{safeNeeds}</div>";
+            var body = Services.EmailTemplates.Wrap(
+                title: "Demande commerciale Premium",
+                preview: $"{company} — {contactName}",
+                innerHtml: inner);
 
             try
             {

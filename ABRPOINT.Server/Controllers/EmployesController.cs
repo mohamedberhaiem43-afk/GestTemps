@@ -60,30 +60,81 @@ namespace ABRPOINT.Server.Controllers
             return $"https://{rootDomain}/login";
         }
 
+        /// <summary>
+        /// Construit l'URL de définition de mot de passe à usage unique pour un nouvel
+        /// employé. La page Login détecte le triplet ?setup=1&amp;email=…&amp;code=… et
+        /// bascule directement sur l'étape « Définir mon mot de passe » avec email +
+        /// code pré-remplis et verrouillés (cf. Login.tsx).
+        /// </summary>
+        private string BuildSetupPasswordUrl(string email, string token)
+        {
+            var rootDomain = _configuration["Hosting:RootDomain"] ?? "concorde.com";
+            var encodedEmail = Uri.EscapeDataString(email ?? string.Empty);
+            var encodedToken = Uri.EscapeDataString(token ?? string.Empty);
+            return $"https://{rootDomain}/login?setup=1&email={encodedEmail}&code={encodedToken}";
+        }
+
+        /// <summary>
+        /// Génère un token URL-safe de 32 octets (≈43 caractères en base64-url).
+        /// Suffisamment long pour résister au brute-force pendant la fenêtre d'expiration
+        /// de 7 jours, et stocké tel quel dans <c>Utilisateur.UtiResetCode</c> — le même
+        /// champ que le code de réinitialisation classique, ce qui permet de réutiliser
+        /// l'endpoint <c>/auth/reset-password</c> sans schéma additionnel.
+        /// </summary>
+        private static string GenerateSetupToken()
+        {
+            var bytes = new byte[32];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(bytes);
+            return Convert.ToBase64String(bytes)
+                .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        }
+
+        /// <summary>
+        /// Mot de passe « placeholder » : valeur aléatoire stockée dans Utimps (qui sera
+        /// hashée par <see cref="IUtilisateurRepository.AddAsync"/>) quand on ne dispose
+        /// pas de CIN à utiliser comme MDP provisoire. L'employé ne le connaît jamais —
+        /// il définira son vrai MDP via le lien de mise en place envoyé par email.
+        /// </summary>
+        private static string GenerateRandomPlaceholderPassword()
+        {
+            return Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+        }
+
         private async Task SendWelcomeEmailAsync(string toEmail, string fullName, string login, string password)
         {
             if (string.IsNullOrWhiteSpace(toEmail)) return;
             try
             {
                 var loginUrl = BuildLoginUrl();
-                var safeName = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fullName) ? login : fullName);
+                var displayName = string.IsNullOrWhiteSpace(fullName) ? login : fullName;
+                var safeName = System.Net.WebUtility.HtmlEncode(displayName);
                 var safeLogin = System.Net.WebUtility.HtmlEncode(login);
                 var safePassword = System.Net.WebUtility.HtmlEncode(password);
                 var safeEmail = System.Net.WebUtility.HtmlEncode(toEmail);
 
-                var subject = "Bienvenue sur GestTemps — vos identifiants de connexion";
-                var body =
-                    $"<p>Bonjour {safeName},</p>" +
-                    "<p>Votre compte collaborateur vient d'être créé sur la plateforme <strong>GestTemps</strong>.</p>" +
-                    "<p>Voici vos informations de connexion :</p>" +
-                    "<ul>" +
-                    $"<li><strong>Email :</strong> {safeEmail}</li>" +
-                    $"<li><strong>Identifiant :</strong> {safeLogin}</li>" +
-                    $"<li><strong>Mot de passe provisoire :</strong> {safePassword}</li>" +
-                    "</ul>" +
-                    $"<p>Connectez-vous via le lien suivant : <a href=\"{loginUrl}\">{loginUrl}</a></p>" +
-                    "<p>Pour des raisons de sécurité, nous vous recommandons de modifier votre mot de passe dès votre première connexion.</p>" +
-                    "<p>Cordialement,<br/>L'équipe GestTemps</p>";
+                var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+                {
+                    ["Email"] = safeEmail,
+                    ["Identifiant"] = safeLogin,
+                    ["Mot de passe provisoire"] = $"<code style=\"background:#eef2ff;color:#1e3a8a;padding:2px 8px;border-radius:6px;font-size:13px;\">{safePassword}</code>",
+                });
+
+                var inner =
+                    $"<p>Bonjour <strong>{safeName}</strong>,</p>" +
+                    $"<p>Votre compte collaborateur vient d'être créé sur la plateforme <strong>{Services.EmailTemplates.BrandName}</strong>. Vous pouvez dès maintenant vous connecter pour consulter vos pointages, déposer vos demandes de congés et accéder à votre coffre-fort numérique.</p>" +
+                    "<p style=\"margin-top:18px;font-size:13px;color:#475569;\">Vos informations de connexion :</p>" +
+                    infoCard +
+                    Services.EmailTemplates.Button("Accéder à mon espace", loginUrl) +
+                    Services.EmailTemplates.StatusBanner(
+                        "Conseil sécurité : changez votre mot de passe provisoire dès votre première connexion.",
+                        Services.EmailTemplates.StatusKind.Warning) +
+                    "<p style=\"margin-top:24px;\">À très vite,<br/><strong>L'équipe Concorde Workforce</strong></p>";
+
+                var subject = "Bienvenue sur Concorde Workforce — vos identifiants";
+                var body = Services.EmailTemplates.Wrap(
+                    title: $"Bienvenue, {displayName}",
+                    preview: "Vos identifiants de connexion à Concorde Workforce",
+                    innerHtml: inner);
 
                 await _emailService.SendEmailAsync(toEmail, subject, body);
             }
@@ -177,31 +228,86 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Email de bienvenue alternatif quand aucun CIN n'a été saisi : l'employé ne
+        /// reçoit pas un MDP provisoire (qui serait vide), mais un lien sécurisé pour
+        /// définir lui-même son mot de passe. Token unique, expirant à 7 jours.
+        /// </summary>
+        private async Task SendSetupPasswordEmailAsync(string toEmail, string? fullName, string login, string setupUrl)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail)) return;
+            try
+            {
+                var displayName = string.IsNullOrWhiteSpace(fullName) ? login : fullName;
+                var safeName = System.Net.WebUtility.HtmlEncode(displayName);
+                var safeLogin = System.Net.WebUtility.HtmlEncode(login);
+                var safeEmail = System.Net.WebUtility.HtmlEncode(toEmail);
+
+                var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+                {
+                    ["Email"] = safeEmail,
+                    ["Identifiant"] = safeLogin,
+                });
+
+                var inner =
+                    $"<p>Bonjour <strong>{safeName}</strong>,</p>" +
+                    $"<p>Votre compte collaborateur vient d'être créé sur la plateforme <strong>{Services.EmailTemplates.BrandName}</strong>. Pour finaliser votre accès, choisissez votre propre mot de passe en cliquant sur le bouton ci-dessous.</p>" +
+                    infoCard +
+                    Services.EmailTemplates.Button("Définir mon mot de passe", setupUrl) +
+                    Services.EmailTemplates.StatusBanner(
+                        "Ce lien est personnel et expire dans 7 jours. Si vous n'êtes pas à l'origine de cette création, ignorez simplement cet email.",
+                        Services.EmailTemplates.StatusKind.Warning) +
+                    "<p style=\"margin-top:24px;\">À très vite,<br/><strong>L'équipe Concorde Workforce</strong></p>";
+
+                var subject = "Bienvenue sur Concorde Workforce — définissez votre mot de passe";
+                var body = Services.EmailTemplates.Wrap(
+                    title: $"Bienvenue, {displayName}",
+                    preview: "Choisissez votre mot de passe pour accéder à Concorde Workforce",
+                    innerHtml: inner);
+
+                await _emailService.SendEmailAsync(toEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Échec de l'envoi de l'email de mise en place de mot de passe à {Email}", toEmail);
+            }
+        }
+
         private async Task SendEmailChangedNotificationAsync(string newEmail, string? oldEmail, string? fullName, string login)
         {
             if (string.IsNullOrWhiteSpace(newEmail)) return;
             try
             {
                 var loginUrl = BuildLoginUrl();
-                var safeName = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fullName) ? login : fullName);
+                var displayName = string.IsNullOrWhiteSpace(fullName) ? login : fullName;
+                var safeName = System.Net.WebUtility.HtmlEncode(displayName);
                 var safeNew = System.Net.WebUtility.HtmlEncode(newEmail);
                 var safeOld = System.Net.WebUtility.HtmlEncode(oldEmail ?? "(non renseignée)");
                 var safeLogin = System.Net.WebUtility.HtmlEncode(login);
 
-                var subject = "GestTemps — Mise à jour de votre adresse email";
-                var body =
-                    $"<p>Bonjour {safeName},</p>" +
-                    "<p>L'adresse email associée à votre compte collaborateur sur la plateforme " +
-                    "<strong>GestTemps</strong> vient d'être modifiée par votre administrateur.</p>" +
-                    "<ul>" +
-                    $"<li><strong>Ancienne adresse :</strong> {safeOld}</li>" +
-                    $"<li><strong>Nouvelle adresse :</strong> {safeNew}</li>" +
-                    $"<li><strong>Identifiant :</strong> {safeLogin}</li>" +
-                    "</ul>" +
-                    $"<p>Vous devrez désormais utiliser cette nouvelle adresse pour vous connecter : " +
-                    $"<a href=\"{loginUrl}\">{loginUrl}</a></p>" +
-                    "<p>Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement votre administrateur.</p>" +
-                    "<p>Cordialement,<br/>L'équipe GestTemps</p>";
+                var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+                {
+                    ["Ancienne adresse"] = safeOld,
+                    ["Nouvelle adresse"] = $"<strong>{safeNew}</strong>",
+                    ["Identifiant"] = safeLogin,
+                });
+
+                var inner =
+                    $"<p>Bonjour <strong>{safeName}</strong>,</p>" +
+                    $"<p>L'adresse email associée à votre compte sur <strong>{Services.EmailTemplates.BrandName}</strong> vient d'être modifiée par votre administrateur.</p>" +
+                    infoCard +
+                    "<p>Vous devrez désormais utiliser cette nouvelle adresse pour vous connecter à votre espace.</p>" +
+                    Services.EmailTemplates.Button("Se connecter", loginUrl) +
+                    Services.EmailTemplates.StatusBanner(
+                        "Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement votre administrateur.",
+                        Services.EmailTemplates.StatusKind.Error) +
+                    "<p style=\"margin-top:24px;\">Cordialement,<br/><strong>L'équipe Concorde Workforce</strong></p>";
+
+                var subject = "Concorde Workforce — Mise à jour de votre adresse email";
+                var body = Services.EmailTemplates.Wrap(
+                    title: "Adresse email modifiée",
+                    preview: $"Votre nouvelle adresse de connexion : {newEmail}",
+                    innerHtml: inner);
 
                 await _emailService.SendEmailAsync(newEmail, subject, body);
             }
@@ -535,6 +641,23 @@ namespace ABRPOINT.Server.Controllers
 
                     // Save plain CIN for user password before encrypting
                     var plainCin = employe.Empcin;
+                    // Si l'admin n'a pas saisi de CIN, on bascule en mode « setup link » :
+                    // pas de MDP provisoire dans l'email (qui serait vide), à la place un
+                    // lien unique pour que l'employé définisse lui-même son mot de passe.
+                    var hasCin = !string.IsNullOrWhiteSpace(plainCin);
+                    string? setupToken = null;
+                    string passwordToHash;
+                    if (hasCin)
+                    {
+                        passwordToHash = plainCin;
+                    }
+                    else
+                    {
+                        setupToken = GenerateSetupToken();
+                        // Placeholder : la valeur n'est jamais communiquée à l'employé,
+                        // elle sert juste à ce que le hash BCrypt soit non trivial.
+                        passwordToHash = GenerateRandomPlaceholderPassword();
+                    }
                     // Encrypt sensitive fields before saving
                     employe.Empcin = _encryptionService.Encrypt(employe.Empcin);
                     employe.Emptel = _encryptionService.Encrypt(employe.Emptel);
@@ -559,7 +682,7 @@ namespace ABRPOINT.Server.Controllers
                             Utiadm = "0",
                             Uticod = employe.Empcod,
                             Utinom = employe.Emplib,
-                            Utimps = plainCin,
+                            Utimps = passwordToHash,
                             Utimail = employe.Empemail,
                             // Si aucun rôle n'a été choisi par l'utilisateur RH lors de la création
                             // du collaborateur, on retombe sur le rôle système "Employee" (= rôle
@@ -576,8 +699,39 @@ namespace ABRPOINT.Server.Controllers
                         };
                         await _utilisateurRepository.AddAsync(utilisateur, socuser);
 
-                        // Email de bienvenue avec identifiants — n'échoue jamais la requête.
-                        await SendWelcomeEmailAsync(employe.Empemail, employe.Emplib, employe.Empcod, plainCin);
+                        // Mode « setup link » : on persiste le token sur la ligne juste créée.
+                        // Réutilise UtiResetCode/UtiResetCodeExpiry, ce qui permet à
+                        // /auth/reset-password de valider le token sans schéma additionnel.
+                        if (setupToken != null)
+                        {
+                            try
+                            {
+                                var freshUser = await _db.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == employe.Empcod);
+                                if (freshUser != null)
+                                {
+                                    freshUser.UtiResetCode = setupToken;
+                                    freshUser.UtiResetCodeExpiry = DateTime.UtcNow.AddDays(7);
+                                    await _db.SaveChangesAsync();
+                                }
+                            }
+                            catch (Exception tokEx)
+                            {
+                                _log.LogWarning(tokEx, "Échec de la persistance du token de mise en place pour {Empcod}", employe.Empcod);
+                                setupToken = null; // on retombe sur l'email classique en cas d'échec
+                            }
+                        }
+
+                        // Email de bienvenue : version « setup link » si pas de CIN, sinon
+                        // version classique avec MDP provisoire.
+                        if (setupToken != null && !string.IsNullOrWhiteSpace(employe.Empemail))
+                        {
+                            var setupUrl = BuildSetupPasswordUrl(employe.Empemail, setupToken);
+                            await SendSetupPasswordEmailAsync(employe.Empemail, employe.Emplib, employe.Empcod, setupUrl);
+                        }
+                        else
+                        {
+                            await SendWelcomeEmailAsync(employe.Empemail, employe.Emplib, employe.Empcod, plainCin);
+                        }
 
                         // ⚠ Sans cet upsert, l'employé fraîchement créé ne peut PAS se connecter :
                         // /Auth/lookup-tenant interroge la table master TenantEmailIndex pour
@@ -703,13 +857,27 @@ namespace ABRPOINT.Server.Controllers
                 {
                     if (emp != null && !string.IsNullOrEmpty(emp.Empcod))
                     {
+                        // Mode setup-link si pas de CIN — cf. POST single pour le détail.
+                        var hasCin = !string.IsNullOrWhiteSpace(emp._plainCin);
+                        string? setupToken = null;
+                        string passwordToHash;
+                        if (hasCin)
+                        {
+                            passwordToHash = emp._plainCin!;
+                        }
+                        else
+                        {
+                            setupToken = GenerateSetupToken();
+                            passwordToHash = GenerateRandomPlaceholderPassword();
+                        }
+
                         Utilisateur utilisateur = new Utilisateur()
                         {
                             Utiactif = "1",
                             Utiadm = "0",
                             Uticod = emp.Empcod,
                             Utinom = emp.Emplib,
-                            Utimps = emp._plainCin ?? emp.Empcin,
+                            Utimps = passwordToHash,
                             Utimail = emp.Empemail,
                             // Rôle système "Employee" par défaut (cf. POST single ci-dessus).
                             Utirole = string.IsNullOrWhiteSpace(emp.Utirole)
@@ -725,7 +893,33 @@ namespace ABRPOINT.Server.Controllers
                         try
                         {
                             await _utilisateurRepository.AddAsync(utilisateur, socuser);
-                            await SendWelcomeEmailAsync(emp.Empemail, emp.Emplib, emp.Empcod, emp._plainCin ?? string.Empty);
+                            if (setupToken != null)
+                            {
+                                try
+                                {
+                                    var freshUser = await _db.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == emp.Empcod);
+                                    if (freshUser != null)
+                                    {
+                                        freshUser.UtiResetCode = setupToken;
+                                        freshUser.UtiResetCodeExpiry = DateTime.UtcNow.AddDays(7);
+                                        await _db.SaveChangesAsync();
+                                    }
+                                }
+                                catch (Exception tokEx)
+                                {
+                                    _log.LogWarning(tokEx, "Échec persistance token setup pour {Empcod}", emp.Empcod);
+                                    setupToken = null;
+                                }
+                            }
+                            if (setupToken != null && !string.IsNullOrWhiteSpace(emp.Empemail))
+                            {
+                                var setupUrl = BuildSetupPasswordUrl(emp.Empemail, setupToken);
+                                await SendSetupPasswordEmailAsync(emp.Empemail, emp.Emplib, emp.Empcod, setupUrl);
+                            }
+                            else
+                            {
+                                await SendWelcomeEmailAsync(emp.Empemail, emp.Emplib, emp.Empcod, emp._plainCin ?? string.Empty);
+                            }
                         }
                         catch
                         {
