@@ -24,6 +24,7 @@ import {
   Paper,
   Button,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { DashboardRequest } from '../../models/DashboardModels';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
@@ -55,6 +56,7 @@ interface KPIData {
 
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   // const [sexStat, setSexStat] = useState<formattedData[]>([]);
   const [filterDateRange, setFilterDateRange] = useState<'today' | 'week' | 'month' | 'custom'>('today');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
@@ -472,8 +474,8 @@ export default function DashboardPage() {
                     <TableCell>Nom</TableCell>
                     <TableCell>Département</TableCell>
                     <TableCell>Date</TableCell>
-                    <TableCell>Arrivée</TableCell>
-                    <TableCell>Départ</TableCell>
+                    <TableCell>{t('i18nFix.common.arrival')}</TableCell>
+                    <TableCell>{t('i18nFix.common.departure')}</TableCell>
                     <TableCell>Commentaire</TableCell>
                   </TableRow>
                 </TableHead>

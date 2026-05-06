@@ -1,13 +1,15 @@
 import { Box, Grid } from "@mui/material"
+import { useTranslation } from "react-i18next"
 import InputComponent from "../../Inputs/Input"
 
 
 function PeriodeShortcut() {
+  const { t } = useTranslation();
   return (
 <Box >
         <Grid container direction="row" spacing={2} alignItems="end" >
         <Grid item xs={3}>
-            <p>F2 : Affecter C1, Horaire(période=1 Jour)</p>
+            <p>{t('i18nFix.periodeShortcut.f2Hint')}</p>
         </Grid>
         <Grid item xs={0.5}>
         <InputComponent type='text' label='E0.5 ' value={undefined} setValue={undefined} />

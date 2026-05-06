@@ -33,6 +33,12 @@ public static class PermissionCatalog
     public static class Roles
     {
         public const string Administrator = "Administrator";
+        // Rôle attribué par défaut au signataire d'un nouveau tenant. Il a tous les droits
+        // métier (gestion employés, contrats, congés, paie en lecture/ajout) mais PAS
+        // l'administration système (gestion utilisateurs, rôles, paramètres globaux).
+        // Il est promu automatiquement en Administrator dès qu'il est désigné comme
+        // Empresp d'au moins un collaborateur (cf. EmployesController.Put).
+        public const string ResponsableRH = "ResponsableRH";
         public const string Manager = "Manager";
         public const string Employee = "Employee";
     }
@@ -65,6 +71,24 @@ public static class PermissionCatalog
             "#dc2626", // rouge
             // Tout autorisé sur tous modules.
             Modules.All.ToDictionary(m => m, _ => "1111")
+        ),
+        new(
+            Roles.ResponsableRH,
+            "Responsable RH : gestion complète employés, contrats, congés et préparation paie. Pas d'administration système.",
+            "#7c3aed", // violet
+            new Dictionary<string, string>
+            {
+                [Modules.AbsencesSanctions] = "1111",
+                [Modules.PointageTemps] = "1111",
+                [Modules.GestionEmployes] = "1111",
+                [Modules.ContratsAvenants] = "1111",
+                [Modules.PaieRemuneration] = "1110", // pas de suppression définitive
+                [Modules.GestionConges] = "1111",
+                [Modules.DonneesDeBase] = "1100",
+                [Modules.ParametresTemps] = "1100",
+                [Modules.RapportsStatistiques] = "1100",
+                [Modules.Administration] = "0000", // gestion utilisateurs/rôles : Admin only
+            }
         ),
         new(
             Roles.Manager,

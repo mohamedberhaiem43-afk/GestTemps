@@ -109,8 +109,8 @@ const Navbar: React.FC = () => {
               onClose={handleOutilClose}
               TransitionComponent={Fade}
             >
-              <MenuItem component={RouterLink} to="/societes" onClick={handleOutilClose}>Sociétés</MenuItem>
-              <MenuItem component={RouterLink} to="/parametres-societe" onClick={handleOutilClose}>Parmétres societe</MenuItem>
+              <MenuItem component={RouterLink} to="/societes" onClick={handleOutilClose}>{t('i18nFix.navbar.companies')}</MenuItem>
+              <MenuItem component={RouterLink} to="/parametres-societe" onClick={handleOutilClose}>{t('i18nFix.navbar.companySettings')}</MenuItem>
 
             </Menu>
           </Box>

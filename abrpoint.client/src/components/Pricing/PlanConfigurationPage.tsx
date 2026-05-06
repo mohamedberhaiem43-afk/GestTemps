@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Users, Rocket, CheckCircle2, FileText, Headset } from 'lucide-react';
 import { useAuth } from '../helper/AuthProvider';
 import { startStripeCheckout } from './stripeCheckout';
 import './PricingPage.css';
 
 const PlanConfigurationPage: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const { uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
@@ -184,7 +186,7 @@ const PlanConfigurationPage: React.FC = () => {
             {/* Right Column (Sticky Summary) */}
             <div className="lg:col-span-4 lg:sticky lg:top-28">
               <div className="glass-card bg-white/80 p-8 rounded-[2.5rem] shadow-2xl border border-white/20 ambient-shadow">
-                <h2 className="text-2xl font-black tracking-tight mb-8 font-headline uppercase">Récapitulatif</h2>
+                <h2 className="text-2xl font-black tracking-tight mb-8 font-headline uppercase">{t('pricingExtras.summary')}</h2>
 
                 {/* Toggle Monthly/Yearly */}
                 <div className="bg-surface-container-low p-1.5 rounded-2xl flex mb-10 border border-surface-container-high">

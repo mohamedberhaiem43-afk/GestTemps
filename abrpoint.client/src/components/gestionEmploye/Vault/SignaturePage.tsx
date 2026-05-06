@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CircularProgress } from '@mui/material';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
 import apiInstance from '../../API/apiInstance';
 import { DocumentVault } from '../../../models/DocumentVault';
@@ -58,6 +59,7 @@ function useDrawingCanvas() {
 
 /* ══════════════════════════════════════════════════════ */
 const SignaturePage = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const docId = searchParams.get('id');
   const navigate = useNavigate();
@@ -278,7 +280,7 @@ const SignaturePage = () => {
               <div className="sig-file-viewer-wrap">
                 {step === 3 && (
                   <>
-                    <div className="sig-watermark">DOCUMENT SIGNÉ</div>
+                    <div className="sig-watermark">{t('signaturePage.watermarkSigned')}</div>
                     {signedImageData && (
                       <div className="sig-floating-stamp">
                         <div className="sig-stamp-label">Signé par {signerName}</div>
@@ -305,7 +307,7 @@ const SignaturePage = () => {
             ) : (
               /* Fallback: simulated paper when real preview not available */
               <div className="sig-white-paper">
-                {step === 3 && <div className="sig-watermark">DOCUMENT SIGNÉ</div>}
+                {step === 3 && <div className="sig-watermark">{t('signaturePage.watermarkSigned')}</div>}
                 <div className="sig-secure-badge">
                   <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#005136' }}>verified_user</span>
                   <span>{step === 3 ? 'Certifié Conforme' : 'Secure Signature'}</span>
@@ -326,7 +328,7 @@ const SignaturePage = () => {
                 </div>
                 <div className="sig-paper-body">
                   <h2>{doc.docName}</h2>
-                  <p>Employé : <strong>{doc.empcod}</strong> · Type : <strong>{doc.docType}</strong></p>
+                  <p>{t('signaturePage.employeeLabel')} : <strong>{doc.empcod}</strong> · {t('signaturePage.typeLabel')} : <strong>{doc.docType}</strong></p>
                   <h3>Aperçu du document</h3>
                   <p>Le contenu de ce document n'est pas prévisualisable dans le navigateur. Téléchargez-le pour le consulter intégralement.</p>
                   <div className="sig-paper-sig-bloc">
@@ -440,14 +442,14 @@ const SignaturePage = () => {
 
                 {/* Nom du signataire (Obligatoire dans les deux cas) */}
                 <div className="sig-input-group">
-                  <label>Nom Légal Complet</label>
+                  <label>{t('signaturePage.fullLegalName')}</label>
                   <input className="sig-name-input" type="text" value={signerName} onChange={e => setSignerName(e.target.value)} placeholder="Ex: Jean Dupont" />
                 </div>
 
                 {signMethod === 'type' ? (
                   <>
                     <div className="sig-input-group">
-                      <label>Tapez la phrase "Lu et approuvé"</label>
+                      <label>{t('signaturePage.typePhrasePrompt')}</label>
                       <input
                         className="sig-name-input"
                         type="text"
@@ -606,7 +608,7 @@ const SignaturePage = () => {
               <div className="sig-security-card">
                 <span className="material-symbols-outlined" style={{ color: '#0040a1', fontSize: '1.25rem' }}>verified</span>
                 <div>
-                  <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0040a1', margin: 0 }}>Preuve de Dépôt eIDAS</p>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0040a1', margin: 0 }}>{t('signaturePage.depositProofEidas')}</p>
                   <p style={{ fontSize: '0.65rem', color: '#3b82f6', margin: '0.25rem 0 0' }}>
                     Ce document bénéficie d'une présomption de fiabilité conforme au règlement européen eIDAS.
                   </p>

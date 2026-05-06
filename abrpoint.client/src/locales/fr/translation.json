@@ -4794,5 +4794,59 @@
         "delete": "Supprimer"
       }
     }
+  },
+  "signaturePage": {
+    "watermarkSigned": "DOCUMENT SIGNÉ",
+    "employeeLabel": "Employé",
+    "typeLabel": "Type",
+    "fullLegalName": "Nom Légal Complet",
+    "typePhrasePrompt": "Tapez la phrase \"Lu et approuvé\"",
+    "depositProofEidas": "Preuve de Dépôt eIDAS"
+  },
+  "pricingExtras": {
+    "company": "Société",
+    "summary": "Récapitulatif"
+  },
+  "i18nFix": {
+    "intituleAbsence": {
+      "periodicity": "Périodicité",
+      "countHoliday": "Compter Férier"
+    },
+    "repos": {
+      "holiday": "Férié"
+    },
+    "classeHoraire": {
+      "updateTitle": "Mise à Jour Classe Horaire"
+    },
+    "fonction": {
+      "qualityBonus": "Prime de Qualité"
+    },
+    "allaitement": {
+      "afternoon": "Après-midi"
+    },
+    "common": {
+      "after": "Après",
+      "arrival": "Arrivée",
+      "departure": "Départ"
+    },
+    "connPoint": {
+      "fromBadgeDefault": "À partir du Badge (par défaut)",
+      "addSiteCodeLeft": "Ajout du code site à gauche"
+    },
+    "periodeShortcut": {
+      "f2Hint": "F2 : Affecter C1, Horaire (période = 1 jour)"
+    },
+    "navbar": {
+      "companies": "Sociétés",
+      "companySettings": "Paramètres société"
+    },
+    "sidebarLegacy": {
+      "etatPeriodique": "État Périodique"
+    },
+    "integrationPaie": {
+      "employeesLabel": "Employés",
+      "rubriquesLabel": "Rubriques configurées",
+      "linesLabel": "Lignes à exporter"
+    }
   }
 }

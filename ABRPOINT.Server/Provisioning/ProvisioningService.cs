@@ -121,7 +121,16 @@ public sealed class ProvisioningService : IProvisioningService
             });
         }
 
-        // 5. Utilisateur admin (BCrypt) — assigné au rôle système Administrator
+        // 5. Utilisateur du tenant (BCrypt). Désormais créé par défaut comme
+        //    "Responsable RH" et non plus directement Administrator : on attend
+        //    qu'il prenne effectivement la responsabilité d'au moins un collaborateur
+        //    (champ Empresp côté Employe) pour qu'il soit auto-promu Administrator
+        //    via EmployesController.Put. Cette progression suit le parcours métier :
+        //    "tu es RH → quand tu encadres quelqu'un, tu deviens admin".
+        //
+        //    Le flag legacy `Utiadm = "1"` est conservé : c'est le créateur du tenant,
+        //    il doit pouvoir bootstrapper sa configuration (ajouter ses 1ers employés,
+        //    paramétrer son entreprise) sans bloquer derrière un check legacy.
         var existingUser = await db.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == AdminCode, ct);
         if (existingUser is null)
         {
@@ -134,7 +143,7 @@ public sealed class ProvisioningService : IProvisioningService
                 Utimps = BCrypt.Net.BCrypt.HashPassword(seed.AdminPassword),
                 Utiactif = "1",
                 Utiadm = "1",
-                Utirole = PermissionCatalog.Roles.Administrator,
+                Utirole = PermissionCatalog.Roles.ResponsableRH,
             });
         }
 

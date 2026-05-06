@@ -3,7 +3,9 @@ import InputComponent from "../../Inputs/Input";
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 export default function FonctionForm() {
+    const { t } = useTranslation();
     const [fonctionData, setFonctionData] = useState({
         foncod: '',
         soccod: '',
@@ -40,7 +42,7 @@ export default function FonctionForm() {
                                     onChange={() => setFonctionData({ ...fonctionData, fonpqual: fonctionData.fonpqual === 'Y' ? 'N' : 'Y' })}
                                 />
                             }
-                            label={<Typography fontSize="small">Prime de Qualité</Typography>}
+                            label={<Typography fontSize="small">{t('i18nFix.fonction.qualityBonus')}</Typography>}
                         />
                     </Grid>
                     <Grid item xs={12} sm={2}>

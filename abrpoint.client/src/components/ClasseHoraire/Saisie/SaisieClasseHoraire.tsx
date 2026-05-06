@@ -18,6 +18,7 @@ import useGetPoste from "../../../hooks/posteHooks/useGetPoste";
 import useDeleteLcategorie from "../../../hooks/lcategoriesHooks/useDeleteLcategorie";
 import CustomizedSnackbars from "../../Snackbar/Snackbar";
 import AlertModal from "../../AlertModal/AlertModal";
+import { useTranslation } from "react-i18next";
 
 const formatDate = (val: any) => {
   if (!val) return '';
@@ -27,6 +28,7 @@ const formatDate = (val: any) => {
 };
 
 export default function SaisieClasseHoraire() {
+  const { t } = useTranslation();
   const [codeClasseHoraire, setCodeClasseHoraire] = useState('');
   const [libelle, setLibelle] = useState('');
   const [heuresSupp, setHeuresSupp] = useState('0');
@@ -348,7 +350,7 @@ useEffect(() => {
         <Grid item xs={5}>
           <Box component="fieldset" id="update-classe-horaire" sx={{ height: '100%' }}>
             <legend>
-              <Typography color={'error'}>Mise à Jour Classe Horaire</Typography>
+              <Typography color={'error'}>{t('i18nFix.classeHoraire.updateTitle')}</Typography>
             </legend>
 
             <Grid container spacing={2}>

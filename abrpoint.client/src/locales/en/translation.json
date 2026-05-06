@@ -4795,5 +4795,59 @@
         "delete": "Delete"
       }
     }
+  },
+  "signaturePage": {
+    "watermarkSigned": "SIGNED DOCUMENT",
+    "employeeLabel": "Employee",
+    "typeLabel": "Type",
+    "fullLegalName": "Full Legal Name",
+    "typePhrasePrompt": "Type the phrase \"Read and approved\"",
+    "depositProofEidas": "eIDAS Deposit Proof"
+  },
+  "pricingExtras": {
+    "company": "Company",
+    "summary": "Summary"
+  },
+  "i18nFix": {
+    "intituleAbsence": {
+      "periodicity": "Periodicity",
+      "countHoliday": "Count as holiday"
+    },
+    "repos": {
+      "holiday": "Holiday"
+    },
+    "classeHoraire": {
+      "updateTitle": "Update Time Class"
+    },
+    "fonction": {
+      "qualityBonus": "Quality Bonus"
+    },
+    "allaitement": {
+      "afternoon": "Afternoon"
+    },
+    "common": {
+      "after": "After",
+      "arrival": "Arrival",
+      "departure": "Departure"
+    },
+    "connPoint": {
+      "fromBadgeDefault": "From badge (default)",
+      "addSiteCodeLeft": "Add site code on the left"
+    },
+    "periodeShortcut": {
+      "f2Hint": "F2: Assign C1, Schedule (period = 1 day)"
+    },
+    "navbar": {
+      "companies": "Companies",
+      "companySettings": "Company settings"
+    },
+    "sidebarLegacy": {
+      "etatPeriodique": "Periodic Report"
+    },
+    "integrationPaie": {
+      "employeesLabel": "Employees",
+      "rubriquesLabel": "Configured payroll items",
+      "linesLabel": "Lines to export"
+    }
   }
 }

@@ -71,9 +71,21 @@ namespace ABRPOINT.Server.CalculService.CalcTotHeures
 
                 float totalPosteJourHeures = await _posteRepository.GetJourHeures(presence.Soccod, presence.Dmdate, presence.Codposte) ?? 0f;
 
-                // 🔹 Étape 3 : Calcul heures normales + heures supp - retards
+                // 🔹 Étape 3 : Calcul des heures travaillées
+                //
+                // L'ancienne formule `posteHeures + supp - retard` cumulait les erreurs
+                // des deux services (retard parfois calculé contre une plage différente,
+                // supp ne couvrant pas une pause-déjeuner raccourcie) → Tothre pouvait
+                // afficher 04h47 alors que les pointages réels donnaient 05h47.
+                //
+                // Quand les 4 pointages sont présents (matin + après-midi), on additionne
+                // simplement les durées réellement passées au travail — c'est ce que
+                // l'utilisateur attend de voir sur la fiche journalière. On ne retombe
+                // sur l'ancienne formule que pour les postes continus ou les pointages
+                // partiels où on n'a pas les 2 plages.
                 var (nbHeurSupp, nbRetard) = await CalculateDayWorkMetricsOptimise(presence);
-                float totalHeures = totalPosteJourHeures + (((float)nbHeurSupp - nbRetard) / 60f);
+                float totalHeures = ComputeWorkedHoursFromPunches(presence)
+                                    ?? (totalPosteJourHeures + (((float)nbHeurSupp - nbRetard) / 60f));
 
                 // 🔹 Étape 4 : Ajouter heures autorisées si absence partielle
                 if (autorisation?.Condep != null && autorisation?.Conret != null)
@@ -152,9 +164,10 @@ namespace ABRPOINT.Server.CalculService.CalcTotHeures
 
                 float totalPosteJourHeures = await _posteRepository.GetJourHeures(presence.Soccod, presence.Dmdate, presence.Codposte) ?? 0f;
 
-                // 🔹 Étape 3 : Calcul heures normales + heures supp - retards
+                // 🔹 Étape 3 : Calcul des heures travaillées (cf. CalcHreTravOptimise pour le détail)
                 var (nbHeurSupp, nbRetard) = await CalculateDayWorkMetrics(presence);
-                float totalHeures = totalPosteJourHeures + (((float)nbHeurSupp - nbRetard) / 60f);
+                float totalHeures = ComputeWorkedHoursFromPunches(presence)
+                                    ?? (totalPosteJourHeures + (((float)nbHeurSupp - nbRetard) / 60f));
 
                 // 🔹 Étape 4 : Ajouter heures autorisées si absence partielle
                 if (autorisation?.Condep != null && autorisation?.Conret != null)
@@ -230,6 +243,41 @@ namespace ABRPOINT.Server.CalculService.CalcTotHeures
 
             return overlaps;
         }
+        /// <summary>
+        /// Calcule directement les heures travaillées à partir des pointages réels (entrées/sorties)
+        /// quand on a au moins une plage complète. Retourne <c>null</c> si aucune plage n'est exploitable
+        /// — l'appelant retombe alors sur l'ancienne formule basée sur le poste théorique.
+        ///
+        /// Cas couverts :
+        ///  - Matin + après-midi (4 pointages) : somme des deux durées (la pause-déjeuner est
+        ///    naturellement exclue par le gap entre les 2 plages).
+        ///  - Matin uniquement OU après-midi uniquement : durée de la plage présente.
+        ///  - Aucun couple entrée/sortie cohérent : retourne null pour fallback.
+        /// </summary>
+        private static float? ComputeWorkedHoursFromPunches(PresenceDto presence)
+        {
+            TimeSpan total = TimeSpan.Zero;
+            bool any = false;
+
+            if (TimeSpan.TryParse(presence.Preentmatup, out var em) &&
+                TimeSpan.TryParse(presence.Presortmatup, out var sm) &&
+                sm > em)
+            {
+                total += sm - em;
+                any = true;
+            }
+
+            if (TimeSpan.TryParse(presence.Preentamidiup, out var ea) &&
+                TimeSpan.TryParse(presence.Presortamidiup, out var sa) &&
+                sa > ea)
+            {
+                total += sa - ea;
+                any = true;
+            }
+
+            return any ? (float)total.TotalHours : (float?)null;
+        }
+
         public float CalcArrondi(float arrondi,float totalHeures)
         {
             if (arrondi > 0)

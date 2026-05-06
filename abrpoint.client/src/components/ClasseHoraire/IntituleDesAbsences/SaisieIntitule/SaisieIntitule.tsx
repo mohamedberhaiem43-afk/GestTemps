@@ -18,6 +18,7 @@ import {
   Button,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
+import { useTranslation } from "react-i18next";
 import "./SaisieIntitule.css";
 import useAddAbsence from "../../../../hooks/absenceHooks/useAddAbsence";
 import useGetAllAbsences from "../../../../hooks/absenceHooks/useGetAllAbsence";
@@ -27,6 +28,7 @@ import RadioGroupComponent, { FormControlLabelComponent } from "../../../RadioGr
 import ForbiddenMessage from "../../../AlertModal/ForbiddenMessage";
 
 export default function SaisieIntitule() {
+  const { t } = useTranslation();
   const [forbiddenMsg, setForbiddenMsg] = useState<string | null>(null);
   const { selectedAbsence } = useAbsenceContext(); // Get the selected absence from the context
   const [codeClasseHoraire, setCodeClasseHoraire] = useState("");
@@ -281,7 +283,7 @@ export default function SaisieIntitule() {
                     size="small"
                   />
                 }
-                label={<Typography fontSize="small">Compter Férier</Typography>}
+                label={<Typography fontSize="small">{t('i18nFix.intituleAbsence.countHoliday')}</Typography>}
               />
             </Grid>
           </Grid>

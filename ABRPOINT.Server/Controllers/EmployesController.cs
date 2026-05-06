@@ -507,6 +507,13 @@ namespace ABRPOINT.Server.Controllers
                     employe.Empsbrut = _encryptionService.Encrypt(employe.Empsbrut);
                     employe.Empsnet = _encryptionService.Encrypt(employe.Empsnet);
                     await _employeRepository.AddAsync(employe);
+
+                    // Auto-promotion : même règle que dans Put (cf. commentaire là-bas) —
+                    // l'utilisateur désigné comme Empresp passe automatiquement à Administrator.
+                    if (!string.IsNullOrWhiteSpace(employe.Empresp))
+                    {
+                        await _utilisateurRepository.PromoteToAdminAsync(employe.Empresp);
+                    }
                     
                     // Try to create user account - don't fail the whole request if user creation fails
                     try
@@ -619,7 +626,21 @@ namespace ABRPOINT.Server.Controllers
                     }
                 }
                 await _employeRepository.AddMultipleEmploye(employe);
-                
+
+                // Auto-promotion : pour chaque collaborateur importé qui désigne un
+                // Empresp, on promeut le user correspondant en Administrator.
+                // On dédoublonne pour ne pas faire 50 updates si tous pointent vers
+                // le même responsable.
+                var responsableUticods = employe
+                    .Where(e => !string.IsNullOrWhiteSpace(e?.Empresp))
+                    .Select(e => e!.Empresp!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                foreach (var respUticod in responsableUticods)
+                {
+                    await _utilisateurRepository.PromoteToAdminAsync(respUticod);
+                }
+
                 // Créer les comptes utilisateurs pour chaque employé
                 foreach (var emp in employe)
                 {
@@ -678,6 +699,16 @@ namespace ABRPOINT.Server.Controllers
                 if (!string.IsNullOrEmpty(employe.Utirole))
                 {
                     await _utilisateurRepository.UpdateRoleAsync(employe.Empcod, employe.Utirole);
+                }
+
+                // Auto-promotion : dès qu'un utilisateur est désigné comme Empresp
+                // d'un employé, il prend en charge la responsabilité RH d'au moins
+                // un collaborateur — on bascule donc son rôle de "Responsable RH"
+                // (rôle par défaut au signup) vers "Administrator" pour qu'il dispose
+                // des droits d'administration système. Idempotent si déjà admin.
+                if (!string.IsNullOrWhiteSpace(employe.Empresp))
+                {
+                    await _utilisateurRepository.PromoteToAdminAsync(employe.Empresp);
                 }
 
                 // Lit l'email avant update pour détecter un changement et notifier le collaborateur.

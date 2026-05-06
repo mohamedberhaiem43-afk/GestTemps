@@ -175,7 +175,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                         />
                       </Grid>
                       <Grid item xs={6}>
-                        <InputLabel shrink>Après</InputLabel>
+                        <InputLabel shrink>{t('i18nFix.common.after')}</InputLabel>
                         <Input 
                           size="small" 
                           type="number" 
@@ -213,7 +213,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                         />
                       </Grid>
                       <Grid item xs={6}>
-                        <InputLabel shrink>Après</InputLabel>
+                        <InputLabel shrink>{t('i18nFix.common.after')}</InputLabel>
                         <Input 
                           size="small" 
                           type="number" 
@@ -273,7 +273,7 @@ export default function SaisiePoste({ onFormChange }: SaisiePosteProps) {
                         </FormControl>
                       </Grid>
                       <Grid item xs={6}>
-                        <InputLabel shrink>Après</InputLabel>
+                        <InputLabel shrink>{t('i18nFix.common.after')}</InputLabel>
                         <FormControl variant="standard" fullWidth>
                           <Select
                             value={formData.reposApres}

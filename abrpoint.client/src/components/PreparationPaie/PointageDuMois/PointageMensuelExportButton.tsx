@@ -63,15 +63,32 @@ type DayValue = { kind: 'hours' | 'code' | 'empty'; value: string | number; code
 
 function parseDay(detail: string | undefined): DayValue {
   if (!detail) return { kind: 'empty', value: '' };
-  const presentMatch = detail.match(/Présent:\s*([\d.,-]+)/);
+  // Le serveur émet "Présent: HH:mm" (cf. OptimizedPresenceService.GetWeekDetails).
+  // Le regex précédent `[\d.,-]+` ne capturait pas le `:`, donc "05:47" devenait "5"
+  // et l'export Excel n'affichait que les heures sans les minutes.
+  const presentMatch = detail.match(/Présent:\s*([\d:.,-]+)/);
   const sanctionMatch = detail.match(/Sanction\[([^\]]+)\]/);
   const congeMatch = detail.match(/Congé\[([^\]]+)\]/);
   const isFerier = /Férié/.test(detail);
   const isRepos = /Repos/.test(detail);
 
   if (presentMatch) {
-    const v = parseFloat(presentMatch[1].replace(',', '.'));
-    if (!isNaN(v) && v > 0) return { kind: 'hours', value: v };
+    const raw = (presentMatch[1] || '').trim();
+    // Format déjà en HH:mm → on le garde tel quel, parfait pour Excel.
+    if (/^\d{1,2}:\d{2}$/.test(raw)) {
+      return { kind: 'hours', value: raw };
+    }
+    // Fallback : valeur décimale (ex "5.78") → convertir en HH:mm pour rester
+    // cohérent avec le reste du fichier (l'utilisateur veut voir les minutes).
+    const v = parseFloat(raw.replace(',', '.'));
+    if (!isNaN(v) && v > 0) {
+      const h = Math.floor(v);
+      const m = Math.round((v - h) * 60);
+      const display = m === 60
+        ? `${String(h + 1).padStart(2, '0')}:00`
+        : `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      return { kind: 'hours', value: display };
+    }
   }
   if (sanctionMatch) {
     const code = (sanctionMatch[1] || '').trim().toUpperCase();

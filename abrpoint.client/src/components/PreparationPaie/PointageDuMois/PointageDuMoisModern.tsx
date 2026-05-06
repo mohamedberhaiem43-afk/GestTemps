@@ -84,6 +84,18 @@ const fmtHours = (v: number | null | undefined): string => {
   return Number(n.toFixed(4)).toString();
 };
 
+/**
+ * Variante 2 décimales pour le tableau "détail hebdomadaire" du dialog
+ * employé : sur cet écran l'utilisateur veut une lecture rapide des cumuls
+ * (heures repos, heures travaillées, etc.) — la précision flottante au-delà
+ * de 2 décimales nuit à la lisibilité dans une grille dense.
+ */
+const fmtHours2 = (v: number | null | undefined): string => {
+  const n = Number(v ?? 0);
+  if (!Number.isFinite(n)) return '0';
+  return n.toFixed(2);
+};
+
 const downloadPDF = (blob: Blob, filename: string) => {
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -720,8 +732,14 @@ function PointageDuMoisContent() {
                             const cls = statusToClass(status.key);
                             return (
                               <td key={i}>
-                                <Box className="pdm-week-cell"
-                                  onDoubleClick={(e) => { e.stopPropagation(); setNumSem(i + 1); setSelectedWeekDetails(w.weekDetails as any); setOpenDialog(true); }}>
+                                <Box
+                                  className="pdm-week-cell"
+                                  // Stoppe le clic single avant qu'il ne remonte au <tr> (qui
+                                  // ouvrirait la fiche employé). Le double-clic n'ouvre ainsi
+                                  // QUE le détail de la semaine, sans empiler 2 dialogs.
+                                  onClick={(e) => e.stopPropagation()}
+                                  onDoubleClick={(e) => { e.stopPropagation(); setNumSem(i + 1); setSelectedWeekDetails(w.weekDetails as any); setOpenDialog(true); }}
+                                >
                                   <Typography className="pdm-week-hrs">{hrs}</Typography>
                                   <Typography className={`pdm-week-label ${cls}`}>{label}</Typography>
                                 </Box>
@@ -888,7 +906,7 @@ function PointageDuMoisContent() {
                             ? fmtMin(r.retard ?? 0)
                             : c.fmt
                             ? c.fmt(Number(r[c.key as keyof typeof r]) || 0)
-                            : fmtHours(Number(r[c.key as keyof typeof r]))}
+                            : fmtHours2(Number(r[c.key as keyof typeof r]))}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -900,7 +918,7 @@ function PointageDuMoisContent() {
                         <TableCell key={c.key} sx={{ fontWeight: 700, color: '#0040a1', fontSize: 12 }}>
                           {c.key === 'retard'
                             ? fmtMin(totals.retard ?? 0)
-                            : fmtHours(Number(totals[c.key]))}
+                            : fmtHours2(Number(totals[c.key]))}
                         </TableCell>
                       ))}
                     </TableRow>

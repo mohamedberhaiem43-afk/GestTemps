@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Building2, Users, Phone, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import './PricingPage.css';
 import { sendSalesRequest } from '../../services/ContactService';
 
 const ContactSalesPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [company, setCompany] = useState('');
   const [contactName, setContactName] = useState('');
@@ -99,7 +101,7 @@ const ContactSalesPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-outline mb-1.5">Société</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-outline mb-1.5">{t('pricingExtras.company')}</label>
                     <input
                       type="text"
                       value={company}

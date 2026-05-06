@@ -13,6 +13,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 
 // ============================================================================
@@ -130,6 +131,7 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
   mois,
   annee,
 }) => {
+  const { t } = useTranslation();
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -347,11 +349,11 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
               pour l'intégration dans Sage Paie.
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              <strong>Employés :</strong> {pointageMoisData.length}
+              <strong>{t('i18nFix.integrationPaie.employeesLabel')} :</strong> {pointageMoisData.length}
               <br />
-              <strong>Rubriques configurées :</strong> {rubriques.length}
+              <strong>{t('i18nFix.integrationPaie.rubriquesLabel')} :</strong> {rubriques.length}
               <br />
-              <strong>Lignes à exporter :</strong> {totalRows}
+              <strong>{t('i18nFix.integrationPaie.linesLabel')} :</strong> {totalRows}
             </Typography>
           </Box>
 

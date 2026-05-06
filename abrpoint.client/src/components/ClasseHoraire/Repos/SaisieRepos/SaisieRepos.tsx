@@ -15,8 +15,10 @@ import { Ferier } from "../../../../models/Ferier";
 import { useFerierContext } from "../../../helper/ReposContext";
 import useUpdateRepos from "../../../../hooks/Repos/useUpdateRepos";
 import ForbiddenMessage from "../../../AlertModal/ForbiddenMessage";
+import { useTranslation } from "react-i18next";
 
 export default function SaisieRepos() {
+  const { t } = useTranslation();
   const { selectedFerier } = useFerierContext();
   const [forbiddenMsg, setForbiddenMsg] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -266,7 +268,7 @@ export default function SaisieRepos() {
                           <FormControlLabel
                             value="F"
                             control={<Radio size="small" />}
-                            label={<Typography fontSize="small">Férié</Typography>}
+                            label={<Typography fontSize="small">{t('i18nFix.repos.holiday')}</Typography>}
                           />
                           <FormControlLabel
                             value="R"

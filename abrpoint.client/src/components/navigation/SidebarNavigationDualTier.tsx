@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Home,
   LayoutGrid,
@@ -166,6 +167,7 @@ export default function SidebarNavigationDualTier({
   isAdmin,
   children,
 }: SidebarNavigationDualTierProps) {
+  const { t } = useTranslation();
   const [activePrimaryHref, setActivePrimaryHref] = React.useState<string>(() => {
     const matched = items.find((node) => hasDescendant(node, pathname));
     return matched?.href ?? items[0]?.href ?? '/dashboard';
@@ -315,7 +317,7 @@ export default function SidebarNavigationDualTier({
                 className={`sndt-nav-btn${pathname === '/dashboard/etat-periodique' ? ' sndt-nav-btn--active' : ''}`}
               >
                 <Activity size={20} />
-                <span>Etat Périodique</span>
+                <span>{t('i18nFix.sidebarLegacy.etatPeriodique')}</span>
               </button>
             ) : (
               <button

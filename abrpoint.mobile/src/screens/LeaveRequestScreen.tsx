@@ -249,8 +249,17 @@ export default function LeaveRequestScreen({ navigation }: any) {
   const fmt = (d: Date) => d.toISOString().split('T')[0];
   
   const calcDays = () => {
-    const diff = form.conret.getTime() - form.condep.getTime();
-    return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
+    // `conret` représente le jour de RETOUR au travail (l'employé est absent
+    // jusqu'à la veille). Donc condep=11 + conret=12 = 1 jour de congé, pas 2.
+    // L'ancien `Math.ceil(diff) + 1` ajoutait à tort une journée fantôme (la
+    // formule web a toujours utilisé une simple soustraction, cf.
+    // DemCongeModern.tsx ligne 240).
+    const diffMs = form.conret.getTime() - form.condep.getTime();
+    const diff = Math.max(0, diffMs / (1000 * 60 * 60 * 24));
+    // Demi-journées : `conamdep === '0'` = case "Après-midi (date départ)" cochée
+    // (départ l'après-midi → on retire 0.5 de la 1re journée). Idem conamret.
+    const adj = (form.conamret === '0' ? 0.5 : 0) - (form.conamdep === '0' ? 0.5 : 0);
+    return Math.max(0, diff + adj);
   };
 
   const getAbsLib = (abscod: string) => {

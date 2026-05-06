@@ -314,7 +314,7 @@ export default function AllaitementSaisie() {
                             <FormControlLabel
                               value="A"
                               control={<Radio size="small" />}
-                              label={<Typography fontSize="small">Après-midi</Typography>}
+                              label={<Typography fontSize="small">{t('i18nFix.allaitement.afternoon')}</Typography>}
                             />
                             <FormControlLabel
                               value="S"

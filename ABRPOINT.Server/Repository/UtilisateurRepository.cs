@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
@@ -493,6 +494,18 @@ namespace ABRPOINT.Server.Repository
                 .Where(u => u.Uticod == uticod)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(u => u.Utirole, newRole));
+        }
+
+        public async Task PromoteToAdminAsync(string uticod)
+        {
+            if (string.IsNullOrWhiteSpace(uticod)) return;
+            // Met à la fois Utirole (RBAC) et Utiadm="1" (flag legacy) pour rester
+            // cohérent avec les deux systèmes de permissions qui coexistent dans le code.
+            await _dbContext.Utilisateurs
+                .Where(u => u.Uticod == uticod)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(u => u.Utirole, PermissionCatalog.Roles.Administrator)
+                    .SetProperty(u => u.Utiadm, "1"));
         }
 
         public async Task<List<string>> GetAdminsEmailsAsync()
