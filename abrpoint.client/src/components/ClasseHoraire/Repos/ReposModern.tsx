@@ -24,6 +24,7 @@ import useDeleteRepos from '../../../hooks/Repos/useDeleteRepos';
 import { fetchJoursFeriesFr, toFerier } from '../../../hooks/Repos/useImportJoursFeriesFr';
 import AlertModal from '../../AlertModal/AlertModal';
 import { useAuth } from '../../helper/AuthProvider';
+import OnboardingNextStepHint from '../../dashboard/OnboardingNextStepHint';
 import AccessDenied from '../../helper/AccessDenied';
 import { Ferier } from '../../../models/Ferier';
 import './ReposModern.css';
@@ -236,6 +237,12 @@ function ReposModernInner() {
 
   return (
     <Box className="rp-container">
+      {/* Étape 3/5 — bascule en succès dès qu'au moins 1 jour férié est saisi
+          et propose la création d'un employé. */}
+      <OnboardingNextStepHint
+        currentStep="calendrier"
+        dataCount={(data || []).length}
+      />
       {/* Page header */}
       <Box className="rp-page-header">
         <Box>

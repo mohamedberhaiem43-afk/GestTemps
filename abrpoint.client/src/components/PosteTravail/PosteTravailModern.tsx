@@ -15,6 +15,7 @@ import AccessDenied from "../helper/AccessDenied";
 
 import CustomizedSnackbars from "../Snackbar/Snackbar";
 import AlertModal from "../AlertModal/AlertModal";
+import OnboardingNextStepHint from "../dashboard/OnboardingNextStepHint";
 import "./PosteTravailModern.css";
 
 const emptySchedule = [
@@ -213,6 +214,12 @@ export default function PosteTravailModern() {
 
   return (
     <Box className="poste-travail-modern-container">
+      {/* Bandeau de progression onboarding : étape 1/5 → bascule en mode succès
+          dès qu'au moins un poste existe et propose la classe horaire. */}
+      <OnboardingNextStepHint
+        currentStep="poste"
+        dataCount={Object.keys(postesList || {}).length}
+      />
       {/* Header Section */}
       <Box className="poste-modern-header">
         <Box>

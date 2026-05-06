@@ -42,6 +42,7 @@ import useAddEmploye from '../../hooks/employeHooks/useAddEmploye';
 import useUpdateEmploye from '../../hooks/employeHooks/useUpdateEmploye';
 import { useAuth } from '../helper/AuthProvider';
 import SuccessAnimation from '../helper/SuccessAnimation';
+import OnboardingNextStepHint from '../dashboard/OnboardingNextStepHint';
 import Employe from '../../models/Employe';
 import apiInstance from '../API/apiInstance';
 import useGetDirectionLibs from '../../hooks/directionHooks/useGetDirectionLibs';
@@ -751,8 +752,16 @@ const EmployeModernInner = () => {
     return (
         // Pas de `overflowX: hidden` ici : ça crée un contexte de scroll qui casse `position: sticky`
         // sur le Top bar. On garde le scroll au niveau du body pour que le header reste collé en haut.
-        <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', width: '100%', maxWidth: '100vw' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', width: '100%', maxWidth: '100vw' }}>
 
+            {/* Étape 4/5 — affichée au-dessus de la mise en page sidebar+content
+                pour ne pas casser la mise en colonnes du contenu principal. */}
+            <OnboardingNextStepHint
+                currentStep="employe"
+                dataCount={(employeesList || []).length}
+            />
+
+            <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
             {/* ── Annuaire (sidebar gauche, mode update uniquement) ── */}
             {mode === 'update' && canConsult && renderAnnuaire()}
 
@@ -1454,6 +1463,7 @@ const EmployeModernInner = () => {
                     </>
                 )}
             </Box>
+            </Box>{/* fin du wrapper flex annuaire+content ajouté pour le bandeau d'onboarding */}
 
             {/* AI Document Scan Modal */}
             {(canAdd || canModify) && (

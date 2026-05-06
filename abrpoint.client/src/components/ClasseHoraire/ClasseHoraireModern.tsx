@@ -32,6 +32,7 @@ import AlertModal from '../AlertModal/AlertModal';
 import { useClasseHoraireContext, ClasseHoraireProvider } from '../helper/ClasseHoraireContext';
 import apiInstance from '../API/apiInstance';
 import PointageAdjustDialog from '../Pointeuse/Adjustment/PointageAdjustDialog';
+import OnboardingNextStepHint from '../dashboard/OnboardingNextStepHint';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (val: any) => {
@@ -660,6 +661,11 @@ function ClasseHoraireModernInner() {
 
   return (
     <Box className="chm-container">
+      {/* Étape 2/5 du parcours d'onboarding — propose le calendrier ensuite. */}
+      <OnboardingNextStepHint
+        currentStep="classe"
+        dataCount={(classesList || []).length}
+      />
       <Box className="chm-layout">
 
         {/* ── Sidebar gauche ── */}

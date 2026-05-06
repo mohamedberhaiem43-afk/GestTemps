@@ -28,6 +28,7 @@ import { useAuth } from '../../helper/AuthProvider';
 import AlertModal from '../../AlertModal/AlertModal';
 import apiInstance from '../../API/apiInstance';
 import AccessDenied from '../../helper/AccessDenied';
+import OnboardingNextStepHint from '../../dashboard/OnboardingNextStepHint';
 import { useQuery } from 'react-query';
 import dayjs from 'dayjs';
 import './GestionContratsModern.css';
@@ -416,6 +417,13 @@ const GestionContratsModernInner = () => {
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', backgroundColor: '#f0f3f8', fontFamily: 'Manrope, sans-serif', pb: 6 }}>
+
+      {/* Étape 5/5 — dernière étape du parcours d'onboarding. Le bandeau
+          félicite l'admin et l'invite à retourner au tableau de bord. */}
+      <OnboardingNextStepHint
+        currentStep="contrat"
+        dataCount={(contrats || []).length}
+      />
 
       {/* KPI Row — responsive: 1 col on mobile, 3 on tablet+ */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, px: { xs: 1.5, sm: 3 }, pt: 3, pb: 2 }}>
