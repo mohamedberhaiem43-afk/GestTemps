@@ -91,6 +91,14 @@ namespace ABRPOINT.Server.Services
                 Timeout = 15000,
             };
 
+            // Watchdog explicite : si la connexion ou un appel ConnectAsync se bloque
+            // (TLS handshake muet, port filtré par le firewall hébergeur, etc.),
+            // MailKit n'invoque pas toujours son Timeout interne sur la phase de
+            // connexion TCP. On ajoute donc un CancellationToken pour garantir une
+            // sortie propre au bout de 20 s. Le user voit alors une vraie erreur
+            // plutôt qu'un log qui s'arrête à "Connecting...".
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+
             try
             {
                 var secureOptions = ResolveSecureOptions(_settings.Port, _settings.EnableSsl);
@@ -99,15 +107,28 @@ namespace ABRPOINT.Server.Services
                     "Connecting to SMTP {Host}:{Port} with {Mode}...",
                     _settings.Host, _settings.Port, secureOptions);
 
-                await client.ConnectAsync(_settings.Host, _settings.Port, secureOptions);
+                await client.ConnectAsync(_settings.Host, _settings.Port, secureOptions, cts.Token);
+                _logger.LogInformation("SMTP connected to {Host}:{Port}.", _settings.Host, _settings.Port);
 
                 if (!string.IsNullOrEmpty(_settings.Username))
                 {
-                    await client.AuthenticateAsync(_settings.Username, _settings.Password);
+                    _logger.LogInformation("SMTP authenticating as {Username}...", _settings.Username);
+                    await client.AuthenticateAsync(_settings.Username, _settings.Password, cts.Token);
+                    _logger.LogInformation("SMTP authenticated.");
                 }
 
-                await client.SendAsync(message);
-                _logger.LogInformation("SUCCESS: Email sent to {To}", to);
+                _logger.LogInformation("SMTP sending message to {To}...", to);
+                var serverResponse = await client.SendAsync(message, cts.Token);
+                _logger.LogInformation("SUCCESS: Email sent to {To}. Server response: {Response}", to, serverResponse);
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+                _logger.LogError(
+                    "SMTP timeout (20s) on {Host}:{Port}. Symptômes typiques : firewall " +
+                    "qui DROP les paquets (au lieu de REJECT), port 587 fermé en sortie, " +
+                    "ou OVH refuse la session avant TLS. Tester `Test-NetConnection {Host} -Port {Port}`.",
+                    _settings.Host, _settings.Port, _settings.Host, _settings.Port);
+                throw;
             }
             catch (AuthenticationException authEx)
             {

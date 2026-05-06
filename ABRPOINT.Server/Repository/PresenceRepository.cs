@@ -1464,9 +1464,19 @@ namespace ABRPOINT.Server.Repository
                 {
                     hours3 = DateTime.Parse(sort3).TimeOfDay - DateTime.Parse(ent3).TimeOfDay;
                 }
-                if (repas == null) repas = 0;
-                // Convert TimeSpan to total hours and subtract repose  
-                var res = (double)(hours1.TotalHours + hours2.TotalHours + hours3.TotalHours - ((repas / 60) ) );
+                // En État Périodique, le "Total Travaillé" = temps réellement passé entre
+                // les pointages (matin + après-midi + heures supp). On NE DÉDUIT PLUS la
+                // pause-déjeuner :
+                //   - Si l'employé a 4 pointages (matin/AM séparés), le gap entre 12:00 et
+                //     14:00 EST la pause et est déjà exclu de la somme.
+                //   - Si l'employé a 1 plage continue, on lui affiche désormais le temps
+                //     total de présence (9h pour 08:00→17:00), conforme à la demande
+                //     produit : "ne diminuer pas les heures de repas des heures travaillées
+                //     en état périodique".
+                // Le paramètre `repas` reste sur la signature pour compatibilité avec les
+                // appelants existants ; il est simplement ignoré.
+                _ = repas;
+                var res = hours1.TotalHours + hours2.TotalHours + hours3.TotalHours;
                 if (res < 0)
                     res = 0;
                 return res;
