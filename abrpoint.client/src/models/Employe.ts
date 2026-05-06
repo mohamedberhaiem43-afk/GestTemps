@@ -66,4 +66,7 @@ export default interface Employe {
     /** Méthode 'F' : nombre de jours du forfait annuel (218 par défaut). */
     empRttForfaitJours?: number | null;
     utirole?: string;
+    /** Photo de profil de l'utilisateur lié (Utilisateurs.Utiimg). Renseigné
+     *  par la jointure server-side dans GET /Employes/{soccod}/{uticod}. */
+    utiimg?: string | null;
 }

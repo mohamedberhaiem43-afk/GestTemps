@@ -489,6 +489,11 @@ namespace ABRPOINT.Server.Repository
                     query = query.Where(e => e.Sercod == managerSercod);
                 }
 
+                // On joint Utilisateurs côté serveur (LEFT JOIN sur Empcod=Uticod
+                // pour le même Soccod) afin de remonter Utiimg dans le payload —
+                // évite N+1 fetchs côté client pour l'avatar de chaque ligne.
+                // Si l'employé n'a pas de compte utilisateur correspondant,
+                // Utiimg reste null et l'UI tombe sur les initiales.
                 var employes = await query
                     .Select(e => new EmployeDto
                     {
@@ -508,7 +513,14 @@ namespace ABRPOINT.Server.Repository
                         Empferepos = e.Empferepos,
                         Empniv = e.Empniv,
                         Empcontrat = e.Empcontrat,
-                        Empemail = e.Empemail
+                        Empemail = e.Empemail,
+                        // Pas de Soccod sur Utilisateur : l'isolation multi-tenant
+                        // est assurée par le DbContext courant (chaque tenant a sa
+                        // propre base). On joint donc uniquement sur Uticod=Empcod.
+                        Utiimg = _dbContext.Utilisateurs
+                            .Where(u => u.Uticod == e.Empcod)
+                            .Select(u => u.Utiimg)
+                            .FirstOrDefault()
                     })
                     .ToListAsync();
 

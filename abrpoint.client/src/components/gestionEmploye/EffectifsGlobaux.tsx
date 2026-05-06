@@ -18,6 +18,7 @@ import Employe from "../../models/Employe";
 import useDeleteEmploye from "../../hooks/employeHooks/useDeleteEmploye";
 import AlertModal from "../AlertModal/AlertModal";
 import ExcelImportButton from "../DonneeDeBase/shared/ExcelImportButton";
+import { resolveAssetUrl } from "../../helpers/assetUrl";
 import "./EffectifsGlobaux.css";
 
 interface EmployeeWithDetails extends Employe {
@@ -581,8 +582,15 @@ const EffectifsGlobaux = () => {
                   <TableRow key={employee.empcod} className="table-row" sx={staggerSx(idx)}>
                     <TableCell>
                       <Box className="employee-cell">
-                        <Avatar className="employee-avatar">
-                          {employee.emplib?.charAt(0) || "N"}
+                        {/* Photo de l'utilisateur lié (Utilisateurs.Utiimg) jointe
+                            côté serveur. Fallback sur l'initiale si l'employé n'a
+                            pas encore de compte ou pas uploadé de photo. */}
+                        <Avatar
+                          className="employee-avatar"
+                          src={employee.utiimg ? resolveAssetUrl(employee.utiimg) : undefined}
+                          alt={employee.emplib || employee.empcod}
+                        >
+                          {employee.emplib?.charAt(0)?.toUpperCase() || "N"}
                         </Avatar>
                         <Box className="employee-info">
                           <Typography className="employee-name">

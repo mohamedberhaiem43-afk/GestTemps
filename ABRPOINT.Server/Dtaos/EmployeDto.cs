@@ -29,5 +29,9 @@
         public string? Empmob { get; set; }
         public string? Empadr { get; set; }
         public string? Utirole { get; set; }
+        // Photo de profil — lue depuis Utilisateurs.Utiimg via la jointure
+        // Empcod=Uticod (le compte utilisateur partage le code de l'employé).
+        // Permet d'afficher l'avatar dans la liste effectifs sans appel séparé.
+        public string? Utiimg { get; set; }
     }
 }
