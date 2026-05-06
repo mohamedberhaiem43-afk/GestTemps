@@ -46,6 +46,7 @@ import useGetPendingDemCongesByPeriode from '../../hooks/congeHooks/useGetPendin
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RenewContractDialog from '../gestionEmploye/GestionContrats/RenewContractDialog';
 import { Contrat } from '../../models/Contrat';
+import OnboardingGuide from './OnboardingGuide';
 
 const AVATAR_COLORS = ['#0040a1', '#047857', '#b45309', '#6d28d9', '#065f46'];
 
@@ -586,6 +587,11 @@ function DashboardModernAdmin() {
           />
         </MenuItem>
       </Menu>
+
+      {/* Guide d'onboarding interactif : 5 étapes ordonnées (Poste → Classe →
+          Calendrier → Employé → Contrat) que l'admin doit franchir avant que
+          le pointage ne tourne. Auto-disparaît une fois masqué via la croix. */}
+      <OnboardingGuide totalEmployees={dashboardData?.effectifTotal} />
 
       {/* Récapitulatif des tâches — bandeau textuel actionnable au-dessus des
           widgets. Chaque chip est cliquable et ouvre la section détaillée

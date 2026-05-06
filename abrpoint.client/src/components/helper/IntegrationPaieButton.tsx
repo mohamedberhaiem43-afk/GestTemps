@@ -293,19 +293,16 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
   const previewData = generateExcelData().slice(0, 5);
   const totalRows = generateExcelData().length;
 
-  // Le bouton n'a de sens que si l'admin a configuré au moins une rubrique paie.
-  // Avant : il restait désactivé tant que `pointageMoisData` était vide ce qui
-  // déroutait les utilisateurs ayant vu la table se remplir (la prop pouvait
-  // arriver vide à l'instant T à cause de la mise à jour asynchrone du hook).
-  // Maintenant : on garde la cliquabilité même sans pointage chargé, et on bloque
-  // explicitement (avec tooltip) si la conf rubriques est absente.
+  // Bouton TOUJOURS cliquable : l'utilisateur doit pouvoir ouvrir le dialog,
+  // voir l'aperçu et comprendre pourquoi il n'y a éventuellement rien à exporter
+  // (rubriques manquantes, pointage non chargé). Auparavant on désactivait sur
+  // `!hasRubriques`, ce qui laissait l'utilisateur sans explication ni piste.
   const hasRubriques = Array.isArray(rubriques) && rubriques.length > 0;
   const hasPointage = Array.isArray(pointageMoisData) && pointageMoisData.length > 0;
-  const disabled = !hasRubriques;
   const tooltipMsg = !hasRubriques
-    ? 'Aucune rubrique paie configurée. Définissez les rubriques avant l\'intégration.'
+    ? 'Aucune rubrique paie configurée — cliquez pour voir le détail.'
     : !hasPointage
-      ? 'Lancez une recherche pour charger les données du mois, puis intégrez.'
+      ? 'Aucune donnée chargée — cliquez pour voir le détail.'
       : '';
 
   return (
@@ -317,7 +314,6 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
             color="primary"
             startIcon={<UploadFileIcon />}
             onClick={() => setOpenDialog(true)}
-            disabled={disabled}
           >
             Intégrer
           </Button>
@@ -382,6 +378,18 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
                 ))}
               </Box>
             </Box>
+          )}
+
+          {/* Diagnostic explicite quand l'export est vide : on indique exactement
+              quoi corriger pour débloquer l'intégration. */}
+          {totalRows === 0 && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              {!hasRubriques
+                ? 'Aucune rubrique paie n\'est configurée. Rendez-vous dans Données de base → Rubriques pour les définir.'
+                : !hasPointage
+                  ? 'Aucun pointage n\'est chargé. Lancez une recherche (filtre + bouton Rechercher) pour charger les données du mois.'
+                  : 'Aucune valeur > 0 à exporter pour ce mois.'}
+            </Alert>
           )}
         </DialogContent>
 
