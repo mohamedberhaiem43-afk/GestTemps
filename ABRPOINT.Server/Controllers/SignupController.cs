@@ -68,6 +68,23 @@ public class SignupController : ControllerBase
         return Ok(new { available = !taken, reason = taken ? "taken" : null });
     }
 
+    /// <summary>
+    /// Vérifie l'unicité globale d'un email (tous tenants confondus). Un email est lié à un
+    /// seul compte dans tout le système : il sert au routage du login (TenantEmailIndex).
+    /// </summary>
+    [HttpGet("check-email")]
+    public async Task<IActionResult> CheckEmail([FromQuery] string email, CancellationToken ct)
+    {
+        email = (email ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(email) || !email.Contains('@'))
+            return Ok(new { available = false, reason = "format" });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var taken = await master.TenantEmailIndex.AsNoTracking()
+            .AnyAsync(x => x.Email == email, ct);
+        return Ok(new { available = !taken, reason = taken ? "taken" : null });
+    }
+
     [HttpPost]
     public async Task<IActionResult> Signup([FromBody] SignupRequest req, CancellationToken ct)
     {
@@ -93,6 +110,22 @@ public class SignupController : ControllerBase
         var existing = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
         if (existing != null && existing.Status != "Failed")
             return Conflict(new { error = "Ce slug est déjà utilisé." });
+
+        // Unicité globale de l'email (tous tenants confondus). On tolère le cas où l'index
+        // pointe déjà sur le slug actuel ET que ce tenant est en 'Failed' (recyclage d'une
+        // tentative ratée par le même utilisateur). Sinon, refus pour préserver l'invariant
+        // « 1 email = 1 compte » sur lequel s'appuie /Auth/lookup-tenant.
+        var adminEmailLowerCheck = req.AdminEmail.Trim().ToLowerInvariant();
+        var emailIndexEntry = await master.TenantEmailIndex.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Email == adminEmailLowerCheck, ct);
+        if (emailIndexEntry != null)
+        {
+            var isReusableFailedSlot = existing != null
+                && existing.Status == "Failed"
+                && string.Equals(emailIndexEntry.Slug, slug, StringComparison.OrdinalIgnoreCase);
+            if (!isReusableFailedSlot)
+                return Conflict(new { error = "Cet email est déjà utilisé par un autre compte." });
+        }
 
         // Génération du DbName : tenant_<slug>_<8hex>. Limite 64 caractères enforce par Tenant entity.
         // Les hyphens du slug (autorisés dans l'URL) sont remplacés par '_' pour rester compatibles

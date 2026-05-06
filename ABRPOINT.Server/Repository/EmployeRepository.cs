@@ -2013,42 +2013,40 @@ namespace ABRPOINT.Server.Repository
         }
 
         /// <summary>
-        /// Calcule l'objectif horaire de la semaine pour un collaborateur :
-        /// pour chaque jour [weekStart..weekEnd] on regarde le poste affecté via Planhoraire,
-        /// on extrait les plages matin + après-midi du Poste pour ce jour, puis on retire
-        /// jours fériés (table ferier) et congés validés (table conge où conrefus n'est pas "1").
+        /// Objectif horaire de la semaine, lu depuis le calendrier société (Lcalendsoc) :
+        /// pour chaque jour [weekStart..weekEnd] on prend la valeur CalNbh de la ligne dont
+        /// le Caltype correspond à celui de l'employé. Cohérent avec NbhCalendSem utilisé
+        /// par HeuresSupplementairesHebdomadairesService — une seule source de vérité côté
+        /// objectif. Les jours fériés et congés validés sont retirés du total pour ne pas
+        /// gonfler l'objectif sur des jours non travaillés.
         /// Best-effort : toute exception → 0 (l'UI affichera "h / 0h" plutôt que de planter).
         /// </summary>
         private async Task<float> ComputeWeeklyObjectiveAsync(string soccod, string empcod, DateTime weekStart, DateTime weekEnd)
         {
             try
             {
-                // 1. Plans horaires de la semaine pour cet employé.
-                var plans = await _dbContext.Planhoraires.AsNoTracking()
-                    .Where(p => p.Soccod == soccod && p.Empcod == empcod
-                                && p.Plandate >= weekStart && p.Plandate <= weekEnd)
-                    .Select(p => new { p.Plandate, p.Planposte, p.Planrepos })
+                // 1. Caltype de l'employé : index sur le calendrier société.
+                var caltype = await _dbContext.Employes.AsNoTracking()
+                    .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                    .Select(e => e.Caltype)
+                    .FirstOrDefaultAsync();
+                if (string.IsNullOrEmpty(caltype)) return 0f;
+
+                // 2. Lignes de calendrier sur la fenêtre de la semaine.
+                var calRows = await _dbContext.Lcalendsocs.AsNoTracking()
+                    .Where(c => c.Soccod == soccod
+                                && c.Caltype == caltype
+                                && c.CalDate >= weekStart && c.CalDate <= weekEnd)
+                    .Select(c => new { c.CalDate, c.CalNbh })
                     .ToListAsync();
-                var planByDate = plans
-                    .Where(p => p.Plandate.HasValue)
-                    .GroupBy(p => p.Plandate!.Value.Date)
-                    .ToDictionary(g => g.Key, g => g.First());
+                if (calRows.Count == 0) return 0f;
 
-                // 2. Postes référencés (un seul SELECT IN).
-                var posteCodes = plans
-                    .Select(p => p.Planposte)
-                    .Where(c => !string.IsNullOrEmpty(c))
-                    .Distinct()
-                    .ToList();
-                var postes = posteCodes.Count == 0
-                    ? new Dictionary<string, Poste>()
-                    : (await _dbContext.Postes.AsNoTracking()
-                        .Where(po => po.Soccod == soccod && posteCodes.Contains(po.Codposte))
-                        .ToListAsync())
-                        .GroupBy(p => p.Codposte!)
-                        .ToDictionary(g => g.Key, g => g.First());
+                var hoursByDate = calRows
+                    .Where(r => r.CalDate.HasValue)
+                    .GroupBy(r => r.CalDate!.Value.Date)
+                    .ToDictionary(g => g.Key, g => g.First().CalNbh ?? 0f);
 
-                // 3. Jours fériés de la semaine (la société peut en avoir 0..n).
+                // 3. Jours fériés (la société peut en avoir 0..n sur la semaine).
                 var feries = (await _dbContext.Feriers.AsNoTracking()
                         .Where(f => f.Soccod == soccod
                                     && f.Ferdate >= weekStart && f.Ferdate <= weekEnd)
@@ -2058,9 +2056,8 @@ namespace ABRPOINT.Server.Repository
                     .Select(d => d!.Value.Date)
                     .ToHashSet();
 
-                // 4. Congés qui chevauchent la semaine (refusés exclus).
-                //    On ne regarde pas demconge (en attente) — un objectif basé sur des demandes
-                //    non validées serait instable. Convention : conrefus="1" = refusé.
+                // 4. Congés qui chevauchent la semaine (refusés exclus). On ignore demconge
+                //    (en attente) pour éviter un objectif instable. Convention : conrefus="1".
                 var conges = await _dbContext.Conges.AsNoTracking()
                     .Where(c => c.Soccod == soccod && c.Empcod == empcod
                                 && (c.Conrefus == null || c.Conrefus != "1")
@@ -2083,12 +2080,8 @@ namespace ABRPOINT.Server.Repository
                 {
                     if (feries.Contains(day)) continue;
                     if (IsOnLeave(day)) continue;
-                    if (!planByDate.TryGetValue(day, out var plan)) continue;
-                    if (plan.Planrepos == "1") continue;
-                    if (string.IsNullOrEmpty(plan.Planposte)) continue;
-                    if (!postes.TryGetValue(plan.Planposte, out var poste)) continue;
-
-                    total += DayHoursForPoste(poste, day.DayOfWeek);
+                    if (!hoursByDate.TryGetValue(day, out var h)) continue;
+                    total += h;
                 }
                 return (float)Math.Round(total, 2);
             }
@@ -2099,34 +2092,5 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        /// <summary>
-        /// Heures planifiées (matin + après-midi) pour un poste un jour donné.
-        /// Les colonnes du poste sont préfixées par jour de semaine FR (lun/mar/mer/jeu/ven/sam/dim).
-        /// </summary>
-        private static float DayHoursForPoste(Poste poste, DayOfWeek dow)
-        {
-            (string repos, string hdmat, string hfmat, string hdam, string hfam) = dow switch
-            {
-                DayOfWeek.Monday    => (poste.Lunrepos!, poste.Lunhdmat!, poste.Lunhfmat!, poste.Lunhdam!, poste.Lunhfam!),
-                DayOfWeek.Tuesday   => (poste.Marrepos!, poste.Marhdmat!, poste.Marhfmat!, poste.Marhdam!, poste.Marhfam!),
-                DayOfWeek.Wednesday => (poste.Merrepos!, poste.Merhdmat!, poste.Merhfmat!, poste.Merhdam!, poste.Merhfam!),
-                DayOfWeek.Thursday  => (poste.Jeurepos!, poste.Jeuhdmat!, poste.Jeuhfmat!, poste.Jeuhdam!, poste.Jeuhfam!),
-                DayOfWeek.Friday    => (poste.Venrepos!, poste.Venhdmat!, poste.Venhfmat!, poste.Venhdam!, poste.Venhfam!),
-                DayOfWeek.Saturday  => (poste.Samrepos!, poste.Samhdmat!, poste.Samhfmat!, poste.Samhdam!, poste.Samhfam!),
-                DayOfWeek.Sunday    => (poste.Dimrepos!, poste.Dimhdmat!, poste.Dimhfmat!, poste.Dimhdam!, poste.Dimhfam!),
-                _ => (null!, null!, null!, null!, null!),
-            };
-            if (repos == "1") return 0f;
-            return SegmentHours(hdmat, hfmat) + SegmentHours(hdam, hfam);
-        }
-
-        private static float SegmentHours(string? from, string? to)
-        {
-            var a = GenericMethodes.ConvertHHmmToDouble(from ?? string.Empty);
-            var b = GenericMethodes.ConvertHHmmToDouble(to ?? string.Empty);
-            if (a is null || b is null) return 0f;
-            var diff = b.Value - a.Value;
-            return diff > 0 ? diff : 0f;
-        }
     }
 }

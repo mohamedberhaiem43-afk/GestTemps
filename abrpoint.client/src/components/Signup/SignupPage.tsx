@@ -18,6 +18,9 @@ import { startStripeCheckout } from '../Pricing/stripeCheckout';
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
 type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'reserved';
+type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function slugify(input: string): string {
   return input
@@ -43,6 +46,7 @@ export default function SignupPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
   const [password, setPassword] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
@@ -90,6 +94,49 @@ export default function SignupPage() {
     };
   }, [slug]);
 
+  // Pendant unique, debounced 300ms : vérifie que l'email n'est pas déjà rattaché
+  // à un autre compte du système (TenantEmailIndex en master).
+  useEffect(() => {
+    const trimmed = email.trim();
+    if (!trimmed) { setEmailStatus('idle'); return; }
+    if (!EMAIL_REGEX.test(trimmed)) { setEmailStatus('invalid'); return; }
+
+    setEmailStatus('checking');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const handle = setTimeout(async () => {
+      try {
+        const { data } = await apiInstance.get(`/signup/check-email`, {
+          params: { email: trimmed },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (data.available) setEmailStatus('available');
+        else if (data.reason === 'format') setEmailStatus('invalid');
+        else setEmailStatus('taken');
+      } catch {
+        clearTimeout(timeoutId);
+        setEmailStatus('idle');
+      }
+    }, 300);
+    return () => {
+      clearTimeout(handle);
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [email]);
+
+  const emailHelper = useMemo(() => {
+    switch (emailStatus) {
+      case 'checking': return { color: 'info' as const, text: 'Vérification…' };
+      case 'available': return { color: 'success' as const, text: 'Email disponible.' };
+      case 'taken': return { color: 'error' as const, text: 'Cet email est déjà utilisé.' };
+      case 'invalid': return { color: 'error' as const, text: 'Format d\'email invalide.' };
+      default: return null;
+    }
+  }, [emailStatus]);
+
   const slugHelper = useMemo(() => {
     switch (slugStatus) {
       case 'checking': return { color: 'info' as const, text: 'Vérification…' };
@@ -119,6 +166,8 @@ export default function SignupPage() {
     firstName.trim().length > 0 &&
     lastName.trim().length > 0 &&
     /.+@.+\..+/.test(email) &&
+    emailStatus !== 'taken' &&
+    emailStatus !== 'invalid' &&
     password.length >= 8;
 
   const submit = async () => {
@@ -267,14 +316,32 @@ export default function SignupPage() {
             />
           </Stack>
 
-          <TextField
-            fullWidth
-            type="email"
-            label="Email professionnel"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><MailIcon /></InputAdornment> }}
-          />
+          <Box>
+            <TextField
+              fullWidth
+              type="email"
+              label="Email professionnel"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><MailIcon /></InputAdornment>,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {emailStatus === 'checking' && <CircularProgress size={18} />}
+                    {emailStatus === 'available' && <CheckCircleIcon color="success" fontSize="small" />}
+                    {(emailStatus === 'taken' || emailStatus === 'invalid') && (
+                      <ErrorIcon color="error" fontSize="small" />
+                    )}
+                  </InputAdornment>
+                ),
+              }}
+            />
+            {emailHelper && (
+              <Typography variant="caption" color={`${emailHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>
+                {emailHelper.text}
+              </Typography>
+            )}
+          </Box>
 
           <TextField
             fullWidth

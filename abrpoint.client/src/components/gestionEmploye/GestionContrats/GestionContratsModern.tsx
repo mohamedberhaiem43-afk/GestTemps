@@ -14,6 +14,7 @@ import CreditCardIcon from '@mui/icons-material/CreditCard';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Contrat } from '../../../models/Contrat';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
@@ -217,6 +218,24 @@ const GestionContratsModernInner = () => {
         .catch(() => { /* silent */ });
     }
   }, [soccod, mode]);
+
+  // Pré-remplissage depuis l'URL (?empcod=...) : utilisé après création d'un employé
+  // dans EmployeModern → l'admin clique « Créer le contrat » et arrive ici avec
+  // l'employé déjà sélectionné, prêt à saisir les infos contractuelles.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const empcodParam = searchParams.get('empcod');
+    if (empcodParam && soccod && !form.empcod) {
+      handleEmployeeSelect(empcodParam).finally(() => {
+        // Nettoie l'URL pour qu'un refresh ultérieur ne re-déclenche pas la sélection
+        // (la prop reste cohérente avec le state du form si l'admin change d'employé).
+        const next = new URLSearchParams(searchParams);
+        next.delete('empcod');
+        setSearchParams(next, { replace: true });
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, soccod]);
 
   const showSnack = (message: string, severity: 'success' | 'error') =>
     setSnackbar({ open: true, message, severity });

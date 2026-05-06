@@ -94,6 +94,34 @@ namespace ABRPOINT.Server.Controllers
         }
 
         /// <summary>
+        /// Vérifie qu'un email n'est pas déjà utilisé ailleurs dans le système.
+        /// Double contrôle : (1) au sein du tenant courant via la table Employes, pour
+        /// attraper les cas non encore propagés à TenantEmailIndex (notamment AddMultipleEmploye) ;
+        /// (2) à travers tous les tenants via TenantEmailIndex, pour préserver l'invariant
+        /// « 1 email = 1 compte » sur lequel s'appuie le routage du login.
+        /// </summary>
+        private async Task<bool> IsEmailUniqueAsync(string? email, string? excludeEmpcod = null)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return true;
+            var emailLower = email.Trim().ToLowerInvariant();
+
+            var localTaken = await _db.Employes.AsNoTracking()
+                .AnyAsync(e => e.Empemail != null
+                    && e.Empemail.ToLower() == emailLower
+                    && (excludeEmpcod == null || e.Empcod != excludeEmpcod));
+            if (localTaken) return false;
+
+            var slug = _currentTenant.Current?.Slug;
+            await using var master = await _masterFactory.CreateDbContextAsync();
+            var crossTenant = await master.TenantEmailIndex.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Email == emailLower);
+            if (crossTenant != null && !string.Equals(crossTenant.Slug, slug, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
         /// Upsert / suppression dans la table master TenantEmailIndex (mapping email → slug).
         /// Cette table sert au routing du login : l'email saisi sur la page de connexion racine
         /// est utilisé pour retrouver le slug du tenant. Sans cette synchro, un changement
@@ -485,6 +513,13 @@ namespace ABRPOINT.Server.Controllers
 
                 if(employe != null && !string.IsNullOrEmpty(employe.Empcod))
                 {
+                    // Unicité de l'email : tous tenants confondus. Refusé même au sein
+                    // du tenant courant, car le couple (Uticod, email) doit rester 1-1.
+                    if (!await IsEmailUniqueAsync(employe.Empemail))
+                    {
+                        return Conflict(new { message = "Cet email est déjà utilisé par un autre compte." });
+                    }
+
                     // Defense in depth : si une chaîne vide arrive sur un champ FK (cas
                     // typique : scan IA qui n'a pas extrait le code → reste ""), on la
                     // remet à null pour ne pas violer la contrainte FK avec une chaîne vide
@@ -612,6 +647,28 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                // Détection des doublons intra-lot : un import qui contient deux fois le même
+                // email passerait la vérification cross-tenant (un seul est encore en base au
+                // moment du check) puis violerait l'unicité au commit.
+                var intraDup = (employe ?? new List<Employe>())
+                    .Where(e => !string.IsNullOrWhiteSpace(e?.Empemail))
+                    .GroupBy(e => e!.Empemail!.Trim().ToLowerInvariant())
+                    .FirstOrDefault(g => g.Count() > 1);
+                if (intraDup != null)
+                {
+                    return Conflict(new { message = $"L'email '{intraDup.Key}' apparaît plusieurs fois dans l'import." });
+                }
+
+                // Unicité globale pour chaque ligne. On s'arrête au premier conflit pour
+                // remonter un message exploitable côté UI plutôt qu'un commit partiel.
+                foreach (var emp in employe ?? new List<Employe>())
+                {
+                    if (emp != null && !await IsEmailUniqueAsync(emp.Empemail, excludeEmpcod: emp.Empcod))
+                    {
+                        return Conflict(new { message = $"L'email '{emp.Empemail}' est déjà utilisé par un autre compte." });
+                    }
+                }
+
                 // Encrypt sensitive fields before saving
                 foreach (var emp in employe)
                 {
@@ -694,6 +751,13 @@ namespace ABRPOINT.Server.Controllers
             {
                 if (employe == null || employe.Empcod == null)
                     return BadRequest(new { message = "Employe object is null or does not match route parameters" });
+
+                // Unicité de l'email : on exclut l'employé courant pour autoriser un PUT
+                // qui ne change pas l'email (ou autre champ) sans déclencher un faux positif.
+                if (!await IsEmailUniqueAsync(employe.Empemail, excludeEmpcod: employe.Empcod))
+                {
+                    return Conflict(new { message = "Cet email est déjà utilisé par un autre compte." });
+                }
 
                 // Sync role to utilisateur table if provided
                 if (!string.IsNullOrEmpty(employe.Utirole))

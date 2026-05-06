@@ -239,6 +239,11 @@ const EmployeModernInner = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isFetching, setIsFetching] = useState(false);
     const [mode, setMode] = useState<'save' | 'update'>('save');
+    // Dialog post-création : propose d'enchaîner directement vers la création du contrat.
+    // S'ouvre après que SuccessAnimation se soit fermée (via son callback onClose) pour
+    // ne pas empiler deux UI bloquantes en même temps.
+    const [contractPromptOpen, setContractPromptOpen] = useState(false);
+    const [pendingContractEmpcod, setPendingContractEmpcod] = useState<string | null>(null);
     const [docAnchorEl, setDocAnchorEl] = useState<null | HTMLElement>(null);
     const [formData, setFormData] = useState<Employe>(getDefaultEmployeData(soccod || '', sitcod || ''));
     const [scanOpen, setScanOpen] = useState(false);
@@ -286,6 +291,36 @@ const EmployeModernInner = () => {
         }
         return raw as Record<string, string>;
     };
+
+    // Indicateur de complétude du profil. On évalue 12 champs jugés indispensables
+    // pour la paie / le pointage / la connexion. La note est purement indicative —
+    // l'enregistrement ne dépend pas d'elle. La liste est délibérément courte pour
+    // que le score reste atteignable sans que l'admin ait à remplir 50 colonnes.
+    const profileCompletion = useMemo(() => {
+        const fields: { key: keyof Employe; label: string }[] = [
+            { key: 'emplib',     label: 'Nom complet' },
+            { key: 'empemail',   label: 'Email' },
+            { key: 'emptel',     label: 'Téléphone' },
+            { key: 'empcin',     label: 'CIN' },
+            { key: 'empemb',     label: "Date d'embauche" },
+            { key: 'foncod',     label: 'Fonction' },
+            { key: 'dircod',     label: 'Direction' },
+            { key: 'sercod',     label: 'Service' },
+            { key: 'catcod',     label: 'Classe horaire' },
+            { key: 'caltype',    label: 'Calendrier' },
+            { key: 'empniv',     label: 'Niveau' },
+            { key: 'empsbase',   label: 'Salaire de base' },
+        ];
+        const filled = fields.filter(f => {
+            const v = (formData as any)[f.key];
+            if (v === null || v === undefined) return false;
+            if (typeof v === 'string') return v.trim().length > 0;
+            return true;
+        });
+        const missing = fields.filter(f => !filled.includes(f)).map(f => f.label);
+        const percent = Math.round((filled.length / fields.length) * 100);
+        return { percent, filledCount: filled.length, totalCount: fields.length, missing };
+    }, [formData]);
 
     const dirMap = useMemo(() => toMap(directionLibsRaw), [directionLibsRaw]);
     const fonMap = useMemo(() => toMap(fonctionLibsRaw), [fonctionLibsRaw]);
@@ -614,6 +649,9 @@ const EmployeModernInner = () => {
             if (mode === 'save') {
                 showSnackbar(res?.message || t('employe.createdSuccess'), 'success');
                 setMode('update');
+                // Mémorise le code créé pour que le dialog "Créer le contrat ?" l'utilise
+                // une fois la SuccessAnimation refermée (cf. onClose plus bas).
+                setPendingContractEmpcod(formData.empcod || null);
                 navigate(`/dashboard/gestion-employe?id=${formData.empcod}&new=false`);
                 return;
             }
@@ -799,6 +837,54 @@ const EmployeModernInner = () => {
                             <Typography sx={{ fontSize: '11px', color: '#8896a8', mt: 0.2 }}>
                                 {t('employe.profileSubtitle')}
                             </Typography>
+                            {/* Indicateur de complétude — visible seulement en mode édition.
+                                Le tooltip liste les champs manquants pour guider l'admin
+                                vers le 100 % sans qu'il ait à parcourir tout le formulaire. */}
+                            {mode === 'update' && (
+                                <Tooltip
+                                    arrow
+                                    placement="bottom-start"
+                                    title={
+                                        profileCompletion.missing.length === 0
+                                            ? 'Profil complet — tous les champs essentiels sont renseignés.'
+                                            : (
+                                                <Box sx={{ p: 0.5 }}>
+                                                    <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.5 }}>
+                                                        Reste à compléter ({profileCompletion.missing.length}) :
+                                                    </Typography>
+                                                    {profileCompletion.missing.map(m => (
+                                                        <Typography key={m} sx={{ fontSize: 11, lineHeight: 1.5 }}>• {m}</Typography>
+                                                    ))}
+                                                </Box>
+                                            )
+                                    }
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75, cursor: 'help', maxWidth: 280 }}>
+                                        <Box sx={{
+                                            position: 'relative', flex: 1, height: 6, borderRadius: 999,
+                                            backgroundColor: '#e8ecf2', overflow: 'hidden',
+                                        }}>
+                                            <Box sx={{
+                                                position: 'absolute', inset: 0,
+                                                width: `${profileCompletion.percent}%`,
+                                                background: profileCompletion.percent === 100
+                                                    ? 'linear-gradient(90deg, #10b981, #34d399)'
+                                                    : profileCompletion.percent >= 60
+                                                        ? 'linear-gradient(90deg, #0040a1, #1a6eff)'
+                                                        : 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+                                                transition: 'width 0.4s ease',
+                                            }} />
+                                        </Box>
+                                        <Typography sx={{
+                                            fontSize: 11, fontWeight: 800, lineHeight: 1, whiteSpace: 'nowrap',
+                                            color: profileCompletion.percent === 100 ? '#059669'
+                                                : profileCompletion.percent >= 60 ? '#0040a1' : '#b45309',
+                                        }}>
+                                            {profileCompletion.percent}% — {profileCompletion.filledCount}/{profileCompletion.totalCount}
+                                        </Typography>
+                                    </Box>
+                                </Tooltip>
+                            )}
                         </Box>
                     </Box>
 
@@ -1486,9 +1572,69 @@ const EmployeModernInner = () => {
                 après save/update sans bloquer l'utilisateur. */}
             <SuccessAnimation
                 open={showSuccessAnim}
-                onClose={() => setShowSuccessAnim(false)}
+                onClose={() => {
+                    setShowSuccessAnim(false);
+                    // Une fois l'animation finie, si on vient de créer un employé,
+                    // on enchaîne avec la proposition « créer le contrat maintenant ? ».
+                    if (pendingContractEmpcod) {
+                        setContractPromptOpen(true);
+                    }
+                }}
                 message={mode === 'save' ? 'Collaborateur créé !' : 'Modifications enregistrées'}
             />
+
+            {/* Dialog post-création : enchaînement vers la création du contrat.
+                On pré-remplit l'empcod via query string pour que la page Contrats
+                positionne directement le bon collaborateur dans son formulaire. */}
+            <Dialog
+                open={contractPromptOpen}
+                onClose={() => { setContractPromptOpen(false); setPendingContractEmpcod(null); }}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: '14px' } }}
+            >
+                <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '17px', pb: 1, color: '#0d1f3c' }}>
+                    Étape suivante : son contrat
+                </DialogTitle>
+                <Divider />
+                <DialogContent sx={{ pt: 2.5 }}>
+                    <Typography sx={{ fontSize: '14px', color: '#475569', lineHeight: 1.55 }}>
+                        Le collaborateur <strong>{formData.emplib || pendingContractEmpcod}</strong> a été
+                        créé. Pour qu'il apparaisse dans la paie et le pointage, il lui faut un contrat
+                        avec son type (CDI, CDD…), sa date d'embauche et son salaire de base.
+                    </Typography>
+                    <Typography sx={{ fontSize: '12.5px', color: '#64748b', mt: 1.5, fontStyle: 'italic' }}>
+                        Vous pourrez aussi le faire plus tard depuis Gestion → Contrats.
+                    </Typography>
+                </DialogContent>
+                <Divider />
+                <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+                    <Button
+                        onClick={() => { setContractPromptOpen(false); setPendingContractEmpcod(null); }}
+                        sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}
+                    >
+                        Plus tard
+                    </Button>
+                    <Button
+                        variant="contained"
+                        startIcon={<DescriptionIcon sx={{ fontSize: '16px !important' }} />}
+                        onClick={() => {
+                            const code = pendingContractEmpcod;
+                            setContractPromptOpen(false);
+                            setPendingContractEmpcod(null);
+                            if (code) navigate(`/dashboard/contrat/contrat?empcod=${encodeURIComponent(code)}`);
+                            else navigate('/dashboard/contrat/contrat');
+                        }}
+                        sx={{
+                            borderRadius: '8px', textTransform: 'none', fontWeight: 700,
+                            background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+                            boxShadow: '0 4px 14px rgba(0,64,161,0.3)',
+                        }}
+                    >
+                        Créer le contrat
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
 );
 };
