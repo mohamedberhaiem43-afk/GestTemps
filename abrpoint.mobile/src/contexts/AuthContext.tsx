@@ -24,6 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string, tenantSlug?: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   isAdmin: boolean;
   isManager: boolean;
   isEmployee: boolean;
@@ -83,6 +84,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // Re-fetch /me et met à jour le state user. Utilisé après une mutation côté
+  // serveur qui change un champ exposé dans le user (ex: photo de profil) sans
+  // qu'on veuille forcer une déconnexion/reconnexion.
+  const refreshUser = async () => {
+    try {
+      const userData = await apiService.getCurrentUser();
+      setUser({
+        uticod: userData.uticod,
+        utilib: userData.utilib,
+        utiadm: userData.utiadm,
+        utirole: userData.utirole,
+        sercod: userData.sercod,
+        utiimg: userData.utiimg,
+        isEmp: userData.isEmp,
+        soccod: userData.soccod || userData.empInfo?.soccod,
+        sitcod: userData.sitcod || userData.empInfo?.sitcod,
+        soclib: userData.soclib,
+        socimg: userData.socimg,
+        sitcods: userData.sitcods,
+      });
+    } catch (e) {
+      console.log('refreshUser failed:', e);
+    }
+  };
+
   const isAdmin = user?.utiadm === '1' || user?.utiadm === 'True';
   const isManager = !isAdmin && !!user?.utirole && user.utirole !== '';
   const isEmployee = user?.isEmp === true;
@@ -95,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
+        refreshUser,
         isAdmin,
         isManager,
         isEmployee,

@@ -136,6 +136,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (response.data.uticod) sessionStorage.setItem('uticod', response.data.uticod);
       // utiadm persisté pour hydratation rapide au reload (cf. initial state ci-dessus).
       if (response.data.utiadm != null) sessionStorage.setItem('utiadm', String(response.data.utiadm));
+
+      // Photo de profil : on synchronise localStorage('profileImage') dès que /me
+      // remonte une nouvelle valeur, et on dispatche `imageUpdated` pour que la
+      // navbar (UserProfileMenu) bascule sur la photo immédiatement. Sans ça, un
+      // user qui upload sa photo sur mobile devait se déconnecter du web pour
+      // voir la photo apparaître dans la nav.
+      const newUtiimg = response.data.utiimg as string | null | undefined;
+      const prevUtiimg = localStorage.getItem('profileImage');
+      if (newUtiimg) {
+        if (newUtiimg !== prevUtiimg) {
+          localStorage.setItem('profileImage', newUtiimg);
+          window.dispatchEvent(new Event('imageUpdated'));
+        }
+      } else if (prevUtiimg) {
+        // L'utilisateur a supprimé sa photo côté serveur — on retire aussi le cache local.
+        localStorage.removeItem('profileImage');
+        window.dispatchEvent(new Event('imageUpdated'));
+      }
     } catch {
       if (requestId !== requestIdRef.current) return;
 

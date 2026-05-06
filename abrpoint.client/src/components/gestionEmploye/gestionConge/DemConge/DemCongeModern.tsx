@@ -30,6 +30,9 @@ import SuccessAnimation from '../../../helper/SuccessAnimation';
 import { Conge } from '../../../../models/Conge';
 import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
 import apiInstance from '../../../API/apiInstance';
+import { ListSkeleton } from '../../../helper/animations/Skeletons';
+import { staggerSx } from '../../../helper/animations/Stagger';
+import { ActionButton } from '../../../helper/animations/ActionButton';
 import './DemCongeModern.css';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -482,13 +485,23 @@ function DemCongeModernInner() {
   };
 
   const confirmAccept = () => {
-    if (!congeToAccept) return;
-    acceptConge({ concod: congeToAccept.concod, empcod: congeToAccept.empcod }, {
-      onSuccess: (res: any) => { showSnack(res.message || t('conge.demConge.msg.acceptedSuccess'), 'success'); refetch(); },
-      onError: (err: any) => showSnack(err?.response?.data?.message || t('conge.demConge.msg.errorGeneric'), 'error'),
+    // Promesse pour ActionButton : on transmet le succès/erreur au composant
+    // afin qu'il joue son anim (check vert / croix rouge) avant de fermer le
+    // dialog. La fermeture est faite dans `onSettled` du bouton.
+    if (!congeToAccept) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      acceptConge({ concod: congeToAccept.concod, empcod: congeToAccept.empcod }, {
+        onSuccess: (res: any) => {
+          showSnack(res.message || t('conge.demConge.msg.acceptedSuccess'), 'success');
+          refetch();
+          resolve();
+        },
+        onError: (err: any) => {
+          showSnack(err?.response?.data?.message || t('conge.demConge.msg.errorGeneric'), 'error');
+          reject(err);
+        },
+      });
     });
-    setAcceptConfirmOpen(false);
-    setCongeToAccept(null);
   };
 
   const handleRefuseClick = (c: Conge) => {
@@ -497,20 +510,18 @@ function DemCongeModernInner() {
   };
 
   const confirmRefuse = () => {
-    if (!congeToRefuse) return;
+    if (!congeToRefuse) return Promise.resolve();
     const { soccod, concod, empcod } = congeToRefuse;
-    
-    apiInstance.post(`/DemConges/refuse-demconge/${soccod}/${concod}/${empcod}`)
+    // ActionButton lit le succès/échec via la promesse pour piloter son anim.
+    // La fermeture du dialog est faite dans `onSettled` côté UI.
+    return apiInstance.post(`/DemConges/refuse-demconge/${soccod}/${concod}/${empcod}`)
       .then((res) => {
         showSnack(res.data?.message || t('conge.demConge.msg.refusedSuccess'), 'success');
         refetch();
       })
-      .catch((err) => showSnack(
-        err?.response?.data?.message || t('conge.demConge.msg.refuseError'), 'error'
-      ))
-      .finally(() => {
-        setRefuseConfirmOpen(false);
-        setCongeToRefuse(null);
+      .catch((err) => {
+        showSnack(err?.response?.data?.message || t('conge.demConge.msg.refuseError'), 'error');
+        throw err;
       });
   };
 
@@ -577,7 +588,7 @@ function DemCongeModernInner() {
 
           {/* Rows */}
           {isDataLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+            <ListSkeleton rows={5} />
           ) : !canConsult ? (
             <Box sx={{ textAlign: 'center', py: 6, color: '#ba1a1a' }}>
               <CloseIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
@@ -614,12 +625,12 @@ function DemCongeModernInner() {
             </Box>
           ) : (
             <Box className="dcm-rows">
-              {displayData.map((c: Conge) => {
+              {displayData.map((c: Conge, idx: number) => {
                 const status = getStatus(c);
                 const typeColor = getTypeColor(c.abscod);
                 const statusStyle = STATUS_STYLE[status];
                 return (
-                  <Box key={c.concod} className="dcm-row">
+                  <Box key={c.concod} className="dcm-row" sx={staggerSx(idx)}>
                     {/* Employee */}
                     <Box className="dcm-col-emp dcm-emp-cell">
                       <Avatar className="dcm-avatar">{(c.emplib || c.empcod)?.charAt(0)?.toUpperCase()}</Avatar>
@@ -781,9 +792,17 @@ function DemCongeModernInner() {
           <Button onClick={() => setAcceptConfirmOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
             {t('conge.demConge.dialog.cancel')}
           </Button>
-          <Button onClick={confirmAccept} variant="contained" color="success" sx={{ textTransform: 'none', borderRadius: '8px' }}>
+          <ActionButton
+            onAction={confirmAccept}
+            onSettled={() => { setAcceptConfirmOpen(false); setCongeToAccept(null); }}
+            variant="contained"
+            color="success"
+            startIcon={<CheckIcon />}
+            successLabel={t('conge.demConge.msg.acceptedSuccess')}
+            sx={{ textTransform: 'none', borderRadius: '8px' }}
+          >
             {t('conge.demConge.dialog.acceptYes')}
-          </Button>
+          </ActionButton>
         </DialogActions>
       </Dialog>
 
@@ -810,9 +829,18 @@ function DemCongeModernInner() {
           <Button onClick={() => setRefuseConfirmOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
             {t('conge.demConge.dialog.cancel')}
           </Button>
-          <Button onClick={confirmRefuse} variant="contained" color="error" sx={{ textTransform: 'none', borderRadius: '8px' }}>
+          <ActionButton
+            onAction={confirmRefuse}
+            onSettled={() => { setRefuseConfirmOpen(false); setCongeToRefuse(null); }}
+            variant="contained"
+            color="error"
+            startIcon={<CloseIcon />}
+            successLabel={t('conge.demConge.msg.refusedSuccess')}
+            successColor="#dc2626"
+            sx={{ textTransform: 'none', borderRadius: '8px' }}
+          >
             {t('conge.demConge.dialog.refuseYes')}
-          </Button>
+          </ActionButton>
         </DialogActions>
       </Dialog>
 

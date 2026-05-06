@@ -9,6 +9,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
+import { resolveAssetUrl } from '../config/assetUrl';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 import { withCacheFallback } from '../services/cache';
 import { captureCurrentPosition } from '../services/geolocation';
@@ -261,10 +262,21 @@ export default function HomeScreen({ navigation }: any) {
             )}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-            <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAvAHpecvSxPFvNp0WiI32s75TOod9EfS859bgnvDcccilKQKfh5e4vMEDD_wO5dwMGzL0B245pIvD5_NADth7meBVNm-mUMMdQzjBtVtqk70SJNnincuv9kgEgFrl3janzeg5qQFmI_fw3E2OvZyQtwz1SpezTqNCPETmq0ZFbHMPK_VyHzFU6tN4Qs8HfCcZR5u7UW-q8N8Zfax8VOae0-wTo5oF8FyhJrjkBQaHdAuD5uHwFuKukdgOSGr4-aeJHLOySXd_KA80' }}
-              style={styles.profileImage}
-            />
+            {(() => {
+              // Avatar du header : photo persistée du user, fallback initiales
+              // colorées (gradient bleu) si pas encore d'image. Le fallback a
+              // exactement les mêmes dimensions pour ne pas changer le layout.
+              const avatarUri = resolveAssetUrl(user?.utiimg);
+              if (avatarUri) {
+                return <Image source={{ uri: avatarUri }} style={styles.profileImage} />;
+              }
+              const initials = (user?.utilib || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+              return (
+                <View style={[styles.profileImage, { backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' }]}>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{initials}</Text>
+                </View>
+              );
+            })()}
           </TouchableOpacity>
         </View>
       </View>
@@ -279,6 +291,33 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.dateLabel}>{formatDate(currentTime).toUpperCase()}</Text>
           <Text style={styles.welcomeTitle}>Bonjour, {user?.utilib?.split(' ')[0] || 'Marc'}.</Text>
         </View>
+
+        {/* CTA manager : raccourci vers le tableau de bord d'équipe — visible
+            uniquement si l'utilisateur a un rôle manager/admin (pas pour
+            l'employé standard qui n'a rien à valider). */}
+        {(isAdmin || isManager) && (
+          <TouchableOpacity
+            style={styles.managerCta}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('ManagerDashboard')}
+          >
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.primaryContainer]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.managerCtaInner}
+            >
+              <View style={styles.managerCtaIcon}>
+                <MaterialCommunityIcons name="view-dashboard-outline" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.managerCtaTitle}>Tableau de bord équipe</Text>
+                <Text style={styles.managerCtaSub}>Validations, contrats, absences du jour</Text>
+              </View>
+              <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Offline indicator : visible uniquement quand on sert le cache (réseau KO) */}
         {offlineMode && (
@@ -376,6 +415,17 @@ export default function HomeScreen({ navigation }: any) {
               <MaterialCommunityIcons name="receipt" size={22} color="#92400e" />
             </View>
             <Text style={styles.quickLabel}>Frais</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Missions')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#ede9fe' }]}>
+              <MaterialCommunityIcons name="briefcase-outline" size={22} color="#6d28d9" />
+            </View>
+            <Text style={styles.quickLabel}>Missions</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -568,6 +618,21 @@ const styles = StyleSheet.create({
   welcomeSection: { marginBottom: 24 },
   dateLabel: { fontSize: 10, fontWeight: '700', color: '#64748b', letterSpacing: 1.2 },
   welcomeTitle: { fontSize: 32, fontWeight: '800', color: COLORS.onSurface, marginTop: 4 },
+  managerCta: {
+    marginBottom: 18,
+    borderRadius: 14,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 3,
+  },
+  managerCtaInner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, borderRadius: 14,
+  },
+  managerCtaIcon: {
+    width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  managerCtaTitle: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
+  managerCtaSub: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: '500', marginTop: 2 },
   punchCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)', borderRadius: 40, padding: 32,
     alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.5)',

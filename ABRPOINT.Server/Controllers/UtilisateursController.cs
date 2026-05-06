@@ -516,12 +516,13 @@ namespace GestionDesTickets.Server.Controllers
 
             var user = await _dbContext.Utilisateurs
                 .Where(u => u.Uticod == uticod)
-                .Select(u => new 
-                { 
-                    u.Uticod, 
-                    u.Utiadm, 
-                    u.Utiprn, 
+                .Select(u => new
+                {
+                    u.Uticod,
+                    u.Utiadm,
+                    u.Utiprn,
                     u.Utinom,
+                    u.Utiimg,
                     Role = _dbContext.Roles
                         .Include(r => r.Permissions)
                         .FirstOrDefault(r => r.RoleName == u.Utirole)
@@ -584,6 +585,7 @@ namespace GestionDesTickets.Server.Controllers
             {
                 uticod = user.Uticod,
                 utiadm = user.Utiadm,
+                utiimg = user.Utiimg,
                 isEmp,
                 isAdmin,
                 isManager,

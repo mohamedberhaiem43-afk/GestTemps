@@ -336,6 +336,35 @@ class ApiService {
     return response.data;
   }
 
+  // Contrats expirant bientôt — agrégation côté client : on récupère la liste
+  // complète et on filtre les Empsort dans une fenêtre [today..today+days].
+  // Le backend ne fournit pas (encore) un endpoint dédié.
+  async getContractsForRenewal(soccod: string, uticod: string) {
+    const response = await this.client.get(`/Contrats/${soccod}/${uticod}`);
+    return response.data;
+  }
+
+  async getNextConcod(soccod: string) {
+    const response = await this.client.get(`/Contrats/get-next-concod/${soccod}`);
+    return response.data;
+  }
+
+  async renewContract(data: {
+    soccod: string;
+    sourceConcod: string;
+    newConcod: string;
+    condat: string;
+    startDate: string;
+    endDate: string;
+    monthNumber?: number | null;
+    contype?: string | null;
+    empcontrat?: string | null;
+    empmotif?: string | null;
+  }) {
+    const response = await this.client.post('/Contrats/renew', data);
+    return response.data;
+  }
+
   // Authorization de sortie endpoints
   async getMyAuthorizations(soccod: string, empcod: string) {
     const response = await this.client.get(`/Autorisers/my-auths/${soccod}/${empcod}`);
@@ -645,6 +674,55 @@ class ApiService {
   async deleteVaultDocument(id: number) {
     const response = await this.client.delete(`/Vault/${id}`);
     return response.data;
+  }
+
+  // ── Missions ─────────────────────────────────────────────────────────────
+  // Endpoints calqués sur /api/Missions côté serveur (cf. MissionsController.cs).
+  // Une mission = ordre de mission (déplacement, formation, événement client),
+  // toujours rattachée à une nature d'absence Abscng="6" (Formation et mission).
+  async getMissionsByEmp(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Missions/by-emp/${soccod}/${empcod}`);
+    return response.data;
+  }
+  async getMissionsBySoc(soccod: string) {
+    const response = await this.client.get(`/Missions/by-soc/${soccod}`);
+    return response.data;
+  }
+  async getMissionNatures(soccod: string) {
+    const response = await this.client.get(`/Missions/natures-formation-mission/${soccod}`);
+    return response.data;
+  }
+  async createMission(data: {
+    soccod: string; empcod: string; misobj: string; misdest?: string | null;
+    misdatedeb: string; misdatefin: string; misnote?: string | null;
+    misetat?: string; misbudget?: number | null; abscod: string;
+  }) {
+    const response = await this.client.post('/Missions', data);
+    return response.data;
+  }
+  async updateMissionState(id: number, data: {
+    soccod: string; empcod: string; misobj: string; misdest?: string | null;
+    misdatedeb: string; misdatefin: string; misnote?: string | null;
+    misetat: string; misbudget?: number | null; abscod: string;
+  }) {
+    const response = await this.client.put(`/Missions/${id}`, data);
+    return response.data;
+  }
+
+  // ── Manager dashboard summary ────────────────────────────────────────────
+  // Endpoint léger qui renvoie en un seul appel les compteurs « actions à faire »
+  // pour un manager : validations en attente, contrats expirant, absences du jour.
+  async getManagerSummary(soccod: string) {
+    const response = await this.client.get(`/ManagerDashboard/summary/${soccod}`);
+    return response.data as {
+      pendingLeaves: number;
+      pendingAuth: number;
+      pendingExpenses: number;
+      pendingMissions: number;
+      pendingTotal: number;
+      contractsExpiring: number;
+      absentToday: number;
+    };
   }
 
   // Employee horaires (admin / manager — exige le droit "Gestion Employés")

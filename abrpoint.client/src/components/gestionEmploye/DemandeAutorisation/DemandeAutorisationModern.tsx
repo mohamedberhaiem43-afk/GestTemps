@@ -22,6 +22,9 @@ import { useAuth } from '../../helper/AuthProvider';
 import { DemandeAutorisation } from '../../../models/DemandeAutorisation';
 import apiInstance from '../../API/apiInstance';
 import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
+import { ListSkeleton } from '../../helper/animations/Skeletons';
+import { staggerSx } from '../../helper/animations/Stagger';
+import { ActionButton } from '../../helper/animations/ActionButton';
 import './DemandeAutorisationModern.css';
 
 // ── Absence type ──
@@ -249,27 +252,24 @@ function TraitementDialog({ open, onClose, demande, action }: { open: boolean; o
   const { uticod } = useAuth();
   const { refetch } = useGetDemandeAutorisations();
   const [commentaire, setCommentaire] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setCommentaire('');
   }, [open]);
 
+  // Promesse exposée à ActionButton : le composant joue son anim de feedback
+  // (check vert / croix rouge) selon resolve/reject avant de fermer le dialog.
   const handleSubmit = async () => {
     if (!demande) return;
-    setLoading(true);
+    const endpoint = action === 'approve'
+      ? `/DemandeAutorisations/approve/${demande.id}`
+      : `/DemandeAutorisations/refuse/${demande.id}`;
     try {
-      const endpoint = action === 'approve'
-        ? `/DemandeAutorisations/approve/${demande.id}`
-        : `/DemandeAutorisations/refuse/${demande.id}`;
-
       await apiInstance.post(endpoint, { traitePar: uticod, commentaire });
       refetch();
-      onClose();
     } catch (err) {
       console.error('Error processing demande:', err);
-    } finally {
-      setLoading(false);
+      throw err;
     }
   };
 
@@ -299,8 +299,13 @@ function TraitementDialog({ open, onClose, demande, action }: { open: boolean; o
       <Divider />
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
         <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('demAutorisation.traitement.cancel')}</Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={loading}
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : (isApprove ? <CheckIcon /> : <CloseIcon />)}
+        <ActionButton
+          onAction={handleSubmit}
+          onSettled={onClose}
+          variant="contained"
+          startIcon={isApprove ? <CheckIcon /> : <CloseIcon />}
+          successColor={isApprove ? '#16a34a' : '#dc2626'}
+          successLabel={isApprove ? t('demAutorisation.traitement.approve') : t('demAutorisation.traitement.refuse')}
           sx={{
             borderRadius: '8px', textTransform: 'none', fontWeight: 700,
             background: isApprove
@@ -308,7 +313,7 @@ function TraitementDialog({ open, onClose, demande, action }: { open: boolean; o
               : 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
           }}>
           {isApprove ? t('demAutorisation.traitement.approve') : t('demAutorisation.traitement.refuse')}
-        </Button>
+        </ActionButton>
       </DialogActions>
     </Dialog>
   );
@@ -415,7 +420,7 @@ function DemandeAutorisationModern() {
 
           {/* Rows */}
           {isLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+            <ListSkeleton rows={5} />
           ) : data.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 6, color: '#94a3b8' }}>
               <AccessTimeIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
@@ -423,11 +428,11 @@ function DemandeAutorisationModern() {
             </Box>
           ) : (
             <Box className="da-rows">
-              {data.map((d: DemandeAutorisation) => {
+              {data.map((d: DemandeAutorisation, idx: number) => {
                 const status = getStatus(d);
                 const statusStyle = STATUS_STYLE[status];
                 return (
-                  <Box key={d.id} className="da-row">
+                  <Box key={d.id} className="da-row" sx={staggerSx(idx)}>
                     {/* Employee */}
                     <Box className="da-col-emp da-emp-cell">
                       <Avatar className="da-avatar">{(d.emplib || d.empcod)?.charAt(0)?.toUpperCase()}</Avatar>

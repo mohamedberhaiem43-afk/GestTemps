@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
@@ -61,25 +62,68 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
 
   const onRefresh = async () => { setRefreshing(true); await loadDocuments(); setRefreshing(false); };
 
-  const handleUpload = async () => {
+  // Étape 1 : choix de la source — caméra (prise immédiate, idéal certificat
+  // médical), galerie (photo déjà prise), ou fichier (PDF, scan).
+  const handleUpload = () => {
+    Alert.alert(
+      'Ajouter un document',
+      'Comment souhaitez-vous l\'importer ?',
+      [
+        { text: 'Prendre une photo', onPress: pickFromCamera },
+        { text: 'Choisir depuis la galerie', onPress: pickFromGallery },
+        { text: 'Choisir un fichier', onPress: pickFromFiles },
+        { text: 'Annuler', style: 'cancel' },
+      ]
+    );
+  };
+
+  const pickFromCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Accès caméra', "L'autorisation est requise pour prendre une photo.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      // qualité 0.7 : compromis lisibilité/poids pour limiter la bande passante
+      // sur les uploads 4G où un certificat 4 Mo peut prendre 30 s.
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) askDocumentType(result.assets[0].uri);
+  };
+
+  const pickFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) askDocumentType(result.assets[0].uri);
+  };
+
+  const pickFromFiles = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
       });
       if (result.canceled || !result.assets?.length) return;
-
-      const file = result.assets[0];
-      Alert.alert('Type de document', 'Sélectionnez le type:', [
-        { text: 'Contrat', onPress: () => doUpload(file.uri, 'Contrat') },
-        { text: 'Bulletin de paie', onPress: () => doUpload(file.uri, 'Bulletin de paie') },
-        { text: 'Attestation', onPress: () => doUpload(file.uri, 'Attestation') },
-        { text: 'Autre', onPress: () => doUpload(file.uri, 'Autre') },
-        { text: 'Annuler', style: 'cancel' },
-      ]);
+      askDocumentType(result.assets[0].uri);
     } catch (e) {
       Alert.alert('Erreur', 'Impossible de sélectionner le fichier');
     }
+  };
+
+  // Étape 2 : catégorisation. Réutilise la liste de types déjà côté backend
+  // (Contrat, Bulletin de paie, Attestation, Autre, plus deux types employé
+  // typiques : Certificat médical et Pièce d'identité, utiles depuis mobile).
+  const askDocumentType = (uri: string) => {
+    Alert.alert('Type de document', 'Sélectionnez le type :', [
+      { text: 'Certificat médical', onPress: () => doUpload(uri, 'Certificat médical') },
+      { text: 'Pièce d\'identité', onPress: () => doUpload(uri, 'Pièce d\'identité') },
+      { text: 'Attestation', onPress: () => doUpload(uri, 'Attestation') },
+      { text: 'Autre', onPress: () => doUpload(uri, 'Autre') },
+      { text: 'Annuler', style: 'cancel' },
+    ]);
   };
 
   const doUpload = async (fileUri: string, docType: string) => {

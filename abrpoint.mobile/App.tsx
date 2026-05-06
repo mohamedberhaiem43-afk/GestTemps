@@ -26,6 +26,7 @@ import NotificationPreferencesScreen from './src/screens/NotificationPreferences
 import HolidaysScreen from './src/screens/HolidaysScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import ChatRagScreen from './src/screens/ChatRagScreen';
+import MissionsScreen from './src/screens/MissionsScreen';
 
 // Manager Screens
 import EmployeeListScreen from './src/screens/manager/EmployeeListScreen';
@@ -33,6 +34,9 @@ import AddEmployeeScreen from './src/screens/manager/AddEmployeeScreen';
 import LeaveApprovalScreen from './src/screens/manager/LeaveApprovalScreen';
 import ExpenseApprovalScreen from './src/screens/manager/ExpenseApprovalScreen';
 import DailyPointageScreen from './src/screens/manager/DailyPointageScreen';
+import MissionApprovalScreen from './src/screens/manager/MissionApprovalScreen';
+import ManagerDashboardScreen from './src/screens/manager/ManagerDashboardScreen';
+import ContractRenewalScreen from './src/screens/manager/ContractRenewalScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -68,6 +72,7 @@ function AppStack() {
       <Stack.Screen name="Holidays" component={HolidaysScreen} />
       <Stack.Screen name="Schedule" component={ScheduleScreen} />
       <Stack.Screen name="ChatRag" component={ChatRagScreen} />
+      <Stack.Screen name="Missions" component={MissionsScreen} />
       {/* Manager Screens - always registered, access controlled by UI */}
       <Stack.Screen name="EmployeeList" component={EmployeeListScreen} />
       <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />
@@ -75,6 +80,9 @@ function AppStack() {
       <Stack.Screen name="LeaveApproval" component={LeaveApprovalScreen} />
       <Stack.Screen name="ExpenseApproval" component={ExpenseApprovalScreen} />
       <Stack.Screen name="DailyPointage" component={DailyPointageScreen} />
+      <Stack.Screen name="MissionApproval" component={MissionApprovalScreen} />
+      <Stack.Screen name="ManagerDashboard" component={ManagerDashboardScreen} />
+      <Stack.Screen name="ContractRenewal" component={ContractRenewalScreen} />
     </Stack.Navigator>
   );
 }

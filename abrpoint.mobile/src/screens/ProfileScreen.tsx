@@ -5,20 +5,28 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
+import { resolveAssetUrl } from '../config/assetUrl';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation, route }: any) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const tabBarPadding = useTabBarPadding();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [is2FAEnabled, setIs2FAEnabled] = useState(true);
+  // localPhotoUri : optimistic update — affiche la nouvelle photo dès la
+  // sélection, sans attendre le retour serveur. Au refresh suivant on retombe
+  // sur user.utiimg (la valeur persistée), ce qui couvre aussi le cas où
+  // l'upload échoue silencieusement et qu'on veut revoir l'ancienne photo.
+  const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const viewEmpcod = route?.params?.empcod || user?.uticod;
   const viewSoccod = route?.params?.soccod || user?.soccod;
@@ -54,6 +62,65 @@ export default function ProfileScreen({ navigation, route }: any) {
     ]);
   };
 
+  // Upload réel après sélection. Le fichier est compressé à 0.8 par expo-image-picker
+  // ; côté serveur FileHelper.SaveFile renvoie /api/uploads/<guid>.<ext>.
+  const uploadPhoto = async (uri: string) => {
+    if (!user?.uticod) return;
+    setUploadingPhoto(true);
+    setLocalPhotoUri(uri); // optimistic
+    try {
+      await apiService.uploadProfileImage(uri, user.uticod);
+      // Re-sync l'auth context pour que utiimg soit à jour partout (HomeScreen,
+      // TopAppBar des autres écrans). On évite ainsi que la prochaine ouverture
+      // du Profile écrase localPhotoUri par l'ancien utiimg.
+      await refreshUser();
+      setLocalPhotoUri(null); // on retombe sur user.utiimg via resolveAssetUrl
+    } catch (e) {
+      setLocalPhotoUri(null); // rollback affichage
+      Alert.alert('Erreur', "Le téléchargement de la photo a échoué. Réessayez plus tard.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Accès caméra', "L'autorisation est requise pour prendre une photo.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) await uploadPhoto(result.assets[0].uri);
+  };
+
+  const handlePickPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) await uploadPhoto(result.assets[0].uri);
+  };
+
+  const handleAvatarPress = () => {
+    if (uploadingPhoto) return;
+    Alert.alert(
+      'Photo de profil',
+      'Choisissez une option',
+      [
+        { text: 'Prendre une photo', onPress: handleTakePhoto },
+        { text: 'Choisir depuis la galerie', onPress: handlePickPhoto },
+        { text: 'Annuler', style: 'cancel' },
+      ]
+    );
+  };
+
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
@@ -83,18 +150,28 @@ export default function ProfileScreen({ navigation, route }: any) {
   const sitFamLabel = emp?.empsitfam ? (sitFam[emp.empsitfam] || emp.empsitfam) : '—';
   const hireYear = emp?.empemb ? new Date(emp.empemb).getFullYear() : null;
 
+  // Source d'affichage de l'avatar :
+  //   1. localPhotoUri (vient d'être pris/choisi → optimistic update),
+  //   2. resolveAssetUrl(user.utiimg) (photo persistée),
+  //   3. null → fallback initiales.
+  const avatarUri = localPhotoUri || resolveAssetUrl(user?.utiimg);
+  const initials = (firstName?.[0] || '') + (lastName?.[0] || '');
+
   return (
     <SafeAreaView style={styles.container}>
       {/* TopAppBar */}
       <View style={styles.topAppBar}>
         <View style={styles.topAppLeft}>
           <View style={styles.profileImageWrapper}>
-            <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5PdNdboYXXitt83dzxBWd_iuVZSC4KLAHQRyxnXIP2hPENF8upUO_xbIAGNTTZhAp1xM-M_clLcu0wlTH-xEQGDIgp_WV7yz_ncZxTWkLrcnJ_RTDyw6QAMBBxj66ern-IRU8anfHjMESEPt-7RNJwrfHmjqk9k1L9L9rRo_xmGVrAugF5Kr73lQw9rJHakJ3O9twzIc1WCmY1sDdnkyDoSGIXly2hwxPX7VAHlrK7dF2CyJfNUDPOwFOnnPmezuCRYESZ04X1ek' }}
-              style={styles.profileImage}
-            />
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.profileImage} />
+            ) : (
+              <View style={[styles.profileImage, styles.smallInitialsCircle]}>
+                <Text style={styles.smallInitialsText}>{initials || '?'}</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.logoText}>L'Architecte RH</Text>
+          <Text style={styles.logoText}>Concorde Workforce</Text>
         </View>
         <TouchableOpacity style={styles.iconButton}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
@@ -108,6 +185,31 @@ export default function ProfileScreen({ navigation, route }: any) {
       >
         {/* Profile Hero Section */}
         <View style={styles.heroSection}>
+          {/* Avatar tappable : ouvre le picker (caméra / galerie). Pendant
+              l'upload on superpose un overlay + spinner pour bloquer un
+              second tap et donner un feedback visuel. */}
+          <TouchableOpacity
+            onPress={handleAvatarPress}
+            activeOpacity={0.85}
+            style={styles.heroAvatarWrapper}
+            disabled={uploadingPhoto}
+          >
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.heroAvatar} />
+            ) : (
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.primaryContainer]}
+                style={[styles.heroAvatar, styles.heroAvatarFallback]}
+              >
+                <Text style={styles.heroAvatarInitials}>{initials || '?'}</Text>
+              </LinearGradient>
+            )}
+            <View style={styles.heroAvatarBadge}>
+              {uploadingPhoto
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <MaterialCommunityIcons name="camera" size={16} color="#fff" />}
+            </View>
+          </TouchableOpacity>
           <Text style={styles.heroSubLabel}>PROFIL COLLABORATEUR</Text>
           <Text style={styles.heroName}>{firstName}{lastName ? `\n${lastName}` : ''}</Text>
           <View style={styles.heroBadges}>
@@ -352,6 +454,37 @@ const styles = StyleSheet.create({
   iconButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 },
   heroSection: { marginBottom: 32 },
+  heroAvatarWrapper: {
+    width: 96, height: 96, borderRadius: 48,
+    marginBottom: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5,
+  },
+  heroAvatar: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    borderWidth: 3, borderColor: '#fff',
+  },
+  heroAvatarFallback: {
+    justifyContent: 'center', alignItems: 'center',
+  },
+  heroAvatarInitials: {
+    fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -0.5,
+    fontFamily: 'Manrope',
+  },
+  heroAvatarBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: COLORS.background,
+  },
+  smallInitialsCircle: {
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  smallInitialsText: {
+    color: '#fff', fontSize: 14, fontWeight: '800',
+  },
   heroSubLabel: { fontSize: 10, fontWeight: '800', color: COLORS.primary, letterSpacing: 1.5, marginBottom: 8 },
   heroName: { fontSize: 36, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -1, lineHeight: 36 },
   heroBadges: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },

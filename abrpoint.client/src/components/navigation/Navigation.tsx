@@ -1,4 +1,4 @@
-import { Box, IconButton, Tooltip, useTheme as useMuiTheme, Autocomplete, TextField, InputAdornment, Typography, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import { Box, IconButton, Tooltip, useTheme as useMuiTheme, Typography, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
 import { Search as SearchIcon, X as CloseIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -46,6 +46,7 @@ import EmployeModern from '../gestionEmploye/EmployeModern';
 import EmployeProfileView from '../gestionEmploye/EmployeProfileView';
 import EffectifsGlobaux from '../gestionEmploye/EffectifsGlobaux';
 import CahierConge from '../Etats/CahierConge/CahierConge';
+import TeamCalendarPage from '../Etats/TeamCalendar/TeamCalendarPage';
 import RemboursementModern from '../gestionEmploye/Remboursement/RemboursementModern';
 import MissionPage from '../gestionEmploye/Mission/MissionPage';
 import MainModern from '../PosteTravail/MainModern';
@@ -76,6 +77,7 @@ import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './Sid
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import TrialBanner from '../helper/TrialBanner';
 import PageFade from '../helper/animations/PageFade';
+import CommandPalette from '../helper/CommandPalette/CommandPalette';
 
 /* ── Lucide icons ── */
 import {
@@ -352,6 +354,10 @@ const useNavigationItems = (): NavGroup[] => {
       href: '/dashboard/rapports',
       icon: BarChart2,
       items: [
+        // Calendrier équipe : vue mensuelle agrégée (congés + missions + autorisations).
+        // Visible pour tout utilisateur ayant accès aux états de présence —
+        // c'est la même portée fonctionnelle (visualisation des absences).
+        ...(canSee('etat-de-presence') ? [{ label: t('navigation.teamCalendar', 'Calendrier équipe'), href: '/dashboard/calendrier-equipe', icon: CalendarDays }] : []),
         ...(canSee('etat-de-presence') ? [{ label: t('navigation.attendanceReport'), href: '/dashboard/etat-de-presence', icon: Users }] : []),
         ...(canSee('etat-de-retard') ? [{ label: t('navigation.lateReport'), href: '/dashboard/etat-de-retard', icon: Clock3 }] : []),
         ...(canSee('etat-des-absences') ? [{ label: t('navigation.absenceReport'), href: '/dashboard/etat-des-absences', icon: AlarmClock }] : []),
@@ -418,6 +424,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/etat-des-absences': content = <EtatAbsence />; break;
     case '/dashboard/echeance-contrat': content = <EcheanceContrat />; break;
     case '/dashboard/cahier-conge': content = <CahierConge />; break;
+    case '/dashboard/calendrier-equipe': content = <TeamCalendarPage />; break;
     // case '/dashboard/accompte-salaire': content = <Accompte />; break;
     case '/dashboard/pointage-du-mois': content = <PointageDuMoisModern />; break;
     case '/dashboard/droit-de-conge': content = <EtatDroitConge />; break;
@@ -539,24 +546,15 @@ function RecentItemsBar({ items, onNavigate }: { items: RecentItem[], onNavigate
 /* ══════════════════════════════════════════════════════ */
 function makeToolbarActions(
   isDark: boolean,
-  navigation: NavGroup[],
+  _navigation: NavGroup[],
   onNavigate: (href: string) => void,
   clearAuth: () => void,
-  userName?: string | null
+  userName?: string | null,
+  onOpenPalette?: () => void
 ) {
-  // Flatten navigation for search
-  const searchItems = navigation.flatMap((group) => {
-    const parent = { label: group.label, href: group.href };
-    const children = (group.items ?? []).map((item) => ({
-      label: `${group.label} > ${item.label}`,
-      href: item.href,
-      shortLabel: item.label
-    }));
-    // Return group if it's a direct link, plus its children
-    const list = group.href && group.href !== '#' ? [parent, ...children] : children;
-    // Remove duplicates by href
-    return list;
-  }).filter((v, i, a) => v.href && v.href !== '#' && a.findIndex(t => t.href === v.href) === i);
+  // Détection plateforme pour afficher le bon raccourci (⌘ vs Ctrl) sur le
+  // bouton Recherche. Best-effort — sur SSR, navigator est undefined.
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 
   function UserProfileMenu({ userName, isDark, clearAuth, onNavigate }: { userName?: string | null, isDark: boolean, clearAuth: () => void, onNavigate: (h: string) => void }) {
     const { t } = useTranslation();
@@ -568,10 +566,27 @@ function makeToolbarActions(
     const handleProfile = () => { handleClose(); onNavigate('/dashboard/profile'); };
     const handleLogout = () => { handleClose(); clearAuth(); onNavigate('/'); };
 
+    // Photo de profil : lue depuis localStorage (alimentée au login + au upload).
+    // On écoute `imageUpdated` (dispatché par Profile.tsx après un upload) pour
+    // que l'avatar de la navbar se rafraîchisse sans rechargement de page.
+    const [avatarUrl, setAvatarUrl] = React.useState<string>(() => {
+      const stored = localStorage.getItem('profileImage');
+      return stored ? resolveAssetUrl(stored) : '';
+    });
+    React.useEffect(() => {
+      const onImageUpdated = () => {
+        const stored = localStorage.getItem('profileImage');
+        setAvatarUrl(stored ? resolveAssetUrl(stored) : '');
+      };
+      window.addEventListener('imageUpdated', onImageUpdated);
+      return () => window.removeEventListener('imageUpdated', onImageUpdated);
+    }, []);
+
     return (
       <>
         <Tooltip title={userName || t('navigation.account')}>
           <Avatar
+            src={avatarUrl || undefined}
             onClick={handleClick}
             sx={{
               width: 34, height: 34,
@@ -637,41 +652,44 @@ function makeToolbarActions(
           <RecentItemsBar items={recentPages} onNavigate={onNavigate} />
         </Box>
 
-        {/* Functional Search Box */}
-        <Autocomplete
-          size="small"
-          options={searchItems}
-          getOptionLabel={(option) => option.label}
-          onChange={(_, value) => {
-            if (value) onNavigate(value.href);
-          }}
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            width: '280px',
-            '& .MuiOutlinedInput-root': {
-              bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f2f4f6',
+        {/* Search trigger : ouvre la Command Palette (Cmd/Ctrl+K).
+            On garde l'apparence d'un input pour que l'utilisateur reconnaisse
+            la zone de recherche, mais le clic ouvre une palette plus riche
+            (pages + employés + demandes en attente, fuzzy matching, kbd nav). */}
+        <Tooltip title={t('navigation.searchPage') + ' (' + (isMac ? '⌘K' : 'Ctrl+K') + ')'}>
+          <Box
+            onClick={() => onOpenPalette?.()}
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              alignItems: 'center', gap: 1,
+              width: '280px', height: 36,
+              px: 1.5,
               borderRadius: '12px',
+              cursor: 'pointer',
+              bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f2f4f6',
+              color: isDark ? '#94a3b8' : '#64748b',
               fontSize: '13px',
-              '& fieldset': { border: 'none' },
-              '&:hover fieldset': { border: 'none' },
-              '&.Mui-focused fieldset': { border: 'none' },
-            }
-          }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              placeholder={t('navigation.searchPage')}
-              InputProps={{
-                ...params.InputProps,
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon size={20} color={isDark ? '#94a3b8' : '#64748b'} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          )}
-        />
+              transition: 'background-color 160ms ease',
+              '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.10)' : '#e8ecef' },
+            }}
+          >
+            <SearchIcon size={16} />
+            <Typography sx={{ flex: 1, fontSize: '13px', color: 'inherit' }}>
+              {t('navigation.searchPage')}
+            </Typography>
+            <Box sx={{
+              fontSize: '10px', fontWeight: 700, fontFamily: 'monospace',
+              px: 0.8, py: 0.2,
+              borderRadius: '4px',
+              border: '1px solid',
+              borderColor: isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0',
+              bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
+              color: isDark ? '#cbd5e1' : '#475569',
+            }}>
+              {isMac ? '⌘K' : 'Ctrl K'}
+            </Box>
+          </Box>
+        </Tooltip>
 
         {/* Language Switcher */}
         <Box sx={{ flexShrink: 0, '& .MuiFormControl-root': { minWidth: 'auto' }, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '12px', fontWeight: 700 } }}>
@@ -872,9 +890,28 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
 
   const ToolbarActions = React.useMemo(
-    () => makeToolbarActions(isDark, NAVIGATION, (h) => navigate(h), clearAuth, userName),
+    () => makeToolbarActions(isDark, NAVIGATION, (h) => navigate(h), clearAuth, userName, () => setPaletteOpen(true)),
     [isDark, NAVIGATION, navigate, clearAuth, userName]
   );
+
+  // ── Command Palette (Cmd/Ctrl+K) ──
+  // On écoute au niveau document : capture toutes les frappes même quand le
+  // focus est dans une input (sauf si elle a déjà consommé l'événement). On
+  // n'enregistre l'écouteur qu'une fois `authReady` car le palette dépend
+  // de `soccod` pour ses fetches.
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!authReady) return;
+    const onKey = (e: KeyboardEvent) => {
+      const isShortcut = (e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K');
+      if (isShortcut) {
+        e.preventDefault();
+        setPaletteOpen(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [authReady]);
 
   const footerItems: FooterItem[] = [
     { label: t('navigation.support'), href: '/dashboard/support', icon: LifeBuoy },
@@ -1075,6 +1112,14 @@ function DashboardLayoutAccount(_props: DemoProps) {
           <UnifiedAssistantHub />
         </Box>
       )}
+      {/* Command Palette : ouvert via Cmd/Ctrl+K ou via le bouton Recherche
+          du header. Monté ici pour rester accessible quelle que soit la page
+          courante du dashboard. */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        navigation={NAVIGATION}
+      />
     </>
   );
 }
