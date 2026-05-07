@@ -599,8 +599,11 @@ function ClasseHoraireModernInner() {
       if (data.catcod) setClasseCode(data.catcod);
       if (data.catlib) setClasseLib(data.catlib);
       refetchClasses();
-    } catch {
-      showSnack(t('classeHoraire.modern.msg.saveError'), 'error');
+    } catch (e: any) {
+      // Remonte le vrai message serveur s'il existe (réponse 500 du contrôleur :
+      // { message, error }) plutôt qu'un libellé générique opaque.
+      const serverMsg = e?.response?.data?.message || e?.response?.data?.error;
+      showSnack(serverMsg || t('classeHoraire.modern.msg.saveError'), 'error');
     }
   };
 
@@ -613,8 +616,9 @@ function ClasseHoraireModernInner() {
       setActivePeriod(null);
       setSelectedClasseHoraire(null);
       refetchClasses();
-    } catch {
-      showSnack(t('classeHoraire.modern.msg.deleteError'), 'error');
+    } catch (e: any) {
+      const serverMsg = e?.response?.data?.message || e?.response?.data?.error;
+      showSnack(serverMsg || t('classeHoraire.modern.msg.deleteError'), 'error');
     }
   };
 
@@ -632,8 +636,9 @@ function ClasseHoraireModernInner() {
       setSelectedPoste(selectedPosteCode);
       setActivePeriod({ ...activePeriod, codposte: selectedPosteCode });
       refetchClasses();
-    } catch {
-      showSnack(t('classeHoraire.modern.msg.applyError'), 'error');
+    } catch (e: any) {
+      const serverMsg = e?.response?.data?.message || e?.response?.data?.error;
+      showSnack(serverMsg || t('classeHoraire.modern.msg.applyError'), 'error');
     }
   };
 
@@ -957,13 +962,18 @@ function ClasseHoraireModernInner() {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
+        autoHideDuration={5000}
         onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        // zIndex 1500 > Dialog (1300) pour rester visible quand le formulaire
+        // d'édition reste ouvert après une erreur de sauvegarde.
+        sx={{ zIndex: 1500 }}
       >
         <Alert
           severity={snackbar.severity}
+          variant="filled"
           onClose={() => setSnackbar(s => ({ ...s, open: false }))}
-          sx={{ borderRadius: '10px' }}
+          sx={{ borderRadius: '10px', minWidth: 300 }}
         >
           {snackbar.message}
         </Alert>

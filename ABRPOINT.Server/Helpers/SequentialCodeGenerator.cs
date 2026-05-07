@@ -35,8 +35,12 @@ public static class SequentialCodeGenerator
     public static Task<string> NextSectionCodeAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
         => NextAsync(db.Sections.IgnoreQueryFilters().Where(s => s.Soccod == soccod).Select(s => s.Seccod), width: 4, ct);
 
+    // ⚠ width: 2 OBLIGATOIRE — même si Poste.codposte est nvarchar(10), le code est aussi
+    // référencé par Lcategorie.codposte / Categorie.codposte / Postemploye.codposte qui sont
+    // en nvarchar(2). Un code à 4 chiffres y serait tronqué et l'INSERT renverrait
+    // "String or binary data would be truncated" → 500 lors du save d'une classe horaire.
     public static Task<string> NextCodposteAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
-        => NextAsync(db.Postes.IgnoreQueryFilters().Where(p => p.Soccod == soccod).Select(p => p.Codposte), width: 4, ct);
+        => NextAsync(db.Postes.IgnoreQueryFilters().Where(p => p.Soccod == soccod).Select(p => p.Codposte), width: 2, ct);
 
     public static Task<string> NextCatcodAsync(ApplicationDbContext db, string soccod, CancellationToken ct = default)
         => NextAsync(db.Lcategories.IgnoreQueryFilters().Where(l => l.Soccod == soccod).Select(l => l.Catcod), width: 2, ct);

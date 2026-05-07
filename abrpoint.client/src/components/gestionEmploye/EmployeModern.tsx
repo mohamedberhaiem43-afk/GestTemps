@@ -1680,9 +1680,12 @@ const EmployeModernInner = () => {
                 />
             )}
 
-            <Snackbar open={isSnackbarOpen} autoHideDuration={4000} onClose={() => setIsSnackbarOpen(false)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-                <Alert onClose={() => setIsSnackbarOpen(false)} severity={severity} sx={{ borderRadius: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
+            <Snackbar open={isSnackbarOpen} autoHideDuration={5000} onClose={() => setIsSnackbarOpen(false)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                // zIndex 1500 > Dialog (1300) — sinon le snackbar reste caché derrière
+                // les modals d'ajout direction/service/qualif… qui peuvent rester ouverts.
+                sx={{ zIndex: 1500 }}>
+                <Alert onClose={() => setIsSnackbarOpen(false)} severity={severity} variant="filled" sx={{ borderRadius: '10px', minWidth: 300, boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
                     {message}
                 </Alert>
             </Snackbar>
