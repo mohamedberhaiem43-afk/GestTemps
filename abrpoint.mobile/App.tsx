@@ -37,6 +37,7 @@ import DailyPointageScreen from './src/screens/manager/DailyPointageScreen';
 import MissionApprovalScreen from './src/screens/manager/MissionApprovalScreen';
 import ManagerDashboardScreen from './src/screens/manager/ManagerDashboardScreen';
 import ContractRenewalScreen from './src/screens/manager/ContractRenewalScreen';
+import AuthorizationApprovalScreen from './src/screens/manager/AuthorizationApprovalScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -83,6 +84,7 @@ function AppStack() {
       <Stack.Screen name="MissionApproval" component={MissionApprovalScreen} />
       <Stack.Screen name="ManagerDashboard" component={ManagerDashboardScreen} />
       <Stack.Screen name="ContractRenewal" component={ContractRenewalScreen} />
+      <Stack.Screen name="AuthorizationApproval" component={AuthorizationApprovalScreen} />
     </Stack.Navigator>
   );
 }

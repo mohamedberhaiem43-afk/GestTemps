@@ -15,7 +15,7 @@ import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation, route }: any) {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout, refreshUser, isAdmin, isManager } = useAuth();
   const tabBarPadding = useTabBarPadding();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -274,6 +274,9 @@ export default function ProfileScreen({ navigation, route }: any) {
 
   const handleAvatarPress = () => {
     if (uploadingPhoto) return;
+    // Garde-fou : un manager qui consulte le profil d'un collaborateur ne doit
+    // pas pouvoir lui uploader une photo en tap involontaire.
+    if (!isOwnProfile) return;
     Alert.alert(
       'Photo de profil',
       'Choisissez une option',
@@ -315,28 +318,39 @@ export default function ProfileScreen({ navigation, route }: any) {
   const hireYear = emp?.empemb ? new Date(emp.empemb).getFullYear() : null;
 
   // Source d'affichage de l'avatar :
-  //   1. localPhotoUri (vient d'être pris/choisi → optimistic update),
-  //   2. resolveAssetUrl(user.utiimg) (photo persistée),
-  //   3. null → fallback initiales.
-  const avatarUri = localPhotoUri || resolveAssetUrl(user?.utiimg);
+  //   - profil propre : utiimg du user authentifié (avec optimistic localPhotoUri),
+  //   - profil collaborateur (admin/manager view) : utiimg du profil chargé.
+  // Le fallback sur user.utiimg est uniquement utile sur le profil propre, le
+  // temps que /get-profile remonte la valeur fraîche.
+  const targetUtiImg = isOwnProfile
+    ? (profile?.utiimg || user?.utiimg)
+    : (profile?.utiimg || emp?.utiimg || emp?.empimg);
+  const avatarUri = (isOwnProfile && localPhotoUri) || resolveAssetUrl(targetUtiImg);
   const initials = (firstName?.[0] || '') + (lastName?.[0] || '');
 
   return (
     <SafeAreaView style={styles.container}>
       {/* TopAppBar */}
       <View style={styles.topAppBar}>
-        <View style={styles.topAppLeft}>
-          <View style={styles.profileImageWrapper}>
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.profileImage} />
-            ) : (
-              <View style={[styles.profileImage, styles.smallInitialsCircle]}>
-                <Text style={styles.smallInitialsText}>{initials || '?'}</Text>
-              </View>
-            )}
+        {isOwnProfile ? (
+          <View style={styles.topAppLeft}>
+            <View style={styles.profileImageWrapper}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.profileImage} />
+              ) : (
+                <View style={[styles.profileImage, styles.smallInitialsCircle]}>
+                  <Text style={styles.smallInitialsText}>{initials || '?'}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.logoText}>Concorde Workforce</Text>
           </View>
-          <Text style={styles.logoText}>Concorde Workforce</Text>
-        </View>
+        ) : (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topAppLeft} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.primary} />
+            <Text style={styles.logoText}>Retour</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Notifications')}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
         </TouchableOpacity>
@@ -368,11 +382,13 @@ export default function ProfileScreen({ navigation, route }: any) {
                 <Text style={styles.heroAvatarInitials}>{initials || '?'}</Text>
               </LinearGradient>
             )}
-            <View style={styles.heroAvatarBadge}>
-              {uploadingPhoto
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <MaterialCommunityIcons name="camera" size={16} color="#fff" />}
-            </View>
+            {isOwnProfile && (
+              <View style={styles.heroAvatarBadge}>
+                {uploadingPhoto
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <MaterialCommunityIcons name="camera" size={16} color="#fff" />}
+              </View>
+            )}
           </TouchableOpacity>
           <Text style={styles.heroSubLabel}>PROFIL COLLABORATEUR</Text>
           <Text style={styles.heroName}>{firstName}{lastName ? `\n${lastName}` : ''}</Text>
@@ -527,7 +543,33 @@ export default function ProfileScreen({ navigation, route }: any) {
           </View>
         </View>
 
+        {/* Actions admin/manager — visibles uniquement quand on consulte le
+            profil d'un collaborateur (pas son propre profil). Permet d'accéder
+            au coffre-fort de l'employé pour y ajouter/consulter des documents. */}
+        {!isOwnProfile && (isAdmin || isManager) && (
+          <TouchableOpacity
+            style={styles.prefRow}
+            onPress={() => navigation.navigate('DigitalVault', {
+              empcod: viewEmpcod,
+              soccod: viewSoccod,
+              empName: fullName,
+            })}
+            activeOpacity={0.7}
+          >
+            <View style={styles.prefIconBox}>
+              <MaterialCommunityIcons name="folder-lock" size={22} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.prefTitle}>Coffre-fort du collaborateur</Text>
+              <Text style={styles.prefSub}>Consulter et ajouter des documents</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
+          </TouchableOpacity>
+        )}
+
         {/* Section: Sécurité & Accès */}
+        {isOwnProfile && (
+        <>
         <View style={styles.infoLedger}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Sécurité & Accès</Text>
@@ -606,9 +648,14 @@ export default function ProfileScreen({ navigation, route }: any) {
             <Text style={styles.logoutText}>DÉCONNEXION SÉCURISÉE</Text>
           </LinearGradient>
         </TouchableOpacity>
+        </>
+        )}
       </ScrollView>
 
-      <BottomTabBar active="profile" navigation={navigation} />
+      {/* La BottomTabBar n'a de sens que sur le profil de l'utilisateur courant.
+          Sur la vue collaborateur (admin/manager), seule la flèche "Retour" sert
+          à sortir de l'écran. */}
+      {isOwnProfile && <BottomTabBar active="profile" navigation={navigation} />}
 
       {/* ── Modal "Changer le mot de passe" ── */}
       <Modal visible={pwdModal} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setPwdModal(false)}>

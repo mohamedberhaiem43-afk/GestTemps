@@ -36,6 +36,12 @@ const MENU: MenuItem[] = [
   { icon: 'calendar-star',           label: 'Jours fériés',           route: 'Holidays' },
   { icon: 'scale-balance',           label: 'Assistant juridique',    route: 'ChatRag' },
   { icon: 'view-dashboard',          label: 'Tableau de bord équipe', route: 'ManagerDashboard', managerOnly: true },
+  { icon: 'calendar-check-outline',  label: 'Valider congés',         route: 'LeaveApproval', managerOnly: true },
+  { icon: 'exit-run',                label: 'Valider autorisations',  route: 'AuthorizationApproval', managerOnly: true },
+  { icon: 'receipt-text-check-outline', label: 'Valider notes de frais', route: 'ExpenseApproval', managerOnly: true },
+  { icon: 'briefcase-check-outline', label: 'Valider missions',       route: 'MissionApproval', managerOnly: true },
+  { icon: 'account-group-outline',   label: 'Mes collaborateurs',     route: 'EmployeeList', managerOnly: true },
+  { icon: 'calendar-today',          label: 'Pointage du jour',       route: 'DailyPointage', managerOnly: true },
 ];
 
 const LOGOUT_ITEM: MenuItem = { icon: 'logout', label: 'Déconnexion', action: 'logout', color: COLORS.error };

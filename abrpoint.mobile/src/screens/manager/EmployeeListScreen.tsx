@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
+import { resolveAssetUrl } from '../../config/assetUrl';
 
 export default function EmployeeListScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -59,20 +60,31 @@ export default function EmployeeListScreen({ navigation }: any) {
             <Text style={styles.emptyText}>Aucun employé trouvé</Text>
           </View>
         ) : (
-          filtered.map((emp: any, i: number) => (
-            <TouchableOpacity key={i} style={styles.empCard}
-              onPress={() => navigation.navigate('EmployeeDetail', { employee: emp })}>
-              <View style={styles.empAvatar}>
-                <Text style={styles.empAvatarText}>{(emp.emplib || 'E').charAt(0)}</Text>
-              </View>
-              <View style={styles.empInfo}>
-                <Text style={styles.empName}>{emp.emplib || emp.empcod}</Text>
-                <Text style={styles.empDetail}>{emp.empmat || ''} • {emp.foncod || ''}</Text>
-                <Text style={styles.empSite}>{emp.sitcod || ''}</Text>
-              </View>
-              <Text style={styles.empArrow}>›</Text>
-            </TouchableOpacity>
-          ))
+          filtered.map((emp: any, i: number) => {
+            const photoUri = resolveAssetUrl(emp.utiimg || emp.empimg);
+            return (
+              <TouchableOpacity key={emp.empcod || i} style={styles.empCard}
+                onPress={() => navigation.navigate('EmployeeDetail', {
+                  empcod: emp.empcod,
+                  soccod: emp.soccod || user?.soccod,
+                  empName: emp.emplib || emp.empcod,
+                })}>
+                {photoUri ? (
+                  <Image source={{ uri: photoUri }} style={styles.empAvatar} />
+                ) : (
+                  <View style={styles.empAvatar}>
+                    <Text style={styles.empAvatarText}>{(emp.emplib || 'E').charAt(0).toUpperCase()}</Text>
+                  </View>
+                )}
+                <View style={styles.empInfo}>
+                  <Text style={styles.empName}>{emp.emplib || emp.empcod}</Text>
+                  <Text style={styles.empDetail}>{emp.empmat || ''} • {emp.foncod || ''}</Text>
+                  <Text style={styles.empSite}>{emp.sitcod || ''}</Text>
+                </View>
+                <Text style={styles.empArrow}>›</Text>
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>

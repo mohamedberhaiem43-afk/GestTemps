@@ -154,15 +154,14 @@ export default function ManagerDashboardScreen({ navigation }: any) {
           onPress={() => {
             // Si le manager a plusieurs types pending, on l'envoie sur le plus gros pile
             // pour minimiser les clics ; sinon directement sur la liste correspondante.
-            if (summary.pendingLeaves >= Math.max(summary.pendingAuth, summary.pendingExpenses, summary.pendingMissions)) {
-              navigation.navigate('LeaveApproval');
-            } else if (summary.pendingMissions >= Math.max(summary.pendingAuth, summary.pendingExpenses)) {
-              navigation.navigate('MissionApproval');
-            } else if (summary.pendingExpenses >= summary.pendingAuth) {
-              navigation.navigate('ExpenseApproval');
-            } else {
-              navigation.navigate('LeaveApproval');
-            }
+            const pairs: { count: number; route: string }[] = [
+              { count: summary.pendingLeaves, route: 'LeaveApproval' },
+              { count: summary.pendingMissions, route: 'MissionApproval' },
+              { count: summary.pendingExpenses, route: 'ExpenseApproval' },
+              { count: summary.pendingAuth, route: 'AuthorizationApproval' },
+            ];
+            const top = pairs.reduce((a, b) => (b.count > a.count ? b : a));
+            navigation.navigate(top.route);
           }}
         >
           <LinearGradient
@@ -219,15 +218,30 @@ export default function ManagerDashboardScreen({ navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.gridCard, styles.gridCardBlue]}
+            style={[styles.gridCard, styles.gridCardCyan]}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('DailyPointage')}
+            onPress={() => navigation.navigate('AuthorizationApproval')}
           >
-            <MaterialCommunityIcons name="account-clock-outline" size={22} color={COLORS.primary} />
-            <Text style={styles.gridCount}>{animatedAbsent}</Text>
-            <Text style={styles.gridLabel}>Absents aujourd'hui</Text>
+            <MaterialCommunityIcons name="exit-run" size={22} color="#0e7490" />
+            <Text style={styles.gridCount}>{summary.pendingAuth}</Text>
+            <Text style={styles.gridLabel}>Autorisations à valider</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={[styles.gridCard, styles.gridCardBlue, { marginBottom: 12 }]}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('DailyPointage')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <MaterialCommunityIcons name="account-clock-outline" size={22} color={COLORS.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.gridCount}>{animatedAbsent}</Text>
+              <Text style={styles.gridLabel}>Absents aujourd'hui</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.primary} />
+          </View>
+        </TouchableOpacity>
 
         {/* Carte alerte : contrats expirant bientôt */}
         {summary.contractsExpiring > 0 && (
@@ -335,6 +349,7 @@ const styles = StyleSheet.create({
   gridCardPurple: { backgroundColor: '#ede9fe' },
   gridCardGreen: { backgroundColor: '#d1fae5' },
   gridCardBlue: { backgroundColor: '#dbeafe' },
+  gridCardCyan: { backgroundColor: '#cffafe' },
   gridCount: { fontSize: 26, fontWeight: '900', color: COLORS.onSurface, fontFamily: 'Manrope' },
   gridLabel: { fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant },
   alertCard: {

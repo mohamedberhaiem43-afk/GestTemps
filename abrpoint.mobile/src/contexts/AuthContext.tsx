@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import apiService from '../services/api';
 import { disableBiometricLogin } from '../services/biometric';
-import { clearRegisteredToken } from '../services/push';
+import { clearRegisteredToken, registerForPushAsync } from '../services/push';
 
 interface UserInfo {
   uticod: string;
@@ -60,6 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           socimg: userData.socimg,
           sitcods: userData.sitcods,
         });
+        // Re-enregistre le token push si la session est restaurée (idempotent côté push.ts).
+        // Sans ça, un user déjà connecté n'a aucun token en base → /test-push renvoie sent=0.
+        registerForPushAsync(userData.soccod || userData.empInfo?.soccod);
       }
     } catch (error) {
       console.log('Auth check failed:', error);
@@ -71,6 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, tenantSlug?: string) => {
     const data = await apiService.login(email, password, tenantSlug);
     setUser(data.user);
+    // Enregistre le token push juste après login (fire-and-forget — la fonction
+    // est idempotente et avale ses propres erreurs).
+    registerForPushAsync(data.user?.soccod);
   };
 
   const logout = async () => {
