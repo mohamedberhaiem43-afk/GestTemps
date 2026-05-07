@@ -22,7 +22,10 @@ import useGetSortie from '../../../../../hooks/sortieHooks/useGetSortie';
 import { Autoriser } from '../../../../../models/Autoriser';
 import { useAuth } from '../../../../helper/AuthProvider';
 import BreadcrumbNavigation from "../../../../helper/BreadcrumbNavigation";
-import '../AutSortie/AutSortieModern.css';
+// AutSortieModern.css utilise un préfixe `as-*` (page liste) — incompatible
+// avec le préfixe `aut-*` utilisé ici. La feuille dédiée définit le layout
+// form-grid de cette page (cards, type-list, motif, etc.).
+import './AutSortieGeneraleModern.css';
 
 dayjs.extend(duration);
 

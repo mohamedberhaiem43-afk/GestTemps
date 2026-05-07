@@ -4,7 +4,7 @@ import {
     TextField, Select, MenuItem, FormControl, CircularProgress,
     IconButton, Menu, ListItemIcon, ListItemText, Divider, Chip,
     Dialog, DialogTitle, DialogContent, DialogActions, Avatar,
-    InputAdornment, Tooltip,
+    InputAdornment, Tooltip, Autocomplete,
 } from '@mui/material';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import SaveIcon from '@mui/icons-material/Save';
@@ -50,7 +50,12 @@ import useGetFonctionsLibs from '../../hooks/fonctionHooks/useGetFonctionsLibs';
 import useGetSectionsLibs from '../../hooks/sectionHooks/useGetSectionsLibs';
 import useGetQualificationsLibs from '../../hooks/QualificationHooks/useGetQualificationsLibs';
 import useGetSiteLibs from '../../hooks/siteHooks/useGetSiteLibs';
-import useGetPaysLibs from '../../hooks/paysHooks/useGetPaysLibs';
+// Note : le hook useGetPaysLibs n'est plus utilisé dans la fiche employé
+// depuis que le pays passe par REST Countries (CountrySelect ci-dessous).
+// La page Pays continue d'utiliser sa propre source canonique pour la
+// gestion locale des codes nations historiques.
+import useGetRestCountries from '../../hooks/restCountriesHooks/useGetRestCountries';
+import { RestCountry } from '../../models/RestCountry';
 import DocumentScanEmploye from './DocumentScanEmploye/DocumentScanEmploye';
 import RolesService from '../../services/RolesService/RolesService';
 import { ROLE_LABELS } from '../../models/Utilisateur';
@@ -241,6 +246,90 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle, codeNumeric 
     );
 }
 
+// ── CountrySelect : Autocomplete alimenté par REST Countries ──────────────────
+// Stocke le code ISO 3 lettres (cca3) dans `natcod` (StringLength(3) côté BD).
+// Affiche drapeau + nom français + code dans la liste, avec recherche fuzzy
+// sur n'importe lequel de ces champs. Si la valeur courante ne correspond pas
+// à un pays connu (ancienne saisie locale, code legacy), on l'affiche brut
+// pour ne pas perdre la donnée existante.
+function CountrySelect({ value, onChange }: { value: string; onChange: (cca3: string) => void }) {
+    const { t } = useTranslation();
+    const { data: countries = [], isLoading } = useGetRestCountries();
+
+    // Tri par nom français — déjà fait côté service mais on sécurise.
+    const sorted = useMemo<RestCountry[]>(
+        () => [...countries].sort((a, b) => a.nameFr.localeCompare(b.nameFr, 'fr')),
+        [countries]
+    );
+
+    const selected = useMemo(
+        () => sorted.find(c => c.cca3 === value || c.cca2 === value) || null,
+        [sorted, value]
+    );
+
+    return (
+        <Autocomplete<RestCountry, false, false, true>
+            freeSolo
+            options={sorted}
+            value={selected}
+            inputValue={selected ? selected.nameFr : (value || '')}
+            getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.nameFr}
+            isOptionEqualToValue={(opt, val) => opt.cca3 === val.cca3}
+            loading={isLoading}
+            // freeSolo : si l'utilisateur tape librement (cas d'une donnée legacy
+            // qu'on veut garder), on stocke la chaîne brute sans la transformer.
+            onChange={(_, v) => {
+                if (v == null) onChange('');
+                else if (typeof v === 'string') onChange(v);
+                else onChange(v.cca3);
+            }}
+            noOptionsText={t('common.noResults', { defaultValue: 'Aucun résultat' })}
+            size="small"
+            renderOption={(props, opt) => (
+                <li {...props} key={opt.cca3} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+                    <img
+                        src={opt.flagSvg || opt.flagPng}
+                        alt={opt.flagAlt || opt.nameFr}
+                        loading="lazy"
+                        style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }}
+                    />
+                    <span style={{ flex: 1 }}>{opt.nameFr}</span>
+                    <span style={{ color: '#94a3b8', fontFamily: 'monospace', fontSize: 11 }}>{opt.cca3}</span>
+                </li>
+            )}
+            renderInput={(params) => (
+                <TextField
+                    {...params}
+                    placeholder={t('employe.field.countryPlaceholder', { defaultValue: 'Sélectionner un pays…' })}
+                    InputProps={{
+                        ...params.InputProps,
+                        sx: { backgroundColor: '#f5f7fa', borderRadius: '8px', fontSize: '13px' },
+                        startAdornment: selected ? (
+                            <InputAdornment position="start" sx={{ ml: 0.5, mr: 0 }}>
+                                <img
+                                    src={selected.flagSvg || selected.flagPng}
+                                    alt={selected.flagAlt || selected.nameFr}
+                                    style={{ width: 22, height: 14, objectFit: 'cover', borderRadius: 2 }}
+                                />
+                            </InputAdornment>
+                        ) : params.InputProps.startAdornment,
+                        endAdornment: (
+                            <>
+                                {isLoading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : null}
+                                {params.InputProps.endAdornment}
+                            </>
+                        ),
+                    }}
+                    sx={{
+                        '& .MuiOutlinedInput-notchedOutline': { border: '1.5px solid #e8ecf2' },
+                        '& .MuiOutlinedInput-input': { fontSize: '13px', padding: '5px 8px !important' },
+                    }}
+                />
+            )}
+        />
+    );
+}
+
 // ── Inner component ───────────────────────────────────────────────────────────
 const EmployeModernInner = () => {
     const { t } = useTranslation();
@@ -289,7 +378,6 @@ const EmployeModernInner = () => {
     const { data: qualifLibsRaw } = useGetQualificationsLibs();
     const { data: siteLibsRaw = {} } = useGetSiteLibs();
     const { data: villeLibsRaw } = useGetVillesLibs();
-    const { data: paysLibsRaw } = useGetPaysLibs();
     const { data: roles = [] } = useQuery<Role[]>({ queryKey: ['roles'], queryFn: RolesService.getAll });
 
     const [classeHoraireLibs, setClasseHoraireLibs] = useState<Record<string, string>>({});
@@ -352,7 +440,6 @@ const EmployeModernInner = () => {
     const quaMap = useMemo(() => toMap(qualifLibsRaw), [qualifLibsRaw]);
     const sitMap = useMemo(() => toMap(siteLibsRaw), [siteLibsRaw]);
     const vilMap = useMemo(() => toMap(villeLibsRaw), [villeLibsRaw]);
-    const payMap = useMemo(() => toMap(paysLibsRaw), [paysLibsRaw]);
 
     // Quick-add handlers
     const handleAddDirection = async (code: string, lib: string) => {
@@ -438,17 +525,6 @@ const EmployeModernInner = () => {
             throw err;
         }
     };
-    const handleAddPays = async (code: string, lib: string) => {
-        try {
-            await apiInstance.post('/Pays', { natcod: code, natlib: lib });
-            queryClient.invalidateQueries('pays-libs');
-            showSnackbar(t('employe.addedCountry'), 'success');
-        } catch (err) {
-            showSnackbar(t('employe.addErrorCountry'), 'error');
-            throw err;
-        }
-    };
-
     useEffect(() => {
         if (isNewEmployee) {
             setFormData(getDefaultEmployeData(soccod || '', sitcod || ''));
@@ -1108,9 +1184,13 @@ const EmployeModernInner = () => {
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.field.country')}</Typography>
-                                            <SelectWithAdd value={formData.natcod || ''}
+                                            {/* Liste alimentée par l'API REST Countries (cf. PaysModern).
+                                                Stocke le cca3 (3 lettres) dans natcod, qui correspond exactement
+                                                à la contrainte StringLength(3) du modèle Nation. */}
+                                            <CountrySelect
+                                                value={formData.natcod || ''}
                                                 onChange={v => setFormData(p => ({ ...p, natcod: v }))}
-                                                options={payMap} onAdd={handleAddPays} addTitle={t('employe.addTitle.pays')} />
+                                            />
                                         </Box>
                                     </Box>
                                 </Paper>

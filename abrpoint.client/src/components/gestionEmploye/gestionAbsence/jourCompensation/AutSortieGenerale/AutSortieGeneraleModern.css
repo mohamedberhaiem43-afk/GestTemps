@@ -1,0 +1,346 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+
+/* ===== AutSortieGenerale Modern (aut-* prefix) =====
+   Le composant AutSortieGenerale.tsx utilisait un préfixe `aut-*` sans avoir
+   de feuille CSS associée — il importait par erreur AutSortieModern.css qui
+   utilise le préfixe `as-*` (page liste). Résultat : la page apparaissait
+   sans aucun style. Ce fichier comble la dette de stylage avec un layout
+   form-grid, dans la même palette que AutSortieModern.
+*/
+
+.aut-container {
+  width: 100%;
+  min-height: 100vh;
+  background: #f7f9fb;
+  padding: 24px;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #191c1e;
+}
+
+@media (max-width: 768px) {
+  .aut-container { padding: 12px; }
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.aut-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.aut-header-heading {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  color: #191c1e !important;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.aut-header-sub {
+  font-size: 14px !important;
+  color: #64748b !important;
+  margin-top: 4px !important;
+}
+
+.aut-header-actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.aut-cancel-btn {
+  border-radius: 12px !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  padding: 8px 18px !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+  background: #fff !important;
+}
+.aut-cancel-btn:hover {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.aut-save-btn {
+  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  padding: 8px 22px !important;
+  box-shadow: 0 4px 12px rgba(0, 64, 161, 0.25) !important;
+  transition: transform 0.15s !important;
+}
+.aut-save-btn:hover { transform: translateY(-1px); }
+.aut-save-btn:disabled {
+  background: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+}
+
+/* ── Body grid : 2 colonnes (stack en mobile) ─────────────────── */
+.aut-body { width: 100%; }
+
+.aut-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .aut-grid { grid-template-columns: 1fr; }
+}
+
+.aut-grid-left,
+.aut-grid-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* ── Card ─────────────────────────────────────────────────────── */
+.aut-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
+.aut-card--full {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.aut-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.aut-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+  color: #0040a1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.aut-card-icon .MuiSvgIcon-root { font-size: 18px; }
+
+.aut-card-title {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em;
+}
+
+/* ── Form grid ────────────────────────────────────────────────── */
+.aut-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.aut-form-grid--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+  .aut-form-grid,
+  .aut-form-grid--4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .aut-form-grid,
+  .aut-form-grid--4 { grid-template-columns: 1fr; }
+}
+
+.aut-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aut-field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Inputs & textareas natifs (rendus dehors des MUI fields) */
+.aut-field input[type="text"],
+.aut-field input[type="number"] {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-family: inherit;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  box-sizing: border-box;
+}
+.aut-field input[type="text"]:focus,
+.aut-field input[type="number"]:focus {
+  border-color: #0056d2;
+  background: #fff;
+}
+
+/* DatePicker / TimePicker MUI : on adoucit le contour pour rester cohérent */
+.aut-field .MuiOutlinedInput-root {
+  background: #f8fafc;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+}
+.aut-field .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border: 1.5px solid #e2e8f0 !important;
+}
+.aut-field .MuiOutlinedInput-root.Mui-focused {
+  background: #fff;
+}
+.aut-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #0056d2 !important;
+  border-width: 1.5px !important;
+}
+
+/* Pill durée : visible en lecture seule à droite des time pickers */
+.aut-duration-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #065f46;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  border: 1.5px solid #a7f3d0;
+}
+
+/* ── Type / imputation ────────────────────────────────────────── */
+.aut-type-section { display: flex; flex-direction: column; gap: 8px; }
+
+.aut-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.aut-type-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.aut-type-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  font-size: 13px;
+  color: #334155;
+  transition: all 0.15s;
+  position: relative;
+  user-select: none;
+}
+.aut-type-item:hover {
+  border-color: #cbd5e1;
+  background: #fff;
+}
+.aut-type-item input[type="radio"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  position: relative;
+}
+.aut-type-item input[type="radio"]:checked {
+  border-color: #0056d2;
+  border-width: 5px;
+}
+.aut-type-item span:not(.aut-type-dot) {
+  font-weight: 600;
+  flex: 1;
+}
+.aut-type-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.aut-type-item--active {
+  border-color: #0056d2 !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #0040a1 !important;
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.08);
+}
+.aut-type-item--active .aut-type-dot {
+  background: #0056d2;
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.18);
+}
+
+/* ── Motif / textarea ─────────────────────────────────────────── */
+.aut-motif-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aut-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-family: inherit;
+  font-size: 13px;
+  color: #0f172a;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 110px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  box-sizing: border-box;
+}
+.aut-textarea:focus {
+  border-color: #0056d2;
+  background: #fff;
+}
+.aut-textarea::placeholder { color: #94a3b8; }
