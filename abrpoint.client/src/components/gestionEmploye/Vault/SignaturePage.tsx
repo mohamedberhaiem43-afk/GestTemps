@@ -63,7 +63,11 @@ const SignaturePage = () => {
   const [searchParams] = useSearchParams();
   const docId = searchParams.get('id');
   const navigate = useNavigate();
-  const { userName, isEmp, authReady } = useAuth();
+  const { userName, soclib, isEmp, authReady } = useAuth();
+  // Représentant Société : on utilise le libellé de la société (Soclib) plutôt
+  // qu'un nom hardcodé. Initiales calculées à partir des deux premiers mots.
+  const companyName = soclib?.trim() || 'Société';
+  const companyInitials = companyName.split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase() || 'S';
 
   const [doc, setDoc] = useState<DocumentVault | null>(null);
   const [loading, setLoading] = useState(true);
@@ -334,8 +338,8 @@ const SignaturePage = () => {
                   <div className="sig-paper-sig-bloc">
                     <div className="sig-paper-sig">
                       <div className="sig-paper-sig-label">Signataire : Société</div>
-                      <div className="sig-paper-sig-line sig-paper-sig-line--signed">Sarah Jenkins</div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: '0.5rem' }}>Sarah Jenkins, COO</div>
+                      <div className="sig-paper-sig-line sig-paper-sig-line--signed">{companyName}</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: '0.5rem' }}>{companyName} · Représentant légal</div>
                     </div>
                     <div className="sig-paper-sig">
                       <div className="sig-paper-sig-label">Signataire : Collaborateur</div>
@@ -516,9 +520,9 @@ const SignaturePage = () => {
                 <div className="sig-signatories">
                   <div className="sig-signatory-row">
                     <div className="sig-signatory-info">
-                      <div className="sig-avatar">SJ</div>
+                      <div className="sig-avatar">{companyInitials}</div>
                       <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>Sarah Jenkins</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{companyName}</div>
                         <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Représentant Société</div>
                       </div>
                     </div>
@@ -590,7 +594,7 @@ const SignaturePage = () => {
               <div className="sig-panel">
                 <div className="sig-panel-section-label">Statut des Signataires</div>
                 <div className="sig-signatories">
-                  {[['SJ', 'Sarah Jenkins', 'Représentant Société'], [initials, displayName, 'Collaborateur']].map(([ini, name, role]) => (
+                  {[[companyInitials, companyName, 'Représentant Société'], [initials, displayName, 'Collaborateur']].map(([ini, name, role]) => (
                     <div key={name} className="sig-signatory-row">
                       <div className="sig-signatory-info">
                         <div className="sig-avatar" style={{ background: '#0040a1', color: '#fff' }}>{ini}</div>

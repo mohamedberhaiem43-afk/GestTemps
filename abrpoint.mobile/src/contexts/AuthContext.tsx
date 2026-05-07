@@ -110,7 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAdmin = user?.utiadm === '1' || user?.utiadm === 'True';
-  const isManager = !isAdmin && !!user?.utirole && user.utirole !== '';
+  // isManager : SEULS les rôles "Manager" / "rh" / "superviseur" sont
+  // considérés comme manager. L'ancienne logique (`!!utirole && utirole !== ''`)
+  // promouvait à tort tous les comptes (y compris "Employee" / "standard")
+  // au rang de manager → un employé voyait le tableau de bord équipe sur la
+  // home. Liste alignée sur ROLE_LABELS côté web.
+  const role = (user?.utirole || '').trim().toLowerCase();
+  const isManager = !isAdmin && (role === 'manager' || role === 'rh' || role === 'superviseur');
   const isEmployee = user?.isEmp === true;
 
   return (

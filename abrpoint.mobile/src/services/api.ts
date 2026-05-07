@@ -196,11 +196,12 @@ class ApiService {
   }
   /**
    * Envoie une notification push de test à tous les devices de l'utilisateur courant.
-   * Permet à l'utilisateur de vérifier que ses notifications sont opérationnelles
-   * sans dépendre d'un événement métier (validation de congé, rappel pointage, etc.).
+   * Endpoint self-service /Notifications/test-push : pas de check [Admin] (vs
+   * /Roles/test-push qui renvoyait 403 pour les employés). Le caller-uticod est
+   * extrait du JWT côté serveur, on n'envoie pas de paramètre.
    */
-  async sendTestPush(uticod: string) {
-    const response = await this.client.post(`/Roles/test-push/${uticod}`);
+  async sendTestPush(_uticod?: string) {
+    const response = await this.client.post(`/Notifications/test-push`);
     return response.data as { sent: number };
   }
 

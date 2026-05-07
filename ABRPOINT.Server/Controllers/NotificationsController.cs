@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -276,6 +277,26 @@ public class NotificationsController : ControllerBase
             reason = state.Reason,
             mode = state.Mode,
         });
+    }
+
+    /// <summary>
+    /// Self-service : envoie une notification push de test à l'utilisateur courant.
+    /// Endpoint dédié (vs /Roles/test-push qui exige [Admin] et renvoie 403 pour
+    /// les employés) — un employé doit pouvoir vérifier son propre pipeline push
+    /// depuis l'écran "Préférences notifications".
+    /// </summary>
+    [HttpPost("test-push")]
+    public async Task<IActionResult> TestPushSelf([FromServices] IUserNotificationService notify, CancellationToken ct)
+    {
+        var uticod = CurrentUticod;
+        if (string.IsNullOrEmpty(uticod)) return Unauthorized();
+
+        var sent = await notify.NotifyUserAsync(
+            uticod,
+            "🔔 Notification de test",
+            "Si vous recevez ce message, les notifications push sont opérationnelles.",
+            new { type = "test_push" }, ct);
+        return Ok(new { sent });
     }
 
     private static bool IsValidHHmm(string? v)

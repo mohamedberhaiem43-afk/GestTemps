@@ -256,7 +256,13 @@ export default function HomeScreen({ navigation }: any) {
           <TouchableOpacity style={styles.iconButton} onPress={() => setMenuOpen(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
           </TouchableOpacity>
-          <Image source={require('../../assets/Concorde.png')} style={styles.logoImage} resizeMode="contain" />
+          {/* Wordmark texte plutôt que PNG : le logo importé n'avait pas un
+              rendu net à 110×32 sur écrans haute densité. Le texte Manrope
+              avec accent couleur reste lisible et propre quel que soit le DPI. */}
+          <View style={styles.brandWordmark}>
+            <Text style={styles.brandPrimary}>Concorde</Text>
+            <Text style={styles.brandSecondary}>Workforce</Text>
+          </View>
         </View>
         <View style={styles.topAppRight}>
           <TouchableOpacity
@@ -631,6 +637,9 @@ const styles = StyleSheet.create({
   iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
   logoImage: { width: 110, height: 32 },
+  brandWordmark: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  brandPrimary: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 17, color: COLORS.primary, letterSpacing: -0.4 },
+  brandSecondary: { fontFamily: 'Manrope', fontWeight: '600', fontSize: 14, color: COLORS.outline, letterSpacing: -0.2 },
   topAppRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   notificationWrapper: { position: 'relative', padding: 4 },
   notificationBadge: {

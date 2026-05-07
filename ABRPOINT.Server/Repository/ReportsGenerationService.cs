@@ -585,8 +585,14 @@ namespace ABRPOINT.Server.Repository
             processedHtml = processedHtml.Replace("{{Signature_Employe}}", "[Signature_Collaborateur]")
                                          .Replace("[Signature.Employe]", "[Signature_Collaborateur]");
             
-            processedHtml = processedHtml.Replace("{{Signature_Entreprise}}", "<br><br><b>Pour la Société :</b><br><div style='color:#0040a1; font-weight:bold;'>Sarah Jenkins</div><small>Signé numériquement</small><br>")
-                                         .Replace("[Signature.Entreprise]", "<br><br><b>Pour la Société :</b><br><div style='color:#0040a1; font-weight:bold;'>Sarah Jenkins</div><small>Signé numériquement</small><br>");
+            // Signature Société : on ne hardcode plus de nom (placeholder
+            // historique "Sarah Jenkins") — on laisse "Représentant légal"
+            // qui sera complété par la signature manuscrite réelle persistée
+            // côté coffre-fort.
+            const string signatureEntreprise =
+                "<br><br><b>Pour la Société :</b><br><div style='color:#0040a1; font-weight:bold;'>Représentant légal</div><small>Signé numériquement</small><br>";
+            processedHtml = processedHtml.Replace("{{Signature_Entreprise}}", signatureEntreprise)
+                                         .Replace("[Signature.Entreprise]", signatureEntreprise);
 
             // Database field replacements
             if (emp != null)

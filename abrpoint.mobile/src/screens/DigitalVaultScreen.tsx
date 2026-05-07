@@ -256,7 +256,11 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
             <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
           </TouchableOpacity>
-          <Image source={require('../../assets/Concorde.png')} style={styles.logoImage} resizeMode="contain" />
+          {/* Wordmark texte aligné sur HomeScreen — plus net que le PNG. */}
+          <View style={styles.brandWordmark}>
+            <Text style={styles.brandPrimary}>Concorde</Text>
+            <Text style={styles.brandSecondary}>Workforce</Text>
+          </View>
         </View>
         <View style={styles.profileWrapper}>
           <MaterialCommunityIcons name="account-circle-outline" size={32} color="#cbd5e1" />
@@ -439,6 +443,9 @@ const styles = StyleSheet.create({
   iconButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   logoText: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 18, color: COLORS.primary, letterSpacing: 2 },
   logoImage: { width: 110, height: 32 },
+  brandWordmark: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  brandPrimary: { fontFamily: 'Manrope', fontWeight: '900', fontSize: 17, color: COLORS.primary, letterSpacing: -0.4 },
+  brandSecondary: { fontFamily: 'Manrope', fontWeight: '600', fontSize: 14, color: COLORS.outline, letterSpacing: -0.2 },
   profileWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.surfaceContainerHigh },
   scrollContent: { padding: 20, paddingBottom: 120 },
   editorialHeader: { marginBottom: 32 },
