@@ -75,6 +75,9 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IMissionRepository, MissionRepository>();
             builder.Services.AddScoped<IVaultRepository, VaultRepository>();
             builder.Services.AddScoped<IDemandeAutorisationRepository, DemandeAutorisationRepository>();
+            // Resolver centralisé des droits site par utilisateur (table Socuser).
+            // Utilisé par tous les controllers qui doivent filtrer par sitcod.
+            builder.Services.AddScoped<ISiteAccessService, SiteAccessService>();
             builder.Services.AddScoped<IAiService, AiService>();
             builder.Services.AddScoped<EncryptionService>();
             builder.Services.AddScoped<Kernel>(sp =>

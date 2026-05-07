@@ -51,6 +51,7 @@ import RemboursementModern from '../gestionEmploye/Remboursement/RemboursementMo
 import MissionPage from '../gestionEmploye/Mission/MissionPage';
 import MainModern from '../PosteTravail/MainModern';
 import DroitAccessPointeuse from '../Admin/PointeuseAccees/DroitAcceesPointeuse';
+import SiteAccessPage from '../Admin/SiteAccessPage';
 import Profile from '../ParamSoc/Profile/Profile';
 import QualificationModern from '../DonneeDeBase/Qualification/QualificationModern';
 import CoffreFortModern from '../gestionEmploye/CoffreFortModern';
@@ -127,6 +128,7 @@ import {
   LogOut,
   XCircle,
   History,
+  ShieldCheck,
 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -372,6 +374,8 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         { label: t('navigation.users'), href: '/dashboard/gestion-utilisateur', icon: Users },
         { label: t('navigation.accessRights'), href: '/dashboard/droit-accees', icon: Shield },
+        // Affectation site → utilisateur (table Socuser). Visible admin only.
+        { label: t('navigation.siteAccess', "Droits d'accès par site"), href: '/dashboard/droit-acces-site', icon: ShieldCheck },
         { label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText },
         { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
         { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
@@ -438,6 +442,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/missions': content = <MissionPage />; break;
     case '/dashboard/gestion-utilisateur': content = <Utilisateur />; break;
     case '/dashboard/droit-accees': content = <DroitAccessPointeuse />; break;
+    case '/dashboard/droit-acces-site': content = <SiteAccessPage />; break;
     case '/dashboard/gestion-societe': content = <SocieteModern />; break;
     case '/dashboard/profile': content = <Profile />; break;
     case '/dashboard/societe': content = <BasicTabs />; break;

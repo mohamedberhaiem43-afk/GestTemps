@@ -78,12 +78,12 @@ export default function ManagerDashboardScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { load(); }, [user?.soccod]);
+  useEffect(() => { load(); }, [user?.soccod, user?.uticod]);
 
   const load = async () => {
-    if (!user?.soccod) return;
+    if (!user?.soccod || !user?.uticod) return;
     try {
-      const data = await apiService.getManagerSummary(user.soccod);
+      const data = await apiService.getManagerSummary(user.soccod, user.uticod);
       setSummary(data);
     } catch (e) {
       console.log('Manager summary error:', e);

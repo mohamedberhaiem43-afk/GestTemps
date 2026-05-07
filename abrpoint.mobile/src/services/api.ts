@@ -712,8 +712,10 @@ class ApiService {
   // ── Manager dashboard summary ────────────────────────────────────────────
   // Endpoint léger qui renvoie en un seul appel les compteurs « actions à faire »
   // pour un manager : validations en attente, contrats expirant, absences du jour.
-  async getManagerSummary(soccod: string) {
-    const response = await this.client.get(`/ManagerDashboard/summary/${soccod}`);
+  // Scopé par les sites accessibles à l'utilisateur (table Socuser) — un manager
+  // d'un site ne voit pas les compteurs des autres sites.
+  async getManagerSummary(soccod: string, uticod: string) {
+    const response = await this.client.get(`/ManagerDashboard/summary/${soccod}/${uticod}`);
     return response.data as {
       pendingLeaves: number;
       pendingAuth: number;
