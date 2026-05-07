@@ -19,6 +19,9 @@ Environment.SetEnvironmentVariable("TZ", "Europe/Paris");
 
 var builder = WebApplication.CreateBuilder(args);
 
+// OWASP : ne pas divulguer la version du serveur dans le header "Server".
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
 // Register DinkToPdf (wkhtmltopdf) for HTML→PDF conversion
 builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
@@ -214,6 +217,42 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Security headers (OWASP) : Content-Security-Policy + headers défensifs.
+// 'unsafe-inline'/'unsafe-eval' restent nécessaires tant que MUI/emotion injecte
+// du CSS inline et que certaines libs charts (recharts, fullcalendar) compilent
+// du code à la volée. À durcir progressivement quand on aura ajouté des nonces.
+// ─────────────────────────────────────────────────────────────────────────────
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var h = context.Response.Headers;
+        if (!h.ContainsKey("Content-Security-Policy"))
+        {
+            h["Content-Security-Policy"] = string.Join("; ", new[]
+            {
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+                "style-src 'self' 'unsafe-inline'",
+                "font-src 'self' data:",
+                "img-src 'self' data: blob: https:",
+                "connect-src 'self' https: wss:",
+                "frame-ancestors 'self'",
+                "form-action 'self'",
+                "base-uri 'self'",
+                "object-src 'none'"
+            });
+        }
+        if (!h.ContainsKey("X-Content-Type-Options")) h["X-Content-Type-Options"] = "nosniff";
+        if (!h.ContainsKey("X-Frame-Options")) h["X-Frame-Options"] = "SAMEORIGIN";
+        if (!h.ContainsKey("Referrer-Policy")) h["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        if (!h.ContainsKey("Permissions-Policy")) h["Permissions-Policy"] = "geolocation=(self), camera=(self), microphone=()";
+        return Task.CompletedTask;
+    });
+    await next();
+});
 
 var uploadsPath = FileHelper.GetUploadsPath();
 Directory.CreateDirectory(uploadsPath);

@@ -1,8 +1,6 @@
 /* Gestion Contrats Modern Styles */
 
 /* Import Manrope and Inter fonts */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
-
 /* Main container - full width and height */
 .contrats-modern-container {
   width: 100%;
