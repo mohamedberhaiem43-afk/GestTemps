@@ -897,7 +897,7 @@ function DashboardModernAdmin() {
               </Box>
             )}
           </Box>
-          <Button className="db-see-all-btn" fullWidth>{t('dashboard.viewAllCalendar')}</Button>
+          <Button className="db-see-all-btn" fullWidth onClick={() => navigate('/dashboard/calendrier-equipe')}>{t('dashboard.viewAllCalendar')}</Button>
         </Box>
         )}
       </Box>

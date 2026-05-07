@@ -400,7 +400,7 @@
       "address": "Adresse",
       "addressPlaceholder": "123 Rue Example",
       "mobile": "Mobile",
-      "phonePlaceholder": "+213 555 000 000",
+      "phonePlaceholder": "+XX XXX XXX XXX",
       "hireDate": "Date d'embauche",
       "contractType": "Type de contrat",
       "regime": "Régime",
@@ -444,6 +444,7 @@
     },
     "addTitle": {
       "ville": "Nouvelle Ville",
+      "villeCodeHint": "Code numérique (ex. 75001)",
       "pays": "Nouveau Pays",
       "filiale": "Nouvelle Filiale",
       "service": "Nouveau Service",
@@ -1006,6 +1007,7 @@
     "yes": "Oui",
     "no": "Non",
     "add": "Ajouter",
+    "codeNumericRequired": "Le code doit être numérique.",
     "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément ?"
   },
   "list": {
@@ -1134,6 +1136,21 @@
         "requestDate": "Date demande",
         "employee": "Employé",
         "type": "Type de congé",
+        "typePlaceholder": "Sélectionnez un type…",
+        "typeEmpty": "Aucun type configuré",
+        "typeEmptyHint": "Aucune nature de congé n'est configurée. Cliquez sur « Ajouter un type » pour en créer une.",
+        "typeRequired": "Veuillez sélectionner un type de congé.",
+        "employeeRequired": "Veuillez sélectionner un employé.",
+        "addTypeBtn": "Ajouter un type",
+        "addTypeTitle": "Nouvelle nature d'absence",
+        "addTypeCode": "Code",
+        "addTypeLabel": "Libellé",
+        "addTypeLabelPh": "ex. Congé Payé",
+        "addTypeImputation": "Imputation",
+        "addTypeSave": "Créer",
+        "addTypeMissing": "Code et libellé sont obligatoires.",
+        "addTypeSuccess": "Nature d'absence créée avec succès.",
+        "addTypeError": "Erreur lors de la création de la nature d'absence.",
         "departureDate": "Date départ",
         "returnDate": "Date retour",
         "amHalf": "AM",
@@ -2099,6 +2116,7 @@
       "noConsultRight": "Vous n'avez pas le droit de consulter les pays.",
       "heading": "Gestion des Pays",
       "subtitle": "Configurer les pays disponibles pour l'application",
+      "subtitleApi": "Catalogue des pays du monde (source : restcountries.com)",
       "editTitle": "Modifier le pays",
       "newTitle": "Nouveau pays",
       "codeLabel": "Code Pays",
@@ -2106,6 +2124,14 @@
       "autoPlaceholder": "Auto",
       "labelPlaceholder": "Maroc",
       "tableTitle": "Liste des Pays ({{count}})",
+      "tableTitleApi": "Pays du monde ({{count}})",
+      "flag": "Drapeau",
+      "capital": "Capitale",
+      "region": "Région",
+      "loadingApi": "Chargement des pays depuis restcountries.com…",
+      "apiError": "Impossible de charger les pays depuis l'API.",
+      "retry": "Réessayer",
+      "sourceApi": "Source : restcountries.com",
       "noResults": "Aucun pays trouvé.",
       "footerCount": "Affichage de {{count}} pays",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce pays ?",
@@ -3258,6 +3284,8 @@
       "duration": "Durée",
       "type": "Type d'autorisation",
       "typePlaceholder": "Sélectionner un type...",
+      "typeEmpty": "Aucun type d'autorisation configuré",
+      "loadingTypes": "Chargement des types…",
       "motif": "Motif",
       "motifPlaceholder": "Raison de la demande d'autorisation...",
       "cancel": "Annuler",
@@ -3352,14 +3380,25 @@
       "pendingSignature": "En attente de signature"
     },
     "actions": {
-      "sign": "Signer"
+      "sign": "Signer",
+      "download": "Télécharger",
+      "delete": "Supprimer"
+    },
+    "deleteDialog": {
+      "title": "Supprimer ce document ?",
+      "prompt": "Voulez-vous vraiment supprimer « {{name}} » de votre coffre-fort ?",
+      "irreversible": "Cette action est irréversible. Le fichier sera définitivement effacé.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer"
     },
     "snack": {
       "accessDeniedService": "Accès refusé: cet employé n'est pas dans votre service.",
       "accessDeniedVault": "Vous n'avez pas le droit de consulter ce coffre-fort.",
       "uploadedAndNotified": "Document déposé et employé notifié.",
       "uploaded": "Document ajouté.",
-      "uploadError": "Erreur lors du dépôt du document."
+      "uploadError": "Erreur lors du dépôt du document.",
+      "deleted": "Document supprimé.",
+      "deleteError": "Erreur lors de la suppression du document."
     }
   },
   "adminVault": {

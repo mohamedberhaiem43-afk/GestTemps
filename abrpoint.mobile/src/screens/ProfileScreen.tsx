@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Image, Switch, Dimensions,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Image, Switch, Dimensions, TextInput, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,16 +20,34 @@ export default function ProfileScreen({ navigation, route }: any) {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [is2FAEnabled, setIs2FAEnabled] = useState(true);
+  // L'état réel vient du profil (UtiTwoFactorEnabled = "1"). Sans ça, on
+  // affichait toujours "ACTIVÉ" même quand le compte n'avait jamais activé 2FA.
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   // localPhotoUri : optimistic update — affiche la nouvelle photo dès la
   // sélection, sans attendre le retour serveur. Au refresh suivant on retombe
   // sur user.utiimg (la valeur persistée), ce qui couvre aussi le cas où
   // l'upload échoue silencieusement et qu'on veut revoir l'ancienne photo.
   const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // Édition self-service des coordonnées (téléphone / mobile / adresse / ville
+  // / email). L'employé peut tenir ses infos à jour sans solliciter les RH.
+  const [contactEdit, setContactEdit] = useState(false);
+  const [contactForm, setContactForm] = useState({ emptel: '', empmob: '', empadr: '', vilcod: '', empemail: '' });
+  const [savingContact, setSavingContact] = useState(false);
+  // Modale "Changer le mot de passe" — bouton initialement non câblé.
+  const [pwdModal, setPwdModal] = useState(false);
+  const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' });
+  const [savingPwd, setSavingPwd] = useState(false);
+  // 2FA : 'idle' (rien), 'qr' (QR + champ code de vérif), 'verifying'.
+  const [twoFAState, setTwoFAState] = useState<'idle' | 'qr' | 'verifying' | 'disabling'>('idle');
+  const [twoFAQr, setTwoFAQr] = useState<{ qrCodeBase64: string; manualEntryKey: string } | null>(null);
+  const [twoFACode, setTwoFACode] = useState('');
 
   const viewEmpcod = route?.params?.empcod || user?.uticod;
   const viewSoccod = route?.params?.soccod || user?.soccod;
+  // L'écran ProfileScreen est aussi utilisé en mode admin (route param empcod
+  // d'un autre user). On n'autorise l'édition self-service que sur SON propre profil.
+  const isOwnProfile = !route?.params?.empcod || route.params.empcod === user?.uticod;
 
   useEffect(() => { loadAll(); }, [user, route?.params]);
 
@@ -42,6 +60,10 @@ export default function ProfileScreen({ navigation, route }: any) {
     try {
       const profileData = await apiService.getProfile(viewSoccod, viewEmpcod);
       setProfile(profileData);
+      // Sync l'état du switch 2FA avec la valeur persistée côté serveur.
+      // Le backend renvoie "1" / "0" (string) en JSON sous le nom uti2fa_enabled.
+      const flag = (profileData as any)?.uti2fa_enabled ?? (profileData as any)?.utiTwoFactorEnabled;
+      setIs2FAEnabled(flag === '1' || flag === 1 || flag === true);
     } catch (e) {
       console.log('Profile load error:', e);
     } finally {
@@ -106,6 +128,148 @@ export default function ProfileScreen({ navigation, route }: any) {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) await uploadPhoto(result.assets[0].uri);
+  };
+
+  const openContactEdit = () => {
+    const e = profile?.employee || profile?.Employee || {};
+    setContactForm({
+      emptel: e?.emptel || '',
+      empmob: e?.empmob || '',
+      empadr: e?.empadr || '',
+      vilcod: e?.vilcod || '',
+      empemail: e?.empemail || '',
+    });
+    setContactEdit(true);
+  };
+
+  const saveContact = async () => {
+    if (!user?.soccod || !user?.uticod) return;
+    setSavingContact(true);
+    try {
+      await apiService.updateMyContact({
+        soccod: user.soccod,
+        empcod: user.uticod,
+        emptel: contactForm.emptel.trim() || undefined,
+        empmob: contactForm.empmob.trim() || undefined,
+        empadr: contactForm.empadr.trim() || undefined,
+        vilcod: contactForm.vilcod.trim() || undefined,
+        empemail: contactForm.empemail.trim() || undefined,
+      });
+      setContactEdit(false);
+      await loadAll();
+      Alert.alert('✅ Mis à jour', 'Vos coordonnées ont été enregistrées.');
+    } catch (e: any) {
+      const status = e?.response?.status;
+      const serverMsg = e?.response?.data?.message;
+      Alert.alert(
+        'Erreur',
+        serverMsg ?? (status === 409
+          ? 'Cet email est déjà utilisé par un autre compte.'
+          : "Impossible d'enregistrer les modifications.")
+      );
+    } finally {
+      setSavingContact(false);
+    }
+  };
+
+  const submitPasswordChange = async () => {
+    if (!user?.uticod) return;
+    if (!pwdForm.current.trim() || !pwdForm.next.trim()) {
+      Alert.alert('Erreur', 'Renseignez votre mot de passe actuel et le nouveau mot de passe.');
+      return;
+    }
+    if (pwdForm.next.length < 8) {
+      Alert.alert('Erreur', 'Le nouveau mot de passe doit contenir au moins 8 caractères.');
+      return;
+    }
+    if (pwdForm.next !== pwdForm.confirm) {
+      Alert.alert('Erreur', 'La confirmation ne correspond pas au nouveau mot de passe.');
+      return;
+    }
+    setSavingPwd(true);
+    try {
+      const ok = await apiService.changePassword({
+        uticod: user.uticod,
+        currentPassword: pwdForm.current,
+        newPassword: pwdForm.next,
+      });
+      if (ok) {
+        Alert.alert('✅ Mot de passe modifié', 'Votre nouveau mot de passe est actif.');
+        setPwdModal(false);
+        setPwdForm({ current: '', next: '', confirm: '' });
+      } else {
+        // Le backend renvoie `false` quand le mot de passe actuel est incorrect.
+        Alert.alert('Erreur', 'Le mot de passe actuel est incorrect.');
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || "Impossible de changer le mot de passe.";
+      Alert.alert('Erreur', msg);
+    } finally {
+      setSavingPwd(false);
+    }
+  };
+
+  const handle2FAToggle = (next: boolean) => {
+    if (!user?.uticod) return;
+    if (next) {
+      // Activation : on demande le QR code, l'utilisateur scanne dans son
+      // authenticator (Google / Microsoft / 1Password), puis valide avec un code.
+      (async () => {
+        try {
+          const res = await apiService.enable2FA(user.uticod!);
+          setTwoFAQr({ qrCodeBase64: res.qrCodeBase64, manualEntryKey: res.manualEntryKey });
+          setTwoFACode('');
+          setTwoFAState('qr');
+        } catch {
+          Alert.alert('Erreur', "Impossible d'initialiser la 2FA.");
+        }
+      })();
+    } else {
+      // Désactivation : confirmation explicite (dégrade la sécurité du compte).
+      Alert.alert(
+        'Désactiver la 2FA ?',
+        "Votre compte sera moins sécurisé. Confirmez-vous la désactivation ?",
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Désactiver',
+            style: 'destructive',
+            onPress: async () => {
+              setTwoFAState('disabling');
+              try {
+                await apiService.disable2FA(user.uticod!);
+                setIs2FAEnabled(false);
+                Alert.alert('2FA désactivée', 'La double authentification a été retirée.');
+              } catch {
+                Alert.alert('Erreur', 'Impossible de désactiver la 2FA.');
+              } finally {
+                setTwoFAState('idle');
+              }
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  const verify2FACode = async () => {
+    if (!user?.uticod || twoFACode.length !== 6) {
+      Alert.alert('Erreur', 'Saisissez le code à 6 chiffres affiché par votre application d\'authentification.');
+      return;
+    }
+    setTwoFAState('verifying');
+    try {
+      await apiService.verify2FA(user.uticod, twoFACode);
+      setIs2FAEnabled(true);
+      setTwoFAState('idle');
+      setTwoFAQr(null);
+      setTwoFACode('');
+      Alert.alert('✅ 2FA activée', 'La double authentification est maintenant active sur votre compte.');
+    } catch (e: any) {
+      const msg = e?.response?.data?.Message || e?.response?.data?.message || 'Code invalide. Réessayez.';
+      Alert.alert('Erreur', msg);
+      setTwoFAState('qr');
+    }
   };
 
   const handleAvatarPress = () => {
@@ -173,7 +337,7 @@ export default function ProfileScreen({ navigation, route }: any) {
           </View>
           <Text style={styles.logoText}>Concorde Workforce</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Notifications')}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -273,7 +437,15 @@ export default function ProfileScreen({ navigation, route }: any) {
         <View style={styles.infoLedger}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Coordonnées</Text>
-            <Text style={styles.sectionStep}>SECTION 02</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {isOwnProfile && (
+                <TouchableOpacity onPress={openContactEdit} style={styles.editChip} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <MaterialCommunityIcons name="pencil-outline" size={14} color={COLORS.primary} />
+                  <Text style={styles.editChipText}>Modifier</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={styles.sectionStep}>SECTION 02</Text>
+            </View>
           </View>
 
           <View style={styles.contactList}>
@@ -363,7 +535,7 @@ export default function ProfileScreen({ navigation, route }: any) {
           </View>
 
           <View style={styles.securityStack}>
-            <TouchableOpacity style={styles.securityBtn}>
+            <TouchableOpacity style={styles.securityBtn} onPress={() => setPwdModal(true)} activeOpacity={0.7}>
               <View style={styles.securityLeft}>
                 <MaterialCommunityIcons name="lock-reset" size={24} color={COLORS.primary} />
                 <Text style={styles.securityText}>Changer le mot de passe</Text>
@@ -381,7 +553,8 @@ export default function ProfileScreen({ navigation, route }: any) {
               </View>
               <Switch
                 value={is2FAEnabled}
-                onValueChange={setIs2FAEnabled}
+                onValueChange={handle2FAToggle}
+                disabled={twoFAState !== 'idle'}
                 trackColor={{ false: COLORS.outlineVariant, true: COLORS.tertiaryContainer }}
                 thumbColor="#fff"
               />
@@ -436,6 +609,231 @@ export default function ProfileScreen({ navigation, route }: any) {
       </ScrollView>
 
       <BottomTabBar active="profile" navigation={navigation} />
+
+      {/* ── Modal "Changer le mot de passe" ── */}
+      <Modal visible={pwdModal} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setPwdModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contactModalOverlay}>
+          <View style={styles.contactModalCard}>
+            <View style={styles.contactModalHeader}>
+              <Text style={styles.contactModalTitle}>Changer le mot de passe</Text>
+              <TouchableOpacity onPress={() => setPwdModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.fieldLabel}>MOT DE PASSE ACTUEL</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="••••••••"
+                placeholderTextColor={COLORS.outline}
+                value={pwdForm.current}
+                onChangeText={(t) => setPwdForm({ ...pwdForm, current: t })}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={styles.fieldLabel}>NOUVEAU MOT DE PASSE</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="Au moins 8 caractères"
+                placeholderTextColor={COLORS.outline}
+                value={pwdForm.next}
+                onChangeText={(t) => setPwdForm({ ...pwdForm, next: t })}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={styles.fieldLabel}>CONFIRMATION</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="Répétez le nouveau mot de passe"
+                placeholderTextColor={COLORS.outline}
+                value={pwdForm.confirm}
+                onChangeText={(t) => setPwdForm({ ...pwdForm, confirm: t })}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={styles.contactHint}>
+                Pour votre sécurité, choisissez un mot de passe long et unique.
+                Évitez les informations personnelles (nom, date de naissance, etc.).
+              </Text>
+            </ScrollView>
+            <View style={styles.contactModalFooter}>
+              <TouchableOpacity style={styles.contactCancelBtn} onPress={() => setPwdModal(false)}>
+                <Text style={styles.contactCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.contactSaveBtn, savingPwd && { opacity: 0.5 }]}
+                onPress={submitPasswordChange}
+                disabled={savingPwd}
+              >
+                {savingPwd ? <ActivityIndicator color="#fff" /> : <Text style={styles.contactSaveText}>Mettre à jour</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Modal 2FA — QR code + saisie code ── */}
+      <Modal
+        visible={twoFAState === 'qr' || twoFAState === 'verifying'}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => { setTwoFAState('idle'); setTwoFAQr(null); }}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contactModalOverlay}>
+          <View style={styles.contactModalCard}>
+            <View style={styles.contactModalHeader}>
+              <Text style={styles.contactModalTitle}>Activer la double authentification</Text>
+              <TouchableOpacity
+                onPress={() => { setTwoFAState('idle'); setTwoFAQr(null); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.contactHint}>
+                1. Ouvrez votre app d'authentification (Google Authenticator, Microsoft Authenticator, 1Password…).{"\n"}
+                2. Scannez le QR code ci-dessous (ou saisissez la clé manuellement).{"\n"}
+                3. Tapez le code à 6 chiffres affiché.
+              </Text>
+              {twoFAQr?.qrCodeBase64 ? (
+                <View style={styles.qrWrap}>
+                  <Image source={{ uri: twoFAQr.qrCodeBase64 }} style={styles.qrImg} resizeMode="contain" />
+                </View>
+              ) : null}
+              {twoFAQr?.manualEntryKey ? (
+                <>
+                  <Text style={styles.fieldLabel}>CLÉ MANUELLE</Text>
+                  <Text selectable style={styles.manualKey}>{twoFAQr.manualEntryKey}</Text>
+                </>
+              ) : null}
+              <Text style={styles.fieldLabel}>CODE À 6 CHIFFRES</Text>
+              <TextInput
+                style={[styles.contactInput, { letterSpacing: 4, textAlign: 'center', fontSize: 18, fontWeight: '700' }]}
+                placeholder="------"
+                placeholderTextColor={COLORS.outline}
+                value={twoFACode}
+                onChangeText={(t) => setTwoFACode(t.replace(/\D+/g, '').slice(0, 6))}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </ScrollView>
+            <View style={styles.contactModalFooter}>
+              <TouchableOpacity
+                style={styles.contactCancelBtn}
+                onPress={() => { setTwoFAState('idle'); setTwoFAQr(null); }}
+              >
+                <Text style={styles.contactCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.contactSaveBtn, twoFAState === 'verifying' && { opacity: 0.5 }]}
+                onPress={verify2FACode}
+                disabled={twoFAState === 'verifying'}
+              >
+                {twoFAState === 'verifying' ? <ActivityIndicator color="#fff" /> : <Text style={styles.contactSaveText}>Vérifier</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal d'édition des coordonnées (téléphone, mobile, adresse, ville, email).
+          Limité aux champs de contact — le backend bloque toute modification de
+          fonction/service/site/salaires côté update-my-contact. */}
+      <Modal visible={contactEdit} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setContactEdit(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.contactModalOverlay}
+        >
+          <View style={styles.contactModalCard}>
+            <View style={styles.contactModalHeader}>
+              <Text style={styles.contactModalTitle}>Mes coordonnées</Text>
+              <TouchableOpacity onPress={() => setContactEdit(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.fieldLabel}>EMAIL</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="prenom.nom@entreprise.com"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.empemail}
+                onChangeText={(t) => setContactForm({ ...contactForm, empemail: t })}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <Text style={styles.fieldLabel}>TÉLÉPHONE FIXE</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="+XX XXX XXX XXX"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.emptel}
+                onChangeText={(t) => setContactForm({ ...contactForm, emptel: t })}
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.fieldLabel}>MOBILE</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="+XX XXX XXX XXX"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.empmob}
+                onChangeText={(t) => setContactForm({ ...contactForm, empmob: t })}
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.fieldLabel}>ADRESSE</Text>
+              <TextInput
+                style={[styles.contactInput, { minHeight: 80, textAlignVertical: 'top' }]}
+                placeholder="N°, rue, complément…"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.empadr}
+                onChangeText={(t) => setContactForm({ ...contactForm, empadr: t })}
+                multiline
+              />
+
+              <Text style={styles.fieldLabel}>CODE VILLE</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="Ex. 75001"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.vilcod}
+                onChangeText={(t) => setContactForm({ ...contactForm, vilcod: t })}
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.contactHint}>
+                Seules vos coordonnées sont modifiables. Pour tout autre changement (fonction,
+                service, salaire), contactez les RH.
+              </Text>
+            </ScrollView>
+
+            <View style={styles.contactModalFooter}>
+              <TouchableOpacity style={styles.contactCancelBtn} onPress={() => setContactEdit(false)}>
+                <Text style={styles.contactCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.contactSaveBtn, savingContact && { opacity: 0.5 }]}
+                onPress={saveContact}
+                disabled={savingContact}
+              >
+                {savingContact ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.contactSaveText}>Enregistrer</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -541,4 +939,71 @@ const styles = StyleSheet.create({
   },
   navItem: { alignItems: 'center', gap: 4 },
   navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
+
+  // Bouton "Modifier" placé à droite du titre "Coordonnées" pour ouvrir le modal d'édition.
+  editChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14,
+    backgroundColor: COLORS.primaryFixed,
+  },
+  editChipText: { fontSize: 11, fontWeight: '700', color: COLORS.primary },
+
+  // Modal d'édition des coordonnées (self-service). elevation: 30 pour passer
+  // au-dessus du BottomTabBar (elevation: 8) sur Android.
+  contactModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'flex-end',
+    elevation: 30,
+  },
+  contactModalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24,
+    maxHeight: '90%',
+  },
+  contactModalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 16,
+  },
+  contactModalTitle: { fontSize: 18, fontWeight: '800', color: COLORS.onSurface },
+  fieldLabel: {
+    fontSize: 10, fontWeight: '800', color: COLORS.outline,
+    letterSpacing: 1, marginTop: 14, marginBottom: 6,
+  },
+  contactInput: {
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: COLORS.onSurface,
+    marginBottom: 4,
+  },
+  contactHint: { fontSize: 11, color: COLORS.outline, marginTop: 16, lineHeight: 16, fontStyle: 'italic' },
+  contactModalFooter: {
+    flexDirection: 'row', gap: 10, marginTop: 16,
+  },
+  contactCancelBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 14,
+    alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow,
+  },
+  contactCancelText: { fontSize: 13, fontWeight: '700', color: COLORS.onSurfaceVariant },
+  contactSaveBtn: {
+    flex: 2, paddingVertical: 14, borderRadius: 14,
+    alignItems: 'center', backgroundColor: COLORS.primary,
+  },
+  contactSaveText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+
+  // 2FA — affichage du QR code et de la clé manuelle (fallback authenticators sans caméra).
+  qrWrap: {
+    alignItems: 'center', marginTop: 16, padding: 12,
+    backgroundColor: '#fff', borderRadius: 12,
+    borderWidth: 1, borderColor: COLORS.outlineVariant,
+  },
+  qrImg: { width: 220, height: 220 },
+  manualKey: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 13, fontWeight: '700',
+    color: COLORS.onSurface, backgroundColor: COLORS.surfaceContainerLow,
+    padding: 12, borderRadius: 8, letterSpacing: 1, textAlign: 'center',
+    marginBottom: 8,
+  },
 });

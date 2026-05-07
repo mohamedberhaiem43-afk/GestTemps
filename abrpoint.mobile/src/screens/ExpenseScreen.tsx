@@ -21,6 +21,23 @@ const CATEGORIES = [
   { id: 'Autre',     label: 'Autre',     icon: 'tag-outline' },
 ];
 
+// Liste partagée mobile/web. ISO 4217 + symbole pour l'affichage.
+const CURRENCIES: { code: string; symbol: string; label: string }[] = [
+  { code: 'EUR', symbol: '€',    label: 'Euro' },
+  { code: 'USD', symbol: '$',    label: 'Dollar US' },
+  { code: 'GBP', symbol: '£',    label: 'Livre sterling' },
+  { code: 'CHF', symbol: 'CHF',  label: 'Franc suisse' },
+  { code: 'TND', symbol: 'DT',   label: 'Dinar tunisien' },
+  { code: 'MAD', symbol: 'MAD',  label: 'Dirham marocain' },
+  { code: 'DZD', symbol: 'DA',   label: 'Dinar algérien' },
+  { code: 'CAD', symbol: 'CA$',  label: 'Dollar canadien' },
+  { code: 'XOF', symbol: 'FCFA', label: 'Franc CFA (BCEAO)' },
+  { code: 'AED', symbol: 'AED',  label: 'Dirham émirati' },
+];
+
+const currencySymbol = (code?: string | null): string =>
+  CURRENCIES.find(c => c.code === code)?.symbol || code || '€';
+
 const STATUS_FILTERS = [
   { key: 'all',        label: 'Tous' },
   { key: 'pending',    label: 'En attente' },
@@ -49,11 +66,15 @@ export default function ExpenseScreen({ navigation }: any) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   // Form (modal)
-  const defaultForm = { titre: '', categorie: 'Repas', montant: '', projet: '', dateDepense: new Date() };
+  // categorieDetail : précision libre saisie quand l'utilisateur choisit "Autre".
+  // À l'envoi, on encode dans la colonne `categorie` ("Autre: <détail>") pour
+  // que la comptabilité voie la nature exacte sans changer le schéma BD.
+  const defaultForm = { titre: '', categorie: 'Repas', categorieDetail: '', montant: '', devise: 'EUR', projet: '', dateDepense: new Date() };
   const [form, setForm] = useState(defaultForm);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => { loadExpenses(); }, [user]);
@@ -93,7 +114,19 @@ export default function ExpenseScreen({ navigation }: any) {
       Alert.alert('Erreur', 'Veuillez saisir un montant valide');
       return;
     }
+    if (form.categorie === 'Autre' && !form.categorieDetail.trim()) {
+      Alert.alert('Erreur', 'Précisez la nature de la dépense (catégorie "Autre")');
+      return;
+    }
     if (!user?.soccod || !user?.uticod) return;
+
+    // Pour "Autre" on encode la précision dans la valeur de catégorie
+    // ("Autre: <détail>") afin que la comptabilité dispose de l'info.
+    // La colonne BD est StringLength(50) → on tronque à 43 caractères de
+    // précision (50 - "Autre: ".length).
+    const categorieFinale = form.categorie === 'Autre' && form.categorieDetail.trim()
+      ? `Autre: ${form.categorieDetail.trim()}`.slice(0, 50)
+      : form.categorie;
 
     setSubmitting(true);
     try {
@@ -101,10 +134,11 @@ export default function ExpenseScreen({ navigation }: any) {
         soccod: user.soccod,
         empcod: user.uticod,
         titre: form.titre,
-        categorie: form.categorie,
+        categorie: categorieFinale,
         montant: parseFloat(form.montant.replace(',', '.')),
         dateDepense: form.dateDepense.toISOString().split('T')[0],
         projet: form.projet || undefined,
+        devise: form.devise || 'EUR',
       }, imageUri || undefined);
       Alert.alert('Succès', 'Note de frais soumise');
       setShowForm(false);
@@ -180,7 +214,7 @@ export default function ExpenseScreen({ navigation }: any) {
           </TouchableOpacity>
           <Text style={styles.logoText}>Notes de frais</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Notifications')}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -282,7 +316,7 @@ export default function ExpenseScreen({ navigation }: any) {
                       </View>
                     </View>
                     <View style={styles.expenseRight}>
-                      <Text style={styles.expenseAmount}>{fmtMoney(exp.montant)} €</Text>
+                      <Text style={styles.expenseAmount}>{fmtMoney(exp.montant)} {currencySymbol(exp.devise)}</Text>
                       <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
                         <View style={[styles.statusDot, { backgroundColor: status.color }]} />
                         <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
@@ -299,7 +333,7 @@ export default function ExpenseScreen({ navigation }: any) {
       {/* ── Form Overlay (style LeaveRequestScreen) ── */}
       {showForm && (
         <View style={styles.modalOverlay}>
-          <View style={styles.formCard}>
+          <View style={[styles.formCard, { paddingBottom: 24 + tabBarPadding * 0.4 }]}>
             <View style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>Nouvelle note de frais</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}>
@@ -324,6 +358,20 @@ export default function ExpenseScreen({ navigation }: any) {
                 })}
               </View>
 
+              {form.categorie === 'Autre' && (
+                <>
+                  <Text style={styles.label}>Précisez la nature *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ex. Cadeau client, abonnement logiciel…"
+                    placeholderTextColor={COLORS.outline}
+                    maxLength={43}
+                    value={form.categorieDetail}
+                    onChangeText={(t) => setForm({ ...form, categorieDetail: t })}
+                  />
+                </>
+              )}
+
               <Text style={styles.label}>Motif</Text>
               <TextInput
                 style={styles.textInput}
@@ -341,15 +389,21 @@ export default function ExpenseScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
               </TouchableOpacity>
 
-              <Text style={styles.label}>Montant (€)</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="0.00"
-                placeholderTextColor={COLORS.outline}
-                keyboardType="decimal-pad"
-                value={form.montant}
-                onChangeText={(t) => setForm({ ...form, montant: t })}
-              />
+              <Text style={styles.label}>Montant</Text>
+              <View style={styles.amountRow}>
+                <TextInput
+                  style={[styles.textInput, { flex: 1 }]}
+                  placeholder="0.00"
+                  placeholderTextColor={COLORS.outline}
+                  keyboardType="decimal-pad"
+                  value={form.montant}
+                  onChangeText={(t) => setForm({ ...form, montant: t })}
+                />
+                <TouchableOpacity style={styles.currencyBtn} onPress={() => setShowCurrencyPicker(true)}>
+                  <Text style={styles.currencyBtnText}>{form.devise}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={16} color={COLORS.outline} />
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.label}>Projet (optionnel)</Text>
               <TextInput
@@ -409,6 +463,35 @@ export default function ExpenseScreen({ navigation }: any) {
         onClose={() => setShowDatePicker(false)}
         title="Date de dépense"
       />
+
+      {/* Picker devise — bottom sheet ISO 4217 */}
+      {showCurrencyPicker && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.formCard, { maxHeight: '60%' }]}>
+            <View style={styles.formHeader}>
+              <Text style={styles.formHeaderTitle}>Devise</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyPicker(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {CURRENCIES.map(c => (
+                <TouchableOpacity
+                  key={c.code}
+                  style={[styles.currencyItem, form.devise === c.code && styles.currencyItemActive]}
+                  onPress={() => { setForm({ ...form, devise: c.code }); setShowCurrencyPicker(false); }}
+                >
+                  <Text style={styles.currencyItemSymbol}>{c.symbol}</Text>
+                  <Text style={styles.currencyItemLabel}>{c.code} — {c.label}</Text>
+                  {form.devise === c.code && (
+                    <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      )}
 
       <BottomTabBar active="requests" navigation={navigation} />
     </SafeAreaView>
@@ -495,11 +578,15 @@ const styles = StyleSheet.create({
   emptyText:  { fontSize: 13, color: COLORS.outline, fontWeight: '600' },
 
   // ── Form Overlay (aligné sur LeaveRequestScreen) ──
+  // elevation: 30 pour passer au-dessus du BottomTabBar (elevation: 8)
+  // sur Android — sinon les boutons de la barre persistante restent
+  // tappables et masquent le bouton "Envoyer" du modal.
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
     zIndex: 1000,
+    elevation: 30,
   },
   formCard: {
     backgroundColor: '#fff',
@@ -532,6 +619,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
     padding: 16, fontSize: 14, color: COLORS.onSurface,
   },
+  amountRow: { flexDirection: 'row', gap: 8 },
+  currencyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    minWidth: 88, justifyContent: 'space-between',
+  },
+  currencyBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  currencyItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 14, paddingHorizontal: 4,
+    borderBottomWidth: 1, borderBottomColor: COLORS.outlineVariant,
+  },
+  currencyItemActive: { backgroundColor: COLORS.primaryFixed },
+  currencyItemSymbol: { fontSize: 18, fontWeight: '800', color: COLORS.primary, minWidth: 50 },
+  currencyItemLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: COLORS.onSurface },
   dateInput: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 16,

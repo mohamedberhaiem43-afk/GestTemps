@@ -9,6 +9,7 @@ export interface Mission {
   misnote?: string | null;
   misetat: string; // Pending | Approved | InProgress | Completed | Cancelled
   misbudget?: number | null;
+  misdevise?: string | null;
   abscod: string;
   createdAt?: string | null;
 }
@@ -23,6 +24,7 @@ export interface MissionUpsertRequest {
   misnote?: string | null;
   misetat?: string;
   misbudget?: number | null;
+  misdevise?: string | null;
   abscod: string;
 }
 

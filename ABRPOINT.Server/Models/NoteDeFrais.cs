@@ -60,5 +60,13 @@ namespace ABRPOINT.Server.Models
         [StringLength(20)]
         public string Etat { get; set; } = "Pending"; // Pending, Approved, Reimbursed, Rejected
 
+        /// <summary>
+        /// Code ISO 4217 de la devise (EUR, USD, TND, MAD, GBP…). NULL = devise
+        /// tenant par défaut (côté client, EUR par défaut). Sert à éviter de
+        /// figer toutes les notes en EUR pour les déplacements internationaux.
+        /// </summary>
+        [Column("devise")]
+        [StringLength(3)]
+        public string? Devise { get; set; }
     }
 }

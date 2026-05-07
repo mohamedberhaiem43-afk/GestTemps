@@ -667,7 +667,9 @@ function RemboursementModernContent() {
             <Dialog
                 open={deleteDialogOpen}
                 onClose={() => setDeleteDialogOpen(false)}
-                PaperProps={{ sx: { borderRadius: '16px', minWidth: '380px' } }}
+                fullWidth
+                maxWidth="xs"
+                PaperProps={{ sx: { borderRadius: { xs: '12px', sm: '16px' }, m: { xs: 1, sm: 2 } } }}
             >
                 <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#dc2626' }}>
                     {t('remboursement.delete.title')}
@@ -712,7 +714,9 @@ function RemboursementModernContent() {
             <Dialog
                 open={statusDialogOpen}
                 onClose={() => setStatusDialogOpen(false)}
-                PaperProps={{ sx: { borderRadius: '16px', minWidth: '400px' } }}
+                fullWidth
+                maxWidth="xs"
+                PaperProps={{ sx: { borderRadius: { xs: '12px', sm: '16px' }, m: { xs: 1, sm: 2 } } }}
             >
                 {statusAction && (() => {
                     const info = getStatusActionInfo(statusAction.newStatusKey);
@@ -777,7 +781,15 @@ function RemboursementModernContent() {
                 onClose={() => setDetailDialogOpen(false)}
                 maxWidth="sm"
                 fullWidth
-                PaperProps={{ sx: { borderRadius: '16px' } }}
+                PaperProps={{
+                  sx: {
+                    borderRadius: { xs: 0, sm: '16px' },
+                    m: { xs: 0, sm: 4 },
+                    width: { xs: '100%', sm: 'auto' },
+                    maxWidth: { xs: '100%', sm: 600 },
+                    maxHeight: { xs: '100dvh', sm: 'calc(100% - 64px)' },
+                  },
+                }}
             >
                 <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', pb: 1 }}>
                     {t('remboursement.detail.title')}
@@ -785,7 +797,7 @@ function RemboursementModernContent() {
                 <Divider />
                 {selectedExpense && (
                     <DialogContent sx={{ pt: 2.5 }}>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2.5, mt: 1 }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5, mt: 1 }}>
                             {isAdmin && (
                                 <Box>
                                     <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
@@ -901,7 +913,15 @@ function RemboursementModernContent() {
                 onClose={() => setIsFormOpen(false)}
                 maxWidth="sm"
                 fullWidth
-                PaperProps={{ sx: { borderRadius: '20px' } }}
+                PaperProps={{
+                  sx: {
+                    borderRadius: { xs: 0, sm: '20px' },
+                    m: { xs: 0, sm: 4 },
+                    width: { xs: '100%', sm: 'auto' },
+                    maxWidth: { xs: '100%', sm: 600 },
+                    maxHeight: { xs: '100dvh', sm: 'calc(100% - 64px)' },
+                  },
+                }}
             >
                 <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '20px', pt: 3 }}>
                     {t('remboursement.form.title')}

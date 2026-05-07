@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -93,6 +93,10 @@ export default function PresenceHistoryScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [filter, setFilter] = useState<'all' | DayStatus>('all');
+  // Détail d'une journée ouvert depuis la liste mensuelle (le chevron-right
+  // indiquait une navigation, mais aucune action n'était câblée). Modal local
+  // = pas de nouvel écran à enregistrer côté navigateur.
+  const [detailDay, setDetailDay] = useState<DayInfo | null>(null);
 
   const loadPresences = useCallback(async () => {
     if (!user?.soccod || !user?.uticod) return;
@@ -228,7 +232,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
           <Text style={styles.subHeader}>Suivi temporel</Text>
           <Text style={styles.mainTitle}>Historique</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Notifications')}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -375,7 +379,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
                 <TouchableOpacity
                   key={idx}
                   style={styles.archiveItem}
-                  onPress={() => setSelectedDate(d.date)}
+                  onPress={() => { setSelectedDate(d.date); setDetailDay(d); }}
                   activeOpacity={0.7}
                 >
                   <View style={styles.archiveLeft}>
@@ -409,6 +413,97 @@ export default function PresenceHistoryScreen({ navigation }: any) {
       </ScrollView>
 
       <BottomTabBar active="history" navigation={navigation} />
+
+      {/* Détail journée — ouvert quand l'utilisateur tape une ligne de l'archive
+          mensuelle. Réutilise la même structure visuelle (events + total) que
+          le panneau "Détail jour sélectionné" en haut, sans forcer le scroll. */}
+      <Modal
+        visible={!!detailDay}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDetailDay(null)}
+        statusBarTranslucent
+      >
+        <View style={styles.detailOverlay}>
+          <View style={[styles.detailSheet, { paddingBottom: tabBarPadding * 0.4 + 16 }]}>
+            <View style={styles.detailHandle} />
+            <View style={styles.detailHeader}>
+              <View>
+                <Text style={styles.detailDate}>
+                  {detailDay?.date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </Text>
+                {detailDay && (
+                  <View style={[styles.statusPill, { backgroundColor: statusMeta(detailDay.status).bg, marginTop: 6 }]}>
+                    <MaterialCommunityIcons
+                      name={statusMeta(detailDay.status).icon}
+                      size={12}
+                      color={statusMeta(detailDay.status).color}
+                    />
+                    <Text style={[styles.statusPillText, { color: statusMeta(detailDay.status).color }]}>
+                      {statusMeta(detailDay.status).label}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity onPress={() => setDetailDay(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ marginTop: 12 }} showsVerticalScrollIndicator={false}>
+              {detailDay && detailDay.events.length > 0 ? (
+                <>
+                  <View style={styles.ledgerList}>
+                    {detailDay.events.map((event, idx) => (
+                      <View key={idx} style={[styles.ledgerItem, { borderLeftColor: event.color }]}>
+                        <View style={styles.ledgerLeft}>
+                          <View style={[styles.ledgerIconWrapper, { backgroundColor: `${event.color}15` }]}>
+                            <MaterialCommunityIcons name={event.icon} size={20} color={event.color} />
+                          </View>
+                          <View>
+                            <Text style={styles.ledgerTitle}>{event.label}</Text>
+                            <Text style={styles.ledgerSub}>{event.type === 'IN' ? 'Pointage entrée' : 'Pointage sortie'}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.ledgerTime}>{event.time}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.daySummaryCard}>
+                    <Text style={styles.daySummaryLabel}>Total travaillé</Text>
+                    <Text style={styles.daySummaryValue}>{formatHM(detailDay.totalMinutes)}</Text>
+                  </View>
+                  {detailDay.hasLate && (
+                    <View style={styles.detailNoteCard}>
+                      <MaterialCommunityIcons name="clock-alert-outline" size={18} color={COLORS.warning} />
+                      <Text style={styles.detailNoteText}>Retard détecté sur cette journée.</Text>
+                    </View>
+                  )}
+                </>
+              ) : detailDay ? (
+                <View style={styles.emptyLedger}>
+                  <MaterialCommunityIcons
+                    name={statusMeta(detailDay.status).icon}
+                    size={42}
+                    color={statusMeta(detailDay.status).color}
+                  />
+                  <Text style={styles.emptyText}>
+                    {detailDay.status === 'absent'
+                      ? "Aucun pointage enregistré pour cette journée."
+                      : detailDay.status === 'repos'
+                      ? 'Jour de repos hebdomadaire — pas de pointage attendu.'
+                      : detailDay.status === 'conge'
+                      ? 'Journée en congé.'
+                      : detailDay.status === 'ferier'
+                      ? 'Jour férié.'
+                      : 'Aucun détail disponible.'}
+                  </Text>
+                </View>
+              ) : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -479,4 +574,23 @@ const styles = StyleSheet.create({
   archiveMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   archiveMeta: { fontSize: 11, color: COLORS.outline, fontWeight: '600' },
+
+  // Modal détail journée — bottom sheet avec elevation 30 pour passer
+  // au-dessus du BottomTabBar (elevation: 8) sur Android.
+  detailOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end', elevation: 30 },
+  detailSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 20, paddingTop: 12,
+    maxHeight: '85%',
+  },
+  detailHandle: { alignSelf: 'center', width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 2, marginBottom: 12 },
+  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  detailDate: { fontSize: 16, fontWeight: '800', color: COLORS.onSurface, textTransform: 'capitalize' },
+  detailNoteCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff7e6', borderColor: '#fde2a7', borderWidth: 1,
+    borderRadius: 12, padding: 12, marginTop: 12,
+  },
+  detailNoteText: { fontSize: 12, color: COLORS.warning, fontWeight: '600', flex: 1 },
 });

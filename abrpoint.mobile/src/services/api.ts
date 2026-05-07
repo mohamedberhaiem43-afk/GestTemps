@@ -194,6 +194,15 @@ class ApiService {
     const response = await this.client.get(`/Notifications/quiet-status`);
     return response.data as { silent: boolean; until?: string | null; reason?: string; mode?: string };
   }
+  /**
+   * Envoie une notification push de test à tous les devices de l'utilisateur courant.
+   * Permet à l'utilisateur de vérifier que ses notifications sont opérationnelles
+   * sans dépendre d'un événement métier (validation de congé, rappel pointage, etc.).
+   */
+  async sendTestPush(uticod: string) {
+    const response = await this.client.post(`/Roles/test-push/${uticod}`);
+    return response.data as { sent: number };
+  }
 
   // Presence endpoints
   async getMyPresence(soccod: string, empcod: string) {
@@ -412,6 +421,32 @@ class ApiService {
     return response.data;
   }
 
+  /**
+   * Self-service : un employé met à jour SES propres coordonnées (téléphone,
+   * mobile, adresse, ville, email). Le backend vérifie que callerUticod === empcod
+   * et limite la whitelist aux champs de contact (pas de fonction/salaire/etc.).
+   */
+  async updateMyContact(payload: {
+    soccod: string;
+    empcod: string;
+    emptel?: string;
+    empmob?: string;
+    empadr?: string;
+    vilcod?: string;
+    empemail?: string;
+  }) {
+    const response = await this.client.put('/Employes/update-my-contact', {
+      Soccod: payload.soccod,
+      Empcod: payload.empcod,
+      Emptel: payload.emptel,
+      Empmob: payload.empmob,
+      Empadr: payload.empadr,
+      Vilcod: payload.vilcod,
+      Empemail: payload.empemail,
+    });
+    return response.data;
+  }
+
   async updateEmployee(employe: any) {
     const response = await this.client.put('/Employes/update-employe', employe);
     return response.data;
@@ -553,6 +588,8 @@ class ApiService {
       formData.append('Montant', String(expense.montant));
       formData.append('DateDepense', expense.dateDepense);
       if (expense.projet) formData.append('Projet', expense.projet);
+      if (expense.devise) formData.append('Devise', expense.devise);
+      if (expense.missionId != null) formData.append('MissionId', String(expense.missionId));
 
       const response = await this.client.post('/NoteDeFrais/add', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -584,6 +621,11 @@ class ApiService {
   async getDemandeAutorisations(soccod: string, uticod: string) {
     const response = await this.client.get(`/DemandeAutorisations/get-all/${soccod}/${uticod}`);
     return response.data;
+  }
+
+  async getNextDemandeAutorisationCode(soccod: string) {
+    const response = await this.client.get(`/DemandeAutorisations/get-next-concod/${soccod}`);
+    return response.data as { concod?: string };
   }
 
   async getDemandeAutorisationsByEmp(soccod: string, empcod: string) {
@@ -695,7 +737,7 @@ class ApiService {
   async createMission(data: {
     soccod: string; empcod: string; misobj: string; misdest?: string | null;
     misdatedeb: string; misdatefin: string; misnote?: string | null;
-    misetat?: string; misbudget?: number | null; abscod: string;
+    misetat?: string; misbudget?: number | null; misdevise?: string | null; abscod: string;
   }) {
     const response = await this.client.post('/Missions', data);
     return response.data;
@@ -703,7 +745,7 @@ class ApiService {
   async updateMissionState(id: number, data: {
     soccod: string; empcod: string; misobj: string; misdest?: string | null;
     misdatedeb: string; misdatefin: string; misnote?: string | null;
-    misetat: string; misbudget?: number | null; abscod: string;
+    misetat: string; misbudget?: number | null; misdevise?: string | null; abscod: string;
   }) {
     const response = await this.client.put(`/Missions/${id}`, data);
     return response.data;

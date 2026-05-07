@@ -400,7 +400,7 @@
       "address": "Address",
       "addressPlaceholder": "123 Example Street",
       "mobile": "Mobile",
-      "phonePlaceholder": "+1 555 000 0000",
+      "phonePlaceholder": "+XX XXX XXX XXX",
       "hireDate": "Hire date",
       "contractType": "Contract type",
       "regime": "Regime",
@@ -444,6 +444,7 @@
     },
     "addTitle": {
       "ville": "New City",
+      "villeCodeHint": "Numeric code (e.g. 75001)",
       "pays": "New Country",
       "filiale": "New Branch",
       "service": "New Service",
@@ -1006,6 +1007,7 @@
     "yes": "Yes",
     "no": "No",
     "add": "Add",
+    "codeNumericRequired": "Code must be numeric.",
     "confirmDelete": "Are you sure you want to delete this item?"
   },
   "list": {
@@ -1134,6 +1136,21 @@
         "requestDate": "Request date",
         "employee": "Employee",
         "type": "Leave type",
+        "typePlaceholder": "Select a type…",
+        "typeEmpty": "No type configured",
+        "typeEmptyHint": "No leave nature is configured. Click \"Add type\" to create one.",
+        "typeRequired": "Please select a leave type.",
+        "employeeRequired": "Please select an employee.",
+        "addTypeBtn": "Add type",
+        "addTypeTitle": "New absence nature",
+        "addTypeCode": "Code",
+        "addTypeLabel": "Label",
+        "addTypeLabelPh": "e.g. Paid Leave",
+        "addTypeImputation": "Imputation",
+        "addTypeSave": "Create",
+        "addTypeMissing": "Code and label are required.",
+        "addTypeSuccess": "Absence nature created successfully.",
+        "addTypeError": "Error creating absence nature.",
         "departureDate": "Departure date",
         "returnDate": "Return date",
         "amHalf": "PM",
@@ -2100,6 +2117,7 @@
       "noConsultRight": "You do not have the right to view countries.",
       "heading": "Country Management",
       "subtitle": "Configure available countries for the application",
+      "subtitleApi": "World countries catalogue (source: restcountries.com)",
       "editTitle": "Edit country",
       "newTitle": "New country",
       "codeLabel": "Country Code",
@@ -2107,6 +2125,14 @@
       "autoPlaceholder": "Auto",
       "labelPlaceholder": "Morocco",
       "tableTitle": "Countries List ({{count}})",
+      "tableTitleApi": "World countries ({{count}})",
+      "flag": "Flag",
+      "capital": "Capital",
+      "region": "Region",
+      "loadingApi": "Loading countries from restcountries.com…",
+      "apiError": "Unable to load countries from the API.",
+      "retry": "Retry",
+      "sourceApi": "Source: restcountries.com",
       "noResults": "No country found.",
       "footerCount": "Showing {{count}} countries",
       "deleteConfirm": "Are you sure you want to delete this country?",
@@ -3259,6 +3285,8 @@
       "duration": "Duration",
       "type": "Authorization type",
       "typePlaceholder": "Select a type...",
+      "typeEmpty": "No authorization type configured",
+      "loadingTypes": "Loading types…",
       "motif": "Reason",
       "motifPlaceholder": "Reason for the authorization request...",
       "cancel": "Cancel",
@@ -3353,14 +3381,25 @@
       "pendingSignature": "Pending signature"
     },
     "actions": {
-      "sign": "Sign"
+      "sign": "Sign",
+      "download": "Download",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete this document?",
+      "prompt": "Are you sure you want to delete \"{{name}}\" from your vault?",
+      "irreversible": "This action is irreversible. The file will be permanently removed.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
     },
     "snack": {
       "accessDeniedService": "Access denied: this employee is not in your service.",
       "accessDeniedVault": "You are not allowed to view this vault.",
       "uploadedAndNotified": "Document uploaded and employee notified.",
       "uploaded": "Document added.",
-      "uploadError": "Error while uploading the document."
+      "uploadError": "Error while uploading the document.",
+      "deleted": "Document deleted.",
+      "deleteError": "Error while deleting the document."
     }
   },
   "adminVault": {

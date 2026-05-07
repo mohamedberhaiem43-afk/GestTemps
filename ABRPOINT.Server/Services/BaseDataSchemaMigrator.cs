@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public static class BaseDataSchemaMigrator
 {
-    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded, bool RagTablesCreated);
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded, bool RagTablesCreated, bool MissionDeviseAdded, bool NoteDeFraisDeviseAdded);
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
@@ -67,7 +67,13 @@ public static class BaseDataSchemaMigrator
         var ragLogsCreated = await EnsureRagChatLogTableAsync(db, ct);
         var ragTablesCreated = ragDocsCreated || ragLettersCreated || ragLogsCreated;
 
-        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated);
+        // Devise pour les missions et notes de frais (ISO 4217 — 3 caractères).
+        // NULL = devise tenant par défaut côté client (rétrocompatible avec les
+        // lignes existantes saisies sans choix de devise).
+        var missionDevise = await AddColumnIfMissingAsync(db, "mission", "misdevise", "NVARCHAR(3) NULL", ct);
+        var nfDevise = await AddColumnIfMissingAsync(db, "notedefrais", "devise", "NVARCHAR(3) NULL", ct);
+
+        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise);
     }
 
     private static async Task<bool> EnsureRagDocumentTableAsync(ApplicationDbContext db, CancellationToken ct)
@@ -156,6 +162,7 @@ CREATE TABLE [mission] (
     [misnote] NVARCHAR(500) NULL,
     [misetat] NVARCHAR(20) NOT NULL CONSTRAINT [DF_mission_misetat] DEFAULT 'Pending',
     [misbudget] FLOAT NULL,
+    [misdevise] NVARCHAR(3) NULL,
     [abscod] NVARCHAR(4) NOT NULL,
     [created_at] DATETIME NULL,
     [deleted_at] DATETIME NULL,

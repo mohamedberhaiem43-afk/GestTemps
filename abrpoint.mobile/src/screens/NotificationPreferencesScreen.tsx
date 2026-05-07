@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Switch, ActivityIndicator,
-  TouchableOpacity, Alert,
+  TouchableOpacity, Alert, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import * as Notifications from 'expo-notifications';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import TimePickerModal from '../components/TimePickerModal';
+import { useAuth } from '../contexts/AuthContext';
+import { registerForPushAsync } from '../services/push';
 
 interface PrefItem {
   code: string;
@@ -26,10 +29,27 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 export default function NotificationPreferencesScreen({ navigation }: any) {
+  const { user } = useAuth();
   const [items, setItems] = useState<PrefItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [original, setOriginal] = useState<Record<string, string>>({});
+  // Diagnostic push : permet à l'utilisateur de vérifier qu'il a bien donné les
+  // autorisations système et que le token Expo est enregistré côté serveur.
+  const [permission, setPermission] = useState<'granted' | 'denied' | 'undetermined' | 'unknown'>('unknown');
+  const [reRegistering, setReRegistering] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const refreshPermission = async () => {
+    try {
+      const r = await Notifications.getPermissionsAsync();
+      setPermission(r.status === 'granted' ? 'granted' : r.status === 'denied' ? 'denied' : 'undetermined');
+    } catch {
+      setPermission('unknown');
+    }
+  };
+
+  useEffect(() => { refreshPermission(); }, []);
 
   // Heures silencieuses (manuel ou auto depuis le poste)
   const defaultQuiet = { enabled: false, mode: 'manual' as 'manual' | 'auto_poste', start: '22:00', end: '07:00' };
@@ -134,6 +154,59 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
     }
   };
 
+  // Force la re-demande de permission + ré-enregistre le token Expo côté backend.
+  // Utile quand l'utilisateur a refusé puis a réactivé les notifications dans
+  // les paramètres système, ou si l'enregistrement initial a échoué (pas de réseau).
+  const handleReRegister = async () => {
+    setReRegistering(true);
+    try {
+      const result = await registerForPushAsync(user?.soccod);
+      await refreshPermission();
+      if (result?.token) {
+        Alert.alert('✅ Push réactivé', 'Token enregistré. Vous pouvez tester avec « Envoyer un test ».');
+      } else {
+        Alert.alert(
+          'Notifications désactivées',
+          "Les notifications sont bloquées au niveau système. Ouvrez les paramètres pour les autoriser.",
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Ouvrir les paramètres', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
+    } catch {
+      Alert.alert('Erreur', "Impossible de réactiver les notifications.");
+    } finally {
+      setReRegistering(false);
+    }
+  };
+
+  // Envoie une notification push de test à tous les devices de l'utilisateur.
+  // Si rien ne s'affiche : permission OS bloquée, token expiré, ou heures
+  // silencieuses actives — on suggère les actions correctives.
+  const handleTestPush = async () => {
+    if (!user?.uticod) return;
+    setTesting(true);
+    try {
+      const r = await apiService.sendTestPush(user.uticod);
+      if (r.sent > 0) {
+        Alert.alert(
+          '📤 Notification envoyée',
+          `Envoyée à ${r.sent} appareil${r.sent > 1 ? 's' : ''}. Vous devriez la voir dans quelques secondes.`
+        );
+      } else {
+        Alert.alert(
+          'Aucun appareil enregistré',
+          "Cliquez sur « Réactiver les notifications » pour enregistrer ce téléphone."
+        );
+      }
+    } catch {
+      Alert.alert('Erreur', "Impossible d'envoyer le test.");
+    } finally {
+      setTesting(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -171,6 +244,84 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
           Choisissez les types de notifications que vous souhaitez recevoir. Désactivé = aucun push, aucune entrée
           dans le centre de notifications.
         </Text>
+
+        {/* ── Diagnostic push ── */}
+        {/* Permet à l'utilisateur de vérifier que les permissions système sont
+            accordées et de tester le pipeline push de bout en bout sans dépendre
+            d'un événement métier. Indispensable quand "rien n'arrive" malgré les
+            préférences activées. */}
+        <View style={styles.groupBlock}>
+          <View style={styles.groupHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <MaterialCommunityIcons name="shield-check-outline" size={16} color={COLORS.secondary} />
+              <Text style={styles.groupTitle}>Diagnostic</Text>
+            </View>
+          </View>
+          <View style={styles.card}>
+            <View style={[styles.row, styles.rowDivider]}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.rowTitle}>Autorisation système</Text>
+                <Text style={styles.rowDesc}>
+                  {permission === 'granted'
+                    ? '✅ Les notifications sont autorisées sur cet appareil.'
+                    : permission === 'denied'
+                    ? "❌ Bloquées par le système — ouvrez les paramètres pour les autoriser."
+                    : permission === 'undetermined'
+                    ? "Permission non encore demandée — utilisez « Réactiver » ci-dessous."
+                    : 'Statut inconnu.'}
+                </Text>
+              </View>
+              {permission === 'denied' && (
+                <TouchableOpacity onPress={() => Linking.openSettings()} style={styles.miniSaveBtn}>
+                  <MaterialCommunityIcons name="cog-outline" size={14} color={COLORS.onPrimary} />
+                  <Text style={styles.miniSaveBtnText}>Paramètres</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={[styles.row, styles.rowDivider]}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.rowTitle}>Réactiver les notifications</Text>
+                <Text style={styles.rowDesc}>
+                  Re-demande la permission et ré-enregistre ce téléphone côté serveur.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleReRegister}
+                disabled={reRegistering}
+                style={[styles.miniSaveBtn, reRegistering && { opacity: 0.5 }]}
+              >
+                {reRegistering ? (
+                  <ActivityIndicator size="small" color={COLORS.onPrimary} />
+                ) : (
+                  <MaterialCommunityIcons name="refresh" size={14} color={COLORS.onPrimary} />
+                )}
+                <Text style={styles.miniSaveBtnText}>Réactiver</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.row}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.rowTitle}>Tester l'envoi</Text>
+                <Text style={styles.rowDesc}>
+                  Envoie une notification de test à tous vos appareils enregistrés.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleTestPush}
+                disabled={testing}
+                style={[styles.miniSaveBtn, testing && { opacity: 0.5 }]}
+              >
+                {testing ? (
+                  <ActivityIndicator size="small" color={COLORS.onPrimary} />
+                ) : (
+                  <MaterialCommunityIcons name="bell-ring-outline" size={14} color={COLORS.onPrimary} />
+                )}
+                <Text style={styles.miniSaveBtnText}>Envoyer un test</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
 
         {/* ── Heures silencieuses ── */}
         <View style={styles.groupBlock}>

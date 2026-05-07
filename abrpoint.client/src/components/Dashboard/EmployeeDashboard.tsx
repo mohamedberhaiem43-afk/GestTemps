@@ -369,8 +369,8 @@ export default function EmployeeDashboard() {
 
           {/* Fast Actions */}
           <div className="grid grid-cols-1 gap-4">
-            <button 
-              onClick={() => navigate('/dashboard/pointage-du-mois')}
+            <button
+              onClick={() => navigate('/dashboard/coffre-fort#payslips')}
               className="flex items-center gap-4 p-4 bg-blue-50 text-[#0040a1] rounded-xl hover:bg-blue-100 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 group"
             >
               <div className="p-2 bg-white rounded-lg shadow-sm">

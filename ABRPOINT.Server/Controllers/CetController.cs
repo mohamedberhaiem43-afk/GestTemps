@@ -79,9 +79,17 @@ namespace ABRPOINT.Server.Controllers
             if (dto.Maxjours.HasValue && dto.Maxjours.Value < 0)
                 return BadRequest(new { error = "Maxjours ne peut pas être négatif." });
 
+            // Upsert : la ligne Parametre n'est pas créée automatiquement à la création
+            // de la société, donc le premier enregistrement de paramètres CET (ou de
+            // n'importe quel autre paramètre) doit créer la ligne plutôt que de renvoyer
+            // 404. Cohérent avec GET /parametres/{soccod} qui retourne déjà des valeurs
+            // par défaut quand la ligne est absente.
             var p = await _db.Parametres.FirstOrDefaultAsync(x => x.Soccod == dto.Soccod);
             if (p == null)
-                return NotFound(new { error = $"Paramètres société '{dto.Soccod}' introuvables." });
+            {
+                p = new Parametre { Soccod = dto.Soccod };
+                _db.Parametres.Add(p);
+            }
             p.Parcetdatelim = dto.Datelim;
             p.Parcetmaxjours = dto.Maxjours;
             await _db.SaveChangesAsync();

@@ -505,24 +505,24 @@ function CalendrierContent() {
                 <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">{t('paramSoc.calendrier.config.hoursPerDay')}</label>
                 <div className="relative">
                   <input
-                    className="w-full bg-surface-container-low rounded-xl py-3 px-4 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold"
+                    className="w-full bg-surface-container-low rounded-xl py-3 pl-4 pr-12 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     type="number"
                     value={allDay}
                     onChange={(e) => setAllDay(Number(e.target.value))}
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-outline text-xs font-bold uppercase">h/j</span>
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-outline text-xs font-bold uppercase">h/j</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">{t('paramSoc.calendrier.config.saturdayHours')}</label>
                 <div className="relative">
                   <input
-                    className="w-full bg-surface-container-low rounded-xl py-3 px-4 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold"
+                    className="w-full bg-surface-container-low rounded-xl py-3 pl-4 pr-12 border-none focus:ring-2 focus:ring-primary/20 text-sm font-headline font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     type="number"
                     value={samedi}
                     onChange={(e) => setSamedi(Number(e.target.value))}
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-outline text-xs font-bold uppercase">h</span>
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-outline text-xs font-bold uppercase">h</span>
                 </div>
               </div>
 

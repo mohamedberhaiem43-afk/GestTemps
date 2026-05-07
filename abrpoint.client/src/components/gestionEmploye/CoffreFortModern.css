@@ -544,3 +544,45 @@
    scrollbar visible. */
 .vault-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .vault-table { min-width: 600px; }
+
+/* Mobile : on remplace le scroll horizontal par une présentation en cartes
+   verticales pour la liste des documents, et on resserre les KPI / dossiers. */
+@media (max-width: 600px) {
+  .coffre-fort-container { padding: 0.75rem; }
+
+  /* KPI : la carte stats remplit la ligne sans dépasser le viewport. */
+  .vault-stats-card { width: 100%; max-width: 100%; box-sizing: border-box; padding: 1rem; }
+  .vault-stats-card .stats-number { font-size: 1.75rem; }
+
+  /* Section dossiers : marges resserrées, plus d'espace pour le contenu. */
+  .folder-grid { grid-template-columns: 1fr; gap: 0.75rem; margin-bottom: 2rem; }
+  .folder-card { padding: 1rem; }
+
+  /* Tableau → cartes empilées : chaque ligne devient une carte autonome.
+     Avantage : plus de scroll horizontal, plus de troncature, et la
+     densité d'information reste lisible sur écran étroit. */
+  .vault-table-wrapper { overflow-x: visible; box-shadow: none; background: transparent; }
+  .vault-table { min-width: 0; width: 100%; border-collapse: separate; border-spacing: 0 0.5rem; }
+  .vault-table thead { display: none; }
+  .vault-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem 0.75rem;
+    background: #ffffff;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .vault-table tbody td {
+    display: block;
+    padding: 0;
+    border: none;
+    min-width: 0;
+    font-size: 0.8rem;
+  }
+  .vault-table tbody td:nth-of-type(1) { grid-column: 1 / 3; }
+  .vault-table tbody td:nth-of-type(2) { grid-column: 1 / 2; color: #64748b; font-size: 0.7rem; text-transform: uppercase; }
+  .vault-table tbody td:nth-of-type(3) { grid-column: 2 / 3; color: #64748b; font-size: 0.7rem; text-align: right; }
+  .vault-table tbody td:nth-of-type(4) { grid-column: 1 / 2; color: #64748b; font-size: 0.7rem; }
+  .vault-table tbody td:nth-of-type(5) { grid-column: 1 / 3; padding-top: 0.25rem; border-top: 1px dashed #e2e8f0; margin-top: 0.25rem; }
+}

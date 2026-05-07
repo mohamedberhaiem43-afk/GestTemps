@@ -23,6 +23,7 @@ import useAddDemConge from '../../../../hooks/congeHooks/useAddDemConge';
 import useUpdateDemConge from '../../../../hooks/congeHooks/useUpdateConge';
 import useDeleteDemConge from '../../../../hooks/congeHooks/useDeleteDemConge';
 import useGetCongeAbsenceLibs from '../../../../hooks/absenceHooks/useGetCongeAbsenceLibs';
+import useAddAbsence from '../../../../hooks/absenceHooks/useAddAbsence';
 import useGetEmployee from '../../../../hooks/employeHooks/useGetEmployee';
 import useGetDroitConge from '../../../../hooks/congeHooks/useGetDroitConge';
 import { useAuth } from '../../../helper/AuthProvider';
@@ -127,12 +128,23 @@ function MiniCalendar({ leaves }: { leaves: Conge[] }) {
 // ── Form Dialog ───────────────────────────────────────────────────────────────
 function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolean; onClose: () => void; editConge: Conge | null; onSuccess?: () => void }) {
   const { t } = useTranslation();
-  const { soccod, isEmp, uticod } = useAuth();
+  const { soccod, isEmp, uticod, hasPermission } = useAuth();
   const { refetch } = useGetDemConges();
-  const { data: absences = [] } = useGetCongeAbsenceLibs();
+  const { data: absences = [], refetch: refetchAbsences } = useGetCongeAbsenceLibs();
   const { data: employeOptions = [] } = useGetEmployee();
   const { mutate: addConge, isLoading: adding } = useAddDemConge();
   const { mutate: updateConge, isLoading: updating } = useUpdateDemConge();
+  const { mutate: addAbsence, isLoading: addingAbsence } = useAddAbsence();
+  const canAddAbsence = hasPermission('Paramètres de Temps', 'add');
+
+  // Inline "ajouter une nature d'absence" — affiché dans le même dialog quand
+  // aucun type n'est configuré ou que l'utilisateur veut en ajouter un.
+  const [showAddType, setShowAddType] = useState(false);
+  const [newAbscod, setNewAbscod] = useState('');
+  const [newAbslib, setNewAbslib] = useState('');
+  const [newAbscng, setNewAbscng] = useState<'0' | '1' | '5' | 'R'>('0');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSnack, setFormSnack] = useState<{ open: boolean; sev: 'success' | 'error'; msg: string }>({ open: false, sev: 'success', msg: '' });
 
   const [empcod, setEmpcod] = useState(() => isEmp && uticod ? uticod : '');
   const [concod, setConcod] = useState('');
@@ -245,6 +257,17 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   }, [condep, conret, conamdep, conamret]);
 
   const handleSubmit = () => {
+    // Validation client : sans type sélectionné, le backend rejette ou
+    // l'enregistrement reste muet. On bloque ici avec un message explicite.
+    if (!abscod) {
+      setFormError(t('conge.demConge.form.typeRequired'));
+      return;
+    }
+    if (!empcod) {
+      setFormError(t('conge.demConge.form.employeeRequired'));
+      return;
+    }
+    setFormError(null);
     const payload: Conge = {
       soccod: soccod || '', empcod, concod,
       condat: condat ? new Date(condat) : null,
@@ -264,6 +287,47 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
       onError: () => {}
     };
     editConge ? updateConge(payload, cb) : addConge(payload, cb);
+  };
+
+  const resetAddTypeForm = () => {
+    setShowAddType(false);
+    setNewAbscod('');
+    setNewAbslib('');
+    setNewAbscng('0');
+  };
+
+  const handleAddType = () => {
+    if (!newAbscod.trim() || !newAbslib.trim()) {
+      setFormSnack({ open: true, sev: 'error', msg: t('conge.demConge.form.addTypeMissing') });
+      return;
+    }
+    // Valeurs par défaut alignées sur IntituleDesAbsencesModern (formulaire de
+    // référence) pour qu'un congé créé ici se comporte comme un congé saisi
+    // depuis l'écran "Intitulé des Absences".
+    const payload: any = {
+      soccod: soccod || '',
+      abscod: newAbscod.trim(),
+      abslib: newAbslib.trim(),
+      abspar: 'A',
+      absunite: 'J',
+      abscng: newAbscng,
+      abssanc: 'N',
+      abspayer: 'O',
+      absrepos: '0',
+      absferier: 'N',
+      absaut: 0,
+    };
+    addAbsence(payload, {
+      onSuccess: () => {
+        setFormSnack({ open: true, sev: 'success', msg: t('conge.demConge.form.addTypeSuccess') });
+        const created = newAbscod.trim();
+        refetchAbsences().finally(() => setAbscod(created));
+        resetAddTypeForm();
+      },
+      onError: (err: any) => {
+        setFormSnack({ open: true, sev: 'error', msg: err?.response?.data?.message || t('conge.demConge.form.addTypeError') });
+      },
+    });
   };
 
   const isBusy = adding || updating;
@@ -309,12 +373,84 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
         )}
 
         <Box>
-          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.type')}</Typography>
-          <FormControl fullWidth size="small">
-            <Select value={abscod} onChange={(e) => setAbscod(e.target.value)} sx={{ borderRadius: '8px', backgroundColor: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 0.5 }}>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('conge.demConge.form.type')}</Typography>
+            {canAddAbsence && !showAddType && (
+              <Button
+                size="small"
+                startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                onClick={() => setShowAddType(true)}
+                sx={{ textTransform: 'none', fontSize: '11px', fontWeight: 700, color: '#0040a1', minWidth: 0, p: '2px 6px' }}
+              >
+                {t('conge.demConge.form.addTypeBtn')}
+              </Button>
+            )}
+          </Box>
+          <FormControl fullWidth size="small" error={!!formError && !abscod}>
+            <Select
+              value={abscod}
+              displayEmpty
+              onChange={(e) => { setAbscod(e.target.value); if (formError) setFormError(null); }}
+              sx={{ borderRadius: '8px', backgroundColor: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}
+            >
+              <MenuItem value="" disabled>
+                <em style={{ color: '#94a3b8' }}>
+                  {Object.keys(absences).length === 0
+                    ? t('conge.demConge.form.typeEmpty')
+                    : t('conge.demConge.form.typePlaceholder')}
+                </em>
+              </MenuItem>
               {Object.entries(absences).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
             </Select>
           </FormControl>
+          {Object.keys(absences).length === 0 && canAddAbsence && !showAddType && (
+            <Typography sx={{ fontSize: '11px', color: '#b45309', mt: 0.5 }}>
+              {t('conge.demConge.form.typeEmptyHint')}
+            </Typography>
+          )}
+          {showAddType && (
+            <Box sx={{ mt: 1.25, p: 1.5, borderRadius: '10px', border: '1px dashed #bfdbfe', background: '#f8fbff' }}>
+              <Typography sx={{ fontSize: '11px', fontWeight: 800, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
+                {t('conge.demConge.form.addTypeTitle')}
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '120px 1fr' }, gap: 1.25 }}>
+                <Box>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.25 }}>{t('conge.demConge.form.addTypeCode')}</Typography>
+                  <TextField size="small" fullWidth value={newAbscod} onChange={e => setNewAbscod(e.target.value.toUpperCase())} placeholder="CP" sx={fieldSx} />
+                </Box>
+                <Box>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.25 }}>{t('conge.demConge.form.addTypeLabel')}</Typography>
+                  <TextField size="small" fullWidth value={newAbslib} onChange={e => setNewAbslib(e.target.value)} placeholder={t('conge.demConge.form.addTypeLabelPh')} sx={fieldSx} />
+                </Box>
+              </Box>
+              <Box sx={{ mt: 1.25 }}>
+                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>{t('conge.demConge.form.addTypeImputation')}</Typography>
+                <FormControl fullWidth size="small">
+                  <Select value={newAbscng} onChange={(e) => setNewAbscng(e.target.value as '0' | '1' | '5' | 'R')} sx={{ borderRadius: '8px', backgroundColor: '#fff' }}>
+                    <MenuItem value="0">{t('intituleAbsences.imputationOptions.0')}</MenuItem>
+                    <MenuItem value="1">{t('intituleAbsences.imputationOptions.1')}</MenuItem>
+                    <MenuItem value="5">{t('intituleAbsences.imputationOptions.5')}</MenuItem>
+                    <MenuItem value="R">{t('intituleAbsences.imputationOptions.R')}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1.5 }}>
+                <Button size="small" onClick={resetAddTypeForm} sx={{ textTransform: 'none', color: '#64748b' }}>
+                  {t('conge.demConge.form.cancel')}
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleAddType}
+                  disabled={addingAbsence}
+                  startIcon={addingAbsence ? <CircularProgress size={14} color="inherit" /> : <SaveIcon sx={{ fontSize: 14 }} />}
+                  sx={{ textTransform: 'none', borderRadius: '8px', background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}
+                >
+                  {t('conge.demConge.form.addTypeSave')}
+                </Button>
+              </Box>
+            </Box>
+          )}
         </Box>
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr auto 1fr auto auto' }, gap: 1.5, alignItems: 'end' }}>
@@ -381,6 +517,11 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
             <TextField size="small" fullWidth value={contel} onChange={(e) => setContel(e.target.value)} sx={fieldSx} />
           </Box>
         </Box>
+        {formError && (
+          <Alert severity="error" onClose={() => setFormError(null)} sx={{ borderRadius: '8px' }}>
+            {formError}
+          </Alert>
+        )}
       </DialogContent>
       <Divider />
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
@@ -391,6 +532,16 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
           {editConge ? t('conge.demConge.form.modify') : t('conge.demConge.form.submit')}
         </Button>
       </DialogActions>
+      <Snackbar
+        open={formSnack.open}
+        autoHideDuration={4000}
+        onClose={() => setFormSnack(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={formSnack.sev} onClose={() => setFormSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
+          {formSnack.msg}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 }

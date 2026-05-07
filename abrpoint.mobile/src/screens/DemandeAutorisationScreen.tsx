@@ -149,15 +149,29 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
   };
 
   const generateConcod = () => {
-    // Numéro d'ordre : DA + AAMMJJHHmm (équivalent du generateNumeroOrdre côté web).
+    // Fallback offline : la colonne BDD impose StringLength(10), donc on retire
+    // le préfixe "DA" et on conserve uniquement AAMMJJHHmm = 10 caractères.
+    // En usage normal, on appelle plutôt apiService.getNextDemandeAutorisationCode
+    // (cf. openNewForm) qui suit le format attendu par le backend.
     const n = new Date();
     const pad = (x: number) => String(x).padStart(2, '0');
-    return `DA${String(n.getFullYear()).slice(-2)}${pad(n.getMonth() + 1)}${pad(n.getDate())}${pad(n.getHours())}${pad(n.getMinutes())}`;
+    return `${String(n.getFullYear()).slice(-2)}${pad(n.getMonth() + 1)}${pad(n.getDate())}${pad(n.getHours())}${pad(n.getMinutes())}`;
   };
 
   const openNewForm = () => {
     setEditDemande(null);
+    // Pré-remplit avec un fallback synchrone (cohérent avec la contrainte de
+    // 10 caractères côté BDD) puis tente de récupérer le vrai N° depuis le
+    // backend ; si le réseau échoue, le fallback est valide pour l'envoi.
     setFormConcod(generateConcod());
+    if (user?.soccod) {
+      apiService
+        .getNextDemandeAutorisationCode(user.soccod)
+        .then((res) => {
+          if (res?.concod) setFormConcod(res.concod);
+        })
+        .catch(() => { /* fallback déjà appliqué */ });
+    }
     setFormCondat(new Date());
     setFormCondep(new Date());
     setFormConret(new Date());
@@ -191,10 +205,13 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
     if (!user?.soccod || !user?.uticod) return;
 
     try {
+      // Tronque le concod à 10 caractères pour respecter la contrainte
+      // [StringLength(10)] côté serveur (sinon ModelState invalide → 400).
+      const concod = (formConcod || generateConcod()).slice(0, 10);
       const payload = {
         soccod: user.soccod,
         empcod: user.uticod,
-        concod: formConcod || generateConcod(),
+        concod,
         condat: formCondat.toISOString().split('T')[0],
         condep: formCondep.toISOString(),
         conret: formConret.toISOString(),
@@ -397,7 +414,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
       {/* ── Form Overlay (style LeaveRequestScreen) ── */}
       {showForm && (
         <View style={styles.modalOverlay}>
-          <View style={styles.formCard}>
+          <View style={[styles.formCard, { paddingBottom: 24 + tabBarPadding * 0.4 }]}>
             <View style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>
                 {editDemande ? 'Modifier la demande' : 'Nouvelle Demande'}
@@ -612,11 +629,15 @@ const styles = StyleSheet.create({
   emptyBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
   // ── Form Overlay (aligné sur LeaveRequestScreen) ──
+  // elevation: 30 force le modal au-dessus du BottomTabBar (elevation: 8)
+  // sur Android, sinon la barre persistante reste cliquable et masque les
+  // boutons de validation.
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
     zIndex: 1000,
+    elevation: 30,
   },
   formCard: {
     backgroundColor: '#fff',

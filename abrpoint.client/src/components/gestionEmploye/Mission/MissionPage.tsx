@@ -41,8 +41,27 @@ const emptyForm = (soccod: string, defaultEmpcod = ''): MissionUpsertRequest => 
   misnote: '',
   misetat: 'Pending',
   misbudget: undefined,
+  misdevise: 'EUR',
   abscod: '',
 });
+
+// Liste partagée mobile/web. ISO 4217 + symbole d'affichage. NULL stocké en BD
+// = devise tenant par défaut (rétrocompatibilité avec lignes existantes).
+const CURRENCY_OPTIONS: { code: string; symbol: string; label: string }[] = [
+  { code: 'EUR', symbol: '€',    label: 'Euro' },
+  { code: 'USD', symbol: '$',    label: 'Dollar US' },
+  { code: 'GBP', symbol: '£',    label: 'Livre sterling' },
+  { code: 'CHF', symbol: 'CHF',  label: 'Franc suisse' },
+  { code: 'TND', symbol: 'DT',   label: 'Dinar tunisien' },
+  { code: 'MAD', symbol: 'MAD',  label: 'Dirham marocain' },
+  { code: 'DZD', symbol: 'DA',   label: 'Dinar algérien' },
+  { code: 'CAD', symbol: 'CA$',  label: 'Dollar canadien' },
+  { code: 'XOF', symbol: 'FCFA', label: 'Franc CFA (BCEAO)' },
+  { code: 'AED', symbol: 'AED',  label: 'Dirham émirati' },
+];
+
+const getCurrencySymbol = (code?: string | null): string =>
+  CURRENCY_OPTIONS.find(c => c.code === code)?.symbol || code || '€';
 
 const MissionPage: React.FC = () => {
   const { t } = useTranslation();
@@ -120,6 +139,7 @@ const MissionPage: React.FC = () => {
       misnote: m.misnote ?? '',
       misetat: m.misetat,
       misbudget: m.misbudget ?? undefined,
+      misdevise: m.misdevise ?? 'EUR',
       abscod: m.abscod,
     });
     setDialogOpen(true);
@@ -135,12 +155,16 @@ const MissionPage: React.FC = () => {
       return;
     }
     try {
+      const hasBudget = form.misbudget != null && form.misbudget !== ('' as any);
       const payload: MissionUpsertRequest = {
         ...form,
         soccod: sc,
         misdatedeb: dayjs(form.misdatedeb).toISOString(),
         misdatefin: dayjs(form.misdatefin).toISOString(),
-        misbudget: form.misbudget != null && form.misbudget !== ('' as any) ? Number(form.misbudget) : undefined,
+        misbudget: hasBudget ? Number(form.misbudget) : undefined,
+        // Devise transmise uniquement si un budget est saisi — sinon NULL côté
+        // BD (devise sans montant n'a pas de sens pour le suivi comptable).
+        misdevise: hasBudget ? (form.misdevise || 'EUR') : null,
       };
       if (editingId == null) {
         await createMut.mutateAsync(payload);
@@ -288,7 +312,7 @@ const MissionPage: React.FC = () => {
                   </Typography>
                 </Box>
                 <Typography sx={{ p: 1.5, fontSize: 13, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', ...cellStagger }}>
-                  {m.misbudget != null ? `${m.misbudget.toFixed(2)} €` : '—'}
+                  {m.misbudget != null ? `${m.misbudget.toFixed(2)} ${getCurrencySymbol(m.misdevise)}` : '—'}
                 </Typography>
                 <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', ...cellStagger }}>
                   <Chip
@@ -307,7 +331,21 @@ const MissionPage: React.FC = () => {
         </Box>
       </Box>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            margin: { xs: 0, sm: '32px' },
+            width: { xs: '100%', sm: 'auto' },
+            maxWidth: { xs: '100%', sm: '900px' },
+            maxHeight: { xs: '100dvh', sm: 'calc(100% - 64px)' },
+            borderRadius: { xs: 0, sm: 2 },
+          },
+        }}
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>{editingId == null ? t('mission.dialog.newTitle') : t('mission.dialog.editTitle')}</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, pt: 1 }}>
@@ -389,14 +427,31 @@ const MissionPage: React.FC = () => {
               value={form.misdatefin?.slice(0, 10) ?? ''}
               onChange={e => setForm({ ...form, misdatefin: e.target.value })}
             />
-            <TextField
-              label={t('mission.dialog.budget')}
-              size="small"
-              type="number"
-              inputProps={{ step: '0.001', min: 0 }}
-              value={form.misbudget ?? ''}
-              onChange={e => setForm({ ...form, misbudget: e.target.value === '' ? undefined : Number(e.target.value) })}
-            />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                label={t('mission.dialog.budget')}
+                size="small"
+                type="number"
+                inputProps={{ step: '0.001', min: 0 }}
+                value={form.misbudget ?? ''}
+                onChange={e => setForm({ ...form, misbudget: e.target.value === '' ? undefined : Number(e.target.value) })}
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="Devise"
+                size="small"
+                select
+                value={form.misdevise ?? 'EUR'}
+                onChange={e => setForm({ ...form, misdevise: e.target.value })}
+                sx={{ minWidth: 140 }}
+              >
+                {CURRENCY_OPTIONS.map(c => (
+                  <MenuItem key={c.code} value={c.code}>
+                    {c.symbol} — {c.code}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
             <TextField
               label={t('mission.dialog.note')}
               size="small"

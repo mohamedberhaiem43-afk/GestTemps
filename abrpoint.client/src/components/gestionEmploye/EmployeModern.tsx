@@ -144,12 +144,16 @@ const getDefaultEmployeData = (soccod: string, sitcod: string): Employe => ({
 });
 
 // ── SelectWithAdd: dropdown + quick-add popup ─────────────────────────────────
-function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
+function SelectWithAdd({ value, onChange, options, onAdd, addTitle, codeNumeric = false, codeHint }: {
     value: string;
     onChange: (v: string) => void;
     options: Record<string, string>;
     onAdd: (code: string, lib: string) => Promise<void>;
     addTitle: string;
+    // codeNumeric : impose un code uniquement composé de chiffres (cas de Ville,
+    // dont le code reste nvarchar en BD mais doit rester numérique côté saisie).
+    codeNumeric?: boolean;
+    codeHint?: string;
 }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
@@ -157,8 +161,17 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
     const [newLib, setNewLib] = useState('');
     const [saving, setSaving] = useState(false);
 
+    const codeInvalid = codeNumeric && newCode.length > 0 && !/^\d+$/.test(newCode);
+    const canSubmit = !!newCode.trim() && !!newLib.trim() && !codeInvalid;
+
+    const handleCodeChange = (raw: string) => {
+        // Pour un code numérique : on filtre dès la saisie, ce qui empêche l'utilisateur
+        // de coller "Paris" et garantit l'invariant côté envoi.
+        setNewCode(codeNumeric ? raw.replace(/\D+/g, '') : raw);
+    };
+
     const handleAdd = async () => {
-        if (!newCode.trim() || !newLib.trim()) return;
+        if (!canSubmit) return;
         setSaving(true);
         try {
             await onAdd(newCode.trim(), newLib.trim());
@@ -198,7 +211,16 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
                 <DialogContent sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Box>
                         <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{t('common.code')}</Typography>
-                        <TextField size="small" fullWidth value={newCode} onChange={e => setNewCode(e.target.value)} sx={fSx} />
+                        <TextField
+                            size="small"
+                            fullWidth
+                            value={newCode}
+                            onChange={e => handleCodeChange(e.target.value)}
+                            error={codeInvalid}
+                            helperText={codeInvalid ? t('common.codeNumericRequired') : (codeHint || ' ')}
+                            inputProps={codeNumeric ? { inputMode: 'numeric', pattern: '\\d*' } : undefined}
+                            sx={fSx}
+                        />
                     </Box>
                     <Box>
                         <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{t('common.label')}</Typography>
@@ -208,7 +230,7 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
                 <Divider />
                 <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
                     <Button onClick={() => setOpen(false)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('common.cancel')}</Button>
-                    <Button variant="contained" onClick={handleAdd} disabled={saving || !newCode.trim() || !newLib.trim()}
+                    <Button variant="contained" onClick={handleAdd} disabled={saving || !canSubmit}
                         startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
                         sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
                         {t('common.add')}
@@ -1081,7 +1103,8 @@ const EmployeModernInner = () => {
                                             <Typography sx={labelStyle}>{t('employe.field.city')}</Typography>
                                             <SelectWithAdd value={formData.vilcod || ''}
                                                 onChange={v => setFormData(p => ({ ...p, vilcod: v }))}
-                                                options={vilMap} onAdd={handleAddVille} addTitle={t('employe.addTitle.ville')} />
+                                                options={vilMap} onAdd={handleAddVille} addTitle={t('employe.addTitle.ville')}
+                                                codeNumeric codeHint={t('employe.addTitle.villeCodeHint')} />
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.field.country')}</Typography>

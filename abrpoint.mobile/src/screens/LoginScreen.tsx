@@ -134,11 +134,19 @@ export default function LoginScreen() {
     if (!forgotEmail) { Alert.alert('Erreur', 'Veuillez entrer votre email.'); return; }
     setForgotLoading(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/Utilisateurs/forgot-password`, { Utimail: forgotEmail });
-      Alert.alert('Succès', res.data.Message || 'Code envoyé.');
+      // Endpoint public (api/auth/forgot-password) qui résout le tenant à partir
+      // de l'email puis envoie le code à 6 chiffres par email. L'ancien
+      // /Utilisateurs/forgot-password persistait le code mais n'envoyait plus
+      // l'email — c'est pourquoi l'utilisateur ne recevait jamais rien.
+      const res = await axios.post(`${API_BASE_URL}/auth/forgot-password`, { Email: forgotEmail });
+      // Le nouveau endpoint renvoie { message } (lowercase) ; l'ancien renvoyait { Message }.
+      // On accepte les deux pour la rétrocompatibilité avec d'anciens déploiements.
+      const successMsg = res.data?.message || res.data?.Message || 'Code envoyé. Consultez votre boîte mail.';
+      Alert.alert('Succès', successMsg);
       setForgotStep('code');
     } catch (err: any) {
-      Alert.alert('Erreur', err?.response?.data?.Message || 'Erreur lors de l\'envoi du code.');
+      const msg = err?.response?.data?.message || err?.response?.data?.Message || 'Erreur lors de l\'envoi du code.';
+      Alert.alert('Erreur', msg);
     } finally {
       setForgotLoading(false);
     }
@@ -150,8 +158,14 @@ export default function LoginScreen() {
     if (newPassword.length < 6) { Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères.'); return; }
     setForgotLoading(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/Utilisateurs/reset-password-with-code`, { Utimail: forgotEmail, Code: resetCode, NewPassword: newPassword });
-      Alert.alert('Succès', res.data.Message || 'Mot de passe réinitialisé.');
+      // Nouveau endpoint public — payload: { Email, Code, NewPassword }.
+      const res = await axios.post(`${API_BASE_URL}/auth/reset-password`, {
+        Email: forgotEmail,
+        Code: resetCode,
+        NewPassword: newPassword,
+      });
+      const successMsg = res.data?.message || res.data?.Message || 'Mot de passe réinitialisé.';
+      Alert.alert('Succès', successMsg);
       setShowForgot(false);
       setForgotStep('email');
       setForgotEmail('');
@@ -159,7 +173,8 @@ export default function LoginScreen() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      Alert.alert('Erreur', err?.response?.data?.Message || 'Erreur lors de la réinitialisation.');
+      const msg = err?.response?.data?.message || err?.response?.data?.Message || 'Erreur lors de la réinitialisation.';
+      Alert.alert('Erreur', msg);
     } finally {
       setForgotLoading(false);
     }

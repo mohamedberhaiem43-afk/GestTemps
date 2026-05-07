@@ -1,10 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button, Snackbar, Alert, CircularProgress } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PublicIcon from '@mui/icons-material/Public';
 import SearchIcon from '@mui/icons-material/Search';
 import apiInstance from '../../API/apiInstance';
@@ -12,7 +10,7 @@ import { PaysModel } from '../../../models/Pays';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
 import '../shared/RefModern.css';
-import useGetPays from '../../../hooks/paysHooks/useGetPays';
+import useGetRestCountries from '../../../hooks/restCountriesHooks/useGetRestCountries';
 
 const emptyForm: PaysModel = { natcod: '', natlib: '' };
 
@@ -23,18 +21,22 @@ function PaysModernContent() {
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
   const [search, setSearch] = useState('');
 
-  const { data: nations = [], refetch, isLoading } = useGetPays();
-  const isEditMode = form.natcod !== '' && nations.some(n => n.natcod === form.natcod);
+  const { data: countries = [], isLoading, isError, refetch } = useGetRestCountries();
 
   const canAdd = hasPermission('Données de Base', 'add');
-  const canModify = hasPermission('Données de Base', 'modify');
-  const canDelete = hasPermission('Données de Base', 'delete');
 
   const filtered = useMemo(() => {
-    if (!search) return nations;
+    if (!search) return countries;
     const q = search.toLowerCase();
-    return nations.filter(n => n.natcod.toLowerCase().includes(q) || n.natlib.toLowerCase().includes(q));
-  }, [nations, search]);
+    return countries.filter(c =>
+      c.nameFr.toLowerCase().includes(q) ||
+      c.nameCommon.toLowerCase().includes(q) ||
+      c.cca2.toLowerCase().includes(q) ||
+      c.cca3.toLowerCase().includes(q) ||
+      c.capital.toLowerCase().includes(q) ||
+      c.region.toLowerCase().includes(q)
+    );
+  }, [countries, search]);
 
   if (!hasPermission('Données de Base', 'consult')) {
     return <AccessDenied message={t('donneeBase.pays.noConsultRight')} />;
@@ -46,31 +48,11 @@ function PaysModernContent() {
       return;
     }
     try {
-      if (isEditMode) {
-        await apiInstance.put('/Pays', { natcod: form.natcod, natlib: form.natlib });
-      } else {
-        // Backend génère le code séquentiel si natcod est vide.
-        await apiInstance.post('/Pays', { natcod: '', natlib: form.natlib });
-      }
-      setSnack({ open: true, msg: isEditMode ? t('donneeBase.pays.msgUpdated') : t('donneeBase.pays.msgAdded'), sev: 'success' });
+      await apiInstance.post('/Pays', { natcod: '', natlib: form.natlib });
+      setSnack({ open: true, msg: t('donneeBase.pays.msgAdded'), sev: 'success' });
       setForm(emptyForm);
-      refetch();
     } catch {
       setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
-    }
-  };
-
-  const handleEdit = (row: PaysModel) => {
-    setForm(row);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleDelete = async (row: PaysModel) => {
-    if (window.confirm(t('donneeBase.pays.deleteConfirm'))) {
-      try {
-        await apiInstance.delete(`/Pays/${row.natcod}`);
-        refetch();
-      } catch { console.error('Erreur suppression'); }
     }
   };
 
@@ -80,79 +62,116 @@ function PaysModernContent() {
         <Box>
           <Typography className="ref-header-title">{t('donneeBase.breadcrumb')}</Typography>
           <Typography className="ref-header-heading">{t('donneeBase.pays.heading')}</Typography>
-          <Typography className="ref-header-sub">{t('donneeBase.pays.subtitle')}</Typography>
+          <Typography className="ref-header-sub">{t('donneeBase.pays.subtitleApi')}</Typography>
         </Box>
         <Box className="ref-header-actions">
-          {isEditMode && (
-            <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm(emptyForm)}>{t('donneeBase.common.cancel')}</Button>
-          )}
-          {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
-            <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>
-              {isEditMode ? t('donneeBase.common.update') : t('donneeBase.common.save')}
+          {canAdd && (
+            <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit}>
+              {t('donneeBase.common.save')}
             </Button>
           )}
         </Box>
       </Box>
 
       <Box className="ref-body">
-        <Box className="ref-card">
-          <Box className="ref-card-header">
-            <Box className="ref-card-icon"><PublicIcon fontSize="small" /></Box>
-            <Typography className="ref-card-title">{isEditMode ? t('donneeBase.pays.editTitle') : t('donneeBase.pays.newTitle')}</Typography>
-          </Box>
-          <Box className="ref-form-grid ref-form-grid--2">
-            <Box className="ref-field">
-              <label>{t('donneeBase.pays.codeLabel')} {!isEditMode && <span style={{ color: '#8896a8', fontWeight: 400 }}>{t('donneeBase.pays.autoGenerated')}</span>}</label>
-              <input
-                type="text"
-                value={isEditMode ? form.natcod : ''}
-                readOnly
-                placeholder={isEditMode ? '' : t('donneeBase.pays.autoPlaceholder')}
-                style={{ background: '#f5f7fa', color: '#8896a8' }}
-              />
+        {canAdd && (
+          <Box className="ref-card">
+            <Box className="ref-card-header">
+              <Box className="ref-card-icon"><PublicIcon fontSize="small" /></Box>
+              <Typography className="ref-card-title">{t('donneeBase.pays.newTitle')}</Typography>
             </Box>
-            <Box className="ref-field">
-              <label>{t('donneeBase.common.label')}</label>
-              <input type="text" value={form.natlib} onChange={e => setForm(p => ({ ...p, natlib: e.target.value }))} placeholder={t('donneeBase.pays.labelPlaceholder')} />
+            <Box className="ref-form-grid ref-form-grid--2">
+              <Box className="ref-field">
+                <label>
+                  {t('donneeBase.pays.codeLabel')}{' '}
+                  <span style={{ color: '#8896a8', fontWeight: 400 }}>{t('donneeBase.pays.autoGenerated')}</span>
+                </label>
+                <input
+                  type="text"
+                  value=""
+                  readOnly
+                  placeholder={t('donneeBase.pays.autoPlaceholder')}
+                  style={{ background: '#f5f7fa', color: '#8896a8' }}
+                />
+              </Box>
+              <Box className="ref-field">
+                <label>{t('donneeBase.common.label')}</label>
+                <input
+                  type="text"
+                  value={form.natlib}
+                  onChange={e => setForm(p => ({ ...p, natlib: e.target.value }))}
+                  placeholder={t('donneeBase.pays.labelPlaceholder')}
+                />
+              </Box>
             </Box>
           </Box>
-        </Box>
+        )}
 
         <Box className="ref-table-section">
           <Box className="ref-table-header">
-            <Typography className="ref-table-title">{t('donneeBase.pays.tableTitle', { count: filtered.length })}</Typography>
+            <Typography className="ref-table-title">
+              {t('donneeBase.pays.tableTitleApi', { count: filtered.length })}
+            </Typography>
             <Box className="ref-table-search">
               <SearchIcon sx={{ fontSize: 16, color: '#8896a8' }} />
-              <input type="text" placeholder={t('donneeBase.common.search')} value={search} onChange={e => setSearch(e.target.value)} />
+              <input
+                type="text"
+                placeholder={t('donneeBase.common.search')}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
             </Box>
           </Box>
           <Box className="ref-table-container">
             <table className="ref-table">
               <thead>
                 <tr>
-                  <th style={{ width: 80 }}>{t('donneeBase.common.actions')}</th>
-                  <th>{t('donneeBase.common.code')}</th>
+                  <th style={{ width: 70 }}>{t('donneeBase.pays.flag')}</th>
+                  <th style={{ width: 80 }}>{t('donneeBase.common.code')}</th>
                   <th>{t('donneeBase.common.label')}</th>
+                  <th>{t('donneeBase.pays.capital')}</th>
+                  <th>{t('donneeBase.pays.region')}</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={3} className="ref-empty">{t('donneeBase.pays.noResults')}</td></tr>
-                ) : filtered.map(n => (
-                  <tr key={n.natcod}>
-                    <td>
-                      <Box sx={{ display: 'flex', gap: '4px' }}>
-                        {canModify && (
-                          <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(n)}><EditIcon sx={{ fontSize: 16 }} /></button>
-                        )}
-                        {canDelete && (
-                          <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(n)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
-                        )}
-                        {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="ref-empty">
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1, py: 2 }}>
+                        <CircularProgress size={20} />
+                        <span>{t('donneeBase.pays.loadingApi')}</span>
                       </Box>
                     </td>
-                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{n.natcod}</td>
-                    <td>{n.natlib}</td>
+                  </tr>
+                ) : isError ? (
+                  <tr>
+                    <td colSpan={5} className="ref-empty">
+                      <Box sx={{ py: 2 }}>
+                        <Typography color="error" sx={{ mb: 1 }}>
+                          {t('donneeBase.pays.apiError')}
+                        </Typography>
+                        <Button size="small" onClick={() => refetch()}>{t('donneeBase.pays.retry')}</Button>
+                      </Box>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={5} className="ref-empty">{t('donneeBase.pays.noResults')}</td></tr>
+                ) : filtered.map(c => (
+                  <tr key={c.cca3}>
+                    <td>
+                      {c.flagPng && (
+                        <img
+                          src={c.flagPng}
+                          alt={c.flagAlt || c.nameFr}
+                          loading="lazy"
+                          style={{ width: 36, height: 24, objectFit: 'cover', borderRadius: 3, boxShadow: '0 0 0 1px rgba(15,23,42,0.08)' }}
+                        />
+                      )}
+                    </td>
+                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{c.cca3}</td>
+                    <td>{c.nameFr}</td>
+                    <td>{c.capital || '—'}</td>
+                    <td>{c.region || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -160,6 +179,9 @@ function PaysModernContent() {
           </Box>
           <Box className="ref-table-footer">
             <span>{t('donneeBase.pays.footerCount', { count: filtered.length })}</span>
+            <span style={{ color: '#8896a8', fontSize: 12 }}>
+              {t('donneeBase.pays.sourceApi')}
+            </span>
           </Box>
         </Box>
       </Box>

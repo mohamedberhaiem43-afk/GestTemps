@@ -1017,6 +1017,70 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Self-service : permet à un employé de mettre à jour SES propres
+        /// coordonnées (téléphone, mobile, adresse, email) depuis le mobile,
+        /// sans passer par les RH. Whitelist explicite pour empêcher toute
+        /// modification de Empfonc/Sercod/Sitcod/salaires/Empemb/etc.
+        /// </summary>
+        [HttpPut("update-my-contact")]
+        public async Task<IActionResult> UpdateMyContact([FromBody] UpdateMyContactDto dto)
+        {
+            try
+            {
+                if (dto == null || string.IsNullOrWhiteSpace(dto.Soccod) || string.IsNullOrWhiteSpace(dto.Empcod))
+                    return BadRequest(new { message = "Soccod et empcod requis" });
+
+                // Le JWT mobile stocke l'uticod (= empcod côté employé) dans NameIdentifier.
+                // On exige une correspondance stricte pour bloquer toute modification d'un autre profil.
+                var callerUticod = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(callerUticod) || !string.Equals(callerUticod, dto.Empcod, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Forbid();
+                }
+
+                var employe = await _db.Employes
+                    .FirstOrDefaultAsync(e => e.Soccod == dto.Soccod && e.Empcod == dto.Empcod);
+                if (employe == null) return NotFound(new { message = "Employé introuvable." });
+
+                // Unicité de l'email (en excluant l'employé courant) — si changement.
+                var newEmail = dto.Empemail?.Trim();
+                var oldEmail = employe.Empemail?.Trim();
+                if (!string.IsNullOrWhiteSpace(newEmail)
+                    && !string.Equals(newEmail, oldEmail, StringComparison.OrdinalIgnoreCase)
+                    && !await IsEmailUniqueAsync(newEmail, excludeEmpcod: employe.Empcod))
+                {
+                    return Conflict(new { message = "Cet email est déjà utilisé par un autre compte." });
+                }
+
+                // Whitelist : uniquement les champs de contact. Le téléphone et le mobile
+                // sont chiffrés en BD (cf. update-employe), on conserve la même politique.
+                if (dto.Emptel != null) employe.Emptel = _encryptionService.Encrypt(dto.Emptel);
+                if (dto.Empmob != null) employe.Empmob = dto.Empmob;
+                if (dto.Empadr != null) employe.Empadr = dto.Empadr;
+                if (dto.Vilcod != null) employe.Vilcod = dto.Vilcod;
+                if (newEmail != null) employe.Empemail = newEmail;
+
+                await _db.SaveChangesAsync();
+
+                // Sync TenantEmailIndex + notification email si l'adresse a changé.
+                if (newEmail != null && !string.Equals(newEmail, oldEmail, StringComparison.OrdinalIgnoreCase))
+                {
+                    await UpsertTenantEmailIndexAsync(newEmail, oldEmail);
+                    if (!string.IsNullOrWhiteSpace(newEmail))
+                    {
+                        await SendEmailChangedNotificationAsync(newEmail, oldEmail, employe.Emplib, employe.Empcod);
+                    }
+                }
+
+                return Ok(new { message = "Coordonnées mises à jour" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur lors de la mise à jour des coordonnées", details = ex.Message });
+            }
+        }
+
         // DELETE api/employes/soccod/empcod
         [HttpDelete("{soccod}/{empcod}")]
         [CanDeleteEmploye]
@@ -1062,5 +1126,22 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest(new { message = $"Erreur serveur : {ex.Message}" });
             }
         }
+    }
+
+    /// <summary>
+    /// Payload self-service utilisé par UpdateMyContact. Volontairement
+    /// minimal : seuls les champs de contact sont éditables par l'employé.
+    /// Tout autre champ (Empfonc, Sercod, salaires, dates) reste sous le
+    /// contrôle exclusif des RH via update-employe.
+    /// </summary>
+    public class UpdateMyContactDto
+    {
+        public string Soccod { get; set; } = null!;
+        public string Empcod { get; set; } = null!;
+        public string? Emptel { get; set; }
+        public string? Empmob { get; set; }
+        public string? Empadr { get; set; }
+        public string? Vilcod { get; set; }
+        public string? Empemail { get; set; }
     }
 }

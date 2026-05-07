@@ -68,6 +68,8 @@ namespace ABRPOINT.Server.Controllers
                 Misnote = req.Misnote,
                 Misetat = string.IsNullOrWhiteSpace(req.Misetat) ? "Pending" : req.Misetat!,
                 Misbudget = req.Misbudget,
+                // Devise ISO 4217 (3 chars max). NULL = devise tenant par défaut.
+                Misdevise = string.IsNullOrWhiteSpace(req.Misdevise) ? null : req.Misdevise.Trim().ToUpperInvariant(),
                 Abscod = req.Abscod!,
             };
             await _repository.AddAsync(mission);
@@ -92,6 +94,7 @@ namespace ABRPOINT.Server.Controllers
             existing.Misnote = req.Misnote;
             existing.Misetat = string.IsNullOrWhiteSpace(req.Misetat) ? existing.Misetat : req.Misetat!;
             existing.Misbudget = req.Misbudget;
+            existing.Misdevise = string.IsNullOrWhiteSpace(req.Misdevise) ? null : req.Misdevise.Trim().ToUpperInvariant();
             existing.Abscod = req.Abscod!;
             await _repository.UpdateAsync(existing);
             return Ok(existing);
@@ -134,6 +137,8 @@ namespace ABRPOINT.Server.Controllers
         public string? Misnote { get; set; }
         public string? Misetat { get; set; }
         public double? Misbudget { get; set; }
+        /// <summary>Devise ISO 4217 du budget (EUR, USD, TND…). NULL = devise tenant par défaut.</summary>
+        public string? Misdevise { get; set; }
         public string? Abscod { get; set; }
     }
 }

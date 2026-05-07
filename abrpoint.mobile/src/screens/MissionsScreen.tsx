@@ -34,6 +34,7 @@ interface Mission {
   misnote?: string | null;
   misetat: string;
   misbudget?: number | null;
+  misdevise?: string | null;
   abscod: string;
 }
 
@@ -41,6 +42,24 @@ interface AbsenceNature {
   abscod: string;
   abslib: string;
 }
+
+// Liste partagée mobile/web. ISO 4217 + symbole pour l'affichage. Étendre si
+// l'entreprise opère dans une autre zone — la BD stocke le code 3 lettres.
+const CURRENCIES: { code: string; symbol: string; label: string }[] = [
+  { code: 'EUR', symbol: '€',   label: 'Euro' },
+  { code: 'USD', symbol: '$',   label: 'Dollar US' },
+  { code: 'GBP', symbol: '£',   label: 'Livre sterling' },
+  { code: 'CHF', symbol: 'CHF', label: 'Franc suisse' },
+  { code: 'TND', symbol: 'DT',  label: 'Dinar tunisien' },
+  { code: 'MAD', symbol: 'MAD', label: 'Dirham marocain' },
+  { code: 'DZD', symbol: 'DA',  label: 'Dinar algérien' },
+  { code: 'CAD', symbol: 'CA$', label: 'Dollar canadien' },
+  { code: 'XOF', symbol: 'FCFA', label: 'Franc CFA (BCEAO)' },
+  { code: 'AED', symbol: 'AED', label: 'Dirham émirati' },
+];
+
+const currencySymbol = (code: string | null | undefined): string =>
+  CURRENCIES.find(c => c.code === code)?.symbol || code || '€';
 
 const STATE_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
   Pending:    { bg: '#fef3c7', fg: '#92400e', label: 'En attente' },
@@ -75,12 +94,14 @@ export default function MissionsScreen({ navigation }: any) {
     misdatefin: new Date(Date.now() + 24 * 3600 * 1000),
     misnote: '',
     misbudget: '',
+    misdevise: 'EUR',
     abscod: '',
   };
   const [form, setForm] = useState(defaultForm);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [showNaturePicker, setShowNaturePicker] = useState(false);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   useEffect(() => { loadAll(); }, [user?.soccod, user?.uticod]);
 
@@ -130,6 +151,9 @@ export default function MissionsScreen({ navigation }: any) {
         misnote: form.misnote.trim() || null,
         misetat: 'Pending',
         misbudget: Number.isFinite(budget!) ? budget : null,
+        // On n'envoie la devise que si un budget est saisi — sinon NULL côté serveur
+        // (devise sans montant n'a pas de sens et pollue le suivi comptable).
+        misdevise: Number.isFinite(budget!) ? form.misdevise : null,
         abscod: form.abscod,
       });
       Alert.alert('✅ Succès', 'Mission créée avec succès.');
@@ -215,7 +239,7 @@ export default function MissionsScreen({ navigation }: any) {
                 {m.misbudget != null && (
                   <View style={styles.cardRow}>
                     <MaterialCommunityIcons name="cash-multiple" size={14} color={COLORS.outline} />
-                    <Text style={styles.cardRowText}>{m.misbudget.toFixed(2)} €</Text>
+                    <Text style={styles.cardRowText}>{m.misbudget.toFixed(2)} {currencySymbol(m.misdevise)}</Text>
                   </View>
                 )}
                 {!!m.misnote && (
@@ -280,15 +304,21 @@ export default function MissionsScreen({ navigation }: any) {
                 </View>
               </View>
 
-              <Text style={styles.fieldLabel}>BUDGET PRÉVISIONNEL (€)</Text>
-              <TextInput
-                style={styles.input}
-                value={form.misbudget}
-                onChangeText={t => setForm({ ...form, misbudget: t })}
-                placeholder="0.00"
-                placeholderTextColor="#94a3b8"
-                keyboardType="decimal-pad"
-              />
+              <Text style={styles.fieldLabel}>BUDGET PRÉVISIONNEL</Text>
+              <View style={styles.budgetRow}>
+                <TextInput
+                  style={[styles.input, styles.budgetInput]}
+                  value={form.misbudget}
+                  onChangeText={t => setForm({ ...form, misbudget: t })}
+                  placeholder="0.00"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="decimal-pad"
+                />
+                <TouchableOpacity style={styles.currencyBtn} onPress={() => setShowCurrencyPicker(true)}>
+                  <Text style={styles.currencyBtnText}>{form.misdevise}</Text>
+                  <MaterialCommunityIcons name="chevron-down" size={16} color={COLORS.outline} />
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.fieldLabel}>NOTE</Text>
               <TextInput
@@ -314,6 +344,36 @@ export default function MissionsScreen({ navigation }: any) {
                 </LinearGradient>
               </TouchableOpacity>
               <View style={{ height: 40 }} />
+            </ScrollView>
+          </View>
+        </View>
+      )}
+
+      {/* Picker devise : liste ISO 4217 en bottom sheet */}
+      {showCurrencyPicker && (
+        <View style={styles.formOverlay}>
+          <View style={[styles.formSheet, { maxHeight: '60%' }]}>
+            <View style={styles.formHandle} />
+            <View style={styles.formHeader}>
+              <Text style={styles.formTitle}>Devise du budget</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyPicker(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              {CURRENCIES.map(c => (
+                <TouchableOpacity
+                  key={c.code}
+                  style={[styles.natureItem, form.misdevise === c.code && styles.natureItemActive]}
+                  onPress={() => { setForm({ ...form, misdevise: c.code }); setShowCurrencyPicker(false); }}
+                >
+                  <Text style={styles.natureCode}>{c.symbol}</Text>
+                  <Text style={styles.natureLib}>{c.code} — {c.label}</Text>
+                  {form.misdevise === c.code && (
+                    <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </View>
         </View>
@@ -403,14 +463,18 @@ const styles = StyleSheet.create({
     marginTop: 8, padding: 10, backgroundColor: COLORS.surfaceContainerLow,
     borderRadius: 8, fontSize: 12, color: COLORS.onSurfaceVariant, fontStyle: 'italic',
   },
+  // elevation: 30 → modal au-dessus du BottomTabBar (elevation: 8) sur Android,
+  // sinon le bouton "Envoyer" est masqué/intaproachable sous la barre persistante.
   formOverlay: {
     position: 'absolute', inset: 0,
     backgroundColor: 'rgba(15,23,42,0.4)',
     justifyContent: 'flex-end',
+    zIndex: 1000,
+    elevation: 30,
   },
   formSheet: {
     backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    paddingHorizontal: 20, paddingTop: 12, maxHeight: '85%',
+    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, maxHeight: '85%',
   },
   formHandle: { alignSelf: 'center', width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 2, marginBottom: 8 },
   formHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
@@ -425,6 +489,16 @@ const styles = StyleSheet.create({
   textarea: { minHeight: 80, textAlignVertical: 'top' },
   row2: { flexDirection: 'row', gap: 12 },
   col2: { flex: 1 },
+  // Ligne budget = montant + bouton devise (pickup ouvre le bottom sheet).
+  budgetRow: { flexDirection: 'row', gap: 8 },
+  budgetInput: { flex: 1 },
+  currencyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12, minWidth: 84,
+    justifyContent: 'space-between',
+  },
+  currencyBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   submitBtn: { marginTop: 24 },
   submitGradient: {
     height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center',

@@ -127,7 +127,13 @@ export default function EmployeeDashboardMobile() {
         <section className="mb-10">
           <div className="flex items-end justify-between mb-4">
             <h2 className="font-['Manrope'] font-bold text-lg">{t('employeeDashboard.activitySummary')}</h2>
-            <span className="font-['Inter'] text-[10px] uppercase font-bold text-[#0040a1] tracking-tighter">{t('employeeDashboard.viewAll')}</span>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/gestion-de-conge')}
+              className="font-['Inter'] text-[10px] uppercase font-bold text-[#0040a1] tracking-tighter active:opacity-70"
+            >
+              {t('employeeDashboard.viewAll')}
+            </button>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {/* Worked Hours (Full width) */}
@@ -238,7 +244,7 @@ export default function EmployeeDashboardMobile() {
               </button>
             )}
             <button
-              onClick={() => navigate('/dashboard/pointage-du-mois')}
+              onClick={() => navigate('/dashboard/coffre-fort#payslips')}
               className="flex items-center gap-4 p-4 bg-blue-50 text-[#0040a1] rounded-2xl hover:bg-blue-100 transition-all active:scale-[0.98]"
             >
               <div className="p-2 bg-white rounded-xl shadow-sm">

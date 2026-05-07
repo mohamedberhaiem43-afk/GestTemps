@@ -3,15 +3,17 @@ import {
   Alert,
   Box,
   Chip,
-  CircularProgress,
   Drawer,
   Fab,
+  Fade,
+  Grow,
   IconButton,
   Stack,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { keyframes } from '@mui/system';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -25,6 +27,48 @@ import RagService, { RagChatAnswer, RagChatSource } from '../../../services/RagS
 import { useAskRag, useRagFeedback } from '../../../hooks/ragHooks/useRagChat';
 
 const queryClient = new QueryClient();
+
+// Animations CSS — pensées pour rester sobres : un pulse léger sur le FAB pour
+// signaler qu'il est interactif, des points qui rebondissent pendant la
+// recherche, et un float discret sur l'icône d'accueil.
+const fabPulse = keyframes`
+  0% { box-shadow: 0 6px 20px rgba(91,33,182,0.35), 0 0 0 0 rgba(139,92,246,0.55); }
+  70% { box-shadow: 0 6px 20px rgba(91,33,182,0.35), 0 0 0 14px rgba(139,92,246,0); }
+  100% { box-shadow: 0 6px 20px rgba(91,33,182,0.35), 0 0 0 0 rgba(139,92,246,0); }
+`;
+
+const dotBounce = keyframes`
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
+  30% { transform: translateY(-6px); opacity: 1; }
+`;
+
+const iconFloat = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+`;
+
+const shimmer = keyframes`
+  0% { background-position: -160px 0; }
+  100% { background-position: 160px 0; }
+`;
+
+function TypingDots() {
+  const dot = (delay: string) => ({
+    width: 7,
+    height: 7,
+    borderRadius: '50%',
+    backgroundColor: 'secondary.main',
+    animation: `${dotBounce} 1.1s ease-in-out infinite`,
+    animationDelay: delay,
+  });
+  return (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6 }} aria-label="typing">
+      <Box sx={dot('0s')} />
+      <Box sx={dot('0.18s')} />
+      <Box sx={dot('0.36s')} />
+    </Box>
+  );
+}
 
 interface ChatMessage {
   id: string;
@@ -155,11 +199,15 @@ function ChatRagDrawerContent() {
             background: 'linear-gradient(135deg, #5b21b6 0%, #8b5cf6 100%)',
             color: 'white',
             boxShadow: '0 6px 20px rgba(91,33,182,0.35)',
+            // Pulse continu uniquement quand le drawer est fermé : on évite la
+            // distraction quand l'utilisateur est déjà en conversation.
+            animation: open ? 'none' : `${fabPulse} 2.4s ease-in-out infinite`,
             '&:hover': {
               background: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
-              transform: 'scale(1.06)',
+              transform: 'scale(1.08) rotate(-4deg)',
             },
-            transition: 'all 0.2s',
+            '&:active': { transform: 'scale(0.96)' },
+            transition: 'transform 0.2s ease, background 0.3s ease',
           }}
         >
           <GavelIcon />
@@ -189,23 +237,54 @@ function ChatRagDrawerContent() {
 
         <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', p: 2, bgcolor: 'background.default' }}>
           {messages.length === 0 && !ask.isLoading && (
-            <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', color: 'text.secondary' }}>
-              <GavelIcon sx={{ fontSize: 64, opacity: 0.2, mb: 2 }} />
-              <Typography variant="body2" textAlign="center" sx={{ maxWidth: 320 }}>
-                {t('rag.chat.welcome')}
-              </Typography>
-            </Stack>
+            <Fade in timeout={500}>
+              <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', color: 'text.secondary', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 96,
+                    height: 96,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, rgba(139,92,246,0) 70%)',
+                    animation: `${iconFloat} 3.6s ease-in-out infinite`,
+                  }}
+                >
+                  <GavelIcon sx={{ fontSize: 56, color: 'secondary.main', opacity: 0.7 }} />
+                </Box>
+                <Typography variant="body2" textAlign="center" sx={{ maxWidth: 320, mt: 1 }}>
+                  {t('rag.chat.welcome')}
+                </Typography>
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: '999px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: 'secondary.dark',
+                    background: 'linear-gradient(90deg, rgba(139,92,246,0.08), rgba(139,92,246,0.18), rgba(139,92,246,0.08))',
+                    backgroundSize: '320px 100%',
+                    animation: `${shimmer} 2.4s linear infinite`,
+                  }}
+                >
+                  {t('rag.chat.disclaimer')}
+                </Box>
+              </Stack>
+            </Fade>
           )}
 
           <Stack spacing={2}>
             {messages.map((m) => (
-              <Box
-                key={m.id}
-                sx={{
-                  alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '90%',
-                }}
-              >
+              <Grow in key={m.id} timeout={280} style={{ transformOrigin: m.role === 'user' ? 'right center' : 'left center' }}>
+                <Box
+                  sx={{
+                    alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                    maxWidth: '90%',
+                  }}
+                >
                 <Box
                   sx={{
                     px: 1.5,
@@ -213,10 +292,12 @@ function ChatRagDrawerContent() {
                     borderRadius: 2,
                     bgcolor: m.role === 'user' ? 'primary.main' : m.error ? 'error.lighter' : 'background.paper',
                     color: m.role === 'user' ? 'primary.contrastText' : 'text.primary',
-                    boxShadow: m.role === 'user' ? 'none' : '0 1px 2px rgba(0,0,0,0.06)',
+                    boxShadow: m.role === 'user' ? '0 2px 8px rgba(0,64,161,0.25)' : '0 1px 2px rgba(0,0,0,0.06)',
                     border: m.role === 'assistant' && !m.error ? 1 : 0,
                     borderColor: 'divider',
                     whiteSpace: 'pre-wrap',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                    '&:hover': m.role === 'assistant' && !m.error ? { transform: 'translateY(-1px)', boxShadow: '0 4px 10px rgba(91,33,182,0.12)' } : undefined,
                   }}
                 >
                   <Typography variant="body2">{m.content}</Typography>
@@ -232,14 +313,22 @@ function ChatRagDrawerContent() {
 
                 {m.role === 'assistant' && m.logId && !m.error && (
                   <Stack direction="row" gap={0.5} sx={{ mt: 0.5 }}>
-                    <IconButton size="small" onClick={() => handleFeedback(m, 5)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleFeedback(m, 5)}
+                      sx={{ transition: 'transform 0.15s ease', '&:hover': { transform: 'scale(1.18)' }, '&:active': { transform: 'scale(0.92)' } }}
+                    >
                       {m.feedback === 5 ? (
                         <ThumbUpAltIcon fontSize="small" color="success" />
                       ) : (
                         <ThumbUpAltOutlinedIcon fontSize="small" />
                       )}
                     </IconButton>
-                    <IconButton size="small" onClick={() => handleFeedback(m, 1)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleFeedback(m, 1)}
+                      sx={{ transition: 'transform 0.15s ease', '&:hover': { transform: 'scale(1.18)' }, '&:active': { transform: 'scale(0.92)' } }}
+                    >
                       {m.feedback === 1 ? (
                         <ThumbDownAltIcon fontSize="small" color="error" />
                       ) : (
@@ -248,16 +337,33 @@ function ChatRagDrawerContent() {
                     </IconButton>
                   </Stack>
                 )}
-              </Box>
+                </Box>
+              </Grow>
             ))}
 
             {ask.isLoading && (
-              <Stack direction="row" alignItems="center" gap={1} sx={{ alignSelf: 'flex-start' }}>
-                <CircularProgress size={16} />
-                <Typography variant="caption" color="text.secondary">
-                  {t('rag.chat.thinking')}
-                </Typography>
-              </Stack>
+              <Fade in timeout={200}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  gap={1.25}
+                  sx={{
+                    alignSelf: 'flex-start',
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 2,
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  <TypingDots />
+                  <Typography variant="caption" color="text.secondary">
+                    {t('rag.chat.thinking')}
+                  </Typography>
+                </Stack>
+              </Fade>
             )}
           </Stack>
         </Box>
@@ -284,7 +390,12 @@ function ChatRagDrawerContent() {
             color="primary"
             onClick={handleSend}
             disabled={ask.isLoading || !input.trim()}
-            sx={{ alignSelf: 'flex-end' }}
+            sx={{
+              alignSelf: 'flex-end',
+              transition: 'transform 0.18s ease, background-color 0.2s ease',
+              '&:not(:disabled):hover': { transform: 'translateX(2px) scale(1.08)', backgroundColor: 'primary.lighter' },
+              '&:not(:disabled):active': { transform: 'scale(0.94)' },
+            }}
           >
             <SendIcon />
           </IconButton>

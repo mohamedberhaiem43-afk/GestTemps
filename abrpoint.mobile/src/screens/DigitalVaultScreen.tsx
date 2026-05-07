@@ -40,7 +40,20 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
+  // La catégorie par défaut peut être pré-sélectionnée depuis le navigateur
+  // (ex : raccourci "Bulletin de paie" du HomeScreen → category=bulletin pour
+  // ouvrir directement la vue filtrée et éviter le scroll). Si le param change
+  // après ouverture (cas rare avec react-navigation), on resync.
+  const initialCategory =
+    typeof route?.params?.category === 'string' && CATEGORIES.some(c => c.id === route.params.category)
+      ? route.params.category
+      : 'all';
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
+
+  useEffect(() => {
+    const c = route?.params?.category;
+    if (typeof c === 'string' && CATEGORIES.some(cat => cat.id === c)) setActiveCategory(c);
+  }, [route?.params?.category]);
 
   const targetEmpcod = route?.params?.empcod || user?.uticod;
   const targetSoccod = route?.params?.soccod || user?.soccod;
@@ -136,6 +149,47 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
     } catch (e) {
       Alert.alert('Erreur', 'Impossible d\'uploader le document');
     } finally { setUploading(false); }
+  };
+
+  // Politique : on n'autorise la suppression QUE pour les documents non signés.
+  // Un employé peut supprimer ses propres documents (uploadés par erreur).
+  // Un manager/admin en vue admin (sur l'employé d'un autre) peut aussi nettoyer.
+  // Un document signé représente un engagement et doit suivre un processus
+  // d'archivage côté admin web — on bloque la suppression mobile dans ce cas.
+  const canDeleteDoc = (doc: VaultDocument): boolean => {
+    if (doc.isSigned) return false;
+    if (isAdmin) return true;
+    if (isAdminView && (isAdmin || isManager)) return true;
+    // Employé : il ne peut supprimer que ses propres documents (vue self).
+    return !isAdminView && doc.empcod === user?.uticod;
+  };
+
+  const handleDelete = (doc: VaultDocument) => {
+    if (!doc.id) return;
+    if (doc.isSigned) {
+      Alert.alert('Suppression impossible', 'Un document signé ne peut pas être supprimé depuis le mobile.');
+      return;
+    }
+    Alert.alert(
+      'Supprimer le document',
+      `« ${doc.docName || 'Document'} » sera définitivement supprimé. Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiService.deleteVaultDocument(doc.id!);
+              Alert.alert('✅ Supprimé', 'Le document a été retiré du coffre-fort.');
+              loadDocuments();
+            } catch {
+              Alert.alert('Erreur', 'Impossible de supprimer le document.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleSign = (doc: VaultDocument) => {
@@ -261,11 +315,14 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
                   const isBulletin = doc.docType?.toLowerCase().includes('bulletin') || doc.docType?.toLowerCase().includes('paie');
                   const isPending = !doc.isSigned && doc.docType?.toLowerCase().includes('contrat');
                   
+                  const deletable = canDeleteDoc(doc);
                   return (
                     <TouchableOpacity
                       key={doc.id || idx}
                       style={[styles.docCard, isPending && styles.docCardPending]}
                       onPress={() => {}}
+                      onLongPress={() => deletable && handleDelete(doc)}
+                      delayLongPress={400}
                     >
                       <View style={styles.docLeft}>
                         <View style={[
@@ -298,15 +355,29 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
                           </View>
                         </View>
                       </View>
-                      
+
                       {isPending ? (
                         <TouchableOpacity style={styles.signButton} onPress={() => handleSign(doc)}>
                           <Text style={styles.signButtonText}>SIGNER</Text>
                         </TouchableOpacity>
                       ) : (
-                        <TouchableOpacity style={styles.actionButton}>
-                          <MaterialCommunityIcons name={doc.isSigned ? 'eye-outline' : 'download'} size={20} color={COLORS.primary} />
-                        </TouchableOpacity>
+                        <View style={styles.actionGroup}>
+                          {/* Bouton suppression visible pour les documents non
+                              signés du propriétaire (ou en vue admin). Long press
+                              également supporté pour rester découvrable. */}
+                          {deletable && (
+                            <TouchableOpacity
+                              style={styles.deleteButton}
+                              onPress={() => handleDelete(doc)}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                              <MaterialCommunityIcons name="trash-can-outline" size={18} color={COLORS.error} />
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity style={styles.actionButton}>
+                            <MaterialCommunityIcons name={doc.isSigned ? 'eye-outline' : 'download'} size={20} color={COLORS.primary} />
+                          </TouchableOpacity>
+                        </View>
                       )}
                     </TouchableOpacity>
                   );
@@ -414,6 +485,8 @@ const styles = StyleSheet.create({
   pendingBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   pendingText: { fontSize: 9, fontWeight: '800', color: '#92400e' },
   actionButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' },
+  actionGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  deleteButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.errorContainer, justifyContent: 'center', alignItems: 'center' },
   signButton: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
   signButtonText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   emptyState: { alignItems: 'center', gap: 12, paddingVertical: 60 },

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import { Box, Button, CircularProgress, IconButton, Menu, MenuItem,
-  Autocomplete, TextField, TextField as MuiTextField, Snackbar, Alert } from '@mui/material';
+  Autocomplete, TextField, TextField as MuiTextField, Snackbar, Alert,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 import apiInstance from '../API/apiInstance';
@@ -14,12 +15,15 @@ const CoffreFortModern = () => {
   const { t, i18n } = useTranslation();
   const { soccod, uticod, authReady, isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [documents, setDocuments] = useState<DocumentVault[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedType, setSelectedType] = useState<string>('');
+  const [docToDelete, setDocToDelete] = useState<DocumentVault | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Cible du dépôt (admin/manager only). Vide = soi-même.
   const canDepositForOthers = isAdmin || isManager;
@@ -56,6 +60,17 @@ const CoffreFortModern = () => {
     }
     // effectiveEmpcod recalcule à chaque changement de targetEmpcod → recharge auto.
   }, [soccod, effectiveEmpcod, authReady]);
+
+  // Si la page est ouverte avec un hash (ex. #payslips depuis le bouton "Bulletin de
+  // paie" du dashboard employé), on défile vers la section correspondante après le
+  // premier rendu et le chargement des documents.
+  useEffect(() => {
+    if (isLoading) return;
+    const hash = location.hash?.replace('#', '');
+    if (!hash) return;
+    const el = document.getElementById(hash);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [isLoading, location.hash]);
 
   // Safety net: for managers, never allow selecting/viewing an employee outside their service.
   useEffect(() => {
@@ -150,6 +165,35 @@ const CoffreFortModern = () => {
       // Reset l'input pour permettre de re-sélectionner le même fichier après une erreur.
       event.target.value = '';
     }
+  };
+
+  const handleDelete = async () => {
+    if (!docToDelete) return;
+    try {
+      setDeleting(true);
+      await apiInstance.delete(`/Vault/${docToDelete.id}`);
+      setSnack({ open: true, sev: 'success', msg: t('coffreFort.snack.deleted') });
+      setDocuments((prev) => prev.filter((d) => d.id !== docToDelete.id));
+    } catch (err: any) {
+      setSnack({
+        open: true,
+        sev: 'error',
+        msg: err?.response?.data?.message || err?.response?.data || t('coffreFort.snack.deleteError'),
+      });
+    } finally {
+      setDeleting(false);
+      setDocToDelete(null);
+    }
+  };
+
+  // Un employé peut supprimer ses propres documents non signés. Un admin / manager
+  // peut supprimer les documents qu'il consulte (l'autorisation fine est appliquée
+  // côté serveur dans VaultController.DeleteDocument).
+  const canDeleteDoc = (doc: DocumentVault) => {
+    if (doc.isSigned) return false;
+    if (isAdmin) return true;
+    if (isManager && isViewingOther) return true;
+    return doc.empcod === uticod;
   };
 
   const formatSize = (bytes: number) => {
@@ -307,7 +351,7 @@ const CoffreFortModern = () => {
         </div>
 
         <div className="folder-grid">
-          <div className="folder-card pay-slips">
+          <div id="payslips" className="folder-card pay-slips">
             <div className="folder-icon-wrapper">
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
             </div>
@@ -378,13 +422,18 @@ const CoffreFortModern = () => {
       </section>
 
       {/* Recent Activity Table */}
-      <section>
+      <section id="vault-recent">
         <div className="section-header-flex">
           <div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>{t('coffreFort.recent.title')}</h3>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>{t('coffreFort.recent.subtitle')}</p>
           </div>
-          <Button sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.8rem' }}>{t('coffreFort.recent.viewAll')}</Button>
+          <Button
+            sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.8rem' }}
+            onClick={() => document.getElementById('vault-recent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          >
+            {t('coffreFort.recent.viewAll')}
+          </Button>
         </div>
 
         <div className="vault-table-wrapper">
@@ -465,9 +514,19 @@ const CoffreFortModern = () => {
                         <IconButton
                           className="download-btn"
                           onClick={() => handleDownload(doc.id, doc.docName)}
+                          title={t('coffreFort.actions.download')}
                         >
                           <span className="material-symbols-outlined">download</span>
                         </IconButton>
+                        {canDeleteDoc(doc) && (
+                          <IconButton
+                            onClick={() => setDocToDelete(doc)}
+                            title={t('coffreFort.actions.delete')}
+                            sx={{ color: '#b91c1c', '&:hover': { backgroundColor: '#fee2e2' } }}
+                          >
+                            <span className="material-symbols-outlined">delete</span>
+                          </IconButton>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -477,6 +536,39 @@ const CoffreFortModern = () => {
           </table>
         </div>
       </section>
+
+      <Dialog
+        open={!!docToDelete}
+        onClose={() => !deleting && setDocToDelete(null)}
+        PaperProps={{ sx: { borderRadius: '12px', minWidth: '350px' } }}
+      >
+        <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#b91c1c' }}>
+          {t('coffreFort.deleteDialog.title')}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#475569', fontSize: '14px' }}>
+            {t('coffreFort.deleteDialog.prompt', { name: docToDelete?.docName ?? '' })}
+          </DialogContentText>
+          <DialogContentText sx={{ color: '#64748b', fontSize: '12px', mt: 2 }}>
+            {t('coffreFort.deleteDialog.irreversible')}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDocToDelete(null)} disabled={deleting} sx={{ color: '#64748b', textTransform: 'none' }}>
+            {t('coffreFort.deleteDialog.cancel')}
+          </Button>
+          <Button
+            onClick={handleDelete}
+            variant="contained"
+            color="error"
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={14} color="inherit" /> : <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>}
+            sx={{ textTransform: 'none', borderRadius: '8px' }}
+          >
+            {t('coffreFort.deleteDialog.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
         <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))}>{snack.msg}</Alert>

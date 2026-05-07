@@ -214,6 +214,49 @@ namespace ABRPOINT.Server.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDocument(int id)
         {
+            var callerUticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(callerUticod)) return Unauthorized();
+
+            var doc = await _vaultRepository.GetDocumentByIdAsync(id);
+            if (doc == null) return NotFound();
+
+            // Un document signé ne peut plus être supprimé : la signature
+            // électronique en fait une pièce probante (intégrité, audit).
+            if (doc.IsSigned)
+                return BadRequest(new { message = "Un document signé ne peut pas être supprimé." });
+
+            // Autorisation alignée sur GetDocuments :
+            // - employé : uniquement ses propres documents ;
+            // - manager : documents des employés de son service ;
+            // - admin   : tous les documents.
+            if (!string.Equals(callerUticod, doc.Empcod, StringComparison.OrdinalIgnoreCase))
+            {
+                var caller = await _db.Utilisateurs
+                    .AsNoTracking()
+                    .Where(u => u.Uticod == callerUticod)
+                    .Select(u => new { u.Utiadm, u.Utirole })
+                    .FirstOrDefaultAsync();
+                if (caller is null) return Unauthorized();
+
+                var isAdmin = caller.Utiadm == "1" || PermissionCatalog.IsAdminRole(caller.Utirole);
+                var isManager = string.Equals(caller.Utirole, PermissionCatalog.Roles.Manager, StringComparison.OrdinalIgnoreCase);
+                if (!isAdmin && !isManager) return Forbid();
+
+                if (!isAdmin && isManager)
+                {
+                    var callerSercod = await _db.Employes
+                        .Where(e => e.Soccod == doc.Soccod && e.Empcod == callerUticod)
+                        .Select(e => e.Sercod)
+                        .FirstOrDefaultAsync();
+                    var targetSercod = await _db.Employes
+                        .Where(e => e.Soccod == doc.Soccod && e.Empcod == doc.Empcod)
+                        .Select(e => e.Sercod)
+                        .FirstOrDefaultAsync();
+                    if (string.IsNullOrEmpty(callerSercod) || callerSercod != targetSercod)
+                        return Forbid();
+                }
+            }
+
             var success = await _vaultRepository.DeleteDocumentAsync(id);
             if (!success) return NotFound();
             return NoContent();

@@ -11,6 +11,7 @@ import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
 import { resolveAssetUrl } from '../config/assetUrl';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
+import MainMenuDrawer from '../components/MainMenuDrawer';
 import { withCacheFallback } from '../services/cache';
 import { captureCurrentPosition } from '../services/geolocation';
 
@@ -60,6 +61,7 @@ export default function HomeScreen({ navigation }: any) {
   const [pointing, setPointing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [silentUntil, setSilentUntil] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -205,7 +207,9 @@ export default function HomeScreen({ navigation }: any) {
         undefined,
         gps.coords ?? undefined
       );
-      loadTodayStatus();
+      // Refresh à la fois le statut du jour ET les KPIs (heures travaillées,
+      // % objectif) pour que la home reflète immédiatement le nouveau pointage.
+      await Promise.all([loadTodayStatus(), loadKPISummary()]);
       const gpsHint = gps.status === 'granted'
         ? `📍 Position enregistrée (±${Math.round(gps.coords?.accuracy || 0)}m)`
         : gps.status === 'blocked' || gps.status === 'denied'
@@ -215,12 +219,19 @@ export default function HomeScreen({ navigation }: any) {
     } catch (error: any) {
       // Le backend renvoie 422 avec {message, code} pour les pointages hors
       // période d'emploi (avant Empemb / après Empsort) ou hors zone GPS.
-      // On affiche le message serveur tel quel quand il existe.
+      // 400 = données invalides côté serveur (ex: Soccod/Empcod inconnu).
+      // 401 = session expirée. Sinon : on affiche le message serveur ou
+      // un fallback générique avec le code d'erreur pour faciliter le debug.
       const status = error?.response?.status;
-      const serverMsg = error?.response?.data?.message;
-      const text = serverMsg ?? (status === 401
-        ? 'Session expirée, veuillez vous reconnecter.'
-        : 'Impossible de pointer');
+      const serverMsg = error?.response?.data?.message || error?.response?.data?.title;
+      const text = serverMsg
+        ?? (status === 401
+          ? 'Session expirée, veuillez vous reconnecter.'
+          : status === 403
+          ? "Vous n'êtes pas autorisé à pointer pour cet utilisateur."
+          : status
+          ? `Impossible de pointer (erreur ${status}).`
+          : 'Impossible de pointer — vérifiez votre connexion réseau.');
       Alert.alert('Pointage refusé', text);
     } finally {
       setPointing(false);
@@ -242,7 +253,7 @@ export default function HomeScreen({ navigation }: any) {
       {/* TopAppBar */}
       <View style={styles.topAppBar}>
         <View style={styles.topAppLeft}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => setMenuOpen(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <MaterialCommunityIcons name="menu" size={24} color={COLORS.primaryContainer} />
           </TouchableOpacity>
           <Image source={require('../../assets/Concorde.png')} style={styles.logoImage} resizeMode="contain" />
@@ -372,8 +383,10 @@ export default function HomeScreen({ navigation }: any) {
                 {pointing
                   ? 'Localisation en cours...'
                   : todayStatus.hasEntry && !todayStatus.hasExit
-                  ? 'Pointer'
-                  : "Pointer"}
+                  ? 'Pointer la sortie'
+                  : todayStatus.hasEntry && todayStatus.hasExit
+                  ? 'Reprendre le pointage'
+                  : "Pointer l'entrée"}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -437,6 +450,19 @@ export default function HomeScreen({ navigation }: any) {
               <MaterialCommunityIcons name="folder-lock" size={22} color={COLORS.error} />
             </View>
             <Text style={styles.quickLabel}>Coffre</Text>
+          </TouchableOpacity>
+
+          {/* Raccourci direct "Bulletin de paie" : ouvre le coffre déjà filtré
+               sur la catégorie 'bulletin' (équivalent du `#payslips` du web). */}
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('DigitalVault', { category: 'bulletin' })}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#fef3c7' }]}>
+              <MaterialCommunityIcons name="cash-multiple" size={22} color="#92400e" />
+            </View>
+            <Text style={styles.quickLabel}>Bulletin</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -589,6 +615,8 @@ export default function HomeScreen({ navigation }: any) {
       </TouchableOpacity>
 
       <BottomTabBar active="home" navigation={navigation} />
+
+      <MainMenuDrawer visible={menuOpen} onClose={() => setMenuOpen(false)} navigation={navigation} />
     </SafeAreaView>
   );
 }
@@ -716,11 +744,16 @@ const styles = StyleSheet.create({
   silentChipText: { fontSize: 11, color: '#92400e', fontWeight: '700', flex: 1 },
   quickActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginBottom: 24,
   },
+  // basis: '22%' → 4 items par ligne avec ~12px d'espacement, le 7e passe à la
+  // ligne suivante (Coffre / Bulletin / Fériés). Évite l'écrasement quand on a
+  // ajouté le raccourci "Bulletin de paie".
   quickAction: {
-    flex: 1,
+    flexBasis: '22%',
+    flexGrow: 1,
     backgroundColor: '#fff',
     borderRadius: 16,
     paddingVertical: 14,

@@ -95,6 +95,9 @@ namespace ABRPOINT.Server.Controllers
                 MissionId = request.MissionId,
                 DateDepense = request.DateDepense,
                 Justificatif = justificatifPath,
+                // Devise ISO 4217 (ex: EUR, USD, TND…) ; on tronque à 3 chars et
+                // uppercase par sécurité au cas où le client envoie "tnd".
+                Devise = string.IsNullOrWhiteSpace(request.Devise) ? null : request.Devise.Trim().ToUpperInvariant(),
                 Etat = "Pending",
                 CreatedAt = DateTime.UtcNow
             };
@@ -132,6 +135,8 @@ namespace ABRPOINT.Server.Controllers
         public string? Projet { get; set; }
         public int MissionId { get; set; }
         public DateTime DateDepense { get; set; }
+        /// <summary>Devise ISO 4217 (EUR, USD, TND…). NULL = devise tenant par défaut.</summary>
+        public string? Devise { get; set; }
         public IFormFile? File { get; set; }
     }
 }

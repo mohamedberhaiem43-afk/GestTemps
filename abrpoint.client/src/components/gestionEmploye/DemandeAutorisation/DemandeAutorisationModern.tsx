@@ -87,12 +87,17 @@ function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: bo
   const [abscod, setAbscod] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { data: absencesData = [] } = useGetAutorisationLibs();
-  const absences: AbsenceOption[] = Array.isArray(absencesData) ? (absencesData as AbsenceOption[]) : [];
+  const { data: absencesData = [], isLoading: loadingAbsences } = useGetAutorisationLibs();
+  // Filtre défensif : on ne garde que les entrées correctement formées. Une
+  // ligne sans abscod / abslib provoquerait un menu transparent et bloqué
+  // (clé React invalide + .toLowerCase() sur undefined dans le useEffect).
+  const absences: AbsenceOption[] = Array.isArray(absencesData)
+    ? (absencesData as AbsenceOption[]).filter((a) => a && typeof a.abscod === 'string' && a.abscod && typeof a.abslib === 'string')
+    : [];
 
   useEffect(() => {
     if (open && !editDemande && absences.length > 0 && !abscod) {
-      const defaultAbs = absences.find((a) => a.abslib.toLowerCase().includes('autorisation') || a.abscng === 'B');
+      const defaultAbs = absences.find((a) => (a.abslib ?? '').toLowerCase().includes('autorisation') || a.abscng === 'B');
       if (defaultAbs) {
         setAbscod(defaultAbs.abscod);
       } else {
@@ -208,19 +213,39 @@ function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: bo
         {/* Type d'autorisation (Absence) */}
         <Box>
           <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('demAutorisation.form.type')}</Typography>
-          <FormControl size="small" fullWidth sx={fieldSx}>
+          <FormControl size="small" fullWidth sx={fieldSx} disabled={loadingAbsences}>
             <Select
               value={abscod}
               onChange={(e) => setAbscod(e.target.value)}
               displayEmpty
+              // MenuProps : on force le menu à passer au-dessus du Dialog (modal=1300)
+              // pour éviter le cas où il s'affichait derrière le backdrop, donnant
+              // une page transparente bloquée. minHeight garantit qu'un menu vide
+              // reste visible et fermable au clic extérieur.
+              MenuProps={{
+                PaperProps: { sx: { zIndex: 1500, minHeight: 48, maxHeight: 320 } },
+              }}
               renderValue={(selected) => {
+                if (loadingAbsences) return <em style={{ color: '#94a3b8' }}>{t('demAutorisation.form.loadingTypes')}</em>;
                 if (!selected) return <em style={{ color: '#94a3b8' }}>{t('demAutorisation.form.typePlaceholder')}</em>;
                 const found = absences.find((a) => a.abscod === selected);
                 return found ? `${found.abscod} - ${found.abslib}` : selected;
               }}
             >
+              {/* Empty / loading state — un menu sans aucun MenuItem rendait
+                  un popover invisible que l'utilisateur ne pouvait plus fermer. */}
+              {loadingAbsences && (
+                <MenuItem value="" disabled>
+                  <CircularProgress size={14} sx={{ mr: 1 }} /> {t('demAutorisation.form.loadingTypes')}
+                </MenuItem>
+              )}
+              {!loadingAbsences && absences.length === 0 && (
+                <MenuItem value="" disabled>
+                  <em style={{ color: '#94a3b8' }}>{t('demAutorisation.form.typeEmpty')}</em>
+                </MenuItem>
+              )}
               {absences.map((abs) => (
-                <MenuItem key={`${abs.abscod}-${abs.soccod}`} value={abs.abscod}>
+                <MenuItem key={`${abs.abscod}-${abs.soccod ?? ''}`} value={abs.abscod}>
                   {abs.abscod} - {abs.abslib}
                 </MenuItem>
               ))}

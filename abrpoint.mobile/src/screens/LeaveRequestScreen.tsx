@@ -53,6 +53,9 @@ export default function LeaveRequestScreen({ navigation }: any) {
   const [editingConcod, setEditingConcod] = useState<string | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  // Toggle "Voir tout" pour la liste des demandes récentes : par défaut on
+  // n'affiche que les 3 plus récentes, l'utilisateur peut déplier la liste.
+  const [showAllRequests, setShowAllRequests] = useState(false);
 
   const isPending = (etat: string | undefined) => {
     const e = (etat || '').toLowerCase();
@@ -71,6 +74,10 @@ export default function LeaveRequestScreen({ navigation }: any) {
     });
     setEditingConcod(req.concod);
     setShowForm(true);
+    // Recharge la liste des natures d'absence si elle est vide (le 1er chargement
+    // a pu échouer ou être encore en cours) — sinon le formulaire afficherait
+    // "Type de congé" sans aucun bouton sélectionnable.
+    if (absences.length === 0) loadAbsences();
   };
 
   const handleRequestPress = (req: any) => {
@@ -415,13 +422,15 @@ export default function LeaveRequestScreen({ navigation }: any) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Demandes récentes</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>VOIR TOUT</Text>
-            </TouchableOpacity>
+            {requests.length > 3 && (
+              <TouchableOpacity onPress={() => setShowAllRequests((v) => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.seeAllText}>{showAllRequests ? 'RÉDUIRE' : 'VOIR TOUT'}</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          
+
           <View style={styles.requestList}>
-            {requests.slice(0, 3).map((req, idx) => {
+            {(showAllRequests ? requests : requests.slice(0, 3)).map((req, idx) => {
               const status = getStatusInfo(req.etat);
               const typeLib = getAbsLib(req.abscod);
               const icon = getIconForType(typeLib);
@@ -483,27 +492,37 @@ export default function LeaveRequestScreen({ navigation }: any) {
       {/* Form Overlay - Simple Modal logic integrated */}
       {showForm && (
         <View style={styles.modalOverlay}>
-          <View style={styles.formCard}>
+          <View style={[styles.formCard, { paddingBottom: 24 + tabBarPadding * 0.4 }]}>
             <View style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>{editingConcod ? 'Modifier la demande' : 'Nouvelle Demande'}</Text>
-              <TouchableOpacity onPress={closeForm}>
+              <TouchableOpacity onPress={closeForm} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <MaterialCommunityIcons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
-            
-            <ScrollView style={styles.formScroll}>
+
+            <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.label}>Type de congé</Text>
-              <View style={styles.typeRow}>
-                {absences.map((abs: any) => (
-                  <TouchableOpacity key={abs.abscod}
-                    style={[styles.typeBtn, form.abscod === abs.abscod && styles.typeBtnActive]}
-                    onPress={() => setForm({ ...form, abscod: abs.abscod })}>
-                    <Text style={[styles.typeText, form.abscod === abs.abscod && styles.typeTextActive]}>
-                      {abs.abslib || abs.abscod}
-                    </Text>
+              {absences.length > 0 ? (
+                <View style={styles.typeRow}>
+                  {absences.map((abs: any) => (
+                    <TouchableOpacity key={abs.abscod}
+                      style={[styles.typeBtn, form.abscod === abs.abscod && styles.typeBtnActive]}
+                      onPress={() => setForm({ ...form, abscod: abs.abscod })}>
+                      <Text style={[styles.typeText, form.abscod === abs.abscod && styles.typeTextActive]}>
+                        {abs.abslib || abs.abscod}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.typeEmptyRow}>
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                  <Text style={styles.typeEmptyText}>Chargement des types…</Text>
+                  <TouchableOpacity onPress={loadAbsences} style={styles.typeReloadBtn}>
+                    <Text style={styles.typeReloadText}>Réessayer</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
+                </View>
+              )}
 
               <Text style={styles.label}>Date départ</Text>
               <TouchableOpacity style={styles.dateInput} onPress={() => setShowStartPicker(true)}>
@@ -639,8 +658,11 @@ const styles = StyleSheet.create({
   },
   navItem: { alignItems: 'center', gap: 4 },
   navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
-  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 1000 },
-  formCard: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '80%' },
+  // elevation: 30 force le modal au-dessus du BottomTabBar (elevation: 8) sur
+  // Android, sinon la barre de navigation reste cliquable et masque le bouton
+  // "Envoyer". zIndex couvre iOS et le rendu web/Expo.
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 1000, elevation: 30 },
+  formCard: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '85%' },
   formHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   formHeaderTitle: { fontSize: 20, fontWeight: '800', color: COLORS.onSurface },
   formScroll: { flexGrow: 0 },
@@ -650,6 +672,10 @@ const styles = StyleSheet.create({
   typeBtnActive: { backgroundColor: COLORS.primary },
   typeText: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
   typeTextActive: { color: '#fff' },
+  typeEmptyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, flexWrap: 'wrap' },
+  typeEmptyText: { fontSize: 12, color: COLORS.onSurfaceVariant, fontWeight: '500' },
+  typeReloadBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.primaryFixed },
+  typeReloadText: { fontSize: 11, color: COLORS.primary, fontWeight: '700' },
   dateInput: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 16,

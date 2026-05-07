@@ -55,9 +55,18 @@ public partial class Mission : BaseEntity
     [StringLength(20)]
     public string Misetat { get; set; } = "Pending";
 
-    /// <summary>Budget alloué en devise tenant. Optionnel — informatif pour le suivi des notes de frais.</summary>
+    /// <summary>Budget alloué en devise <see cref="Misdevise"/>. Optionnel — informatif pour le suivi des notes de frais.</summary>
     [Column("misbudget")]
     public double? Misbudget { get; set; }
+
+    /// <summary>
+    /// Code ISO 4217 de la devise du budget (EUR, USD, TND, MAD, GBP…).
+    /// NULL = devise par défaut tenant (côté client, EUR par défaut). Permet
+    /// les missions internationales sans imposer la devise du siège.
+    /// </summary>
+    [Column("misdevise")]
+    [StringLength(3)]
+    public string? Misdevise { get; set; }
 
     /// <summary>
     /// Code nature d'absence rattaché. Doit pointer sur une Absence dont Abscng="6"
