@@ -338,7 +338,8 @@ function PeriodFormDialog({
               <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
                 {t('classeHoraire.modern.dialog.codeClasse')}
               </Typography>
-              <TextField size="small" fullWidth value={catcod} onChange={e => setCatcod(e.target.value)} sx={fieldSx} />
+              {/* Code auto-généré côté serveur — non éditable, comme num ordre contrat / congé. */}
+              <TextField size="small" fullWidth value={catcod} disabled sx={fieldSx} />
             </Box>
             <Box>
               <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
@@ -507,6 +508,18 @@ function ClasseHoraireModernInner() {
   if (!hasPermission('Paramètres de Temps', 'consult')) {
     return <AccessDenied message={t('classeHoraire.modern.noConsultRight')} />;
   }
+
+  // Auto-génération du catcod au mount (et tant qu'aucune classe n'est sélectionnée).
+  // Évite que l'utilisateur ait à cliquer "Nouvelle classe" avant de pouvoir créer
+  // sa 1re période — il voit immédiatement le code prêt à l'emploi dans la sidebar.
+  useEffect(() => {
+    if (classeCode) return;
+    const soc = sessionStorage.getItem('soccod') || '';
+    if (!soc) return;
+    apiInstance.get(`/Lcategories/get-next-catcod/${soc}`)
+      .then(r => { if (r.data?.catcod) setClasseCode(r.data.catcod); })
+      .catch(() => { /* échec silencieux */ });
+  }, [classeCode]);
 
   const { data: postesList = [] } = useGetPoste();
   const { data: classesList = [], refetch: refetchClasses } = useGetLcategories(classeFreq || 'N');

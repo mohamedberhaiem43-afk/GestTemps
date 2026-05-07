@@ -1,5 +1,5 @@
 import { Box, Typography, Switch, Paper } from "@mui/material";
-import { useContext, useState, useEffect, useMemo } from "react";
+import { useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "react-query";
 import { useTranslation } from "react-i18next";
 import { PosteContext } from "../helper/PostProvider/PostContext";
@@ -12,6 +12,7 @@ import useDeletePoste from "../../hooks/posteHooks/useDeletePoste";
 import useGetLPoste from "../../hooks/posteHooks/useGetLPoste";
 import { useAuth } from "../helper/AuthProvider";
 import AccessDenied from "../helper/AccessDenied";
+import apiInstance from "../API/apiInstance";
 
 import CustomizedSnackbars from "../Snackbar/Snackbar";
 import AlertModal from "../AlertModal/AlertModal";
@@ -41,10 +42,6 @@ export default function PosteTravailModern() {
   const [modalOpen, setModalOpen] = useState(false);
   const [toleranceEntry, setToleranceEntry] = useState({ avant: 0, apres: 0 });
   const [toleranceExit, setToleranceExit] = useState({ avant: 0, apres: 0 });
-  const [pausesEnabled, setPausesEnabled] = useState(true);
-  const [repasEnabled, setRepasEnabled] = useState(true);
-  const [sanctionRetard, setSanctionRetard] = useState(true);
-  const [bonusPresence, setBonusPresence] = useState(false);
 
   const { soccod, hasPermission } = useAuth();
   const queryClient = useQueryClient();
@@ -95,6 +92,28 @@ export default function PosteTravailModern() {
       setToleranceExit({ avant: lposte.avantsort || 0, apres: lposte.apressort || 0 });
     }
   }, [lposte]);
+
+  // Auto-génération du codposte : appelé au mount en mode add et après chaque
+  // resetForm. Aligné sur le pattern contrat / congé (cf. SaisieContratModern).
+  // Le user voit immédiatement le code qui sera attribué et ne peut pas le modifier.
+  const fetchNextCodposte = useCallback(async () => {
+    if (!soccod) return;
+    try {
+      const r = await apiInstance.get(`/Postes/get-next-codposte/${soccod}`);
+      if (r.data?.codposte) {
+        setSaisieData(prev => ({ ...prev, codposte: r.data.codposte }));
+      }
+    } catch {
+      // Échec silencieux : le user verra "NEW" et la création échouera côté backend
+      // si le code est requis — pas de blocage UI car la sauvegarde renvoie un message clair.
+    }
+  }, [soccod]);
+
+  useEffect(() => {
+    if (mode === 'add' && !saisieData.codposte && soccod) {
+      fetchNextCodposte();
+    }
+  }, [mode, saisieData.codposte, soccod, fetchNextCodposte]);
 
   const showSnackbar = (message: string, severity: "success" | "error" | "warning" | "info") => {
     setSnackbar({ open: true, message, severity });
@@ -258,7 +277,8 @@ export default function PosteTravailModern() {
               <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
                 <Box>
                   <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>{t('posteTravail.identification.codePoste')}</Typography>
-                  <input className="modern-input" value={saisieData.codposte || ''} onChange={e => setSaisieData({ ...saisieData, codposte: e.target.value })} disabled={mode === 'update' || (mode === 'add' && !canAdd)} />
+                  {/* Code auto-généré côté serveur (cf. /Postes/get-next-codposte) — non éditable, comme num ordre contrat / congé. */}
+                  <input className="modern-input" value={saisieData.codposte || ''} readOnly disabled />
                 </Box>
                 <Box>
                   <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>{t('posteTravail.identification.labelPoste')}</Typography>
@@ -316,47 +336,66 @@ export default function PosteTravailModern() {
             </Paper>
           </Box>
 
-          {/* Rules & Pauses */}
+          {/* Sanctions de retard — branche les 4 champs réels du modèle Poste :
+              retmin / retsanc (matin) et retminam / retsancam (après-midi).
+              Logique métier : passé `retmin` minutes de retard sur l'entrée
+              matin, le retard est multiplié par `retsanc` dans le calcul de
+              présence (ex. retsanc=2 → 1h de retard décomptée comme 2h). */}
           <Paper className="modern-card">
             <Box>
               <Box className="card-header">
-                <span className="material-symbols-outlined">coffee</span>
-                <Typography className="card-title">{t('posteTravail.rules.title')}</Typography>
+                <span className="material-symbols-outlined">gavel</span>
+                <Typography className="card-title">
+                  {t('posteTravail.sanction.title', { defaultValue: 'Sanctions de retard' })}
+                </Typography>
               </Box>
-              <Box className="rules-container" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
-                  <Box className="rule-label">
-                    <Switch checked={pausesEnabled} onChange={e => setPausesEnabled(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
-                    <span>{t('posteTravail.rules.pauseBefore')}</span>
+              <Box className="tolerance-grid">
+                <Box>
+                  <span className="tolerance-col-title">
+                    {t('posteTravail.sanction.morning', { defaultValue: 'Matin' })}
+                  </span>
+                  <Box className="tolerance-input-group">
+                    <span>{t('posteTravail.sanction.threshold', { defaultValue: 'Seuil (min)' })}</span>
+                    <input className="modern-input" type="number" min={0}
+                      value={saisieData.retmin ?? 0}
+                      onChange={e => setSaisieData({ ...saisieData, retmin: Number(e.target.value) })}
+                      disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
+                    />
                   </Box>
-                  <select className="modern-select" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}>
-                    <option>15 min</option>
-                    <option>30 min</option>
-                  </select>
-                </Box>
-                <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
-                  <Box className="rule-label">
-                    <Switch checked={repasEnabled} onChange={e => setRepasEnabled(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
-                    <span>{t('posteTravail.rules.pauseAfter')}</span>
-                  </Box>
-                  <select className="modern-select" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}>
-                    <option>15 min</option>
-                    <option>30 min</option>
-                  </select>
-                </Box>
-                <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
-                  <Box className="rule-label">
-                    <Switch checked={sanctionRetard} onChange={e => setSanctionRetard(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
-                    <span>{t('posteTravail.rules.lateSanction')}</span>
+                  <Box className="tolerance-input-group">
+                    <span>{t('posteTravail.sanction.coef', { defaultValue: 'Coefficient' })}</span>
+                    <input className="modern-input" type="number" min={1} step="0.1"
+                      value={saisieData.retsanc ?? 1}
+                      onChange={e => setSaisieData({ ...saisieData, retsanc: Number(e.target.value) })}
+                      disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
+                    />
                   </Box>
                 </Box>
-                <Box className="rule-row" style={{ opacity: ((mode === 'add' && !canAdd) || (mode === 'update' && !canModify)) ? 0.6 : 1 }}>
-                  <Box className="rule-label">
-                    <Switch checked={bonusPresence} onChange={e => setBonusPresence(e.target.checked)} size="small" disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} />
-                    <span>{t('posteTravail.rules.presenceBonus')}</span>
+                <Box>
+                  <span className="tolerance-col-title">
+                    {t('posteTravail.sanction.afternoon', { defaultValue: 'Après-midi' })}
+                  </span>
+                  <Box className="tolerance-input-group">
+                    <span>{t('posteTravail.sanction.threshold', { defaultValue: 'Seuil (min)' })}</span>
+                    <input className="modern-input" type="number" min={0}
+                      value={saisieData.retminam ?? 0}
+                      onChange={e => setSaisieData({ ...saisieData, retminam: Number(e.target.value) })}
+                      disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
+                    />
+                  </Box>
+                  <Box className="tolerance-input-group">
+                    <span>{t('posteTravail.sanction.coef', { defaultValue: 'Coefficient' })}</span>
+                    <input className="modern-input" type="number" min={1} step="0.1"
+                      value={saisieData.retsancam ?? 1}
+                      onChange={e => setSaisieData({ ...saisieData, retsancam: Number(e.target.value) })}
+                      disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)}
+                    />
                   </Box>
                 </Box>
               </Box>
+              <Typography sx={{ fontSize: '11px', color: '#64748b', mt: 1.5, fontStyle: 'italic' }}>
+                {t('posteTravail.sanction.hint', { defaultValue: 'Le retard est multiplié par le coefficient au-delà du seuil. Ex. coefficient 2 : 1 h de retard est décomptée comme 2 h.' })}
+              </Typography>
             </Box>
           </Paper>
 

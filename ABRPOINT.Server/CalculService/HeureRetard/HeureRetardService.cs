@@ -18,9 +18,36 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
             _posteRepository = posteRepository;
         }
 
+        // Conservé pour les sanctions de SORTIE ANTICIPÉE (Avabon/Avabonam) qui
+        // n'ont pas changé de sémantique : si on quitte plus de `min` minutes
+        // avant l'heure prévue, on ajoute `bonus` minutes flat.
         private int ApplySanction(int retard, int min, int bonus)
         {
             return (min > 0 && retard >= min) ? bonus : 0;
+        }
+
+        /// <summary>
+        /// Sanction par <b>coefficient multiplicateur</b> appliquée au retard à
+        /// l'entrée (matin et après-midi). Quand le retard dépasse <paramref name="seuilMin"/>
+        /// minutes, on multiplie le retard brut par <paramref name="coef"/>.
+        /// </summary>
+        /// <remarks>
+        /// Le retard brut est déjà ajouté à <c>nbRetard</c> côté appelant
+        /// (<c>nbRetard += retardMatinNet</c>), donc cette méthode renvoie
+        /// uniquement le <b>supplément</b> dû au coefficient :
+        /// <c>retard × (coef − 1)</c>.
+        ///
+        /// Exemple : retard = 60 min, seuilMin = 30, coef = 2
+        ///   → retour = 60 × (2 − 1) = 60 min
+        ///   → total décompté = 60 (brut) + 60 (sanction) = 120 min (= 2 h)
+        ///
+        /// Si <paramref name="coef"/> ≤ 1 ou si le retard est sous le seuil,
+        /// aucune sanction n'est ajoutée.
+        /// </remarks>
+        private int ApplyRetardMultiplier(int retard, int seuilMin, int coef)
+        {
+            if (seuilMin <= 0 || retard < seuilMin || coef <= 1) return 0;
+            return retard * (coef - 1);
         }
 
         /// <summary>
@@ -132,7 +159,8 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                 retardMatinNet / 60 < 3)
             {
                 nbRetard += retardMatinNet;
-                nbRetard += ApplySanction(retardMatinNet, poste.Retmin ?? 0, poste.Retsanc ?? 0);
+                // Coefficient multiplicateur (cf. PosteTravailModern → "Sanctions de retard")
+                nbRetard += ApplyRetardMultiplier(retardMatinNet, poste.Retmin ?? 0, poste.Retsanc ?? 0);
 
                 presence.Preretmateup = ToRetardDate(TimeSpan.FromMinutes(retardMatinNet));
                 if (presence.Preretmate == null)
@@ -173,7 +201,8 @@ namespace ABRPOINT.Server.CalculService.HeureRetard
                         retardAmNet / 60 < 3)
                     {
                         nbRetard += retardAmNet;
-                        nbRetard += ApplySanction(
+                        // Coefficient multiplicateur (fallback sur les valeurs matin si non définies pour l'AM)
+                        nbRetard += ApplyRetardMultiplier(
                             retardAmNet,
                             poste.Retminam ?? poste.Retmin ?? 0,
                             poste.Retsancam ?? poste.Retsanc ?? 0);
