@@ -19,7 +19,10 @@ import {
   NightsStay as NightIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
+  InfoOutlined as InfoOutlinedIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
+import { Collapse, Paper, IconButton } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 import useGetParametres from '../../hooks/parametreHooks/useGetParametres';
@@ -48,6 +51,7 @@ export default function ParamSocModern() {
   const [activeTab, setActiveTab] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
   const [isLoading, setIsLoading] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
 
   const [formData, setFormData] = useState<Partial<Parametre>>({});
   const [tranchesH, setTranchesH] = useState<ParTranche[]>([]);
@@ -148,7 +152,101 @@ export default function ParamSocModern() {
         {tabs.map((tab, i) => (
           <button key={i} className={`ps-modern-tab ${activeTab === i ? 'ps-modern-tab--active' : ''}`} onClick={() => setActiveTab(i)}>{tab.label}</button>
         ))}
+        <button
+          className="ps-modern-tab"
+          onClick={() => setShowGuide(g => !g)}
+          style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          title={showGuide ? 'Masquer le guide' : 'Afficher le guide'}
+        >
+          <InfoOutlinedIcon sx={{ fontSize: 18 }} />
+          <span style={{ fontSize: 13 }}>{showGuide ? 'Masquer le guide' : 'Afficher le guide'}</span>
+        </button>
       </nav>
+
+      {/* Guide contextuel — change de contenu selon l'onglet actif. Replié via le
+          bouton de la barre d'onglets. Chaque champ visible plus bas est expliqué
+          ici pour que l'utilisateur RH n'ait pas à deviner l'effet métier. */}
+      <Collapse in={showGuide}>
+        <Paper elevation={0} sx={{
+          mb: 2, p: 2.5, borderRadius: '14px',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
+          border: '1px solid #bfdbfe',
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+            <InfoOutlinedIcon sx={{ color: '#0040a1', fontSize: 22, flexShrink: 0, mt: '2px' }} />
+            <Box sx={{ flex: 1 }}>
+              {activeTab === 0 && (
+                <>
+                  <Typography sx={{ fontWeight: 800, fontSize: 15, color: '#0f172a', mb: 1 }}>
+                    Calculs &amp; dates de paie
+                  </Typography>
+                  <Typography sx={{ fontSize: 13, color: '#334155', lineHeight: 1.55, mb: 1.25 }}>
+                    Cet onglet définit la <strong>fenêtre de paie</strong> du tenant et les règles globales
+                    qui s'appliquent à tous les calculs de pointage. Chaque champ est consommé par le
+                    moteur de calcul pour déterminer ce qui finit dans le bulletin.
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, color: '#334155', lineHeight: 1.7 }}>
+                    <li><strong>Jour début / Jour fin</strong> &mdash; bornes du mois de paie. Ex.&nbsp;: «&nbsp;26 du mois précédent au 25 du mois courant&nbsp;».</li>
+                    <li><strong>Mois début / Mois fin</strong> &mdash; <em>Courant</em> ou <em>Précédent</em>&nbsp;: décale la fenêtre vers le mois calendaire précédent.</li>
+                    <li><strong>Ancienneté (jours)</strong> &mdash; nombre de jours requis avant qu'un nouveau salarié soit pris en compte dans certains calculs (ex.&nbsp;: prime).</li>
+                    <li><strong>Heures congé / repos / férié</strong> &mdash; valeur en heures d'une journée de chaque type. Sert à valoriser un congé ou un férié dans la paie.</li>
+                    <li><strong>Travail férié</strong> &mdash; switch global qui active ou non la majoration férié.</li>
+                    <li><strong>Écart minutes</strong> &mdash; tolérance de pointage entre 2 badges consécutifs (en deçà = doublon ignoré).</li>
+                    <li><strong>Min / Max heures par jour</strong> &mdash; bornes de plausibilité. En deçà du min → marqué incomplet&nbsp;; au-delà du max → écrêté pour éviter les fraudes.</li>
+                    <li><strong>Max férié majoré</strong> &mdash; plafond d'heures fériées prises en compte dans la majoration (au-delà = heures normales).</li>
+                    <li><strong>Éliminer férié</strong> &mdash; règle quand un jour férié tombe sur un jour normalement travaillé&nbsp;: 0 = ne rien faire, 1 = retirer du planning, 2 = compenser.</li>
+                    <li><strong>Mode déduction repos</strong> &mdash; comment la pause repos est déduite des heures totales (0 = pas déduite, 2 = déduite si pointage entrée/sortie repas, 3 = déduite forfaitairement).</li>
+                  </Box>
+                </>
+              )}
+              {activeTab === 1 && (
+                <>
+                  <Typography sx={{ fontWeight: 800, fontSize: 15, color: '#0f172a', mb: 1 }}>
+                    Heures supplémentaires
+                  </Typography>
+                  <Typography sx={{ fontSize: 13, color: '#334155', lineHeight: 1.55, mb: 1.25 }}>
+                    Définit les <strong>tranches de majoration</strong> appliquées au-delà du temps de travail
+                    légal. Deux modes&nbsp;: hebdomadaire (typique CDI 35-40h) ou mensuel (forfait
+                    cadre). On peut activer plusieurs catégories en parallèle.
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, color: '#334155', lineHeight: 1.7 }}>
+                    <li><strong>Cadre / Maîtrise / Exécutant</strong> &mdash; cases à cocher pour activer les tranches selon la catégorie d'employé. Permet d'avoir des taux différents par CSP.</li>
+                    <li><strong>Calendrier</strong> &mdash; rattache la tranche à un calendrier (ex.&nbsp;: «&nbsp;Plein temps&nbsp;» vs «&nbsp;Mi-temps&nbsp;»). Sans calendrier, la tranche s'applique partout.</li>
+                    <li><strong>Tr1 / %1</strong> &mdash; <em>première</em> tranche d'heures sup et son taux de majoration. Ex.&nbsp;: 8h à 25%.</li>
+                    <li><strong>Tr2 / %2</strong> &mdash; <em>deuxième</em> tranche d'heures sup et son taux. Ex.&nbsp;: au-delà de 8h à 50%.</li>
+                    <li><strong>Hebdomadaire</strong> &mdash; les bornes Tr1/Tr2 s'évaluent sur la semaine glissante.</li>
+                    <li><strong>Mensuel</strong> &mdash; les bornes s'évaluent sur le mois de paie configuré dans l'onglet précédent.</li>
+                  </Box>
+                </>
+              )}
+              {activeTab === 2 && (
+                <>
+                  <Typography sx={{ fontWeight: 800, fontSize: 15, color: '#0f172a', mb: 1 }}>
+                    Heures de nuit
+                  </Typography>
+                  <Typography sx={{ fontSize: 13, color: '#334155', lineHeight: 1.55, mb: 1.25 }}>
+                    Définit la <strong>plage horaire considérée «&nbsp;de nuit&nbsp;»</strong> et les règles associées
+                    (majoration, panier, exclusion d'absence). Le moteur de calcul intersecte les pointages
+                    réels avec cette plage pour déterminer les heures éligibles.
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, color: '#334155', lineHeight: 1.7 }}>
+                    <li><strong>Activer (switch en haut)</strong> &mdash; si désactivé, aucun calcul d'heure de nuit n'est effectué (gain CPU pour les sociétés en horaires de bureau uniquement).</li>
+                    <li><strong>Début / Fin</strong> &mdash; bornes de la plage de nuit (ex.&nbsp;: 22:00 → 06:00). La plage peut chevaucher minuit&nbsp;: c'est géré nativement.</li>
+                    <li><strong>Diminuer panier</strong> &mdash; coche pour retirer la pause repas du décompte d'heures de nuit (le panier reste payé séparément).</li>
+                    <li><strong>Compter sortie</strong> &mdash; inclut la dernière sortie effective dans le calcul même si elle dépasse la plage théorique.</li>
+                    <li><strong>Exclure nuit</strong> &mdash; n'incrémente pas l'absence pour un employé qui ne se présente pas pendant la plage de nuit (utilisé pour les gardes optionnelles).</li>
+                    <li><strong>Majorer Hnuit</strong> &mdash; applique un taux de majoration spécifique aux heures de nuit (en plus des heures sup s'il y a cumul).</li>
+                    <li><strong>Seuil minimal</strong> &mdash; nombre d'heures minimum dans la plage pour déclencher la majoration nuit (évite la prime pour 5 minutes de débordement).</li>
+                  </Box>
+                </>
+              )}
+            </Box>
+            <IconButton size="small" onClick={() => setShowGuide(false)} sx={{ flexShrink: 0 }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </Paper>
+      </Collapse>
 
       {activeTab === 0 && (
         <div className="ps-modern-grid">

@@ -3,7 +3,10 @@ import {
   FormControl, Select, FormControlLabel, IconButton,
   Snackbar, Alert, Chip, Dialog,
   DialogTitle, DialogContent, DialogActions, Divider, Switch,
+  Collapse,
 } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import { useEffect, useState, useMemo } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -498,6 +501,7 @@ function ClasseHoraireModernInner() {
   const [periodDialogOpen, setPeriodDialogOpen] = useState(false);
   const [editPeriod, setEditPeriod] = useState<any>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' });
 
   const { hasPermission } = useAuth();
@@ -692,6 +696,70 @@ function ClasseHoraireModernInner() {
         currentStep="classe"
         dataCount={(classesList || []).length}
       />
+
+      {/* Guide d'utilisation — explique la différence entre poste, classe, et
+          rotation hebdomadaire. Repliable. */}
+      <Collapse in={showGuide}>
+        <Paper elevation={0} sx={{
+          mb: 2, p: 2.5, borderRadius: '14px',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
+          border: '1px solid #bfdbfe',
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+            <InfoOutlinedIcon sx={{ color: '#0040a1', fontSize: 22, flexShrink: 0, mt: '2px' }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontWeight: 800, fontSize: 15, color: '#0f172a', mb: 1 }}>
+                À quoi sert une classe horaire&nbsp;?
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: '#334155', lineHeight: 1.55, mb: 1 }}>
+                Une <strong>classe horaire</strong> regroupe un ou plusieurs <em>postes</em> dans un planning à la
+                semaine. C'est cet objet qu'on affecte à un employé pour décrire son rythme de travail.
+                Deux fréquences possibles, qui changent radicalement l'usage&nbsp;:
+              </Typography>
+              <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, color: '#334155', lineHeight: 1.7 }}>
+                <li>
+                  <strong>📅 Périodique (N)</strong> &mdash; un seul poste pour toute la semaine. Ex.&nbsp;: «&nbsp;Bureau 8h-17h&nbsp;»
+                  appliqué du lundi au vendredi. Idéal pour les contrats classiques.
+                </li>
+                <li>
+                  <strong>🔄 Rotation hebdomadaire (S)</strong> &mdash; postes différents selon le jour, voire matin/après-midi.
+                  Ex.&nbsp;: «&nbsp;Lun-Mar matin / Mer-Jeu nuit / Ven repos&nbsp;». Indispensable pour les équipes 3×8, le retail
+                  ou la santé.
+                </li>
+              </Box>
+              <Typography sx={{ fontSize: 13, color: '#334155', lineHeight: 1.55, mt: 1.5, mb: 0.75, fontWeight: 700 }}>
+                Comment configurer
+              </Typography>
+              <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, color: '#334155', lineHeight: 1.7 }}>
+                <li><strong>Nouvelle classe</strong> (sidebar gauche) &mdash; saisissez le libellé et choisissez la fréquence.</li>
+                <li><strong>Période</strong> &mdash; chaque classe peut avoir plusieurs périodes datées (changement saisonnier, contrat à durée fixe…).</li>
+                <li><strong>Affectation des postes</strong> &mdash; pour la rotation, glissez un poste sur chaque jour de la grille hebdo.</li>
+                <li><strong>Ajustement de pointage</strong> &mdash; bouton dédié pour normaliser les pointages d'une période entière (ex.&nbsp;: badgeuses non synchronisées).</li>
+              </Box>
+              <Box sx={{ mt: 1.5, p: 1.5, borderRadius: '8px', bgcolor: '#fef9c3', border: '1px solid #fde68a' }}>
+                <Typography sx={{ fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+                  <strong>Pré-requis&nbsp;:</strong> au moins un poste de travail créé dans <em>Données de base → Poste de travail</em>.
+                  La classe horaire n'a aucune valeur paie sans poste rattaché.
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton size="small" onClick={() => setShowGuide(false)} sx={{ flexShrink: 0 }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </Paper>
+      </Collapse>
+      {!showGuide && (
+        <Button
+          size="small"
+          startIcon={<InfoOutlinedIcon />}
+          onClick={() => setShowGuide(true)}
+          sx={{ mb: 2, textTransform: 'none', color: '#0040a1', fontWeight: 600 }}
+        >
+          Afficher le guide
+        </Button>
+      )}
+
       <Box className="chm-layout">
 
         {/* ── Sidebar gauche ── */}

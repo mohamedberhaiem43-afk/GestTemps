@@ -1,4 +1,6 @@
-import { Box, Typography, Switch, Paper } from "@mui/material";
+import { Box, Typography, Switch, Paper, Collapse, IconButton, Button } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CloseIcon from "@mui/icons-material/Close";
 import { useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "react-query";
 import { useTranslation } from "react-i18next";
@@ -39,6 +41,7 @@ export default function PosteTravailModern() {
   });
   const [scheduleData, setScheduleData] = useState<any[]>(emptySchedule);
   const [mode, setMode] = useState<string>("add");
+  const [showGuide, setShowGuide] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [toleranceEntry, setToleranceEntry] = useState({ avant: 0, apres: 0 });
   const [toleranceExit, setToleranceExit] = useState({ avant: 0, apres: 0 });
@@ -239,6 +242,68 @@ export default function PosteTravailModern() {
         currentStep="poste"
         dataCount={Object.keys(postesList || {}).length}
       />
+
+      {/* Guide d'utilisation — explique ce qu'est un poste, ce qu'on saisit ici,
+          et comment ça s'enchaîne avec la classe horaire / le pointage. Repliable
+          (icône ✕) ; bouton "Afficher le guide" pour réafficher. */}
+      <Collapse in={showGuide}>
+        <Paper elevation={0} sx={{
+          mb: 2, p: 2.5, borderRadius: '14px',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
+          border: '1px solid #bfdbfe',
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+            <InfoOutlinedIcon sx={{ color: '#0040a1', fontSize: 22, flexShrink: 0, mt: '2px' }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontWeight: 800, fontSize: 15, color: '#0f172a', mb: 1 }}>
+                À quoi sert un poste de travail&nbsp;?
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: '#334155', lineHeight: 1.55, mb: 1 }}>
+                Un <strong>poste</strong> représente un horaire-type (ex.&nbsp;: «&nbsp;Bureau 8h-17h&nbsp;», «&nbsp;Équipe nuit&nbsp;»,
+                «&nbsp;Mi-temps matin&nbsp;»). Vous décrivez ici les heures théoriques d'arrivée / sortie
+                pour chaque jour de la semaine, ainsi que les tolérances et les sanctions de retard.
+                Ces données servent ensuite à&nbsp;:
+              </Typography>
+              <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, color: '#334155', lineHeight: 1.7 }}>
+                <li><strong>Calculer le retard / l'absence</strong> à partir des pointages réels (entrée/sortie réelle vs poste).</li>
+                <li><strong>Détecter les heures supplémentaires</strong> au-delà des bornes du poste.</li>
+                <li><strong>Composer une classe horaire</strong> (rotation hebdomadaire de plusieurs postes) qu'on affecte ensuite à un employé.</li>
+              </Box>
+              <Typography sx={{ fontSize: 13, color: '#334155', lineHeight: 1.55, mt: 1.5, mb: 0.75, fontWeight: 700 }}>
+                Champs clés
+              </Typography>
+              <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, color: '#334155', lineHeight: 1.7 }}>
+                <li><strong>Code poste</strong> &mdash; généré automatiquement (2 caractères, format paie).</li>
+                <li><strong>Libellé</strong> &mdash; nom lisible affiché dans les listes (ex.&nbsp;: «&nbsp;Bureau 8h-17h&nbsp;»).</li>
+                <li><strong>Horaires par jour</strong> &mdash; entrée matin, fin matin, reprise après-midi, sortie soir. Laisser vide = jour de repos.</li>
+                <li><strong>Tolérances entrée / sortie</strong> &mdash; minutes de marge avant/après l'horaire théorique sans déclencher de retard.</li>
+                <li><strong>Sanctions de retard</strong> (matin / après-midi) &mdash; seuil en minutes au-delà duquel un coefficient multiplicateur s'applique au retard pour la paie.</li>
+                <li><strong>Repas / repos</strong> &mdash; cases à cocher par jour pour exclure le créneau de pause du calcul des heures travaillées.</li>
+              </Box>
+              <Box sx={{ mt: 1.5, p: 1.5, borderRadius: '8px', bgcolor: '#fef9c3', border: '1px solid #fde68a' }}>
+                <Typography sx={{ fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+                  <strong>Étape suivante&nbsp;:</strong> une fois le poste enregistré, allez dans <em>Classe horaire</em>
+                  pour le rattacher à une rotation, ou directement dans la fiche d'un employé pour l'affecter.
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton size="small" onClick={() => setShowGuide(false)} sx={{ flexShrink: 0 }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </Paper>
+      </Collapse>
+      {!showGuide && (
+        <Button
+          size="small"
+          startIcon={<InfoOutlinedIcon />}
+          onClick={() => setShowGuide(true)}
+          sx={{ mb: 2, textTransform: 'none', color: '#0040a1', fontWeight: 600 }}
+        >
+          Afficher le guide
+        </Button>
+      )}
+
       {/* Header Section */}
       <Box className="poste-modern-header">
         <Box>

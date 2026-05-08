@@ -76,13 +76,16 @@ RUN mkdir -p /app/runtimes/linux-x64/native \
  && ln -sf /usr/local/lib/libwkhtmltox.so /app/runtimes/linux-x64/native/libwkhtmltox.so \
  && ln -sf /usr/local/lib/libwkhtmltox.so /app/libwkhtmltox.so
 
-# SEC-22 — N'exécute pas le serveur en root. L'image dotnet/aspnet:8.0 fournit
-# l'utilisateur `app` (UID 1654, exposé via $APP_UID) ; on lui transfère la
-# propriété de /app pour qu'il puisse écrire dans uploads/. En cas de RCE, le
-# blast radius est réduit aux permissions de cet utilisateur non privilégié.
-RUN mkdir -p /app/uploads \
- && chown -R $APP_UID /app \
- && chmod -R u+rwX /app
-USER $APP_UID
+# SEC-22 — Audit demande d'exécuter en utilisateur non-root pour réduire le blast
+# radius en cas de RCE. La directive `USER $APP_UID` (utilisateur `app` UID 1654
+# fourni par le base image) a été activée puis désactivée car le volume nommé
+# `uploads_data` monté sur /app/uploads est créé en root par Docker et garde ses
+# permissions à travers les redéploiements — l'utilisateur `app` se prend alors
+# un EACCES en écriture (cf. incident 08/05/2026 sur upload-for-employee).
+#
+# Mise en place future propre : ajouter un entrypoint shell qui démarre en root,
+# fait `chown -R $APP_UID /app/uploads` (idempotent), puis `exec gosu app dotnet
+# ABRPOINT.Server.dll`. Nécessite l'install de `gosu` ou `su-exec` dans la phase
+# `base`. Pour l'instant on reste root pour ne pas bloquer les uploads en prod.
 
 ENTRYPOINT ["dotnet", "ABRPOINT.Server.dll"]

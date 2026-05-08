@@ -755,7 +755,7 @@ Aucune configuration globale de `RequestSizeLimit` n'est visible. Seul `Document
 | **SEC-18** | `BillingController` : message Stripe générique (le code interne est journalisé serveur). | [BillingController.cs](ABRPOINT.Server/Controllers/BillingController.cs) |
 | **SEC-19** | `VaultController.UploadDocument`, `SocietesController.GetSoclibs` & `Post`, `SignupController` (provisioning) : `ex.Message` retiré des réponses, log structuré côté serveur. | controllers respectifs |
 | **SEC-20** | `dbName` retiré de la réponse `/api/Signup`. | SignupController.cs |
-| **SEC-22** | `Dockerfile.server` : ajout `USER $APP_UID` après `chown -R $APP_UID /app` ; uploads créés avant le switch utilisateur. | [Dockerfile.server](Dockerfile.server) |
+| **SEC-22** | ⚠️ Reverté en prod : la directive `USER $APP_UID` est incompatible avec le volume nommé `uploads_data` (créé root, permissions persistantes à travers les redéploiements). Cause un EACCES sur les uploads. À réimplémenter avec entrypoint shell `chown` + `gosu` quand l'image base sera revue. | [Dockerfile.server](Dockerfile.server) |
 | **SEC-26** | `appsettings.json` : `AllowedHosts` restreint à `concorde-work-force.com;*.concorde-work-force.com;localhost`. | appsettings.json |
 | **SEC-29** | Nouvelles policies `file-upload` (30/min/user) et `bulk-import` (10/h/user) appliquées via `[EnableRateLimiting]` sur `Vault.upload`, `Vault.upload-for-employee` et `BulkImportController`. | [Program.cs](ABRPOINT.Server/Program.cs), VaultController, BulkImportController |
 
