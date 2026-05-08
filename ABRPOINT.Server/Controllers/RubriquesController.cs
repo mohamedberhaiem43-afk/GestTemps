@@ -1,23 +1,37 @@
-﻿using ABRPOINT.Server.Data;
+﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    // SEC AI : aucun [Authorize] → CRUD complet sur les rubriques de paie ouvert sans
+    // authentification. Hardening : auth + soccod scopé (route ET body via SoccodAccess pour
+    // les opérations Add/Update qui prennent Soccod dans la rubrique).
+    [Authorize]
+    [ValidateSoccod]
     public class RubriquesController : ControllerBase
     {
         private readonly IRubriqueService _rubriqueService;
         private readonly ApplicationDbContext _db;
-        public RubriquesController(IRubriqueService rubriqueService, ApplicationDbContext db)
+        private readonly IMemoryCache _cache;
+        public RubriquesController(IRubriqueService rubriqueService, ApplicationDbContext db, IMemoryCache cache)
         {
             _rubriqueService = rubriqueService;
             _db = db;
+            _cache = cache;
         }
+
+        // Soccod arrive dans le body sur Add/Update — ValidateSoccod ne peut pas l'attraper, donc check inline.
+        private async Task<bool> CanAccessSoccodAsync(string? soccod) =>
+            !string.IsNullOrEmpty(soccod) && await SoccodAccess.IsAllowedAsync(HttpContext, _db, _cache, soccod);
 
         // GET api/Rubriques/next-code/SOC01 — code séquentiel auto-généré pour ce soccod.
         [HttpGet("next-code/{soccod}")]
@@ -82,29 +96,37 @@ namespace ABRPOINT.Server.Controllers
             }
         }
         [HttpPost]
-        public async Task<bool> AddRubrique(Rubrique rubrique)
+        public async Task<IActionResult> AddRubrique(Rubrique rubrique)
         {
+            if (rubrique == null || string.IsNullOrWhiteSpace(rubrique.Soccod))
+                return BadRequest(new { message = "Soccod requis." });
+            if (!await CanAccessSoccodAsync(rubrique.Soccod)) return Forbid();
             try
             {
                 // Auto-génération du code si non fourni — le frontend peut se contenter du libellé.
-                if (rubrique != null && string.IsNullOrWhiteSpace(rubrique.Rubcod) && !string.IsNullOrWhiteSpace(rubrique.Soccod))
+                if (string.IsNullOrWhiteSpace(rubrique.Rubcod))
                 {
                     rubrique.Rubcod = await SequentialCodeGenerator.NextRubcodAsync(_db, rubrique.Soccod);
                 }
-                return await _rubriqueService.AddRubriqueAsync(rubrique);
+                var ok = await _rubriqueService.AddRubriqueAsync(rubrique);
+                return Ok(ok);
             }
             catch (Exception)
             {
                 throw;
             }
         }
-    
+
         [HttpPut]
-        public async Task<bool> UpdatRubrique(Rubrique rubrique)
+        public async Task<IActionResult> UpdatRubrique(Rubrique rubrique)
         {
+            if (rubrique == null || string.IsNullOrWhiteSpace(rubrique.Soccod))
+                return BadRequest(new { message = "Soccod requis." });
+            if (!await CanAccessSoccodAsync(rubrique.Soccod)) return Forbid();
             try
             {
-                return await _rubriqueService.UpdateRubriqueAsync(rubrique);
+                var ok = await _rubriqueService.UpdateRubriqueAsync(rubrique);
+                return Ok(ok);
             }
             catch (Exception)
             {

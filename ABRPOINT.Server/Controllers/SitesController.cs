@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Tenancy;
@@ -8,6 +9,10 @@ namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    // SEC AI : aucun [Authorize] → énumération anonyme des sites/établissements de chaque
+    // société du tenant. Hardening : auth + soccod scopé.
+    [Authorize]
+    [ValidateSoccod]
     public class SitesController : ControllerBase
     {
         private readonly ISiteRepository _siteRepository;

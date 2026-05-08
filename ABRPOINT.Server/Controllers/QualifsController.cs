@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
@@ -12,6 +13,8 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // SEC AI : ValidateSoccod manquait — un user pouvait CRUD les qualifications de toute société.
+    [ValidateSoccod]
     public class QualifsController : ControllerBase
     {
         private readonly IQualifRepository _qualifRepository;

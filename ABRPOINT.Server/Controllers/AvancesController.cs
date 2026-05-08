@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +8,9 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // SEC AI : ValidateSoccod manquait — lecture/modification des avances financières
+    // d'employés d'une autre société accessible.
+    [ValidateSoccod]
     public class AvancesController : Controller
     {
         private readonly IAvanceRepository _avanceRepository;

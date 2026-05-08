@@ -239,10 +239,13 @@ const ListEmploye = () => {
       '{{REGIME}}': selectedEmployeForContrat.empreg || '',
     };
 
+    // split/join : équivalent portable à replaceAll (pas dispo avant ES2021), sans construire
+    // de RegExp dynamique. Évite un sink ReDoS si la liste de placeholders venait à contenir
+    // une saisie utilisateur. Les placeholders sont hardcodés ("{{PRENOM}}"…) mais autant ne
+    // pas leur ouvrir cette voie.
     let contratContent = templateContent;
     Object.keys(replacements).forEach(placeholder => {
-      const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
-      contratContent = contratContent.replace(regex, replacements[placeholder]);
+      contratContent = contratContent.split(placeholder).join(replacements[placeholder]);
     });
 
     const doc = new jsPDF();

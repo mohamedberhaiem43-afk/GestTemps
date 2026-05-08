@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +9,9 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // SEC AI : ValidateSoccod manquait — un user de la société A pouvait lire/supprimer les
+    // soldes congés des employés de la société B en changeant le paramètre URL.
+    [ValidateSoccod]
     public class SoldesController : ControllerBase
     {
         private readonly ISoldeCongeRepository _soldeCongeRepository;

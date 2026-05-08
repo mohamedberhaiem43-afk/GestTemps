@@ -1,17 +1,23 @@
 ﻿using ABRPOINT.Helper;
 using ABRPOINT.Server.Annotations.FerierAttributes;
 using ABRPOINT.Server.Annotations.PointeuseAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize]
+    // SEC AI : [Authorize] était commenté → tout le contrôleur (5 endpoints, dont
+    // ConnectPointeusesAsync et ReceiveLog qui injectent des présences en base) était ouvert
+    // sans authentification. Hardening : authent requise + soccod restreint au tenant.
+    [Authorize]
+    [ValidateSoccod]
     public class PointeuseController : ControllerBase
     {
         private readonly IPointeuseRepository _pointeuseRepository;

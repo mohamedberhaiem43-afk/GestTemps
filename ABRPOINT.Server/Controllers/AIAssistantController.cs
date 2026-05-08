@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
@@ -121,9 +122,24 @@ namespace ABRPOINT.Server.Controllers
                 .Select(e => new { e.Empcod, e.Empmat, e.Emplib, e.Sercod, e.Soccod })
                 .FirstOrDefaultAsync();
 
-            // 3. Rôle : on fait confiance au flag isAdmin/isManager côté front (calculé par /me),
-            //    qui est lui-même servé après validation côté serveur.
+            // 3. Rôle : SEC AI — on NE peut PAS faire confiance à request.UserContext.IsAdmin /
+            //    IsManager (client-controlled). Avant ce fix, un employé lambda pouvait poser
+            //    IsAdmin=true dans le payload et accéder aux données présence/absence de toute
+            //    la société via les handlers HandleTodayPresenceAsync / HandlePointageMois etc.
+            //    On re-dérive les flags côté serveur depuis Utilisateur.Utiadm + Utirole.
             var u = request.UserContext;
+            var dbUser = await _db.Utilisateurs
+                .AsNoTracking()
+                .Where(x => x.Uticod == uticod)
+                .Select(x => new { x.Utiadm, x.Utirole, x.Utiprn, x.Utinom })
+                .FirstOrDefaultAsync();
+            var serverIsAdmin = dbUser != null
+                && (dbUser.Utiadm == "1" || PermissionCatalog.IsAdminRole(dbUser.Utirole));
+            var serverIsManager = string.Equals(dbUser?.Utirole,
+                PermissionCatalog.Roles.Manager, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(dbUser?.Utirole,
+                PermissionCatalog.Roles.ResponsableRH, StringComparison.OrdinalIgnoreCase);
+
             return new UserChatContext
             {
                 Uticod = uticod,
@@ -132,11 +148,13 @@ namespace ABRPOINT.Server.Controllers
                 Empmat = emp?.Empmat,
                 Emplib = emp?.Emplib,
                 Sercod = emp?.Sercod ?? u?.Sercod,
-                IsAdmin = u?.IsAdmin ?? false,
-                IsManager = u?.IsManager ?? false,
-                IsEmp = u?.IsEmp ?? (emp != null),
-                RoleName = u?.RoleName,
-                UserName = u?.UserName,
+                IsAdmin = serverIsAdmin,
+                IsManager = serverIsManager,
+                IsEmp = emp != null,
+                RoleName = dbUser?.Utirole ?? u?.RoleName,
+                UserName = !string.IsNullOrWhiteSpace(dbUser?.Utiprn) || !string.IsNullOrWhiteSpace(dbUser?.Utinom)
+                    ? $"{dbUser?.Utiprn} {dbUser?.Utinom}".Trim()
+                    : u?.UserName,
                 CurrentPage = request.CurrentPage,
             };
         }

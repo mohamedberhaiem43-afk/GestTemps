@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,9 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // SEC AI : ValidateSoccod manquait — n'importe qui pouvait modifier/supprimer les
+    // enregistrements de compensation de toute société.
+    [ValidateSoccod]
     public class CompensersController : ControllerBase
     {
         private readonly IcompenserRepository _compenserRepository;

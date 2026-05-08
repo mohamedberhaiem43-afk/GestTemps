@@ -124,11 +124,16 @@ namespace ABRPOINT.Server.Controllers
             return !string.IsNullOrEmpty(callerSercod) && callerSercod == targetSercod;
         }
 
+        // SEC AI : sans check d'ownership, n'importe quel utilisateur authentifié pouvait
+        // énumérer les IDs séquentiels et lire les métadonnées (y compris le DocPath déchiffré)
+        // de n'importe quel document du coffre-fort — bulletins de paie, contrats, etc.
+        // Aligné avec download/preview/delete : on passe par CallerCanAccessDocAsync.
         [HttpGet("doc/{id}")]
         public async Task<IActionResult> GetDocumentById(int id)
         {
             var doc = await _vaultRepository.GetDocumentByIdAsync(id);
             if (doc == null) return NotFound();
+            if (!await CallerCanAccessDocAsync(doc)) return Forbid();
             doc.DocPath = _encryptionService.Decrypt(doc.DocPath);
             return Ok(doc);
         }

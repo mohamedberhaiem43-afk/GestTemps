@@ -1,24 +1,44 @@
-﻿using ABRPOINT.Server.CalculService.DashboardService;
+﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.CalculService.DashboardService;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    // SEC AI : sans [Authorize], tous les endpoints du dashboard étaient interrogeables
+    // anonymement (KPI workforce, taux de présence, retards, etc.). Hardening : authent +
+    // ValidateSoccod sur les endpoints qui prennent soccod en route ; pour les méthodes qui
+    // reçoivent Soccod dans le body JSON, check inline via SoccodAccess.IsAllowedAsync.
+    [Authorize]
+    [ValidateSoccod]
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;
+        private readonly ApplicationDbContext _db;
+        private readonly IMemoryCache _cache;
 
-        public DashboardController(IDashboardService dashboardService)
+        public DashboardController(IDashboardService dashboardService, ApplicationDbContext db, IMemoryCache cache)
         {
             _dashboardService = dashboardService;
+            _db = db;
+            _cache = cache;
         }
+
+        // Wrapper court : 403 si l'utilisateur courant n'est pas rattaché au soccod demandé
+        // (sauf admin tenant — bypass intégré dans SoccodAccess).
+        private async Task<bool> CanAccessSoccodAsync(string soccod) =>
+            await SoccodAccess.IsAllowedAsync(HttpContext, _db, _cache, soccod);
         [HttpPost("data")]
         public async Task<ActionResult<DashboardData>> GetDashboardData([FromBody] DashboardRequest request)
         {
             if (string.IsNullOrEmpty(request.Soccod))
                 return BadRequest("Le code société est requis");
+            if (!await CanAccessSoccodAsync(request.Soccod)) return Forbid();
 
             var dateDebut = request.DateDebut ?? request.Date ?? DateTime.Today;
             var dateFin = request.DateFin ?? request.Date ?? DateTime.Today;
@@ -37,12 +57,16 @@ namespace ABRPOINT.Server.Controllers
             return Ok(data);
         }
         [HttpPost("get-pointage-invalides")]
-        public async Task<List<PointageInvalideDto>> GetPointageInvalide([FromBody] DashboardRequest request)
+        public async Task<ActionResult<List<PointageInvalideDto>>> GetPointageInvalide([FromBody] DashboardRequest request)
         {
+            if (string.IsNullOrEmpty(request.Soccod))
+                return BadRequest("Le code société est requis");
+            if (!await CanAccessSoccodAsync(request.Soccod)) return Forbid();
+
             try
             {
                 var result = await _dashboardService.GetPointagesInvalides(request);
-                return result;
+                return Ok(result);
             }
             catch (Exception)
             {
@@ -61,6 +85,7 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest("Le code société est requis");
                 }
+                if (!await CanAccessSoccodAsync(request.Soccod)) return Forbid();
 
                 if (request.DateDebut == default || request.DateFin == default)
                 {
@@ -106,6 +131,7 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest("Le code société est requis");
                 }
+                if (!await CanAccessSoccodAsync(request.Soccod)) return Forbid();
 
                 var employes = await _dashboardService.GetEmployesStatutJour(
                     request.Soccod,
@@ -175,6 +201,7 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest("Le code société est requis");
                 }
+                if (!await CanAccessSoccodAsync(request.Soccod)) return Forbid();
 
                 var data = await _dashboardService.GetDashboardData(
                     request.Soccod,

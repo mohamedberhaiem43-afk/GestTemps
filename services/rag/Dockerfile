@@ -46,6 +46,13 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 
 EXPOSE 8080
 
+# Hardening : ne pas tourner en root. /models est le cache HF (build-time) — readable par tous.
+# /app est readable par tous (COPY le rend root:root mais 644). uvicorn n'a pas besoin d'écrire
+# ailleurs que dans /tmp. UID fixe (10001) plutôt que useradd dynamique pour reproducibilité.
+RUN groupadd --system --gid 10001 appgrp \
+ && useradd  --system --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin appusr
+USER 10001:10001
+
 # Un seul worker : le modele e5-large prend ~2 Go en RAM, multiplier les workers le duplique.
 # Pour scaler horizontalement, lancer plusieurs containers via Docker Compose `replicas`.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]

@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
@@ -12,6 +13,8 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // SEC AI : ValidateSoccod manquait — CRUD sections cross-soccod possible.
+    [ValidateSoccod]
     public class SectionsController : ControllerBase
     {
         private readonly ISectionRepository _sectionRepository;

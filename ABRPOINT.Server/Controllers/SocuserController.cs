@@ -1,3 +1,5 @@
+using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -17,6 +19,12 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // SEC AI : la table Socuser EST le mécanisme d'autorisation intra-tenant. Sans Admin,
+    // n'importe qui pouvait s'auto-assigner toutes les sociétés/sites ou révoquer l'accès des
+    // autres. ValidateSoccod scope les opérations route au tenant courant ; pour /assign (soccod
+    // dans le body), le check inline + Admin couvre les cas restants.
+    [Admin]
+    [ValidateSoccod]
     public class SocuserController : ControllerBase
     {
         private readonly ApplicationDbContext _db;

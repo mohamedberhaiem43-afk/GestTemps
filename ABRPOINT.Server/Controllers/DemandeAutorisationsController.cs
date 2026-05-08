@@ -129,6 +129,9 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // GET: api/DemandeAutorisations/{id}
+        // SEC AI : avant ce check, n'importe qui pouvait énumérer les IDs entiers et lire la
+        // demande d'un autre employé (date, motif, statut). On charge la demande, puis on
+        // vérifie que l'appelant est l'employé concerné OU manager/admin.
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -136,6 +139,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 var result = await _repository.GetByIdAsync(id);
                 if (result == null) return NotFound();
+                if (!await CallerOwnsOrManagesAsync(result.Empcod ?? string.Empty)) return Forbid();
                 return Ok(result);
             }
             catch (Exception)
@@ -188,6 +192,9 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // PUT: api/DemandeAutorisations
+        // SEC AI : on revalide l'ownership sur la demande EXISTANTE (pas sur le payload — un
+        // attaquant pourrait soumettre Empcod=lui pour passer le check). On lit l'enregistrement
+        // par son Id puis on vérifie que l'appelant le possède ou le gère.
         [HttpPut]
         public async Task<IActionResult> Update([FromBody] DemandeAutorisation demande)
         {
@@ -195,6 +202,10 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest("Veuillez saisir les champs obligatoires");
             try
             {
+                var existing = await _repository.GetByIdAsync(demande.Id);
+                if (existing == null) return NotFound(new { message = "Demande introuvable" });
+                if (!await CallerOwnsOrManagesAsync(existing.Empcod ?? string.Empty)) return Forbid();
+
                 var result = await _repository.UpdateAsync(demande);
                 if (result == null)
                     return BadRequest("Demande introuvable ou déjà traitée");
@@ -207,11 +218,17 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // DELETE: api/DemandeAutorisations/{id}
+        // SEC AI : ownership check pour éviter qu'un attaquant ne supprime les demandes
+        // (et l'audit trail) d'autres employés en énumérant les Id.
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             try
             {
+                var existing = await _repository.GetByIdAsync(id);
+                if (existing == null) return NotFound();
+                if (!await CallerOwnsOrManagesAsync(existing.Empcod ?? string.Empty)) return Forbid();
+
                 var deleted = await _repository.DeleteAsync(id);
                 if (!deleted) return NotFound();
                 return NoContent();

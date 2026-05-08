@@ -1,5 +1,6 @@
 using ABRPOINT.Helper;
 using ABRPOINT.Server.Annotations.PosteAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Exceptions;
 using ABRPOINT.Server.Interfaces;
@@ -15,6 +16,10 @@ namespace ABRPOINT.Server.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
+    // SEC AI : ValidateSoccod manquait — un user pouvait CRUD postes/horaires de toute société.
+    // Les attributs [CanAddPoste]/[CanUpdatePoste]/[CanDeletePoste] vérifient le rôle, pas le
+    // soccod ; ValidateSoccod ferme la lacune cross-tenant.
+    [ValidateSoccod]
     public class PostesController : ControllerBase
     {
         private readonly IPosteRepository _posteRepository;

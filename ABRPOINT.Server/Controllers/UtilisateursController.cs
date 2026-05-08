@@ -1,4 +1,5 @@
 using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
@@ -155,13 +156,18 @@ namespace GestionDesTickets.Server.Controllers
             }
         }
 
+        // SEC AI : sans [Admin], n'importe quel utilisateur authentifié pouvait créer des
+        // comptes (y compris admin) dans n'importe quelle société/site. Désormais admin only,
+        // et soccod scopé aux sociétés du tenant.
         [Authorize]
+        [Admin]
+        [ValidateSoccod]
         [HttpPost("add-user/{soccod}/{sitcod}")]
         public async Task<IActionResult> AddUtilisateur([FromBody] Utilisateur utilisateur,string sitcod,string soccod)
         {
             try
             {
-                
+
                 Socuser socuser = new Socuser();
                 socuser.Uticod = utilisateur.Uticod;
                 socuser.Soccod = soccod;
@@ -171,7 +177,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500,"probleme d'ajout utilisateur "+ex);
+                return StatusCode(500, new { message = "Erreur lors de l'ajout de l'utilisateur." });
             }
         }
         // POST api/<UtilisateursController>
@@ -235,7 +241,12 @@ namespace GestionDesTickets.Server.Controllers
 
                 if (dbUser.UtiTwoFactorEnabled == "1")
                 {
-                    return Ok(new { requires2fa = true, uticod = dbUser.Uticod, societe, societe.Sitcod, isManager });
+                    // SEC AI : on émet un jeton court (purpose="2fa-pending", exp 5 min) bound
+                    // à l'Uticod. /complete-2fa-login l'exigera, ce qui force la séquence step 1
+                    // → step 2 et empêche un attaquant qui ne connaît qu'un Uticod de sauter
+                    //   l'authentification mot de passe.
+                    var twoFaToken = GenerateTwoFactorPendingToken(dbUser.Uticod!);
+                    return Ok(new { requires2fa = true, twoFactorToken = twoFaToken, uticod = dbUser.Uticod, societe, societe.Sitcod, isManager });
                 }
                 return await CompleteLoginSequence(dbUser, resolvedCompany, societe);
             }
@@ -289,13 +300,24 @@ namespace GestionDesTickets.Server.Controllers
 
         // A7 — Brute-force du code TOTP 6 chiffres : 5 essais/min/IP plafonnent à un million
         // de minutes pour épuiser l'espace, ce qui rend l'attaque non viable en pratique.
+        // SEC AI : on exige aussi le twoFactorToken émis par /connect (étape 1) — sans ça,
+        // un attaquant qui connaît un Uticod peut sauter l'authentification mot de passe.
         [HttpPost("complete-2fa-login")]
         [EnableRateLimiting("auth-login")]
         public async Task<IActionResult> Complete2FALogin([FromBody] Complete2FARequest request)
         {
             try
             {
-                var dbUser = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == request.Uticod);
+                // Vérifie que le token "2fa-pending" est valide et bind l'Uticod à celui du token,
+                // pas à celui du body (le body reste populé par compat front mais ne peut plus
+                // détourner la cible).
+                if (string.IsNullOrEmpty(request.TwoFactorToken)
+                    || !TryValidateTwoFactorPendingToken(request.TwoFactorToken, out var tokenUticod))
+                {
+                    return Unauthorized(new { message = "Session 2FA invalide ou expirée. Reconnectez-vous." });
+                }
+
+                var dbUser = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == tokenUticod);
                 if (dbUser == null) return Unauthorized("Invalid user.");
                 if (dbUser.UtiTwoFactorEnabled != "1" || string.IsNullOrEmpty(dbUser.UtiTwoFactorSecret))
                     return BadRequest("2FA not enabled for user.");
@@ -988,7 +1010,12 @@ namespace GestionDesTickets.Server.Controllers
             }
         }
 
+        // SEC AI : sans rate-limit, le code de reset (6 chiffres = ~10⁶ valeurs) est brute-forçable
+        // en quelques minutes pendant la fenêtre de 15 min. Aligné avec /forgot-password.
+        // Bonus anti-énumération : on renvoie un message générique quand l'email est inconnu (au
+        // lieu de "Utilisateur non trouvé") pour ne pas révéler la présence d'un compte.
         [HttpPost("reset-password-with-code")]
+        [EnableRateLimiting("auth-recovery")]
         public async Task<IActionResult> ResetPasswordWithCode([FromBody] ResetPasswordWithCodeRequest request)
         {
             try
@@ -998,7 +1025,7 @@ namespace GestionDesTickets.Server.Controllers
 
                 var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail == request.Utimail);
                 if (user == null)
-                    return BadRequest(new { Message = "Utilisateur non trouvé." });
+                    return BadRequest(new { Message = "Code invalide ou expiré." });
 
                 if (user.UtiResetCode != request.Code || !user.UtiResetCodeExpiry.HasValue || user.UtiResetCodeExpiry < DateTime.UtcNow)
                     return BadRequest(new { Message = "Code invalide ou expiré." });
@@ -1049,10 +1076,17 @@ namespace GestionDesTickets.Server.Controllers
         }
 
         // DELETE api/<UtilisateursController>/5
+        // SEC AI : sans [Authorize][Admin], n'importe qui (non authentifié) pouvait supprimer
+        // n'importe quel compte utilisateur en POSTant le DTO. Reservé admin tenant.
         [HttpDelete]
-        public async Task Delete(Utilisateur utilisateur)
+        [Authorize]
+        [Admin]
+        public async Task<IActionResult> Delete(Utilisateur utilisateur)
         {
+            if (utilisateur is null || string.IsNullOrEmpty(utilisateur.Uticod))
+                return BadRequest(new { message = "Uticod requis." });
             await _utilisateurRepository.DeleteAsync(utilisateur);
+            return Ok(new { success = true });
         }
         private string GenerateJwtToken(string username)
         {
@@ -1084,6 +1118,60 @@ namespace GestionDesTickets.Server.Controllers
             {
                 rng.GetBytes(randomNumber);
                 return Convert.ToBase64String(randomNumber);
+            }
+        }
+
+        // SEC AI : token JWT distinct du token d'accès, signé avec la même clé Jwt:Key, mais
+        // avec un claim "purpose=2fa-pending" + exp court (5 min). L'authentification middleware
+        // ne l'accepte PAS comme bearer car notre policy défaut exige "purpose" absent (ou ne lit
+        // pas ce claim) ; mais on le valide manuellement dans /complete-2fa-login.
+        private string GenerateTwoFactorPendingToken(string uticod)
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, uticod),
+                new Claim("purpose", "2fa-pending"),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            };
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(5),
+                signingCredentials: creds);
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private bool TryValidateTwoFactorPendingToken(string token, out string uticod)
+        {
+            uticod = string.Empty;
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+                var parameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = _configuration["Jwt:Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = _configuration["Jwt:Audience"],
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = key,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(15),
+                };
+                var principal = handler.ValidateToken(token, parameters, out _);
+                if (principal.FindFirst("purpose")?.Value != "2fa-pending") return false;
+                var sub = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(sub)) return false;
+                uticod = sub;
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
     }

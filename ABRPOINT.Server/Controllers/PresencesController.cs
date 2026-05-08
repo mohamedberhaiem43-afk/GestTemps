@@ -225,10 +225,28 @@ namespace ABRPOINT.Server.Controllers
                  || string.Equals(m.RpModule, "Paie et Rémunération", StringComparison.OrdinalIgnoreCase)));
         }
 
+        // SEC AI : un employé ne peut consulter le rappel d'entrée que pour lui-même
+        // (sauf manager/admin), pour empêcher la surveillance des collègues via énumération
+        // d'empcod. Sert aussi à MarkPresence en aval.
+        private async Task<bool> CallerOwnsOrManagesEmpAsync(string targetEmpcod)
+        {
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            if (string.Equals(caller, targetEmpcod, StringComparison.OrdinalIgnoreCase)) return true;
+            return await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1"
+                    || u.Utirole == ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Administrator
+                    || u.Utirole == ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Manager
+                    || u.Utirole == ABRPOINT.Server.Authorization.PermissionCatalog.Roles.ResponsableRH)
+                .FirstOrDefaultAsync();
+        }
+
         // GET: api/Presences/entry-reminder/{soccod}/{empcod}
         [HttpGet("entry-reminder/{soccod}/{empcod}")]
         public async Task<IActionResult> GetEntryReminder(string soccod, string empcod)
         {
+            if (!await CallerOwnsOrManagesEmpAsync(empcod)) return Forbid();
             try
             {
                 var result = await _presenceRepository.GetEntryReminderAsync(soccod, empcod);
@@ -261,6 +279,11 @@ namespace ABRPOINT.Server.Controllers
             {
                 if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(empcod))
                     return BadRequest(new { message = "soccod et empcod sont obligatoires" });
+
+                // SEC AI : empêche un employé de pointer pour un collègue en changeant empcod
+                // dans l'URL — c'est de la fraude horaire. Manager/admin restent autorisés
+                // (cas légitime : pointage de rattrapage).
+                if (!await CallerOwnsOrManagesEmpAsync(empcod)) return Forbid();
 
                 if (lat.HasValue && lon.HasValue)
                 {

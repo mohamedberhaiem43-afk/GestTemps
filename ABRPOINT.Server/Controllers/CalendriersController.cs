@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,8 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // SEC AI : ValidateSoccod manquait — clone calendar cross-soccod possible.
+    [ValidateSoccod]
     public class CalendriersController : ControllerBase
     {
         private readonly ICalendrierRepository _IcalendrierRepository;

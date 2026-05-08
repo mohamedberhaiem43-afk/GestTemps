@@ -1,8 +1,10 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -19,6 +21,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [ValidateSoccod]
     public class ManagerDashboardController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
@@ -40,6 +43,20 @@ namespace ABRPOINT.Server.Controllers
         {
             if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(uticod))
                 return BadRequest(new { message = "soccod et uticod requis." });
+
+            // SEC AI : sans ce check, n'importe quel user pouvait consulter le dashboard
+            // d'un autre user en changeant uticod dans l'URL. Soit on est cet utilisateur,
+            // soit on est admin tenant.
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return Unauthorized();
+            if (!string.Equals(caller, uticod, StringComparison.OrdinalIgnoreCase))
+            {
+                var callerIsAdmin = await _db.Utilisateurs.AsNoTracking()
+                    .Where(u => u.Uticod == caller)
+                    .Select(u => u.Utiadm == "1" || u.Utirole == PermissionCatalog.Roles.Administrator)
+                    .FirstOrDefaultAsync(ct);
+                if (!callerIsAdmin) return Forbid();
+            }
 
             var today = DateTime.Today;
             var horizon = today.AddDays(30);

@@ -5,6 +5,7 @@ using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace ABRPOINT.Server.Provisioning;
 
@@ -34,9 +35,14 @@ public sealed class ProvisioningService : IProvisioningService
         await using var conn = new SqlConnection(serverCs);
         await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
-        // dbName est validé en regex avant — interpolation sûre car SQL Server n'autorise pas
-        // de paramètres pour les identifiants.
-        cmd.CommandText = $"IF DB_ID(N'{dbName}') IS NULL CREATE DATABASE [{dbName}] COLLATE French_CI_AS;";
+        // SQL Server n'autorise PAS de paramètre pour un identifiant (nom de base) — on doit
+        // donc l'interpoler. Défense en profondeur : (1) ValidateDbName impose la regex
+        // ^[A-Za-z0-9_]{1,64}$ ; (2) BracketIdent échappe les ']' (impossible vu la regex,
+        // mais cap au cas où la validation évolue) ; (3) le test d'existence DB_ID(@dbName)
+        // EST paramétrable (DB_ID accepte un argument), donc on le paramètre.
+        // nosemgrep: csharp.lang.security.sqli.csharp-sqli.csharp-sqli
+        cmd.CommandText = $"IF DB_ID(@dbName) IS NULL CREATE DATABASE {BracketIdent(dbName)} COLLATE French_CI_AS;";
+        cmd.Parameters.Add(new SqlParameter("@dbName", System.Data.SqlDbType.NVarChar, 128) { Value = dbName });
         await cmd.ExecuteNonQueryAsync(ct);
         _log.LogInformation("Database created (or already existed): {DbName}", dbName);
     }
@@ -185,13 +191,18 @@ public sealed class ProvisioningService : IProvisioningService
         await using var conn = new SqlConnection(serverCs);
         await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
+        // Mêmes garanties que CreateDatabaseAsync : ValidateDbName + BracketIdent + paramètre
+        // pour DB_ID. ALTER DATABASE / DROP DATABASE n'acceptent PAS d'identifiant paramétrable.
         // Forcer SINGLE_USER pour casser les connexions ouvertes avant DROP.
+        var bracketed = BracketIdent(dbName);
+        // nosemgrep: csharp.lang.security.sqli.csharp-sqli.csharp-sqli
         cmd.CommandText = $@"
-IF DB_ID(N'{dbName}') IS NOT NULL
+IF DB_ID(@dbName) IS NOT NULL
 BEGIN
-    ALTER DATABASE [{dbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE [{dbName}];
+    ALTER DATABASE {bracketed} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE {bracketed};
 END";
+        cmd.Parameters.Add(new SqlParameter("@dbName", System.Data.SqlDbType.NVarChar, 128) { Value = dbName });
         await cmd.ExecuteNonQueryAsync(ct);
         _log.LogWarning("Database dropped: {DbName}", dbName);
     }
@@ -233,21 +244,33 @@ END";
         return b.ConnectionString;
     }
 
+    // Whitelist stricte : lettres ASCII, chiffres, underscore, max 64 caractères. Format compatible
+    // avec les conventions internes (`tenant_<slug>_<8hex>`, `ABRPOINT_*`) tout en excluant les
+    // caractères qui pourraient casser la quoting d'un identifiant SQL Server (espace, ']', '-', '"', ';'…).
+    private static readonly Regex DbNamePattern = new(@"^[A-Za-z0-9_]{1,64}$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     /// <summary>
-    /// Valide le nom de base : strictement `tenant_<slug>_<8hex>` ou ABRPOINT_*.
+    /// Valide le nom de base : strictement <c>^[A-Za-z0-9_]{1,64}$</c>.
     /// Évite l'injection SQL via le nom de DB (les identifiants ne sont pas paramétrables).
     /// </summary>
     private static void ValidateDbName(string dbName)
     {
         if (string.IsNullOrWhiteSpace(dbName))
             throw new ArgumentException("DbName vide", nameof(dbName));
-        if (dbName.Length > 64)
-            throw new ArgumentException("DbName trop long", nameof(dbName));
-        foreach (var c in dbName)
-        {
-            if (!(char.IsLetterOrDigit(c) || c == '_'))
-                throw new ArgumentException($"Caractère interdit dans DbName: '{c}'", nameof(dbName));
-        }
+        if (!DbNamePattern.IsMatch(dbName))
+            throw new ArgumentException("DbName invalide (lettres/chiffres/underscore, max 64).", nameof(dbName));
+    }
+
+    /// <summary>
+    /// Quote un identifiant SQL Server entre crochets, en doublant tout ']' interne.
+    /// Combiné avec <see cref="ValidateDbName"/> (qui interdit déjà ']'), c'est une défense
+    /// en profondeur : si la validation est un jour assouplie, l'échappement reste correct.
+    /// </summary>
+    private static string BracketIdent(string identifier)
+    {
+        ValidateDbName(identifier);
+        return "[" + identifier.Replace("]", "]]") + "]";
     }
 
     private static string Truncate(string? s, int max)

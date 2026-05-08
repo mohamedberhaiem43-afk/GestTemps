@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
@@ -8,6 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
+// SEC AI : ValidateSoccod manquait — n'importe quel user authentifié pouvait CRUD les services
+// de n'importe quelle société du tenant.
+[ValidateSoccod]
 public class ServicesController : ControllerBase
 {
     private readonly IServiceRepository _servicesRepository;

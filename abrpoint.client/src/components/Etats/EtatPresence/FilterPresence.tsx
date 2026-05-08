@@ -115,7 +115,9 @@ function FilterPresence() {
       link.click();
       link.remove();
     } catch (error) {
-      console.error(t('etats.filter.reportError') + ':', error);
+      // Args séparés (pas de concat avec le résultat de t(…)) — évite les format-specifiers
+      // injectés via les fichiers i18n qui forgeraient le message console.
+      console.error(t('etats.filter.reportError'), error);
     }
   };
 

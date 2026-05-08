@@ -1,4 +1,5 @@
 using ABRPOINT.Server.Annotations.AllaitementAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -10,6 +11,9 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // SEC AI : ValidateSoccod manquait — rapport allaitement (donnée médicale) accessible
+    // cross-soccod via énumération empcod.
+    [ValidateSoccod]
     public class AllaitementsController : ControllerBase
     {
         private readonly IAllaitementRepository _allaitementRepository;

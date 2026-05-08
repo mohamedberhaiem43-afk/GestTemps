@@ -1,5 +1,7 @@
-﻿using ABRPOINT.Server.Interfaces;
+﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
@@ -9,6 +11,9 @@ namespace ABRPOINT.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    // SEC AI : aucun [Authorize] — endpoint accessible sans authentification.
+    [Authorize]
+    [ValidateSoccod]
     public class LpostesController : ControllerBase
     {
         private readonly IlposteRepository _lposteRepository;
