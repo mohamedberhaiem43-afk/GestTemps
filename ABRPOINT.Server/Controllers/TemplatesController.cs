@@ -26,6 +26,50 @@ namespace ABRPOINT.Server.Controllers
             if (!Directory.Exists(_vaultPath)) Directory.CreateDirectory(_vaultPath);
         }
 
+        /// <summary>
+        /// Path traversal hardening : transforme un nom de template fourni par le client
+        /// en chemin absolu garanti à l'intérieur de <c>_vaultPath</c>, ou retourne
+        /// <c>null</c> si la valeur est suspecte. Toutes les routes qui combinent
+        /// <c>_vaultPath</c> avec un paramètre utilisateur DOIVENT passer par ce helper.
+        ///
+        /// Règles appliquées (chacune redondante par rapport aux autres = défense en profondeur) :
+        ///   1. Refus de toute valeur vide.
+        ///   2. Refus si la chaîne contient '..', '/', '\' ou un caractère NUL.
+        ///   3. <c>Path.GetFileName</c> : si le résultat diffère de l'entrée, l'utilisateur
+        ///      a tenté de glisser un séparateur — refus.
+        ///   4. Whitelist regex : lettres Unicode, chiffres, espace, point, tiret, underscore.
+        ///   5. Suffixe <c>.html</c> obligatoire (les templates sont du HTML — aucune raison
+        ///      d'ouvrir d'autres extensions, en particulier pas <c>.cs</c>, <c>.json</c>, <c>.exe</c>…).
+        ///   6. Vérification finale via <c>Path.GetFullPath</c> que le chemin résolu
+        ///      reste sous <c>_vaultPath</c> (couvre les rares cas que la regex laisserait passer).
+        /// </summary>
+        private string? ResolveSafeTemplatePath(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            if (name.Contains("..", StringComparison.Ordinal)
+                || name.IndexOfAny(new[] { '/', '\\', '\0' }) >= 0)
+            {
+                return null;
+            }
+
+            var basic = Path.GetFileName(name);
+            if (!string.Equals(basic, name, StringComparison.Ordinal)) return null;
+
+            // Lettres (Unicode), chiffres, espace, point, tiret, underscore — termine par .html.
+            // Évite les caractères de contrôle, les pipes, les wildcards et les chevrons HTML.
+            if (!Regex.IsMatch(basic, @"^[\p{L}\p{N}_\-. ]+\.html$", RegexOptions.CultureInvariant))
+                return null;
+
+            var resolved = Path.GetFullPath(Path.Combine(_vaultPath, basic));
+            var vaultRoot = Path.GetFullPath(_vaultPath);
+            // Le séparateur final évite la confusion `/foo/vault` vs `/foo/vault-evil`.
+            var sep = Path.DirectorySeparatorChar.ToString();
+            if (!resolved.StartsWith(vaultRoot + sep, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            return resolved;
+        }
+
         [HttpGet]
         public IActionResult GetTemplates()
         {
@@ -44,11 +88,14 @@ namespace ABRPOINT.Server.Controllers
         [HttpGet("{name}")]
         public async Task<IActionResult> GetTemplateContent(string name)
         {
-            var filePath = Path.Combine(_vaultPath, name);
+            // Path traversal hardening — sans ce check, `name = "../appsettings.json"` lit
+            // un fichier arbitraire (config, secrets, modèles d'autres tenants).
+            var filePath = ResolveSafeTemplatePath(name);
+            if (filePath is null) return BadRequest(new { message = "Nom de modèle invalide." });
             if (!System.IO.File.Exists(filePath)) return NotFound();
 
             var content = await System.IO.File.ReadAllTextAsync(filePath);
-            return Ok(new { name, content });
+            return Ok(new { name = Path.GetFileName(filePath), content });
         }
 
         [HttpPost("import-pdf")]
@@ -92,20 +139,26 @@ namespace ABRPOINT.Server.Controllers
         {
             if (string.IsNullOrEmpty(request.Name)) return BadRequest("Name is required");
             var name = request.Name.EndsWith(".html") ? request.Name : request.Name + ".html";
-            var filePath = Path.Combine(_vaultPath, name);
-            
+
+            // Path traversal hardening — empêche `request.Name = "../../wwwroot/index"`
+            // de créer un fichier hors du dossier des templates.
+            var filePath = ResolveSafeTemplatePath(name);
+            if (filePath is null) return BadRequest(new { message = "Nom de modèle invalide." });
             if (System.IO.File.Exists(filePath)) return BadRequest("Template already exists");
 
             var defaultContent = "<h1>Nouveau Modèle</h1><p>Commencez à rédiger votre contrat ici...</p>";
             await System.IO.File.WriteAllTextAsync(filePath, defaultContent);
-            
-            return Ok(new { name, size = defaultContent.Length, lastModified = DateTime.Now });
+
+            return Ok(new { name = Path.GetFileName(filePath), size = defaultContent.Length, lastModified = DateTime.Now });
         }
 
         [HttpPut("{name}")]
         public async Task<IActionResult> SaveTemplate(string name, [FromBody] TemplateUpdate request)
         {
-            var filePath = Path.Combine(_vaultPath, name);
+            // Path traversal hardening — sans ce check, on pouvait écraser n'importe quel
+            // fichier accessible au process via `name = "../appsettings.json"`.
+            var filePath = ResolveSafeTemplatePath(name);
+            if (filePath is null) return BadRequest(new { message = "Nom de modèle invalide." });
             if (!System.IO.File.Exists(filePath)) return NotFound();
 
             await System.IO.File.WriteAllTextAsync(filePath, request.Content);
@@ -115,7 +168,10 @@ namespace ABRPOINT.Server.Controllers
         [HttpDelete("{name}")]
         public IActionResult DeleteTemplate(string name)
         {
-            var filePath = Path.Combine(_vaultPath, name);
+            // Path traversal hardening — sans ce check, un appelant pouvait demander
+            // la suppression de fichiers hors VaultTemplates.
+            var filePath = ResolveSafeTemplatePath(name);
+            if (filePath is null) return BadRequest(new { message = "Nom de modèle invalide." });
             if (!System.IO.File.Exists(filePath)) return NotFound(new { message = "Fichier introuvable" });
 
             System.IO.File.Delete(filePath);
@@ -127,16 +183,22 @@ namespace ABRPOINT.Server.Controllers
         {
             if (string.IsNullOrEmpty(request.NewName)) return BadRequest("Le nouveau nom est requis");
 
-            var oldPath = Path.Combine(_vaultPath, name);
+            // Path traversal hardening : on valide à la fois la source ET la destination.
+            // Sans ça, un attaquant pouvait déplacer un fichier de la vault vers une autre
+            // arborescence (RCE potentielle si la cible est servie statiquement) ou
+            // l'inverse — déplacer un fichier sensible dans la vault pour le lire ensuite.
+            var oldPath = ResolveSafeTemplatePath(name);
+            if (oldPath is null) return BadRequest(new { message = "Nom de modèle invalide." });
             if (!System.IO.File.Exists(oldPath)) return NotFound(new { message = "Fichier introuvable" });
 
             var newName = request.NewName.EndsWith(".html") ? request.NewName : request.NewName + ".html";
-            var newPath = Path.Combine(_vaultPath, newName);
+            var newPath = ResolveSafeTemplatePath(newName);
+            if (newPath is null) return BadRequest(new { message = "Nouveau nom de modèle invalide." });
 
             if (System.IO.File.Exists(newPath)) return BadRequest(new { message = "Un fichier avec ce nom existe déjà" });
 
             System.IO.File.Move(oldPath, newPath);
-            return Ok(new { success = true, oldName = name, newName });
+            return Ok(new { success = true, oldName = Path.GetFileName(oldPath), newName = Path.GetFileName(newPath) });
         }
 
         [HttpGet("preview/{name}")]
@@ -149,7 +211,10 @@ namespace ABRPOINT.Server.Controllers
                 
                 if (lowerName.EndsWith(".html"))
                 {
-                    var filePath = Path.Combine(_vaultPath, name);
+                    // Path traversal hardening — comme `GetTemplateContent`.
+                    var filePath = ResolveSafeTemplatePath(name);
+                    if (filePath is null) return BadRequest(new { message = "Nom de modèle invalide." });
+                    if (!System.IO.File.Exists(filePath)) return NotFound();
                     var html = await System.IO.File.ReadAllTextAsync(filePath);
                     pdf = _reportsService.GenerateFromHtml(html, soccod, empcod);
                 }

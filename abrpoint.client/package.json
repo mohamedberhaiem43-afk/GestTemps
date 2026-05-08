@@ -33,7 +33,7 @@
     "@toolpad/core": "^0.5.2",
     "@types/react-router-dom": "^5.3.3",
     "abrpoint.client": "file:",
-    "axios": "^1.7.3",
+    "axios": "^1.16.0",
     "date-fns": "^3.6.0",
     "dayjs": "^1.11.12",
     "dotenv": "^16.4.5",
@@ -60,7 +60,7 @@
     "recharts": "^3.7.0",
     "tailwind-scrollbar": "^3.1.0",
     "uuid": "^10.0.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",
