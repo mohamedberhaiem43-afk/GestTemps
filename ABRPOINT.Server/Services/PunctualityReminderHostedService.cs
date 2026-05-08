@@ -104,14 +104,18 @@ public sealed class PunctualityReminderHostedService : BackgroundService
             .Where(p => p.Predat == today)
             .ToListAsync(ct);
 
-        // Tokens push par utilisateur
-        var pushTokens = await db.PushTokens
+        // Set des Uticod ayant un push token actif. Convention codebase : pour un employé
+        // self-service, Uticod == Empcod (cf. MobileAuthController.RegisterPushToken qui
+        // utilise le claim NameIdentifier=Uticod issu du JWT). Si un tenant fait diverger
+        // Empcod / Uticod, on ratera ses reminders ici — à corriger via une jointure
+        // Utilisateur dédiée le jour où ce cas apparaît.
+        var activeUticods = await db.PushTokens
             .AsNoTracking()
-            .Where(t => t.Active)
+            .Where(t => t.Active && t.Uticod != null)
+            .Select(t => t.Uticod!)
+            .Distinct()
             .ToListAsync(ct);
-        var tokensByUser = pushTokens
-            .GroupBy(t => t.Uticod)
-            .ToDictionary(g => g.Key, g => g.Select(t => t.Token).ToList());
+        var activeUticodsSet = new HashSet<string>(activeUticods, StringComparer.OrdinalIgnoreCase);
 
         // Dédup persistante via push_reminder_log : on regarde quels (empcod, type) ont déjà
         // été notifiés aujourd'hui pour ne jamais spammer, même si le serveur redémarre.
@@ -122,15 +126,16 @@ public sealed class PunctualityReminderHostedService : BackgroundService
             .ToListAsync(ct);
         var dedupSet = new HashSet<string>(alreadyToday.Select(a => $"{a.Empcod}|{a.Type}"));
 
-        var messages = new List<ExpoPushMessage>();
-        var messageOwners = new List<(string Empcod, string Type)>();
+        // Liste des candidats à notifier (un appel NotifyUserAsync par candidat).
+        var candidates = new List<(string Uticod, string Empcod, string Type, string Title, string Body, string Hour)>();
 
         var now = DateTime.Now;
 
         foreach (var emp in employees)
         {
-            if (string.IsNullOrEmpty(emp.Poscod) || string.IsNullOrEmpty(emp.Soccod)) continue;
-            if (!tokensByUser.TryGetValue(emp.Empcod ?? "", out var tokens) || tokens.Count == 0) continue;
+            if (string.IsNullOrEmpty(emp.Empcod) || string.IsNullOrEmpty(emp.Poscod) || string.IsNullOrEmpty(emp.Soccod)) continue;
+            // On suppose Uticod=Empcod (cf. note plus haut). Skip si pas de token actif.
+            if (!activeUticodsSet.Contains(emp.Empcod)) continue;
 
             // Récup poste
             var poste = await db.Postes
@@ -153,14 +158,10 @@ public sealed class PunctualityReminderHostedService : BackgroundService
                 var hasEntry = !string.IsNullOrEmpty(presence?.Preentmatup) || !string.IsNullOrEmpty(presence?.Preentamidiup);
                 if (now > dueAt && !hasEntry && !dedupSet.Contains($"{emp.Empcod}|in"))
                 {
-                    foreach (var token in tokens)
-                        messages.Add(new ExpoPushMessage(
-                            token,
-                            "🕒 Rappel pointage",
-                            $"N'oubliez pas de pointer votre entrée (prévue à {mStart}).",
-                            new { type = "reminder_in", date = today.ToString("yyyy-MM-dd") }));
-                    messageOwners.Add((emp.Empcod!, "in"));
-                    dedupSet.Add($"{emp.Empcod}|in");
+                    candidates.Add((emp.Empcod!, emp.Empcod!, "in",
+                        "🕒 Rappel pointage",
+                        $"N'oubliez pas de pointer votre entrée (prévue à {mStart}).",
+                        mStart ?? ""));
                 }
             }
 
@@ -173,57 +174,59 @@ public sealed class PunctualityReminderHostedService : BackgroundService
                 var hasExit = !string.IsNullOrEmpty(presence.Presortmatup) || !string.IsNullOrEmpty(presence.Presortamidiup);
                 if (now > dueAt && hasEntry && !hasExit && !dedupSet.Contains($"{emp.Empcod}|out"))
                 {
-                    foreach (var token in tokens)
-                        messages.Add(new ExpoPushMessage(
-                            token,
-                            "🚪 Pointage sortie ?",
-                            $"Pensez à pointer votre sortie (prévue à {(eEnd ?? mEnd)}).",
-                            new { type = "reminder_out", date = today.ToString("yyyy-MM-dd") }));
-                    messageOwners.Add((emp.Empcod!, "out"));
-                    dedupSet.Add($"{emp.Empcod}|out");
+                    candidates.Add((emp.Empcod!, emp.Empcod!, "out",
+                        "🚪 Pointage sortie ?",
+                        $"Pensez à pointer votre sortie (prévue à {(eEnd ?? mEnd)}).",
+                        eEnd ?? mEnd ?? ""));
                 }
             }
         }
 
-        if (messages.Count > 0)
+        if (candidates.Count == 0) return;
+
+        // Délégué à IUserNotificationService.NotifyUserAsync : il applique les filtres
+        // de préférences (category=reminder_in/reminder_out — défaut ON), les heures
+        // silencieuses, persiste l'historique in-app, et envoie via Expo. Ce passage
+        // évitait au précédent code la prise en compte des prefs (le user pouvait avoir
+        // coupé ses rappels dans NotificationPreferencesScreen sans effet).
+        using var scope = _scopeFactory.CreateScope();
+        var notify = scope.ServiceProvider.GetService<IUserNotificationService>();
+        if (notify is null) return;
+
+        int totalSent = 0;
+        var notifiedOwners = new List<(string Empcod, string Type)>();
+        foreach (var c in candidates)
         {
-            using var scope = _scopeFactory.CreateScope();
-            var push = scope.ServiceProvider.GetService<IExpoPushService>();
-            if (push is null) return;
-
-            var result = await push.SendAsync(messages, ct);
-            _log.LogInformation("Punctuality reminders for tenant {Tenant} : sent={Sent} invalid={Invalid}",
-                tenantTag, result.Sent, result.InvalidTokens.Count);
-
-            // Persiste la dédup en DB pour ne pas re-notifier au prochain tour ni au redémarrage.
-            // Idempotent : index unique (empcod, for_date, type) — on protège l'insert avec try/catch.
-            foreach (var owner in messageOwners.Distinct())
-            {
-                try
-                {
-                    db.PushReminderLogs.Add(new PushReminderLog
-                    {
-                        Empcod = owner.Empcod,
-                        Type = owner.Type,
-                        ForDate = today,
-                        SentAt = DateTime.UtcNow,
-                    });
-                }
-                catch { /* noop */ }
-            }
-            try { await db.SaveChangesAsync(ct); }
-            catch (DbUpdateException) { /* race ou collision sur l'index unique : tolérable */ }
-
-            // Désactiver les tokens devenus invalides (DeviceNotRegistered).
-            if (result.InvalidTokens.Count > 0)
-            {
-                var deactivate = await db.PushTokens
-                    .Where(t => result.InvalidTokens.Contains(t.Token))
-                    .ToListAsync(ct);
-                foreach (var t in deactivate) t.Active = false;
-                await db.SaveChangesAsync(ct);
-            }
+            var data = new { type = c.Type == "in" ? "reminder_in" : "reminder_out", date = today.ToString("yyyy-MM-dd") };
+            var sent = await notify.NotifyUserAsync(c.Uticod, c.Title, c.Body, data, ct);
+            totalSent += sent;
+            // On enregistre la dédup même si sent==0 : l'utilisateur a pu désactiver
+            // le canal push dans ses prefs, et on ne veut pas re-tenter chaque 15 min.
+            // L'historique in-app a déjà été persisté côté NotifyUserAsync.
+            notifiedOwners.Add((c.Empcod, c.Type));
         }
+
+        _log.LogInformation("Punctuality reminders for tenant {Tenant} : candidates={N} sent={Sent}",
+            tenantTag, candidates.Count, totalSent);
+
+        // Persiste la dédup en DB pour ne pas re-notifier au prochain tour ni au redémarrage.
+        // Idempotent : index unique (empcod, for_date, type) — on protège l'insert avec try/catch.
+        foreach (var owner in notifiedOwners.Distinct())
+        {
+            try
+            {
+                db.PushReminderLogs.Add(new PushReminderLog
+                {
+                    Empcod = owner.Empcod,
+                    Type = owner.Type,
+                    ForDate = today,
+                    SentAt = DateTime.UtcNow,
+                });
+            }
+            catch { /* noop */ }
+        }
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateException) { /* race ou collision sur l'index unique : tolérable */ }
     }
 
     private static DateTime? ParseHour(string? hhmm, DateTime day)

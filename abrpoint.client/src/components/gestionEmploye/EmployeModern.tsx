@@ -271,10 +271,24 @@ function CountrySelect({ value, onChange }: { value: string; onChange: (cca3: st
         <Autocomplete<RestCountry, false, false, true>
             freeSolo
             options={sorted}
-            value={selected}
-            inputValue={selected ? selected.nameFr : (value || '')}
+            // Si on trouve un pays matchant le code stocké → on l'utilise (objet RestCountry).
+            // Sinon (donnée legacy non mappée) on injecte la chaîne brute en mode freeSolo
+            // pour la conserver sans la perdre. L'Autocomplete gère ensuite tout seul son
+            // inputValue interne, ce qui permet à l'utilisateur de taper et filtrer librement.
+            value={selected ?? (value || null)}
             getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.nameFr}
             isOptionEqualToValue={(opt, val) => opt.cca3 === val.cca3}
+            // Filtrage maison sur 3 champs : nom français, code 3 lettres, code 2 lettres.
+            // Plus permissif que le default MUI (qui ne matche que getOptionLabel).
+            filterOptions={(options, state) => {
+                const q = state.inputValue.trim().toLowerCase();
+                if (!q) return options;
+                return options.filter(o =>
+                    o.nameFr.toLowerCase().includes(q) ||
+                    (o.cca3 || '').toLowerCase().includes(q) ||
+                    (o.cca2 || '').toLowerCase().includes(q)
+                );
+            }}
             loading={isLoading}
             // freeSolo : si l'utilisateur tape librement (cas d'une donnée legacy
             // qu'on veut garder), on stocke la chaîne brute sans la transformer.

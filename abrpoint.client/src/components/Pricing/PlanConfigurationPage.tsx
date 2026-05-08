@@ -127,8 +127,7 @@ const PlanConfigurationPage: React.FC = () => {
                       <span className="material-symbols-outlined text-2xl">school</span>
                     </div>
                     <h3 className="font-black text-lg mb-2 font-headline">Formation logiciel</h3>
-                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Sessions visio + présentielles animées par nos formateurs experts pour vos équipes.</p>
-                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'formation' ? 'text-primary' : 'text-outline'}`}>Inclus</div>
+                    <p className="text-sm text-on-surface-variant leading-relaxed">Vous utilisez Concorde-work-force et souhaitez exploiter tout son potentiel pour optimiser la gestion de votre entreprise ?</p>
                   </div>
 
                   {/* Card 2 — Pack de mise en place (recommended) */}
@@ -145,8 +144,7 @@ const PlanConfigurationPage: React.FC = () => {
                       <span className="material-symbols-outlined text-2xl fill-icon">rocket_launch</span>
                     </div>
                     <h3 className="font-black text-lg mb-2 font-headline">Pack de mise en place</h3>
-                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Déploiement clés en main : paramétrage, import des données, formation des équipes.</p>
-                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'pack' ? 'text-primary' : 'text-outline'}`}>+ 1 800 € <span className="text-[10px] font-normal text-outline">HT</span></div>
+                    <p className="text-sm text-on-surface-variant leading-relaxed">Gagnez un temps précieux et assurez un démarrage optimal sur Concorde-work-force.</p>
                   </div>
 
                   {/* Card 3 — Coaching sur mesure */}
@@ -162,8 +160,8 @@ const PlanConfigurationPage: React.FC = () => {
                       <span className="material-symbols-outlined text-2xl">psychology</span>
                     </div>
                     <h3 className="font-black text-lg mb-2 font-headline">Coaching sur mesure</h3>
-                    <p className="text-sm text-on-surface-variant mb-8 leading-relaxed">Un consultant RH dédié vous accompagne sur 3 mois après la mise en production.</p>
-                    <div className={`text-sm font-black uppercase tracking-widest ${packageType === 'coaching' ? 'text-primary' : 'text-outline'}`}>+ 1 200 € <span className="text-[10px] font-normal text-outline">HT</span></div>
+                    <p className="text-sm text-on-surface-variant leading-relaxed font-bold mb-2">Développez votre maîtrise de Concorde-work-force</p>
+                    <p className="text-sm text-on-surface-variant leading-relaxed">Vous utilisez Concorde-work-force et souhaitez exploiter tout son potentiel pour optimiser la gestion de votre entreprise ?</p>
                   </div>
                 </div>
               </section>

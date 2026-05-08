@@ -25,7 +25,7 @@ import usePostLcategorie from '../../hooks/lcategoriesHooks/usePostLcategorie';
 import useUpdateLcategorie from '../../hooks/lcategoriesHooks/useUpdateLcategorie';
 import { PosteHoraire } from '../../models/PosteHoraire';
 import useDeleteLcategorie from '../../hooks/lcategoriesHooks/useDeleteLcategorie';
-import useGetLcategories from '../../hooks/lcategoriesHooks/useGetLcategories';
+import useGetAllLcategories from '../../hooks/lcategoriesHooks/useGetAllLcategories';
 import useGetPoste from '../../hooks/posteHooks/useGetPoste';
 import useGetPostesData from '../../hooks/posteHooks/useGetPostesData';
 import AlertModal from '../AlertModal/AlertModal';
@@ -488,6 +488,11 @@ function ClasseHoraireModernInner() {
   // classeFreq est initialisé une seule fois depuis les données,
   // il ne doit PAS être réécrit à chaque clic sur une période existante.
   const [classeFreq, setClasseFreq] = useState('N');
+  // nextCatcod : code auto-généré pour la PROCHAINE classe à créer. Stocké à
+  // part de classeCode pour qu'on puisse afficher toutes les classes existantes
+  // dans la sidebar (classeCode='') tout en pré-remplissant le code dans la
+  // dialog de création (qui consomme nextCatcod via inheritCatcod).
+  const [nextCatcod, setNextCatcod] = useState('');
   const [activePeriod, setActivePeriod] = useState<any>(null);
   const [selectedPosteCode, setSelectedPosteCode] = useState('');
   const [periodDialogOpen, setPeriodDialogOpen] = useState(false);
@@ -509,20 +514,23 @@ function ClasseHoraireModernInner() {
     return <AccessDenied message={t('classeHoraire.modern.noConsultRight')} />;
   }
 
-  // Auto-génération du catcod au mount (et tant qu'aucune classe n'est sélectionnée).
-  // Évite que l'utilisateur ait à cliquer "Nouvelle classe" avant de pouvoir créer
-  // sa 1re période — il voit immédiatement le code prêt à l'emploi dans la sidebar.
+  // Auto-génération du catcod : pré-fetch dans nextCatcod (séparé de classeCode)
+  // pour que la sidebar affiche les classes existantes sans pollution. La dialog
+  // consommera nextCatcod via inheritCatcod quand l'utilisateur crée une nouvelle classe.
   useEffect(() => {
-    if (classeCode) return;
+    if (nextCatcod) return;
     const soc = sessionStorage.getItem('soccod') || '';
     if (!soc) return;
     apiInstance.get(`/Lcategories/get-next-catcod/${soc}`)
-      .then(r => { if (r.data?.catcod) setClasseCode(r.data.catcod); })
+      .then(r => { if (r.data?.catcod) setNextCatcod(r.data.catcod); })
       .catch(() => { /* échec silencieux */ });
-  }, [classeCode]);
+  }, [nextCatcod]);
 
   const { data: postesList = [] } = useGetPoste();
-  const { data: classesList = [], refetch: refetchClasses } = useGetLcategories(classeFreq || 'N');
+  // Fetch unique pour les 2 types ('N' Périodique + 'S' Selon pointage). L'utilisateur
+  // voit toutes ses classes en même temps dans la sidebar, sans avoir à basculer.
+  // classeFreq reste utilisé pour piloter le formulaire de création (cf. resolvedFreq).
+  const { data: classesList = [], refetch: refetchClasses } = useGetAllLcategories();
   const { data: posteData = {} as PosteHoraire } = useGetPostesData(
     activePeriod?.codposte ?? selectedClasseHoraire?.codposte ?? '',
     activePeriod?.catcod ?? selectedClasseHoraire?.catcod ?? ''
@@ -728,6 +736,23 @@ function ClasseHoraireModernInner() {
                         <Typography className={`chm-period-badge ${isActive ? 'chm-badge-active' : 'chm-badge-next'}`}>
                           {isActive ? t('classeHoraire.modern.sidebar.badgeActive') : t('classeHoraire.modern.sidebar.badgeNext')}
                         </Typography>
+                        {/* Badge type : signale d'un coup d'œil si la classe est
+                            « Périodique » (1 poste/période) ou « Selon pointage »
+                            (rotation hebdo). Indispensable depuis qu'on affiche les 2
+                            types ensemble dans la même sidebar. */}
+                        <Typography
+                          sx={{
+                            fontSize: '9px', fontWeight: 800,
+                            padding: '2px 6px', borderRadius: '6px',
+                            letterSpacing: '0.04em',
+                            background: row.catperiode === 'S' ? '#ede9fe' : '#dbeafe',
+                            color: row.catperiode === 'S' ? '#6d28d9' : '#1d4ed8',
+                          }}
+                        >
+                          {row.catperiode === 'S'
+                            ? t('classeHoraire.modern.sidebar.badgeRotation', { defaultValue: '🔄 ROTATION' })
+                            : t('classeHoraire.modern.sidebar.badgePeriodique', { defaultValue: '📅 PÉRIODIQUE' })}
+                        </Typography>
                         {canModify && (
                           <IconButton
                             size="small"
@@ -846,20 +871,20 @@ function ClasseHoraireModernInner() {
                   // de création de la 1re période.
                   setClasseFreq('N');
                   setFrequence('N');
-                  // Pré-remplit le code via l'endpoint serveur d'auto-génération.
-                  // L'utilisateur voit immédiatement le code qui sera attribué (et peut
-                  // le modifier s'il préfère un code custom).
+                  // Désélectionne toute classe active : la sidebar repasse en vue
+                  // "toutes les classes" pendant que l'utilisateur prépare la nouvelle.
+                  setClasseCode('');
+                  // Pré-fetch du prochain code (au cas où il aurait changé entre-temps,
+                  // ex. après suppression). La dialog le consomme via inheritCatcod.
                   const soccod = sessionStorage.getItem('soccod') || '';
                   if (soccod) {
                     try {
                       const r = await apiInstance.get(`/Lcategories/get-next-catcod/${soccod}`);
-                      setClasseCode(r.data?.catcod || '');
-                    } catch {
-                      setClasseCode('');
-                    }
-                  } else {
-                    setClasseCode('');
+                      setNextCatcod(r.data?.catcod || '');
+                    } catch { /* gardé silencieux : nextCatcod existant en fallback */ }
                   }
+                  setPeriodDialogOpen(true);
+                  setEditPeriod(null);
                 }}
                 sx={{
                   borderRadius: '8px', textTransform: 'none', fontWeight: 600,
@@ -937,7 +962,10 @@ function ClasseHoraireModernInner() {
         postesMap={postesMap}
         // resolvedFreq garantit que le dialog reflète toujours la fréquence réelle de la classe
         frequence={resolvedFreq}
-        inheritCatcod={!editPeriod ? classeCode : undefined}
+        // Si on édite : la dialog lit catcod depuis editPeriod ; sinon on lui passe
+        // soit le code de la classe sélectionnée (ajout d'une période à une classe
+        // existante), soit nextCatcod (création d'une nouvelle classe).
+        inheritCatcod={!editPeriod ? (classeCode || nextCatcod) : undefined}
         inheritCatlib={!editPeriod ? classeLib : undefined}
         classeExists={!!classeCode && classesList.some((r: any) => r.catcod === classeCode)}
         // À la création d'une nouvelle classe, le user peut basculer entre

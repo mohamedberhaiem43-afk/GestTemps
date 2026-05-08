@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
@@ -197,6 +198,51 @@ function SocieteModernContent() {
     setForm(emptyForm);
   };
 
+  // Export XLSX de la liste des sociétés (telle que filtrée à l'écran). Utilise la lib
+  // `xlsx` déjà présente dans les deps. Pas d'aller-retour serveur — la donnée est
+  // déjà en mémoire via useGetSocietes. Nom de fichier daté pour traçabilité côté
+  // utilisateur final qui télécharge plusieurs exports.
+  const handleExport = () => {
+    try {
+      const rows = (filteredSocietes || []).map((s) => ({
+        Code: s.soccod,
+        Libellé: s.soclib,
+        Type: getTypeLabel(s.soctype || ''),
+        Responsable: s.socresp,
+        Adresse: s.socadr,
+        Ville: s.socville,
+        Téléphone: s.soctel,
+        Fax: s.socfax,
+        Email: s.socemail,
+        TVA: s.soctva,
+        'Compte CB': s.socccb,
+        'Régime': s.socreg,
+        'Mois clôture': s.socmois,
+        'Heures suppl.': s.sochsup,
+        'Société mère': s.socmere,
+        SMIG: s.socsmig,
+      }));
+      if (rows.length === 0) {
+        setSnack({ open: true, msg: t('societe.exportEmpty', { defaultValue: 'Aucune société à exporter.' }), sev: 'warning' });
+        return;
+      }
+      const ws = XLSX.utils.json_to_sheet(rows);
+      // Largeurs de colonnes raisonnables — sinon Excel rend tout en 8 caractères.
+      ws['!cols'] = [
+        { wch: 8 },  { wch: 28 }, { wch: 12 }, { wch: 24 }, { wch: 32 }, { wch: 22 },
+        { wch: 16 }, { wch: 16 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 8 },
+        { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 10 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Sociétés');
+      const date = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `societes-${date}.xlsx`);
+      setSnack({ open: true, msg: t('societe.exportSuccess', { defaultValue: 'Export terminé.' }), sev: 'success' });
+    } catch (e) {
+      setSnack({ open: true, msg: t('societe.exportError', { defaultValue: 'Échec de l\'export.' }), sev: 'error' });
+    }
+  };
+
   return (
     <Box className="soc-container">
       {/* Header */}
@@ -206,7 +252,7 @@ function SocieteModernContent() {
           <Typography className="soc-subtitle">{t('societe.subtitle')}</Typography>
         </Box>
         <Box className="soc-header-actions">
-          <Button className="soc-export-btn" startIcon={<DownloadIcon />}>
+          <Button className="soc-export-btn" startIcon={<DownloadIcon />} onClick={handleExport}>
             {t('societe.export')}
           </Button>
           {canAdd && !isEditMode && (

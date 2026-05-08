@@ -4,6 +4,7 @@ import { Box, Typography, Paper, Button, CircularProgress, Chip,
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
+import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
 import DownloadIcon from '@mui/icons-material/Download';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EventIcon from '@mui/icons-material/Event';
@@ -162,6 +163,13 @@ function SoldeCongeModernInner() {
   // Derive balance values from solde
   const totalBalance  = solde?.conge    ?? 0;
   const totalAcquired = solde?.empconge ?? 0;
+
+  // RTT : RttJours = droit annuel acquis ; RttUtilises = jours RTT pris (incrémenté
+  // sur acceptation des demandes Abscng='R'). Solde RTT = max(acquis − pris, 0).
+  // Si aucun droit (rttJours null/0), on affiche un état "non éligible" via emptyMsg.
+  const rttAcquired = solde?.rttJours ?? 0;
+  const rttTaken    = solde?.rttUtilises ?? 0;
+  const rttBalance  = Math.max(0, rttAcquired - rttTaken);
   
   // Categorize taken leaves
   const takenStats = useMemo(() => {
@@ -314,6 +322,16 @@ function SoldeCongeModernInner() {
           taken={takenStats.css}
           barColor="#ba1a1a"
           emptyMsg={t('conge.soldeConge.card.noUnpaidLeave')}
+        />
+        <BalanceCard
+          icon={<WorkHistoryIcon sx={{ color: '#10b981' }} />}
+          iconBg="rgba(16,185,129,0.12)"
+          label={t('conge.soldeConge.card.rtt', { defaultValue: 'Solde RTT' })}
+          balance={rttBalance}
+          acquired={rttAcquired}
+          taken={rttTaken}
+          barColor="#10b981"
+          emptyMsg={t('conge.soldeConge.card.noRtt', { defaultValue: 'Aucun droit RTT acquis pour cette période.' })}
         />
       </Box>
 

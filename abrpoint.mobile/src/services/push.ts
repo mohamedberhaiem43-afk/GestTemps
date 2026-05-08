@@ -81,12 +81,14 @@ export async function registerForPushAsync(soccod?: string): Promise<{ token: st
     const token = tokenResponse.data;
     if (!token) return null;
 
-    const lastRegistered = await SecureStore.getItemAsync(REGISTERED_TOKEN_KEY);
-    if (lastRegistered === token) {
-      // Déjà enregistré sur ce device — on n'appelle pas l'API à chaque démarrage.
-      return { token, registered: true };
-    }
-
+    // ⚠ On NE skip PAS l'appel API si le token est déjà dans SecureStore : la
+    // base backend peut avoir perdu l'enregistrement (réassignation à un autre
+    // user du device, soft-delete admin, ré-import, panne tenant). Dans ce cas
+    // /test-push renvoyait sent=0 → "Aucun appareil enregistré" même quand
+    // l'utilisateur avait bien donné les permissions et que SecureStore disait
+    // "déjà enregistré". L'endpoint /MobileAuth/register-push-token est idempotent
+    // (upsert sur Token), donc le ré-appeler à chaque login est safe et corrige
+    // automatiquement les cas de désync.
     const deviceId = await getOrCreateDeviceId();
     await apiService.registerPushToken({
       Token: token,

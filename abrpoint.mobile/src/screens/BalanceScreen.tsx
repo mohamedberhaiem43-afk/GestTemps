@@ -59,44 +59,63 @@ export default function BalanceScreen({ navigation }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentContainerStyle={{ padding: 16 }}
       >
-        {/* Carte RTT — visible uniquement si éligible (méthode ≠ 'N'). */}
-        {rtt && (
-          <View style={styles.rttCard}>
-            <View style={styles.rttHeader}>
-              <View style={styles.rttIconWrap}>
-                <MaterialCommunityIcons name="briefcase-clock-outline" size={24} color="#10b981" />
+        {/* Carte RTT — toujours visible. Si l'employé n'est pas éligible
+            (rtt null côté backend ou méthode 'N'), on affiche un placeholder
+            explicite pour que l'utilisateur ne se demande pas où est sa donnée. */}
+        {(() => {
+          const isEligible = !!rtt && rtt.methode !== 'N' && rtt.droitAnnuel > 0;
+          const methodeLabel = rtt
+            ? (rtt.methode === 'M' ? 'mensuelle'
+              : rtt.methode === 'H' ? 'horaire'
+              : rtt.methode === 'F' ? 'forfaitaire'
+              : 'non éligible')
+            : 'non configurée';
+          return (
+            <View style={styles.rttCard}>
+              <View style={styles.rttHeader}>
+                <View style={styles.rttIconWrap}>
+                  <MaterialCommunityIcons name="briefcase-clock-outline" size={24} color="#10b981" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rttCardTitle}>Solde RTT</Text>
+                  <Text style={styles.rttMeta}>Méthode {methodeLabel}</Text>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rttCardTitle}>Solde RTT</Text>
-                <Text style={styles.rttMeta}>
-                  Méthode {rtt.methode === 'M' ? 'mensuelle' : rtt.methode === 'H' ? 'horaire' : 'forfaitaire'}
+              {isEligible && rtt ? (
+                <>
+                  <View style={styles.rttRow}>
+                    <View style={styles.rttItem}>
+                      <Text style={styles.rttItemLabel}>Acquis</Text>
+                      <Text style={[styles.rttItemValue, { color: COLORS.success }]}>{rtt.droitAnnuel.toFixed(1)}</Text>
+                    </View>
+                    <View style={styles.rttItem}>
+                      <Text style={styles.rttItemLabel}>Pris</Text>
+                      <Text style={[styles.rttItemValue, { color: COLORS.error }]}>{rtt.pris.toFixed(1)}</Text>
+                    </View>
+                    <View style={styles.rttItem}>
+                      <Text style={styles.rttItemLabel}>Restant</Text>
+                      <Text style={[styles.rttItemValue, { color: '#10b981' }]}>{rtt.solde.toFixed(1)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.rttProgressBar}>
+                    <View
+                      style={[
+                        styles.rttProgressFill,
+                        { width: `${rtt.droitAnnuel > 0 ? Math.min(100, (rtt.pris / rtt.droitAnnuel) * 100) : 0}%` },
+                      ]}
+                    />
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.rttEmptyText}>
+                  {rtt && rtt.methode === 'N'
+                    ? 'Vous n\'êtes pas éligible au régime RTT.'
+                    : 'Aucun droit RTT acquis pour le moment. Le solde apparaîtra ici dès qu\'un droit sera comptabilisé.'}
                 </Text>
-              </View>
+              )}
             </View>
-            <View style={styles.rttRow}>
-              <View style={styles.rttItem}>
-                <Text style={styles.rttItemLabel}>Acquis</Text>
-                <Text style={[styles.rttItemValue, { color: COLORS.success }]}>{rtt.droitAnnuel.toFixed(1)}</Text>
-              </View>
-              <View style={styles.rttItem}>
-                <Text style={styles.rttItemLabel}>Pris</Text>
-                <Text style={[styles.rttItemValue, { color: COLORS.error }]}>{rtt.pris.toFixed(1)}</Text>
-              </View>
-              <View style={styles.rttItem}>
-                <Text style={styles.rttItemLabel}>Restant</Text>
-                <Text style={[styles.rttItemValue, { color: '#10b981' }]}>{rtt.solde.toFixed(1)}</Text>
-              </View>
-            </View>
-            <View style={styles.rttProgressBar}>
-              <View
-                style={[
-                  styles.rttProgressFill,
-                  { width: `${rtt.droitAnnuel > 0 ? Math.min(100, (rtt.pris / rtt.droitAnnuel) * 100) : 0}%` },
-                ]}
-              />
-            </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* Section Congés payés */}
         <Text style={styles.sectionLabel}>CONGÉS PAYÉS</Text>
@@ -181,4 +200,5 @@ const styles = StyleSheet.create({
     borderRadius: 3, overflow: 'hidden',
   },
   rttProgressFill: { height: '100%', backgroundColor: '#10b981', borderRadius: 3 },
+  rttEmptyText: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18, fontStyle: 'italic' },
 });
