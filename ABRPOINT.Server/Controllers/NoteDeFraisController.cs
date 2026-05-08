@@ -1,8 +1,12 @@
+using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -13,16 +17,42 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly INoteDeFraisRepository _repository;
         private readonly IMissionRepository _missionRepository;
+        private readonly ApplicationDbContext _db;
 
-        public NoteDeFraisController(INoteDeFraisRepository repository, IMissionRepository missionRepository)
+        public NoteDeFraisController(INoteDeFraisRepository repository, IMissionRepository missionRepository, ApplicationDbContext db)
         {
             _repository = repository;
             _missionRepository = missionRepository;
+            _db = db;
         }
 
+        // SEC-08 — Helpers d'autorisation : un employé ne voit/crée que SES notes ;
+        // l'approbation/suppression est réservée aux managers/admins.
+        private async Task<bool> CallerIsAdminOrManagerAsync()
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            return await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1"
+                          || PermissionCatalog.IsAdminRole(u.Utirole)
+                          || u.Utirole == PermissionCatalog.Roles.Manager)
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task<bool> CallerOwnsOrCanManageAsync(string targetEmpcod)
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            if (string.Equals(caller, targetEmpcod, StringComparison.OrdinalIgnoreCase)) return true;
+            return await CallerIsAdminOrManagerAsync();
+        }
+
+        // SEC-08 — Liste globale : managers/admins uniquement.
         [HttpGet("by-soc/{soccod}")]
         public async Task<ActionResult<IEnumerable<NoteDeFrais>>> GetBySoc(string soccod)
         {
+            if (!await CallerIsAdminOrManagerAsync()) return Forbid();
             try
             {
                 return Ok(await _repository.GetAllBySoc(soccod));
@@ -33,9 +63,11 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // SEC-08 — Liste par employé : self-service ou manager/admin.
         [HttpGet("by-emp/{soccod}/{empcod}")]
         public async Task<ActionResult<IEnumerable<NoteDeFrais>>> GetByEmp(string soccod, string empcod)
         {
+            if (!await CallerOwnsOrCanManageAsync(empcod)) return Forbid();
             try
             {
                 return Ok(await _repository.GetByEmp(soccod, empcod));
@@ -46,18 +78,24 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // SEC-08 — Détail par ID : ownership check.
         [HttpGet("{id}")]
         public async Task<ActionResult<NoteDeFrais>> GetById(int id)
         {
             var result = await _repository.GetById(id);
             if (result == null) return NotFound();
+            if (!await CallerOwnsOrCanManageAsync(result.Empcod ?? string.Empty)) return Forbid();
             return Ok(result);
         }
 
+        // SEC-08 — Création : `request.Empcod` doit être l'appelant (ou admin/manager pour
+        // saisir au nom d'un collaborateur). Sans, n'importe quel employé pouvait créer
+        // une note de frais au nom d'un collègue.
         [HttpPost("add")]
         public async Task<IActionResult> Add([FromForm] NoteDeFraisRequest request)
         {
             if (request == null) return BadRequest();
+            if (!await CallerOwnsOrCanManageAsync(request.Empcod ?? string.Empty)) return Forbid();
 
             // La note de frais doit obligatoirement être rattachée à une mission existante,
             // dont la nature d'absence est "Formation et mission" (Abscng="6"). Sans ce lien,
@@ -106,9 +144,13 @@ namespace ABRPOINT.Server.Controllers
             return Ok(notedefrais);
         }
 
+        // SEC-08 — `update-status` permet d'approuver/refuser une note de frais.
+        // Réservé aux managers/admins. Sans, un employé pouvait passer ses propres
+        // notes de Pending à Approved.
         [HttpPut("update-status/{id}/{status}")]
         public async Task<IActionResult> UpdateStatus(int id, string status)
         {
+            if (!await CallerIsAdminOrManagerAsync()) return Forbid();
             var item = await _repository.GetById(id);
             if (item == null) return NotFound();
 
@@ -117,9 +159,13 @@ namespace ABRPOINT.Server.Controllers
             return Ok(item);
         }
 
+        // SEC-08 — Suppression : ownership ou manager/admin.
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            var item = await _repository.GetById(id);
+            if (item == null) return NotFound();
+            if (!await CallerOwnsOrCanManageAsync(item.Empcod ?? string.Empty)) return Forbid();
             await _repository.DeleteAsync(id);
             return NoContent();
         }

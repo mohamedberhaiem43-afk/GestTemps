@@ -1,9 +1,13 @@
 using ABRPOINT.Server.Annotations.AutSortieAttributes;
+using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
@@ -15,17 +19,35 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IautoriserRepository _autoriserRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
-        public AutorisersController(IautoriserRepository autoriserRepository, IReportsGenerationService reportsGenerationService)
+        private readonly ApplicationDbContext _db;
+        public AutorisersController(IautoriserRepository autoriserRepository, IReportsGenerationService reportsGenerationService, ApplicationDbContext db)
         {
             _autoriserRepository = autoriserRepository;
             _reportsGenerationService = reportsGenerationService;
+            _db = db;
         }
+
+        // A4 / A13 — l'utilisateur doit consulter / créer SES propres autorisations.
+        // Accepté aussi pour un appelant admin/privilégié (manager/RH).
+        private async Task<bool> CallerOwnsOrCanManageAsync(string targetEmpcod)
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            if (string.Equals(caller, targetEmpcod, StringComparison.OrdinalIgnoreCase)) return true;
+            return await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1" || PermissionCatalog.IsAdminRole(u.Utirole))
+                .FirstOrDefaultAsync();
+        }
+
         // GET: api/Autorisers/my-auths/{soccod}/{empcod} - Employee self-service (no special permission needed)
         [HttpGet("my-auths/{soccod}/{empcod}")]
         public async Task<IActionResult> GetMyAuthorizations(string soccod, string empcod)
         {
             if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(empcod))
                 return BadRequest("Veuillez remplir les champs obligatoires");
+            // A13 — un employé ne peut consulter QUE ses propres autorisations.
+            if (!await CallerOwnsOrCanManageAsync(empcod)) return Forbid();
             try
             {
                 List<AutoriserEmployeDto> result = await _autoriserRepository.GetAutoriserWithAbsenceAsync(soccod, empcod);
@@ -99,6 +121,8 @@ namespace ABRPOINT.Server.Controllers
 
 
         // POST api/Autorisers/my-auth - Employee self-service create (no special permission)
+        // A4 — `autoriser.Empcod` doit correspondre à l'appelant. Sinon n'importe quel
+        // employé peut créer une autorisation au nom de n'importe quel collègue.
         [HttpPost("my-auth")]
         public async Task<IActionResult> PostMyAuthorization([FromBody] Autoriser autoriser)
         {
@@ -106,6 +130,18 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest("Veuillez saisir les champs obligatoires");
             try
             {
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (string.IsNullOrEmpty(autoriser.Empcod))
+                {
+                    // Permissif : on aligne sur l'appelant si le client n'a pas posé l'empcod.
+                    autoriser.Empcod = caller;
+                }
+                else if (!await CallerOwnsOrCanManageAsync(autoriser.Empcod))
+                {
+                    return Forbid();
+                }
+
                 await _autoriserRepository.AddAsync(autoriser);
                 return Ok(new { message = "Autorisation de sortie envoyée avec succès", concod = autoriser.Concod });
             }

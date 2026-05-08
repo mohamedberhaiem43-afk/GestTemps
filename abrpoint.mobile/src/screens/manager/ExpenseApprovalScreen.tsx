@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, ActivityIndicator, Image, Modal, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
+import { resolveAssetUrl } from '../../config/assetUrl';
 
 // Admin expense approval screen
 // Etat values: "Pending", "Approved", "Rejected", "Reimbursed"
@@ -16,6 +17,7 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>('pending');
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   useEffect(() => { loadExpenses(); }, [user]);
 
@@ -160,7 +162,18 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
               </View>
 
               {exp.justificatif ? (
-                <Text style={styles.expJustif}>📎 {exp.justificatif.split('/').pop()}</Text>
+                <TouchableOpacity
+                  style={styles.justifRow}
+                  onPress={() => setPreviewUri(resolveAssetUrl(exp.justificatif))}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{ uri: resolveAssetUrl(exp.justificatif) }}
+                    style={styles.justifThumb}
+                    resizeMode="cover"
+                  />
+                  <Text style={styles.justifLink}>📎 Voir le justificatif</Text>
+                </TouchableOpacity>
               ) : null}
 
               <View style={styles.expFooter}>
@@ -185,6 +198,17 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
           ))
         )}
       </ScrollView>
+
+      <Modal visible={!!previewUri} transparent animationType="fade" onRequestClose={() => setPreviewUri(null)}>
+        <View style={styles.previewOverlay}>
+          <TouchableOpacity style={styles.previewClose} onPress={() => setPreviewUri(null)}>
+            <Text style={styles.previewCloseText}>✕</Text>
+          </TouchableOpacity>
+          {previewUri ? (
+            <Image source={{ uri: previewUri }} style={styles.previewImage} resizeMode="contain" />
+          ) : null}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -212,7 +236,13 @@ const styles = StyleSheet.create({
   expDetails: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f5f5f5' },
   expAmount: { fontSize: 16, fontWeight: 'bold', color: COLORS.success },
   expDate: { fontSize: 12, color: COLORS.textSecondary },
-  expJustif: { fontSize: 11, color: COLORS.primary, marginTop: 6 },
+  justifRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, padding: 6, backgroundColor: '#f8fafc', borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+  justifThumb: { width: 56, height: 56, borderRadius: 6, backgroundColor: '#e2e8f0' },
+  justifLink: { fontSize: 13, color: COLORS.primary, fontWeight: '600', flex: 1 },
+  previewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center' },
+  previewImage: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.85 },
+  previewClose: { position: 'absolute', top: 40, right: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  previewCloseText: { color: '#fff', fontSize: 22, fontWeight: '700' },
   expFooter: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f5f5f5' },
   expCreated: { fontSize: 10, color: COLORS.textSecondary, marginBottom: 4 },
   actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },

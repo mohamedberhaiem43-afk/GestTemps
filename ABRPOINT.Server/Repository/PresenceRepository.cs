@@ -77,8 +77,8 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        // Add this as a class-level cache dictionary
-        private static readonly Dictionary<string, int> _longbdgCache = new Dictionary<string, int>();
+        // Thread-safe cache (was Dictionary<string,int> which is not safe under concurrent requests).
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _longbdgCache = new();
 
         public async Task<PresenceDto?> AddPresenceAsync(string soccod, string empcod, DateTime date, string poicod)
         {
@@ -288,8 +288,15 @@ namespace ABRPOINT.Server.Repository
 
         private async Task UpdateExistingPresence(Presence dbpresence, DateTime date,Poste poste)
         {
-            // ⚡ Récupération du paramètre parecart (en minutes)
-            var param = await _dbContext.Parametres.FirstOrDefaultAsync();
+            // ⚡ Récupération du paramètre parecart (en minutes).
+            // P6 — Filtrer par soccod : sans WHERE, en multi-tenant on peut récupérer le
+            // paramétrage d'une autre société. On retombe sur le 1er trouvé seulement si
+            // la société courante n'a aucun param explicite (cas legacy).
+            var soccod = dbpresence?.Soccod;
+            var param = !string.IsNullOrEmpty(soccod)
+                ? await _dbContext.Parametres.FirstOrDefaultAsync(p => p.Soccod == soccod)
+                  ?? await _dbContext.Parametres.FirstOrDefaultAsync()
+                : await _dbContext.Parametres.FirstOrDefaultAsync();
             float parecart = param?.Parecart ?? 0;
 
             string dateStr = date.ToString("HH:mm");
@@ -455,10 +462,33 @@ namespace ABRPOINT.Server.Repository
                     .Where(p => p.Empcod == empcod && p.Dmdate >= dateDeb && p.Dmdate <= dateFin)
                     .ToListAsync();
 
+                if (presences.Count == 0) return 0;
+
+                // P4 — Avant : un appel `GetCongeLibAsync` par présence (~30 round-trips SQL pour
+                // un mois). Maintenant : 1 seule requête qui charge les chevauchements de congés
+                // sur toute la fenêtre, puis on teste localement par date. Pour 30 présences ×
+                // 1 mois = 1 requête au lieu de 30.
+                var soccod = presences.First().Soccod;
+                var minDate = presences.Min(p => p.Dmdate)!.Value;
+                var maxDate = presences.Max(p => p.Dmdate)!.Value;
+
+                var conges = await (
+                    from c in _dbContext.Conges
+                    where c.Soccod == soccod
+                          && c.Empcod == empcod
+                          && c.Condep <= maxDate
+                          && (c.Conamret == "1" ? c.Conret >= minDate : c.Conret > minDate)
+                    select new { c.Condep, c.Conret, c.Conamret }
+                ).ToListAsync();
+
+                bool DateIsCovered(DateTime date) =>
+                    conges.Any(c => c.Condep <= date
+                                    && (c.Conamret == "1" ? c.Conret >= date : c.Conret > date));
+
                 foreach (var p in presences)
                 {
-                    var conge = await _congeRepository.GetCongeLibAsync(p.Soccod, p.Empcod, (DateTime)p.Dmdate);
-                    if (GenericMethodes.IsValid(p) && string.IsNullOrEmpty(conge) )
+                    var date = (DateTime)p.Dmdate!;
+                    if (GenericMethodes.IsValid(p) && !DateIsCovered(date))
                         nbJours++;
                 }
 
@@ -469,10 +499,19 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-        
+
+        // P5 — Sécurise le GetAllAsync sans filtre. La table Presences peut contenir des
+        // millions de lignes en production ; un appel sans pagination saturerait la mémoire
+        // et le TCP. Aucun appelant connu dans le code actuel (cf. audit S/P), mais
+        // l'interface IRepository<Presence> impose la signature, donc on la garde et on
+        // applique un plafond strict + ordre déterministe pour rester safe par défaut.
+        private const int GetAllMaxRows = 1000;
         public async Task<IEnumerable<Presence>> GetAllAsync()
         {
-            return await _dbContext.Presences.ToListAsync();
+            return await _dbContext.Presences
+                .OrderByDescending(p => p.Predat)
+                .Take(GetAllMaxRows)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<EtatEmpPresence>> GetAllAsync(string soccod,DateTime dateDebut,DateTime dateFin,string regime,List<string> empcods)

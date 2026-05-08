@@ -3,6 +3,23 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# SEC-04 — Secrets : ne jamais commiter. Les valeurs réelles vivent dans des
+# variables d'environnement (Docker secrets, vault) ou dans un appsettings.*.json
+# spécifique à l'environnement, qui ne doit pas être versionné.
+**/appsettings.Production.json
+**/appsettings.Local.json
+**/appsettings.Development.local.json
+docker-compose.override.yml
+.env
+.env.local
+.env.production
+.env.*.local
+!**/.env.example
+abrpoint.client/.env
+abrpoint.client/.env.local
+abrpoint.client/.env.production
+
+
 # User-specific files
 *.rsuser
 *.suo

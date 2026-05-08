@@ -8,6 +8,7 @@ using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -174,7 +175,9 @@ namespace GestionDesTickets.Server.Controllers
             }
         }
         // POST api/<UtilisateursController>
+        // A7 — 5 tentatives / minute / IP. Bloque le brute-force et le credential stuffing.
         [HttpPost("connect")]
+        [EnableRateLimiting("auth-login")]
         public async Task<IActionResult> Connect([FromBody] UserLoginModel user)
         {
             if (!ModelState.IsValid)
@@ -284,7 +287,10 @@ namespace GestionDesTickets.Server.Controllers
             return (firstMatch, firstMatch?.Soccod ?? requestedCompany ?? string.Empty);
         }
 
+        // A7 — Brute-force du code TOTP 6 chiffres : 5 essais/min/IP plafonnent à un million
+        // de minutes pour épuiser l'espace, ce qui rend l'attaque non viable en pratique.
         [HttpPost("complete-2fa-login")]
+        [EnableRateLimiting("auth-login")]
         public async Task<IActionResult> Complete2FALogin([FromBody] Complete2FARequest request)
         {
             try
@@ -669,18 +675,33 @@ namespace GestionDesTickets.Server.Controllers
                 throw;
             }
         }
+        // A3 — `[Authorize]` ajouté : sans, n'importe qui pouvait modifier le profil
+        // d'un autre utilisateur en posant son uticod dans le payload.
+        [Authorize]
         [HttpPut("update-profile")]
-        public async Task<bool> UpdateProfile([FromBody] UtilisateurUpdate utilisateur)
+        public async Task<IActionResult> UpdateProfile([FromBody] UtilisateurUpdate utilisateur)
         {
             try
             {
-                if (utilisateur.Utilisateur != null)
+                if (utilisateur?.Utilisateur == null)
+                    return BadRequest(new { message = "Payload invalide." });
+
+                // Self-service : seul le propriétaire (ou un admin) peut modifier son profil.
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+
+                var target = utilisateur.Utilisateur.Uticod;
+                if (!string.IsNullOrEmpty(target) && !string.Equals(caller, target, StringComparison.OrdinalIgnoreCase))
                 {
-                    await _utilisateurRepository.UpdateUserAsync(utilisateur);
-                    return true;
+                    var isAdmin = await _dbContext.Utilisateurs.AsNoTracking()
+                        .Where(u => u.Uticod == caller)
+                        .Select(u => u.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole))
+                        .FirstOrDefaultAsync();
+                    if (!isAdmin) return Forbid();
                 }
 
-                return false;
+                await _utilisateurRepository.UpdateUserAsync(utilisateur);
+                return Ok(new { success = true });
             }
             catch (Exception)
             {
@@ -688,49 +709,89 @@ namespace GestionDesTickets.Server.Controllers
             }
         }
 
+        // A3 — `[Authorize]` + cohérence : un upload de fichier sans auth pouvait
+        // saturer le disque ; en plus on imposait l'uticod via query → trivialement
+        // usurpable. On force l'uticod à venir du JWT.
+        [Authorize]
         [HttpPost("upload-profile")]
-        public async Task<IActionResult> UploadProfileImage(IFormFile file, [FromQuery] string uticod)
+        public async Task<IActionResult> UploadProfileImage(IFormFile file)
         {
+            var uticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(uticod)) return Unauthorized();
+
             var (success, filePath, error) = await FileHelper.SaveFile(file);
             if (!success) return BadRequest(error);
-            // Save filePath to the user's record in DB
             await _utilisateurRepository.UpdateProfileImageAsync(uticod, filePath);
 
             return Ok(new { filePath });
         }
 
 
+        // A3 — `[Authorize]` ajouté : l'endpoint déchiffrait CIN/téléphone, son accès
+        // anonyme rendait toutes les données personnelles consultables.
+        [Authorize]
         [HttpGet("get-profile/{soccod}/{uticod}")]
-        public async Task<UtiProfile> GetProfile(string soccod,string uticod)
+        public async Task<IActionResult> GetProfile(string soccod,string uticod)
         {
             try
             {
-                UtiProfile profile = await _utilisateurRepository.GetProfileAsync(soccod,uticod);
+                // Le profil contient des champs déchiffrés (CIN, téléphone). On ne le donne
+                // qu'à son propriétaire ou à un admin. Sans ce check, un employé pouvait lire
+                // les données personnelles de n'importe quel collègue.
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (!string.Equals(caller, uticod, StringComparison.OrdinalIgnoreCase))
+                {
+                    var isAdmin = await _dbContext.Utilisateurs.AsNoTracking()
+                        .Where(u => u.Uticod == caller)
+                        .Select(u => u.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole))
+                        .FirstOrDefaultAsync();
+                    if (!isAdmin) return Forbid();
+                }
 
-                // Empcin / Emptel / Empsbase / Empsbrut / Empsnet sont stockés chiffrés AES en base
-                // (cf. EmployesController.cs:353-357 où la même règle est appliquée à GET /Employes).
-                // Sans déchiffrement ici, le mobile affichait du base64 illisible dans la fiche profil
-                // (« CIN », « Téléphone fixe »). On déchiffre côté serveur pour garder la clé hors du client.
+                UtiProfile profile = await _utilisateurRepository.GetProfileAsync(soccod,uticod);
                 if (profile?.Employee != null)
                 {
                     profile.Employee.Empcin = _encryptionService.Decrypt(profile.Employee.Empcin);
                     profile.Employee.Emptel = _encryptionService.Decrypt(profile.Employee.Emptel);
                 }
 
-                return profile;
+                return Ok(profile);
             }
             catch (Exception)
             {
                 throw;
             }
         }
+        // A3 — `[Authorize]` + verrou : sans auth, un attaquant pouvait poser n'importe
+        // quel uticod dans le DTO et changer le mot de passe. On force l'uticod cible
+        // = JWT.NameIdentifier (sauf admin).
+        [Authorize]
         [HttpPut("change-password")]
-        public async Task<bool> ChangePassword(UpdatePassword pwd)
+        public async Task<IActionResult> ChangePassword(UpdatePassword pwd)
         {
             try
             {
+                if (pwd == null) return BadRequest(new { message = "Payload invalide." });
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+
+                if (!string.IsNullOrEmpty(pwd.uticod) && !string.Equals(caller, pwd.uticod, StringComparison.OrdinalIgnoreCase))
+                {
+                    var isAdmin = await _dbContext.Utilisateurs.AsNoTracking()
+                        .Where(u => u.Uticod == caller)
+                        .Select(u => u.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole))
+                        .FirstOrDefaultAsync();
+                    if (!isAdmin) return Forbid();
+                }
+                else
+                {
+                    // Si le DTO ne précise pas la cible, on l'aligne explicitement sur l'appelant.
+                    pwd.uticod = caller;
+                }
+
                 bool profile = await _utilisateurRepository.ChangePasswordAsync(pwd);
-                return profile;
+                return Ok(new { success = profile });
             }
             catch (Exception)
             {
@@ -740,12 +801,20 @@ namespace GestionDesTickets.Server.Controllers
 
         // ── 2FA Endpoints ──────────────────────────────────────────────
 
+        // A8 — Vérifie que l'appelant active SON propre 2FA. Sans cette comparaison,
+        // un user authentifié peut activer/réinitialiser le 2FA d'un autre user et,
+        // pire, exfiltrer son secret TOTP via le QR retourné.
         [Authorize]
         [HttpPost("enable-2fa/{uticod}")]
         public async Task<IActionResult> EnableTwoFactor(string uticod)
         {
             try
             {
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (!string.Equals(caller, uticod, StringComparison.OrdinalIgnoreCase))
+                    return Forbid();
+
                 var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
                 if (user == null) return NotFound(new { Message = "User not found" });
 
@@ -787,12 +856,18 @@ namespace GestionDesTickets.Server.Controllers
             }
         }
 
+        // A8 — Verify-2FA cible toujours l'appelant.
         [Authorize]
         [HttpPost("verify-2fa/{uticod}")]
         public async Task<IActionResult> VerifyTwoFactor(string uticod, [FromBody] Verify2FARequest request)
         {
             try
             {
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (!string.Equals(caller, uticod, StringComparison.OrdinalIgnoreCase))
+                    return Forbid();
+
                 var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
                 if (user == null) return NotFound(new { Message = "User not found" });
                 if (string.IsNullOrEmpty(user.UtiTwoFactorSecret))
@@ -816,12 +891,19 @@ namespace GestionDesTickets.Server.Controllers
             }
         }
 
+        // A8 — Disable-2FA : toujours sur soi-même, sinon un attaquant pourrait
+        // désactiver le 2FA d'un admin pour préparer une attaque par phishing.
         [Authorize]
         [HttpPost("disable-2fa/{uticod}")]
         public async Task<IActionResult> DisableTwoFactor(string uticod)
         {
             try
             {
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (!string.Equals(caller, uticod, StringComparison.OrdinalIgnoreCase))
+                    return Forbid();
+
                 var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod);
                 if (user == null) return NotFound(new { Message = "User not found" });
 
@@ -869,7 +951,9 @@ namespace GestionDesTickets.Server.Controllers
 
         // ── Forgot Password Endpoint ──────────────────────────────────
 
+        // A7 — 3 demandes / 15 min / IP. Empêche la génération massive de codes reset.
         [HttpPost("forgot-password")]
+        [EnableRateLimiting("auth-recovery")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
             try
@@ -881,9 +965,12 @@ namespace GestionDesTickets.Server.Controllers
                 if (user == null)
                     return Ok(new { Message = "Si un compte existe avec cet email, un code de réinitialisation a été généré." });
 
-                // Generate 6-digit reset code
-                var random = new Random();
-                var resetCode = random.Next(100000, 999999).ToString();
+                // A15 — Code 6 chiffres généré via RandomNumberGenerator (CSPRNG).
+                // System.Random est prédictible si la seed (timestamp) est devinée — un
+                // attaquant peut alors prédire le code sans même recevoir le mail.
+                var resetCode = System.Security.Cryptography.RandomNumberGenerator
+                    .GetInt32(100000, 1000000) // upper bound exclusif → 999 999 inclus
+                    .ToString();
 
                 // Store code in user's UtiTwoFactorSecret temporarily (reuse field)
                 // In production, use a separate table and send via email

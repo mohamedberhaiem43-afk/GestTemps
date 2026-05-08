@@ -1,3 +1,5 @@
+using ABRPOINT.Server.Annotations.AutSortieAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
@@ -6,6 +8,7 @@ using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -25,8 +28,39 @@ namespace ABRPOINT.Server.Controllers
             _notify = notify;
         }
 
+        // A5 — Helper : un appelant qui valide/refuse une demande doit être manager/admin
+        // (pas un simple employé). Sans ce check, n'importe quel utilisateur authentifié
+        // peut approuver sa propre demande.
+        private async Task<bool> CallerCanApproveAsync()
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            return await _context.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1" || PermissionCatalog.IsAdminRole(u.Utirole))
+                .FirstOrDefaultAsync()
+                || await _context.RolePermissions.AsNoTracking()
+                    .AnyAsync(rp => rp.Role!.RoleName == _context.Utilisateurs
+                                        .Where(u => u.Uticod == caller).Select(u => u.Utirole).FirstOrDefault()
+                                    && (rp.RpModule == "Autorisations" || rp.RpModule == "Demandes")
+                                    && rp.RpModify == "1");
+        }
+
+        private async Task<bool> CallerOwnsOrManagesAsync(string targetEmpcod)
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            if (string.Equals(caller, targetEmpcod, StringComparison.OrdinalIgnoreCase)) return true;
+            return await _context.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1" || PermissionCatalog.IsAdminRole(u.Utirole))
+                .FirstOrDefaultAsync();
+        }
+
         // GET: api/DemandeAutorisations/get-next-concod/{soccod}
+        // A16 — Permission requise pour empêcher l'énumération.
         [HttpGet("get-next-concod/{soccod}")]
+        [CanAddAutSortie]
         public async Task<IActionResult> GetNextConcod(string soccod)
         {
             try
@@ -57,7 +91,9 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // GET: api/DemandeAutorisations/get-all/{soccod}/{uticod}
+        // A5 — Liste globale des demandes : restreint aux managers / admins.
         [HttpGet("get-all/{soccod}/{uticod}")]
+        [CanGetAutSortie]
         public async Task<IActionResult> GetAll(string soccod, string uticod)
         {
             if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(uticod))
@@ -74,11 +110,13 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // GET: api/DemandeAutorisations/get-by-employe/{soccod}/{empcod}
+        // A13 — Self-service : on ne consulte ses demandes que sur soi-même, sinon manager/admin.
         [HttpGet("get-by-employe/{soccod}/{empcod}")]
         public async Task<IActionResult> GetByEmploye(string soccod, string empcod)
         {
             if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(empcod))
                 return BadRequest("Veuillez remplir les champs obligatoires");
+            if (!await CallerOwnsOrManagesAsync(empcod)) return Forbid();
             try
             {
                 var result = await _repository.GetByEmployeAsync(soccod, empcod);
@@ -107,6 +145,7 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // POST: api/DemandeAutorisations
+        // A4 — `demande.Empcod` doit être l'appelant (un manager peut soumettre pour autrui).
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] DemandeAutorisation demande)
         {
@@ -114,6 +153,17 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest("Veuillez saisir les champs obligatoires");
             try
             {
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (string.IsNullOrEmpty(demande.Empcod))
+                {
+                    demande.Empcod = caller;
+                }
+                else if (!await CallerOwnsOrManagesAsync(demande.Empcod))
+                {
+                    return Forbid();
+                }
+
                 var result = await _repository.AddAsync(demande);
                 if (_notify != null)
                 {
@@ -173,9 +223,12 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // POST: api/DemandeAutorisations/approve/{id}
+        // A5 — Validation réservée aux managers/admins. Sans, un employé pouvait
+        // approuver sa propre demande en pointant l'id depuis l'URL.
         [HttpPost("approve/{id}")]
         public async Task<IActionResult> Approve(int id, [FromBody] DemandeAutorisationTraitementDto traitement)
         {
+            if (!await CallerCanApproveAsync()) return Forbid();
             try
             {
                 var result = await _repository.ApproveAsync(id, traitement.TraitePar ?? "", traitement.Commentaire);
@@ -201,9 +254,11 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // POST: api/DemandeAutorisations/refuse/{id}
+        // A5 — Refus réservé aux managers/admins.
         [HttpPost("refuse/{id}")]
         public async Task<IActionResult> Refuse(int id, [FromBody] DemandeAutorisationTraitementDto traitement)
         {
+            if (!await CallerCanApproveAsync()) return Forbid();
             try
             {
                 var result = await _repository.RefuseAsync(id, traitement.TraitePar ?? "", traitement.Commentaire);

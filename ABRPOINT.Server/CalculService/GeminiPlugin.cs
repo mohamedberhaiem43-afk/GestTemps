@@ -38,7 +38,7 @@ public class GeminiPlugin
                 new
                 {
                     role = "system",
-                    content = "Tu es un assistant IA expert pour l'application de gestion de présence et de pointage des employés (ABRPOINT GestTemps). Réponds en français de manière claire, professionnelle et utile. Utilise des emojis pour rendre les réponses plus attractives. Tu peux aider avec la navigation dans l'application, l'explication des fonctionnalités, l'interprétation des données de pointage et de présence."
+                    content = "Tu es l'assistant IA expert de Concorde Workforce, la plateforme de gestion de présence, pointage, congés et paie. Réponds en français de manière claire, professionnelle et utile. Utilise des emojis pour rendre les réponses plus attractives. Tu peux aider avec la navigation dans l'application, l'explication des fonctionnalités, l'interprétation des données de pointage et de présence. Quand tu désignes le produit, écris toujours « Concorde Workforce » (jamais ABRPOINT ni GestTemps)."
                 },
                 new
                 {
@@ -56,7 +56,7 @@ public class GeminiPlugin
         };
         request.Headers.Add("Authorization", $"Bearer {_apiKey}");
         request.Headers.Add("HTTP-Referer", "https://localhost:5173");
-        request.Headers.Add("X-Title", "ABRPOINT GestTemps");
+        request.Headers.Add("X-Title", "Concorde Workforce");
 
         var response = await client.SendAsync(request);
 

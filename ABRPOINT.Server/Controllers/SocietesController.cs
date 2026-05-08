@@ -8,8 +8,11 @@ using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
 {
+    // SEC-11 — `[Authorize]` au niveau de la classe : avant, les GET étaient ouverts
+    // anonymement, ce qui permettait l'énumération des sociétés et de leurs paramètres.
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class SocietesController : ControllerBase
     {
         private readonly ISocieteRepository _societeRepository;
@@ -37,7 +40,9 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "probléme de récuperation sociétés" + ex);
+                // SEC-19 — Pas de fuite ex.Message vers le client.
+                Console.Error.WriteLine($"[Societes.GetSoclibs] {ex}");
+                return StatusCode(500, new { message = "Erreur lors de la récupération des sociétés." });
             }
         }
         
@@ -114,7 +119,9 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // SEC-19 — Pas de fuite ex.Message vers le client.
+                Console.Error.WriteLine($"[Societes.Post] {ex}");
+                return StatusCode(500, new { message = "Erreur lors de la création de la société." });
             }
         }
 

@@ -513,7 +513,8 @@ Période : {p.Mois}/{p.Annee}
 - Page courante : {ctx.CurrentPage ?? "(non précisée)"}
 - Date du jour : {DateTime.Today:dd MMMM yyyy} ({DateTime.Today:dddd})
 
-Application : ABRPOINT GestTemps — gestion de présence, pointage, congés et paie.
+Application : Concorde Workforce — plateforme de gestion de présence, pointage, congés et paie.
+Quand tu mentionnes le produit dans tes réponses, utilise toujours « Concorde Workforce » (jamais « ABRPOINT » ou « GestTemps »).
 Modules clés (pour la navigation) :
 - /dashboard : tableau de bord
 - /dashboard/etat-de-presence : présence en temps réel

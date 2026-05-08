@@ -1,9 +1,11 @@
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace ABRPOINT.Server.Controllers
 {
@@ -23,6 +25,28 @@ namespace ABRPOINT.Server.Controllers
             _log = log;
         }
 
+        // SEC-09 — Helpers (même pattern que NoteDeFraisController) : self-service pour
+        // un employé ; création / modification / suppression réservées aux managers/admins.
+        private async Task<bool> CallerIsAdminOrManagerAsync()
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            return await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1"
+                          || PermissionCatalog.IsAdminRole(u.Utirole)
+                          || u.Utirole == PermissionCatalog.Roles.Manager)
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task<bool> CallerOwnsOrCanManageAsync(string targetEmpcod)
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            if (string.Equals(caller, targetEmpcod, StringComparison.OrdinalIgnoreCase)) return true;
+            return await CallerIsAdminOrManagerAsync();
+        }
+
         /// <summary>Liste les natures d'absence "Formation et mission" (Abscng="6"), pour la combo box.</summary>
         [HttpGet("natures-formation-mission/{soccod}")]
         public async Task<IActionResult> GetFormationMissionNatures(string soccod)
@@ -35,19 +59,29 @@ namespace ABRPOINT.Server.Controllers
             return Ok(natures);
         }
 
+        // SEC-09 — Vue globale : manager/admin uniquement.
         [HttpGet("by-soc/{soccod}")]
         public async Task<IActionResult> GetBySoc(string soccod)
-            => Ok(await _repository.GetBySocAsync(soccod));
+        {
+            if (!await CallerIsAdminOrManagerAsync()) return Forbid();
+            return Ok(await _repository.GetBySocAsync(soccod));
+        }
 
+        // SEC-09 — Vue par employé : self-service ou manager/admin.
         [HttpGet("by-emp/{soccod}/{empcod}")]
         public async Task<IActionResult> GetByEmp(string soccod, string empcod)
-            => Ok(await _repository.GetByEmpAsync(soccod, empcod));
+        {
+            if (!await CallerOwnsOrCanManageAsync(empcod)) return Forbid();
+            return Ok(await _repository.GetByEmpAsync(soccod, empcod));
+        }
 
+        // SEC-09 — Détail : ownership.
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
             var mission = await _repository.GetByIdAsync(id);
             if (mission == null) return NotFound();
+            if (!await CallerOwnsOrCanManageAsync(mission.Empcod ?? string.Empty)) return Forbid();
             return Ok(mission);
         }
 
@@ -56,6 +90,8 @@ namespace ABRPOINT.Server.Controllers
         {
             var validation = await ValidateAsync(req);
             if (validation != null) return validation;
+            // SEC-09 — Création réservée à un caller qui peut couvrir l'empcod cible.
+            if (!await CallerOwnsOrCanManageAsync(req.Empcod ?? string.Empty)) return Forbid();
 
             var mission = new Mission
             {
@@ -84,6 +120,9 @@ namespace ABRPOINT.Server.Controllers
 
             var validation = await ValidateAsync(req);
             if (validation != null) return validation;
+            // SEC-09 — On vérifie l'ownership sur l'objet *existant* (pas sur le payload),
+            // sinon un user pouvait passer son propre empcod dans le body pour valider le check.
+            if (!await CallerOwnsOrCanManageAsync(existing.Empcod ?? string.Empty)) return Forbid();
 
             existing.Soccod = req.Soccod!;
             existing.Empcod = req.Empcod!;
@@ -103,6 +142,10 @@ namespace ABRPOINT.Server.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
+            // SEC-09 — Suppression : ownership.
+            var existing = await _repository.GetByIdAsync(id);
+            if (existing == null) return NotFound();
+            if (!await CallerOwnsOrCanManageAsync(existing.Empcod ?? string.Empty)) return Forbid();
             await _repository.DeleteAsync(id);
             return NoContent();
         }

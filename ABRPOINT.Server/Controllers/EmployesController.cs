@@ -51,6 +51,31 @@ namespace ABRPOINT.Server.Controllers
             _log = log;
         }
 
+        /// <summary>
+        /// A9 — Empêche l'élévation de privilège via le champ <c>Empresp</c>.
+        ///
+        /// Auparavant, n'importe quel user avec CanAddEmploye/CanUpdateEmploye pouvait
+        /// créer une fiche employé avec <c>Empresp = SON_PROPRE_UTICOD</c> et se voyait
+        /// auto-promu Administrator par <c>PromoteToAdminAsync</c>. C'est une faille
+        /// d'élévation classique : l'opération RH (créer un collaborateur) débloque un
+        /// privilège système (admin), alors que les deux n'ont aucun rapport.
+        ///
+        /// On limite désormais l'auto-promotion à un appelant lui-même Administrator. Sans
+        /// ce filtre, on bloque silencieusement la promotion (la fiche employé est créée
+        /// normalement) — on log l'incident pour audit.
+        /// </summary>
+        private async Task<bool> CanAutoPromoteRespAsync()
+        {
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            var u = await _db.Utilisateurs.AsNoTracking()
+                .Where(x => x.Uticod == caller)
+                .Select(x => new { x.Utiadm, x.Utirole })
+                .FirstOrDefaultAsync();
+            if (u == null) return false;
+            return u.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole);
+        }
+
         private string BuildLoginUrl()
         {
             // On vise toujours le domaine racine : la page de login retrouve le tenant
@@ -345,17 +370,32 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new { message = "Erreur lors de la récupération des employés", details = ex.Message });
             }
         }
+        // A11 — `get-my-kpis` est un endpoint self-service. Avant : l'`uticod` venait
+        // de l'URL et n'était pas comparé au JWT, donc n'importe quel user pouvait
+        // consulter les KPI d'un autre. On force désormais l'alignement (sauf admin/manager).
         [HttpGet("get-my-kpis/{soccod}/{uticod}")]
         public async Task<IActionResult> GetMyKPIs(string soccod, string uticod)
         {
             try
             {
+                var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (!string.Equals(caller, uticod, StringComparison.OrdinalIgnoreCase))
+                {
+                    var isPrivileged = await _db.Utilisateurs.AsNoTracking()
+                        .Where(u => u.Uticod == caller)
+                        .Select(u => u.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole))
+                        .FirstOrDefaultAsync();
+                    if (!isPrivileged) return Forbid();
+                }
+
                 var employees = await _employeRepository.GetMyKPIs(soccod, uticod);
                 return Ok(employees);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des employés", details = ex.Message });
+                _log.LogError(ex, "Échec GetMyKPIs soccod={Soccod} uticod={Uticod}", soccod, uticod);
+                return StatusCode(500, new { message = "Erreur lors de la récupération des KPIs." });
             }
         }
        
@@ -668,9 +708,17 @@ namespace ABRPOINT.Server.Controllers
 
                     // Auto-promotion : même règle que dans Put (cf. commentaire là-bas) —
                     // l'utilisateur désigné comme Empresp passe automatiquement à Administrator.
+                    // A9 — Limite la promotion à un appelant lui-même admin (cf. CanAutoPromoteRespAsync).
                     if (!string.IsNullOrWhiteSpace(employe.Empresp))
                     {
-                        await _utilisateurRepository.PromoteToAdminAsync(employe.Empresp);
+                        if (await CanAutoPromoteRespAsync())
+                        {
+                            await _utilisateurRepository.PromoteToAdminAsync(employe.Empresp);
+                        }
+                        else
+                        {
+                            _log.LogWarning("Auto-promotion Empresp ignorée : appelant non-admin. soccod={Soccod} empresp={Empresp}", employe.Soccod, employe.Empresp);
+                        }
                     }
                     
                     // Try to create user account - don't fail the whole request if user creation fails
@@ -847,9 +895,17 @@ namespace ABRPOINT.Server.Controllers
                     .Select(e => e!.Empresp!)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
-                foreach (var respUticod in responsableUticods)
+                // A9 — bulk auto-promotion uniquement si l'appelant est admin.
+                if (responsableUticods.Count > 0 && await CanAutoPromoteRespAsync())
                 {
-                    await _utilisateurRepository.PromoteToAdminAsync(respUticod);
+                    foreach (var respUticod in responsableUticods)
+                    {
+                        await _utilisateurRepository.PromoteToAdminAsync(respUticod);
+                    }
+                }
+                else if (responsableUticods.Count > 0)
+                {
+                    _log.LogWarning("Bulk auto-promotion Empresp ignorée : appelant non-admin. count={Count}", responsableUticods.Count);
                 }
 
                 // Créer les comptes utilisateurs pour chaque employé
@@ -964,9 +1020,17 @@ namespace ABRPOINT.Server.Controllers
                 // un collaborateur — on bascule donc son rôle de "Responsable RH"
                 // (rôle par défaut au signup) vers "Administrator" pour qu'il dispose
                 // des droits d'administration système. Idempotent si déjà admin.
+                // A9 — Restreint au cas où l'appelant est lui-même admin.
                 if (!string.IsNullOrWhiteSpace(employe.Empresp))
                 {
-                    await _utilisateurRepository.PromoteToAdminAsync(employe.Empresp);
+                    if (await CanAutoPromoteRespAsync())
+                    {
+                        await _utilisateurRepository.PromoteToAdminAsync(employe.Empresp);
+                    }
+                    else
+                    {
+                        _log.LogWarning("Auto-promotion Empresp ignorée (Put) : appelant non-admin. soccod={Soccod} empresp={Empresp}", employe.Soccod, employe.Empresp);
+                    }
                 }
 
                 // Lit l'email avant update pour détecter un changement et notifier le collaborateur.

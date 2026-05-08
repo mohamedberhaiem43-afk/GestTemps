@@ -1,4 +1,5 @@
 ﻿using ABRPOINT.Server.Annotations.EtatPriodiqueAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
@@ -6,6 +7,7 @@ using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Controllers
@@ -13,6 +15,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [ValidateSoccod] // S3 : empêche un user de la société A de lire/écrire celles de B au sein du même tenant.
     public class PresencesController : ControllerBase
     {
         private readonly IPresenceRepository _presenceRepository;
@@ -21,29 +24,45 @@ namespace ABRPOINT.Server.Controllers
         private readonly ApplicationDbContext _db;
         private readonly ILogger<PresencesController>? _logger;
         private readonly Services.IGeoZoneValidator? _geoValidator;
-        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ApplicationDbContext db, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null)
+        private readonly IWebHostEnvironment _env;
+        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ApplicationDbContext db, IWebHostEnvironment env, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null)
         {
             _presenceRepository = presenceRepository;
             _reportGenerationService = reportGenerationService;
             _pointageOptimizerService = pointageOptimizerService;
             _db = db;
+            _env = env;
             _logger = logger;
             _geoValidator = geoValidator;
         }
+
+        // S7 : en production on masque les détails techniques (stack/inner exception) car ils
+        // peuvent fuiter des chemins, noms de tables, ou logique métier. En dev on les expose
+        // pour faciliter le debug — l'arbitrage est piloté par IWebHostEnvironment.
+        private object MaskedError(string userMessage, Exception ex)
+        {
+            if (_env.IsDevelopment())
+                return new { message = userMessage, details = ex.Message };
+            return new { message = userMessage };
+        }
+
         [HttpPut("optimiserPointage/{soccod}/{empmat}/{dateDeb}/{dateFin}")]
+        [CanUpdateEtatPeriodique] // S4 : modifier le pointage = permission "modify" sur état périodique.
         public async Task OptimizePointage(string soccod,string empMat,DateTime dateDeb,DateTime dateFin)
         {
             try
             {
                 await _pointageOptimizerService.OptimizePointage(soccod, empMat, dateDeb, dateFin);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger?.LogError(ex, "Échec OptimizePointage soccod={Soccod} empMat={EmpMat}", soccod, empMat);
                 throw;
             }
         }
         // GET: api/<DirectionsController>
         [HttpGet("{soccod}/{dateDebut}/{dateFin}/{regime}")]
+        [CanGetEtatPeriodique] // S4 : lire l'état périodique multi-employés = permission "consult".
         public async Task<IActionResult> Get(string soccod,DateTime dateDebut,DateTime dateFin, string regime, [FromQuery] List<string>empcods)
         {
             try
@@ -51,12 +70,14 @@ namespace ABRPOINT.Server.Controllers
                 IEnumerable<EtatEmpPresence> result = await _presenceRepository.GetAllAsync(soccod, dateDebut, dateFin, regime, empcods);
                 return Ok(result);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                _logger?.LogError(ex, "Échec Get présences soccod={Soccod}", soccod);
+                return StatusCode(500, MaskedError("Erreur lors du chargement des présences.", ex));
             }
         }
         [HttpGet("get-etat-retard-report/{soccod}/{dateDebut}/{dateFin}/{regime}")]
+        [Annotations.EtatsAttributes.CanGetEtatRetard] // S4 : export PDF retards = permission dédiée.
         public async Task<IActionResult> GetEtatRetardReport(string soccod, DateTime? dateDebut, DateTime? dateFin, string regime,[FromQuery] List<string> empcods)
         {
             try
@@ -70,6 +91,7 @@ namespace ABRPOINT.Server.Controllers
             }
         }
         [HttpGet("get-etat-presence-report/{soccod}/{dateDebut}/{dateFin}/{regime}")]
+        [CanGetEtatPeriodique] // S4 : export PDF présence = permission "consult".
         public async Task<IActionResult> GetEtatPresenceReport(string soccod, DateTime? dateDebut, DateTime? dateFin, string regime,[FromQuery] List<string> empcods)
         {
             try
@@ -77,12 +99,14 @@ namespace ABRPOINT.Server.Controllers
                 byte[] pdfBytes = _reportGenerationService.GenerateEtatPresenceReport(soccod, dateDebut, dateFin, regime,empcods);
                 return File(pdfBytes, "application/pdf", "EtatPresence.pdf");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger?.LogError(ex, "Échec GetEtatPresenceReport soccod={Soccod}", soccod);
                 throw;
             }
         }
         [HttpPost("etat-global")]
+        [CanGetEtatPeriodique]
         public IActionResult GenerateEtatGlobal([FromBody] EtatGlobalRequest request)
         {
             var pdf = _reportGenerationService.GenerateEtatGlobalReport(request);
@@ -90,6 +114,7 @@ namespace ABRPOINT.Server.Controllers
             return File(pdf, "application/pdf", "EtatGlobal.pdf");
         }
         [HttpPost("etat-detaille")]
+        [CanGetEtatPeriodique]
         public IActionResult GenerateEtatDetaille([FromBody] EtatDetailleRequest request)
         {
             var pdf = _reportGenerationService.GenerateEtatDetailleReport(request);
@@ -99,6 +124,7 @@ namespace ABRPOINT.Server.Controllers
 
 
         [HttpGet("emp-point/{soccod}/{empcod}")]
+        [CanGetEtatPeriodique]
         public async Task<IActionResult> GetEmpEtatPeriodique(string soccod,string empcod)
         {
             IEnumerable<Presence> result = await _presenceRepository.GetEmpEtatPeriodiqueAsync(soccod,empcod);
@@ -122,6 +148,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/<DirectionsController>
         [HttpPost]
+        [CanAddEtatPeriodique] // S4 : créer du pointage manuel exige la permission "add".
         public async Task Post([FromBody] Presence presence)
         {
             await _presenceRepository.AddAsync(presence);
@@ -129,6 +156,7 @@ namespace ABRPOINT.Server.Controllers
 
         // GET: api/Presences/daily-pointage/{soccod}/{date}
         [HttpGet("daily-pointage/{soccod}/{date}")]
+        [CanGetEtatPeriodique] // S4 : pointage du jour = vue agrégée — permission "consult".
         public async Task<IActionResult> GetDailyPointage(string soccod, DateTime date)
         {
             try
@@ -138,23 +166,63 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors du chargement du pointage", details = ex.Message });
+                _logger?.LogError(ex, "Échec GetDailyPointage soccod={Soccod}", soccod);
+                return StatusCode(500, MaskedError("Erreur lors du chargement du pointage.", ex));
             }
         }
 
         // GET: api/Presences/my-history/{soccod}/{empcod}/{dateDebut}/{dateFin}
+        // Self-service : un employé consulte son propre historique. On laisse passer si
+        // empcod == utilisateur courant, sinon on exige la permission lecture périodique.
         [HttpGet("my-history/{soccod}/{empcod}/{dateDebut}/{dateFin}")]
         public async Task<IActionResult> GetMyPresenceHistory(string soccod, string empcod, DateTime dateDebut, DateTime dateFin)
         {
             try
             {
+                // S4 : vérifier que l'utilisateur consulte son propre historique. Sans ce check,
+                // n'importe quel employé peut espionner les pointages de ses collègues en
+                // changeant simplement l'empcod dans l'URL.
+                var uticod = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(uticod))
+                    return Unauthorized();
+                if (!string.Equals(uticod, empcod, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Sinon il faut la permission consult sur l'état périodique (manager/RH).
+                    var hasPerm = await UserHasEtatPeriodiqueConsultAsync(uticod);
+                    if (!hasPerm)
+                        return Forbid();
+                }
+
                 IEnumerable<PresenceDto> result = await _presenceRepository.GetEmpEtatPeriodiqueAsync(soccod, empcod, dateDebut, dateFin);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors du chargement de l'historique", details = ex.Message });
+                _logger?.LogError(ex, "Échec GetMyPresenceHistory soccod={Soccod} empcod={Empcod}", soccod, empcod);
+                return StatusCode(500, MaskedError("Erreur lors du chargement de l'historique.", ex));
             }
+        }
+
+        // Bypass admin + lookup matriciel pour `my-history`. Lève une exception métier muette
+        // si un user inconnu tente l'accès — protégé par try/catch côté appelant.
+        private async Task<bool> UserHasEtatPeriodiqueConsultAsync(string uticod)
+        {
+            var user = await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == uticod)
+                .Select(u => new { u.Utiadm, u.Utirole }).FirstOrDefaultAsync();
+            if (user == null) return false;
+            if (user.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(user.Utirole))
+                return true;
+            // RpModule "Préparation Paie" porte généralement la permission consult sur le périodique.
+            // On accepte aussi "Pointage" historique. Si aucune permission ne match — refus.
+            var matrix = await _db.RolePermissions.AsNoTracking()
+                .Where(rp => rp.Role!.RoleName == user.Utirole)
+                .Select(rp => new { rp.RpModule, rp.RpConsult })
+                .ToListAsync();
+            return matrix.Any(m => m.RpConsult == "1" &&
+                (string.Equals(m.RpModule, "Préparation Paie", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(m.RpModule, "Pointage", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(m.RpModule, "Paie et Rémunération", StringComparison.OrdinalIgnoreCase)));
         }
 
         // GET: api/Presences/entry-reminder/{soccod}/{empcod}
@@ -176,6 +244,7 @@ namespace ABRPOINT.Server.Controllers
         // Coordonnées GPS optionnelles : journalisées pour audit anti-fraude (à connecter à
         // une vérif de zone autorisée / table de log GPS dans une itération ultérieure).
         [HttpPost("mark-presence/{soccod}/{empcod}")]
+        [EnableRateLimiting("clock-in")] // S8 : limite ~6 pointages/min/IP — bloque le flood/replay.
         public async Task<IActionResult> MarkPresence(
             string soccod,
             string empcod,
@@ -231,6 +300,29 @@ namespace ABRPOINT.Server.Controllers
                 // clients ou les pointages déclenchés via web.
                 var stamp = clientTime ?? DateTime.Now;
 
+                // S5 — Tolérance d'écart entre l'horloge mobile et celle du serveur. Sans ce
+                // garde-fou, un client malveillant peut envoyer un clientTime arbitraire pour
+                // pointer rétroactivement (lundi matin alors qu'on est mardi soir) ou dans le
+                // futur. Tolérance : ±10 min — large pour absorber les téléphones désynchronisés
+                // et les fuseaux mal configurés, mais resserre la fenêtre de fraude. La date
+                // d'embauche / sortie reste contrôlée plus bas.
+                if (clientTime.HasValue)
+                {
+                    var skew = (DateTime.Now - clientTime.Value).Duration();
+                    if (skew > TimeSpan.FromMinutes(10))
+                    {
+                        _logger?.LogWarning(
+                            "Pointage avec écart d'horloge important. soccod={Soccod} empcod={Empcod} skewMinutes={Skew}",
+                            soccod, empcod, (int)skew.TotalMinutes);
+                        return UnprocessableEntity(new
+                        {
+                            message = "Pointage refusé : écart d'horloge trop important entre votre appareil et le serveur. Vérifiez la date/heure de votre téléphone.",
+                            code = "clock_skew",
+                            skewMinutes = (int)skew.TotalMinutes,
+                        });
+                    }
+                }
+
                 // Garde-fou : refuser tout pointage avant date d'embauche ou après date
                 // de sortie. Sans ça un employé sorti continuerait à pouvoir pointer
                 // (mobile, badge oublié, etc.) ou un nouvel arrivant pourrait pointer
@@ -280,22 +372,18 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                // Log structuré côté serveur (avec stack) + remontée du message racine au
-                // client pour que l'utilisateur ait un indice actionnable au lieu d'un
-                // simple "Erreur lors du pointage".
+                // S7 — En production on ne propage pas la stack ni le message racine au
+                // client (peut leaker chemins, noms de tables, requêtes SQL). En dev on
+                // affiche tout pour faciliter le debug.
                 _logger?.LogError(ex, "Échec mark-presence soccod={Soccod} empcod={Empcod}", soccod, empcod);
-                var rootMessage = ex.GetBaseException().Message;
-                return StatusCode(500, new
-                {
-                    message = $"Erreur lors du pointage : {rootMessage}",
-                    details = ex.Message
-                });
+                return StatusCode(500, MaskedError("Erreur lors du pointage. Réessayez ou contactez votre administrateur.", ex));
             }
         }
         
 
         // PUT api/<DirectionsController>/5
         [HttpPut("{soccod}/{empcod}/{predat}")]
+        [CanUpdateEtatPeriodique] // S4 : modifier un pointage existant.
         public async Task<IActionResult> Put(string soccod,string empcod,DateTime predat,[FromBody] EmpEtatPeriodique presence)
         {
             if (string.IsNullOrEmpty(soccod)||string.IsNullOrEmpty(empcod))
@@ -315,22 +403,21 @@ namespace ABRPOINT.Server.Controllers
                 dbpresence.Presortmatup = presence.presortmatup;
                 dbpresence.Prerepos = presence.prerepos.ToString();
                 dbpresence.Prerepas = presence.prerepas;
-                
+
                 await _presenceRepository.UpdateAsync(dbpresence);
 
                 return Ok("modification effectue avec sucées");
             }
             catch (Exception ex)
             {
-                // Sérialiser `ex` directement provoque une NotSupportedException sur la
-                // propriété TargetSite (System.Reflection.MethodBase non sérialisable par
-                // System.Text.Json) — le client recevait une erreur opaque qui masquait
-                // le vrai problème. On renvoie le message + l'éventuelle inner exception.
-                var message = ex.InnerException?.Message ?? ex.Message;
-                return StatusCode(500, new { message });
+                // S7 — Avant on remontait ex.InnerException?.Message au client (peut leaker
+                // structure SQL). Maintenant : log côté serveur + message générique en prod.
+                _logger?.LogError(ex, "Échec Put presence soccod={Soccod} empcod={Empcod} predat={Predat}", soccod, empcod, predat);
+                return StatusCode(500, MaskedError("Erreur lors de la mise à jour du pointage.", ex));
             }
         }
         [HttpPut("update-compensation/{soccod}/{empcod}/{date}/{totcmp}")]
+        [CanUpdateEtatPeriodique]
         public async Task<IActionResult> UpdateComponsation(string soccod,string empcod,DateTime date,float totcmp)
         {
             try
@@ -338,16 +425,18 @@ namespace ABRPOINT.Server.Controllers
                 bool result = await _presenceRepository.UpdateTotcmpAsync(soccod, empcod, date, totcmp);
                 if (result)
                     return Ok("componsation ajoutée avec succées");
-                return StatusCode(500,"probléme d'ajout de componsation");
+                return StatusCode(500, MaskedError("Problème d'ajout de compensation.", new InvalidOperationException("update returned false")));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger?.LogError(ex, "Échec UpdateComponsation soccod={Soccod} empcod={Empcod}", soccod, empcod);
                 throw;
             }
         }
 
         // DELETE api/<DirectionsController>/5
         [HttpDelete("{soccod}/{concod}")]
+        [CanDeleteEtatPeriodique] // S4 : supprimer un pointage est destructeur.
         public async Task<IActionResult> Delete(string soccod, string concod)
         {
             Presence presence = null;

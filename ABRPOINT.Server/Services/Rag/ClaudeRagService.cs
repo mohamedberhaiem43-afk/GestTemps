@@ -89,7 +89,7 @@ public sealed class ClaudeRagService : IClaudeRagService
                 $"[Source {b.Index}] {b.Document}{(b.Page.HasValue ? $", page {b.Page}" : "")}\n{b.Text}"));
 
         // 3. Construction du prompt système.
-        const string systemPrompt = @"Tu es l'assistant juridique RH d'ABRPOINT, une application française de gestion du temps.
+        const string systemPrompt = @"Tu es l'assistant juridique RH de Concorde Workforce, la plateforme française de gestion du temps et de la paie.
 Réponds UNIQUEMENT à partir des extraits fournis ci-dessous. Si l'information manque ou
 n'est pas dans les sources, dis-le explicitement et propose une reformulation.
 Cite chaque affirmation entre crochets avec le numéro de source : [Source 1], [Source 2]...
@@ -212,8 +212,8 @@ Ne commente pas, ne préfixe pas — renvoie directement le HTML reformulé.";
 
         using var req = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
-        req.Headers.TryAddWithoutValidation("HTTP-Referer", "https://abrpoint");
-        req.Headers.TryAddWithoutValidation("X-Title", "ABRPOINT GestTemps RAG");
+        req.Headers.TryAddWithoutValidation("HTTP-Referer", "https://concorde-work-force.com");
+        req.Headers.TryAddWithoutValidation("X-Title", "Concorde Workforce RAG");
         req.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
         using var resp = await _http.SendAsync(req, ct);

@@ -235,11 +235,13 @@ public class SignupController : ControllerBase
             var rootDomain = _cfg["Hosting:RootDomain"] ?? "concorde.com";
             var redirectUrl = $"https://{slug}.{rootDomain}/dashboard";
 
+            // SEC-20 — `dbName` retiré de la réponse : exposait la convention de nommage
+            // de la base SQL (`tenant_<slug>_<8hex>`), ce qui facilite une attaque ciblée
+            // si un attaquant obtient un accès réseau au serveur SQL.
             return Created(string.Empty, new
             {
                 tenantId = tenant.Id,
                 slug = tenant.Slug,
-                dbName = tenant.DbName,
                 trialEndsAt = tenant.TrialEndsAt,
                 redirectUrl,
                 // En DEV (host = localhost), le frontend utilisera localStorage('tenantSlug') = slug
@@ -254,7 +256,8 @@ public class SignupController : ControllerBase
             await master.SaveChangesAsync(ct);
             try { await _provisioning.DropDatabaseAsync(dbName, ct); }
             catch (Exception dropEx) { _log.LogWarning(dropEx, "Drop fallback échoué pour {DbName}", dbName); }
-            return StatusCode(500, new { error = "Provisioning échoué. Contactez le support si le problème persiste.", detail = ex.Message });
+            // SEC-19 — `detail = ex.Message` retiré (peut leaker SQL/chemins/secrets).
+            return StatusCode(500, new { error = "Provisioning échoué. Contactez le support si le problème persiste." });
         }
     }
 

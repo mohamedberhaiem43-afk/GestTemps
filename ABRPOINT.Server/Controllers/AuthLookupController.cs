@@ -3,6 +3,7 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -118,7 +119,9 @@ public class AuthLookupController : ControllerBase
     /// on génère un code à 6 chiffres, on le persiste sur l'utilisateur et on l'envoie par email.
     /// Réponse toujours 200 (réponse générique pour ne pas révéler l'existence des comptes).
     /// </summary>
+    // A7 — Rate limiting recovery.
     [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth-recovery")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordPublicRequest req, CancellationToken ct)
     {
         var email = (req?.Email ?? string.Empty).Trim().ToLowerInvariant();
@@ -182,7 +185,9 @@ public class AuthLookupController : ControllerBase
         }
     }
 
+    // A7 — Reset = consommation du code OTP (6 chiffres). Bloquer brute-force du code reset.
     [HttpPost("reset-password")]
+    [EnableRateLimiting("auth-recovery")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordPublicRequest req, CancellationToken ct)
     {
         var email = (req?.Email ?? string.Empty).Trim().ToLowerInvariant();

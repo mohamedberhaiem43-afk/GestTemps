@@ -2,6 +2,32 @@ namespace ABRPOINT.Server.Helpers
 {
     public static class FileHelper
     {
+        // SEC-15 — Whitelist d'extensions autorisées pour TOUS les uploads ASP.NET.
+        // On bloque les fichiers exécutables (.exe, .dll, .sh, .bat, .ps1), les
+        // scripts serveur (.aspx, .php, .jsp, .asp), les SVG/HTML qui peuvent
+        // contenir du JavaScript exfiltrant des sessions, et les binaires nuls.
+        private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt", ".rtf",
+            ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".heic",
+            ".odt", ".ods", ".odp",
+            ".ppt", ".pptx",
+        };
+
+        // SEC-15 / SEC-17 — Plafond uniforme sur tous les uploads (10 Mo).
+        // Largement suffisant pour un justificatif scanné HD ou un PDF multi-pages.
+        // Surcharge possible via env var `Uploads__MaxSizeMb` pour des besoins ponctuels
+        // (ex: imports massifs admin) sans toucher au code.
+        private const long DefaultMaxBytes = 10L * 1024 * 1024;
+
+        private static long ResolveMaxBytes()
+        {
+            var raw = Environment.GetEnvironmentVariable("Uploads__MaxSizeMb");
+            if (long.TryParse(raw, out var mb) && mb > 0 && mb < 1024)
+                return mb * 1024 * 1024;
+            return DefaultMaxBytes;
+        }
+
         public static string GetUploadsPath()
         {
             var inDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
@@ -18,10 +44,26 @@ namespace ABRPOINT.Server.Helpers
             if (file == null || file.Length == 0)
                 return (false, null, "No file uploaded.");
 
+            // SEC-15 : taille
+            var maxBytes = ResolveMaxBytes();
+            if (file.Length > maxBytes)
+                return (false, null, $"Fichier trop volumineux ({file.Length / 1024 / 1024} Mo). Limite : {maxBytes / 1024 / 1024} Mo.");
+
+            // SEC-15 : extension whitelist (case-insensitive). On extrait la dernière
+            // extension uniquement — un fichier nommé `script.php.pdf` passera car son
+            // extension finale est .pdf ; côté serveur statique IIS/Kestrel l'extension
+            // finale est celle interprétée. Si Apache/nginx mod_php est en jeu, ajouter
+            // un rejet supplémentaire sur les multi-extensions (rare dans notre stack).
+            var ext = Path.GetExtension(file.FileName);
+            if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
+                return (false, null, $"Type de fichier non autorisé ({ext}). Extensions acceptées : {string.Join(", ", AllowedExtensions)}.");
+
+            // SEC-15 : on regénère un nom UUID et on N'utilise PAS le nom client pour
+            // éviter le path traversal (`../../etc/passwd`) et le double-extension.
             var uploads = GetUploadsPath();
             Directory.CreateDirectory(uploads);
 
-            var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+            var fileName = Guid.NewGuid().ToString("N") + ext.ToLowerInvariant();
             var filePath = Path.Combine(uploads, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -37,19 +79,22 @@ namespace ABRPOINT.Server.Helpers
             try
             {
                 if (string.IsNullOrEmpty(base64Data)) return (false, null, "No data.");
-                
+
                 // Data format: "data:image/png;base64,....." or "drawn:data:..." or "phrase:..."
                 string pureBase64 = base64Data;
                 if (base64Data.Contains(",")) pureBase64 = base64Data.Split(',')[1];
                 else if (base64Data.Contains(":")) pureBase64 = base64Data.Split(':')[1];
 
                 var bytes = Convert.FromBase64String(pureBase64);
+                // SEC-15 : limite aussi l'image base64 (évite la saturation par signature géante).
+                if (bytes.Length > ResolveMaxBytes())
+                    return (false, null, "Image trop volumineuse.");
                 var uploads = GetUploadsPath();
                 Directory.CreateDirectory(uploads);
-                
-                var fileName = "sig_" + Guid.NewGuid() + ".png";
+
+                var fileName = "sig_" + Guid.NewGuid().ToString("N") + ".png";
                 var filePath = Path.Combine(uploads, fileName);
-                
+
                 await File.WriteAllBytesAsync(filePath, bytes);
                 return (true, "/api/uploads/" + fileName, null);
             }

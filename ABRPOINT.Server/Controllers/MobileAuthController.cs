@@ -3,6 +3,7 @@ using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -29,7 +30,9 @@ namespace ABRPOINT.Server.Controllers
         /// <summary>
         /// Mobile login endpoint that returns JWT token in response body (not cookies)
         /// </summary>
+        // A7 — Rate limiting brute-force.
         [HttpPost("login")]
+        [EnableRateLimiting("auth-login")]
         public async Task<IActionResult> Login([FromBody] MobileLoginModel model)
         {
             if (string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.Password))

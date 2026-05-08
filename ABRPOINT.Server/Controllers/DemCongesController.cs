@@ -27,7 +27,9 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // GET: api/DemConges/get-next-concod/{soccod}
+        // A16 — Permission requise (créer une demande de congé).
         [HttpGet("get-next-concod/{soccod}")]
+        [CanAddDemConge]
         public async Task<IActionResult> GetNextConcod(string soccod)
         {
             try
@@ -70,13 +72,26 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
+        // A12 — Self-service : un employé voit ses propres demandes ; sinon permission consult requise.
+        // Avant, n'importe quel user pouvait lister les demandes de congés d'un autre via cet endpoint.
         [HttpGet("get-emp-demconge/{soccod}/{empcod}")]
-        public async Task<List<DemcongeDto>> GetEmpDemconge(string soccod, string empcod)
+        public async Task<IActionResult> GetEmpDemconge(string soccod, string empcod)
         {
             try
             {
-                var result =  await _demandecongeRepository.GetEmpDemcongeAsync(soccod, empcod);
-                return result;
+                var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (!string.Equals(caller, empcod, StringComparison.OrdinalIgnoreCase))
+                {
+                    var isPrivileged = await _context.Utilisateurs.AsNoTracking()
+                        .Where(u => u.Uticod == caller)
+                        .Select(u => u.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole))
+                        .FirstOrDefaultAsync();
+                    if (!isPrivileged) return Forbid();
+                }
+
+                var result = await _demandecongeRepository.GetEmpDemcongeAsync(soccod, empcod);
+                return Ok(result);
             }
             catch (Exception)
             {

@@ -114,7 +114,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.Panier = res.Panier;
                 result.JourSamediTrv = res.JourSamediTrv;
                 result.HreSamediTrv = res.HreSamediTrv;
-                result.HreFerieTrv = Math.Min(res.NbhFerierTrv ?? 0, (await _parametreRepository.GetSuppAndFerierParamAsync(soccod, empniveau)).MaxFerier ?? 0);
+                result.HreFerieTrv = Math.Min(res.NbhFerierTrv ?? 0, paramSupp.MaxFerier ?? 0);
                 result.HreFerieTrv2 = (res.NbhFerierTrv ?? 0) - (result.HreFerieTrv ?? 0);
                 result.NbJourFerier = res.NbJourFerier;
                 result.HreFerier = res.HreFerier;

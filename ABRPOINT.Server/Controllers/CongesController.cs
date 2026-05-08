@@ -28,7 +28,9 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // GET: api/Conges/get-next-concod/{soccod}
+        // A16 — Permission requise pour empêcher l'énumération depuis un compte employé.
         [HttpGet("get-next-concod/{soccod}")]
+        [CanAddConge]
         public async Task<IActionResult> GetNextConcod(string soccod)
         {
             try

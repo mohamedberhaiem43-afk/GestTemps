@@ -2,7 +2,6 @@
 
 # Cet index est utilisé lors de l’exécution à partir de VS en mode rapide (par défaut pour la configuration de débogage)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-#USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
@@ -76,5 +75,14 @@ COPY --from=publish /app/publish .
 RUN mkdir -p /app/runtimes/linux-x64/native \
  && ln -sf /usr/local/lib/libwkhtmltox.so /app/runtimes/linux-x64/native/libwkhtmltox.so \
  && ln -sf /usr/local/lib/libwkhtmltox.so /app/libwkhtmltox.so
+
+# SEC-22 — N'exécute pas le serveur en root. L'image dotnet/aspnet:8.0 fournit
+# l'utilisateur `app` (UID 1654, exposé via $APP_UID) ; on lui transfère la
+# propriété de /app pour qu'il puisse écrire dans uploads/. En cas de RCE, le
+# blast radius est réduit aux permissions de cet utilisateur non privilégié.
+RUN mkdir -p /app/uploads \
+ && chown -R $APP_UID /app \
+ && chmod -R u+rwX /app
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "ABRPOINT.Server.dll"]

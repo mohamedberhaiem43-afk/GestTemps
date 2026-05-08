@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Annotations.AdminAttributes;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,16 @@ namespace ABRPOINT.Server.Controllers;
 /// Endpoints :
 ///   GET /api/tenant-pilot/whoami   → renvoie infos sur le tenant courant (master DB).
 ///   GET /api/tenant-pilot/employees → renvoie les 10 premiers employés DEPUIS la base du tenant.
+///
+/// SEC-05 — Avant : `[AllowAnonymous]` ouvrait l'énumération des tenants et la fuite des
+/// noms/matricules d'employés à des appelants non authentifiés. Désormais : `[Authorize]`
+/// + `[Admin]`. Si à terme cet endpoint n'a plus d'utilité ops, il devra être supprimé
+/// purement et simplement.
 /// </summary>
 [ApiController]
 [Route("api/tenant-pilot")]
-[AllowAnonymous] // pour test : pas de JWT requis. À durcir en prod.
+[Authorize]
+[Admin]
 public class TenantPilotController : ControllerBase
 {
     private readonly ICurrentTenant _current;

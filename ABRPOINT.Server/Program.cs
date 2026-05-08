@@ -116,6 +116,93 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             });
     });
+
+    // S8 — Rate limiting "clock-in" sur mark-presence. 6 pointages / minute / (uticod|IP)
+    // suffit largement à un humain (entrée + sortie matin/midi/soir) tout en bloquant les
+    // attaques de replay ou les boucles d'automatisation. Window glissante : un usage normal
+    // étalé sur la minute n'est jamais bloqué.
+    options.AddPolicy("clock-in", httpContext =>
+    {
+        var partitionKey = httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 6,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            });
+    });
+
+    // A7 — Brute-force protection sur les endpoints d'authentification.
+    //   • "auth-login" : 5 tentatives / minute / IP (login web + mobile + 2FA).
+    //     Suffisant pour un humain qui se trompe ; bloque le brute force et le credential stuffing.
+    //   • "auth-recovery" : 3 tentatives / 15 min / (email|IP) sur forgot-password.
+    //     Empêche la génération massive de codes reset et le scan d'emails valides.
+    options.AddPolicy("auth-login", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ip,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            });
+    });
+    options.AddPolicy("auth-recovery", httpContext =>
+    {
+        // Partitionne sur IP — l'email est dans le body et n'est pas accessible ici sans
+        // doubler le bind. Un attaquant doit donc changer d'IP pour scanner — les attaques
+        // distribuées passent ; le brute force depuis un seul poste est arrêté.
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ip,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+            });
+    });
+
+    // SEC-29 — Limite les uploads de fichiers à 30 / minute / utilisateur. Empêche
+    // la saturation disque (10 Mo × 30 = 300 Mo/min/user max — gérable avec une
+    // rotation/quota côté ops) tout en restant confortable pour un usage normal.
+    options.AddPolicy("file-upload", httpContext =>
+    {
+        var partitionKey = httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            });
+    });
+
+    // SEC-29 — Bulk imports : 10 / heure / utilisateur. Volontairement très restrictif
+    // car chaque appel peut écrire plusieurs centaines de lignes en base.
+    options.AddPolicy("bulk-import", httpContext =>
+    {
+        var partitionKey = httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+            });
+    });
 });
 
 builder.Services.AddAutoMapper(typeof(MappingProfiles));
@@ -185,38 +272,62 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Add CORS service
+// S9 — CORS conditionnel par environnement.
+//   • Dev : on whitelist toutes les origines locales utiles (Vite, Expo Go, Metro, simulateurs).
+//   • Prod : on lit la liste depuis Cors:AllowedOrigins (configuration). Si rien n'est défini,
+//     on tombe sur same-origin (pas d'accès cross-origin) plutôt que de propager le whitelist
+//     de dev en production. Aucune origine localhost / exp:// ne doit fuiter dans la prod.
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins(
-                "http://abrpoint.client:3000",
-                "https://localhost:5173",
-                "http://localhost:5173",
-                "https://localhost:5174",
-                "http://localhost:8081",
-                "http://localhost:8082",
-                "http://localhost:19000",
-                "http://localhost:19001",
-                "http://localhost:19002",
-                "http://localhost:19006",
-                "exp://localhost:8081"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.WithOrigins(
+                    "http://abrpoint.client:3000",
+                    "https://localhost:5173",
+                    "http://localhost:5173",
+                    "https://localhost:5174",
+                    "http://localhost:8081",
+                    "http://localhost:8082",
+                    "http://localhost:19000",
+                    "http://localhost:19001",
+                    "http://localhost:19002",
+                    "http://localhost:19006",
+                    "exp://localhost:8081"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
+        else
+        {
+            var configured = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                             ?? Array.Empty<string>();
+            if (configured.Length > 0)
+            {
+                policy.WithOrigins(configured)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            }
+            else
+            {
+                // Aucune origine externe : seul le SPA hébergé sur le même host peut appeler l'API.
+                policy.WithOrigins().AllowAnyHeader().AllowAnyMethod();
+            }
+        }
     });
 });
 
 var app = builder.Build();
+
+// S2 — Audit secrets : refuse le boot prod si des clés sensibles sont sur leurs valeurs
+// par défaut. En dev on log un avertissement.
+{
+    var secretsLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("SecretsValidator");
+    ABRPOINT.Server.Helpers.SecretsValidator.ValidateOrThrow(app.Configuration, app.Environment, secretsLogger);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Security headers (OWASP) : Content-Security-Policy + headers défensifs.

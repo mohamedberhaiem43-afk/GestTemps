@@ -19,6 +19,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { toast } from 'react-toastify';
 import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './FilterPointageMoisContext';
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
@@ -188,6 +189,7 @@ function PointageDuMoisContent() {
   const [showEmpDropdown, setShowEmpDropdown] = useState(false);
   const [treatedAlerts, setTreatedAlerts] = useState<Record<string, 'traite' | 'ignore'>>({});
   const [alertFilter, setAlertFilter] = useState<'all' | 'retard' | 'absnj'>('all');
+  const [showGuide, setShowGuide] = useState(false);
 
   // Le hook est typé `Record<string,string>[]` (le générique d'ApiClient.getAllWithParams),
   // mais l'API renvoie en réalité un dictionnaire unique `{ empcod: emplib }`. On normalise
@@ -487,8 +489,60 @@ function PointageDuMoisContent() {
           <Button className="pdm-export-btn" startIcon={<DownloadIcon />} onClick={handleExportAll} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             {t('pointageMois.export')}
           </Button>
+          <Tooltip title={showGuide ? 'Masquer le guide' : 'Afficher le guide d\'utilisation'}>
+            <IconButton
+              onClick={() => setShowGuide(v => !v)}
+              sx={{
+                borderRadius: '12px', padding: '10px',
+                bgcolor: showGuide ? 'rgba(0,64,161,0.1)' : 'transparent',
+                color: '#0040a1',
+                '&:hover': { bgcolor: 'rgba(0,64,161,0.15)' },
+              }}
+            >
+              <InfoOutlinedIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
+
+      {/* Guide d'utilisation — explique le workflow de la page (recherche →
+          consultation → intégration paie) et clarifie comment lever le cas
+          fréquent "Lignes à exporter : 0". Replié par défaut, accessible via
+          l'icône ⓘ du header. */}
+      {showGuide && (
+        <Paper elevation={0} sx={{
+          mb: 2, p: 2.5, borderRadius: '14px',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
+          border: '1px solid #bfdbfe',
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+            <InfoOutlinedIcon sx={{ color: '#0040a1', fontSize: 22, flexShrink: 0, mt: '2px' }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontWeight: 800, fontSize: 15, color: '#0f172a', mb: 1 }}>
+                Comment utiliser cette page ?
+              </Typography>
+              <Box component="ol" sx={{ m: 0, pl: 2.5, fontSize: 13, color: '#334155', lineHeight: 1.7 }}>
+                <li><strong>Filtrer & rechercher</strong> &mdash; choisissez la période, la filiale, le service ou les employés ciblés, puis cliquez sur <em>Rechercher</em>.</li>
+                <li><strong>Consulter</strong> &mdash; chaque ligne du tableau résume les 6 semaines du mois. Cliquez une ligne pour le détail employé, ou <em>double-cliquez</em> sur une cellule de semaine pour voir le journal jour par jour (présent / congé / repos / férié / absent).</li>
+                <li><strong>Exporter en PDF</strong> &mdash; les boutons rouges <em>PDF</em> génèrent l'état global (employé sélectionné ou tous).</li>
+                <li><strong>Intégrer la paie</strong> &mdash; le bouton <em>Intégrer</em> produit un fichier Excel à injecter dans votre logiciel de paie (Sage…). Il combine&nbsp;:
+                  <Box component="ul" sx={{ pl: 2.5, mt: 0.5 }}>
+                    <li>les <strong>employés</strong> chargés ci-dessus,</li>
+                    <li>et les <strong>rubriques</strong> que vous avez configurées dans <em>Données de base → Rubriques</em>.</li>
+                  </Box>
+                </li>
+              </Box>
+              <Box sx={{ mt: 1.5, p: 1.5, borderRadius: '8px', bgcolor: '#fef9c3', border: '1px solid #fde68a' }}>
+                <Typography sx={{ fontSize: 12, color: '#854d0e', lineHeight: 1.5 }}>
+                  <strong>« Lignes à exporter : 0 » ?</strong> Cela signifie qu'aucune rubrique de paie n'a encore été
+                  rattachée à une variable de pointage. Rendez-vous dans <strong>Données de base → Rubriques</strong> pour
+                  créer au moins une rubrique en sélectionnant la <em>variable de pointage</em> source (ex&nbsp;: H.SUPP 25%, Congés payés…).
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
+      )}
 
       {/* ── Filter Bar ── */}
       <Paper className="pdm-filter-bar" elevation={0}>
@@ -930,36 +984,82 @@ function PointageDuMoisContent() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Week detail dialog ── */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth
+      {/* ── Week detail dialog — vue jour par jour ──
+          Avant : keys = dates en colonnes, valeurs = 1 seule ligne. Lecture
+          horizontale fastidieuse au-delà de 3 jours. Maintenant : 1 ligne par
+          jour avec date, jour de la semaine, et statut typé (chip coloré). */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth
         PaperProps={{ sx: { borderRadius: '16px' } }}>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Manrope, sans-serif', fontWeight: 800 }}>
-          {t('pointageDuMois.weekDetails', { numSem })}
+          <Box>
+            <Typography sx={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+              {t('pointageDuMois.weekDetails', { numSem })}
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: '#64748b', fontWeight: 500, mt: 0.5 }}>
+              Détail jour par jour : statut, type d'absence ou heures pointées.
+            </Typography>
+          </Box>
           <IconButton onClick={() => setOpenDialog(false)}><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent>
-          {selectedWeekDetails && (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    {Object.keys(selectedWeekDetails).map(k => (
-                      <TableCell key={k} sx={{ fontWeight: 700, backgroundColor: '#e6e8ea', fontSize: 11, whiteSpace: 'nowrap' }}>
-                        {k.substring(0, 10)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    {Object.values(selectedWeekDetails).map((v, i) => (
-                      <TableCell key={i} sx={{ fontSize: 12 }}>{v}</TableCell>
-                    ))}
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+          {selectedWeekDetails && (() => {
+            // Le backend émet des chaînes typées : "Présent: HH:mm",
+            // "Congé[code]: …", "Sanction[code]: …", "Férié", "Repos", "Absent".
+            // Cf. OptimizedPresenceService.GetWeekDetails. On classe pour colorer
+            // la chip et faire ressortir d'un coup d'œil les écarts.
+            const statusOf = (raw: string): { kind: string; bg: string; fg: string; icon: string } => {
+              const v = (raw ?? '').trim();
+              if (v.startsWith('Présent')) return { kind: 'Présent', bg: '#d1fae5', fg: '#065f46', icon: '✓' };
+              if (v.startsWith('Congé'))   return { kind: 'Congé',   bg: '#dbeafe', fg: '#1e40af', icon: '🌴' };
+              if (v.startsWith('Sanction')) return { kind: 'Sanction', bg: '#fee2e2', fg: '#991b1b', icon: '⚠' };
+              if (v === 'Férié')           return { kind: 'Férié',   bg: '#fef3c7', fg: '#92400e', icon: '★' };
+              if (v === 'Repos')           return { kind: 'Repos',   bg: '#f1f5f9', fg: '#475569', icon: '☾' };
+              if (v === 'Absent')          return { kind: 'Absent',  bg: '#fef2f2', fg: '#b91c1c', icon: '×' };
+              return { kind: v || '—', bg: '#f1f5f9', fg: '#475569', icon: '•' };
+            };
+            const fmtDate = (k: string) => {
+              const d = new Date(k);
+              if (isNaN(d.getTime())) return k.substring(0, 10);
+              return d.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'short' });
+            };
+            const entries = Object.entries(selectedWeekDetails);
+            return (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700, backgroundColor: '#e6e8ea', fontSize: 11, color: '#424654', whiteSpace: 'nowrap' }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 700, backgroundColor: '#e6e8ea', fontSize: 11, color: '#424654' }}>Statut</TableCell>
+                      <TableCell sx={{ fontWeight: 700, backgroundColor: '#e6e8ea', fontSize: 11, color: '#424654' }}>Détail</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {entries.length === 0 ? (
+                      <TableRow><TableCell colSpan={3} sx={{ textAlign: 'center', color: '#94a3b8', py: 3 }}>Aucun détail pour cette semaine.</TableCell></TableRow>
+                    ) : entries.map(([dateKey, raw], idx) => {
+                      const st = statusOf(raw);
+                      const detail = raw && raw.includes(':') ? raw.substring(raw.indexOf(':') + 1).trim() : '';
+                      return (
+                        <TableRow key={idx} hover>
+                          <TableCell sx={{ fontSize: 13, fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
+                            {fmtDate(dateKey)}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              label={`${st.icon} ${st.kind}`}
+                              sx={{ bgcolor: st.bg, color: st.fg, fontWeight: 700, fontSize: 11 }}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ fontSize: 12, color: '#475569' }}>{detail || '—'}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

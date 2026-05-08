@@ -6,6 +6,7 @@ using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
@@ -71,12 +72,56 @@ namespace ABRPOINT.Server.Controllers
             return Ok(docs);
         }
 
+        // SEC-13 — Vue globale réservée aux admins. Sans, n'importe quel user authentifié
+        // pouvait lister tous les documents RH du tenant (fiches de paie, contrats…).
         [HttpGet("admin/{soccod}")]
         public async Task<IActionResult> GetAllDocuments(string soccod)
         {
+            if (!await CallerIsAdminAsync()) return Forbid();
             var docs = await _vaultRepository.GetAllDocumentsBySocAsync(soccod);
             foreach (var d in docs) d.DocPath = _encryptionService.Decrypt(d.DocPath);
             return Ok(docs);
+        }
+
+        // Helper : caller est-il admin (Utiadm=1 ou rôle admin) ?
+        private async Task<bool> CallerIsAdminAsync()
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            return await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1" || PermissionCatalog.IsAdminRole(u.Utirole))
+                .FirstOrDefaultAsync();
+        }
+
+        // Helper : le caller a-t-il accès au document (propriétaire / manager du service / admin) ?
+        // Utilisé par download/preview/sign — alignement avec GetDocuments / DeleteDocument.
+        private async Task<bool> CallerCanAccessDocAsync(DocumentVault doc)
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            if (string.Equals(caller, doc.Empcod, StringComparison.OrdinalIgnoreCase)) return true;
+
+            var meta = await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => new { u.Utiadm, u.Utirole })
+                .FirstOrDefaultAsync();
+            if (meta is null) return false;
+
+            var isAdmin = meta.Utiadm == "1" || PermissionCatalog.IsAdminRole(meta.Utirole);
+            if (isAdmin) return true;
+
+            var isManager = string.Equals(meta.Utirole, PermissionCatalog.Roles.Manager, StringComparison.OrdinalIgnoreCase);
+            if (!isManager) return false;
+
+            // Manager : doit appartenir au même service que la cible.
+            var callerSercod = await _db.Employes.AsNoTracking()
+                .Where(e => e.Soccod == doc.Soccod && e.Empcod == caller)
+                .Select(e => e.Sercod).FirstOrDefaultAsync();
+            var targetSercod = await _db.Employes.AsNoTracking()
+                .Where(e => e.Soccod == doc.Soccod && e.Empcod == doc.Empcod)
+                .Select(e => e.Sercod).FirstOrDefaultAsync();
+            return !string.IsNullOrEmpty(callerSercod) && callerSercod == targetSercod;
         }
 
         [HttpGet("doc/{id}")]
@@ -88,11 +133,22 @@ namespace ABRPOINT.Server.Controllers
             return Ok(doc);
         }
 
+        // SEC-14 — Upload self-service : `empcod` doit correspondre au caller (sauf admin).
+        // Avant, un employé pouvait déposer un document dans le coffre-fort d'un collègue.
         [HttpPost("upload")]
+        [EnableRateLimiting("file-upload")]
         public async Task<IActionResult> UploadDocument([FromForm] IFormFile file, [FromForm] string soccod, [FromForm] string empcod, [FromForm] string docType)
         {
             try
             {
+                var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(caller)) return Unauthorized();
+                if (!string.Equals(caller, empcod, StringComparison.OrdinalIgnoreCase)
+                    && !await CallerIsAdminAsync())
+                {
+                    return Forbid();
+                }
+
                 var (success, filePath, error) = await FileHelper.SaveFile(file);
                 if (!success) return BadRequest(error);
 
@@ -113,7 +169,9 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // SEC-19 — Pas de fuite ex.Message vers le client.
+                Console.Error.WriteLine($"[Vault.Upload] {ex}");
+                return StatusCode(500, new { message = "Erreur lors du dépôt du document." });
             }
         }
 
@@ -129,6 +187,7 @@ namespace ABRPOINT.Server.Controllers
         /// pour que ce dernier soit informé du nouveau document.
         /// </summary>
         [HttpPost("upload-for-employee")]
+        [EnableRateLimiting("file-upload")]
         public async Task<IActionResult> UploadDocumentForEmployee(
             [FromForm] IFormFile file,
             [FromForm] string soccod,
@@ -262,11 +321,14 @@ namespace ABRPOINT.Server.Controllers
             return NoContent();
         }
 
+        // SEC-06 — Download : ownership check. Avant, une simple devinette d'ID
+        // séquentiel donnait accès aux fiches de paie / contrats de tous les employés.
         [HttpGet("download/{id}")]
         public async Task<IActionResult> DownloadDocument(int id)
         {
             var doc = await _vaultRepository.GetDocumentByIdAsync(id);
             if (doc == null) return NotFound();
+            if (!await CallerCanAccessDocAsync(doc)) return Forbid();
 
             doc.DocPath = _encryptionService.Decrypt(doc.DocPath);
             var fileName = Path.GetFileName(doc.DocPath);
@@ -303,11 +365,13 @@ namespace ABRPOINT.Server.Controllers
             return File(memory, GetContentType(filePath), doc.DocName);
         }
 
+        // SEC-06 — Preview : même ownership check que download.
         [HttpGet("preview/{id}")]
         public async Task<IActionResult> PreviewDocument(int id)
         {
             var doc = await _vaultRepository.GetDocumentByIdAsync(id);
             if (doc == null) return NotFound();
+            if (!await CallerCanAccessDocAsync(doc)) return Forbid();
 
             doc.DocPath = _encryptionService.Decrypt(doc.DocPath);
             var fileName = Path.GetFileName(doc.DocPath);
@@ -360,11 +424,24 @@ namespace ABRPOINT.Server.Controllers
             return File(memory, contentType);
         }
 
+        // SEC-07 — La signature électronique a une valeur juridique (verrouille la
+        // suppression). Sans ownership check, n'importe qui pouvait signer le contrat
+        // d'un autre employé. Restriction : seul le propriétaire (ou un admin) peut signer.
         [HttpPost("sign/{id}")]
         public async Task<IActionResult> SignDocument(int id, [FromBody] SignRequest request)
         {
             var doc = await _vaultRepository.GetDocumentByIdAsync(id);
             if (doc == null) return NotFound();
+
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return Unauthorized();
+            // Pour la signature, on n'autorise PAS le manager : la signature engage
+            // personnellement le destinataire du document (pas son N+1).
+            if (!string.Equals(caller, doc.Empcod, StringComparison.OrdinalIgnoreCase)
+                && !await CallerIsAdminAsync())
+            {
+                return Forbid();
+            }
 
             // Save signature image to disk
             var (success, filePath, error) = await FileHelper.SaveBase64Image(request.SignatureData);

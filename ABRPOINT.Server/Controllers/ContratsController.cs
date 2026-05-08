@@ -86,7 +86,10 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // A10 — Sans permission, n'importe quel user authentifié pouvait télécharger
+        // le PDF du contrat de n'importe quel collaborateur.
         [HttpGet("get-contrat-report/{soccod}/{empcod}")]
+        [CanGetContrat]
         public IActionResult GetContratReport(string soccod, string empcod)
         {
             try
@@ -216,7 +219,9 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // A10 — Liste des contrats expirants : permission consult requise.
         [HttpGet("expiring/{soccod}")]
+        [CanGetEcheanceContrat]
         public async Task<IActionResult> GetExpiringContracts(string soccod)
         {
             try
@@ -251,6 +256,7 @@ namespace ABRPOINT.Server.Controllers
         }
 
         [HttpGet("expiring/{soccod}/{uticod}")]
+        [CanGetEcheanceContrat]
         public async Task<IActionResult> GetExpiringContracts(string soccod, string uticod)
         {
             try
@@ -286,7 +292,9 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // A16 — Génération du prochain numéro réservée à ceux qui peuvent créer un contrat.
         [HttpGet("get-next-concod/{soccod}")]
+        [CanAddContrat]
         public async Task<IActionResult> GetNextConcod(string soccod)
         {
             try

@@ -1,9 +1,12 @@
+using ABRPOINT.Server.Annotations.AdminAttributes;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Controllers;
@@ -14,20 +17,28 @@ namespace ABRPOINT.Server.Controllers;
 /// cas des employés, on crée à la volée les Services / Fonctions référencés par libellé
 /// si ils n'existent pas encore — ainsi un import depuis un fichier RH "brut" ne casse pas.
 /// </summary>
+// SEC-10 — Imports en masse réservés aux admins. Les opérations exposées (création
+// d'employés, services, fonctions, directions, villes, pays) sont destructives à
+// l'échelle du tenant ; sans `[Admin]` n'importe quel utilisateur authentifié pouvait
+// les déclencher.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[Admin]
+[EnableRateLimiting("bulk-import")] // SEC-29 — 10 imports/heure/user max.
 public class BulkImportController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly ICurrentTenant _currentTenant;
     private readonly ILogger<BulkImportController> _log;
+    private readonly EncryptionService _encryptionService;
 
-    public BulkImportController(ApplicationDbContext db, ICurrentTenant currentTenant, ILogger<BulkImportController> log)
+    public BulkImportController(ApplicationDbContext db, ICurrentTenant currentTenant, ILogger<BulkImportController> log, EncryptionService encryptionService)
     {
         _db = db;
         _currentTenant = currentTenant;
         _log = log;
+        _encryptionService = encryptionService;
     }
 
     public sealed record ImportReport(int Inserted, int Skipped, int Created, List<string> Errors);
@@ -250,8 +261,11 @@ public class BulkImportController : ControllerBase
                     Emplib = name,
                     Sercod = sercod,
                     Foncod = foncod,
-                    Empcin = row.Empcin?.Trim(),
-                    Emptel = row.Emptel?.Trim(),
+                    // SEC-10 — Chiffrer CIN/téléphone à l'identique du flux unitaire
+                    // (cf. EmployesController.Add). Sans ça, l'import contournait la
+                    // protection AES et stockait les données personnelles en clair.
+                    Empcin = string.IsNullOrWhiteSpace(row.Empcin) ? null : _encryptionService.Encrypt(row.Empcin.Trim()),
+                    Emptel = string.IsNullOrWhiteSpace(row.Emptel) ? null : _encryptionService.Encrypt(row.Emptel.Trim()),
                     Empemail = row.Empemail?.Trim(),
                     Empadr = row.Empadr?.Trim(),
                     Empsexe = row.Empsexe?.Trim(),

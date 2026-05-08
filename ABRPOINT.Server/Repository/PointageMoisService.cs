@@ -1,64 +1,79 @@
 ﻿using ABRPOINT.Server.CalculService.HeureSupp;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
 {
     public class PointageMoisService : IPointageMoisService
     {
+        private readonly ApplicationDbContext _dbContext;
         private readonly IEmployeRepository _employeRepository;
         private readonly IHeuresSupplementaireHebdomadairesService _heuresSupplementairesService;
 
-        public PointageMoisService(IEmployeRepository employeRepository,IHeuresSupplementaireHebdomadairesService heuresSupplementairesService)
+        public PointageMoisService(
+            ApplicationDbContext dbContext,
+            IEmployeRepository employeRepository,
+            IHeuresSupplementaireHebdomadairesService heuresSupplementairesService)
         {
+            _dbContext = dbContext;
             _employeRepository = employeRepository;
             _heuresSupplementairesService = heuresSupplementairesService;
         }
 
-        public async Task<List<PointageMois>> GetPointageMois(string soccod,List<string> empcods,string mois,string annee,string semaine)
+        public async Task<List<PointageMois>> GetPointageMois(string soccod, List<string> empcods, string mois, string annee, string semaine)
         {
-            var pointages = new List<PointageMois>();
+            if (empcods == null || empcods.Count == 0)
+                return new List<PointageMois>();
 
-            foreach (var empcod in empcods)
-            {
-                var employe = await _employeRepository.GetByEmpcod(soccod, empcod);
-                if (employe == null) continue;
+            // ── 1️⃣ Batch load : tous les employés en UNE SEULE requête ────────
+            var employees = await _dbContext.Employes
+                .AsNoTracking()
+                .Where(e => e.Soccod == soccod && empcods.Contains(e.Empcod))
+                .ToDictionaryAsync(e => e.Empcod ?? string.Empty);
 
-                var pointageMois = new PointageMois
+            // ── 2️⃣ Paralléliser les calculs par employé ──────────────────────
+            // Chaque employé a 6 semaines de calculs indépendants. En séquentiel,
+            // 50 employés × ~30 requêtes = ~1 500 requêtes qui s'exécutent l'une
+            // après l'autre. En parallèle (MaxDegreeOfPartitioning limité pour
+            // ne pas saturer le pool de connexions SQL), on divise le temps par ~4.
+            var tasks = empcods
+                .Where(empcod => employees.ContainsKey(empcod ?? string.Empty))
+                .Select(empcod => Task.Run(async () =>
                 {
-                    EmpCode = empcod,
-                    EmpMat = employe.Empmat,
-                    EmpLib = employe.Emplib,
-                    EmpReg = employe.Empreg,
-                    EmpSite = employe.Sitcod
-                };
+                    var employe = employees[empcod ?? string.Empty];
+                    var pointageMois = new PointageMois
+                    {
+                        EmpCode = empcod,
+                        EmpMat = employe.Empmat,
+                        EmpLib = employe.Emplib,
+                        EmpReg = employe.Empreg,
+                        EmpSite = employe.Sitcod
+                    };
 
-                if (semaine == "0")
-                {
-                    var resultats =
-                        await _heuresSupplementairesService
+                    if (semaine == "0")
+                    {
+                        var resultats = await _heuresSupplementairesService
                             .CalculerHeuresSupplementairesMultiSemaines(
                                 soccod, empcod, mois, annee,
                                 employe.Empreg, employe.Empniv);
-
-                    pointageMois.heuresSupplementairesResultats.AddRange(resultats);
-                }
-                else
-                {
-                    var resultat =
-                        await _heuresSupplementairesService
+                        pointageMois.heuresSupplementairesResultats.AddRange(resultats);
+                    }
+                    else
+                    {
+                        var resultat = await _heuresSupplementairesService
                             .CalculerHeuresSupplementairesHebdomadaires(
                                 soccod, empcod, mois, annee, semaine,
                                 employe.Empreg, employe.Empniv);
+                        pointageMois.heuresSupplementairesResultats.Add(resultat);
+                    }
 
-                    pointageMois.heuresSupplementairesResultats.Add(resultat);
-                }
+                    return pointageMois;
+                }));
 
-                pointages.Add(pointageMois);
-            }
-
-            return pointages;
+            var pointages = await Task.WhenAll(tasks);
+            return pointages.ToList();
         }
     }
-
 }

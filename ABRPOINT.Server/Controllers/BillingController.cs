@@ -126,8 +126,12 @@ public class BillingController : ControllerBase
         }
         catch (StripeException ex)
         {
-            _log.LogError(ex, "Stripe Checkout création échouée pour tenant {Slug}.", slug);
-            return StatusCode(502, new { error = "Erreur Stripe : " + ex.Message });
+            // SEC-18 — Avant : on remontait `ex.Message` au client, ce qui pouvait fuiter
+            // l'ID compte Stripe, des détails de configuration, ou des paramètres internes.
+            // Maintenant : log structuré côté serveur + message générique avec un code
+            // pour que le support puisse corréler en cas de ticket utilisateur.
+            _log.LogError(ex, "Stripe Checkout création échouée pour tenant {Slug}. StripeError={Code}", slug, ex.StripeError?.Code);
+            return StatusCode(502, new { error = "Erreur lors de l'initialisation du paiement. Veuillez réessayer plus tard.", code = ex.StripeError?.Code });
         }
 
         return Ok(new { url = session.Url, sessionId = session.Id });

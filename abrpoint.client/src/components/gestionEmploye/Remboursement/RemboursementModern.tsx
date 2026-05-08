@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import './RemboursementModern.css';
 import { useAuth } from '../../helper/AuthProvider';
+import { resolveAssetUrl } from '../../../helpers/assetUrl';
 import { useMissionsByEmp } from '../../../hooks/missionHooks/useMissions';
 import { useTranslation, Trans } from 'react-i18next';
 
@@ -872,26 +873,48 @@ function RemboursementModernContent() {
                                     <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
                                         {t('remboursement.detail.receipt')}
                                     </Typography>
-                                    <a
-                                        href={selectedExpense.justificatif}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '8px 16px',
-                                            background: '#f0f5ff',
-                                            borderRadius: '8px',
-                                            color: '#0040a1',
-                                            fontWeight: 600,
-                                            fontSize: '13px',
-                                            textDecoration: 'none',
-                                            border: '1px solid #bfdbfe',
-                                        }}
-                                    >
-                                        <FileText size={16} /> {t('remboursement.detail.viewReceipt')}
-                                    </a>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                                        <a
+                                            href={resolveAssetUrl(selectedExpense.justificatif)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            style={{ display: 'inline-block', lineHeight: 0 }}
+                                        >
+                                            <Box
+                                                component="img"
+                                                src={resolveAssetUrl(selectedExpense.justificatif)}
+                                                alt="justificatif"
+                                                sx={{
+                                                    width: 96, height: 96, objectFit: 'cover',
+                                                    borderRadius: '10px', border: '1px solid #e2e8f0',
+                                                    background: '#f8fafc', cursor: 'zoom-in',
+                                                    transition: 'transform 180ms ease',
+                                                    '&:hover': { transform: 'scale(1.04)' },
+                                                }}
+                                                onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+                                            />
+                                        </a>
+                                        <a
+                                            href={resolveAssetUrl(selectedExpense.justificatif)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '8px 16px',
+                                                background: '#f0f5ff',
+                                                borderRadius: '8px',
+                                                color: '#0040a1',
+                                                fontWeight: 600,
+                                                fontSize: '13px',
+                                                textDecoration: 'none',
+                                                border: '1px solid #bfdbfe',
+                                            }}
+                                        >
+                                            <FileText size={16} /> {t('remboursement.detail.viewReceipt')}
+                                        </a>
+                                    </Box>
                                 </Box>
                             )}
                         </Box>

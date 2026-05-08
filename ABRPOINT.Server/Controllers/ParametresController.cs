@@ -38,7 +38,10 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
+        // SEC-12 — Les paramètres complets contiennent la configuration de paie
+        // (taux de majoration, règles métier). Restreint aux admins.
         [HttpGet("{soccod}")]
+        [Admin]
         public async Task<ActionResult<Parametre>> GetParametres(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
@@ -53,7 +56,9 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500);
             }
         }
+        // SEC-12 — Lecture du paramètre "paie" : admin uniquement.
         [HttpGet("get-paie/{soccod}")]
+        [Admin]
         public async Task<ActionResult<Parametre>> GetPaie(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
