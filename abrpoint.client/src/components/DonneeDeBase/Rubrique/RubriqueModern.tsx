@@ -171,6 +171,44 @@ function RubriqueModernContent() {
                   générer un fichier Excel avec, pour chaque salarié et chaque rubrique configurée, la valeur
                   cumulée du mois. <strong>Sans rubrique mappée, l'export reste vide.</strong>
                 </Typography>
+
+                {/* Format attendu par "Importer (Excel)". Les noms de colonnes sont
+                    matchés en insensible à la casse via ExcelImportButton.columnMap. */}
+                <Box sx={{ mt: 1.5, p: 1.5, borderRadius: '10px', background: '#fff', border: '1px dashed #bfdbfe' }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13, color: '#0f172a', mb: 0.5 }}>
+                    Format du fichier Excel à importer
+                  </Typography>
+                  <Typography sx={{ fontSize: 12.5, color: '#334155', lineHeight: 1.55, mb: 0.75 }}>
+                    Une rubrique par ligne. La 1<sup>re</sup> ligne doit être l'en-tête (les noms ci-dessous,
+                    insensibles à la casse et aux accents).
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 12.5, color: '#334155', lineHeight: 1.7 }}>
+                    <li><strong>Code</strong> (alias acceptés&nbsp;: <code>rubcod</code>) &mdash; optionnel, auto-généré si vide.</li>
+                    <li><strong>Libellé</strong> (alias&nbsp;: <code>rublib</code>, <code>libelle</code>, <code>désignation</code>, <code>nom</code>) &mdash; <em>obligatoire</em>.</li>
+                    <li><strong>Unité</strong> (alias&nbsp;: <code>rubunite</code>, <code>unite</code>) &mdash; <code>H</code> / <code>Heure</code> ou <code>J</code> / <code>Jour</code>.</li>
+                    <li><strong>Variable</strong> (alias&nbsp;: <code>vartype</code>, <code>grandeur</code>, <code>type</code>) &mdash; un des codes de la liste «&nbsp;Variable de pointage&nbsp;» (ex.&nbsp;<code>2</code>, <code>5</code>, <code>F</code>, <code>C</code>, <code>K</code>…).</li>
+                  </Box>
+                  <Box sx={{ mt: 1, p: 1, borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+                    <Box component="table" sx={{
+                      width: '100%', borderCollapse: 'collapse', fontSize: 11.5,
+                      '& th, & td': { padding: '4px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' },
+                      '& th': { background: '#f1f5f9', fontWeight: 700, color: '#0f172a' },
+                    }}>
+                      <thead>
+                        <tr><th>Code</th><th>Libellé</th><th>Unité</th><th>Variable</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>HS25</td><td>Heures supp. 25%</td><td>H</td><td>2</td></tr>
+                        <tr><td>HS50</td><td>Heures supp. 50%</td><td>H</td><td>5</td></tr>
+                        <tr><td>CP</td><td>Congés payés</td><td>J</td><td>C</td></tr>
+                        <tr><td><em>(vide)</em></td><td>Prime panier</td><td>J</td><td>4</td></tr>
+                      </tbody>
+                    </Box>
+                  </Box>
+                  <Typography sx={{ fontSize: 11.5, color: '#64748b', mt: 1, fontStyle: 'italic' }}>
+                    Les lignes dont le libellé est déjà présent ou le code déjà utilisé sont ignorées (compteur «&nbsp;ignorée(s)&nbsp;» dans le rapport d'import).
+                  </Typography>
+                </Box>
               </Box>
               <IconButton size="small" onClick={() => setShowGuide(false)} sx={{ flexShrink: 0 }}>
                 <CloseIcon fontSize="small" />

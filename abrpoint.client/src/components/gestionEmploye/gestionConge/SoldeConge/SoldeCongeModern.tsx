@@ -409,35 +409,115 @@ function SoldeCongeModernInner() {
 
         {/* Sidebar */}
         <Box className="scm-sidebar">
-          {/* Consumption chart */}
-          <Paper className="scm-chart-card">
-            <Box className="scm-chart-header">
-              <Typography className="scm-chart-title">{t('conge.soldeConge.chart.title')}</Typography>
-              <Chip label={String(currentYear)} size="small" className="scm-year-chip" />
-            </Box>
-            <Box className="scm-chart-bars">
-              {Array.from({ length: 7 }, (_, i) => {
-                const heights = [40, 65, 85, 30, 55, 45, 20];
-                return (
-                  <Box key={i} className="scm-bar-wrap">
-                    <Box className="scm-bar" style={{ height: `${heights[i]}%` }} />
-                  </Box>
-                );
-              })}
-            </Box>
-            <Box className="scm-chart-labels">
-              <Typography className="scm-chart-label">{t('conge.soldeConge.chart.labelStart')}</Typography>
-              <Typography className="scm-chart-label">{t('conge.soldeConge.chart.labelEnd')}</Typography>
-            </Box>
-            <Typography className="scm-chart-note">
-              <Trans
-                i18nKey="conge.soldeConge.chart.note"
-                count={accepted.length}
-                values={{ count: accepted.length }}
-                components={{ 0: <strong style={{ color: '#0040a1' }} /> }}
-              />
-            </Typography>
-          </Paper>
+          {/* Consumption chart — répartition mensuelle des jours posés (acceptés)
+              de l'employé sélectionné sur l'année courante. Avant : barres bidon
+              de hauteurs codées en dur ([40,65,85,…]) totalement décorrélées
+              des données. Calcul ici (côté front) car l'API congés renvoie
+              déjà les demandes complètes — pas de round-trip supplémentaire. */}
+          {(() => {
+            const MONTH_LABELS_FR = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+            // Distribue chaque demande acceptée jour par jour entre condep et conret.
+            // Demi-journée de départ ou de retour est imputée 0.5 ; weekends ignorés
+            // pour rester cohérent avec connbjour (jours ouvrés).
+            const monthly = Array<number>(12).fill(0);
+            for (const c of accepted) {
+              if (c.condep === null || c.condep === undefined) continue;
+              const dep = new Date(c.condep);
+              if (Number.isNaN(dep.getTime()) || dep.getFullYear() !== currentYear) {
+                // Si la demande déborde sur l'année en cours, on ne fragmente pas
+                // (cas marginal) — on impute le mois de départ uniquement.
+                if (dep.getFullYear() !== currentYear) continue;
+              }
+              const ret = c.conret ? new Date(c.conret) : new Date(dep);
+              const days = Number(c.connbjour ?? 0);
+              if (!days) continue;
+
+              // Répartition simple : on imputerait l'intégralité au mois du condep
+              // si la période est intra-mois ; sinon on découpe au prorata des jours
+              // ouvrés présents dans chaque mois traversé.
+              if (dep.getMonth() === ret.getMonth()) {
+                monthly[dep.getMonth()] += days;
+                continue;
+              }
+              // Cross-month : compte les jours ouvrés par mois.
+              const buckets: Record<number, number> = {};
+              const cursor = new Date(dep);
+              cursor.setHours(0, 0, 0, 0);
+              const stop = new Date(ret);
+              stop.setHours(0, 0, 0, 0);
+              let workdays = 0;
+              while (cursor <= stop) {
+                const dow = cursor.getDay();
+                if (dow !== 0 && dow !== 6 && cursor.getFullYear() === currentYear) {
+                  buckets[cursor.getMonth()] = (buckets[cursor.getMonth()] ?? 0) + 1;
+                  workdays++;
+                }
+                cursor.setDate(cursor.getDate() + 1);
+              }
+              if (workdays === 0) {
+                // Période entièrement weekend (rare) — on impute au mois de départ.
+                monthly[dep.getMonth()] += days;
+                continue;
+              }
+              for (const [m, d] of Object.entries(buckets)) {
+                monthly[Number(m)] += (days * d) / workdays;
+              }
+            }
+            const maxDays = Math.max(1, ...monthly);
+            const totalDays = monthly.reduce((s, v) => s + v, 0);
+
+            return (
+              <Paper className="scm-chart-card">
+                <Box className="scm-chart-header">
+                  <Typography className="scm-chart-title">{t('conge.soldeConge.chart.title')}</Typography>
+                  <Chip label={String(currentYear)} size="small" className="scm-year-chip" />
+                </Box>
+                <Box className="scm-chart-bars" sx={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: 110 }}>
+                  {monthly.map((v, i) => {
+                    const pct = (v / maxDays) * 100;
+                    return (
+                      <Box
+                        key={i}
+                        title={`${MONTH_LABELS_FR[i]} : ${v.toFixed(1)} ${t('conge.soldeConge.table.daysShort')}`}
+                        sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: 0 }}
+                      >
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: `${Math.max(2, pct)}%`,
+                            background: v > 0
+                              ? 'linear-gradient(180deg,#0040a1 0%,#0066ff 100%)'
+                              : '#e2e8f0',
+                            borderRadius: '4px 4px 0 0',
+                            transition: 'height 0.3s',
+                          }}
+                        />
+                        <Typography sx={{ fontSize: 9, color: '#64748b', fontWeight: 700 }}>
+                          {MONTH_LABELS_FR[i]}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, pt: 1, borderTop: '1px solid #f1f5f9' }}>
+                  <Typography sx={{ fontSize: 11, color: '#64748b' }}>
+                    {t('conge.soldeConge.chart.totalLabel', { defaultValue: 'Total posé' })}
+                  </Typography>
+                  <Typography sx={{ fontSize: 13, fontWeight: 800, color: '#0040a1' }}>
+                    {totalDays.toFixed(1)} {t('conge.soldeConge.table.daysShort')}
+                  </Typography>
+                </Box>
+                <Typography className="scm-chart-note" sx={{ mt: 1 }}>
+                  <Trans
+                    i18nKey="conge.soldeConge.chart.note"
+                    count={accepted.length}
+                    values={{ count: accepted.length }}
+                    components={{ 0: <strong style={{ color: '#0040a1' }} /> }}
+                  />
+                </Typography>
+              </Paper>
+            );
+          })()}
 
           {/* Quick stats */}
           <Box className="scm-quick-stats">

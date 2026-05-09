@@ -15,6 +15,8 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import PrintIcon from '@mui/icons-material/Print';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import { useTranslation, Trans } from 'react-i18next';
 import { CongeProvider, useCongeContext } from '../../../helper/CongeContext';
 import useGetDemConges from '../../../../hooks/congeHooks/useGetDemConges';
@@ -615,6 +617,44 @@ function DemCongeModernInner() {
   const pending = displayData.filter((c: Conge) => getStatus(c) === 'pending');
   const accepted = displayData.filter((c: Conge) => getStatus(c) === 'accepted');
   const refused = displayData.filter((c: Conge) => getStatus(c) === 'refused');
+
+  // Filtres user-driven appliqués par-dessus le filtrage de scope (rôle/service)
+  // → recherche libre + statut + type d'absence + bornes de dates. Les compteurs
+  // de la sidebar (`pending`/`accepted`/`refused`) restent calculés sur `displayData`
+  // pour ne pas changer quand on ajuste un filtre.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | CongeStatusKey>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+
+  const filteredData: Conge[] = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo ? new Date(dateTo).getTime() : null;
+    return displayData.filter((c: Conge) => {
+      if (statusFilter !== 'all' && getStatus(c) !== statusFilter) return false;
+      if (typeFilter && c.abscod !== typeFilter) return false;
+      if (q) {
+        const hay = `${c.emplib ?? ''} ${c.empcod ?? ''} ${c.concod ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      // Recouvrement entre la période [condep, conret] et la fenêtre [from, to].
+      if (from !== null || to !== null) {
+        const dep = c.condep ? new Date(c.condep).getTime() : null;
+        const ret = c.conret ? new Date(c.conret).getTime() : dep;
+        if (dep === null) return false;
+        if (from !== null && ret !== null && ret < from) return false;
+        if (to !== null && dep > to) return false;
+      }
+      return true;
+    });
+  }, [displayData, searchQuery, statusFilter, typeFilter, dateFrom, dateTo]);
+
+  const hasActiveFilter = searchQuery !== '' || statusFilter !== 'all' || typeFilter !== '' || dateFrom !== '' || dateTo !== '';
+  const resetFilters = () => {
+    setSearchQuery(''); setStatusFilter('all'); setTypeFilter(''); setDateFrom(''); setDateTo('');
+  };
   const [formOpen, setFormOpen] = useState(false);
   const [editConge, setEditConge] = useState<Conge | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -728,6 +768,95 @@ function DemCongeModernInner() {
       <Box className="dcm-body">
         {/* Left: table */}
         <Box className="dcm-left">
+          {/* Filter toolbar */}
+          <Box sx={{
+            display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center',
+            p: '10px 12px', mb: 1.5,
+            background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px',
+          }}>
+            {/* Search */}
+            <Box sx={{
+              display: 'flex', alignItems: 'center', gap: 0.5,
+              background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
+              px: 1.25, height: 34, flex: '1 1 220px', minWidth: 180,
+            }}>
+              <SearchIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t('conge.demConge.filters.searchPlaceholder')}
+                style={{
+                  border: 'none', outline: 'none', background: 'transparent',
+                  fontSize: '13px', flex: 1, color: '#0f172a',
+                }}
+              />
+            </Box>
+
+            {/* Status tabs with counts (compted on the role-scoped data, not on filtered) */}
+            <Box sx={{ display: 'flex', gap: 0.5, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', p: '3px' }}>
+              {([
+                { key: 'all', label: t('conge.demConge.filters.statusAll'), count: displayData.length },
+                { key: 'pending', label: t('conge.demConge.status.pending'), count: pending.length },
+                { key: 'accepted', label: t('conge.demConge.status.accepted'), count: accepted.length },
+                { key: 'refused', label: t('conge.demConge.status.refused'), count: refused.length },
+              ] as const).map(tab => {
+                const active = statusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.key as any)}
+                    style={{
+                      border: 'none', cursor: 'pointer', borderRadius: '6px',
+                      padding: '4px 10px', fontSize: '12px', fontWeight: 700,
+                      background: active ? '#0040a1' : 'transparent',
+                      color: active ? '#fff' : '#64748b',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                  >
+                    {tab.label} <span style={{ opacity: 0.75, marginLeft: 4 }}>({tab.count})</span>
+                  </button>
+                );
+              })}
+            </Box>
+
+            {/* Type filter */}
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                displayEmpty
+                sx={{ height: 34, fontSize: '13px', background: '#fff', borderRadius: '8px' }}
+              >
+                <MenuItem value=""><em>{t('conge.demConge.filters.typeAll')}</em></MenuItem>
+                {Object.entries((absenceLibs as Record<string, string>) || {}).map(([code, lib]) => (
+                  <MenuItem key={code} value={code}>{lib}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Date range */}
+            <TextField
+              type="date" size="small" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              label={t('conge.demConge.filters.from')}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 150, '& .MuiInputBase-root': { height: 34, background: '#fff', borderRadius: '8px', fontSize: '12px' } }}
+            />
+            <TextField
+              type="date" size="small" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              label={t('conge.demConge.filters.to')}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 150, '& .MuiInputBase-root': { height: 34, background: '#fff', borderRadius: '8px', fontSize: '12px' } }}
+            />
+
+            {hasActiveFilter && (
+              <IconButton size="small" onClick={resetFilters} title={t('conge.demConge.filters.reset')} sx={{ color: '#64748b' }}>
+                <FilterAltOffIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+
           {/* Table header */}
           <Box className="dcm-table-head">
             <Box className="dcm-th dcm-col-emp">{t('conge.demConge.headers.employee')}</Box>
@@ -774,9 +903,27 @@ function DemCongeModernInner() {
                 {t('conge.demConge.emptyCta')}
               </Button>
             </Box>
+          ) : filteredData.length === 0 ? (
+            // Données existantes mais aucune ne matche les filtres courants —
+            // on propose un reset plutôt que le CTA "Nouvelle demande" pour ne
+            // pas pousser à créer un doublon par confusion.
+            <Box sx={{ textAlign: 'center', py: 6, px: 3 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#475569', mb: 0.5 }}>
+                {t('conge.demConge.filters.noMatchTitle')}
+              </Typography>
+              <Typography sx={{ fontSize: 12, color: '#64748b', mb: 2 }}>
+                {t('conge.demConge.filters.noMatchHint')}
+              </Typography>
+              <Button
+                variant="outlined" size="small" startIcon={<FilterAltOffIcon />} onClick={resetFilters}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                {t('conge.demConge.filters.reset')}
+              </Button>
+            </Box>
           ) : (
             <Box className="dcm-rows">
-              {displayData.map((c: Conge, idx: number) => {
+              {filteredData.map((c: Conge, idx: number) => {
                 const status = getStatus(c);
                 const typeColor = getTypeColor(c.abscod);
                 const statusStyle = STATUS_STYLE[status];

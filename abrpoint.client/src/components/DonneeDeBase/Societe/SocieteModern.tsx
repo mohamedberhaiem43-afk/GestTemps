@@ -65,7 +65,11 @@ function SocieteModernContent() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const [form, setForm] = useState<SocieteModel>(emptyForm);
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
+  // `code` permet de spécialiser l'affichage (ex. plan_limit_societes ⇒ CTA upgrade).
+  // `actionUrl` redirige vers la page d'upgrade quand le quota plan est atteint.
+  const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' | 'warning' | 'info'; code?: string; actionUrl?: string }>({
+    open: false, msg: '', sev: 'success',
+  });
   const [filterType, setFilterType] = useState('');
 
   const getTypeLabel = (type: string) => {
@@ -165,15 +169,49 @@ function SocieteModernContent() {
 
     const onSuccess = () => {
       refetch();
-      setSnack({ open: true, msg: isEditMode ? t('societe.msg.updated') : t('societe.msg.added'), sev: 'success' });
+      setSnack({
+        open: true,
+        msg: isEditMode ? t('societe.msg.updated') : t('societe.msg.added'),
+        sev: 'success',
+      });
       setForm(emptyForm);
     };
     const onError = (err: any) => {
+      const status = err?.response?.status;
+      const data = err?.response?.data;
       const apiMsg =
-        err?.response?.data?.message ||
-        (typeof err?.response?.data === 'string' ? err.response.data : '') ||
-        (err?.response?.data?.errors ? JSON.stringify(err.response.data.errors) : '');
-      setSnack({ open: true, msg: apiMsg || (isEditMode ? t('societe.msg.updateError') : t('societe.msg.addError')), sev: 'error' });
+        data?.message ||
+        (typeof data === 'string' ? data : '') ||
+        (data?.errors ? JSON.stringify(data.errors) : '');
+      const code: string | undefined = data?.code;
+
+      // 402 Payment Required = quota du plan atteint (cf. SocietesController.Post →
+      // `plan_limit_societes` quand on tente d'ajouter une société sur un plan
+      // mono-société). Le message du backend est déjà parlant ; on relaie en sev
+      // "warning" plutôt que "error" parce que ce n'est pas un bug, c'est un quota.
+      if (status === 402) {
+        setSnack({
+          open: true,
+          msg: apiMsg || t('societe.msg.planLimitDefault'),
+          sev: 'warning',
+          code,
+          actionUrl: '/dashboard/pricing',
+        });
+        return;
+      }
+
+      // Cas réseau / serveur muet : pas de réponse exploitable. On le loggue côté
+      // console pour faciliter le diagnostic et on affiche un message générique.
+      if (!err?.response) {
+        // eslint-disable-next-line no-console
+        console.error('[Societe] erreur sans réponse HTTP :', err);
+      }
+
+      setSnack({
+        open: true,
+        msg: apiMsg || (isEditMode ? t('societe.msg.updateError') : t('societe.msg.addError')),
+        sev: 'error',
+      });
     };
 
     if (isEditMode) {
@@ -574,9 +612,40 @@ function SocieteModernContent() {
         </Box>
       </Box>
 
-      {/* Snackbar */}
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
+      {/* Snackbar — top-center pour rester visible sur les pages longues, durée
+          adaptée à la sévérité (les warnings/errors ont besoin d'être lus en
+          entier). En cas de quota plan atteint (402), on propose un CTA direct
+          vers la page d'upgrade. */}
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={snack.sev === 'success' ? 4000 : 8000}
+        onClose={() => setSnack(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          severity={snack.sev}
+          variant="filled"
+          onClose={() => setSnack(s => ({ ...s, open: false }))}
+          sx={{
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: 500,
+            minWidth: 320,
+            maxWidth: 560,
+            boxShadow: '0 10px 30px rgba(15,23,42,0.18)',
+            '& .MuiAlert-message': { whiteSpace: 'pre-line' },
+          }}
+          action={snack.code === 'plan_limit_societes' && snack.actionUrl ? (
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => { window.location.href = snack.actionUrl!; }}
+              sx={{ fontWeight: 800, textTransform: 'none' }}
+            >
+              {t('societe.msg.upgradeCta')}
+            </Button>
+          ) : undefined}
+        >
           {snack.msg}
         </Alert>
       </Snackbar>

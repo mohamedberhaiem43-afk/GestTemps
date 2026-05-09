@@ -1109,6 +1109,16 @@
         "refused": "Refused",
         "pending": "Pending"
       },
+      "filters": {
+        "searchPlaceholder": "Search (employee, ID, request #)…",
+        "statusAll": "All",
+        "typeAll": "All types",
+        "from": "From",
+        "to": "To",
+        "reset": "Clear filters",
+        "noMatchTitle": "No request matches the filters",
+        "noMatchHint": "Widen the period or change the filters to show more results."
+      },
       "msg": {
         "acceptedSuccess": "Request accepted successfully",
         "errorGeneric": "Error",
@@ -1223,6 +1233,7 @@
         "title": "Annual consumption",
         "labelStart": "Jun",
         "labelEnd": "Dec",
+        "totalLabel": "Total taken",
         "note_one": "You have consumed <0>{{count}} accepted request</0> this year.",
         "note_other": "You have consumed <0>{{count}} accepted requests</0> this year."
       },
@@ -2395,6 +2406,8 @@
       "added": "Company added successfully.",
       "updateError": "Error during update.",
       "addError": "Error during addition.",
+      "planLimitDefault": "Your plan limit has been reached. Upgrade to add another company.",
+      "upgradeCta": "Upgrade",
       "deleteConfirm": "Are you sure you want to delete this company?"
     },
     "type": {

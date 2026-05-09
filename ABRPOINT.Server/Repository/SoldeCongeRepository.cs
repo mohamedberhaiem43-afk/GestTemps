@@ -1,4 +1,5 @@
 using ABRPOINT.Server.CalculService.Conge;
+using ABRPOINT.Server.CalculService.Rtt;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -9,11 +10,13 @@ namespace ABRPOINT.Server.Repository
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ICongeCalculationService _congeCalculationService;
+        private readonly IRttCalculationService _rttCalculationService;
 
-        public SoldeCongeRepository(ApplicationDbContext dbContext, ICongeCalculationService congeCalculationService)
+        public SoldeCongeRepository(ApplicationDbContext dbContext, ICongeCalculationService congeCalculationService, IRttCalculationService rttCalculationService)
         {
             _dbContext = dbContext;
             _congeCalculationService = congeCalculationService;
+            _rttCalculationService = rttCalculationService;
         }
         public async Task AddAsync(Solde solde)
         {
@@ -56,13 +59,21 @@ namespace ABRPOINT.Server.Repository
 
             var etat = await _congeCalculationService.GetEmpEtatCongeAsync(soccod, empcod, "01", month, year);
 
+            // Le solde RTT vit dans la même ligne `Solde` mais sa valeur dépend de la
+            // configuration RTT côté fiche employé (méthode + droit annuel/heures/forfait).
+            // Sans cet appel, l'API renvoyait toujours RttJours=null → la carte « Solde
+            // RTT » côté front affichait 0 même quand l'employé a 11 j manuels saisis.
+            var rtt = await _rttCalculationService.GetRttSoldeAsync(soccod, empcod);
+
             return new Solde
             {
                 Soccod = soccod,
                 Empcod = empcod,
                 Annee = year,
                 Conge = (float?)etat.DroitConge,
-                Empconge = (float?)etat.SoldeAnterieur
+                Empconge = (float?)etat.SoldeAnterieur,
+                RttJours = rtt?.DroitAnnuel,
+                RttUtilises = rtt?.Pris,
             };
         }
     }

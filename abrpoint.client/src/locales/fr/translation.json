@@ -1109,6 +1109,16 @@
         "refused": "Refusé",
         "pending": "En attente"
       },
+      "filters": {
+        "searchPlaceholder": "Rechercher (employé, matricule, n° demande)…",
+        "statusAll": "Toutes",
+        "typeAll": "Tous les types",
+        "from": "Du",
+        "to": "Au",
+        "reset": "Réinitialiser les filtres",
+        "noMatchTitle": "Aucune demande ne correspond aux filtres",
+        "noMatchHint": "Élargissez la période ou modifiez les filtres pour afficher plus de résultats."
+      },
       "msg": {
         "acceptedSuccess": "Demande acceptée avec succès",
         "errorGeneric": "Erreur",
@@ -1223,6 +1233,7 @@
         "title": "Consommation annuelle",
         "labelStart": "Juin",
         "labelEnd": "Déc",
+        "totalLabel": "Total posé",
         "note_one": "Vous avez consommé <0>{{count}} demande</0> acceptée cette année.",
         "note_other": "Vous avez consommé <0>{{count}} demandes</0> acceptées cette année."
       },
@@ -2394,6 +2405,8 @@
       "added": "Société ajoutée avec succès.",
       "updateError": "Erreur lors de la mise à jour.",
       "addError": "Erreur lors de l'ajout.",
+      "planLimitDefault": "Limite de votre plan atteinte. Passez à un plan supérieur pour ajouter une nouvelle société.",
+      "upgradeCta": "Mettre à niveau",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette société ?"
     },
     "type": {
