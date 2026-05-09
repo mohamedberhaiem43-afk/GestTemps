@@ -47,6 +47,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import RenewContractDialog from '../gestionEmploye/GestionContrats/RenewContractDialog';
 import { Contrat } from '../../models/Contrat';
 import OnboardingGuide from './OnboardingGuide';
+import React from 'react';
 
 const AVATAR_COLORS = ['#0040a1', '#047857', '#b45309', '#6d28d9', '#065f46'];
 
