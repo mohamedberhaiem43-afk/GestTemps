@@ -62,6 +62,13 @@ public class BulkImportController : ControllerBase
     public sealed class VilleRow { public string? Vilcod { get; set; } public string? Villib { get; set; } }
     public sealed class PaysRow { public string? Natcod { get; set; } public string? Natlib { get; set; } }
     public sealed class QualificationRow { public string? Qualib { get; set; } public string? Catcod { get; set; } }
+    public sealed class RubriqueRow
+    {
+        public string? Rubcod { get; set; }
+        public string? Rublib { get; set; }
+        public string? Rubunite { get; set; }
+        public string? Vartype { get; set; }
+    }
     public sealed class EmployeRow
     {
         public string? Empcod { get; set; }
@@ -85,6 +92,7 @@ public class BulkImportController : ControllerBase
     public sealed class VillesImportRequest { public List<VilleRow> Rows { get; set; } = new(); }
     public sealed class PaysImportRequest { public List<PaysRow> Rows { get; set; } = new(); }
     public sealed class QualificationsImportRequest { public List<QualificationRow> Rows { get; set; } = new(); public string? Soccod { get; set; } }
+    public sealed class RubriquesImportRequest { public List<RubriqueRow> Rows { get; set; } = new(); public string? Soccod { get; set; } }
     public sealed class EmployesImportRequest { public List<EmployeRow> Rows { get; set; } = new(); public string Soccod { get; set; } = ""; public string Sitcod { get; set; } = "01"; }
 
     [HttpPost("services")]
@@ -417,6 +425,64 @@ public class BulkImportController : ControllerBase
                 _db.Nations.Add(new Nation { Natcod = code, Natlib = lib, CreatedAt = DateTime.UtcNow });
                 await _db.SaveChangesAsync();
                 existingCodes.Add(code.ToUpperInvariant());
+                inserted++;
+            }
+            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+        }
+        return Ok(new ImportReport(inserted, skipped, 0, errors));
+    }
+
+    [HttpPost("rubriques")]
+    public async Task<ActionResult<ImportReport>> ImportRubriques([FromBody] RubriquesImportRequest req)
+    {
+        if (req.Rows == null || req.Rows.Count == 0) return BadRequest(new { error = "Aucune ligne." });
+        var soccod = string.IsNullOrWhiteSpace(req.Soccod)
+            ? (await _db.Societes.Select(s => s.Soccod).FirstOrDefaultAsync() ?? "01")
+            : req.Soccod;
+
+        // Dédoublonnage par Rubcod (PK fonctionnelle) ET par Rublib (un même libellé
+        // ne devrait pas être dupliqué — l'utilisateur retrouverait deux rubriques
+        // identiques côté formulaire et l'export paie cumulerait deux fois la grandeur).
+        var existingCodes = (await _db.Rubriques.Where(r => r.Soccod == soccod).Select(r => r.Rubcod).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToUpperInvariant()).ToHashSet();
+        var existingLibs = (await _db.Rubriques.Where(r => r.Soccod == soccod).Select(r => r.Rublib).ToListAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToLowerInvariant()).ToHashSet();
+        var inserted = 0; var skipped = 0; var errors = new List<string>();
+
+        foreach (var row in req.Rows)
+        {
+            var lib = row.Rublib?.Trim();
+            if (string.IsNullOrWhiteSpace(lib)) { skipped++; continue; }
+            if (existingLibs.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
+            try
+            {
+                var code = string.IsNullOrWhiteSpace(row.Rubcod)
+                    ? await SequentialCodeGenerator.NextRubcodAsync(_db, soccod)
+                    : row.Rubcod!.Trim();
+                if (existingCodes.Contains(code.ToUpperInvariant())) { skipped++; continue; }
+
+                // Normalisation tolérante : "Heure"/"H"/"Hour" → "H", "Jour"/"J"/"Day" → "J".
+                // Les utilisateurs RH écrivent souvent en clair dans le fichier source.
+                var rawUnite = row.Rubunite?.Trim().ToUpperInvariant();
+                string? unite = rawUnite switch
+                {
+                    "H" or "HEURE" or "HEURES" or "HOUR" or "HOURS" => "H",
+                    "J" or "JOUR" or "JOURS" or "DAY" or "DAYS" => "J",
+                    _ => string.IsNullOrEmpty(rawUnite) ? null : rawUnite,
+                };
+
+                _db.Rubriques.Add(new Rubrique
+                {
+                    Rubcod = code,
+                    Soccod = soccod,
+                    Rublib = lib,
+                    Rubunite = unite,
+                    Vartype = string.IsNullOrWhiteSpace(row.Vartype) ? null : row.Vartype.Trim().ToUpperInvariant(),
+                    CreatedAt = DateTime.UtcNow,
+                });
+                await _db.SaveChangesAsync();
+                existingCodes.Add(code.ToUpperInvariant());
+                existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
             catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }

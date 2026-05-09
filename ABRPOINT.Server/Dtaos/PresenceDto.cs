@@ -53,6 +53,7 @@
         // Flags for reliable frontend classification
         public bool HasAutorisation { get; set; }
         public bool HasConge { get; set; }
+        public bool HasFerie { get; set; }
         // Autorisation time range for display
         public string? AutDebut { get; set; }
         public string? AutFin { get; set; }

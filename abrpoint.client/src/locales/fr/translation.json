@@ -2355,7 +2355,8 @@
       "footerCount": "Affichage de {{count}} rubriques",
       "deleteConfirm": "Supprimer cette rubrique ?",
       "msgUpdated": "Rubrique mise à jour.",
-      "msgAdded": "Rubrique ajoutée."
+      "msgAdded": "Rubrique ajoutée.",
+      "importExcel": "Importer (Excel)"
     }
   },
   "societe": {
@@ -3361,6 +3362,13 @@
       "contract": "Contrat",
       "certificate": "Attestation",
       "other": "Autre"
+    },
+    "customTypeDialog": {
+      "title": "Type de document personnalisé",
+      "prompt": "Indiquez le type du document à déposer (ex. : Diplôme, Carte d'identité, Justificatif…).",
+      "placeholder": "Saisir le type du document",
+      "cancel": "Annuler",
+      "confirm": "Continuer"
     },
     "recent": {
       "title": "Documents Récents",

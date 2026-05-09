@@ -16,6 +16,7 @@ import useDeleteRubrique from '../../../hooks/rubriqueHooks/useDeleteRubrique';
 import { Rubrique } from '../../../models/Rubrique';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
+import ExcelImportButton from '../shared/ExcelImportButton';
 import '../shared/RefModern.css';
 
 const emptyForm: Rubrique = { rubcod: '', soccod: '', rubunite: '', rublib: '', rubtaux: 0, rubregime: '', vartype: '' };
@@ -115,6 +116,20 @@ function RubriqueModernContent() {
           <Typography className="ref-header-sub">{t('donneeBase.rubrique.subtitle')}</Typography>
         </Box>
         <Box className="ref-header-actions">
+          {!isEditMode && canAdd && (
+            <ExcelImportButton
+              endpoint="/BulkImport/rubriques"
+              extraBody={{ Soccod: soccod }}
+              columnMap={{
+                Rubcod: ['rubcod', 'code'],
+                Rublib: ['rublib', 'libelle', 'libellé', 'rubrique', 'nom', 'designation', 'désignation'],
+                Rubunite: ['rubunite', 'unite', 'unité', 'unit'],
+                Vartype: ['vartype', 'variable', 'grandeur', 'type'],
+              }}
+              onImported={() => refetch()}
+              label={t('donneeBase.rubrique.importExcel')}
+            />
+          )}
           {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>{t('donneeBase.common.cancel')}</Button>}
           {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
             <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>

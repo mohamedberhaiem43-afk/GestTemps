@@ -24,6 +24,9 @@ const CoffreFortModern = () => {
   const [selectedType, setSelectedType] = useState<string>('');
   const [docToDelete, setDocToDelete] = useState<DocumentVault | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Dialogue de saisie du type personnalisé pour la catégorie « Autre ».
+  const [customTypeDialogOpen, setCustomTypeDialogOpen] = useState(false);
+  const [customTypeValue, setCustomTypeValue] = useState('');
 
   // Cible du dépôt (admin/manager only). Vide = soi-même.
   const canDepositForOthers = isAdmin || isManager;
@@ -407,7 +410,7 @@ const CoffreFortModern = () => {
             <MenuItem onClick={() => { setSelectedType('Attestation'); document.getElementById('vault-upload-input')?.click(); setAnchorEl(null); }}>
               {t('coffreFort.menu.certificate')}
             </MenuItem>
-            <MenuItem onClick={() => { setSelectedType('Autre'); document.getElementById('vault-upload-input')?.click(); setAnchorEl(null); }}>
+            <MenuItem onClick={() => { setCustomTypeValue(''); setCustomTypeDialogOpen(true); setAnchorEl(null); }}>
               {t('coffreFort.menu.other')}
             </MenuItem>
           </Menu>
@@ -536,6 +539,56 @@ const CoffreFortModern = () => {
           </table>
         </div>
       </section>
+
+      <Dialog
+        open={customTypeDialogOpen}
+        onClose={() => setCustomTypeDialogOpen(false)}
+        PaperProps={{ sx: { borderRadius: '12px', minWidth: '380px' } }}
+      >
+        <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '18px', color: '#0040a1' }}>
+          {t('coffreFort.customTypeDialog.title')}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#475569', fontSize: '14px', mb: 2 }}>
+            {t('coffreFort.customTypeDialog.prompt')}
+          </DialogContentText>
+          <MuiTextField
+            autoFocus
+            fullWidth
+            size="small"
+            value={customTypeValue}
+            onChange={(e) => setCustomTypeValue(e.target.value)}
+            placeholder={t('coffreFort.customTypeDialog.placeholder')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && customTypeValue.trim()) {
+                const value = customTypeValue.trim();
+                setSelectedType(value);
+                setCustomTypeDialogOpen(false);
+                document.getElementById('vault-upload-input')?.click();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setCustomTypeDialogOpen(false)} sx={{ color: '#64748b', textTransform: 'none' }}>
+            {t('coffreFort.customTypeDialog.cancel')}
+          </Button>
+          <Button
+            onClick={() => {
+              const value = customTypeValue.trim();
+              if (!value) return;
+              setSelectedType(value);
+              setCustomTypeDialogOpen(false);
+              document.getElementById('vault-upload-input')?.click();
+            }}
+            variant="contained"
+            disabled={!customTypeValue.trim()}
+            sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#0040a1' }}
+          >
+            {t('coffreFort.customTypeDialog.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={!!docToDelete}

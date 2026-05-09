@@ -47,8 +47,39 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
                         maxhrejour /= 2;
                         return MathF.Max(0, maxhrejour - hreTravValue - authHoursCredit);
                     }
+
+                    // Détection d'un shift entièrement non pointé. Sur un poste à plages
+                    // séparées (matin + après-midi), si l'employé n'a pointé QUE le matin
+                    // (ou QUE l'après-midi), les heures de la plage manquée doivent
+                    // remonter en absence — peu importe le seuil de tolérance ci-dessous,
+                    // qui était calibré pour filtrer les variations de ponctualité.
+                    // Sans cette détection, après un ajustement de pointage qui efface
+                    // la plage AM (ex. 4h matin / 3h aprem), Tothabs restait à 00:00.
+                    var posteEntity = await _posteRepository.GetPoste(soccod, poste);
+                    if (posteEntity != null && date.HasValue)
+                    {
+                        var (mStart, mEnd, eStart, eEnd) = GenericMethodes.GetStartsWorkDay(date, posteEntity);
+                        bool hasMorningPunch = !string.IsNullOrEmpty(presence.Preentmatup) || !string.IsNullOrEmpty(presence.Presortmatup);
+                        bool hasAfternoonPunch = !string.IsNullOrEmpty(presence.Preentamidiup) || !string.IsNullOrEmpty(presence.Presortamidiup);
+
+                        float morningHours = 0f, afternoonHours = 0f;
+                        if (TimeSpan.TryParse(mStart, out var ms) && TimeSpan.TryParse(mEnd, out var me))
+                            morningHours = (float)(me > ms ? (me - ms).TotalHours : ((me + TimeSpan.FromHours(24)) - ms).TotalHours);
+                        if (TimeSpan.TryParse(eStart, out var es) && TimeSpan.TryParse(eEnd, out var ee))
+                            afternoonHours = (float)(ee > es ? (ee - es).TotalHours : ((ee + TimeSpan.FromHours(24)) - es).TotalHours);
+
+                        float missedShiftHours = 0f;
+                        if (!hasMorningPunch && morningHours > 0) missedShiftHours += morningHours;
+                        if (!hasAfternoonPunch && afternoonHours > 0) missedShiftHours += afternoonHours;
+                        if (missedShiftHours > 0)
+                            return MathF.Max(0, missedShiftHours - authHoursCredit);
+                    }
+
+                    // Cas général : différence brute, en filtrant les variations < 15 min
+                    // (anciennement 2h, trop laxiste — masquait des absences réelles
+                    // d'1h à 2h sur des journées partielles).
                     float diff = maxhrejour - hreTravValue - authHoursCredit;
-                    if (diff > 2) return diff;
+                    if (diff > 0.25f) return diff;
                     return 0;
                 }
                 return maxhrejour;

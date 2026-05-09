@@ -28,6 +28,7 @@ export default interface EmpEtat {
   // Flags from backend for reliable classification
   hasAutorisation: boolean;
   hasConge: boolean;
+  hasFerie: boolean;
   autDebut: string;
   autFin: string;
 };

@@ -51,7 +51,10 @@ export function classifyDayStatus(etat: EmpEtat | undefined): DayStatus {
   // Repos (highest priority — backend sets prerepos="1" and etat="J.Repos")
   if (etat.prerepos === '1' || etatStr === 'j.repos') return 'repos';
 
-  // Férié — backend sets etat = "Férié (motif)"
+  // Férié — flag explicite côté backend (fiable même quand l'employé n'a pas de poste
+  // pour ce jour-là, cas où Etat ne contenait que le motif sans préfixe « Férié »).
+  if (etat.hasFerie) return 'ferie';
+  // Fallback string-based pour compatibilité ascendante.
   if (etatStr.startsWith('férié') || etatStr.startsWith('ferie') || etatStr.startsWith('ferié')) return 'ferie';
 
   // ✅ Use explicit backend flags for reliable conge/autorisation classification

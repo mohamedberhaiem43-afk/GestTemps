@@ -870,11 +870,16 @@ namespace ABRPOINT.Server.Repository
                     presence.Etat = sanction
                                     ?? autorisation?.Abslib
                                     ?? conge
-                                    ?? ferier?.Fermotif;
+                                    ?? (ferier != null ? $"Férié ({ferier.Fermotif})" : null);
 
                     // ✅ Populate explicit flags for reliable frontend classification
                     presence.HasAutorisation = autorisation != null;
                     presence.HasConge = !string.IsNullOrEmpty(conge);
+                    // Sans ce flag, le front retombait sur un parsing de chaîne ("Férié …") qui
+                    // ne matchait que dans la branche Codposte≠null (ligne ~943). Pour un jour
+                    // férié hors du planning de l'employé (Codposte vide), Etat valait juste le
+                    // motif (ex. "8 mai") → l'UI le classait en Absence. Le flag corrige ça.
+                    presence.HasFerie = ferier != null;
                     if (autorisation != null)
                     {
                         presence.AutDebut = autorisation.Condep?.ToString("HH:mm");

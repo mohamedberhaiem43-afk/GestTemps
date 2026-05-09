@@ -343,21 +343,26 @@ namespace ABRPOINT.Server.Controllers
                 return NotFound("File not found on disk.");
 
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
-            
-            // If it's a signed dynamic document, regenerate it with signature
+
+            // If it's a signed dynamic document, regenerate it with signature.
+            // Important : ne PAS produire un PDF factice (`<h1>{docType}</h1>`) quand le
+            // template métier n'est pas reconnu — l'utilisateur récupérait alors une
+            // « page prédéfinie figée » à la place de sa preuve signée. Si aucun
+            // template ne correspond, on retombe sur l'envoi du fichier original.
             if (doc.IsSigned && (ext == ".frx" || ext == ".html"))
             {
-                 byte[] pdf;
-                 if (ext == ".html") {
-                     var html = await System.IO.File.ReadAllTextAsync(filePath);
-                     pdf = _reportsService.GenerateFromHtml(html, doc.Soccod, doc.Empcod);
-                 } else {
-                     var lowerName = doc.DocName.ToLower();
-                     if (lowerName.Contains("contrat")) pdf = _reportsService.GenerateContratReport(doc.Soccod, doc.Empcod);
-                     else if (lowerName.Contains("autorisation")) pdf = _reportsService.GenerateAutorisationSortieReport(doc.Soccod, doc.Id.ToString());
-                     else pdf = _reportsService.GenerateFromHtml("<h1>" + doc.DocType + "</h1>", doc.Soccod, doc.Empcod);
-                 }
-                 return File(pdf, "application/pdf", doc.DocName.Replace(ext, ".pdf"));
+                byte[]? pdf = null;
+                if (ext == ".html") {
+                    var html = await System.IO.File.ReadAllTextAsync(filePath);
+                    pdf = _reportsService.GenerateFromHtml(html, doc.Soccod, doc.Empcod);
+                } else {
+                    var lowerName = doc.DocName.ToLower();
+                    if (lowerName.Contains("contrat")) pdf = _reportsService.GenerateContratReport(doc.Soccod, doc.Empcod);
+                    else if (lowerName.Contains("autorisation")) pdf = _reportsService.GenerateAutorisationSortieReport(doc.Soccod, doc.Id.ToString());
+                }
+                if (pdf != null)
+                    return File(pdf, "application/pdf", doc.DocName.Replace(ext, ".pdf"));
+                // Sinon : fall-through vers le retour standard du fichier brut.
             }
 
             var memory = new MemoryStream();

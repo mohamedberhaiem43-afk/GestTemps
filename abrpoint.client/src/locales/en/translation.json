@@ -2356,7 +2356,8 @@
       "footerCount": "Showing {{count}} rubrics",
       "deleteConfirm": "Delete this rubric?",
       "msgUpdated": "Rubric updated.",
-      "msgAdded": "Rubric added."
+      "msgAdded": "Rubric added.",
+      "importExcel": "Import (Excel)"
     }
   },
   "societe": {
@@ -3362,6 +3363,13 @@
       "contract": "Contract",
       "certificate": "Certificate",
       "other": "Other"
+    },
+    "customTypeDialog": {
+      "title": "Custom document type",
+      "prompt": "Enter the type of document you want to upload (e.g. Diploma, ID card, Receipt…).",
+      "placeholder": "Enter document type",
+      "cancel": "Cancel",
+      "confirm": "Continue"
     },
     "recent": {
       "title": "Recent Documents",

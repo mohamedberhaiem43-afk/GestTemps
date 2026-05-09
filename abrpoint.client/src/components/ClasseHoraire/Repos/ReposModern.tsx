@@ -37,9 +37,20 @@ const fmtDate = (d: any) => {
   } catch { return '—'; }
 };
 
+// Important : on extrait année/mois/jour LOCAUX, pas UTC. `toISOString()` convertissait
+// la date en UTC ; dans tout fuseau à l'est de UTC, le 08/05 stocké en base ressortait en
+// "2026-05-07" dans l'input, faisant échouer la PK (Soccod, Ferdate) au PUT côté backend
+// → un doublon était inséré au lieu de la mise à jour.
 const fmtDateInput = (d: any) => {
   if (!d) return '';
-  try { return new Date(d).toISOString().split('T')[0]; } catch { return ''; }
+  try {
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  } catch { return ''; }
 };
 
 const today = () => new Date().toISOString().split('T')[0];
