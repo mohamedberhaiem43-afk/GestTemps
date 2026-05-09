@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator, TextInput, Dimensions, Image,
+  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator, TextInput, Dimensions, Image, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,7 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { COLORS, THEME } from '../config/env';
+import { COLORS, THEME, API_BASE_URL } from '../config/env';
 
 const { width } = Dimensions.get('window');
 
@@ -192,6 +192,40 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
     );
   };
 
+  // Construit l'URL absolue d'un document à partir du docPath stocké côté backend.
+  // Le backend persiste un chemin relatif "/api/uploads/<uuid>.<ext>". On dérive
+  // l'origine HTTP depuis API_BASE_URL (qui inclut "/api"), pour pointer vers le
+  // serveur qui sert les fichiers statiques (nginx en prod, Kestrel en dev).
+  const buildDocUrl = (doc: VaultDocument): string | null => {
+    const path = doc.docPath?.trim();
+    if (!path) return null;
+    if (/^https?:\/\//i.test(path)) return path;
+    // API_BASE_URL: "https://concorde-work-force.com/api" → origin = same minus "/api"
+    const origin = API_BASE_URL.replace(/\/api\/?$/i, '');
+    return path.startsWith('/') ? `${origin}${path}` : `${origin}/${path}`;
+  };
+
+  // Ouvre le document dans le navigateur système (Safari/Chrome) — gère natif
+  // PDF/images. Plus simple et plus universel qu'un viewer in-app, et ça permet
+  // à l'utilisateur de partager/imprimer/sauvegarder via le système.
+  const handleViewDoc = async (doc: VaultDocument) => {
+    const url = buildDocUrl(doc);
+    if (!url) {
+      Alert.alert('Document indisponible', "Le chemin du fichier n'est pas renseigné.");
+      return;
+    }
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Impossible d\'ouvrir', "Aucune application ne peut ouvrir ce type de fichier.");
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (e) {
+      Alert.alert('Erreur', 'Impossible d\'ouvrir le document.');
+    }
+  };
+
   const handleSign = (doc: VaultDocument) => {
     if (!doc.id) return;
     const signerName = user?.utilib || 'Admin';
@@ -324,7 +358,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
                     <TouchableOpacity
                       key={doc.id || idx}
                       style={[styles.docCard, isPending && styles.docCardPending]}
-                      onPress={() => {}}
+                      onPress={() => { if (!isPending) handleViewDoc(doc); }}
                       onLongPress={() => deletable && handleDelete(doc)}
                       delayLongPress={400}
                     >
@@ -378,7 +412,11 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
                               <MaterialCommunityIcons name="trash-can-outline" size={18} color={COLORS.error} />
                             </TouchableOpacity>
                           )}
-                          <TouchableOpacity style={styles.actionButton}>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => handleViewDoc(doc)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
                             <MaterialCommunityIcons name={doc.isSigned ? 'eye-outline' : 'download'} size={20} color={COLORS.primary} />
                           </TouchableOpacity>
                         </View>

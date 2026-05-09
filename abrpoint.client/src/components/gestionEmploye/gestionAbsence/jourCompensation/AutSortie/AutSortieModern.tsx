@@ -17,6 +17,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PrintIcon from '@mui/icons-material/Print';
 import DownloadIcon from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -111,12 +112,13 @@ function MiniCalendar({ sorties }: { sorties: any[] }) {
 
 // ── Form Dialog ───────────────────────────────────────────────────────────────
 function SortieFormDialog({
-  open, onClose, editSortie, onSuccess, refetch, employes, absences, soccod,
+  open, onClose, editSortie, onSuccess, onError, refetch, employes, absences, soccod,
 }: {
   open: boolean;
   onClose: () => void;
   editSortie: Autoriser | null;
   onSuccess: (mode: 'add' | 'edit') => void;
+  onError: (mode: 'add' | 'edit', err: any) => void;
   refetch: () => void;
   employes: any[];
   absences: any[];
@@ -189,9 +191,11 @@ function SortieFormDialog({
         onSuccess(editSortie ? 'edit' : 'add');
         onClose();
       },
-      onError: () => {
+      onError: (err: any) => {
+        // FIX : avant on appelait onSuccess() ici, ce qui faisait apparaître le
+        // snackbar "ajouté avec succès" même en cas d'échec côté serveur.
         setIsSaving(false);
-        onSuccess(editSortie ? 'edit' : 'add'); // signal even on error so caller can show its own snack? keep it simple
+        onError(editSortie ? 'edit' : 'add', err);
       },
     };
     if (editSortie) updateSortie(payload, cb);
@@ -371,6 +375,10 @@ function AutSortieModernContent() {
   // UI state
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as 'success' | 'error' });
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [empFilter, setEmpFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [formOpen, setFormOpen] = useState(false);
@@ -381,16 +389,34 @@ function AutSortieModernContent() {
   const showSnack = (msg: string, sev: 'success' | 'error' = 'success') =>
     setSnack({ open: true, msg, sev });
 
-  // Filtered table data
+  // Filtered table data : recherche libre + type d'autorisation + employé + plage de dates
   const filteredData = useMemo(() => {
-    if (!search) return sorties as any[];
-    const q = search.toLowerCase();
-    return (sorties as any[]).filter((s: any) =>
-      (s.concod || '').toLowerCase().includes(q) ||
-      (s.emplib || '').toLowerCase().includes(q) ||
-      (s.abslib || '').toLowerCase().includes(q)
-    );
-  }, [sorties, search]);
+    const q = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo ? new Date(dateTo).getTime() : null;
+    return (sorties as any[]).filter((s: any) => {
+      if (typeFilter && (s.abscod || '') !== typeFilter) return false;
+      if (empFilter && (s.empcod || '') !== empFilter) return false;
+      if (q) {
+        const hay = `${s.concod ?? ''} ${s.emplib ?? ''} ${s.empcod ?? ''} ${s.abslib ?? ''} ${s.conmotif ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (from !== null || to !== null) {
+        const dep = s.condep ? new Date(s.condep).getTime() : (s.condat ? new Date(s.condat).getTime() : null);
+        const ret = s.conret ? new Date(s.conret).getTime() : dep;
+        if (dep === null) return false;
+        if (from !== null && ret !== null && ret < from) return false;
+        if (to !== null && dep > to) return false;
+      }
+      return true;
+    });
+  }, [sorties, search, typeFilter, empFilter, dateFrom, dateTo]);
+
+  const hasActiveFilter = search !== '' || typeFilter !== '' || empFilter !== '' || dateFrom !== '' || dateTo !== '';
+  const resetFilters = () => {
+    setSearch(''); setTypeFilter(''); setEmpFilter(''); setDateFrom(''); setDateTo('');
+    setPage(0);
+  };
 
   const paginatedData = useMemo(() => {
     const start = page * rowsPerPage;
@@ -513,17 +539,75 @@ function AutSortieModernContent() {
       <Box className="as-body">
         {/* Left: table */}
         <Box className="as-left">
-          {/* Search bar */}
-          <Box className="as-table-toolbar">
-            <Box className="as-search">
-              <SearchIcon sx={{ fontSize: 16, color: '#8896a8' }} />
+          {/* Filter toolbar */}
+          <Box sx={{
+            display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center',
+            p: '10px 12px', mb: 1.5,
+            background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px',
+          }}>
+            <Box sx={{
+              display: 'flex', alignItems: 'center', gap: 0.5,
+              background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
+              px: 1.25, height: 34, flex: '1 1 220px', minWidth: 180,
+            }}>
+              <SearchIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
               <input
                 type="text"
                 placeholder={t('autSortie.table.searchPlaceholder')}
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', flex: 1, color: '#0f172a' }}
               />
             </Box>
+
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select
+                value={typeFilter}
+                onChange={(e) => { setTypeFilter(e.target.value); setPage(0); }}
+                displayEmpty
+                sx={{ height: 34, fontSize: '13px', background: '#fff', borderRadius: '8px' }}
+              >
+                <MenuItem value=""><em>{t('autSortie.filters.typeAll')}</em></MenuItem>
+                {(absences as any[]).map((a: any) => (
+                  <MenuItem key={a.abscod || a.code} value={a.abscod || a.code}>{a.abslib || a.lib}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select
+                value={empFilter}
+                onChange={(e) => { setEmpFilter(e.target.value); setPage(0); }}
+                displayEmpty
+                sx={{ height: 34, fontSize: '13px', background: '#fff', borderRadius: '8px' }}
+              >
+                <MenuItem value=""><em>{t('autSortie.filters.empAll')}</em></MenuItem>
+                {(employes as any[]).map((e: any) => (
+                  <MenuItem key={e.empcod || e.code} value={e.empcod || e.code}>{e.emplib || e.lib}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              type="date" size="small" value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+              label={t('autSortie.filters.from')}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 150, '& .MuiInputBase-root': { height: 34, background: '#fff', borderRadius: '8px', fontSize: '12px' } }}
+            />
+            <TextField
+              type="date" size="small" value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+              label={t('autSortie.filters.to')}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 150, '& .MuiInputBase-root': { height: 34, background: '#fff', borderRadius: '8px', fontSize: '12px' } }}
+            />
+
+            {hasActiveFilter && (
+              <IconButton size="small" onClick={resetFilters} title={t('autSortie.filters.reset')} sx={{ color: '#64748b' }}>
+                <FilterAltOffIcon fontSize="small" />
+              </IconButton>
+            )}
           </Box>
 
           {/* Table head */}
@@ -648,6 +732,13 @@ function AutSortieModernContent() {
         absences={absences as any[]}
         soccod={soccod}
         onSuccess={(mode) => showSnack(mode === 'edit' ? t('autSortie.msg.updated') : t('autSortie.msg.added'), 'success')}
+        onError={(mode, err) => {
+          const serverMsg = err?.response?.data?.message
+            ?? err?.response?.data?.title
+            ?? err?.message;
+          const fallback = mode === 'edit' ? t('autSortie.msg.updateError') : t('autSortie.msg.addError');
+          showSnack(serverMsg ? `${fallback} — ${serverMsg}` : fallback, 'error');
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

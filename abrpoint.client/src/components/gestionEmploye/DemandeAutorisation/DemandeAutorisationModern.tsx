@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Paper, Button, TextField,
   Snackbar, Alert, CircularProgress, Avatar,
@@ -11,6 +11,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
@@ -74,7 +76,7 @@ const STATUS_STYLE: Record<DemandeStatusKey, { bg: string; text: string }> = {
 };
 
 // ── Form Dialog ──
-function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: boolean; onClose: () => void; editDemande: DemandeAutorisation | null; onSuccess?: () => void }) {
+function DemandeFormDialog({ open, onClose, editDemande, onSuccess, onError }: { open: boolean; onClose: () => void; editDemande: DemandeAutorisation | null; onSuccess?: () => void; onError?: (err: any) => void }) {
   const { t } = useTranslation();
   const { soccod, isEmp, uticod } = useAuth();
   const { refetch } = useGetDemandeAutorisations();
@@ -153,7 +155,10 @@ function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: bo
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
+      // FIX : avant on faisait juste console.error → l'utilisateur cliquait Enregistrer,
+      // rien ne s'affichait visuellement. On remonte maintenant l'erreur au parent.
       console.error('Error saving demande:', err);
+      if (onError) onError(err);
     } finally {
       setLoading(false);
     }
@@ -272,7 +277,7 @@ function DemandeFormDialog({ open, onClose, editDemande, onSuccess }: { open: bo
 }
 
 // ── Approve/Refuse Dialog ──
-function TraitementDialog({ open, onClose, demande, action }: { open: boolean; onClose: () => void; demande: DemandeAutorisation | null; action: 'approve' | 'refuse' }) {
+function TraitementDialog({ open, onClose, demande, action, onResult }: { open: boolean; onClose: () => void; demande: DemandeAutorisation | null; action: 'approve' | 'refuse'; onResult?: (kind: 'success' | 'error', action: 'approve' | 'refuse', err?: any) => void }) {
   const { t } = useTranslation();
   const { uticod } = useAuth();
   const { refetch } = useGetDemandeAutorisations();
@@ -284,6 +289,8 @@ function TraitementDialog({ open, onClose, demande, action }: { open: boolean; o
 
   // Promesse exposée à ActionButton : le composant joue son anim de feedback
   // (check vert / croix rouge) selon resolve/reject avant de fermer le dialog.
+  // En plus, on remonte le résultat au parent pour qu'il affiche un snackbar
+  // — l'anim du bouton ne donnait pas le détail de l'erreur côté serveur.
   const handleSubmit = async () => {
     if (!demande) return;
     const endpoint = action === 'approve'
@@ -292,8 +299,10 @@ function TraitementDialog({ open, onClose, demande, action }: { open: boolean; o
     try {
       await apiInstance.post(endpoint, { traitePar: uticod, commentaire });
       refetch();
+      if (onResult) onResult('success', action);
     } catch (err) {
       console.error('Error processing demande:', err);
+      if (onResult) onResult('error', action, err);
       throw err;
     }
   };
@@ -349,6 +358,10 @@ function DemandeAutorisationModern() {
   const { t } = useTranslation();
   const { isEmp, uticod } = useAuth();
   const { data = [], isLoading, refetch } = useGetDemandeAutorisations();
+  const { data: absencesData = [] } = useGetAutorisationLibs();
+  const absencesForFilter: AbsenceOption[] = Array.isArray(absencesData)
+    ? (absencesData as AbsenceOption[]).filter((a) => a && typeof a.abscod === 'string' && a.abscod && typeof a.abslib === 'string')
+    : [];
 
   const [formOpen, setFormOpen] = useState(false);
   const [editDemande, setEditDemande] = useState<DemandeAutorisation | null>(null);
@@ -360,12 +373,48 @@ function DemandeAutorisationModern() {
   const [demandeToDelete, setDemandeToDelete] = useState<DemandeAutorisation | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Filtres : recherche libre, statut, type d'autorisation, plage de dates.
+  // Les compteurs des onglets (`pending`/`approved`/`refused`) sont calculés sur
+  // `data` (non-filtré) pour ne pas changer quand on ajuste un filtre.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | DemandeStatusKey>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+
   const showSnack = (message: string, severity: 'success' | 'error') =>
     setSnackbar({ open: true, message, severity });
 
   const pending = data.filter((d: DemandeAutorisation) => getStatus(d) === 'pending');
   const approved = data.filter((d: DemandeAutorisation) => getStatus(d) === 'approved');
   const refused = data.filter((d: DemandeAutorisation) => getStatus(d) === 'refused');
+
+  const filteredData = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo ? new Date(dateTo).getTime() : null;
+    return (data as DemandeAutorisation[]).filter((d) => {
+      if (statusFilter !== 'all' && getStatus(d) !== statusFilter) return false;
+      if (typeFilter && (d.abscod || '') !== typeFilter) return false;
+      if (q) {
+        const hay = `${d.emplib ?? ''} ${d.empcod ?? ''} ${d.concod ?? ''} ${d.conmotif ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (from !== null || to !== null) {
+        const dep = d.condep ? new Date(d.condep).getTime() : null;
+        const ret = d.conret ? new Date(d.conret).getTime() : dep;
+        if (dep === null) return false;
+        if (from !== null && ret !== null && ret < from) return false;
+        if (to !== null && dep > to) return false;
+      }
+      return true;
+    });
+  }, [data, searchQuery, statusFilter, typeFilter, dateFrom, dateTo]);
+
+  const hasActiveFilter = searchQuery !== '' || statusFilter !== 'all' || typeFilter !== '' || dateFrom !== '' || dateTo !== '';
+  const resetFilters = () => {
+    setSearchQuery(''); setStatusFilter('all'); setTypeFilter(''); setDateFrom(''); setDateTo('');
+  };
 
   const handleNewRequest = () => {
     setEditDemande(null);
@@ -433,6 +482,88 @@ function DemandeAutorisationModern() {
       <Box className="da-body">
         {/* Left: table */}
         <Box className="da-left">
+          {/* Filter toolbar */}
+          <Box sx={{
+            display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center',
+            p: '10px 12px', mb: 1.5,
+            background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px',
+          }}>
+            <Box sx={{
+              display: 'flex', alignItems: 'center', gap: 0.5,
+              background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
+              px: 1.25, height: 34, flex: '1 1 220px', minWidth: 180,
+            }}>
+              <SearchIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t('demAutorisation.filters.searchPlaceholder')}
+                style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', flex: 1, color: '#0f172a' }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 0.5, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', p: '3px' }}>
+              {([
+                { key: 'all', label: t('demAutorisation.filters.statusAll'), count: data.length },
+                { key: 'pending', label: t('demAutorisation.status.pending'), count: pending.length },
+                { key: 'approved', label: t('demAutorisation.status.approved'), count: approved.length },
+                { key: 'refused', label: t('demAutorisation.status.refused'), count: refused.length },
+              ] as const).map(tab => {
+                const active = statusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.key as any)}
+                    style={{
+                      border: 'none', cursor: 'pointer', borderRadius: '6px',
+                      padding: '4px 10px', fontSize: '12px', fontWeight: 700,
+                      background: active ? '#0040a1' : 'transparent',
+                      color: active ? '#fff' : '#64748b',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                  >
+                    {tab.label} <span style={{ opacity: 0.75, marginLeft: 4 }}>({tab.count})</span>
+                  </button>
+                );
+              })}
+            </Box>
+
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                displayEmpty
+                sx={{ height: 34, fontSize: '13px', background: '#fff', borderRadius: '8px' }}
+              >
+                <MenuItem value=""><em>{t('demAutorisation.filters.typeAll')}</em></MenuItem>
+                {absencesForFilter.map((a) => (
+                  <MenuItem key={a.abscod} value={a.abscod}>{a.abslib}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              type="date" size="small" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              label={t('demAutorisation.filters.from')}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 150, '& .MuiInputBase-root': { height: 34, background: '#fff', borderRadius: '8px', fontSize: '12px' } }}
+            />
+            <TextField
+              type="date" size="small" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              label={t('demAutorisation.filters.to')}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 150, '& .MuiInputBase-root': { height: 34, background: '#fff', borderRadius: '8px', fontSize: '12px' } }}
+            />
+
+            {hasActiveFilter && (
+              <IconButton size="small" onClick={resetFilters} title={t('demAutorisation.filters.reset')} sx={{ color: '#64748b' }}>
+                <FilterAltOffIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+
           {/* Table header */}
           <Box className="da-table-head">
             <Box className="da-th da-col-emp">{t('demAutorisation.headers.employee')}</Box>
@@ -446,14 +577,19 @@ function DemandeAutorisationModern() {
           {/* Rows */}
           {isLoading ? (
             <ListSkeleton rows={5} />
-          ) : data.length === 0 ? (
+          ) : filteredData.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 6, color: '#94a3b8' }}>
               <AccessTimeIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
-              <Typography>{t('demAutorisation.empty')}</Typography>
+              <Typography>{hasActiveFilter ? t('demAutorisation.noFilterResult') : t('demAutorisation.empty')}</Typography>
+              {hasActiveFilter && (
+                <Button size="small" onClick={resetFilters} sx={{ mt: 1, textTransform: 'none', color: '#0040a1' }}>
+                  {t('demAutorisation.filters.reset')}
+                </Button>
+              )}
             </Box>
           ) : (
             <Box className="da-rows">
-              {data.map((d: DemandeAutorisation, idx: number) => {
+              {filteredData.map((d: DemandeAutorisation, idx: number) => {
                 const status = getStatus(d);
                 const statusStyle = STATUS_STYLE[status];
                 return (
@@ -570,6 +706,13 @@ function DemandeAutorisationModern() {
         onClose={() => { setFormOpen(false); refetch(); }}
         editDemande={editDemande}
         onSuccess={() => showSnack(editDemande ? t('demAutorisation.msg.updatedSuccess') : t('demAutorisation.msg.createdSuccess'), 'success')}
+        onError={(err) => {
+          const serverMsg = err?.response?.data?.message
+            ?? err?.response?.data?.title
+            ?? err?.message;
+          const fallback = editDemande ? t('demAutorisation.msg.updateError') : t('demAutorisation.msg.createError');
+          showSnack(serverMsg ? `${fallback} — ${serverMsg}` : fallback, 'error');
+        }}
       />
 
       {/* Approve/Refuse Dialog */}
@@ -578,6 +721,17 @@ function DemandeAutorisationModern() {
         onClose={() => setTraitementOpen(false)}
         demande={selectedDemande}
         action={traitementAction}
+        onResult={(kind, action, err) => {
+          if (kind === 'success') {
+            showSnack(action === 'approve' ? t('demAutorisation.msg.approvedSuccess') : t('demAutorisation.msg.refusedSuccess'), 'success');
+          } else {
+            const serverMsg = err?.response?.data?.message
+              ?? err?.response?.data?.title
+              ?? err?.message;
+            const fallback = action === 'approve' ? t('demAutorisation.msg.approveError') : t('demAutorisation.msg.refuseError');
+            showSnack(serverMsg ? `${fallback} — ${serverMsg}` : fallback, 'error');
+          }
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

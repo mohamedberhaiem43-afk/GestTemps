@@ -1303,8 +1303,18 @@
         "generatingReport": "Génération du rapport en cours...",
         "downloadError": "Erreur lors du téléchargement",
         "createdSuccess": "Titre de congé créé avec succès",
-        "updatedSuccess": "Titre de congé modifié avec succès"
+        "updatedSuccess": "Titre de congé modifié avec succès",
+        "createError": "Erreur lors de la création du titre de congé",
+        "updateError": "Erreur lors de la modification du titre de congé"
       },
+      "filters": {
+        "searchPlaceholder": "Rechercher un employé, n° ordre, référence...",
+        "typeAll": "Tous types",
+        "from": "Du",
+        "to": "Au",
+        "reset": "Réinitialiser les filtres"
+      },
+      "noFilterResult": "Aucun résultat avec ces filtres",
       "stat": {
         "totalEmitted": "Total Titres Émis"
       },
@@ -3166,7 +3176,16 @@
       "updated": "Autorisation mise à jour.",
       "added": "Autorisation ajoutée.",
       "saveError": "Erreur lors de l'enregistrement.",
+      "addError": "Erreur lors de l'ajout de l'autorisation",
+      "updateError": "Erreur lors de la modification de l'autorisation",
       "deleted": "Autorisation supprimée."
+    },
+    "filters": {
+      "typeAll": "Tous types",
+      "empAll": "Tous employés",
+      "from": "Du",
+      "to": "Au",
+      "reset": "Réinitialiser les filtres"
     },
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette autorisation de sortie ?",
     "subtitle": "Vous avez <0>{{count}}</0> autorisation de sortie",
@@ -3348,8 +3367,23 @@
       "deletedSuccess": "Demande supprimée avec succès",
       "deleteError": "Erreur lors de la suppression",
       "createdSuccess": "Demande d'autorisation créée avec succès",
-      "updatedSuccess": "Demande modifiée avec succès"
-    }
+      "updatedSuccess": "Demande modifiée avec succès",
+      "createError": "Erreur lors de la création de la demande",
+      "updateError": "Erreur lors de la modification de la demande",
+      "approvedSuccess": "Demande approuvée avec succès",
+      "refusedSuccess": "Demande refusée",
+      "approveError": "Erreur lors de l'approbation",
+      "refuseError": "Erreur lors du refus"
+    },
+    "filters": {
+      "searchPlaceholder": "Rechercher un employé, n° demande, motif...",
+      "statusAll": "Tous",
+      "typeAll": "Tous types",
+      "from": "Du",
+      "to": "Au",
+      "reset": "Réinitialiser les filtres"
+    },
+    "noFilterResult": "Aucune demande ne correspond aux filtres"
   },
   "coffreFort": {
     "badge": {

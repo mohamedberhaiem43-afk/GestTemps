@@ -50,6 +50,77 @@ import OnboardingGuide from './OnboardingGuide';
 
 const AVATAR_COLORS = ['#0040a1', '#047857', '#b45309', '#6d28d9', '#065f46'];
 
+// Hook : anime un nombre de 0 (ou de la valeur précédente) vers `target` sur
+// `durationMs` via requestAnimationFrame avec une courbe easeOutCubic. Utilisé
+// pour donner du dynamisme aux chiffres KPI quand ils apparaissent ou changent
+// (ex : passage de 'today' à 'this week' sur le dashboard).
+function useCountUp(target: number, durationMs = 900): number {
+  const [display, setDisplay] = React.useState(target);
+  const fromRef = React.useRef(target);
+  const rafRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    if (!Number.isFinite(target)) {
+      setDisplay(target);
+      return;
+    }
+    const from = fromRef.current;
+    const to = target;
+    if (from === to) {
+      setDisplay(to);
+      return;
+    }
+    const start = performance.now();
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      const t = Math.min(1, elapsed / durationMs);
+      // easeOutCubic : démarre vite, ralentit en fin de course → "compteur"
+      const eased = 1 - Math.pow(1 - t, 3);
+      const current = from + (to - from) * eased;
+      setDisplay(current);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        fromRef.current = to;
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, durationMs]);
+
+  return display;
+}
+
+// Sépare une valeur affichée ("85.2%", "12.3 hrs", "1247", "--") en partie
+// numérique et suffixe pour pouvoir n'animer que le chiffre. Si la valeur n'a
+// pas de partie numérique parseable (ex: "--"), retourne null pour fallback.
+function splitNumeric(value: string | number): { num: number; suffix: string; decimals: number } | null {
+  if (typeof value === 'number') {
+    return { num: value, suffix: '', decimals: 0 };
+  }
+  const m = String(value).match(/^\s*(-?\d+(?:[.,]\d+)?)(.*)$/);
+  if (!m) return null;
+  const numStr = m[1].replace(',', '.');
+  const num = parseFloat(numStr);
+  if (!Number.isFinite(num)) return null;
+  const decimals = numStr.includes('.') ? numStr.split('.')[1].length : 0;
+  return { num, suffix: m[2], decimals };
+}
+
+// Composant qui affiche une valeur en l'animant si elle est numérique.
+function AnimatedNumber({ value, className, sx }: { value: string | number; className?: string; sx?: any }) {
+  const parsed = splitNumeric(value);
+  const target = parsed ? parsed.num : 0;
+  const animated = useCountUp(target);
+  if (!parsed) {
+    return <Typography className={className} sx={sx}>{value}</Typography>;
+  }
+  const display = animated.toFixed(parsed.decimals) + parsed.suffix;
+  return <Typography className={className} sx={sx}>{display}</Typography>;
+}
+
 function KpiCard({ icon, label, value, trend, trendLabel, trendPositive, iconBg, iconColor }: {
   icon: React.ReactNode; label: string; value: string | number;
   trend?: number; trendLabel?: string; trendPositive?: boolean;
@@ -70,7 +141,7 @@ function KpiCard({ icon, label, value, trend, trendLabel, trendPositive, iconBg,
         ) : null}
       </Box>
       <Typography className="db-kpi-label">{label}</Typography>
-      <Typography className="db-kpi-value">{value}</Typography>
+      <AnimatedNumber value={value} className="db-kpi-value" />
     </Box>
   );
 }
@@ -817,7 +888,7 @@ function DashboardModernAdmin() {
         <Box className="db-bento-employees">
           <Typography className="db-bento-label">{t('dashboard.totalEmployees')}</Typography>
           <Box className="db-bento-emp-value">
-            <Typography className="db-bento-big-num">{dashboardData?.effectifTotal ?? '--'}</Typography>
+            <AnimatedNumber value={dashboardData?.effectifTotal ?? '--'} className="db-bento-big-num" />
             {dashboardData && <Box className="db-bento-trend-badge"><TrendingUpIcon sx={{ fontSize: 14 }} /> +12%</Box>}
           </Box>
           <Box className="db-bento-avatars">
@@ -839,7 +910,7 @@ function DashboardModernAdmin() {
             <Typography className="db-bento-label">{t('dashboard.ongoingLeaves')}</Typography>
             <Box className="db-bento-icon-wrap-green"><EventAvailableIcon sx={{ fontSize: 20 }} /></Box>
           </Box>
-          <Typography className="db-bento-medium-num">{demandesData?.length ?? dashboardData?.totalDemandesEnAttente ?? '--'}</Typography>
+          <AnimatedNumber value={demandesData?.length ?? dashboardData?.totalDemandesEnAttente ?? '--'} className="db-bento-medium-num" />
           <Typography className="db-bento-sub">{t('dashboard.pendingApproval')}</Typography>
           <Box className="db-bento-progress">
             <Box className="db-bento-progress-fill" style={{ width: '75%' }} />
@@ -853,7 +924,7 @@ function DashboardModernAdmin() {
             <Typography className="db-bento-label-error">{t('dashboard.contractAlerts')}</Typography>
             <Box className="db-bento-icon-wrap-error"><PriorityHighIcon sx={{ fontSize: 20 }} /></Box>
           </Box>
-          <Typography className="db-bento-medium-num">{expiringContracts.length || 0}</Typography>
+          <AnimatedNumber value={expiringContracts.length || 0} className="db-bento-medium-num" />
           <Typography className="db-bento-sub-error">
             {t('dashboard.contractsExpiringMonth')}
           </Typography>

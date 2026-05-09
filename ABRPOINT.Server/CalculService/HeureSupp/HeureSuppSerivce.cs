@@ -84,22 +84,21 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     // ne génère pas d'heures supp (la diff est traitée par CalculateHeureRetard).
                 }
 
-                // 2️⃣ SORTIE MATIN TARDIVE — ne s'applique QUE quand il y a une session soir.
-                // ⚠ On PLAFONNE à eveningStart pour ne pas recouvrir l'après-midi/fin de journée
-                // que la section 4️⃣ recompte ensuite. Ancien bug : quand actualMorningEnd dépassait
-                // eveningEnd (sortie tardive après tout l'après-midi), on ajoutait toute la plage
-                // morningEnd → actualMorningEnd, puis la section 4 ajoutait encore eveningEnd →
-                // actualMorningEnd. Sur un pointage 18:23 → 20:42 avec poste 08-12/14-17, ça
-                // donnait 8h42 + 3h42 = 12h24 d'H.Sup pour 2h19 réellement travaillées.
-                if (hasEveningSession && actualMorningEnd > morningEnd)
+                // 2️⃣ SORTIE MATIN TARDIVE — l'employé a continué de bosser pendant tout ou
+                // partie de la pause déjeuner. On ne déclenche que si :
+                //   - une session du soir existe (sinon il n'y a pas de "pause" à enjamber)
+                //   - l'employé était bien présent AVANT morningEnd (sinon il n'a jamais
+                //     touché à la pause — bug observé : entrée 17:53 / sortie 21:04 ajoutait
+                //     12:00→14:00 = 2h alors qu'il n'était pas là à ce moment).
+                if (hasEveningSession
+                    && actualMorningEnd > morningEnd
+                    && actualMorningArrival != TimeSpan.Zero
+                    && actualMorningArrival <= morningEnd)
                 {
                     int morningEndMinutes = (int)morningEnd.TotalMinutes;
                     int actualMorningEndMinutes = (int)actualMorningEnd.TotalMinutes;
                     int eveningStartMinutes = (int)eveningStart.TotalMinutes;
 
-                    // Débordement strictement dans la pause déjeuner : entre morningEnd et
-                    // min(actualMorningEnd, eveningStart). Au-delà d'eveningStart, c'est du
-                    // temps de poste de l'après-midi (déjà compté dans Tothre, pas en H.Sup).
                     int upperBound = Math.Min(actualMorningEndMinutes, eveningStartMinutes);
                     if (upperBound > morningEndMinutes)
                         nbHeurSupp += upperBound - morningEndMinutes;
@@ -120,39 +119,52 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                             nbHeurSupp += SupAfternoonEntry;
                         }
                     }
-                    // ⚠️ FIX: When no evening session is defined, we do NOT count all afternoon
-                    // work as overtime. The overtime for late departure is handled in section 4
-                    // (comparing actualLeave against the scheduled end time).
                 }
 
                 // 4️⃣ HEURES SUPP EN FIN DE JOURNÉE
                 TimeSpan actualLeave = TimeSpan.Zero;
+                TimeSpan effectiveEntry = TimeSpan.Zero;
 
-                // FIX: Prioritize afternoon exit (last departure of the day) over morning exit
                 if (!string.IsNullOrEmpty(presence.Presortamidiup) && actualAfternoonEnd != TimeSpan.Zero)
                 {
                     actualLeave = actualAfternoonEnd;
+                    effectiveEntry = actualAfternoonArrival != TimeSpan.Zero
+                        ? actualAfternoonArrival
+                        : actualMorningArrival;
                 }
                 else if (!string.IsNullOrEmpty(presence.Presortmatup))
                 {
                     actualLeave = actualMorningEnd;
+                    effectiveEntry = actualMorningArrival;
                 }
 
-                // FIX: Handle both cases — with and without evening session
                 TimeSpan scheduledEnd = hasEveningSession ? eveningEnd : morningEnd;
 
                 if (actualLeave != TimeSpan.Zero)
                 {
                     int scheduledEndMinutes = (int)scheduledEnd.TotalMinutes;
                     int actualLeaveMinutes = (int)actualLeave.TotalMinutes;
+                    int effectiveEntryMinutes = (int)effectiveEntry.TotalMinutes;
 
                     if (actualLeaveMinutes > (scheduledEndMinutes + SortieTolerance))
                     {
-                        int SupEvening = actualLeaveMinutes - scheduledEndMinutes;
-                        nbHeurSupp += SupEvening;
+                        // FIX : si l'employé est arrivé APRÈS la fin de plage (ex 17:53 alors
+                        // que scheduledEnd = 17:00), tout son temps sur site est H.Sup. Le
+                        // calcul d'origine (actualLeave - scheduledEnd) supposait à tort qu'il
+                        // était déjà présent depuis le matin et générait 4h+ d'H.Sup fantômes.
+                        int overtimeStart = Math.Max(scheduledEndMinutes, effectiveEntryMinutes);
+                        int SupEvening = actualLeaveMinutes - overtimeStart;
+                        if (SupEvening > 0) nbHeurSupp += SupEvening;
                     }
-                    // Sortie anticipée : ne pas muter Tothre. CalcNbHeure reflète déjà le temps
-                    // réellement travaillé (entrée → sortie réelle).
+                }
+
+                // Garde-fou : les H.Sup ne peuvent jamais excéder le temps réellement travaillé.
+                // Tothre est en "HH:mm" — ConvertHHmmToDouble retourne des heures décimales.
+                var totalWorkedHours = GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
+                if (totalWorkedHours > 0)
+                {
+                    int totalWorkedMinutes = (int)Math.Round(totalWorkedHours * 60);
+                    if (nbHeurSupp > totalWorkedMinutes) nbHeurSupp = totalWorkedMinutes;
                 }
 
                 return (double)nbHeurSupp / 60;
@@ -232,9 +244,13 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     // ne génère pas d'heures supp (la diff est traitée par CalculateHeureRetard).
                 }
 
-                // 2️⃣ SORTIE MATIN TARDIVE — plafonnée à eveningStart pour ne pas recouvrir
-                // l'après-midi (recomptée par la section 4). Cf. CalculateHeureSuppOptimise.
-                if (hasEveningSession && actualMorningEnd > morningEnd)
+                // 2️⃣ SORTIE MATIN TARDIVE — cf. CalculateHeureSuppOptimise pour le détail.
+                // On exige actualMorningArrival ≤ morningEnd pour ne pas générer de pause-
+                // déjeuner fantôme quand l'employé arrive après 12:00.
+                if (hasEveningSession
+                    && actualMorningEnd > morningEnd
+                    && actualMorningArrival != TimeSpan.Zero
+                    && actualMorningArrival <= morningEnd)
                 {
                     int morningEndMinutes = (int)morningEnd.TotalMinutes;
                     int actualMorningEndMinutes = (int)actualMorningEnd.TotalMinutes;
@@ -260,42 +276,54 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                             nbHeurSupp += SupAfternoonEntry;
                         }
                     }
-                    // ⚠️ FIX: When no evening session is defined, we do NOT count all afternoon
-                    // work as overtime. The overtime for late departure is handled in section 4
-                    // (comparing actualLeave against the scheduled end time).
                 }
 
                 // 4️⃣ HEURES SUPP EN FIN DE JOURNÉE
                 TimeSpan actualLeave = TimeSpan.Zero;
+                TimeSpan effectiveEntry = TimeSpan.Zero;
 
-                // FIX: Prioritize afternoon exit (last departure of the day) over morning exit
                 if (!string.IsNullOrEmpty(presence.Presortamidiup) && actualAfternoonEnd != TimeSpan.Zero)
                 {
                     actualLeave = actualAfternoonEnd;
+                    effectiveEntry = actualAfternoonArrival != TimeSpan.Zero
+                        ? actualAfternoonArrival
+                        : actualMorningArrival;
                 }
                 else if (!string.IsNullOrEmpty(presence.Presortmatup))
                 {
                     actualLeave = actualMorningEnd;
+                    effectiveEntry = actualMorningArrival;
                 }
 
-                // FIX: Handle both cases — with and without evening session
                 TimeSpan scheduledEnd = hasEveningSession ? eveningEnd : morningEnd;
 
                 if (actualLeave != TimeSpan.Zero)
                 {
                     int scheduledEndMinutes = (int)scheduledEnd.TotalMinutes;
                     int actualLeaveMinutes = (int)actualLeave.TotalMinutes;
+                    int effectiveEntryMinutes = (int)effectiveEntry.TotalMinutes;
 
                     if (actualLeaveMinutes > (scheduledEndMinutes + SortieTolerance))
                     {
-                        int SupEvening = actualLeaveMinutes - scheduledEndMinutes;
-                        nbHeurSupp += SupEvening;
+                        // FIX : si l'employé est arrivé APRÈS scheduledEnd, on part de son
+                        // arrivée réelle pour calculer l'H.Sup, pas de scheduledEnd.
+                        int overtimeStart = Math.Max(scheduledEndMinutes, effectiveEntryMinutes);
+                        int SupEvening = actualLeaveMinutes - overtimeStart;
+                        if (SupEvening > 0) nbHeurSupp += SupEvening;
                     }
-                    // Sortie anticipée : ne pas muter Tothre. CalcNbHeure reflète déjà le temps
-                    // réellement travaillé (entrée → sortie réelle).
                 }
 
-                return nbHeurSupp / 60;
+                // Garde-fou : H.Sup ≤ temps réellement travaillé (Tothre).
+                var totalWorkedHours = GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
+                if (totalWorkedHours > 0)
+                {
+                    int totalWorkedMinutes = (int)Math.Round(totalWorkedHours * 60);
+                    if (nbHeurSupp > totalWorkedMinutes) nbHeurSupp = totalWorkedMinutes;
+                }
+
+                // FIX: cast en double pour ne plus tronquer les minutes (entier/entier en C#
+                // = division entière). 197 min → 197/60 = 3.28h, pas 3.
+                return (double)nbHeurSupp / 60;
             }
             catch (Exception ex)
             {

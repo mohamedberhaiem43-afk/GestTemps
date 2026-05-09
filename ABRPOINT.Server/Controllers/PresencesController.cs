@@ -361,16 +361,24 @@ namespace ABRPOINT.Server.Controllers
                 // clients ou les pointages déclenchés via web.
                 var stamp = clientTime ?? DateTime.Now;
 
-                // S5 — Tolérance d'écart entre l'horloge mobile et celle du serveur. Sans ce
-                // garde-fou, un client malveillant peut envoyer un clientTime arbitraire pour
-                // pointer rétroactivement (lundi matin alors qu'on est mardi soir) ou dans le
-                // futur. Tolérance : ±10 min — large pour absorber les téléphones désynchronisés
-                // et les fuseaux mal configurés, mais resserre la fenêtre de fraude. La date
-                // d'embauche / sortie reste contrôlée plus bas.
+                // S5 — Tolérance d'écart entre l'horloge mobile et celle du serveur.
+                //
+                // Le client envoie son heure locale sans suffixe TZ (DateTimeKind.Unspecified
+                // après bind). On compare à DateTime.Now du serveur — qui est en heure locale
+                // serveur (Europe/Paris via TZ env var). Si l'utilisateur est dans un autre
+                // fuseau (Tunisie en CEST → 1h d'écart en été, Maroc en hiver → 1h, Algérie
+                // → 1h, Madagascar → 2h…), un écart "normal" peut atteindre 1-2h sans qu'il
+                // y ait fraude. Tolérance précédente de 10 min refusait à tort ces pointages.
+                //
+                // Tolérance : ±90 min — couvre les fuseaux courants (Maghreb, Europe, DOM-TOM
+                // proches) tout en bloquant les rétro-pointages qui sont l'attaque réelle
+                // (envoyer "lundi matin" un mardi soir → écart de plusieurs heures à plusieurs
+                // jours → toujours rejeté). Pour des fuseaux plus éloignés il faudra envoyer
+                // l'horodatage en UTC depuis le client (TODO).
                 if (clientTime.HasValue)
                 {
                     var skew = (DateTime.Now - clientTime.Value).Duration();
-                    if (skew > TimeSpan.FromMinutes(10))
+                    if (skew > TimeSpan.FromMinutes(90))
                     {
                         _logger?.LogWarning(
                             "Pointage avec écart d'horloge important. soccod={Soccod} empcod={Empcod} skewMinutes={Skew}",

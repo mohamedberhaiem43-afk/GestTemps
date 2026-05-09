@@ -14,6 +14,8 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import SaveIcon from '@mui/icons-material/Save';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation, Trans } from 'react-i18next';
 import { CongeProvider, useCongeContext } from '../../../helper/CongeContext';
@@ -105,7 +107,7 @@ function MiniCalendar({ leaves }: { leaves: Conge[] }) {
 }
 
 // ── Modern Form Dialog (from DemCongeModern) ──────────────────────────────────
-function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolean; onClose: () => void; editConge: Conge | null; onSuccess?: () => void }) {
+function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { open: boolean; onClose: () => void; editConge: Conge | null; onSuccess?: () => void; onError?: (err: any) => void }) {
   const { t } = useTranslation();
   const { soccod } = useAuth();
   const { data: absences = [] } = useGetCongeAbsenceLibs();
@@ -223,7 +225,13 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
         if (onSuccess) onSuccess();
         onClose();
       },
-      onError: () => {}
+      // FIX : avant on avalait silencieusement les erreurs d'API → l'utilisateur
+      // cliquait "Enregistrer", rien ne se passait visuellement et il pensait que
+      // ça avait marché. On remonte maintenant l'erreur au parent qui affiche un
+      // snackbar avec le message serveur.
+      onError: (err: any) => {
+        if (onError) onError(err);
+      },
     };
     editConge ? updateConge(payload, cb) : addConge(payload, cb);
   };
@@ -331,6 +339,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
 function TitreCongeInner() {
   const { t } = useTranslation();
   const { data: globalData = [], isLoading, refetch } = useGetTitreConge();
+  const { data: absenceLibs = {} } = useGetCongeAbsenceLibs();
   const { setSelectedConge } = useCongeContext();
   const { mutate: deleteConge } = useDeleteTitreConge();
   const { hasPermission } = useAuth();
@@ -340,12 +349,47 @@ function TitreCongeInner() {
   const canDelete = hasPermission('Gestion des Congés', 'delete');
   const canConsult = hasPermission('Gestion des Congés', 'consult');
 
-  const data = useMemo(() => {
+  const sortedData = useMemo(() => {
     return [...globalData].sort((a, b) => {
       if (!a.condat || !b.condat) return 0;
       return new Date(b.condat).getTime() - new Date(a.condat).getTime();
     });
   }, [globalData]);
+
+  // Filtres : recherche libre, type d'absence, plage de dates (recouvrement avec
+  // [condep, conret]). Pas de filtre "statut" ici — un titre de congé représente
+  // un congé déjà émis, il n'y a pas d'état pending/refused à distinguer.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+
+  const data = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo ? new Date(dateTo).getTime() : null;
+    return sortedData.filter((c: Conge) => {
+      if (typeFilter && c.abscod !== typeFilter) return false;
+      if (q) {
+        const hay = `${c.emplib ?? ''} ${c.empcod ?? ''} ${c.concod ?? ''} ${c.conref ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (from !== null || to !== null) {
+        const dep = c.condep ? new Date(c.condep).getTime() : null;
+        const ret = c.conret ? new Date(c.conret).getTime() : dep;
+        if (dep === null) return false;
+        if (from !== null && ret !== null && ret < from) return false;
+        if (to !== null && dep > to) return false;
+      }
+      return true;
+    });
+  }, [sortedData, searchQuery, typeFilter, dateFrom, dateTo]);
+
+  const hasActiveFilter = searchQuery !== '' || typeFilter !== '' || dateFrom !== '' || dateTo !== '';
+  const resetFilters = () => {
+    setSearchQuery(''); setTypeFilter(''); setDateFrom(''); setDateTo('');
+    setCurrentPage(1);
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE) || 1;
@@ -353,6 +397,11 @@ function TitreCongeInner() {
     const begin = (currentPage - 1) * ITEMS_PER_PAGE;
     return data.slice(begin, begin + ITEMS_PER_PAGE);
   }, [currentPage, data]);
+
+  // Reset page when filters narrow result set below current page
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(1);
+  }, [totalPages, currentPage]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editConge, setEditConge] = useState<Conge | null>(null);
@@ -424,7 +473,7 @@ function TitreCongeInner() {
           <Typography className="dcm-subtitle">
             <Trans
               i18nKey="conge.titreConge.subtitle"
-              count={data.length}
+              count={sortedData.length}
               components={{ 0: <strong style={{ color: '#0040a1' }} /> }}
             />
           </Typography>
@@ -438,6 +487,63 @@ function TitreCongeInner() {
 
       <Box className="dcm-body">
         <Box className="dcm-left" sx={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Filter toolbar (search + type + date range + reset) */}
+          <Box sx={{
+            display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center',
+            p: '10px 12px', mb: 1.5,
+            background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px',
+          }}>
+            <Box sx={{
+              display: 'flex', alignItems: 'center', gap: 0.5,
+              background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
+              px: 1.25, height: 34, flex: '1 1 220px', minWidth: 180,
+            }}>
+              <SearchIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                placeholder={t('conge.titreConge.filters.searchPlaceholder')}
+                style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', flex: 1, color: '#0f172a' }}
+              />
+            </Box>
+
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select
+                value={typeFilter}
+                onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+                displayEmpty
+                sx={{ height: 34, fontSize: '13px', background: '#fff', borderRadius: '8px' }}
+              >
+                <MenuItem value=""><em>{t('conge.titreConge.filters.typeAll')}</em></MenuItem>
+                {Object.entries((absenceLibs as Record<string, string>) || {}).map(([code, lib]) => (
+                  <MenuItem key={code} value={code}>{lib}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              type="date" size="small" value={dateFrom}
+              onChange={e => { setDateFrom(e.target.value); setCurrentPage(1); }}
+              label={t('conge.titreConge.filters.from')}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 150, '& .MuiInputBase-root': { height: 34, background: '#fff', borderRadius: '8px', fontSize: '12px' } }}
+            />
+            <TextField
+              type="date" size="small" value={dateTo}
+              onChange={e => { setDateTo(e.target.value); setCurrentPage(1); }}
+              label={t('conge.titreConge.filters.to')}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 150, '& .MuiInputBase-root': { height: 34, background: '#fff', borderRadius: '8px', fontSize: '12px' } }}
+            />
+
+            {hasActiveFilter && (
+              <IconButton size="small" onClick={resetFilters} title={t('conge.titreConge.filters.reset')} sx={{ color: '#64748b' }}>
+                <FilterAltOffIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+
           <Box className="dcm-table-head">
             <Box className="dcm-th dcm-col-emp">{t('conge.titreConge.headers.employee')}</Box>
             <Box className="dcm-th dcm-col-type">{t('conge.titreConge.headers.type')}</Box>
@@ -456,7 +562,12 @@ function TitreCongeInner() {
           ) : data.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 6, color: '#94a3b8' }}>
               <CalendarTodayIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
-              <Typography>{t('conge.titreConge.noData')}</Typography>
+              <Typography>{hasActiveFilter ? t('conge.titreConge.noFilterResult') : t('conge.titreConge.noData')}</Typography>
+              {hasActiveFilter && (
+                <Button size="small" onClick={resetFilters} sx={{ mt: 1, textTransform: 'none', color: '#0040a1' }}>
+                  {t('conge.titreConge.filters.reset')}
+                </Button>
+              )}
             </Box>
           ) : (
             <>
@@ -551,9 +662,9 @@ function TitreCongeInner() {
         </Box>
 
         <Box className="dcm-sidebar">
-          <MiniCalendar leaves={data} />
+          <MiniCalendar leaves={sortedData} />
           <Paper className="dcm-stat-card" sx={{ mt: 2 }}>
-            <Typography className="dcm-stat-value dcm-stat-primary">{data.length}</Typography>
+            <Typography className="dcm-stat-value dcm-stat-primary">{sortedData.length}</Typography>
             <Typography className="dcm-stat-label">{t('conge.titreConge.stat.totalEmitted')}</Typography>
           </Paper>
         </Box>
@@ -565,6 +676,13 @@ function TitreCongeInner() {
         onClose={() => { setFormOpen(false); refetch(); }}
         editConge={editConge}
         onSuccess={() => showSnack(editConge ? t('conge.titreConge.msg.updatedSuccess') : t('conge.titreConge.msg.createdSuccess'), 'success')}
+        onError={(err) => {
+          const serverMsg = err?.response?.data?.message
+            ?? err?.response?.data?.title
+            ?? err?.message;
+          const fallback = editConge ? t('conge.titreConge.msg.updateError') : t('conge.titreConge.msg.createError');
+          showSnack(serverMsg ? `${fallback} — ${serverMsg}` : fallback, 'error');
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

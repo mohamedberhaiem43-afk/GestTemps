@@ -1303,8 +1303,18 @@
         "generatingReport": "Generating report...",
         "downloadError": "Error during download",
         "createdSuccess": "Leave title created successfully",
-        "updatedSuccess": "Leave title updated successfully"
+        "updatedSuccess": "Leave title updated successfully",
+        "createError": "Error while creating the leave title",
+        "updateError": "Error while updating the leave title"
       },
+      "filters": {
+        "searchPlaceholder": "Search by employee, order #, reference...",
+        "typeAll": "All types",
+        "from": "From",
+        "to": "To",
+        "reset": "Reset filters"
+      },
+      "noFilterResult": "No result for these filters",
       "stat": {
         "totalEmitted": "Total Issued Titles"
       },
@@ -3167,7 +3177,16 @@
       "updated": "Authorization updated.",
       "added": "Authorization added.",
       "saveError": "Error while saving.",
+      "addError": "Error while adding the authorization",
+      "updateError": "Error while updating the authorization",
       "deleted": "Authorization deleted."
+    },
+    "filters": {
+      "typeAll": "All types",
+      "empAll": "All employees",
+      "from": "From",
+      "to": "To",
+      "reset": "Reset filters"
     },
     "deleteConfirm": "Are you sure you want to delete this exit authorization?",
     "subtitle": "You have <0>{{count}}</0> exit authorization",
@@ -3349,8 +3368,23 @@
       "deletedSuccess": "Request deleted successfully",
       "deleteError": "Error during deletion",
       "createdSuccess": "Authorization request created successfully",
-      "updatedSuccess": "Request updated successfully"
-    }
+      "updatedSuccess": "Request updated successfully",
+      "createError": "Error while creating the request",
+      "updateError": "Error while updating the request",
+      "approvedSuccess": "Request approved successfully",
+      "refusedSuccess": "Request refused",
+      "approveError": "Error while approving",
+      "refuseError": "Error while refusing"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by employee, request #, motive...",
+      "statusAll": "All",
+      "typeAll": "All types",
+      "from": "From",
+      "to": "To",
+      "reset": "Reset filters"
+    },
+    "noFilterResult": "No request matches the filters"
   },
   "coffreFort": {
     "badge": {
