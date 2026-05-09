@@ -285,36 +285,74 @@ namespace ABRPOINT.Server.Controllers
                 // (cas légitime : pointage de rattrapage).
                 if (!await CallerOwnsOrManagesEmpAsync(empcod)) return Forbid();
 
-                if (lat.HasValue && lon.HasValue)
+                // Validation de zone GPS — admin-définie via les colonnes sitlat/sitlon/sitrad
+                // de la table site, ou via la config legacy GeoZones:Zones.
+                //
+                // Règle :
+                //   - "off"  : aucune validation (pour debug/migration).
+                //   - "warn" : log si hors zone, accepte le pointage.
+                //   - "reject" / défaut quand au moins un site a un geofence : refuse 422.
+                //
+                // Si l'admin a configuré des zones mais que le client n'a pas envoyé de GPS,
+                // on refuse aussi (sinon n'importe qui contourne en désactivant la localisation).
+                if (_geoValidator != null)
                 {
-                    // Audit trail simple via logger structurel : permet de tracer où le pointage
-                    // a été déclenché (rejouable dans un dashboard "carte des pointages" plus tard).
-                    _logger?.LogInformation(
-                        "Mobile clock-in GPS soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
-                        soccod, empcod, lat, lon, acc);
+                    var configMode = _geoValidator.ConfiguredMode;
+                    var hasGeofences = await _geoValidator.HasGeofencesAsync(soccod);
+                    var effectiveMode = !string.IsNullOrEmpty(configMode)
+                        ? configMode
+                        : (hasGeofences ? "reject" : "off");
 
-                    // Validation de zone (config-driven via GeoZones:Mode dans appsettings).
-                    if (_geoValidator != null && _geoValidator.Mode != "off")
+                    if (effectiveMode != "off" && hasGeofences)
                     {
-                        var validation = _geoValidator.Validate(soccod, lat.Value, lon.Value);
-                        if (!validation.InsideAnyZone)
+                        if (!lat.HasValue || !lon.HasValue)
                         {
-                            var distance = validation.NearestDistanceMeters.HasValue
-                                ? $"{validation.NearestDistanceMeters.Value:F0}m"
-                                : "?";
                             _logger?.LogWarning(
-                                "Pointage hors zone autorisée. soccod={Soccod} empcod={Empcod} nearest={Sitcod} distance={Distance}",
-                                soccod, empcod, validation.NearestSitcod, distance);
-                            if (_geoValidator.Mode == "reject")
+                                "Pointage refusé (GPS manquant alors que des zones sont configurées). soccod={Soccod} empcod={Empcod}",
+                                soccod, empcod);
+                            if (effectiveMode == "reject")
                             {
                                 return UnprocessableEntity(new
                                 {
-                                    message = $"Pointage refusé : vous êtes à {distance} de la zone autorisée la plus proche.",
-                                    distance = validation.NearestDistanceMeters,
-                                    nearestSitcod = validation.NearestSitcod,
+                                    message = "Pointage refusé : la localisation est obligatoire. Veuillez autoriser l'accès à votre position et réessayer.",
+                                    code = "gps_required",
                                 });
                             }
                         }
+                        else
+                        {
+                            _logger?.LogInformation(
+                                "Clock-in GPS soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
+                                soccod, empcod, lat, lon, acc);
+
+                            var validation = await _geoValidator.ValidateAsync(soccod, lat.Value, lon.Value);
+                            if (!validation.InsideAnyZone)
+                            {
+                                var distance = validation.NearestDistanceMeters.HasValue
+                                    ? $"{validation.NearestDistanceMeters.Value:F0}m"
+                                    : "?";
+                                _logger?.LogWarning(
+                                    "Pointage hors zone autorisée. soccod={Soccod} empcod={Empcod} nearest={Sitcod} distance={Distance}",
+                                    soccod, empcod, validation.NearestSitcod, distance);
+                                if (effectiveMode == "reject")
+                                {
+                                    return UnprocessableEntity(new
+                                    {
+                                        message = $"Pointage refusé : vous êtes à {distance} de la zone autorisée la plus proche.",
+                                        code = "outside_geofence",
+                                        distance = validation.NearestDistanceMeters,
+                                        nearestSitcod = validation.NearestSitcod,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    else if (lat.HasValue && lon.HasValue)
+                    {
+                        // Pas de geofence configuré : on journalise quand même pour audit anti-fraude.
+                        _logger?.LogInformation(
+                            "Clock-in GPS (no geofence) soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
+                            soccod, empcod, lat, lon, acc);
                     }
                 }
 

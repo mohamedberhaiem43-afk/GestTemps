@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public static class BaseDataSchemaMigrator
 {
-    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded, bool RagTablesCreated, bool MissionDeviseAdded, bool NoteDeFraisDeviseAdded);
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded, bool RagTablesCreated, bool MissionDeviseAdded, bool NoteDeFraisDeviseAdded, bool SiteGeofenceAdded);
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
@@ -73,7 +73,16 @@ public static class BaseDataSchemaMigrator
         var missionDevise = await AddColumnIfMissingAsync(db, "mission", "misdevise", "NVARCHAR(3) NULL", ct);
         var nfDevise = await AddColumnIfMissingAsync(db, "notedefrais", "devise", "NVARCHAR(3) NULL", ct);
 
-        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise);
+        // Geofence : zone GPS autorisée par site. NULL = pas de geofence pour ce site.
+        // L'admin/manager définit ces valeurs via le formulaire Filiale ; le validateur
+        // serveur (GeoZoneValidator) refuse les pointages hors rayon dès qu'au moins un
+        // site du tenant a les 3 colonnes renseignées.
+        var siteGeoLat = await AddColumnIfMissingAsync(db, "site", "sitlat", "DECIMAL(10,7) NULL", ct);
+        var siteGeoLon = await AddColumnIfMissingAsync(db, "site", "sitlon", "DECIMAL(10,7) NULL", ct);
+        var siteGeoRad = await AddColumnIfMissingAsync(db, "site", "sitrad", "INT NULL", ct);
+        var siteGeofenceAdded = siteGeoLat || siteGeoLon || siteGeoRad;
+
+        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise, siteGeofenceAdded);
     }
 
     private static async Task<bool> EnsureRagDocumentTableAsync(ApplicationDbContext db, CancellationToken ct)

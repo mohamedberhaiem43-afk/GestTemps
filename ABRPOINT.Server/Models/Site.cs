@@ -60,4 +60,15 @@ public partial class Site : BaseEntity
     [Column("sitsancm")]
     [StringLength(1)]
     public string? Sitsancm { get; set; }
+
+    // Geofence : si Sitlat/Sitlon/Sitrad sont renseignés, le pointage exige une
+    // position GPS dans le rayon défini autour du point. NULL = pas de geofence.
+    [Column("sitlat", TypeName = "decimal(10,7)")]
+    public decimal? Sitlat { get; set; }
+
+    [Column("sitlon", TypeName = "decimal(10,7)")]
+    public decimal? Sitlon { get; set; }
+
+    [Column("sitrad")]
+    public int? Sitrad { get; set; }
 }

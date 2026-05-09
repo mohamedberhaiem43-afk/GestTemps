@@ -1,4 +1,4 @@
-export type Filiale = { 
+export type Filiale = {
     sitcod: string,
     soccod: string,
     sitlib: string,
@@ -13,4 +13,8 @@ export type Filiale = {
     sitpaie: string,
     sitsanch: string,
     sitsancm: string,
+    // Geofence : si renseignés, le pointage exige une position GPS dans le rayon défini.
+    sitlat?: number | null,
+    sitlon?: number | null,
+    sitrad?: number | null,
 };

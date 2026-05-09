@@ -2320,7 +2320,8 @@
       "card": {
         "identification": "Identification",
         "contact": "Coordonnées",
-        "workParams": "Paramètres Travail"
+        "workParams": "Paramètres Travail",
+        "geofence": "Pointage Géolocalisé"
       },
       "field": {
         "code": "Code Filiale",
@@ -2331,7 +2332,10 @@
         "email": "Email",
         "hoursMonth": "Heures / Mois",
         "leavesYear": "Congés / An",
-        "leavesMonth": "Congés / Mois"
+        "leavesMonth": "Congés / Mois",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "radius": "Rayon autorisé (m)"
       },
       "placeholder": {
         "code": "S01",
@@ -2339,6 +2343,18 @@
         "address": "123 Avenue Mohammed V",
         "phone": "+212 5XX XXX XXX",
         "email": "contact@filiale.ma"
+      },
+      "geo": {
+        "help": "Définissez la zone autorisée pour le pointage. Les employés en dehors de ce rayon seront refusés.",
+        "useMyPosition": "Utiliser ma position",
+        "clear": "Retirer la zone",
+        "viewOnMap": "Voir sur la carte ↗",
+        "locating": "Localisation en cours...",
+        "captured": "Position enregistrée. Définissez le rayon puis sauvegardez.",
+        "unsupported": "Votre navigateur ne supporte pas la géolocalisation.",
+        "denied": "Accès à la position refusé. Activez la localisation dans votre navigateur.",
+        "unavailable": "Position indisponible. Réessayez en extérieur.",
+        "error": "Impossible de récupérer la position."
       }
     },
     "rubrique": {

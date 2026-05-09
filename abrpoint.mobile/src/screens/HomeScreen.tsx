@@ -365,9 +365,7 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.gpsDot} />
             <Text style={styles.gpsLabel}>STATUT GPS VALIDÉ</Text>
           </View>
-          <Text style={styles.currentTimeText}>{formatTime(currentTime)}</Text>
-          <Text style={styles.serverTimeLabel}>Heure du serveur de Paris</Text>
-          
+          <Text style={styles.currentTimeText}>{formatTime(currentTime)}</Text>          
           <TouchableOpacity
             style={[styles.pointerButton, pointing && { opacity: 0.6 }]}
             onPress={handlePointer}

@@ -216,7 +216,8 @@ builder.Services.AddHttpClient(nameof(ABRPOINT.Server.Services.ExpoPushService))
 builder.Services.AddSingleton<ABRPOINT.Server.Services.IExpoPushService, ABRPOINT.Server.Services.ExpoPushService>();
 builder.Services.AddScoped<ABRPOINT.Server.Services.IUserNotificationService, ABRPOINT.Server.Services.UserNotificationService>();
 builder.Services.AddHostedService<ABRPOINT.Server.Services.PunctualityReminderHostedService>();
-builder.Services.AddSingleton<ABRPOINT.Server.Services.IGeoZoneValidator, ABRPOINT.Server.Services.GeoZoneValidator>();
+// Scoped : le validateur lit les sites du tenant courant via ApplicationDbContext (Scoped).
+builder.Services.AddScoped<ABRPOINT.Server.Services.IGeoZoneValidator, ABRPOINT.Server.Services.GeoZoneValidator>();
 
 // Import des villes françaises depuis l'API publique geo.api.gouv.fr.
 builder.Services.AddHttpClient();

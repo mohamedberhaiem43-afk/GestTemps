@@ -8,6 +8,8 @@ import BusinessIcon from '@mui/icons-material/Business';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import SearchIcon from '@mui/icons-material/Search';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
+import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import { useTranslation } from 'react-i18next';
 import useAddSite from '../../../hooks/siteHooks/useAddSite';
 import useUpdateSite from '../../../hooks/siteHooks/useUpdateSite';
@@ -22,6 +24,7 @@ const emptyForm: FilialeModel = {
   sitcod: '', soccod: '', sitlib: '', sitadr: '', sittel: '', sitfax: '',
   sitemail: '', sitmois: 0, sitconge: 0, sitcongem: 0, sitsoc: '',
   sitpaie: '', sitsanch: '0', sitsancm: '0',
+  sitlat: null, sitlon: null, sitrad: null,
 };
 
 function FilialeModernContent() {
@@ -56,7 +59,47 @@ function FilialeModernContent() {
 
   const set = (field: keyof FilialeModel) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const val = e.target.value;
-    setForm(prev => ({ ...prev, [field]: field === 'sitmois' || field === 'sitconge' || field === 'sitcongem' ? Number(val) || 0 : val }));
+    const numericIntFields: Array<keyof FilialeModel> = ['sitmois', 'sitconge', 'sitcongem'];
+    const geoFloatFields: Array<keyof FilialeModel> = ['sitlat', 'sitlon'];
+    const geoIntFields: Array<keyof FilialeModel> = ['sitrad'];
+    setForm(prev => {
+      if (numericIntFields.includes(field)) return { ...prev, [field]: Number(val) || 0 };
+      if (geoFloatFields.includes(field)) return { ...prev, [field]: val === '' ? null : Number(val) };
+      if (geoIntFields.includes(field)) return { ...prev, [field]: val === '' ? null : parseInt(val, 10) || 0 };
+      return { ...prev, [field]: val };
+    });
+  };
+
+  const handleUseMyPosition = () => {
+    if (!navigator.geolocation) {
+      setSnack({ open: true, msg: t('donneeBase.filiale.geo.unsupported'), sev: 'error' });
+      return;
+    }
+    setSnack({ open: true, msg: t('donneeBase.filiale.geo.locating'), sev: 'success' });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm(prev => ({
+          ...prev,
+          sitlat: Number(pos.coords.latitude.toFixed(7)),
+          sitlon: Number(pos.coords.longitude.toFixed(7)),
+          sitrad: prev.sitrad ?? 200,
+        }));
+        setSnack({ open: true, msg: t('donneeBase.filiale.geo.captured'), sev: 'success' });
+      },
+      (err) => {
+        const msg = err.code === err.PERMISSION_DENIED
+          ? t('donneeBase.filiale.geo.denied')
+          : err.code === err.POSITION_UNAVAILABLE
+          ? t('donneeBase.filiale.geo.unavailable')
+          : t('donneeBase.filiale.geo.error');
+        setSnack({ open: true, msg, sev: 'error' });
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  };
+
+  const clearGeofence = () => {
+    setForm(prev => ({ ...prev, sitlat: null, sitlon: null, sitrad: null }));
   };
 
   const handleSubmit = () => {
@@ -232,6 +275,86 @@ function FilialeModernContent() {
               <input type="number" value={form.sitcongem} onChange={set('sitcongem')} placeholder="1.5" />
             </Box>
           </Box>
+        </Box>
+
+        {/* Card: Pointage géolocalisé */}
+        <Box className="ref-card">
+          <Box className="ref-card-header" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box className="ref-card-icon"><GpsFixedIcon fontSize="small" /></Box>
+              <Box>
+                <Typography className="ref-card-title">{t('donneeBase.filiale.card.geofence')}</Typography>
+                <Typography variant="caption" sx={{ color: '#64748b' }}>{t('donneeBase.filiale.geo.help')}</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<MyLocationIcon />}
+                onClick={handleUseMyPosition}
+                sx={{ textTransform: 'none', borderRadius: '8px' }}
+              >
+                {t('donneeBase.filiale.geo.useMyPosition')}
+              </Button>
+              {(form.sitlat || form.sitlon || form.sitrad) && (
+                <Button
+                  variant="text"
+                  size="small"
+                  color="error"
+                  onClick={clearGeofence}
+                  sx={{ textTransform: 'none' }}
+                >
+                  {t('donneeBase.filiale.geo.clear')}
+                </Button>
+              )}
+            </Box>
+          </Box>
+          <Box className="ref-form-grid ref-form-grid--3">
+            <Box className="ref-field">
+              <label>{t('donneeBase.filiale.field.latitude')}</label>
+              <input
+                type="number"
+                step="0.0000001"
+                value={form.sitlat ?? ''}
+                onChange={set('sitlat')}
+                placeholder="48.8566"
+              />
+            </Box>
+            <Box className="ref-field">
+              <label>{t('donneeBase.filiale.field.longitude')}</label>
+              <input
+                type="number"
+                step="0.0000001"
+                value={form.sitlon ?? ''}
+                onChange={set('sitlon')}
+                placeholder="2.3522"
+              />
+            </Box>
+            <Box className="ref-field">
+              <label>{t('donneeBase.filiale.field.radius')}</label>
+              <input
+                type="number"
+                min="10"
+                max="100000"
+                value={form.sitrad ?? ''}
+                onChange={set('sitrad')}
+                placeholder="200"
+              />
+            </Box>
+          </Box>
+          {form.sitlat && form.sitlon && (
+            <Box sx={{ mt: 1.5, fontSize: 12, color: '#0040a1' }}>
+              <a
+                href={`https://www.openstreetmap.org/?mlat=${form.sitlat}&mlon=${form.sitlon}#map=17/${form.sitlat}/${form.sitlon}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#0040a1', textDecoration: 'underline' }}
+              >
+                {t('donneeBase.filiale.geo.viewOnMap')}
+              </a>
+            </Box>
+          )}
         </Box>
 
       </Box>

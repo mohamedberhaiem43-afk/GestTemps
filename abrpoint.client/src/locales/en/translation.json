@@ -2321,7 +2321,8 @@
       "card": {
         "identification": "Identification",
         "contact": "Contact Details",
-        "workParams": "Work Parameters"
+        "workParams": "Work Parameters",
+        "geofence": "Geofenced Clock-in"
       },
       "field": {
         "code": "Branch Code",
@@ -2332,7 +2333,10 @@
         "email": "Email",
         "hoursMonth": "Hours / Month",
         "leavesYear": "Leave / Year",
-        "leavesMonth": "Leave / Month"
+        "leavesMonth": "Leave / Month",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "radius": "Allowed radius (m)"
       },
       "placeholder": {
         "code": "S01",
@@ -2340,6 +2344,18 @@
         "address": "123 Mohammed V Avenue",
         "phone": "+212 5XX XXX XXX",
         "email": "contact@branch.ma"
+      },
+      "geo": {
+        "help": "Define the authorized clock-in zone. Employees outside this radius will be rejected.",
+        "useMyPosition": "Use my position",
+        "clear": "Remove zone",
+        "viewOnMap": "View on map ↗",
+        "locating": "Locating...",
+        "captured": "Position captured. Set the radius and save.",
+        "unsupported": "Your browser does not support geolocation.",
+        "denied": "Location access denied. Enable location in your browser.",
+        "unavailable": "Location unavailable. Try outdoors.",
+        "error": "Unable to retrieve location."
       }
     },
     "rubrique": {

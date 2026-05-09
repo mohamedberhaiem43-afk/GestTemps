@@ -1,62 +1,103 @@
+using ABRPOINT.Server.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace ABRPOINT.Server.Services;
 
 /// <summary>
-/// Valide qu'un pointage GPS est dans une zone autorisée. Configuré via appsettings.json.
-/// Format dans config :
-///   "GeoZones": {
-///     "Mode": "off" | "warn" | "reject",
-///     "Zones": [
-///       { "Soccod": "01", "Sitcod": "01", "Lat": 48.8566, "Lon": 2.3522, "RadiusMeters": 200 },
-///       { "Soccod": "01", "Lat": 43.6043, "Lon": 1.4437, "RadiusMeters": 150 }
-///     ]
-///   }
+/// Valide qu'un pointage GPS est dans une zone autorisée.
 ///
-/// "off"    : aucune validation (par défaut).
-/// "warn"   : log un warning si hors zone, mais accepte le pointage.
-/// "reject" : refuse le pointage avec un 422.
+/// Source des zones (ordre de priorité) :
+///   1. Sites du tenant en base ayant sitlat/sitlon/sitrad renseignés (admin-définis).
+///   2. Fallback : configuration appsettings "GeoZones:Zones" (compat ascendante / dev).
 ///
-/// Si lat/lon non fournis par le client mobile, on traite comme "warn" même en mode reject
-/// (compat avec utilisateurs qui n'ont pas autorisé le GPS).
+/// Mode résolu :
+///   - Si la config "GeoZones:Mode" est définie, elle prime ("off"|"warn"|"reject").
+///   - Sinon, dès qu'au moins un site du tenant a un geofence configuré, on bascule
+///     en "reject" automatiquement — l'admin a explicitement défini des zones donc
+///     c'est qu'il veut les faire respecter.
+///   - Sinon "off".
+///
+/// Si lat/lon non fournis par le client mais qu'au moins un geofence existe pour le
+/// tenant, le contrôleur (PresencesController) doit refuser le pointage avec un
+/// message explicite demandant l'autorisation GPS.
 /// </summary>
 public interface IGeoZoneValidator
 {
-    GeoValidationResult Validate(string? soccod, double lat, double lon);
-    string Mode { get; }
+    Task<GeoValidationResult> ValidateAsync(string? soccod, double lat, double lon);
+    Task<bool> HasGeofencesAsync(string? soccod);
+    string ConfiguredMode { get; }
 }
 
-public sealed record GeoValidationResult(bool InsideAnyZone, double? NearestDistanceMeters, string? NearestSitcod);
+public sealed record GeoValidationResult(
+    bool InsideAnyZone,
+    double? NearestDistanceMeters,
+    string? NearestSitcod,
+    bool HadAnyZone);
 
 public sealed class GeoZoneValidator : IGeoZoneValidator
 {
-    public string Mode { get; }
-    private readonly List<GeoZoneEntry> _zones;
+    private readonly ApplicationDbContext _db;
+    private readonly IConfiguration _cfg;
 
-    public GeoZoneValidator(IConfiguration cfg)
+    public GeoZoneValidator(ApplicationDbContext db, IConfiguration cfg)
     {
-        Mode = (cfg["GeoZones:Mode"] ?? "off").ToLowerInvariant();
-        _zones = cfg.GetSection("GeoZones:Zones").Get<List<GeoZoneEntry>>() ?? new();
+        _db = db;
+        _cfg = cfg;
     }
 
-    public GeoValidationResult Validate(string? soccod, double lat, double lon)
+    public string ConfiguredMode => (_cfg["GeoZones:Mode"] ?? string.Empty).ToLowerInvariant();
+
+    public async Task<bool> HasGeofencesAsync(string? soccod)
     {
-        if (_zones.Count == 0) return new GeoValidationResult(true, null, null);
+        if (string.IsNullOrEmpty(soccod)) return false;
+        return await _db.Sites.AsNoTracking()
+            .Where(s => s.Soccod == soccod
+                        && s.Sitlat.HasValue
+                        && s.Sitlon.HasValue
+                        && s.Sitrad.HasValue
+                        && s.Sitrad > 0)
+            .AnyAsync();
+    }
 
-        var candidates = string.IsNullOrEmpty(soccod)
-            ? _zones
-            : _zones.Where(z => string.IsNullOrEmpty(z.Soccod) || string.Equals(z.Soccod, soccod, StringComparison.OrdinalIgnoreCase)).ToList();
+    public async Task<GeoValidationResult> ValidateAsync(string? soccod, double lat, double lon)
+    {
+        var allZones = new List<(string Sitcod, double Lat, double Lon, int Rad)>();
 
-        if (candidates.Count == 0) return new GeoValidationResult(true, null, null);
+        if (!string.IsNullOrEmpty(soccod))
+        {
+            var dbRows = await _db.Sites.AsNoTracking()
+                .Where(s => s.Soccod == soccod
+                            && s.Sitlat.HasValue
+                            && s.Sitlon.HasValue
+                            && s.Sitrad.HasValue
+                            && s.Sitrad > 0)
+                .Select(s => new { s.Sitcod, Lat = s.Sitlat!.Value, Lon = s.Sitlon!.Value, Rad = s.Sitrad!.Value })
+                .ToListAsync();
+            foreach (var r in dbRows)
+                allZones.Add((r.Sitcod, (double)r.Lat, (double)r.Lon, r.Rad));
+        }
+
+        var configZones = _cfg.GetSection("GeoZones:Zones").Get<List<GeoZoneEntry>>() ?? new();
+        foreach (var z in configZones)
+        {
+            if (!string.IsNullOrEmpty(z.Soccod) && !string.Equals(z.Soccod, soccod, StringComparison.OrdinalIgnoreCase))
+                continue;
+            allZones.Add((z.Sitcod ?? "config", z.Lat, z.Lon, (int)z.RadiusMeters));
+        }
+
+        if (allZones.Count == 0)
+            return new GeoValidationResult(true, null, null, false);
 
         double? nearest = null;
         string? nearestSit = null;
         bool inside = false;
-        foreach (var z in candidates)
+        foreach (var z in allZones)
         {
             var d = HaversineMeters(lat, lon, z.Lat, z.Lon);
             if (nearest is null || d < nearest) { nearest = d; nearestSit = z.Sitcod; }
-            if (d <= z.RadiusMeters) { inside = true; break; }
+            if (d <= z.Rad) { inside = true; break; }
         }
-        return new GeoValidationResult(inside, nearest, nearestSit);
+        return new GeoValidationResult(inside, nearest, nearestSit, true);
     }
 
     private static double HaversineMeters(double lat1, double lon1, double lat2, double lon2)
