@@ -943,6 +943,8 @@
     "hoursWorked": "Worked Hours"
   },
   "common": {
+    "createWith": "Create",
+    "noResults": "No results",
     "qualification": "Qualification",
     "function": "Function",
     "morning": "Morning",

@@ -950,6 +950,8 @@
     "days": "Jours",
     "hours": "Heures",
     "save": "Enregistrer",
+    "createWith": "Créer",
+    "noResults": "Aucun résultat",
     "periodicRest": "Repos Périodique",
     "mealsPerDay": "Repas par jour",
     "countNightHours": "Compter Heures Nuit",

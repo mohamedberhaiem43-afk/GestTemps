@@ -26,6 +26,9 @@ export interface DashboardData {
   effectifTotal: number;
   pourcentagePresence: number;
   heuresTravaillees: number;
+  /** Heures supplémentaires cumulées sur la période (calcul hebdomadaire conforme
+   *  droit du travail — diffère de heuresTravaillees qui est le total pointé). */
+  heuresSupplementaires: number;
   nombreRetards: number;
   nombreEmployesEnRetard: number;
   pourcentagePonctualite: number;

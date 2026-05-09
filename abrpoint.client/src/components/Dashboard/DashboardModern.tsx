@@ -759,9 +759,17 @@ function DashboardModernAdmin() {
         </Button>
       </Box>
 
-      {/* KPI Row */}
-      {visibility.kpis && (
-      <Box className="db-kpi-grid">
+      {/* KPI Row — toutes les valeurs sont déjà scopées à la période sélectionnée
+          (cf. dashboardRequest qui inclut dateDebut/dateFin), on synchronise juste
+          le LABEL de période affiché sur chaque carte pour qu'il corresponde au
+          filtre courant ('Aujourd''hui' / 'Cette semaine' / 'Ce mois') au lieu
+          d'être figé à 'Ce mois'. */}
+      {visibility.kpis && (() => {
+        const periodLabel = filterDateRange === 'today'
+          ? t('dashboard.today')
+          : filterDateRange === 'week' ? t('dashboard.thisWeek') : t('dashboard.thisMonth');
+        return (
+        <Box className="db-kpi-grid">
         <KpiCard
           icon={<HowToRegIcon sx={{ fontSize: 20 }} />}
           label={t('dashboard.presenceRate')}
@@ -782,18 +790,25 @@ function DashboardModernAdmin() {
           icon={<ScheduleIcon sx={{ fontSize: 20 }} />}
           label={t('dashboard.punctuality')}
           value={dashboardData?.pourcentagePonctualite != null ? `${dashboardData.pourcentagePonctualite.toFixed(1)}%` : '--'}
-          trendLabel={t('dashboard.average')}
+          trendLabel={periodLabel}
           iconBg="rgba(81,95,116,0.1)" iconColor="#515f74"
         />
+        {/* BUG fix : on affichait `heuresTravaillees` (total pointé sur la période)
+            sous le libellé « Heures Supp. Cumulées » — d'où des valeurs « illogiques »
+            (ex. 168 h sur une semaine pour 4 employés). On utilise désormais le bon
+            champ `heuresSupplementaires`, calculé hebdomadairement par le backend
+            (seuil légal 40 h/sem) — conforme au droit du travail et cohérent avec
+            la sémantique du KPI. */}
         <KpiCard
           icon={<MoreTimeIcon sx={{ fontSize: 20 }} />}
           label={t('dashboard.overtimeAccumulated')}
-          value={dashboardData?.heuresTravaillees != null ? `${dashboardData.heuresTravaillees.toFixed(0)} hrs` : '--'}
-          trendLabel={t('dashboard.thisMonth')}
+          value={dashboardData?.heuresSupplementaires != null ? `${dashboardData.heuresSupplementaires.toFixed(1)} hrs` : '--'}
+          trendLabel={periodLabel}
           iconBg="rgba(0,81,54,0.1)" iconColor="#005136"
         />
-      </Box>
-      )}
+        </Box>
+        );
+      })()}
 
       {/* Bento grid : Total employees / Congés / Alertes contrat */}
       {(visibility.totalEmployees || visibility.ongoingLeaves || visibility.contractAlerts) && (
@@ -852,16 +867,11 @@ function DashboardModernAdmin() {
       <Box className="db-charts-row">
         {visibility.evolution && (
         <Box className="db-chart-card">
-          <Box className="db-chart-header">
-            <Box>
-              <Typography className="db-chart-title">{t('dashboard.recruitmentTrends')}</Typography>
-              <Typography className="db-chart-sub">{t('dashboard.monthlyEvolution', { year: dayjs().year() })}</Typography>
-            </Box>
-            <Box className="db-chart-legend">
-              <Box className="db-legend-item"><Box className="db-legend-dot" style={{ background: '#0040a1' }} /><Typography className="db-legend-label">{t('dashboard.entries')}</Typography></Box>
-              <Box className="db-legend-item"><Box className="db-legend-dot" style={{ background: '#515f74' }} /><Typography className="db-legend-label">{t('dashboard.exits')}</Typography></Box>
-            </Box>
-          </Box>
+          {/* L'ancien en-tête « Tendance de recrutement » + légende Entrées/Sorties
+              ne correspondait pas aux séries réellement tracées par EvolutionChart
+              (Effectif Présent / Heures Travaillées / Taux de Présence). On laisse
+              EvolutionChart porter son propre titre — moins de bruit, moins de
+              contradiction. */}
           <EvolutionChart data={Array.isArray(evolutionData) ? evolutionData : []} isLoading={loadingEvolution} />
         </Box>
         )}

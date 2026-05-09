@@ -20,7 +20,7 @@ interface EvolutionChartProps {
 }
 
 const EvolutionChart = ({ data, isLoading }: EvolutionChartProps) => {
-  
+
   // Formater les données pour le graphique
   const formattedData = (data && Array.isArray(data))
     ? data.map((item) => {
@@ -46,6 +46,14 @@ const EvolutionChart = ({ data, isLoading }: EvolutionChartProps) => {
       })
       .filter((item) => item !== null)
     : [];
+
+  // Sur des périodes longues (mois ≈ 30 jours), `interval={0}` saturait l'axe X
+  // avec 30 labels obliques chevauchés → illisible. On saute des ticks au-delà
+  // de ~14 points pour ne garder qu'environ 10 labels visibles, tout en
+  // conservant les barres/points à chaque jour.
+  const xAxisInterval: number | 'preserveStartEnd' = formattedData.length > 14
+    ? Math.ceil(formattedData.length / 10) - 1
+    : 0;
 
 
   // Tooltip personnalisé
@@ -121,7 +129,7 @@ const EvolutionChart = ({ data, isLoading }: EvolutionChartProps) => {
                     angle={-45}
                     textAnchor="end"
                     height={80}
-                    interval={0}
+                    interval={xAxisInterval}
                   />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip content={<CustomTooltip />} />
@@ -167,7 +175,8 @@ const EvolutionChart = ({ data, isLoading }: EvolutionChartProps) => {
                     angle={-45}
                     textAnchor="end"
                     height={60}
-                    interval={0}
+                    interval={xAxisInterval}
+                    minTickGap={6}
                   />
                   <YAxis
                     tick={{ fontSize: 12 }}

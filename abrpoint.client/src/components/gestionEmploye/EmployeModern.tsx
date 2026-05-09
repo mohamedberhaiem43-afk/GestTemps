@@ -59,7 +59,9 @@ import { RestCountry } from '../../models/RestCountry';
 import DocumentScanEmploye from './DocumentScanEmploye/DocumentScanEmploye';
 import RolesService from '../../services/RolesService/RolesService';
 import { ROLE_LABELS } from '../../models/Utilisateur';
-import { SxProps, Theme } from '@mui/material';
+// `SxProps`/`Theme` n'étaient utilisés que dans l'ancien dialog du SelectWithAdd
+// (refactoré en Autocomplete style Odoo) — l'import est retiré pour éviter le
+// warning TS6133 « never used ».
 import { Role } from '../../models/Role';
 import './EmployeModern.css';
 import { useQuery } from 'react-query';
@@ -148,101 +150,127 @@ const getDefaultEmployeData = (soccod: string, sitcod: string): Employe => ({
     utirole: 'Employee',
 });
 
-// ── SelectWithAdd: dropdown + quick-add popup ─────────────────────────────────
-function SelectWithAdd({ value, onChange, options, onAdd, addTitle, codeNumeric = false, codeHint }: {
+// ── SelectWithAdd : dropdown style Odoo avec création inline ─────────────────
+// L'utilisateur tape un libellé : si la valeur existe → sélection classique ;
+// si elle n'existe pas → on propose « + Créer "X" » directement dans la liste,
+// sans bouton + ni dialog code/libellé. Le code est auto-généré côté backend
+// (cf. SequentialCodeGenerator dans les controllers Directions/Fonctions/…),
+// le composant récupère le code persisté via la valeur de retour de `onAdd`.
+function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
     value: string;
     onChange: (v: string) => void;
     options: Record<string, string>;
-    onAdd: (code: string, lib: string) => Promise<void>;
+    /** Doit retourner l'entrée persistée (avec son code définitif). Quand l'utilisateur
+     *  crée à la volée, `code` arrive vide et le backend génère le code séquentiel. */
+    onAdd: (code: string, lib: string) => Promise<{ code: string; lib: string }>;
+    /** Sert de placeholder. Le label « Code » n'est plus demandé à l'utilisateur. */
     addTitle: string;
-    // codeNumeric : impose un code uniquement composé de chiffres (cas de Ville,
-    // dont le code reste nvarchar en BD mais doit rester numérique côté saisie).
-    codeNumeric?: boolean;
-    codeHint?: string;
 }) {
     const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
-    const [newCode, setNewCode] = useState('');
-    const [newLib, setNewLib] = useState('');
-    const [saving, setSaving] = useState(false);
+    const [creating, setCreating] = useState(false);
+    const [inputValue, setInputValue] = useState('');
+    // Cache local des entrées créées pendant la session — fusionné avec les options
+    // venues du parent. Évite l'effet « ma création a disparu » entre l'instant où
+    // le serveur répond et celui où invalidateQueries refetch la liste.
+    const [localExtras, setLocalExtras] = useState<Record<string, string>>({});
 
-    const codeInvalid = codeNumeric && newCode.length > 0 && !/^\d+$/.test(newCode);
-    const canSubmit = !!newCode.trim() && !!newLib.trim() && !codeInvalid;
+    const merged = useMemo(() => ({ ...localExtras, ...options }), [options, localExtras]);
+    type Opt = { code: string; lib: string; isCreate?: boolean };
+    const entries = useMemo<Opt[]>(() => Object.entries(merged).map(([code, lib]) => ({ code, lib })), [merged]);
+    const selected = useMemo<Opt | null>(() => entries.find(e => e.code === value) || null, [entries, value]);
 
-    const handleCodeChange = (raw: string) => {
-        // Pour un code numérique : on filtre dès la saisie, ce qui empêche l'utilisateur
-        // de coller "Paris" et garantit l'invariant côté envoi.
-        setNewCode(codeNumeric ? raw.replace(/\D+/g, '') : raw);
+    const filterOptions = (opts: Opt[], state: { inputValue: string }): Opt[] => {
+        const q = state.inputValue.trim().toLowerCase();
+        const filtered = q
+            ? opts.filter(o => o.lib.toLowerCase().includes(q) || o.code.toLowerCase().includes(q))
+            : opts;
+        // Si rien ne matche EXACTEMENT le texte saisi, propose la création.
+        if (q && !filtered.some(o => o.lib.toLowerCase() === q)) {
+            return [...filtered, { code: '__create__', lib: state.inputValue.trim(), isCreate: true }];
+        }
+        return filtered;
     };
 
-    const handleAdd = async () => {
-        if (!canSubmit) return;
-        setSaving(true);
+    const handleChange = async (_: unknown, val: Opt | string | null) => {
+        if (val == null) { onChange(''); return; }
+        if (typeof val === 'string') {
+            // freeSolo : Enter sur une chaîne libre → on la traite comme une création.
+            const lib = val.trim();
+            if (!lib) return;
+            await createNew(lib);
+            return;
+        }
+        if (val.isCreate || val.code === '__create__') {
+            await createNew(val.lib);
+            return;
+        }
+        onChange(val.code);
+    };
+
+    const createNew = async (lib: string) => {
+        setCreating(true);
         try {
-            await onAdd(newCode.trim(), newLib.trim());
-            onChange(newCode.trim());
-            setOpen(false); setNewCode(''); setNewLib('');
-        } catch (err: any) {
-            console.error("Erreur lors de l'ajout:", err);
-            // On pourrait lever l'erreur pour que le parent l'affiche via snackbar
-            throw err;
-        } finally { setSaving(false); }
+            const created = await onAdd('', lib);
+            setLocalExtras(prev => ({ ...prev, [created.code]: created.lib }));
+            onChange(created.code);
+            setInputValue('');
+        } catch {
+            // L'appelant gère son propre snackbar d'erreur.
+        } finally {
+            setCreating(false);
+        }
     };
-
-    const fSx: SxProps<Theme> = { '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#f5f7fa', '& fieldset': { border: '1.5px solid #e8ecf2' } } };
 
     return (
-        <>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <FormControl fullWidth size="small">
-                    <Select value={value} onChange={e => onChange(e.target.value)} displayEmpty
-                        sx={{ backgroundColor: '#f5f7fa', borderRadius: '8px', fontSize: '13px', '& .MuiOutlinedInput-notchedOutline': { border: '1.5px solid #e8ecf2' }, '& .MuiSelect-select': { fontSize: '13px', padding: '9px 12px' } }}>
-                        <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>
-                        {Object.entries(options).map(([k, v]) => (
-                            <MenuItem key={k} value={k} sx={{ fontSize: '13px' }}>{String(v)}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-                <IconButton size="small" onClick={() => setOpen(true)}
-                    sx={{ background: '#0040a1', color: 'white', borderRadius: '8px', width: 34, height: 34, flexShrink: 0, '&:hover': { background: '#003080' } }}>
-                    <AddIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-            </Box>
-            <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '14px' } }}>
-                <DialogTitle sx={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: '16px', pb: 1 }}>
-                    {addTitle}
-                </DialogTitle>
-                <Divider />
-                <DialogContent sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box>
-                        <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{t('common.code')}</Typography>
-                        <TextField
-                            size="small"
-                            fullWidth
-                            value={newCode}
-                            onChange={e => handleCodeChange(e.target.value)}
-                            error={codeInvalid}
-                            helperText={codeInvalid ? t('common.codeNumericRequired') : (codeHint || ' ')}
-                            inputProps={codeNumeric ? { inputMode: 'numeric', pattern: '\\d*' } : undefined}
-                            sx={fSx}
-                        />
-                    </Box>
-                    <Box>
-                        <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>{t('common.label')}</Typography>
-                        <TextField size="small" fullWidth value={newLib} onChange={e => setNewLib(e.target.value)} sx={fSx} />
-                    </Box>
-                </DialogContent>
-                <Divider />
-                <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-                    <Button onClick={() => setOpen(false)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('common.cancel')}</Button>
-                    <Button variant="contained" onClick={handleAdd} disabled={saving || !canSubmit}
-                        startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
-                        sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
-                        {t('common.add')}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </>
+        <Autocomplete<Opt, false, false, true>
+            freeSolo
+            size="small"
+            options={entries}
+            value={selected}
+            inputValue={inputValue}
+            onInputChange={(_, v) => setInputValue(v)}
+            onChange={handleChange}
+            filterOptions={filterOptions as any}
+            getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.lib}
+            isOptionEqualToValue={(o, v) => typeof o !== 'string' && typeof v !== 'string' && o.code === v.code}
+            loading={creating}
+            renderOption={(props, opt) => {
+                if (typeof opt === 'string') return null;
+                return (
+                    <li {...props} key={opt.code} style={{ fontSize: 13 }}>
+                        {opt.isCreate ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#0040a1', fontWeight: 700 }}>
+                                <AddIcon sx={{ fontSize: 16 }} />
+                                {t('common.createWith', { defaultValue: 'Créer' })} «&nbsp;<span style={{ fontStyle: 'italic' }}>{opt.lib}</span>&nbsp;»
+                            </span>
+                        ) : (
+                            <span>{opt.lib}</span>
+                        )}
+                    </li>
+                );
+            }}
+            noOptionsText={t('common.noResults', { defaultValue: 'Aucun résultat' })}
+            renderInput={(params) => (
+                <TextField
+                    {...params}
+                    placeholder={addTitle}
+                    InputProps={{
+                        ...params.InputProps,
+                        sx: { backgroundColor: '#f5f7fa', borderRadius: '8px', fontSize: '13px' },
+                        endAdornment: (
+                            <>
+                                {creating ? <CircularProgress size={14} sx={{ mr: 1 }} /> : null}
+                                {params.InputProps.endAdornment}
+                            </>
+                        ),
+                    }}
+                    sx={{
+                        '& .MuiOutlinedInput-notchedOutline': { border: '1.5px solid #e8ecf2' },
+                        '& .MuiOutlinedInput-input': { fontSize: '13px', padding: '5px 8px !important' },
+                    }}
+                />
+            )}
+        />
     );
 }
 
@@ -455,85 +483,111 @@ const EmployeModernInner = () => {
     const sitMap = useMemo(() => toMap(siteLibsRaw), [siteLibsRaw]);
     const vilMap = useMemo(() => toMap(villeLibsRaw), [villeLibsRaw]);
 
-    // Quick-add handlers
-    const handleAddDirection = async (code: string, lib: string) => {
+    // Quick-add handlers — retournent l'entrée persistée (code généré côté backend
+    // via SequentialCodeGenerator). Le composant `SelectWithAdd` lit ce code pour
+    // sélectionner immédiatement la nouvelle entrée et la mémoriser localement en
+    // attendant que `invalidateQueries` rafraîchisse la liste complète.
+    const handleAddDirection = async (code: string, lib: string): Promise<{ code: string; lib: string }> => {
         try {
-            await apiInstance.post('/Directions', { soccod, dircod: code, dirlib: lib });
+            const res = await apiInstance.post('/Directions', { soccod, dircod: code, dirlib: lib });
+            const newCode = res.data?.dircod || code;
             queryClient.invalidateQueries('directions');
             showSnackbar(t('employe.addedDirection'), 'success');
+            return { code: newCode, lib };
         } catch (err) {
             showSnackbar(t('employe.addErrorDirection'), 'error');
             throw err;
         }
     };
-    const handleAddFonction = async (code: string, lib: string) => {
+    const handleAddFonction = async (code: string, lib: string): Promise<{ code: string; lib: string }> => {
         try {
-            await apiInstance.post('/Fonctions', { soccod, foncod: code, fonlib: lib });
+            const res = await apiInstance.post('/Fonctions', { soccod, foncod: code, fonlib: lib });
+            const newCode = res.data?.foncod || code;
             queryClient.invalidateQueries('fonlibs');
             showSnackbar(t('employe.addedFunction'), 'success');
+            return { code: newCode, lib };
         } catch (err) {
             showSnackbar(t('employe.addErrorFunction'), 'error');
             throw err;
         }
     };
-    const handleAddSection = async (code: string, lib: string) => {
+    const handleAddSection = async (code: string, lib: string): Promise<{ code: string; lib: string }> => {
         try {
-            await apiInstance.post('/Sections', { soccod, seccod: code, seclib: lib });
+            const res = await apiInstance.post('/Sections', { soccod, seccod: code, seclib: lib });
+            const newCode = res.data?.seccod || code;
             queryClient.invalidateQueries('sec-libs');
             showSnackbar(t('employe.addedSection'), 'success');
+            return { code: newCode, lib };
         } catch (err) {
             showSnackbar(t('employe.addErrorSection'), 'error');
             throw err;
         }
     };
-    const handleAddQualification = async (code: string, lib: string) => {
+    const handleAddQualification = async (code: string, lib: string): Promise<{ code: string; lib: string }> => {
         try {
-            await apiInstance.post('/Qualifs', { soccod, quacod: code, qualib: lib });
+            const res = await apiInstance.post('/Qualifs', { soccod, quacod: code, qualib: lib });
+            const newCode = res.data?.quacod || code;
             queryClient.invalidateQueries('qualifs');
             showSnackbar(t('employe.addedQualification'), 'success');
+            return { code: newCode, lib };
         } catch (err) {
             showSnackbar(t('employe.addErrorQualification'), 'error');
             throw err;
         }
     };
-    const handleAddService = async (code: string, lib: string) => {
+    const handleAddService = async (code: string, lib: string): Promise<{ code: string; lib: string }> => {
         try {
-            await apiInstance.post('/Services', { soccod, sercod: code, serlib: lib });
-            setServiceLibs(prev => ({ ...prev, [code]: lib }));
+            const res = await apiInstance.post('/Services', { soccod, sercod: code, serlib: lib });
+            const newCode = res.data?.sercod || code;
+            setServiceLibs(prev => ({ ...prev, [newCode]: lib }));
             showSnackbar(t('employe.addedService'), 'success');
+            return { code: newCode, lib };
         } catch (err) {
             showSnackbar(t('employe.addErrorService'), 'error');
             throw err;
         }
     };
-    const handleAddClasseHoraire = async (code: string, lib: string) => {
+    const handleAddClasseHoraire = async (code: string, lib: string): Promise<{ code: string; lib: string }> => {
         try {
             // catfixe:'1' = classe "toujours active" (sans plage temporelle Catdu/Catau).
             // Sinon `GetHorLibs` la filtre, et après l'enregistrement de l'employé elle ne réapparaît
             // pas dans le dropdown — l'utilisateur croit alors que l'affectation n'a pas été persistée.
-            await apiInstance.post('/Lcategories', { soccod, catcod: code, catlib: lib, catperiode: 'N', catfixe: '1' });
-            setClasseHoraireLibs(prev => ({ ...prev, [code]: lib }));
+            const res = await apiInstance.post('/Lcategories', { soccod, catcod: code, catlib: lib, catperiode: 'N', catfixe: '1' });
+            const newCode = res.data?.catcod || code;
+            setClasseHoraireLibs(prev => ({ ...prev, [newCode]: lib }));
             showSnackbar(t('employe.addedSchedule'), 'success');
+            return { code: newCode, lib };
         } catch (err) {
             showSnackbar(t('employe.addErrorSchedule'), 'error');
             throw err;
         }
     };
-    const handleAddSite = async (code: string, lib: string) => {
+    const handleAddSite = async (code: string, lib: string): Promise<{ code: string; lib: string }> => {
         try {
-            await apiInstance.post('/Sites', { soccod, sitcod: code, sitlib: lib });
+            // Sites n'a pas d'auto-gen côté backend (quota plan mono-filiale par défaut) :
+            // on génère un code à 2 chiffres séquentiel côté front à partir des codes
+            // existants, et on laisse le backend renvoyer 402 si le quota est atteint.
+            const effectiveCode = code || (() => {
+                const existing = Object.keys(sitMap).map(k => parseInt(k, 10)).filter(n => !isNaN(n));
+                const next = existing.length ? Math.max(...existing) + 1 : 1;
+                return next.toString().padStart(2, '0');
+            })();
+            await apiInstance.post('/Sites', { soccod, sitcod: effectiveCode, sitlib: lib });
             queryClient.invalidateQueries('sitlibs');
             showSnackbar(t('employe.addedBranch'), 'success');
+            return { code: effectiveCode, lib };
         } catch (err) {
             showSnackbar(t('employe.addErrorBranch'), 'error');
             throw err;
         }
     };
-    const handleAddVille = async (code: string, lib: string) => {
+    const handleAddVille = async (code: string, lib: string): Promise<{ code: string; lib: string }> => {
         try {
-            await apiInstance.post('/Villes', { soccod, vilcod: code, villib: lib });
+            const res = await apiInstance.post('/Villes', { soccod, vilcod: code, villib: lib });
+            const newCode = res.data?.vilcod || code;
             queryClient.invalidateQueries('villibs');
             showSnackbar(t('employe.addedCity'), 'success');
+            return { code: newCode, lib };
         } catch (err) {
             showSnackbar(t('employe.addErrorCity'), 'error');
             throw err;
@@ -1193,8 +1247,7 @@ const EmployeModernInner = () => {
                                             <Typography sx={labelStyle}>{t('employe.field.city')}</Typography>
                                             <SelectWithAdd value={formData.vilcod || ''}
                                                 onChange={v => setFormData(p => ({ ...p, vilcod: v }))}
-                                                options={vilMap} onAdd={handleAddVille} addTitle={t('employe.addTitle.ville')}
-                                                codeNumeric codeHint={t('employe.addTitle.villeCodeHint')} />
+                                                options={vilMap} onAdd={handleAddVille} addTitle={t('employe.addTitle.ville')} />
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.field.country')}</Typography>

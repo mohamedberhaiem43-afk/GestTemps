@@ -339,16 +339,16 @@
   text-align: right;
 }
 
+/* Actions toujours visibles : sur tablette/touch (et même sur desktop quand on
+   ne survole pas la ligne), les boutons étaient invisibles → l'utilisateur ne
+   savait pas qu'ils existaient. On garde la propriété + transition au cas où
+   on souhaite re-cacher en hover-only ailleurs. */
 .actions-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.table-row:hover .actions-buttons {
   opacity: 1;
+  transition: opacity 0.15s ease;
 }
 
 .action-btn {
