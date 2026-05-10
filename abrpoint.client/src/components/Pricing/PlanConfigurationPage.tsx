@@ -6,6 +6,11 @@ import { useAuth } from '../helper/AuthProvider';
 import { startStripeCheckout } from './stripeCheckout';
 import './PricingPage.css';
 
+// Format prix : au plus 2 décimales, sans padding (8 → "8", pas "8,00") et sans
+// artefact float (8.8*12 → "105,6"). Locale FR avec séparateur virgule.
+const formatPrice = (value: number): string =>
+  new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(value);
+
 const PlanConfigurationPage: React.FC = () => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -210,7 +215,7 @@ const PlanConfigurationPage: React.FC = () => {
                 <div className="space-y-5 mb-10">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-outline font-bold">Prix par utilisateur</span>
-                    <span className="font-black text-on-surface">{pricePerUser.toFixed(2)} €</span>
+                    <span className="font-black text-on-surface">{formatPrice(pricePerUser)} €</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-outline font-bold">Nombre d'utilisateurs</span>
@@ -223,13 +228,13 @@ const PlanConfigurationPage: React.FC = () => {
                   {billingCycle === 'annual' && (
                     <div className="flex justify-between items-center text-sm text-tertiary p-3 bg-tertiary/5 rounded-xl border border-tertiary/10">
                       <span className="font-bold">Remise annuelle</span>
-                      <span className="font-black">- {(annualDiscount/12).toFixed(2)} € / mois</span>
+                      <span className="font-black">- {formatPrice(annualDiscount/12)} € / mois</span>
                     </div>
                   )}
                   <div className="pt-6 border-t border-surface-container-high flex justify-between items-baseline">
                     <span className="font-black text-on-surface uppercase text-xs tracking-widest">Total / mois</span>
                     <div className="text-right">
-                      <div className="text-4xl font-black text-primary font-headline tracking-tighter">{monthlyTotal.toFixed(2)} €</div>
+                      <div className="text-4xl font-black text-primary font-headline tracking-tighter">{formatPrice(monthlyTotal)} €</div>
                       <div className="text-[9px] text-outline uppercase font-black tracking-widest mt-1">HT / mois facturé {billingCycle === 'annual' ? 'annuellement' : 'mensuellement'}</div>
                     </div>
                   </div>

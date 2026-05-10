@@ -7,10 +7,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { COLORS, THEME } from '../config/env';
+import { useSecureScreen } from '../hooks/useSecureScreen';
 
 const { width } = Dimensions.get('window');
 
 export default function SignatureScreen({ navigation, route }: any) {
+  // SEC-G4 : signature électronique = pièce probante → bloque toute capture.
+  useSecureScreen();
   const { user } = useAuth();
   const [hasSigned, setHasSigned] = useState(false);
   const documentName = route?.params?.docName || "Contrat de travail - Ledger HR";

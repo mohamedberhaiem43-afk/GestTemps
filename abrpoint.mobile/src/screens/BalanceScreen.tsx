@@ -5,10 +5,13 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
+import { useSecureScreen } from '../hooks/useSecureScreen';
 
 interface RttKpi { methode: string; droitAnnuel: number; pris: number; solde: number; }
 
 export default function BalanceScreen({ navigation }: any) {
+  // SEC-G4 : soldes congés / RTT = données RH personnelles.
+  useSecureScreen();
   const { user } = useAuth();
   const [balance, setBalance] = useState<any[]>([]);
   const [rtt, setRtt] = useState<RttKpi | null>(null);

@@ -24,11 +24,27 @@
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK"
-      ]
+      ],
+      "networkSecurityConfig": "./assets/network_security_config.xml"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.concorde.workforce"
+      "bundleIdentifier": "com.concorde.workforce",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSPinnedDomains": {
+            "concorde-work-force.com": {
+              "NSIncludesSubdomains": true,
+              "NSPinnedCAIdentities": [
+                {
+                  "_comment": "iOS 14+ — pin SHA-256 SPKI base64 des CAs intermédiaires Let's Encrypt. Pin vide = pinning inactif (validation TLS standard). Lancer scripts/get-cert-pins.sh pour calculer les valeurs avant build production."
+                }
+              ]
+            }
+          }
+        }
+      }
     },
 
     "plugins": [

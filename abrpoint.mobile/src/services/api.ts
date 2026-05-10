@@ -143,6 +143,35 @@ class ApiService {
     return response.data;
   }
 
+  // ── Biometric auth (SEC-G2) ─────────────────────────────────────────────
+  // Le mobile reçoit un bio-token spécifique (Purpose=Biometric côté DB) qui
+  // remplace le stockage email+password en clair dans SecureStore.
+  async biometricEnable() {
+    const response = await this.client.post('/MobileAuth/biometric-enable');
+    return response.data as { bioToken: string; expiresInDays: number };
+  }
+  async biometricLogin(bioToken: string, tenantSlug?: string) {
+    if (tenantSlug) {
+      await this.saveTenantSlug(tenantSlug);
+    }
+    const response = await this.client.post('/MobileAuth/biometric-login', { refreshToken: bioToken });
+    if (response.data?.token) {
+      await this.saveTokens(response.data.token, response.data.refreshToken);
+    }
+    return response.data as { token: string; refreshToken: string; bioToken: string };
+  }
+  async biometricDisable() {
+    try {
+      const response = await this.client.post('/MobileAuth/biometric-disable');
+      return response.data;
+    } catch {
+      // best-effort : si l'appel échoue (réseau), le token côté local est de
+      // toute façon supprimé par disableBiometricLogin. L'admin peut révoquer
+      // depuis le portail web.
+      return { revoked: 0 };
+    }
+  }
+
   // Push notifications
   async registerPushToken(payload: { Token: string; Platform: string; DeviceId: string; Soccod?: string }) {
     const response = await this.client.post('/MobileAuth/register-push-token', payload);

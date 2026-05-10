@@ -11,10 +11,13 @@ import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import { resolveAssetUrl } from '../config/assetUrl';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
+import { useSecureScreen } from '../hooks/useSecureScreen';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation, route }: any) {
+  // SEC-G4 : profil employé contient mot de passe / 2FA / IBAN / téléphone perso.
+  useSecureScreen();
   const { user, logout, refreshUser, isAdmin, isManager } = useAuth();
   const tabBarPadding = useTabBarPadding();
   const [profile, setProfile] = useState<any>(null);

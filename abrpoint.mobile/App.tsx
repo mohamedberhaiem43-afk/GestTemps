@@ -5,8 +5,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { InactivityProvider } from './src/contexts/InactivityContext';
 import { COLORS } from './src/config/env';
 import { configureNotificationHandler, registerForPushAsync } from './src/services/push';
+import BackgroundShield from './src/components/BackgroundShield';
+import ActivityTracker from './src/components/ActivityTracker';
+import LockScreen from './src/components/LockScreen';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -119,10 +123,22 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationContainer>
-          <StatusBar style="light" />
-          <RootNavigator />
-        </NavigationContainer>
+        {/* SEC-G5 : auto-lock après inactivité — InactivityProvider doit être
+            sous AuthProvider (LockScreen consomme useAuth) ; ActivityTracker
+            wrap toute la nav pour capter les touches partout sans bloquer.
+            SEC-G4 : BackgroundShield couvre l'app quand elle passe en
+            background pour cacher le contenu sensible dans la preview iOS. */}
+        <InactivityProvider>
+          <BackgroundShield>
+            <ActivityTracker>
+              <NavigationContainer>
+                <StatusBar style="light" />
+                <RootNavigator />
+              </NavigationContainer>
+            </ActivityTracker>
+            <LockScreen />
+          </BackgroundShield>
+        </InactivityProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

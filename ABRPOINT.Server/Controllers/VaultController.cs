@@ -326,6 +326,101 @@ namespace ABRPOINT.Server.Controllers
             return NoContent();
         }
 
+        // ─────────────────────────────────────────────────────────────────────────
+        // Audit des fichiers orphelins :
+        //   - "db_orphans"  : référence DB → fichier physique disparu (incident type
+        //                     90c80f62-… = volume vidé, mais lignes documentvault
+        //                     toujours en base → 404 chez l'utilisateur).
+        //   - "fs_orphans"  : fichier sur disque → aucune référence DB (cleanup possible).
+        //
+        // Mode dry-run par défaut. ?fix=true demande la suppression des lignes DB
+        // orphelines (les fichiers FS orphelins ne sont pas supprimés ici car le
+        // disque peut contenir des fichiers de signature ou photos employé non
+        // référencées par documentvault — il faudrait étendre l'inventaire).
+        //
+        // Réservé aux super-admins (Utiadm = '1' OU rôle Administrator).
+        // ─────────────────────────────────────────────────────────────────────────
+        [HttpGet("audit-orphans/{soccod}")]
+        public async Task<IActionResult> AuditOrphans(string soccod, [FromQuery] bool fix = false)
+        {
+            var callerUticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(callerUticod)) return Unauthorized();
+
+            var caller = await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == callerUticod)
+                .Select(u => new { u.Utiadm, u.Utirole })
+                .FirstOrDefaultAsync();
+            if (caller == null) return Unauthorized();
+            var isAdmin = caller.Utiadm == "1" || PermissionCatalog.IsAdminRole(caller.Utirole);
+            if (!isAdmin) return Forbid();
+
+            var uploadsRoot = FileHelper.GetUploadsPath();
+            var existingFiles = Directory.Exists(uploadsRoot)
+                ? new HashSet<string>(
+                    Directory.EnumerateFiles(uploadsRoot).Select(p => Path.GetFileName(p)),
+                    StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 1️⃣ DB → FS : DocumentVault rows whose underlying file is gone.
+            var docs = await _db.DocumentVaults.AsNoTracking()
+                .Where(d => d.Soccod == soccod)
+                .Select(d => new { d.Id, d.DocName, d.DocPath, d.Empcod, d.DocDate })
+                .ToListAsync();
+
+            var dbOrphans = new List<object>();
+            var referencedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var d in docs)
+            {
+                string decoded;
+                try { decoded = _encryptionService.Decrypt(d.DocPath); }
+                catch { decoded = d.DocPath; }
+                var fileName = Path.GetFileName(decoded);
+                referencedFiles.Add(fileName);
+                if (!existingFiles.Contains(fileName))
+                {
+                    dbOrphans.Add(new { d.Id, d.DocName, fileName, d.Empcod, d.DocDate });
+                }
+            }
+
+            // 2️⃣ FS → DB : fichiers non référencés (info uniquement — suppression réelle
+            // nécessite d'inventorier *toutes* les tables qui peuvent stocker un chemin
+            // upload (signatures, scans, etc.). Pour ne pas supprimer un fichier valide
+            // référencé ailleurs, on rapporte mais on ne supprime pas en automatique.
+            var fsOrphans = existingFiles.Where(f => !referencedFiles.Contains(f)).ToList();
+
+            int removedRows = 0;
+            if (fix && dbOrphans.Count > 0)
+            {
+                var orphanIds = dbOrphans
+                    .Select(o => (int)o.GetType().GetProperty("Id")!.GetValue(o)!)
+                    .ToList();
+                var rows = await _db.DocumentVaults
+                    .Where(d => orphanIds.Contains(d.Id))
+                    .ToListAsync();
+                _db.DocumentVaults.RemoveRange(rows);
+                removedRows = await _db.SaveChangesAsync();
+            }
+
+            return Ok(new
+            {
+                soccod,
+                uploadsRoot,
+                stats = new
+                {
+                    totalFilesOnDisk = existingFiles.Count,
+                    totalVaultRows = docs.Count,
+                    dbOrphansCount = dbOrphans.Count,
+                    fsOrphansCount = fsOrphans.Count,
+                    removedRowsThisRun = removedRows,
+                },
+                dbOrphans,
+                fsOrphansSample = fsOrphans.Take(50).ToList(), // limite la payload
+                hint = fix
+                    ? "Lignes DB orphelines supprimées. Les fichiers FS orphelins ne sont PAS supprimés automatiquement."
+                    : "Mode dry-run. Repassez avec ?fix=true pour supprimer les lignes DB orphelines.",
+            });
+        }
+
         // SEC-06 — Download : ownership check. Avant, une simple devinette d'ID
         // séquentiel donnait accès aux fiches de paie / contrats de tous les employés.
         [HttpGet("download/{id}")]

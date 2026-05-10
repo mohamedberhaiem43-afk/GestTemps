@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
 import './PricingPage.css';
 
+// Format prix : au plus 2 décimales, sans padding inutile (8 reste "8", pas "8,00").
+// Utilise la locale FR (séparateur virgule) — cohérent avec le reste de l'UI.
+// Élimine aussi les artefacts float du genre 8.8 * 12 = 105.60000000000001 → "105,6".
+const formatPrice = (value: number): string =>
+  new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(value);
+
 const PricingPage: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const navigate = useNavigate();
@@ -186,7 +192,7 @@ const PricingPage: React.FC = () => {
                 <h3 className="text-3xl font-extrabold font-headline mb-4 text-on-surface">{plan.name}</h3>
                 <div className="flex items-baseline gap-1">
                   <span className="text-5xl font-black font-headline tracking-tighter text-on-surface">
-                    {plan.price === 0 ? '0' : plan.price}
+                    {plan.price === 0 ? '0' : formatPrice(plan.price)}
                   </span>
                   {plan.price !== 0 && (
                     <span className="text-2xl font-bold text-on-surface">€</span>

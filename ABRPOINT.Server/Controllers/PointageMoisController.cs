@@ -13,9 +13,13 @@ namespace ABRPOINT.Server.Controllers
     public class PointageMoisController : ControllerBase
     {
         private readonly IPointageMoisService _pointageMoisService;
-        public PointageMoisController(IPointageMoisService pointageMoisService)
+        private readonly ILogger<PointageMoisController>? _logger;
+        private readonly IWebHostEnvironment _env;
+        public PointageMoisController(IPointageMoisService pointageMoisService, IWebHostEnvironment env, ILogger<PointageMoisController>? logger = null)
         {
             _pointageMoisService = pointageMoisService;
+            _env = env;
+            _logger = logger;
         }
 
         /// <summary>
@@ -61,6 +65,13 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
+                _logger?.LogError(ex,
+                    "Échec GetPointageMois soccod={Soccod} mois={Mois} annee={Annee} semaine={Semaine} empcodsCount={Count}",
+                    soccod, mois, annee, semaine, empcods.Count);
+                if (_env.IsDevelopment())
+                {
+                    return StatusCode(500, new { message = "Erreur interne du serveur.", details = ex.Message });
+                }
                 return StatusCode(500, new { message = "Erreur interne du serveur." });
             }
         }

@@ -10,6 +10,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME, API_BASE_URL } from '../config/env';
+import { useSecureScreen } from '../hooks/useSecureScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +35,9 @@ const CATEGORIES = [
 ];
 
 export default function DigitalVaultScreen({ navigation, route }: any) {
+  // SEC-G4 : bulletins de paie + contrats = données très sensibles → screenshot/recording
+  // bloqué (Android FLAG_SECURE) ou alerté (iOS).
+  useSecureScreen();
   const { user, isAdmin, isManager } = useAuth();
   const [documents, setDocuments] = useState<VaultDocument[]>([]);
   const [refreshing, setRefreshing] = useState(false);

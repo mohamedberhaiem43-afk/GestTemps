@@ -12,6 +12,7 @@ import { COLORS, THEME } from '../config/env';
 import { resolveAssetUrl } from '../config/assetUrl';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 import MainMenuDrawer from '../components/MainMenuDrawer';
+import DeviceTrustBanner from '../components/DeviceTrustBanner';
 import { withCacheFallback } from '../services/cache';
 import { captureCurrentPosition } from '../services/geolocation';
 
@@ -303,6 +304,9 @@ export default function HomeScreen({ navigation }: any) {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* SEC-G3 : alerte trust level dégradé (émulateur, OS obsolète, etc.). Auto-hide si trust=high. */}
+        <DeviceTrustBanner />
+
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.dateLabel}>{formatDate(currentTime).toUpperCase()}</Text>

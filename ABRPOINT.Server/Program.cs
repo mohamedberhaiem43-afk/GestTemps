@@ -187,6 +187,22 @@ builder.Services.AddRateLimiter(options =>
             });
     });
 
+    // SEC-29 — Signup : 3 créations de tenant / heure / IP. Sans cette limite,
+    // un bot peut créer des dizaines de tenants à la chaîne (provisionnement
+    // DB par tenant = coût opérationnel important + saturation Stripe customer).
+    options.AddPolicy("auth-signup", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ip,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+            });
+    });
+
     // SEC-29 — Bulk imports : 10 / heure / utilisateur. Volontairement très restrictif
     // car chaque appel peut écrire plusieurs centaines de lignes en base.
     options.AddPolicy("bulk-import", httpContext =>
@@ -365,6 +381,33 @@ app.Use(async (context, next) =>
     });
     await next();
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Healthchecks pour load balancer / orchestration container :
+//   - /healthz : liveness — répond toujours 200 si le process est up. Utilisé
+//     par Kubernetes/Compose healthcheck pour redémarrer un conteneur figé.
+//   - /readyz  : readiness — 200 seulement si le serveur peut servir du trafic
+//     (DB joignable). Permet à un load balancer d'éviter d'envoyer des reqs
+//     vers une instance qui boote ou dont la DB est down.
+// Endpoints publics (pas d'[Authorize]), non rate-limités.
+// ─────────────────────────────────────────────────────────────────────────────
+app.MapGet("/healthz", () => Results.Ok(new { status = "ok", time = DateTime.UtcNow }))
+   .WithName("Healthz")
+   .AllowAnonymous();
+
+app.MapGet("/readyz", async (ApplicationDbContext db) =>
+{
+    try
+    {
+        // Ping minimaliste — pas de SELECT lourd, juste une connexion + roundtrip.
+        await db.Database.ExecuteSqlRawAsync("SELECT 1");
+        return Results.Ok(new { status = "ready", db = "ok", time = DateTime.UtcNow });
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new { status = "not_ready", db = "down", error = ex.GetType().Name }, statusCode: 503);
+    }
+}).WithName("Readyz").AllowAnonymous();
 
 var uploadsPath = FileHelper.GetUploadsPath();
 Directory.CreateDirectory(uploadsPath);

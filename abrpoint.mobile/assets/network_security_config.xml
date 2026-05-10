@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Network Security Config — Certificate Pinning.
+
+  Pour activer le pinning :
+    1. Lancer scripts/get-cert-pins.sh <domain> pour obtenir les hashs SHA-256
+       SPKI du certificat leaf + des intermédiaires Let's Encrypt.
+    2. Coller les hashs dans <pin-set> ci-dessous (pin primaire + pin de backup
+       OBLIGATOIRE — sinon la rotation cert briquerait l'app).
+    3. Rebuild l'APK via EAS.
+
+  Tant que <pin-set> est vide, le pinning est INACTIF (validation HTTPS standard).
+  C'est volontaire : éviter de bricker l'app si la config est déployée sans pins
+  valides. Un développeur doit explicitement remplir les pins pre-prod.
+
+  Important : pinner les CA intermédiaires (Let's Encrypt R10/R11) plutôt que
+  le certificat leaf — celui-ci tourne tous les 90 jours, le pinning leaf
+  obligerait à rebuild + republier l'app à chaque renouvellement.
+-->
+<network-security-config>
+    <!-- Domain principal SaaS -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">concorde-work-force.com</domain>
+        <pin-set expiration="2027-12-31">
+            <!-- TODO: remplir avant le build de production
+                 Ex (Let's Encrypt R10, exemple non vérifié — utiliser get-cert-pins.sh) :
+                 <pin digest="SHA-256">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=</pin>
+                 <pin digest="SHA-256">YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY=</pin>
+            -->
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Default : HTTPS strict pour le reste, pas de cleartext autorisé en prod -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Dev : autorise cleartext sur localhost et IPs LAN courantes pour Expo Go.
+         Désactivé en build EAS production via flag (cf. app.json). -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

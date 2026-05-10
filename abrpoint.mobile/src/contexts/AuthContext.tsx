@@ -23,6 +23,15 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string, tenantSlug?: string) => Promise<void>;
+  /**
+   * SEC-G2 — Hydrate l'état user APRÈS un login biométrique.
+   *
+   * Le flow biométrique passe par /MobileAuth/biometric-login qui sauve les
+   * tokens en SecureStore mais ne renvoie pas le user complet (le mobile fait
+   * ensuite un /me). Cette méthode prend le résultat de /me et met à jour
+   * AuthContext pour que RootNavigator bascule sur AppStack.
+   */
+  hydrateAfterBiometric: (userData: any) => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isAdmin: boolean;
@@ -79,6 +88,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     registerForPushAsync(data.user?.soccod);
   };
 
+  const hydrateAfterBiometric = (userData: any) => {
+    if (!userData) return;
+    setUser({
+      uticod: userData.uticod,
+      utilib: userData.utilib,
+      utiadm: userData.utiadm,
+      utirole: userData.utirole,
+      sercod: userData.sercod,
+      utiimg: userData.utiimg,
+      isEmp: userData.isEmp,
+      soccod: userData.soccod || userData.empInfo?.soccod,
+      sitcod: userData.sitcod || userData.empInfo?.sitcod,
+      soclib: userData.soclib,
+      socimg: userData.socimg,
+      sitcods: userData.sitcods,
+    });
+    registerForPushAsync(userData.soccod || userData.empInfo?.soccod);
+  };
+
   const logout = async () => {
     await apiService.logout();
     // Sécurité : on retire les credentials biométriques pour ne pas qu'un autre porteur du
@@ -132,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        hydrateAfterBiometric,
         logout,
         refreshUser,
         isAdmin,

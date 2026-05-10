@@ -19,18 +19,17 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/env';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
-  authenticateBiometric,
   enableBiometricLogin,
   getBiometricCapabilities,
-  getStoredBiometricCredentials,
   isBiometricLoginEnabled,
+  biometricLoginFlow,
 } from '../services/biometric';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, hydrateAfterBiometric } = useAuth();
 
   // Biométrie : on n'affiche le bouton "Se connecter avec FaceID/TouchID" que si l'utilisateur
   // l'a explicitement activé après un login classique précédent ET que l'appareil le supporte
@@ -61,20 +60,22 @@ export default function LoginScreen() {
   const [forgotStep, setForgotStep] = useState<'email' | 'code' | 'reset'>('email');
   const [forgotLoading, setForgotLoading] = useState(false);
 
-  const offerBiometricEnrollment = async (em: string, pwd: string, slug?: string) => {
+  const offerBiometricEnrollment = async (slug?: string) => {
     try {
       const caps = await getBiometricCapabilities();
       const already = await isBiometricLoginEnabled();
       if (already || !caps.hasHardware || !caps.isEnrolled) return;
       Alert.alert(
         `Activer ${caps.label} ?`,
-        `Connectez-vous plus rapidement la prochaine fois en utilisant ${caps.label}.`,
+        `Connectez-vous plus rapidement la prochaine fois en utilisant ${caps.label}. Aucun mot de passe ne sera stocké sur l'appareil.`,
         [
           { text: 'Plus tard', style: 'cancel' },
           {
             text: 'Activer',
+            // SEC-G2 : on ne stocke plus email+password — on demande au backend
+            // un bio-token dédié (durée 90j, rotaté à chaque usage).
             onPress: async () => {
-              try { await enableBiometricLogin(em, pwd, slug); } catch { /* noop */ }
+              try { await enableBiometricLogin(slug); } catch { /* noop */ }
             },
           },
         ]
@@ -83,16 +84,18 @@ export default function LoginScreen() {
   };
 
   const handleBiometricLogin = async () => {
+    setLoading(true);
     try {
-      const ok = await authenticateBiometric();
-      if (!ok) return;
-      const creds = await getStoredBiometricCredentials();
-      if (!creds) {
+      // SEC-G2 : le flow biométrique demande un prompt FaceID, envoie le bio-token
+      // au backend, met à jour les tokens d'auth localement et hydrate le user.
+      const result = await biometricLoginFlow();
+      if (!result) {
         Alert.alert('Information', 'Aucun identifiant biométrique stocké. Connectez-vous une première fois.');
         return;
       }
-      setLoading(true);
-      await login(creds.email, creds.password, creds.tenantSlug || undefined);
+      // Hydrate AuthContext avec le user fraîchement fetché → RootNavigator bascule
+      // sur AppStack automatiquement (isAuthenticated devient true).
+      hydrateAfterBiometric(result.user);
     } catch (error: any) {
       const msg = error?.response?.data?.message || 'Connexion biométrique échouée.';
       Alert.alert('Erreur', msg);
@@ -111,7 +114,7 @@ export default function LoginScreen() {
     try {
       await login(normalizedEmail, password);
       // Après un login classique réussi, on propose d'activer la biométrie pour la prochaine fois.
-      await offerBiometricEnrollment(email, password);
+      await offerBiometricEnrollment();
     } catch (error: any) {
       console.log('Login error catch:', error);
       if (error.response) {

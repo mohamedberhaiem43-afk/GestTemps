@@ -7,6 +7,7 @@ using ABRPOINT.Server.Provisioning;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -86,6 +87,7 @@ public class SignupController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting("auth-signup")] // SEC-29 : 3 signups/heure/IP — anti-bot tenant flooding.
     public async Task<IActionResult> Signup([FromBody] SignupRequest req, CancellationToken ct)
     {
         if (req is null) return BadRequest(new { error = "Body manquant." });
