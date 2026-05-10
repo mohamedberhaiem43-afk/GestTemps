@@ -170,10 +170,10 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   // (ex: 20 j sur l'année alors que seuls ~8 j étaient effectivement acquis en
   // mai), ce qui induisait l'utilisateur en erreur sur son solde réel.
   const currentEmpcod = isEmp && uticod ? uticod : empcod;
-  const today = new Date();
-  const currentYear = today.getFullYear();
+  const todayDate = new Date();
+  const currentYear = todayDate.getFullYear();
   const defaultYearStart = `${currentYear}-01-01`;
-  const yearEnd = today.toISOString().split('T')[0];
+  const yearEnd = todayDate.toISOString().split('T')[0];
   const yearStart = employeeHireDate && employeeHireDate.getFullYear() === currentYear && employeeHireDate > new Date(currentYear, 0, 1)
     ? employeeHireDate.toISOString().split('T')[0]
     : defaultYearStart;
