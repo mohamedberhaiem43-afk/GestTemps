@@ -914,22 +914,26 @@ namespace ABRPOINT.Server.Repository
                 // ================================
                 // ?? Assemblage final
                 // ================================
-                return presenceData.Select(x =>
+                // ⚠ "Total heures" affiché dans la sidebar de l'État périodique = strictement
+                // les heures POINTÉES (Tothre + Tothsup + Totcmp), agrégées dans x.TotalMinutes.
+                //
+                // Avant ce correctif, on additionnait :
+                //   + ferierTravMinutes (déjà compris dans x.TotalMinutes → double comptage)
+                //   + ferierMinutesGlobal (somme globale des ferheure de la période, NON
+                //     filtrée par employé → tous les employés gonflaient de +32h sur un mois
+                //     avec 4 fériés, qu'ils aient pointé ou pas)
+                //   + congeMinutes (heures théoriques de congé, jamais pointées)
+                // Résultat observé : un employé avec 03:17 pointé (1 seule journée) affichait
+                // 70h51 au total. Les fériés/congés/repos ont déjà leurs compteurs dédiés en
+                // tête de la vue (badges "4 Fériés", "10 Repos", etc.) — pas besoin de les
+                // re-fusionner dans le total heures.
+                return presenceData.Select(x => new EmployeePresenceDto
                 {
-                    int ferierTravMinutes = ferierTravailleParEmp.GetValueOrDefault(x.Empcod);
-                    int congeMinutes = congeMinutesParEmp.GetValueOrDefault(x.Empcod);
-
-                    return new EmployeePresenceDto
-                    {
-                        Empcod = x.Empcod,
-                        Emplib = x.Emplib,
-
-                        // ? heures normales + heures fériées travaillées + heures fériées non travaillées + heures de congés
-                        TotalMinutes = x.TotalMinutes + ferierTravMinutes + ferierMinutesGlobal + congeMinutes,
-
-                        NbJours = nbJours.GetValueOrDefault(x.Empcod),
-                        TotalRetards = retards.GetValueOrDefault(x.Empcod)
-                    };
+                    Empcod = x.Empcod,
+                    Emplib = x.Emplib,
+                    TotalMinutes = x.TotalMinutes,
+                    NbJours = nbJours.GetValueOrDefault(x.Empcod),
+                    TotalRetards = retards.GetValueOrDefault(x.Empcod)
                 }).ToList();
             }
             catch (Exception ex)

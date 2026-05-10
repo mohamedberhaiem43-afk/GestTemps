@@ -277,8 +277,13 @@ export default function PointageMensuelExportButton({ pointageMois, mois, annee,
         const dayMap = buildDayMap(emp);
         const totals = sumCols(emp);
         const siteLabel = (services && services[emp.empSite]) || emp.empSite || '';
+        // Matricule : empMat saisi en base (ex "000003") sinon fallback empCode (PK).
+        // Sans ce fallback, la colonne "MAT" du fichier Excel restait vide pour tout
+        // employé n'ayant pas de matricule explicite — l'export devenait inutilisable
+        // pour la paie qui s'attend à au moins un identifiant par ligne.
+        const matricule = (emp.empMat?.trim() || emp.empCode?.trim() || '');
         const cells: (string | number)[] = [
-          emp.empMat, emp.empLib, emp.empReg, siteLabel,
+          matricule, emp.empLib, emp.empReg, siteLabel,
         ];
         const dayValues: DayValue[] = dates.map(d => dayMap.get(d) || { kind: 'empty', value: '' });
         dayValues.forEach(v => cells.push(v.value as any));

@@ -66,6 +66,16 @@ const classifyWeekStatus = (w: { maladie?: number; nbJourCngPaye?: number; hreSu
 };
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Résout le matricule à afficher pour un employé. `empMat` est le matricule
+ * « public » (généralement zéro-paddé, ex: "000003"). Quand il n'est pas saisi
+ * en base, on retombe sur `empCode` (PK technique mais lisible) plutôt que d'afficher
+ * un tiret — l'utilisateur veut au moins voir UNE référence stable de l'employé.
+ */
+const resolveMatricule = (emp: { empMat?: string | null; empCode?: string | null }): string =>
+  (emp.empMat?.trim() || emp.empCode?.trim() || '');
+
 const fmtMin = (minutes: number) => {
   const h = Math.floor(Math.round(minutes) / 60);
   const m = Math.round(minutes) % 60;
@@ -363,7 +373,7 @@ function PointageDuMoisContent() {
         datedebut: formatDate(new Date(year, month - 1, 1).toISOString()),
         datefin: formatDate(new Date(year, month, 0).toISOString()),
         data: [{
-          empmat: selectedEmp.empMat, emplib: selectedEmp.empLib, empreg: selectedEmp.empReg,
+          empmat: resolveMatricule(selectedEmp), emplib: selectedEmp.empLib, empreg: selectedEmp.empReg,
           jourtrv: totals.nbJours ?? 0, tothre: fmtHours(totals.tothre),
           jferier: totals.jourFerier ?? 0, jftrv: totals.nbJourFerier ?? 0,
           hftrv: fmtHours(totals.nbhFerierTrv), hnuit: fmtHours(totals.hreNuits),
@@ -371,7 +381,7 @@ function PointageDuMoisContent() {
           hs25: fmtHours(totals.heuresSupTranche1), csf: fmtHours(totals.csf),
         }],
       });
-      downloadPDF(blob, `EtatGlobal_${selectedEmp.empMat}_${ctxMois}_${ctxAnnee}.pdf`);
+      downloadPDF(blob, `EtatGlobal_${resolveMatricule(selectedEmp) || selectedEmp.empCode}_${ctxMois}_${ctxAnnee}.pdf`);
     } catch { toast.error(t('pointageMois.errors.reportError')); }
   };
 
@@ -388,7 +398,7 @@ function PointageDuMoisContent() {
           hs50: a.hs50 + (r.heuresSupTranche2 ?? 0), hs25: a.hs25 + (r.heuresSupTranche1 ?? 0),
           csf: a.csf + (r.csf ?? 0),
         }), { nbJours:0,tothre:0,jourFerier:0,nbJourFerier:0,nbhFerierTrv:0,hreNuits:0,nbJourCngPaye:0,hs50:0,hs25:0,csf:0 }) ?? { nbJours:0,tothre:0,jourFerier:0,nbJourFerier:0,nbhFerierTrv:0,hreNuits:0,nbJourCngPaye:0,hs50:0,hs25:0,csf:0 };
-        return { empmat: emp.empMat, emplib: emp.empLib, empreg: emp.empReg,
+        return { empmat: resolveMatricule(emp), emplib: emp.empLib, empreg: emp.empReg,
           jourtrv: t2.nbJours, tothre: fmtHours(t2.tothre), jferier: t2.jourFerier,
           jftrv: t2.nbJourFerier, hftrv: fmtHours(t2.nbhFerierTrv), hnuit: fmtHours(t2.hreNuits),
           jconge: t2.nbJourCngPaye, hs50: fmtHours(t2.hs50), hs25: fmtHours(t2.hs25), csf: fmtHours(t2.csf) };
@@ -699,10 +709,10 @@ function PointageDuMoisContent() {
                         <Box className="pdm-mobile-card-info">
                           <Typography className="pdm-mobile-card-name">{emp.empLib}</Typography>
                           <Typography className="pdm-mobile-card-sub">
-                            {emp.empMat ? `#${emp.empMat}` : '—'} · {emp.empReg}
+                            {(() => { const m = resolveMatricule(emp); return m ? `#${m}` : '—'; })()} · {emp.empReg}
                           </Typography>
                         </Box>
-                        <Chip label={emp.empMat || '—'} size="small" className="pdm-mat-chip" />
+                        <Chip label={resolveMatricule(emp) || '—'} size="small" className="pdm-mat-chip" />
                       </Box>
                       <Box className="pdm-mobile-weeks">
                         {Array.from({ length: 6 }, (_, i) => {
@@ -765,13 +775,13 @@ function PointageDuMoisContent() {
                               <Box>
                                 <Typography className="pdm-emp-name">{emp.empLib}</Typography>
                                 <Typography className="pdm-emp-reg">
-                                  {emp.empMat ? `#${emp.empMat}` : '—'} · {emp.empReg}
+                                  {(() => { const m = resolveMatricule(emp); return m ? `#${m}` : '—'; })()} · {emp.empReg}
                                 </Typography>
                               </Box>
                             </Box>
                           </td>
                           <td>
-                            <Chip label={emp.empMat || '—'} size="small" className="pdm-mat-chip" />
+                            <Chip label={resolveMatricule(emp) || '—'} size="small" className="pdm-mat-chip" />
                           </td>
                           {Array.from({ length: 6 }, (_, i) => {
                             const w = weeks[i];

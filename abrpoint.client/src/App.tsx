@@ -5,6 +5,7 @@ import DashboardLayoutBasic from "./components/navigation/Navigation";
 import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./components/helper/AuthProvider";
 import CookieConsent from "./components/helper/CookieConsent";
+import ScrollToTopFab from "./components/helper/ScrollToTopFab";
 
 // ── Color tokens ──
 const lightTokens = {
@@ -310,6 +311,7 @@ function AppContent() {
         <Router>
           <AuthProvider>
             <DashboardLayoutBasic />
+            <ScrollToTopFab />
           </AuthProvider>
           {/* Bannière RGPD : s'affiche au premier chargement, hors AuthProvider
               pour rester accessible avant login. */}
