@@ -163,10 +163,17 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   const [employeeHireDate, setEmployeeHireDate] = useState<Date | null>(null);
 
   // Droit conge - leave balance
+  // ⚠ Important : on borne `yearEnd` à AUJOURD'HUI (pas au 31/12) pour que les
+  // droits acquis (`Droitconge` côté backend = sitconge/12 × moisActifs) reflètent
+  // ce qui est RÉELLEMENT acquis à date, comme l'affiche le dashboard via
+  // GetMyKPIs. Avant ce fix, le formulaire montrait le droit annuel complet
+  // (ex: 20 j sur l'année alors que seuls ~8 j étaient effectivement acquis en
+  // mai), ce qui induisait l'utilisateur en erreur sur son solde réel.
   const currentEmpcod = isEmp && uticod ? uticod : empcod;
-  const currentYear = new Date().getFullYear();
+  const today = new Date();
+  const currentYear = today.getFullYear();
   const defaultYearStart = `${currentYear}-01-01`;
-  const yearEnd = `${currentYear}-12-31`;
+  const yearEnd = today.toISOString().split('T')[0];
   const yearStart = employeeHireDate && employeeHireDate.getFullYear() === currentYear && employeeHireDate > new Date(currentYear, 0, 1)
     ? employeeHireDate.toISOString().split('T')[0]
     : defaultYearStart;

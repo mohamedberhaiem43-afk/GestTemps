@@ -189,7 +189,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
             // Load all feriers for the period
             List<Ferier> feriers = await _jourFerierRepository.GetFeriersByPeriod(soccod, startDate, endDate);
-            cache.FerierDates = new HashSet<DateTime>(feriers.Select(f => (DateTime)f.Ferdate));
+            // Normaliser sur .Date : sans cela les fériés importés depuis l'API gouv.fr
+            // (stockés à 12:00:00 UTC) ne sont jamais matchés par Contains(date.Date).
+            cache.FerierDates = new HashSet<DateTime>(feriers.Select(f => f.Ferdate!.Value.Date));
 
             // Load all postes for employee in period
             Dictionary<DateTime, string> postes = await _employeRepository.GetEmpPostesByPeriod(soccod, empcod, startDate, endDate);
@@ -792,7 +794,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
                 var ferierDates = await _jourFerierRepository
                     .GetFeriersByPeriod(soccod, minDate, maxDate);
-                var ferierSet = new HashSet<DateTime>(ferierDates.Select(f => f.Ferdate.Value.Date));
+                // .Date pour neutraliser la composante heure (imports gouv.fr à 12:00 UTC vs
+                // saisies manuelles à 00:00).
+                var ferierSet = new HashSet<DateTime>(ferierDates.Select(f => f.Ferdate!.Value.Date));
 
                 // 🔹 BATCH 2: Load ALL conges for employee in this period
                 var conges = await _congeRepository.GetCongesByPeriodAsync(
@@ -803,13 +807,25 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 );
 
                 // Create lookup dictionary: Date -> Conge
+                // Sémantique alignée sur GetCongeEmployeLibBatchAsync (utilisé par l'État
+                // périodique) :
+                //   - Conamret == "1"  → retour demi-journée, le jour de retour EST en congé
+                //   - sinon (Conamret == "0" / null) → retour pleine journée, le jour de
+                //     retour est TRAVAILLÉ et ne doit pas apparaître en congé.
+                // Avant ce correctif, la boucle `while (current <= end)` marquait le retour
+                // comme congé inconditionnellement → le Pointage du mois comptait un jour de
+                // congé en trop par demande, alors que le périodique le comptait comme
+                // travaillé. Symptôme rapporté : "8 mai férié + retour 9 → 9 considéré
+                // comme férié/congé alors qu'il travaille".
                 var congesByDate = new Dictionary<DateTime, CongeDto>();
                 foreach (var c in conges.Where(c => c.Condep.HasValue && c.Conret.HasValue))
                 {
                     var current = c.Condep.Value.Date;
                     var end = c.Conret.Value.Date;
+                    bool retourPleineJournee = c.Conamret != "1";
+                    var lastIncluded = retourPleineJournee ? end.AddDays(-1) : end;
 
-                    while (current <= end)
+                    while (current <= lastIncluded)
                     {
                         if (!congesByDate.ContainsKey(current))
                         {

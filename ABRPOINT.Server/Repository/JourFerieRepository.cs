@@ -56,7 +56,13 @@ namespace ABRPOINT.Server.Repository
                             && f.Ferdate <= dateFin)
                 .ToListAsync();
 
-            return feries.ToDictionary(f => f.Ferdate!.Value, f => f);
+            // Clé normalisée sur .Date : un férié importé depuis calendrier.api.gouv.fr est
+            // stocké à 12:00:00 UTC (Date.UTC(y, m, d, 12)) tandis que les saisies manuelles
+            // arrivent à 00:00:00. Sans normalisation, le consommateur (qui itère en .Date)
+            // ne matche que les saisies manuelles et rate les imports.
+            return feries
+                .GroupBy(f => f.Ferdate!.Value.Date)
+                .ToDictionary(g => g.Key, g => g.First());
         }
 
 

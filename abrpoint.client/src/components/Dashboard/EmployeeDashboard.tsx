@@ -17,7 +17,11 @@ export default function EmployeeDashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('week');
-  const { userName, soccod, uticod } = useAuth();
+  const { userName, soccod, uticod, isAdmin, isManager } = useAuth();
+  // Admin et manager ne soumettent pas de demandes (congé, autorisation, mission)
+  // pour eux-mêmes — leur rôle est l'approbation. On cache donc le bouton CTA et
+  // les actions « self » sur ce dashboard quand le user est privilégié.
+  const canSelfRequest = !isAdmin && !isManager;
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   // Responsive check
@@ -177,13 +181,15 @@ export default function EmployeeDashboard() {
             </h2>
             <p className="text-slate-500 font-medium">{t('employeeDashboard.weekSummary', { date: dayjs().startOf('week').add(1, 'day').format('DD MMMM') })}</p>
           </div>
-          <button
-            onClick={() => navigate('/dashboard/gestion-de-conge')}
-            className="bg-gradient-to-br from-[#0040a1] to-[#0056d2] text-white px-6 py-3.5 rounded-xl font-['Manrope'] font-bold flex items-center gap-2 shadow-lg shadow-[#0040a1]/20 hover:-translate-y-0.5 transition-transform"
-          >
-            <span className="material-symbols-outlined">add</span>
-            {t('employeeDashboard.newRequest')}
-          </button>
+          {canSelfRequest && (
+            <button
+              onClick={() => navigate('/dashboard/gestion-de-conge')}
+              className="bg-gradient-to-br from-[#0040a1] to-[#0056d2] text-white px-6 py-3.5 rounded-xl font-['Manrope'] font-bold flex items-center gap-2 shadow-lg shadow-[#0040a1]/20 hover:-translate-y-0.5 transition-transform"
+            >
+              <span className="material-symbols-outlined">add</span>
+              {t('employeeDashboard.newRequest')}
+            </button>
+          )}
         </div>
       </section>
 

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Button, Snackbar, Alert, Collapse, IconButton } from '@mui/material';
+import { Box, Typography, Button, Snackbar, Alert, Collapse, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
@@ -8,6 +8,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SearchIcon from '@mui/icons-material/Search';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import { useTranslation } from 'react-i18next';
 import useGetRubriques from '../../../hooks/rubriqueHooks/useGetRubriques';
 import useAddRubrique from '../../../hooks/rubriqueHooks/useAddRubrique';
@@ -17,6 +18,7 @@ import { Rubrique } from '../../../models/Rubrique';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
 import ExcelImportButton from '../shared/ExcelImportButton';
+import apiInstance from '../../API/apiInstance';
 import '../shared/RefModern.css';
 
 const emptyForm: Rubrique = { rubcod: '', soccod: '', rubunite: '', rublib: '', rubtaux: 0, rubregime: '', vartype: '' };
@@ -56,6 +58,46 @@ const VARTYPE_OPTIONS: Array<{ code: string; label: string; group: string }> = [
   { code: '9', label: '9 — Prime qualité (heures normales)', group: 'Primes / Compléments' },
 ];
 
+// Catalogue par défaut — couvre les colonnes du Pointage du mois / état périodique
+// (Nb. Heures, HS25, HS50, J. Fériés, Congé, Maladie, MAP, Panier, etc.). Chaque entrée
+// est mappée vers le vartype consommé par l'export "Intégration Paie". L'import passe par
+// /BulkImport/rubriques qui dédoublonne sur Rubcod ET Rublib — appelable plusieurs fois
+// sans risque (les rubriques déjà saisies sont ignorées, pas écrasées).
+const DEFAULT_RUBRIQUES_CATALOG: Array<{ rubcod: string; rublib: string; rubunite: 'H' | 'J'; vartype: string }> = [
+  // Temps de travail
+  { rubcod: 'NBH',   rublib: 'Nb. Heures',                  rubunite: 'H', vartype: 'H' },
+  { rubcod: 'NBJ',   rublib: 'Nb. Jours',                   rubunite: 'J', vartype: 'J' },
+  { rubcod: 'JPT',   rublib: 'J. Pointés',                  rubunite: 'J', vartype: 'T' },
+  { rubcod: 'HN',    rublib: 'H. Normales',                 rubunite: 'H', vartype: '9' },
+  // Heures supplémentaires
+  { rubcod: 'HS25',  rublib: 'Heures supp. 25%',            rubunite: 'H', vartype: '2' },
+  { rubcod: 'HS50',  rublib: 'Heures supp. 50%',            rubunite: 'H', vartype: '5' },
+  { rubcod: 'HS',    rublib: 'Heures supp. cumul semaine',  rubunite: 'H', vartype: '7' },
+  { rubcod: 'HS1',   rublib: 'Heures supp. tranche 1',      rubunite: 'H', vartype: '1' },
+  // Fériés / Repos
+  { rubcod: 'JF',    rublib: 'J. Fériés',                   rubunite: 'J', vartype: 'F' },
+  { rubcod: 'JFT',   rublib: 'J. Fériés travaillés',        rubunite: 'J', vartype: 'R' },
+  { rubcod: 'HFT',   rublib: 'H. Fériés travaillées',       rubunite: 'H', vartype: 'Y' },
+  { rubcod: 'HFTS',  rublib: 'H. Fériés sup. travaillées',  rubunite: 'H', vartype: 'Z' },
+  { rubcod: 'FNP',   rublib: 'Férié non payé',              rubunite: 'J', vartype: 'I' },
+  { rubcod: 'JREP',  rublib: 'J. Repos travaillés',         rubunite: 'J', vartype: 'P' },
+  { rubcod: 'HNUI',  rublib: 'H. Nuits',                    rubunite: 'H', vartype: 'U' },
+  // Absences
+  { rubcod: 'CP',    rublib: 'Congé payé',                  rubunite: 'J', vartype: 'C' },
+  { rubcod: 'MAL',   rublib: 'Maladie',                     rubunite: 'J', vartype: 'K' },
+  { rubcod: 'AUTS',  rublib: 'Autorisation de sortie',      rubunite: 'H', vartype: 'V' },
+  { rubcod: 'HABS',  rublib: 'H. Absences',                 rubunite: 'H', vartype: '3' },
+  { rubcod: 'MAP',   rublib: 'Mise à pied',                 rubunite: 'J', vartype: '6' },
+  { rubcod: 'ALL',   rublib: 'Allaitement',                 rubunite: 'H', vartype: 'A' },
+  { rubcod: 'ACT',   rublib: 'Accident de travail',         rubunite: 'J', vartype: 'D' },
+  // Primes / Compléments
+  { rubcod: 'CSF',   rublib: 'Compl. social familial',      rubunite: 'H', vartype: 'S' },
+  { rubcod: 'DEPL',  rublib: 'Déplacement',                 rubunite: 'J', vartype: 'O' },
+  { rubcod: 'HEB',   rublib: 'Hébergement',                 rubunite: 'J', vartype: 'G' },
+  { rubcod: 'PAN',   rublib: 'Prime panier',                rubunite: 'J', vartype: '4' },
+  { rubcod: 'PNA',   rublib: 'Prime non-absence',           rubunite: 'J', vartype: '8' },
+];
+
 function RubriqueModernContent() {
   const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
@@ -63,6 +105,8 @@ function RubriqueModernContent() {
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
   const [search, setSearch] = useState('');
   const [showGuide, setShowGuide] = useState(true);
+  const [defaultsOpen, setDefaultsOpen] = useState(false);
+  const [importingDefaults, setImportingDefaults] = useState(false);
 
   const { data: rubriques = [], refetch, isLoading } = useGetRubriques();
   const { mutate: addRub } = useAddRubrique();
@@ -107,6 +151,60 @@ function RubriqueModernContent() {
     }
   };
 
+  // Pré-calcule, pour la dialogue, ce qui sera réellement importé en regardant ce qui
+  // existe déjà côté serveur (même règle de dédoublonnage que /BulkImport/rubriques :
+  // Rubcod insensible à la casse OU Rublib insensible à la casse).
+  const existingCodesUpper = useMemo(
+    () => new Set(rubriques.map(r => (r.rubcod || '').trim().toUpperCase()).filter(Boolean)),
+    [rubriques],
+  );
+  const existingLibsLower = useMemo(
+    () => new Set(rubriques.map(r => (r.rublib || '').trim().toLowerCase()).filter(Boolean)),
+    [rubriques],
+  );
+  const defaultsPreview = useMemo(
+    () => DEFAULT_RUBRIQUES_CATALOG.map(r => ({
+      ...r,
+      alreadyExists:
+        existingCodesUpper.has(r.rubcod.toUpperCase()) ||
+        existingLibsLower.has(r.rublib.toLowerCase()),
+    })),
+    [existingCodesUpper, existingLibsLower],
+  );
+  const toImportCount = defaultsPreview.filter(r => !r.alreadyExists).length;
+
+  const handleImportDefaults = async () => {
+    setImportingDefaults(true);
+    try {
+      const { data } = await apiInstance.post('/BulkImport/rubriques', {
+        Rows: DEFAULT_RUBRIQUES_CATALOG.map(r => ({
+          Rubcod: r.rubcod, Rublib: r.rublib, Rubunite: r.rubunite, Vartype: r.vartype,
+        })),
+        Soccod: soccod || '',
+      });
+      const inserted = data.inserted ?? 0;
+      const skipped = data.skipped ?? 0;
+      const errs: string[] = data.errors ?? [];
+      let msg = `${inserted} rubrique(s) importée(s)`;
+      if (skipped) msg += `, ${skipped} ignorée(s) (déjà présente)`;
+      setSnack({
+        open: true,
+        msg: errs.length ? `${msg}. ${errs.length} erreur(s).` : msg,
+        sev: errs.length ? 'warning' : 'success',
+      });
+      setDefaultsOpen(false);
+      refetch();
+    } catch (err: any) {
+      setSnack({
+        open: true,
+        msg: err?.response?.data?.error || 'Erreur lors de l\'import des rubriques par défaut.',
+        sev: 'error',
+      });
+    } finally {
+      setImportingDefaults(false);
+    }
+  };
+
   return (
     <Box className="ref-container">
       <Box className="ref-header">
@@ -116,6 +214,16 @@ function RubriqueModernContent() {
           <Typography className="ref-header-sub">{t('donneeBase.rubrique.subtitle')}</Typography>
         </Box>
         <Box className="ref-header-actions">
+          {!isEditMode && canAdd && (
+            <Button
+              variant="outlined"
+              startIcon={<LibraryAddIcon />}
+              onClick={() => setDefaultsOpen(true)}
+              sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 600 }}
+            >
+              Charger rubriques par défaut
+            </Button>
+          )}
           {!isEditMode && canAdd && (
             <ExcelImportButton
               endpoint="/BulkImport/rubriques"
@@ -310,6 +418,72 @@ function RubriqueModernContent() {
           <Box className="ref-table-footer"><span>{t('donneeBase.rubrique.footerCount', { count: filtered.length })}</span></Box>
         </Box>
       </Box>
+      <Dialog open={defaultsOpen} onClose={() => !importingDefaults && setDefaultsOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LibraryAddIcon sx={{ color: '#0040a1' }} />
+          Charger les rubriques par défaut
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography sx={{ fontSize: 13, color: '#475569', mb: 1.5 }}>
+            Le catalogue ci-dessous couvre toutes les grandeurs calculées par le moteur de pointage
+            (heures travaillées, h. supp., congés, fériés, primes…). Les rubriques dont le <strong>code</strong>
+            ou le <strong>libellé</strong> existe déjà sont marquées « Déjà présent » et seront ignorées
+            côté serveur — vous pouvez relancer cet import sans risque.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, mb: 1.5, flexWrap: 'wrap' }}>
+            <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', background: '#dcfce7', color: '#166534', fontSize: 12.5, fontWeight: 700 }}>
+              {toImportCount} à importer
+            </Box>
+            <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', background: '#f1f5f9', color: '#475569', fontSize: 12.5, fontWeight: 700 }}>
+              {DEFAULT_RUBRIQUES_CATALOG.length - toImportCount} déjà présent(es)
+            </Box>
+            <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', background: '#eff6ff', color: '#0040a1', fontSize: 12.5, fontWeight: 700 }}>
+              Total catalogue : {DEFAULT_RUBRIQUES_CATALOG.length}
+            </Box>
+          </Box>
+          <Box sx={{ maxHeight: 360, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+            <Box component="table" sx={{
+              width: '100%', borderCollapse: 'collapse', fontSize: 12.5,
+              '& th, & td': { padding: '6px 10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' },
+              '& th': { background: '#f8fafc', fontWeight: 700, color: '#0f172a', position: 'sticky', top: 0 },
+            }}>
+              <thead>
+                <tr><th>Code</th><th>Libellé</th><th style={{ width: 70 }}>Unité</th><th>Variable</th><th style={{ width: 130 }}>Statut</th></tr>
+              </thead>
+              <tbody>
+                {defaultsPreview.map(r => {
+                  const vartypeLabel = VARTYPE_OPTIONS.find(o => o.code === r.vartype)?.label;
+                  return (
+                    <tr key={r.rubcod} style={{ opacity: r.alreadyExists ? 0.55 : 1 }}>
+                      <td style={{ fontWeight: 700 }}>{r.rubcod}</td>
+                      <td>{r.rublib}</td>
+                      <td><span className="ref-badge ref-badge--gray">{r.rubunite}</span></td>
+                      <td><span className="ref-badge ref-badge--blue" title={vartypeLabel}>{vartypeLabel || r.vartype}</span></td>
+                      <td>
+                        {r.alreadyExists
+                          ? <span className="ref-badge ref-badge--gray">Déjà présent</span>
+                          : <span className="ref-badge ref-badge--blue" style={{ background: '#dcfce7', color: '#166534' }}>À importer</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setDefaultsOpen(false)} disabled={importingDefaults}>Annuler</Button>
+          <Button
+            variant="contained"
+            onClick={handleImportDefaults}
+            disabled={importingDefaults || toImportCount === 0}
+            startIcon={importingDefaults ? <CircularProgress size={16} color="inherit" /> : <LibraryAddIcon />}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            {importingDefaults ? 'Import en cours…' : `Importer (${toImportCount})`}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
         <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
       </Snackbar>
