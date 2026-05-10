@@ -14,7 +14,7 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public static class BaseDataSchemaMigrator
 {
-    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded, bool RagTablesCreated, bool MissionDeviseAdded, bool NoteDeFraisDeviseAdded, bool SiteGeofenceAdded);
+    public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded, bool RagTablesCreated, bool MissionDeviseAdded, bool NoteDeFraisDeviseAdded, bool SiteGeofenceAdded, bool RefreshTokenColumnsAdded);
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
@@ -82,7 +82,34 @@ public static class BaseDataSchemaMigrator
         var siteGeoRad = await AddColumnIfMissingAsync(db, "site", "sitrad", "INT NULL", ct);
         var siteGeofenceAdded = siteGeoLat || siteGeoLon || siteGeoRad;
 
-        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise, siteGeofenceAdded);
+        // SEC-G2 / SEC-G6 — refresh_tokens : distingue les bio-tokens des refresh classiques
+        // et trace l'usage récent pour appliquer un quota par utilisateur. NOT NULL avec DEFAULT
+        // pour ne pas casser les lignes existantes.
+        var rtPurpose = await AddColumnIfMissingAsync(db, "refresh_tokens", "purpose",
+            "VARCHAR(20) NOT NULL CONSTRAINT [DF_refresh_tokens_purpose] DEFAULT ('Refresh')", ct);
+        var rtLastUsed = await AddColumnIfMissingAsync(db, "refresh_tokens", "last_used_at", "DATETIME2 NULL", ct);
+        var rtIndex = await EnsureIndexAsync(db, "refresh_tokens", "ix_refresh_tokens_uticod_purpose_revoked",
+            "(uticod, purpose, revoked) INCLUDE (expires_at, last_used_at)", ct);
+        var refreshTokenColumnsAdded = rtPurpose || rtLastUsed || rtIndex;
+
+        return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise, siteGeofenceAdded, refreshTokenColumnsAdded);
+    }
+
+    private static async Task<bool> EnsureIndexAsync(ApplicationDbContext db, string table, string indexName, string columnsClause, CancellationToken ct)
+    {
+        if (!await TableExistsAsync(db, table, ct)) return false;
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
+        await using (var check = conn.CreateCommand())
+        {
+            check.CommandText = "SELECT COUNT(1) FROM sys.indexes WHERE name = @n AND object_id = OBJECT_ID(@t)";
+            var pn = check.CreateParameter(); pn.ParameterName = "@n"; pn.Value = indexName; check.Parameters.Add(pn);
+            var pt = check.CreateParameter(); pt.ParameterName = "@t"; pt.Value = table; check.Parameters.Add(pt);
+            var exists = Convert.ToInt32(await check.ExecuteScalarAsync(ct)) > 0;
+            if (exists) return false;
+        }
+        await db.Database.ExecuteSqlRawAsync($"CREATE NONCLUSTERED INDEX [{indexName}] ON [{table}] {columnsClause};", ct);
+        return true;
     }
 
     private static async Task<bool> EnsureRagDocumentTableAsync(ApplicationDbContext db, CancellationToken ct)
