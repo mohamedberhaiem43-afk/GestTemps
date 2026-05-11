@@ -502,13 +502,40 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 acc.NbHeuresDebutCalcul += ferierHours;
                 acc.NbhFerier += ferierHours;
                 // If working on ferier day
-                if (presence != null && !string.IsNullOrEmpty(presence.Tothre))
+                if (presence != null)
                 {
-                    acc.NbJourFerier++;
-                    var hreFerierTrav = await _jourFerierRepository.GetHeureFerieTrav(soccod, presence.Predat, presence.Tothre);
-                    acc.NbhFerierTrv += hreFerierTrav;
+                    // ⚠ On recalcule les heures travaillées DEPUIS LES PUNCHES, pas depuis
+                    // presence.Tothre. La colonne Tothre en base peut être périmée ou erronée
+                    // (un ancien bug de UpdateTothre y stockait parfois le retard à la place
+                    // des heures travaillées → on observait 0.13h pour un employé ayant pointé
+                    // 08:00→12:00). Le PresenceRepository (état périodique) fait déjà la même
+                    // chose via CalcHreTrav ; on aligne l'agrégation mensuelle.
+                    var workedHours = ComputeWorkedHoursFromPunches(presence);
+                    if (workedHours > 0)
+                    {
+                        acc.NbJourFerier++;
+                        acc.NbhFerierTrv += workedHours;
+                    }
                 }
             }
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Calcule les heures travaillées dans la journée à partir des 4 timestamps de
+        /// pointage (entrée/sortie matin + entrée/sortie après-midi). Plus fiable que de
+        /// lire la colonne Tothre — celle-ci peut avoir été persistée avec une valeur
+        /// erronée par un calcul antérieur (cf. commentaire dans <c>PresenceRepository</c>
+        /// : « Force recompute from punches: clear any stale Tothre stored in DB »).
+        /// </summary>
+        private static float ComputeWorkedHoursFromPunches(Presence p)
+        {
+            float total = 0;
+            if (TimeSpan.TryParse(p.Preentmatup, out var entMat) && TimeSpan.TryParse(p.Presortmatup, out var sortMat))
+                total += (float)Math.Max(0, (sortMat - entMat).TotalHours);
+            if (TimeSpan.TryParse(p.Preentamidiup, out var entAm) && TimeSpan.TryParse(p.Presortamidiup, out var sortAm))
+                total += (float)Math.Max(0, (sortAm - entAm).TotalHours);
+            return total;
         }
 
         // UPDATED: Process presence details (now only for calculations that require presence)

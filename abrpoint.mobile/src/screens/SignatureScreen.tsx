@@ -8,6 +8,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../contexts/AuthContext';
 import { COLORS, THEME } from '../config/env';
 import { useSecureScreen } from '../hooks/useSecureScreen';
+import SignaturePad, { SignaturePadHandle } from '../components/SignaturePad';
+import apiService from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -15,17 +17,51 @@ export default function SignatureScreen({ navigation, route }: any) {
   // SEC-G4 : signature électronique = pièce probante → bloque toute capture.
   useSecureScreen();
   const { user } = useAuth();
+  const padRef = useRef<SignaturePadHandle>(null);
   const [hasSigned, setHasSigned] = useState(false);
-  const documentName = route?.params?.docName || "Contrat de travail - Ledger HR";
+  const [submitting, setSubmitting] = useState(false);
+  // documentId arrive via route.params quand on est appelé depuis le coffre (DigitalVault).
+  // Sans documentId, on reste en mode "preview" — la validation ferme l'écran sans POST.
+  const documentId = route?.params?.documentId;
+  const documentName = route?.params?.docName || "Contrat de travail";
 
-  const handleValidate = () => {
-    if (!hasSigned) {
+  const handleClear = () => {
+    padRef.current?.clear();
+    setHasSigned(false);
+  };
+
+  const handleValidate = async () => {
+    if (!hasSigned || padRef.current?.isEmpty()) {
       Alert.alert('Attention', 'Veuillez apposer votre signature avant de valider.');
       return;
     }
-    Alert.alert('✅ Succès', 'Votre signature a été enregistrée avec succès.', [
-      { text: 'OK', onPress: () => navigation.goBack() }
-    ]);
+    const dataUri = padRef.current?.toDataUri();
+    if (!dataUri) {
+      Alert.alert('Erreur', 'Impossible de capturer la signature. Réessayez.');
+      return;
+    }
+
+    // Sans documentId associé, on est en mode démo (ouvert depuis le bottom nav par exemple)
+    // → confirmation locale sans appel backend, identique au comportement précédent.
+    if (!documentId) {
+      Alert.alert('✅ Succès', 'Votre signature a été capturée.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await apiService.signVaultDocument(Number(documentId), dataUri, user?.utilib || '');
+      Alert.alert('✅ Succès', 'Document signé avec succès. La signature est juridiquement opposable.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Erreur lors de la signature.';
+      Alert.alert('Erreur', msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -112,37 +148,36 @@ export default function SignatureScreen({ navigation, route }: any) {
         </View>
 
         <View style={styles.signatureContainer}>
-          <TouchableOpacity 
-            activeOpacity={1}
-            style={styles.signatureCanvas}
-            onPress={() => setHasSigned(true)}
-          >
-            <Text style={styles.canvasHint}>DESSINEZ ICI</Text>
-            <TouchableOpacity style={styles.refreshBtn} onPress={() => setHasSigned(false)}>
+          {/* Vraie zone de dessin au doigt — chaque mouvement tactile est capturé par
+              SignaturePad (PanResponder) et reconstitué en SVG au moment de la validation. */}
+          <View style={styles.signatureCanvas} collapsable={false}>
+            <Text style={styles.canvasHint} pointerEvents="none">DESSINEZ AU DOIGT</Text>
+            <TouchableOpacity style={styles.refreshBtn} onPress={handleClear}>
               <MaterialCommunityIcons name="refresh" size={20} color={COLORS.secondary} />
             </TouchableOpacity>
-            
-            <View style={styles.signatureLine} />
-            
-            {!hasSigned ? (
-              <View style={styles.instructionContainer}>
-                <MaterialCommunityIcons name="gesture-double-tap" size={40} color={COLORS.outline} style={{ opacity: 0.4 }} />
-                <Text style={styles.instructionText}>Touchez pour simuler votre signature</Text>
-              </View>
-            ) : (
-              <View style={styles.instructionContainer}>
-                <MaterialCommunityIcons name="draw" size={48} color={COLORS.primary} />
-                <Text style={[styles.instructionText, { color: COLORS.primary }]}>Signature capturée</Text>
+
+            <SignaturePad
+              ref={padRef}
+              height={200}
+              strokeColor="#0f172a"
+              strokeWidth={2.5}
+              onChange={(has) => setHasSigned(has)}
+            />
+
+            {!hasSigned && (
+              <View style={[styles.instructionContainer, StyleSheet.absoluteFillObject, { justifyContent: 'center' }]} pointerEvents="none">
+                <MaterialCommunityIcons name="gesture-tap" size={40} color={COLORS.outline} style={{ opacity: 0.35 }} />
+                <Text style={[styles.instructionText, { opacity: 0.6 }]}>Tracez votre signature dans cette zone</Text>
               </View>
             )}
-          </TouchableOpacity>
-          
+          </View>
+
           <View style={styles.canvasFooter}>
             <View style={styles.statusRow}>
               <View style={[styles.statusDot, { backgroundColor: hasSigned ? COLORS.tertiary : COLORS.outlineVariant }]} />
               <Text style={styles.statusLabel}>{hasSigned ? 'CAPTURÉ' : 'PRÊT À CAPTURER'}</Text>
             </View>
-            <Text style={styles.idLabel}>ID: 882-X9-SGN</Text>
+            <Text style={styles.idLabel}>{documentId ? `DOC ${documentId}` : 'DÉMO'}</Text>
           </View>
         </View>
 
@@ -153,7 +188,7 @@ export default function SignatureScreen({ navigation, route }: any) {
             <Text style={styles.btnText}>Annuler</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.validateBtn} onPress={handleValidate}>
+          <TouchableOpacity style={styles.validateBtn} onPress={handleValidate} disabled={submitting}>
             <LinearGradient
               colors={[COLORS.primary, COLORS.primaryContainer]}
               style={styles.btnGradient}
@@ -161,7 +196,7 @@ export default function SignatureScreen({ navigation, route }: any) {
               end={{ x: 1, y: 1 }}
             >
               <MaterialCommunityIcons name="draw" size={20} color="#fff" />
-              <Text style={[styles.btnText, { color: '#fff' }]}>Valider</Text>
+              <Text style={[styles.btnText, { color: '#fff' }]}>{submitting ? 'Envoi…' : 'Valider'}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>

@@ -80,10 +80,36 @@ namespace ABRPOINT.Server.Helpers
             {
                 if (string.IsNullOrEmpty(base64Data)) return (false, null, "No data.");
 
-                // Data format: "data:image/png;base64,....." or "drawn:data:..." or "phrase:..."
+                // Data format: "data:image/png;base64,....." ou "data:image/svg+xml;base64,..."
+                // ou "drawn:data:..." ou "phrase:..." (formats legacy supportés).
+                //
+                // ⚠ Détection MIME pour choisir la bonne extension : avant, on hardcodait ".png"
+                // ce qui faisait pourrir la signature SVG (mobile, dessin au doigt) sous un nom
+                // de fichier .png → DinkToPdf et la preview navigateur n'arrivaient pas à la lire.
+                string ext = "png"; // défaut historique (PNG depuis le pad signature web)
                 string pureBase64 = base64Data;
-                if (base64Data.Contains(",")) pureBase64 = base64Data.Split(',')[1];
-                else if (base64Data.Contains(":")) pureBase64 = base64Data.Split(':')[1];
+                if (base64Data.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var commaIdx = base64Data.IndexOf(',');
+                    if (commaIdx > 0)
+                    {
+                        var meta = base64Data.Substring(5, commaIdx - 5); // ex: "image/svg+xml;base64"
+                        pureBase64 = base64Data.Substring(commaIdx + 1);
+                        if (meta.Contains("svg")) ext = "svg";
+                        else if (meta.Contains("jpeg") || meta.Contains("jpg")) ext = "jpg";
+                        else if (meta.Contains("gif")) ext = "gif";
+                        else if (meta.Contains("webp")) ext = "webp";
+                        else if (meta.Contains("png")) ext = "png";
+                    }
+                }
+                else if (base64Data.Contains(","))
+                {
+                    pureBase64 = base64Data.Split(',')[1];
+                }
+                else if (base64Data.Contains(":"))
+                {
+                    pureBase64 = base64Data.Split(':')[1];
+                }
 
                 var bytes = Convert.FromBase64String(pureBase64);
                 // SEC-15 : limite aussi l'image base64 (évite la saturation par signature géante).
@@ -92,7 +118,7 @@ namespace ABRPOINT.Server.Helpers
                 var uploads = GetUploadsPath();
                 Directory.CreateDirectory(uploads);
 
-                var fileName = "sig_" + Guid.NewGuid().ToString("N") + ".png";
+                var fileName = "sig_" + Guid.NewGuid().ToString("N") + "." + ext;
                 var filePath = Path.Combine(uploads, fileName);
 
                 await File.WriteAllBytesAsync(filePath, bytes);

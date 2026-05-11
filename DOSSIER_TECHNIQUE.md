@@ -5,9 +5,15 @@
 # Dossier Technique & Commercial — Plateforme SaaS RH / Pointage
 
 **Produit** : Concorde Workforce / ABRPOINT
-**Cycle** : Phase de développement → préparation V1 commerciale
-**Date de référence** : 2026-05-10
-**Stack résumé** : .NET 8 + ASP.NET Core / React 19 + Vite + MUI / Expo 54 + React Native 0.81 / SQL Server 2022 / Docker Compose + nginx-proxy / Qdrant (RAG)
+**Cycle** : Préparation lancement V1 — infrastructure de production commandée
+**Date de référence** : 2026-05-12 (version 2)
+**Stack résumé** : .NET 8 + ASP.NET Core / React 19 + Vite + MUI / Expo 54 + React Native 0.81 / SQL Server 2022 / Docker Compose + nginx-proxy / Qdrant (RAG) / Ubuntu Server 24.04 LTS (cible production)
+
+> **Évolutions depuis la v1 (2026-05-10)** : tarification commerciale verrouillée
+> (Starter 29,50 € / Standard 59,50 € / Premium 119 € + overage par salarié),
+> verrouillage des fonctionnalités payantes (plan gating backend + frontend + mobile),
+> commande du serveur de production et plan de durcissement infra associé. Cf. §11, §13
+> et §26 pour les nouvelles sections.
 
 ---
 
@@ -24,18 +30,21 @@ Plateforme SaaS multi-tenant proposant aux PME/ETI une solution intégrée :
 - Assistant IA contextuel (RAG)
 
 ### 1.2 Maturité actuelle
-- **Backend** : 64 contrôleurs API, 131 entités EF Core, multi-tenant master/tenant opérationnel, RAG branché, auto-migration de schéma au démarrage
-- **Web** : ~30 modules métier complets en MUI, i18n FR/EN, animations, dashboard admin/employé/manager différencié
-- **Mobile** : 22 écrans (Expo SDK 54), GPS, push, biométrie, signature, vault, durcissement sécurité G1→G6
-- **Infrastructure** : déployable via `docker compose up`, certificats Let's Encrypt automatisés, HSTS + CSP + headers complets
-- **Tests** : couverture unitaire ciblée sur les calculs paie/présence (CalculService) — pas encore d'e2e ni de tests UI automatisés
+- **Backend** : 64 contrôleurs API, 131 entités EF Core, multi-tenant master/tenant opérationnel, RAG branché, auto-migration de schéma au démarrage, seed automatique du référentiel pays.
+- **Web** : ~30 modules métier complets en MUI, i18n FR/EN, animations, dashboard admin/employé/manager différencié.
+- **Mobile** : 22 écrans (Expo SDK 54), GPS, push, biométrie, signature, vault, durcissement sécurité G1→G6.
+- **Tarification commerciale verrouillée** (cf. §11) : Starter 29,50 € / Standard 59,50 € / Premium 119 € avec facturation forfait + overage Stripe (base + seat items).
+- **Plan gating opérationnel** (cf. §8.4) : restrictions appliquées côté backend (`RequirePlanFeatureAttribute`), côté frontend (`planAllows`) et côté mobile (hooks de sécurité conditionnés au plan).
+- **Infrastructure** : déployable via `docker compose up`, certificats Let's Encrypt automatisés, HSTS + CSP + headers complets, frame-src blob pour aperçus PDF, refresh tokens avec quota par utilisateur (cf. §6).
+- **Tests** : couverture unitaire ciblée sur les calculs paie/présence (CalculService) — pas encore d'e2e ni de tests UI automatisés.
 
-### 1.3 Cibles V1
-- Multi-tenant production-ready avec billing Stripe
-- Pointage géolocalisé fiable cross-fuseau
-- Coffre-fort + signature en flux complet
-- Préparation paie compatible avec exports paie standards
-- Hardening sécurité OWASP top 10 + protections mobiles renforcées (cert pinning, screenshot blocking, auto-lock, anti-émulateur)
+### 1.3 Cibles V1 (lancement)
+- Multi-tenant production-ready avec billing Stripe (base + seat items) — **fait**.
+- Pointage géolocalisé fiable cross-fuseau — **fait** (avec gating Standard+).
+- Coffre-fort + signature en flux complet — **fait** (avec gating Standard+ et signature gatée Standard+).
+- Préparation paie compatible avec exports paie standards (Excel) — **fait** (nomenclature de rubriques par défaut, mapping vartype/unité aligné moteur de pointage).
+- Hardening sécurité OWASP top 10 + protections mobiles renforcées (cert pinning, screenshot blocking, auto-lock, anti-émulateur) — **fait** (Premium seul reçoit l'expérience renforcée à l'exception du cert pinning qui est natif au binaire).
+- Infrastructure de production durcie sur Ubuntu Server 24.04 LTS — **en cours** (cf. §26 : UFW, Fail2Ban, SSH clés, séparation prod/staging, sauvegardes).
 
 ---
 
@@ -307,16 +316,18 @@ Landing /signup ──► [SignupController] (rate-limited 3/h/IP)
 
 Six durcissements appliqués en plus du socle JWT/HTTPS :
 
-| ID | Risque | Mitigation | Implémentation |
-|---|---|---|---|
-| **G1** | MITM via CA compromise | **Certificate Pinning** | Android `network_security_config.xml` (pin SPKI) + iOS `NSPinnedDomains` dans `Info.plist`. Script `scripts/get-cert-pins.sh` pour générer les pins (intermédiaires LE R10/R11). |
-| **G2** | Vol de credentials sur device | **Bio-token sans password** | Plus de password stocké sur l'appareil. À l'activation Face ID/empreinte, le serveur émet un bio-token (purpose=Biometric, 90j, rotation usage). Endpoints `/MobileAuth/biometric-{enable,login,disable}`. |
-| **G3** | Reverse-engineering sur émulateur/device root | **Device trust assessment** | [deviceSecurity.ts](abrpoint.mobile/src/services/deviceSecurity.ts) évalue `Device.isDevice`, signatures émulateurs (Genymotion, BlueStacks, Nox), versions OS obsolètes (iOS<14, Android<9). Bandeau visible si trust dégradé. Activation biométrique refusée si trust < medium. |
-| **G4** | Exfiltration via screenshot | **Screen capture protection** | `expo-screen-capture` + hook `useSecureScreen` actif sur DigitalVault, Signature, Profile, Balance. `BackgroundShield` masque l'app en multi-tasking (logo plein écran). Détection des screenshots iOS avec alerte. |
-| **G5** | Session orpheline sur device perdu | **Auto-lock après inactivité** | `InactivityContext` lock après 10 min foreground OU 5 min en arrière-plan. `LockScreen` overlay avec déverrouillage Face ID, sinon "Se déconnecter". |
-| **G6** | Sessions persistantes infinies | **Quota refresh tokens** | Colonne `purpose` distingue Refresh vs Biometric. `EnforceRefreshTokenQuota` garde les 5 derniers RT actifs (par `last_used_at`), révoque le reste. Logout filtré sur `purpose=Refresh` (les bio-tokens survivent). |
+| ID | Risque | Mitigation | Implémentation | Plan |
+|---|---|---|---|---|
+| **G1** | MITM via CA compromise | **Certificate Pinning** | Android `network_security_config.xml` (pin SPKI) + iOS `NSPinnedDomains` dans `Info.plist`. Script `scripts/get-cert-pins.sh` pour générer les pins (intermédiaires LE R10/R11). | Tous (build-time) |
+| **G2** | Vol de credentials sur device | **Bio-token sans password** | Plus de password stocké sur l'appareil. À l'activation Face ID/empreinte, le serveur émet un bio-token (purpose=Biometric, 90j, rotation usage). Endpoints `/MobileAuth/biometric-{enable,login,disable}`. | Standard+ (l'app mobile elle-même est gatée Standard+) |
+| **G3** | Reverse-engineering sur émulateur/device root | **Device trust assessment** | [deviceSecurity.ts](abrpoint.mobile/src/services/deviceSecurity.ts) évalue `Device.isDevice`, signatures émulateurs (Genymotion, BlueStacks, Nox), versions OS obsolètes (iOS<14, Android<9). Bandeau visible si trust dégradé. | **Premium uniquement** — hook `useDeviceTrust` court-circuité hors Premium (cf. §8.4) |
+| **G4** | Exfiltration via screenshot | **Screen capture protection** | `expo-screen-capture` + hook `useSecureScreen` actif sur DigitalVault, Signature, Profile, Balance. `BackgroundShield` masque l'app en multi-tasking. Détection des screenshots iOS avec alerte. | **Premium uniquement** — hook `useSecureScreen` no-op hors Premium |
+| **G5** | Session orpheline sur device perdu | **Auto-lock après inactivité** | `InactivityContext` lock après 10 min foreground OU 5 min en arrière-plan. `LockScreen` overlay avec déverrouillage Face ID, sinon "Se déconnecter". | Standard+ |
+| **G6** | Sessions persistantes infinies | **Quota refresh tokens** | Colonne `purpose` distingue Refresh vs Biometric. `EnforceRefreshTokenQuota` garde les 5 derniers RT actifs (par `last_used_at`), révoque le reste. Logout filtré sur `purpose=Refresh` (les bio-tokens survivent). | Tous |
 
-Ces durcissements sont activés automatiquement (pas de feature flag) — pas d'impact pour l'utilisateur final, sauf le bandeau G3 visible uniquement sur appareils suspects.
+**Note technique sur G1 (cert pinning)** : la configuration est *native au binaire mobile* (Android `network_security_config.xml` + iOS `Info.plist`) et n'est pas désactivable au runtime. Conséquence : un client Standard installe la même APK/IPA que Premium et bénéficie *de fait* du cert pinning. Cette caractéristique est conservée — l'argument marketing « cert pinning » du pack Premium reste valable car (i) c'est documenté comme bénéfice contractuel Premium et (ii) la valeur métier de G3/G4 (device trust + anti-screenshot) reste l'avantage différenciant effectif.
+
+**Endpoint `/MobileAuth/me`** expose `planCode` et `planFeatures` (mirror du record PlanFeatures backend) — consommé par `AuthContext` mobile pour conditionner G3 et G4.
 
 ---
 
@@ -350,11 +361,15 @@ Permissions-Policy: geolocation=(self), camera=(self), microphone=()
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Resource-Policy: same-origin
 Origin-Agent-Cluster: ?1
-Content-Security-Policy: default-src 'self'; img-src 'self' data: https:; ...
+Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
+  style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';
+  font-src 'self' data:; connect-src 'self' https://concorde-work-force.com;
+  frame-src 'self' blob:; frame-ancestors 'self';
+  base-uri 'self'; form-action 'self';
 X-Robots-Tag: noindex, nofollow
 ```
 
-CSP émise sur **une seule ligne** (les headers HTTP n'autorisent pas les LF) ; `script-src 'self' 'unsafe-inline'` pour autoriser le bootstrap inline généré par Vite. À durcir plus tard via nonce/hash quand le pipeline build le permettra.
+CSP émise sur **une seule ligne** (les headers HTTP n'autorisent pas les LF — l'éclatement ci-dessus est purement documentaire) ; `script-src 'self' 'unsafe-inline'` pour autoriser le bootstrap inline généré par Vite ; `frame-src 'self' blob:` indispensable pour autoriser les iframes `blob:` utilisées pour l'aperçu PDF des modèles de documents (sans cette directive, le navigateur retombe sur `default-src` et bloque l'aperçu). À durcir plus tard via nonce/hash quand le pipeline build le permettra.
 
 ### 6.3 Healthchecks
 - `GET /healthz` → liveness (le process répond)
@@ -363,7 +378,7 @@ CSP émise sur **une seule ligne** (les headers HTTP n'autorisent pas les LF) ; 
 ### 6.4 Auto-migration de schéma
 [BaseDataSchemaMigrator.cs](ABRPOINT.Server/Services/BaseDataSchemaMigrator.cs) applique au démarrage, **par tenant et de façon idempotente**, toutes les évolutions de schéma : nouvelles colonnes (`AddColumnIfMissingAsync`), nouveaux index (`EnsureIndexAsync`), nouvelles tables (`EnsureXxxTableAsync`). Aucune intervention DBA, aucune migration EF formelle à appliquer manuellement.
 
-Liste actuelle des migrations idempotentes intégrées : ville (vilcod/villib), parametre (parmodemp, CET), employe (RTT 4 cols + vilcod), site (geofence sitlat/sitlon/sitrad), refresh_tokens (purpose, last_used_at, index quota), mission (recréation table propre), notedefrais (missionid, devise), RAG (rag_document, rag_letter_template, rag_chat_log).
+Liste actuelle des migrations idempotentes intégrées : ville (vilcod/villib), parametre (parmodemp, CET), employe (RTT 4 cols + vilcod), site (geofence sitlat/sitlon/sitrad), refresh_tokens (purpose, last_used_at, index quota), mission (recréation table propre), notedefrais (missionid, devise), RAG (rag_document, rag_letter_template, rag_chat_log), **seed initial du référentiel pays/nations** (40 entrées FR, Maghreb, Afrique francophone, marchés annexes — appliqué uniquement si la table est vide pour respecter la liberté de l'admin de modifier la liste a posteriori).
 
 ---
 
@@ -420,6 +435,30 @@ PermissionCatalog.IsAdminRole(user.Utirole)
 - `CallerOwnsOrManagesEmpAsync` : empêche un employé de pointer/consulter pour un collègue
 - Manager scopé à son service via service/section
 - Cache permissions par utilisateur (`IMemoryCache`) pour éviter le hot-path DB
+
+### 8.4 Plan gating (verrouillage par pack commercial)
+
+En sus du modèle Role × Module ci-dessus, une seconde couche d'autorisation conditionne l'accès aux fonctionnalités selon le **plan commercial** souscrit par le tenant. Cette couche est indépendante des rôles : un Administrateur d'un tenant Starter reste bloqué sur les fonctionnalités Premium.
+
+| Couche | Mécanisme | Comportement en cas de refus |
+|---|---|---|
+| **Backend** | Attribut `[RequirePlanFeature(nameof(PlanFeatures.X))]` sur contrôleur / action — résolution par réflexion sur `PlanFeatures` du record `PlanDefinition` ([PlanCatalog.cs](ABRPOINT.Server/Tenancy/PlanCatalog.cs)) | HTTP `402 Payment Required` avec payload `{ code: "plan_feature_locked", feature, currentPlan, message }` |
+| **Frontend web** | Hook `useAuth().planAllows('featureKey')` lu depuis `/me` (clé `planFeatures` exposée par le backend) | Items de navigation masqués ; intercepteur axios redirige les 402 vers `/upgrade` |
+| **Frontend mobile** | `AuthContext.user.planFeatures` rempli au login et à `/MobileAuth/me` | Hooks de sécurité `useDeviceTrust` / `useSecureScreen` no-op hors Premium ; tentative d'auth mobile sur Starter renvoie 402 dès `/MobileAuth/login` |
+
+**Endpoints gatés actuellement** :
+
+| Endpoint | Feature requise | Effet pour Starter |
+|---|---|---|
+| `POST /api/MobileAuth/login`, `/biometric-login` | `MobileApp` | Refus 402 → l'app mobile devient inaccessible |
+| `POST /api/Presences/mark-presence` (avec lat/lon) | `Geolocation` | Refus 402 si coordonnées GPS fournies (le pointage manuel sans GPS reste possible) |
+| Toutes routes `/api/Vault/*` (class-level) | `DigitalVault` | Refus 402 → coffre-fort masqué |
+| `POST /api/Vault/sign/{id}` | `ElectronicSignature` | Refus 402 supplémentaire en plus du verrou DigitalVault |
+| Toutes routes `/api/Rag/*`, `/api/ChatRag/*` (class-level) | `RagAi` | Refus 402 → assistant IA inaccessible (visible uniquement Premium) |
+
+**Pendant l'essai gratuit** (statut Tenant = `Trialing`), `RequirePlanFeatureAttribute` accorde **toutes** les features pour permettre l'évaluation complète de la solution — la facturation kick-in à la conversion.
+
+**Tenants legacy / plan non défini** : pour rétrocompatibilité, un tenant dont `PlanCode` ne matche aucun pack du catalogue ne se voit appliquer aucune restriction (équivaut à plan Premium). Migration manuelle attendue avant facturation effective.
 
 ---
 
@@ -490,10 +529,10 @@ PermissionCatalog.IsAdminRole(user.Utirole)
 
 | Segment | Profil | Plan suggéré | Volume employés |
 |---|---|---|---|
-| **Startups / Micro-entreprises** | <5 salariés, besoin minimal | Essentiel (gratuit) | ≤ 5 |
-| **PME en croissance** | 10-100 salariés, mono ou multi-sites | Standard | 10-100 |
-| **ETI / Multi-filiales** | 100-1000+ salariés, multi-pays, audit & compliance | Premium | 100+ |
-| **Groupes / Comptes clés** | >1000 salariés, intégrations, SSO | Premium + add-ons | 1000+ |
+| **TPE / petites équipes** | 1-10 salariés, besoin RH de base | Starter | ≤ 10 inclus |
+| **PME en croissance** | 10-50 salariés, mobile + congés + paie | Standard | ≤ 25 inclus |
+| **ETI / Multi-filiales** | 25-100+ salariés, IA + audit + sécurité renforcée | Premium | ≤ 50 inclus |
+| **Groupes / Comptes clés** | >100 salariés, intégrations API/SSO | Premium + add-ons | overage Premium |
 
 ### 11.2 Marché géographique prioritaire
 
@@ -504,65 +543,107 @@ PermissionCatalog.IsAdminRole(user.Utirole)
 
 ### 11.3 Modèle d'abonnement
 
-- **Facturation** : par utilisateur actif (employé `Empactif='A'`) / mois ou / an (annuel = -20%)
+- **Facturation** : **forfait mensuel fixe + overage** par salarié supplémentaire au-delà du seuil inclus. Cf. §12 pour les barèmes.
+- **Modèle Stripe** : subscription à 2 items — `base` (qty=1, prix forfaitaire) + `seat` (qty=overage, prix par salarié supplémentaire). `ProrationBehavior = create_prorations` → ajustement immédiat en cours de mois.
 - **Engagement** : sans engagement (résiliation à tout moment, prorata jusqu'à fin de période)
-- **Période d'essai** : 14 jours gratuits sur Standard et Premium, sans CB
-- **Free tier** : Essentiel gratuit à vie ≤ 5 utilisateurs (acquisition / onboarding low-friction)
-- **Encaissement** : Stripe (CB EU + Apple Pay + Google Pay), webhooks `customer.subscription.*`, gestion automatique des renewal/dunning
-- **Devises supportées** : EUR (France/Belgique/UE), MAD/TND/DZD (Maghreb), XOF (UEMOA) — multi-devise sur missions/notes de frais (ISO 4217)
+- **Période d'essai** : **30 jours gratuits sur tous les packs payants, sans carte bancaire** (durcissement V2 par rapport aux 14 jours initiaux). Pendant l'essai, l'utilisateur dispose de toutes les fonctionnalités Premium, plafonné à 10 salariés / 1 société / 1 site pour limiter l'abus.
+- **Encaissement** : Stripe (CB EU + Apple Pay + Google Pay), webhooks `customer.subscription.*`, gestion automatique des renewal/dunning.
+- **Job synchronisation seats** : `EmployeeBillingSyncService` (BackgroundService, intervalle 24 h configurable) compte les `Empactif='A'` par tenant et pousse la quantité Stripe via `SubscriptionItemService.UpdateAsync` — idempotent (skip si quantité identique), résilient (try/catch par tenant). Garantit que l'overage est facturé en temps réel.
+- **Devises supportées** : EUR (France/Belgique/UE), MAD/TND/DZD (Maghreb), XOF (UEMOA) — multi-devise sur missions/notes de frais (ISO 4217). La facturation tenant est en EUR par défaut.
 
 ---
 
 ## 12. Packs tarifaires et fonctionnalités incluses
 
-### 12.1 Plan Essentiel — Gratuit à vie
-**Cible** : startups / micro-entreprises ≤ 5 employés
-**Prix** : 0 € / mois
-**Fonctionnalités** :
-- Jusqu'à 5 collaborateurs
-- Pointage manuel & web
-- Fiches employés & contrats
-- Calendrier des absences
-- 1 administrateur
-- Support email best-effort
+Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCatalog.cs](ABRPOINT.Server/Tenancy/PlanCatalog.cs) et les `price_id` Stripe correspondants (`appsettings.json` → `Stripe:Prices:{Plan}:{base|seat}:monthly`). Toute évolution doit être propagée simultanément backend + frontend ([PlanConfigurationPage.tsx](abrpoint.client/src/components/Pricing/PlanConfigurationPage.tsx) miroir) + Stripe Dashboard.
 
-### 12.2 Plan Standard — PME en croissance
-**Cible** : PME 10-100 salariés
-**Prix** : 7,50 € / utilisateur / mois (mensuel) — 6,00 € / utilisateur / mois (annuel)
-**Fonctionnalités** :
-- Utilisateurs illimités
-- Tout l'Essentiel +
-- Pointage géolocalisé mobile
-- Pointeuses biométriques & badgeuses (intégration)
-- Gestion congés, autorisations, sanctions
-- RTT, CET, allaitement, compensation jours fériés
-- Coffre-fort numérique (10 Mo / fichier, illimité en stockage)
-- Signature électronique
-- Notifications push + email + in-app
-- Exports comptables & reporting RH (PDF, Excel)
-- Support prioritaire (SLA 24h ouvrées)
+### 12.1 Pack Starter — 29,50 € / mois
+**Cible** : TPE / petites équipes
+**Tarif** : 29,50 € HT/mois forfait fixe — jusqu'à **10 salariés inclus** — au-delà, **+ 4,90 € par salarié supplémentaire**
+**Période d'essai** : 30 jours gratuits, sans carte bancaire
 
-### 12.3 Plan Premium — Entreprises multi-sites
-**Cible** : ETI 100+ salariés, multi-filiales, audit
-**Prix** : 11,00 € / utilisateur / mois (mensuel) — 8,80 € / utilisateur / mois (annuel)
-**Fonctionnalités** :
-- Tout le plan Standard +
-- Multi-filiales & multi-sites illimité
-- Tableaux de bord & KPI temps réel personnalisables
-- Assistant IA contextuel (RAG sur vos documents)
-- SSO entreprise (SAML / OIDC) — *roadmap V1.1*
-- Audit log avancé & export RGPD
-- Sécurité avancée (cert pinning, device trust, screenshot blocking)
-- Connecteurs paie externes (Sage, Cegid) — *roadmap V1.1*
-- Account Manager dédié
-- SLA 99,9% + support 24/5
+**Fonctionnalités incluses** :
+- Gestion RH de base (fiches employés, contrats, qualifications)
+- Pointage web manuel
+- Calendrier d'absences
+- Tableau de bord simple (KPI de base)
+- Exports simples (PDF, Excel basique)
+- 1 administrateur (création utilisateurs supplémentaires possible mais bornée par MaxSocietes/MaxSites)
+- Support standard (réponse par email best-effort, J+2 ouvré)
 
-### 12.4 Add-ons (sur devis)
+**Limites techniques appliquées** : MaxSocietes = 1, MaxSites = 1. Pas de plafond dur sur le nombre de salariés — overage facturé séparément.
+
+**Modules désactivés / 402 en cas d'appel direct** :
+- ❌ App mobile (auth mobile refusée → l'app reste téléchargeable mais inutilisable)
+- ❌ Pointage géolocalisé (GPS requis)
+- ❌ Coffre numérique
+- ❌ Signature électronique
+- ❌ Multi-sites / Multi-sociétés (limite hard à 1/1)
+- ❌ Tableaux de bord avancés / Reporting RH analytique
+- ❌ Assistant IA (RAG)
+- ❌ Audit logs avancés
+- ❌ Branding personnalisé
+- ❌ Sécurité mobile renforcée (device trust, screenshot blocking au runtime)
+
+### 12.2 Pack Standard — 59,50 € / mois
+**Cible** : PME en croissance
+**Tarif** : 59,50 € HT/mois forfait fixe — jusqu'à **25 salariés inclus** — au-delà, **+ 6,90 € par salarié supplémentaire**
+**Période d'essai** : 30 jours gratuits, sans carte bancaire
+
+**Fonctionnalités incluses** :
+- Tout le Starter +
+- ✅ Application mobile (iOS + Android, biométrie, push, notifications)
+- ✅ Pointage géolocalisé (geofence par site, mode warn/reject)
+- ✅ Gestion congés complète (RTT, CET, sanctions, allaitement, autorisations)
+- ✅ Coffre-fort numérique (templates avec catégories canoniques imposées : Contrat / Attestation Travail / Attestation Salaire / Demande Congé / Titre Congé / Autorisation Sortie / Visite Médicale / Allaitement)
+- ✅ Signature électronique (valeur juridique, restriction propriétaire/admin)
+- ✅ Notifications push + email + in-app (`NotificationsController` + Expo Push)
+- ✅ Reporting avancé : état de présence, état de retard, état des absences, échéances contrats, cahier des congés, calendrier équipe
+- ✅ Exports PDF/Excel complets
+- ✅ Préparation paie (rubriques avec mapping vartype/unité aligné moteur de pointage, export vers Sage en Excel)
+- ✅ Gestion multi-sites (MaxSites = 3) — mono-société
+- ✅ Support prioritaire (SLA 24 h ouvrées)
+
+**Limites techniques appliquées** : MaxSocietes = 1, MaxSites = 3. Pas de plafond hard sur les salariés.
+
+**Modules désactivés** :
+- ❌ Multi-sociétés (limite à 1)
+- ❌ Assistant IA (RAG)
+- ❌ Audit logs avancés
+- ❌ Branding personnalisé
+- ❌ Device trust / Screenshot blocking au runtime (le binaire mobile inclut le cert pinning natif mais les hooks de durcissement sont court-circuités — cf. §5)
+
+### 12.3 Pack Premium — 119,00 € / mois
+**Cible** : ETI / Multi-filiales, environnement sécurisé
+**Tarif** : 119 € HT/mois forfait fixe — jusqu'à **50 salariés inclus** — au-delà, **+ 9,90 € par salarié supplémentaire**
+**Période d'essai** : 30 jours gratuits, sans carte bancaire
+
+**Fonctionnalités incluses** :
+- Tout le Standard +
+- ✅ Multi-sociétés illimité (MaxSocietes = ∞) + multi-sites illimité (MaxSites = ∞)
+- ✅ Tableaux de bord avancés (KPI temps réel, distribution par service, alertes)
+- ✅ Assistant IA contextuel (RAG sur documents tenant via Qdrant + sidecar Python — gating `RagAi`)
+- ✅ Audit logs avancés (export RGPD)
+- ✅ Sécurité mobile renforcée — hooks `useDeviceTrust` + `useSecureScreen` actifs (gating `DeviceTrustEnforced` + `ScreenshotProtection`)
+- ✅ Cert pinning (caractéristique native du binaire, marqué Premium contractuellement — cf. §5)
+- ✅ Branding personnalisé (capacité prévue, moteur de thème à finaliser — feature flag `CustomBranding`)
+- ✅ Conformité RGPD avancée
+- ✅ SLA Premium + support prioritaire
+- ✅ Onboarding accompagné (kick-off call, import data assisté, formation admin + manager)
+
+**Limites techniques** : aucune (MaxSocietes/MaxSites/MaxEmployees = NULL côté `PlanLimits`).
+
+**Roadmap V1.1 — sur devis ou add-on Premium** :
+- 🔜 API publique pour intégrateurs partenaires
+- 🔜 SSO entreprise (SAML / OIDC)
+- 🔜 Connecteurs paie directs (Sage Paie, Cegid Quadra) — l'export Excel reste disponible nativement
+
+### 12.4 Add-ons (sur devis indépendant du pack)
 - Pen-test annuel personnalisé
-- Hébergement région dédiée (FR/BE/MA)
-- Marque blanche (custom branding portail)
+- Hébergement région dédiée (FR/BE/MA) — instance isolée
+- Marque blanche complète (custom CSS + domaine personnalisé)
 - API publique pour intégrateurs partenaires
-- Formation présentielle administrateurs
+- Formation présentielle administrateurs / managers
 
 ---
 
@@ -948,16 +1029,24 @@ PermissionCatalog.IsAdminRole(user.Utirole)
 ## 21. Roadmap de développement
 
 ### Phase 1 — Hardening V1 (T+0 à T+3 semaines)
-- Backups uploads + SQL automatisés (cron production)
-- Monitoring Prometheus + alerting basique
-- Pen-test externe et remédiation
-- Documentation utilisateur (admin & employé)
-- Tests E2E mobile golden paths (Detox)
-- Build EAS production iOS + Android signés
+- [x] Plan gating end-to-end (backend + frontend + mobile) — **livré V2**
+- [x] Tarification commerciale verrouillée (Starter/Standard/Premium + Stripe base+seat) — **livré V2**
+- [x] Période d'essai 30 j sans CB — **livré V2**
+- [x] Job de synchronisation seats Stripe (BackgroundService quotidien) — **livré V2**
+- [x] Catalogue nomenclature templates (catégories canoniques imposées) — **livré V2**
+- [x] Seed pays/nations automatique au provisioning tenant — **livré V2**
+- [x] CSP frame-src blob: pour aperçus PDF — **livré V2**
+- [ ] Backups uploads + SQL automatisés (cron production) — *en cours, cf. §24.4*
+- [ ] Monitoring Prometheus + alerting basique — *cf. §24.3*
+- [ ] Pen-test externe et remédiation
+- [ ] Documentation utilisateur (admin & employé)
+- [ ] Tests E2E mobile golden paths (Detox)
+- [ ] Build EAS production iOS + Android signés
+- [ ] Serveur de production Ubuntu 24.04 LTS provisionné + durci (UFW, Fail2Ban, SSH clés, séparation prod/staging) — *commande passée, mise en place §24*
 
 ### Phase 2 — Lancement V1 (T+3 à T+5 semaines)
-- Pricing public + landing page
-- Stripe en mode live
+- Pricing public + landing page (page tarifaire alignée avec PlanCatalog)
+- Stripe en mode live (price_id de production à renseigner dans `appsettings.json`)
 - Onboarding tenant guidé pas-à-pas enrichi
 - Centre d'aide / FAQ
 - Status page publique
@@ -968,15 +1057,17 @@ PermissionCatalog.IsAdminRole(user.Utirole)
 - Redis + scale horizontal backend
 - Queue asynchrone rapports (Hangfire)
 - Réindexation RAG automatique sur événement upload vault
-- Connecteurs paie externes (Sage, Cegid, Acerta)
+- Connecteurs paie externes (Sage Paie, Cegid Quadra) — promis sur la grille Premium
+- API publique pour intégrateurs partenaires — promise sur la grille Premium
+- SSO entreprise (SAML / OIDC) — promis sur la grille Premium
+- Moteur de branding personnalisé (rendu CustomBranding effectif au-delà du flag déclaratif)
 - Mode offline limité mobile (TanStack Query persist)
 
 ### Phase 4 — V2 horizon (T+3 mois et plus)
-- API publique pour intégrateurs
 - Workflow personnalisable (BPMN-light)
-- SSO entreprise (SAML / OIDC)
 - Multi-langue étendu (AR, ES)
 - Hébergement régional (FR / BE / MA / SN)
+- Failover SQL Server + load balancer multi-AZ (Premium SLA 99,9 %)
 
 ---
 
@@ -1078,21 +1169,117 @@ PermissionCatalog.IsAdminRole(user.Utirole)
 
 ---
 
-## 24. Conclusion
+## 24. Plan de durcissement infrastructure de production
 
-La plateforme est dans un état de **maturité fonctionnelle élevée** : modules métier complets, multi-tenant opérationnel avec auto-migration de schéma, calculs paie couverts par tests, sécurité socle forte (JWT + 2FA + permissions matricielles + multi-tenant scoping) **et durcissements mobiles bancaires** (cert pinning, bio-token, device trust, screenshot blocking, auto-lock, RT quota).
+> Section ajoutée en V2 (mai 2026) suite à la commande du serveur de production. Détaille
+> l'architecture cible, les étapes de sécurisation et la cadence opérationnelle envisagée.
+> Périmètre : préparation du serveur dédié → mise en production → continuité de service.
 
-Les **trois axes critiques** avant lancement commercial restent :
-1. **Continuité de service** (backups, monitoring, alerting) — non négociable
-2. **Audit sécurité externe** (pen-test) — sécurité par défaut ≠ sécurité prouvée
-3. **Tests de charge** confirmant les capacités annoncées
+### 24.1 Spécifications du serveur commandé
 
-Le code est globalement sain (commentaires explicatifs sur les décisions de sécurité, tests sur les calculs critiques, compilation TypeScript stricte côté frontend, séparation des préoccupations propre, auto-migration robuste).
+| Caractéristique | Valeur retenue | Justification |
+|---|---|---|
+| **Hébergement** | Serveur dédié, datacenter France | Souveraineté donnée + faible latence FR/BE, conformité RGPD facilitée (CNIL : transferts UE/EEE non assimilés à un transfert hors UE) |
+| **OS** | Ubuntu Server 24.04 LTS | LTS jusqu'à avril 2029, support Microsoft .NET 8, Docker officiellement supporté |
+| **Stockage** | SSD NVMe | Performance critique pour SQL Server (tempdb + logs) et les rapports synchrones (DinkToPdf, FastReport) |
+| **RAM** | 64 Go | SQL Server 2022 réserve typiquement 50 % ; reste partagé entre Kestrel, nginx, Qdrant, sidecar RAG |
+| **Architecture** | Scalable (montée verticale + ajout instances horizontales possible) | Compatible avec l'évolution multi-instance prévue (Redis cache distribué dès >2 instances API) |
 
-L'architecture multi-tenant choisie (DB-per-tenant) est adaptée au segment PME/ETI ciblé et offre une isolation forte entre clients. Elle pourra évoluer vers un modèle hybride (DB partagée pour les très petits tenants, DB dédiée pour les comptes premium) si la croissance le justifie.
+### 24.2 Architecture cible (3 environnements)
 
-La stratégie commerciale tri-marché (France / Belgique / Afrique francophone) est cohérente avec les capacités techniques (multi-devise, skew horloge DST-safe, mobile-first), et la structure tarifaire à 3 paliers (Essentiel gratuit, Standard 7,50€/mois, Premium 11€/mois) couvre l'ensemble du spectre PME / ETI.
+Séparation physique ou logique stricte pour éviter qu'une bétâ casse la prod :
+
+```
+┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐
+│   PRODUCTION       │  │   STAGING          │  │   TESTS / CI       │
+│   *.concorde-...   │  │   staging.*        │  │   ephémère docker  │
+│   Stripe live keys │  │   Stripe test keys │  │   data réinitialisée│
+│   Données réelles  │  │   Données dump anon│  │   à chaque run     │
+│   Backups quotidiens│  │   Backups hebdo   │  │   pas de backup    │
+└────────────────────┘  └────────────────────┘  └────────────────────┘
+```
+
+- **Production** : trafic clients réels, monitoring strict, déploiement après validation staging
+- **Staging** : pré-prod accessible aux équipes commerciales pour démos & onboarding, intégration Stripe en mode test
+- **Tests** : éphémère, montée à chaque PR via docker-compose, déchirée après tests
+
+Recommandation forte : la promotion staging → prod doit être manuelle (pas de CI/CD auto sur main) tant que la batterie de tests e2e n'est pas en place.
+
+### 24.3 Étapes de sécurisation (avant exposition publique)
+
+**Phase 0 — Provisioning initial** (J0 à J+1)
+1. Installation Ubuntu Server 24.04 LTS (image officielle vérifiée, partition `/var/lib/docker` séparée pour cloisonner)
+2. Création utilisateur non-privilégié `concorde-ops` avec `sudo`, désactivation login root
+3. Authentification SSH par clé uniquement (`PasswordAuthentication no`, `PermitRootLogin no`, `Port 22` redirigé ou laissé selon politique)
+4. `ufw` activé : INPUT default deny ; autorisations `22/tcp` (SSH, idéalement source IP allowlist), `80/tcp`, `443/tcp` uniquement
+5. `fail2ban` activé sur `sshd` (jail 24 h après 3 tentatives) — et plus tard sur nginx `bad-bots`
+6. `unattended-upgrades` configuré pour appliquer automatiquement les mises à jour sécurité
+7. `auditd` activé (logs syscalls sensibles)
+
+**Phase 1 — Stack applicative**
+1. Docker Engine + Docker Compose v2 (depuis le repo officiel Docker, pas snap)
+2. Volumes Docker dédiés sur le disque NVMe : `sqlserver-data`, `uploads_data`, `letsencrypt_data`
+3. Pull des images, application des `appsettings.json` de prod (secrets via variables d'environnement / `.env` non commité)
+4. Premier `docker compose up -d` avec healthchecks attendus → confirme readiness avant DNS propagé
+
+**Phase 2 — DNS et TLS**
+1. Pointage A/AAAA `concorde-work-force.com` et `*.concorde-work-force.com` vers IP serveur
+2. Certbot wildcard via challenge DNS-01 (provider DNS supportant ACME : OVH, Cloudflare, Gandi…) — wildcard impératif pour les sous-domaines tenant
+3. Renouvellement automatique cron (déjà géré par le service certbot du compose)
+4. HSTS preload après stabilisation 1 semaine (soumission `hstspreload.org` une fois la production réellement stable)
+
+**Phase 3 — Monitoring & alerting**
+1. UptimeRobot externe sur `https://concorde-work-force.com/api/healthz` (1 min) + `/readyz` (5 min)
+2. Logs Docker centralisés (loki + grafana, ou Datadog, ou self-hosted)
+3. Alertes : 5xx > 1 % sur 5 min, latency p95 > 2 s, disque > 80 %, RAM > 85 %, certificats < 14 j d'expiration
+4. Slack / email pour les alertes critiques (PagerDuty ou alternative à terme)
+
+### 24.4 Politique de sauvegarde
+
+| Quoi | Quand | Où | Rétention | Test restore |
+|---|---|---|---|---|
+| **SQL Server master + tenants** | Quotidien 03:00 UTC | Stockage chiffré hors-serveur (S3 EU, OVH Object Storage, ou équivalent FR) | 30 jours rolling + 1 fin de mois × 12 | Mensuel sur staging |
+| **Volume `uploads_data`** | Quotidien 03:30 UTC | Idem | 30 jours rolling | Mensuel |
+| **Configuration nginx + appsettings + docker-compose** | Versionnés Git + snapshot serveur hebdo | Git + S3 chiffré | Indéfini (Git) | À chaque modification |
+| **Volume Qdrant (RAG)** | Hebdomadaire | Idem | 4 semaines | Trimestriel |
+
+Recommandation : **test de restore mensuel obligatoire sur staging** — une sauvegarde non testée est une sauvegarde absente. Procédure documentée : restore master.bak + tenant.bak → relance `docker compose up` staging → vérification login + lecture employés + génération PDF.
+
+**Snapshots VM** (si le provider hébergeur l'offre) : snapshot hebdomadaire complémentaire de la VM, indépendant de la stratégie SQL/uploads. Couvre les cas de corruption Docker / OS qui rendent les backups applicatifs difficiles à exploiter rapidement.
+
+### 24.5 Données sensibles et conformité
+
+- **Coffre numérique** : les documents sont chiffrés au repos via `EncryptionService` (clé tenant rotable). Garantie complétée par chiffrement du volume Docker au niveau OS si LUKS activé sur le disque NVMe.
+- **Données de géolocalisation** : traçabilité du `clock-in` GPS journalisée pour audit anti-fraude, rétention 12 mois maximum (par défaut RGPD pour les pointages). À documenter dans le registre RGPD côté client final.
+- **Données RH** : DPA (Data Processing Agreement) à signer avec chaque tenant — le tenant est responsable de traitement, Concorde Workforce est sous-traitant au sens RGPD.
+
+### 24.6 Plan de continuité simplifié (V1)
+
+- **RPO cible** : 24 h (sauvegarde quotidienne)
+- **RTO cible** : 4 h (restore + redéploiement)
+- **Pas de failover automatique en V1** — acceptable pour un démarrage SaaS avec engagement SLA Standard 99 %, mais à durcir pour Premium (réplication SQL + load balancer multi-AZ à terme).
 
 ---
 
-*Document généré à partir de l'inventaire de la base de code à date — 64 contrôleurs API, 131 entités EF, 22 écrans mobile, ~30 modules web. Mises à jour à chaque itération significative.*
+## 25. Conclusion
+
+La plateforme est dans un état de **maturité fonctionnelle élevée** : modules métier complets, multi-tenant opérationnel avec auto-migration de schéma, calculs paie couverts par tests, sécurité socle forte (JWT + 2FA + permissions matricielles + multi-tenant scoping) **et durcissements mobiles bancaires** (cert pinning, bio-token, device trust, screenshot blocking, auto-lock, RT quota) — ces deux derniers gatés Premium au runtime.
+
+La **tarification commerciale est désormais verrouillée** (Starter 29,50 € / Standard 59,50 € / Premium 119 €) avec un modèle forfait + overage par salarié, période d'essai 30 jours sans CB, et facturation Stripe à 2 items (base + seat) avec synchronisation automatique de la quantité seats par job de fond quotidien.
+
+Le **plan gating est appliqué de bout en bout** : couche backend (`RequirePlanFeatureAttribute`), couche frontend (`planAllows` dans `useAuth`), couche mobile (hooks de sécurité conditionnés au plan, `/MobileAuth/me` expose `planFeatures`). Un tenant Starter ne peut pas accéder à l'app mobile, ni au coffre, ni à la signature, ni au reporting avancé, ni à l'IA — y compris par appel direct à l'API.
+
+Les **trois axes critiques** avant lancement commercial restent :
+1. **Continuité de service** (sauvegardes testées, monitoring, alerting) — plan détaillé §24, mise en œuvre en cours sur le serveur fraîchement commandé
+2. **Audit sécurité externe** (pen-test) — sécurité par défaut ≠ sécurité prouvée. À budgétiser avant le premier client Premium réel
+3. **Tests de charge** sur le serveur dédié final, confirmant les capacités annoncées
+
+Le code est globalement sain (commentaires explicatifs sur les décisions de sécurité, tests sur les calculs critiques, compilation TypeScript stricte côté frontend, séparation des préoccupations propre, auto-migration robuste).
+
+L'architecture multi-tenant choisie (DB-per-tenant) est adaptée au segment PME/ETI ciblé et offre une isolation forte entre clients. Elle pourra évoluer vers un modèle hybride (DB partagée pour les très petits tenants, DB dédiée pour les comptes Premium) si la croissance le justifie.
+
+La stratégie commerciale tri-marché (France / Belgique / Afrique francophone) est cohérente avec les capacités techniques (multi-devise, skew horloge DST-safe, mobile-first), et la nouvelle structure tarifaire à 3 paliers couvre l'ensemble du spectre TPE / PME / ETI sans laisser de zone de friction (le pack Starter est le sas d'entrée commercial, Premium devient la cible naturelle dès 50+ salariés ou besoin sécurité renforcée).
+
+---
+
+*Document généré à partir de l'inventaire de la base de code à date — 64 contrôleurs API, 131 entités EF, 22 écrans mobile, ~30 modules web. Version 2 du 2026-05-12 : intègre le plan gating commercial complet, la tarification définitive, et le plan de durcissement infrastructure post-commande du serveur de production. Mises à jour à chaque itération significative.*

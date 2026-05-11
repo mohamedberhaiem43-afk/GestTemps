@@ -28,6 +28,11 @@ public static class BaseDataSchemaMigrator
         var cetAdded = cetDate || cetMax || cetSolde;
         // Société : ville séparée du numéro de rue (champ socadr existant).
         var socville = await AddColumnIfMissingAsync(db, "societe", "socville", "NVARCHAR(60) NULL", ct);
+        // Société : logo (chemin /api/uploads/<uuid>.ext). Sans cette colonne, l'export
+        // PDF des templates échoue en 500 dès qu'on tente le SELECT s.socimg dans
+        // ReportsGenerationService.GenerateFromHtml. Migration silencieuse pour
+        // rétrocompat des bases provisionnées avant l'introduction du champ.
+        var socimg = await AddColumnIfMissingAsync(db, "societe", "socimg", "NVARCHAR(500) NULL", ct);
         // Tables enfants qui référencent ville.vilcod : la PK a été élargie à 6 chars,
         // les FKs étaient encore à 4 → toute sauvegarde d'employé avec un vilcod
         // auto-généré (6 chiffres) ou un code INSEE (5 chiffres) échouait.

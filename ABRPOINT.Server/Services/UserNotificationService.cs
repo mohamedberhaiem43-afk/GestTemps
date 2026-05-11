@@ -44,9 +44,14 @@ public sealed class UserNotificationService : IUserNotificationService
         => RunInScopeAsync(async (db, push) =>
         {
             var managerCode = PermissionCatalog.Roles.Manager;
+            // ⚠ Filtre Utiactif assoupli : avant on testait `== "1"`, ce qui éliminait
+            // silencieusement tous les utilisateurs créés via les anciens imports (valeur
+            // legacy "Oui", cf. UtilisateurRepository.ToggleUtiactif) ou sans valeur saisie
+            // (NULL). Résultat observé : aucune notif n'arrivait aux managers d'un tenant
+            // hérité d'un dump legacy. On considère désormais ACTIF tout sauf "0" / "Non".
             var uticods = await db.Utilisateurs
                 .AsNoTracking()
-                .Where(u => u.Utiactif == "1" &&
+                .Where(u => (u.Utiactif == null || (u.Utiactif != "0" && u.Utiactif != "Non")) &&
                             (u.Utirole == managerCode ||
                              (u.Utirole != null && EF.Functions.Like(u.Utirole, "%manager%"))))
                 .Select(u => u.Uticod!)
@@ -58,9 +63,11 @@ public sealed class UserNotificationService : IUserNotificationService
         => RunInScopeAsync(async (db, push) =>
         {
             var adminCode = PermissionCatalog.Roles.Administrator;
+            // Idem (cf. NotifyManagersAsync) : Utiactif tolère "1", "Oui" et NULL.
             var uticods = await db.Utilisateurs
                 .AsNoTracking()
-                .Where(u => u.Utiactif == "1" && (u.Utiadm == "1" || u.Utirole == adminCode))
+                .Where(u => (u.Utiactif == null || (u.Utiactif != "0" && u.Utiactif != "Non")) &&
+                            (u.Utiadm == "1" || u.Utirole == adminCode))
                 .Select(u => u.Uticod!)
                 .ToListAsync(ct);
             return await SendToUsersAsync(db, push, uticods, title, body, data, ct);
