@@ -98,6 +98,25 @@ apiInstance.interceptors.response.use(
             }
         }
 
+        // 402 plan_feature_locked : feature non incluse dans le plan du tenant.
+        // On redirige vers la page Upgrade avec le contexte (quelle feature, depuis où),
+        // sauf si l'utilisateur est déjà sur la page upgrade ou pricing (évite boucle).
+        if (error.response?.status === 402
+            && error.response?.data?.code === 'plan_feature_locked'
+            && !window.location.pathname.startsWith('/upgrade')
+            && !window.location.pathname.startsWith('/pricing')) {
+            const data = error.response.data;
+            const params = new URLSearchParams({
+                feature: data.feature ?? '',
+                currentPlan: data.currentPlan ?? '',
+                from: window.location.pathname,
+            });
+            // Hard redirect : on contourne react-router pour que la page Upgrade reçoive
+            // immédiatement le state via URL params, même si l'appel API vient d'un endroit
+            // hors d'une route React active (hooks, services).
+            window.location.href = `/upgrade?${params.toString()}`;
+        }
+
         return Promise.reject(error);
     }
 );

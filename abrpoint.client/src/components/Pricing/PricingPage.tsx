@@ -15,51 +15,74 @@ const PricingPage: React.FC = () => {
   const { uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
 
+  // Packs commerciaux V2 (2026-05) — mapping 1:1 avec PlanCatalog côté backend.
+  // Modèle : forfait mensuel + N salariés inclus + tarif par salarié supplémentaire.
+  // Annuel = -20% sur le forfait (overage facturé identiquement par employé).
+  const ANNUAL_DISCOUNT = 0.8;
+  const monthly = billingCycle === 'monthly';
+  const flat = (m: number) => monthly ? m : m * 12 * ANNUAL_DISCOUNT;
+  const flatPeriod = monthly ? '/ mois' : '/ an';
+
   const plans = [
     {
-      name: 'Essentiel',
-      target: 'Startups',
-      price: 0,
-      period: 'gratuit à vie',
-      description: "Idéal pour les micro-équipes qui souhaitent digitaliser leur pointage sans frais.",
+      name: 'Starter',
+      target: 'TPE & startups',
+      price: flat(29.5),
+      period: flatPeriod,
+      included: 10,
+      extraRate: 4.9,
+      description: "Pour démarrer la digitalisation RH d'une petite équipe sans engagement.",
       features: [
-        "Jusqu'à 5 collaborateurs",
-        'Pointage manuel & web',
-        "Fiches employés & contrats",
-        'Calendrier des absences',
+        'Jusqu’à 10 salariés inclus',
+        '+ 4,90 € / salarié supplémentaire',
+        'Pointage web simple',
+        'Gestion RH basique (fiches, contrats)',
+        'Absences & dashboard basique',
+        'Exports simples',
+        '1 administrateur · support standard',
       ],
-      cta: 'Démarrer gratuitement',
+      cta: '30 jours gratuits',
       accent: false,
     },
     {
       name: 'Standard',
       target: 'PME en croissance',
-      price: billingCycle === 'monthly' ? 7.5 : 6.0 * 12,
-      period: billingCycle === 'monthly' ? '/ utilisateur / mois' : '/ utilisateur / an',
-      description: 'Suite complète : pointage, congés et gestion du temps pour les équipes structurées.',
+      price: flat(59.5),
+      period: flatPeriod,
+      included: 25,
+      extraRate: 6.9,
+      description: 'Suite complète mobile + paie pour les équipes structurées.',
       features: [
-        'Utilisateurs illimités',
-        "Pointeuses biométriques & badgeuses",
-        'Gestion congés, autorisations & sanctions',
-        "Exports comptables & reporting RH",
+        'Jusqu’à 25 salariés inclus',
+        '+ 6,90 € / salarié supplémentaire',
+        'Application mobile + pointage géolocalisé',
+        'Congés, RTT, CET, sanctions',
+        'Coffre numérique & signature électronique',
+        'Notifications push / email · reporting avancé',
+        'Préparation paie · multi-sites simple',
         'Support prioritaire',
       ],
-      cta: 'Essayer Standard',
+      cta: '30 jours gratuits',
       accent: true,
       popular: true,
     },
     {
       name: 'Premium',
-      target: 'Entreprises',
-      price: billingCycle === 'monthly' ? 11.0 : 8.8 * 12,
-      period: billingCycle === 'monthly' ? '/ utilisateur / mois' : '/ utilisateur / an',
-      description: "Analytique avancée et accompagnement dédié pour les organisations multi-sites.",
+      target: 'Entreprises multi-sites',
+      price: flat(119),
+      period: flatPeriod,
+      included: 50,
+      extraRate: 9.9,
+      description: 'Multi-filiales, IA contextuelle et sécurité bancaire pour grandes structures.',
       features: [
-        'Tout le plan Standard',
-        'Tableaux de bord & KPI temps réel',
-        'Multi-filiales & multi-sites',
-        'SSO, audit & sécurité avancée',
-        'Account Manager dédié',
+        'Jusqu’à 50 salariés inclus',
+        '+ 9,90 € / salarié supplémentaire',
+        'Multi-filiales illimité · dashboards avancés',
+        'Assistant IA (RAG) sur vos documents',
+        'Audit logs avancés · branding personnalisé',
+        'Sécurité mobile renforcée (device trust, cert pinning, screenshot blocking)',
+        'Onboarding accompagné · SLA premium',
+        'Conformité RGPD avancée · intégrations futures',
       ],
       cta: 'Contacter les ventes',
       accent: false,
@@ -192,14 +215,18 @@ const PricingPage: React.FC = () => {
                 <h3 className="text-3xl font-extrabold font-headline mb-4 text-on-surface">{plan.name}</h3>
                 <div className="flex items-baseline gap-1">
                   <span className="text-5xl font-black font-headline tracking-tighter text-on-surface">
-                    {plan.price === 0 ? '0' : formatPrice(plan.price)}
+                    {formatPrice(plan.price)}
                   </span>
-                  {plan.price !== 0 && (
-                    <span className="text-2xl font-bold text-on-surface">€</span>
-                  )}
+                  <span className="text-2xl font-bold text-on-surface">€</span>
                   <span className="text-on-surface-variant font-medium text-sm">
                     {plan.period}
                   </span>
+                </div>
+                <div className="mt-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                  {plan.included} salariés inclus · +{formatPrice(plan.extraRate)} € / salarié sup.
+                </div>
+                <div className="mt-1 text-[11px] text-tertiary font-bold uppercase tracking-wider">
+                  30 jours gratuits · sans carte bancaire
                 </div>
               </div>
               <p className="text-on-surface-variant mb-8 text-sm leading-relaxed min-h-[3rem]">
@@ -217,22 +244,20 @@ const PricingPage: React.FC = () => {
               </div>
               <button
                 onClick={() => {
-                  // Plan Essentiel (gratuit) : pas de configuration, on envoie directement vers
-                  // /signup (visiteur) ou /dashboard (utilisateur déjà authentifié).
-                  if (plan.name === 'Essentiel') {
-                    navigate(isAuthenticated ? '/dashboard' : '/signup', {
-                      state: { plan: plan.name, price: plan.price, cycle: billingCycle },
-                    });
-                    return;
-                  }
                   // Plan Premium : devis sur mesure → page de contact ventes (pas de Stripe direct).
                   if (plan.name === 'Premium') {
                     navigate('/contact-sales', { state: { plan: plan.name, cycle: billingCycle } });
                     return;
                   }
-                  // Plan Standard (payant) : configuration → paiement Stripe.
+                  // Starter / Standard : tous les deux passent par la configuration Stripe avec
+                  // essai 30 jours sans CB (TrialPeriodDays = 30 côté backend).
                   const target = isAuthenticated ? '/dashboard/plan-configuration' : '/plan-configuration';
-                  navigate(target, { state: { plan: plan.name, price: plan.price, cycle: billingCycle } });
+                  navigate(target, {
+                    state: {
+                      plan: plan.name, price: plan.price, cycle: billingCycle,
+                      included: plan.included, extraRate: plan.extraRate,
+                    },
+                  });
                 }}
                 className={`w-full py-4 font-bold rounded-xl text-xs uppercase tracking-widest transition-all ${plan.accent || plan.popular
                   ? 'bg-gradient-to-br from-primary to-primary-container text-white shadow-lg hover:brightness-110'

@@ -608,6 +608,13 @@ namespace GestionDesTickets.Server.Controllers
             var isTrialing = ABRPOINT.Server.Tenancy.TrialPolicy.IsTrialing(tenant);
             var trialDaysRemaining = ABRPOINT.Server.Tenancy.TrialPolicy.DaysRemaining(tenant);
             var limits = ABRPOINT.Server.Tenancy.TrialPolicy.GetLimits(tenant);
+            // Plan canonique (Starter remplace l'ancien "Essentiel") + matrice fonctionnelle
+            // consommée par le front via useAuth().planAllows(feature).
+            var planDef = ABRPOINT.Server.Tenancy.PlanCatalog.GetPlan(tenant?.PlanCode);
+            // En essai, on simule l'accès complet pour que l'utilisateur teste toutes les features.
+            var effectiveFeatures = isTrialing
+                ? ABRPOINT.Server.Tenancy.PlanCatalog.Premium.Features
+                : (planDef?.Features ?? ABRPOINT.Server.Tenancy.PlanCatalog.Premium.Features);
 
             return Ok(new
             {
@@ -624,7 +631,7 @@ namespace GestionDesTickets.Server.Controllers
                 sitcod,
                 soclib,
                 tenantStatus = tenant?.Status,
-                planCode = tenant?.PlanCode,
+                planCode = ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(tenant?.PlanCode),
                 isTrialing,
                 trialEndsAt = tenant?.TrialEndsAt,
                 trialDaysRemaining,
@@ -633,7 +640,10 @@ namespace GestionDesTickets.Server.Controllers
                     maxEmployees = limits.MaxEmployees,
                     maxSocietes = limits.MaxSocietes,
                     maxSites = limits.MaxSites,
+                    includedEmployees = limits.IncludedEmployees,
+                    overageRatePerEmployee = limits.OverageRatePerEmployee,
                 },
+                planFeatures = effectiveFeatures,
                 permissions = user.Role?.Permissions ?? new List<RolePermission>()
             });
         }

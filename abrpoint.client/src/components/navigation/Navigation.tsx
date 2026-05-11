@@ -63,6 +63,7 @@ import UnifiedAssistantHub from '../helper/Chatbot/UnifiedAssistantHub';
 import LetterTemplatesModern from '../Rag/Letters/LetterTemplatesModern';
 import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
 import PricingPage from '../Pricing/PricingPage';
+import PlanUpgradePage from '../Pricing/PlanUpgradePage';
 import AboutPage from '../About/AboutPage';
 import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
 import ContactSalesPage from '../Pricing/ContactSalesPage';
@@ -151,7 +152,7 @@ interface OpenedTab {
 /* ══════════════════════════════════════════════════════ */
 const useNavigationItems = (): NavGroup[] => {
   const { t } = useTranslation();
-  const { authReady, isAdmin, isEmp, isManager, hasPermission, utiadm, isTrialing } = useAuth();
+  const { authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing } = useAuth();
 
   // utiadm='1' est un fallback admin — utile pendant la fenêtre où /me n'a pas encore
   // répondu mais où sessionStorage a hydraté utiadm. Évite que le sidebar perde la
@@ -294,8 +295,8 @@ const useNavigationItems = (): NavGroup[] => {
         // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
         // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
         ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
-        ...(canSee('coffre-fort') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
-        ...(canSee('admin-vault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
+        ...(canSee('coffre-fort') && planAllows('digitalVault') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
+        ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
       ],
     },
     {
@@ -379,7 +380,7 @@ const useNavigationItems = (): NavGroup[] => {
         { label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText },
         { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
         { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
-        { label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History },
+        ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
@@ -477,6 +478,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/sign-document': content = <SignaturePage />; break;
     case '/dashboard/pricing': content = <PricingPage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
+    case '/upgrade': content = <PlanUpgradePage />; break;
     case '/dashboard/support': content = <SupportPage />; break;
     case '/dashboard/support/faq': content = <FAQPage />; break;
     case '/dashboard/support/formations': content = <FormationsPage />; break;

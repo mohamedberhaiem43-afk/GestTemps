@@ -51,7 +51,11 @@ public class Tenant
     [MaxLength(6)]
     public string? LegacySoccod { get; set; }
 
-    /// <summary>Code du plan souscrit : Essentiel | Standard | Premium. null = pas encore choisi (legacy/dev).</summary>
+    /// <summary>
+    /// Code du plan souscrit : Starter | Standard | Premium. null = pas encore choisi (legacy/dev).
+    /// L'ancien libellé "Essentiel" reste accepté en lecture par PlanCatalog.Normalize pour
+    /// rétro-compat avec les tenants créés avant 2026-05.
+    /// </summary>
     [MaxLength(20)]
     public string? PlanCode { get; set; }
 }

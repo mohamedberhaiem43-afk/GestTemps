@@ -63,14 +63,25 @@ public sealed class StripeBillingService : IBillingService
             }
         }, cancellationToken: ct);
 
-        var priceId = ResolvePriceId(planCode, billingCycle);
+        // Modèle V2 : 2 items par souscription — un forfait (base) + un seat metered (overage).
+        // L'item seat est créé avec quantité 0 au signup (les premiers IncludedEmployees salariés
+        // sont couverts par le forfait) et incrémenté plus tard par EmployeeBillingSync quand le
+        // tenant dépasse l'inclus.
+        var canonical = ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(planCode);
+        var basePriceId = ResolvePriceId(canonical, "base", billingCycle);
+        var seatPriceId = ResolvePriceId(canonical, "seat", billingCycle);
         Subscription? subscription = null;
-        if (!string.IsNullOrEmpty(priceId))
+        if (!string.IsNullOrEmpty(basePriceId))
         {
+            var items = new List<SubscriptionItemOptions> { new() { Price = basePriceId, Quantity = 1 } };
+            if (!string.IsNullOrEmpty(seatPriceId))
+            {
+                items.Add(new SubscriptionItemOptions { Price = seatPriceId, Quantity = 0 });
+            }
             subscription = await _subscriptions.CreateAsync(new SubscriptionCreateOptions
             {
                 Customer = customer.Id,
-                Items = new List<SubscriptionItemOptions> { new() { Price = priceId } },
+                Items = items,
                 TrialPeriodDays = _opts.TrialDays,
                 PaymentBehavior = "default_incomplete",
                 PaymentSettings = new SubscriptionPaymentSettingsOptions
@@ -156,13 +167,26 @@ public sealed class StripeBillingService : IBillingService
         _log.LogInformation("Tenant {Slug} status: {Prev} → {Next} (customer={CustomerId})", tenant.Slug, previous, newStatus, stripeCustomerId);
     }
 
-    private string? ResolvePriceId(string? planCode, string? billingCycle)
+    /// <summary>
+    /// Résout l'ID de prix Stripe pour une clé `{plan}:{kind}:{cycle}`.
+    /// `kind` ∈ { "base", "seat" } — base = forfait mensuel, seat = surcharge par salarié sup.
+    /// Rétrocompatibilité : si la clé 3-segments n'existe pas, on tente l'ancienne forme
+    /// `{plan}:{cycle}` (un seul prix par plan).
+    /// </summary>
+    private string? ResolvePriceId(string? planCode, string kind, string? billingCycle)
     {
         if (string.IsNullOrWhiteSpace(planCode)) return null;
         var cycle = string.IsNullOrWhiteSpace(billingCycle) ? "monthly" : billingCycle.ToLowerInvariant();
-        var key = $"{planCode}:{cycle}";
+        var key = $"{planCode}:{kind}:{cycle}";
         if (_opts.Prices.TryGetValue(key, out var pid) && !string.IsNullOrWhiteSpace(pid) && !pid.Contains("REPLACE"))
             return pid;
+        // Fallback legacy 2-segments (avant introduction du modèle base/seat).
+        if (kind == "base")
+        {
+            var legacyKey = $"{planCode}:{cycle}";
+            if (_opts.Prices.TryGetValue(legacyKey, out var legacyPid) && !string.IsNullOrWhiteSpace(legacyPid) && !legacyPid.Contains("REPLACE"))
+                return legacyPid;
+        }
         return null;
     }
 }
@@ -171,7 +195,7 @@ internal sealed class StripeOptions
 {
     public string? SecretKey { get; init; }
     public string? WebhookSecret { get; init; }
-    public long TrialDays { get; init; } = 14;
+    public long TrialDays { get; init; } = 30;
     public IReadOnlyDictionary<string, string> Prices { get; init; } = new Dictionary<string, string>();
 
     public bool IsConfigured =>
@@ -186,7 +210,7 @@ internal sealed class StripeOptions
         {
             SecretKey = section["SecretKey"],
             WebhookSecret = section["WebhookSecret"],
-            TrialDays = long.TryParse(section["TrialDays"], out var d) ? d : 14,
+            TrialDays = long.TryParse(section["TrialDays"], out var d) ? d : 30,
             Prices = prices,
         };
     }

@@ -86,6 +86,7 @@ if (!string.IsNullOrWhiteSpace(masterConnection))
     builder.Services.AddScoped<IProvisioningService, ProvisioningService>();
     builder.Services.AddScoped<IBillingService, StripeBillingService>();
     builder.Services.AddHostedService<TrialExpirationHostedService>();
+    builder.Services.AddHostedService<ABRPOINT.Server.Billing.EmployeeBillingSyncService>();
 }
 
 builder.Services.Configure<DatabaseInitializationOptions>(
@@ -455,6 +456,12 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'PlanCode' AND Object_ID 
 BEGIN
     ALTER TABLE [Tenants] ADD [PlanCode] NVARCHAR(20) NULL;
 END");
+                // Migration 2026-05 : rename commercial Essentiel → Starter. Les tenants
+                // signés avant ce changement ont PlanCode='Essentiel' en base ; on aligne
+                // pour que PlanCatalog.GetPlan retourne directement Starter sans passer
+                // par Normalize() à chaque requête.
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "UPDATE [Tenants] SET [PlanCode] = 'Starter' WHERE [PlanCode] = 'Essentiel';");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }

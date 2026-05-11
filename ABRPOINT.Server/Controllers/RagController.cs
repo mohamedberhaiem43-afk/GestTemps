@@ -1,4 +1,5 @@
 using ABRPOINT.Server.Services.Rag;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -12,6 +13,7 @@ namespace ABRPOINT.Server.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
+[RequirePlanFeature(nameof(PlanFeatures.RagAi))]
 public class RagController : ControllerBase
 {
     private readonly IRagSidecarService _sidecar;

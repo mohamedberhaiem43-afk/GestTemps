@@ -19,6 +19,7 @@ namespace ABRPOINT.Server.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
+[RequirePlanFeature(nameof(PlanFeatures.RagAi))]
 public class ChatRagController : ControllerBase
 {
     private readonly IClaudeRagService _claude;

@@ -24,13 +24,40 @@ interface AuthContextType {
   trialEndsAt: string | null;
   trialDaysRemaining: number | null;
   planCode: string | null;
-  planLimits: { maxEmployees: number | null; maxSocietes: number | null; maxSites: number | null } | null;
+  planLimits: {
+    maxEmployees: number | null;
+    maxSocietes: number | null;
+    maxSites: number | null;
+    includedEmployees?: number;
+    overageRatePerEmployee?: number;
+  } | null;
+  // Matrice fonctionnelle envoyée par le backend (cf. PlanCatalog.cs). En essai, les flags
+  // sont forcés à true côté serveur pour que l'utilisateur teste l'intégralité de la solution.
+  planFeatures: PlanFeatures | null;
   authReady: boolean;
   permissions: RolePermission[];
   hasPermission: (module: string, action: 'consult' | 'add' | 'modify' | 'delete') => boolean;
+  /** True si la feature est activée pour le plan courant (ou pendant l'essai). */
+  planAllows: (feature: keyof PlanFeatures) => boolean;
   setAuthData: (data: Partial<AuthContextType>) => void;
   refreshAuth: () => Promise<void>;
   clearAuth: () => void;
+}
+
+export interface PlanFeatures {
+  mobileApp: boolean;
+  geolocation: boolean;
+  digitalVault: boolean;
+  electronicSignature: boolean;
+  multiSite: boolean;
+  multiSociete: boolean;
+  advancedDashboards: boolean;
+  ragAi: boolean;
+  advancedAuditLogs: boolean;
+  customBranding: boolean;
+  deviceTrustEnforced: boolean;
+  screenshotProtection: boolean;
+  certificatePinning: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -50,9 +77,11 @@ const AuthContext = createContext<AuthContextType>({
   trialDaysRemaining: null,
   planCode: null,
   planLimits: null,
+  planFeatures: null,
   authReady: false,
   permissions: [],
   hasPermission: () => false,
+  planAllows: () => false,
   setAuthData: () => { },
   refreshAuth: async () => { },
   clearAuth: () => { },
@@ -87,7 +116,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     trialEndsAt: null as string | null,
     trialDaysRemaining: null as number | null,
     planCode: null as string | null,
-    planLimits: null as { maxEmployees: number | null; maxSocietes: number | null; maxSites: number | null } | null,
+    planLimits: null as {
+      maxEmployees: number | null;
+      maxSocietes: number | null;
+      maxSites: number | null;
+      includedEmployees?: number;
+      overageRatePerEmployee?: number;
+    } | null,
+    planFeatures: null as PlanFeatures | null,
     permissions: [] as RolePermission[],
   });
 
@@ -124,6 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         trialDaysRemaining: response.data.trialDaysRemaining ?? null,
         planCode: response.data.planCode ?? null,
         planLimits: response.data.planLimits ?? null,
+        planFeatures: response.data.planFeatures ?? null,
       }));
 
       // Persist société/site/userName dans sessionStorage : le dashboard et les autres pages
@@ -171,6 +208,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         trialDaysRemaining: null,
         planCode: null,
         planLimits: null,
+        planFeatures: null,
         permissions: [],
       }));
     } finally {
@@ -223,9 +261,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       trialDaysRemaining: null,
       planCode: null,
       planLimits: null,
+      planFeatures: null,
       permissions: [],
     });
   };
+
+  /**
+   * Vérifie qu'une feature commerciale (cf. PlanCatalog côté backend) est ouverte au plan
+   * courant. Pendant l'essai, le backend force tous les flags à true.
+   * En l'absence de planFeatures (tenant legacy, /me pas encore appelé), on est permissif
+   * (return true) plutôt que de masquer les modules — la 402 backend reste la barrière dure.
+   */
+  const planAllows = useCallback((feature: keyof PlanFeatures) => {
+    if (!authData.planFeatures) return true;
+    return Boolean(authData.planFeatures[feature]);
+  }, [authData.planFeatures]);
 
   const hasPermission = useCallback((module: string, action: 'consult' | 'add' | 'modify' | 'delete') => {
     // Bypass admin uniquement (god mode). Un manager ou tout autre rôle doit avoir la
@@ -244,7 +294,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [authData.permissions, authData.utiadm, authData.isAdmin]);
 
   return (
-    <AuthContext.Provider value={{ ...authData, authReady, hasPermission, setAuthData: setAuth, refreshAuth, clearAuth }}>
+    <AuthContext.Provider value={{ ...authData, authReady, hasPermission, planAllows, setAuthData: setAuth, refreshAuth, clearAuth }}>
       {children}
     </AuthContext.Provider>
   );

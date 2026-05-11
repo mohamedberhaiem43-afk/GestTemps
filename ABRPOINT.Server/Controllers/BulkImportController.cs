@@ -171,7 +171,9 @@ public class BulkImportController : ControllerBase
         var soccod = req.Soccod;
         var sitcod = string.IsNullOrWhiteSpace(req.Sitcod) ? "01" : req.Sitcod;
 
-        // Quota plan : essai gratuit (10), Essentiel (25), Standard (50), Premium (illimité).
+        // Quota plan : essai gratuit borné à 10 (cf. TrialPolicy.MaxEmployees).
+        // Packs payants (Starter/Standard/Premium) : pas de plafond dur — les salariés
+        // au-delà de IncludedEmployees sont facturés via overage (cf. PlanCatalog).
         var limits = TrialPolicy.GetLimits(_currentTenant.Current);
         if (limits.MaxEmployees.HasValue)
         {
