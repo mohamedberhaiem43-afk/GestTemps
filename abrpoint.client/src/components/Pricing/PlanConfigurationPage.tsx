@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Users, Rocket, CheckCircle2, FileText, Headset } from 'lucide-react';
@@ -10,6 +10,27 @@ import './PricingPage.css';
 // artefact float (8.8*12 → "105,6"). Locale FR avec séparateur virgule.
 const formatPrice = (value: number): string =>
   new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(value);
+
+/**
+ * Catalogue tarifaire — miroir frontend de ABRPOINT.Server.Tenancy.PlanCatalog.
+ * Toute évolution de tarif DOIT être propagée sur les deux côtés simultanément
+ * (la source de vérité pour la facturation reste le backend ; ce miroir sert
+ * uniquement à afficher le simulateur de prix avant Stripe Checkout).
+ *
+ * Référence commerciale : tasks.md (packs Starter / Standard / Premium).
+ */
+type PlanKey = 'Starter' | 'Standard' | 'Premium';
+const PLAN_CATALOG: Record<PlanKey, {
+  displayName: string;
+  flatPriceMonthlyEur: number;
+  includedEmployees: number;
+  overageRatePerEmployeeEur: number;
+  moduleCount: number;
+}> = {
+  Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 29.50, includedEmployees: 10, overageRatePerEmployeeEur: 4.90, moduleCount: 7  },
+  Standard: { displayName: 'Standard', flatPriceMonthlyEur: 59.50, includedEmployees: 25, overageRatePerEmployeeEur: 6.90, moduleCount: 14 },
+  Premium:  { displayName: 'Premium',  flatPriceMonthlyEur: 119.00, includedEmployees: 50, overageRatePerEmployeeEur: 9.90, moduleCount: 19 },
+};
 
 const PlanConfigurationPage: React.FC = () => {
   const { t } = useTranslation();
@@ -24,20 +45,39 @@ const PlanConfigurationPage: React.FC = () => {
     userCount?: number;
     packageType?: 'formation' | 'pack' | 'coaching';
   };
-  const planCode = (initialState.plan ?? 'Standard');
-  const [userCount, setUserCount] = useState(initialState.userCount ?? 50);
+  const planCode: PlanKey = ((initialState.plan as PlanKey) in PLAN_CATALOG
+    ? (initialState.plan as PlanKey)
+    : 'Standard');
+  const plan = PLAN_CATALOG[planCode];
+  // Par défaut, on pré-remplit avec le nombre de salariés *inclus* dans le plan choisi
+  // (10 / 25 / 50). Avant on hardcodait 50, ce qui donnait un overage faux sur Starter.
+  const [userCount, setUserCount] = useState(initialState.userCount ?? plan.includedEmployees);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
   const [packageType, setPackageType] = useState<'formation' | 'pack' | 'coaching'>(initialState.packageType ?? 'pack');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Tarification réelle : forfait mensuel fixe + overage par salarié au-delà du seuil
+  // inclus. C'est strictement la même formule que PlanCatalog.ComputeMonthlyTotal côté
+  // backend ; cette page reste un simulateur — Stripe applique le prix réel via les
+  // price_id configurés dans appsettings.json (`Stripe:Prices:{Plan}:{base|seat}:monthly`).
+  const { extraEmployees, overageCost, baseMonthly, monthlyTotal, annualDiscountPerMonth } = useMemo(() => {
+    const extra = Math.max(0, userCount - plan.includedEmployees);
+    const over = extra * plan.overageRatePerEmployeeEur;
+    const baseM = plan.flatPriceMonthlyEur + over;
+    // Annuel = remise 20% sur le total annuel, recalculé en équivalent mensuel.
+    const monthly = billingCycle === 'annual' ? baseM * 0.80 : baseM;
+    const discountPerMonth = billingCycle === 'annual' ? baseM * 0.20 : 0;
+    return { extraEmployees: extra, overageCost: over, baseMonthly: baseM, monthlyTotal: monthly, annualDiscountPerMonth: discountPerMonth };
+  }, [userCount, plan, billingCycle]);
+
   const handleConfirmCheckout = async () => {
     // Utilisateur connecté → on lance directement la session Stripe Checkout.
     // Visiteur → on bascule sur /signup ; SignupPage déclenchera Stripe après création du tenant.
     const state = {
       plan: planCode,
-      price: pricePerUser,
+      price: monthlyTotal,
       cycle: billingCycle,
       userCount,
       packageType,
@@ -55,11 +95,6 @@ const PlanConfigurationPage: React.FC = () => {
       setSubmitting(false);
     }
   };
-
-  const pricePerUser = 8.00;
-  const subtotal = userCount * pricePerUser;
-  const annualDiscount = billingCycle === 'annual' ? subtotal * 12 * 0.2 : 0;
-  const monthlyTotal = billingCycle === 'annual' ? (subtotal * 12 - annualDiscount) / 12 : subtotal;
 
   return (
     <div className="pricing-container min-h-screen bg-surface font-body selection:bg-primary-fixed">
@@ -105,7 +140,9 @@ const PlanConfigurationPage: React.FC = () => {
                   </div>
                   <p className="mt-6 text-sm text-outline italic flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-tertiary" />
-                    Le prix par utilisateur diminue à mesure que vous augmentez la taille de votre équipe.
+                    Le pack <strong className="not-italic font-black">{plan.displayName}</strong> inclut
+                    {' '}{plan.includedEmployees} salariés au forfait{' '}({formatPrice(plan.flatPriceMonthlyEur)} € / mois).
+                    Au-delà, chaque salarié supplémentaire est facturé {formatPrice(plan.overageRatePerEmployeeEur)} €.
                   </p>
                 </div>
               </section>
@@ -211,24 +248,33 @@ const PlanConfigurationPage: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Breakdown */}
+                {/* Breakdown — formule miroir backend :
+                    flat + max(0, userCount − inclus) × overage. */}
                 <div className="space-y-5 mb-10">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-outline font-bold">Prix par utilisateur</span>
-                    <span className="font-black text-on-surface">{formatPrice(pricePerUser)} €</span>
+                    <span className="text-outline font-bold">Forfait {plan.displayName}</span>
+                    <span className="font-black text-on-surface">{formatPrice(plan.flatPriceMonthlyEur)} € / mois</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-outline font-bold">Nombre d'utilisateurs</span>
-                    <span className="font-black text-on-surface">{userCount}</span>
+                    <span className="text-outline font-bold">Salariés inclus</span>
+                    <span className="font-black text-on-surface">{plan.includedEmployees}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-outline font-bold">Salariés supplémentaires</span>
+                    <span className="font-black text-on-surface">
+                      {extraEmployees > 0
+                        ? `${extraEmployees} × ${formatPrice(plan.overageRatePerEmployeeEur)} € = ${formatPrice(overageCost)} €`
+                        : '0'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-outline font-bold">Modules inclus</span>
-                    <span className="font-black text-on-surface">Tous (12)</span>
+                    <span className="font-black text-on-surface">{plan.moduleCount}</span>
                   </div>
                   {billingCycle === 'annual' && (
                     <div className="flex justify-between items-center text-sm text-tertiary p-3 bg-tertiary/5 rounded-xl border border-tertiary/10">
                       <span className="font-bold">Remise annuelle</span>
-                      <span className="font-black">- {formatPrice(annualDiscount/12)} € / mois</span>
+                      <span className="font-black">- {formatPrice(annualDiscountPerMonth)} € / mois</span>
                     </div>
                   )}
                   <div className="pt-6 border-t border-surface-container-high flex justify-between items-baseline">
@@ -236,6 +282,9 @@ const PlanConfigurationPage: React.FC = () => {
                     <div className="text-right">
                       <div className="text-4xl font-black text-primary font-headline tracking-tighter">{formatPrice(monthlyTotal)} €</div>
                       <div className="text-[9px] text-outline uppercase font-black tracking-widest mt-1">HT / mois facturé {billingCycle === 'annual' ? 'annuellement' : 'mensuellement'}</div>
+                      {billingCycle === 'monthly' && (
+                        <div className="text-[10px] text-outline mt-1">Base : {formatPrice(baseMonthly)} € / mois HT</div>
+                      )}
                     </div>
                   </div>
                 </div>

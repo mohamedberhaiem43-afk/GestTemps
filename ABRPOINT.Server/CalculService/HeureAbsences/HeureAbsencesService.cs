@@ -55,8 +55,16 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
                     // qui était calibré pour filtrer les variations de ponctualité.
                     // Sans cette détection, après un ajustement de pointage qui efface
                     // la plage AM (ex. 4h matin / 3h aprem), Tothabs restait à 00:00.
+                    //
+                    // ⚠ Garde-fou (correctif 2026-05-12) : on ne déclenche la détection
+                    // QUE si les heures travaillées effectives sont strictement < à la
+                    // durée planifiée du jour. Cas concret : un employé pointe 07:16 et
+                    // sort à 17:00 sans saisir séparément entrée/sortie AM (pointage
+                    // continu) — son Tothre couvre déjà toute la journée, donc aucune
+                    // plage n'est "manquée". Sans ce garde, on créditait 3h d'absence
+                    // factice sur l'AM "vide" alors qu'il était clairement présent.
                     var posteEntity = await _posteRepository.GetPoste(soccod, poste);
-                    if (posteEntity != null && date.HasValue)
+                    if (posteEntity != null && date.HasValue && hreTravValue + 0.01f < maxhrejour)
                     {
                         var (mStart, mEnd, eStart, eEnd) = GenericMethodes.GetStartsWorkDay(date, posteEntity);
                         bool hasMorningPunch = !string.IsNullOrEmpty(presence.Preentmatup) || !string.IsNullOrEmpty(presence.Presortmatup);

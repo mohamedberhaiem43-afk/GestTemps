@@ -92,7 +92,89 @@ public static class BaseDataSchemaMigrator
             "(uticod, purpose, revoked) INCLUDE (expires_at, last_used_at)", ct);
         var refreshTokenColumnsAdded = rtPurpose || rtLastUsed || rtIndex;
 
+        // Seed nations : sans données, le sélecteur "Nationalité" / "Pays" de la fiche
+        // collaborateur reste vide. Idempotent : on n'écrit que si la table est nulle.
+        await SeedNationsIfEmptyAsync(db, ct);
+
         return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise, siteGeofenceAdded, refreshTokenColumnsAdded);
+    }
+
+    /// <summary>
+    /// Insère une liste minimale de pays (ISO 3166-1 alpha-3, libellé FR) si la table
+    /// est vide. Cibles commerciales en priorité : France, Belgique, Maghreb,
+    /// Afrique francophone. Idempotent — un INSERT n'est tenté que si COUNT = 0.
+    /// </summary>
+    private static async Task SeedNationsIfEmptyAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        if (!await TableExistsAsync(db, "nation", ct)) return;
+
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
+
+        await using (var count = conn.CreateCommand())
+        {
+            count.CommandText = "SELECT COUNT(1) FROM [nation]";
+            var n = Convert.ToInt32(await count.ExecuteScalarAsync(ct));
+            if (n > 0) return; // déjà initialisé → on ne touche pas (laisse l'admin gérer)
+        }
+
+        // Liste compacte couvrant les marchés cibles. Libellés ≤ 20 chars (contrainte
+        // Natlib StringLength=20). Pour étendre, l'admin passe par DonneesDeBase/Pays.
+        var nations = new (string Code, string Label)[]
+        {
+            ("FRA", "France"),
+            ("BEL", "Belgique"),
+            ("CHE", "Suisse"),
+            ("LUX", "Luxembourg"),
+            ("MCO", "Monaco"),
+            ("ESP", "Espagne"),
+            ("ITA", "Italie"),
+            ("DEU", "Allemagne"),
+            ("PRT", "Portugal"),
+            ("GBR", "Royaume-Uni"),
+            ("NLD", "Pays-Bas"),
+            ("USA", "États-Unis"),
+            ("CAN", "Canada"),
+            ("MAR", "Maroc"),
+            ("DZA", "Algérie"),
+            ("TUN", "Tunisie"),
+            ("EGY", "Égypte"),
+            ("SEN", "Sénégal"),
+            ("CIV", "Côte d'Ivoire"),
+            ("CMR", "Cameroun"),
+            ("GAB", "Gabon"),
+            ("MLI", "Mali"),
+            ("BFA", "Burkina Faso"),
+            ("NER", "Niger"),
+            ("TCD", "Tchad"),
+            ("COG", "Congo"),
+            ("COD", "RD Congo"),
+            ("MDG", "Madagascar"),
+            ("MUS", "Maurice"),
+            ("BEN", "Bénin"),
+            ("TGO", "Togo"),
+            ("GIN", "Guinée"),
+            ("MRT", "Mauritanie"),
+            ("LBN", "Liban"),
+            ("TUR", "Turquie"),
+            ("CHN", "Chine"),
+            ("JPN", "Japon"),
+            ("IND", "Inde"),
+            ("BRA", "Brésil"),
+            ("ARG", "Argentine"),
+        };
+
+        await using var insert = conn.CreateCommand();
+        // SQL Server accepte une seule instruction INSERT...VALUES multi-row : 1 round-trip,
+        // pas de transaction explicite nécessaire (SaveChanges idempotent côté seed).
+        var values = string.Join(",", Enumerable.Range(0, nations.Length).Select(i => $"(@c{i}, @l{i})"));
+        insert.CommandText = $"INSERT INTO [nation] ([natcod], [natlib]) VALUES {values}";
+        for (int i = 0; i < nations.Length; i++)
+        {
+            var pc = insert.CreateParameter(); pc.ParameterName = $"@c{i}"; pc.Value = nations[i].Code; insert.Parameters.Add(pc);
+            var pl = insert.CreateParameter(); pl.ParameterName = $"@l{i}"; pl.Value = nations[i].Label; insert.Parameters.Add(pl);
+        }
+        await insert.ExecuteNonQueryAsync(ct);
     }
 
     private static async Task<bool> EnsureIndexAsync(ApplicationDbContext db, string table, string indexName, string columnsClause, CancellationToken ct)

@@ -27,6 +27,46 @@ namespace ABRPOINT.Server.Controllers
         }
 
         /// <summary>
+        /// Catégories canoniques imposées à la création d'un nouveau template. Le nom de
+        /// fichier final est obligatoirement préfixé par l'une de ces valeurs, ce qui
+        /// permet à la fiche collaborateur de regrouper et d'exporter les documents par
+        /// type sans devoir parser des libellés libres (« mon_contrat_v2_final.html »
+        /// est rejeté). Conserve les noms historiques déjà en base pour la rétrocompat.
+        ///
+        /// Ordre = ordre d'affichage dans le sélecteur côté UI.
+        /// </summary>
+        private static readonly (string Key, string Label)[] TemplateCategories = new[]
+        {
+            ("Contrat",            "Contrat de travail"),
+            ("AttestationTravail", "Attestation de travail"),
+            ("AttestationSalaire", "Attestation de salaire"),
+            ("DemandeConge",       "Demande de congé"),
+            ("TitreConge",         "Titre de congé"),
+            ("AutorisationSortie", "Autorisation de sortie"),
+            ("VisiteMedicale",     "Visite médicale"),
+            ("Allaitement",        "Allaitement"),
+            ("Autre",              "Autre"),
+        };
+
+        /// <summary>
+        /// Retourne la catégorie inférée à partir du nom de fichier (préfixe avant
+        /// le premier '_' ou avant '.html' si pas de suffixe), ou "Autre" si aucune
+        /// catégorie connue ne matche. Insensible à la casse.
+        /// </summary>
+        private static string InferCategory(string fileName)
+        {
+            var bare = Path.GetFileNameWithoutExtension(fileName);
+            // Première partie avant '_' OU le nom entier si pas de séparateur.
+            var head = bare.Split('_')[0];
+            // Tolérance : si le nom historique ne contient pas de '_' (ex: AttestationDeTravail),
+            // on cherche un préfixe canonique au début du nom complet.
+            var match = TemplateCategories.FirstOrDefault(c =>
+                string.Equals(c.Key, head, StringComparison.OrdinalIgnoreCase)
+                || bare.StartsWith(c.Key, StringComparison.OrdinalIgnoreCase));
+            return string.IsNullOrEmpty(match.Key) ? "Autre" : match.Key;
+        }
+
+        /// <summary>
         /// Path traversal hardening : transforme un nom de template fourni par le client
         /// en chemin absolu garanti à l'intérieur de <c>_vaultPath</c>, ou retourne
         /// <c>null</c> si la valeur est suspecte. Toutes les routes qui combinent
@@ -76,13 +116,30 @@ namespace ABRPOINT.Server.Controllers
             if (!Directory.Exists(_vaultPath)) return Ok(new List<object>());
 
             var files = Directory.GetFiles(_vaultPath, "*.html")
-                                .Select(f => new {
-                                    name = Path.GetFileName(f),
-                                    size = new FileInfo(f).Length,
-                                    lastModified = new FileInfo(f).LastWriteTime
+                                .Select(f => {
+                                    var name = Path.GetFileName(f);
+                                    return new {
+                                        name,
+                                        size = new FileInfo(f).Length,
+                                        lastModified = new FileInfo(f).LastWriteTime,
+                                        // Catégorie canonique inférée — permet à la fiche collaborateur
+                                        // de regrouper les modèles par type (Contrat, Attestation, …)
+                                        // et de proposer un export direct par catégorie.
+                                        category = InferCategory(name),
+                                    };
                                 });
 
             return Ok(files);
+        }
+
+        /// <summary>
+        /// Catalogue figé des catégories autorisées (utilisé par le dialogue
+        /// « Nouveau modèle » côté frontend pour forcer la nomenclature).
+        /// </summary>
+        [HttpGet("categories")]
+        public IActionResult GetCategories()
+        {
+            return Ok(TemplateCategories.Select(c => new { key = c.Key, label = c.Label }));
         }
 
         [HttpGet("{name}")]
@@ -137,19 +194,52 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTemplate([FromBody] TemplateCreate request)
         {
-            if (string.IsNullOrEmpty(request.Name)) return BadRequest("Name is required");
-            var name = request.Name.EndsWith(".html") ? request.Name : request.Name + ".html";
+            if (string.IsNullOrEmpty(request.Category))
+                return BadRequest(new { message = "La catégorie est obligatoire." });
+
+            // Validation : la catégorie doit appartenir au catalogue figé. Refus implicite des
+            // valeurs libres ou des erreurs de casse → garantit que la fiche collaborateur peut
+            // toujours regrouper les templates par type connu.
+            var category = TemplateCategories.FirstOrDefault(c =>
+                string.Equals(c.Key, request.Category, StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrEmpty(category.Key))
+                return BadRequest(new { message = "Catégorie inconnue. Valeurs autorisées : " + string.Join(", ", TemplateCategories.Select(c => c.Key)) });
+
+            // Le suffixe libre (request.Name) permet à l'utilisateur de différencier plusieurs
+            // modèles d'une même catégorie (« Contrat_CDI », « Contrat_CDD »). On normalise les
+            // caractères non alphanumériques pour produire un nom de fichier stable. Suffixe
+            // optionnel : un seul modèle par catégorie reste possible (simplement « Contrat.html »).
+            var rawSuffix = (request.Name ?? string.Empty).Trim();
+            // Nettoyage : on supprime un éventuel doublon de préfixe ("Contrat_Contrat_CDI" → "CDI")
+            // et on retire les caractères inattendus (regex côté ResolveSafeTemplatePath les bloquerait
+            // de toute façon, mais on les normalise ici pour un nom propre).
+            if (rawSuffix.StartsWith(category.Key + "_", StringComparison.OrdinalIgnoreCase))
+                rawSuffix = rawSuffix.Substring(category.Key.Length + 1);
+            if (rawSuffix.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+                rawSuffix = rawSuffix.Substring(0, rawSuffix.Length - 5);
+            rawSuffix = Regex.Replace(rawSuffix, @"[^\p{L}\p{N}_\- ]", "").Trim();
+
+            var name = string.IsNullOrEmpty(rawSuffix)
+                ? $"{category.Key}.html"
+                : $"{category.Key}_{rawSuffix}.html";
 
             // Path traversal hardening — empêche `request.Name = "../../wwwroot/index"`
             // de créer un fichier hors du dossier des templates.
             var filePath = ResolveSafeTemplatePath(name);
             if (filePath is null) return BadRequest(new { message = "Nom de modèle invalide." });
-            if (System.IO.File.Exists(filePath)) return BadRequest("Template already exists");
+            if (System.IO.File.Exists(filePath))
+                return BadRequest(new { message = "Un modèle existe déjà avec cette catégorie et ce suffixe." });
 
-            var defaultContent = "<h1>Nouveau Modèle</h1><p>Commencez à rédiger votre contrat ici...</p>";
+            var defaultContent = $"<h1>{category.Label}</h1><p>Commencez à rédiger votre modèle ici...</p>";
             await System.IO.File.WriteAllTextAsync(filePath, defaultContent);
 
-            return Ok(new { name = Path.GetFileName(filePath), size = defaultContent.Length, lastModified = DateTime.Now });
+            return Ok(new
+            {
+                name = Path.GetFileName(filePath),
+                size = defaultContent.Length,
+                lastModified = DateTime.Now,
+                category = category.Key,
+            });
         }
 
         [HttpPut("{name}")]
@@ -245,7 +335,10 @@ namespace ABRPOINT.Server.Controllers
 
         public class TemplateCreate
         {
-            public string Name { get; set; } = null!;
+            /// <summary>Catégorie canonique imposée (cf. <c>TemplateCategories</c>).</summary>
+            public string Category { get; set; } = null!;
+            /// <summary>Suffixe libre, optionnel (ex: "CDI", "CDD"). Le préfixe catégorie est forcé.</summary>
+            public string? Name { get; set; }
         }
 
         public class TemplateRename

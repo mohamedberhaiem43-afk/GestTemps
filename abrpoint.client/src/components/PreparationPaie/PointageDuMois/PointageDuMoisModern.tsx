@@ -763,15 +763,27 @@ function PointageDuMoisContent() {
               </Tooltip>
             </Box>
           </Box>
-          <Box className="pdm-filter-field pdm-filter-field--action" sx={{ gap: 1, display: 'flex' }}>
-            <Button className="pdm-search-btn" startIcon={<SearchIcon />} onClick={handleSearch} sx={{ flex: 1 }}>
+          {/* Action zone : largeur fixe pour ne pas étirer Rechercher sur tout l'espace
+              disponible (avant: flex:1 → bouton démesurément large quand la grille a
+              de la place). 160 px = lecture confortable de "Rechercher" sans dominer. */}
+          <Box
+            className="pdm-filter-field pdm-filter-field--action"
+            sx={{
+              gap: 1,
+              display: 'flex',
+              flex: '0 0 auto',
+              minWidth: { xs: '100%', sm: 220 },
+              maxWidth: { xs: '100%', sm: 220 },
+            }}
+          >
+            <Button className="pdm-search-btn" startIcon={<SearchIcon />} onClick={handleSearch} sx={{ flex: 1, minWidth: 0 }}>
               {t('pointageMois.filters.search')}
             </Button>
             <Tooltip title={t('pointageMois.filters.reset', 'Réinitialiser les filtres') as string}>
               <IconButton
                 onClick={handleResetFilters}
                 sx={{
-                  borderRadius: '12px', height: 40, width: 40,
+                  borderRadius: '12px', height: 40, width: 40, flexShrink: 0,
                   bgcolor: '#fff', border: '1px solid #e2e8f0', color: '#64748b',
                   '&:hover': { bgcolor: '#f8fafc', color: '#0040a1', borderColor: '#bfdbfe' },
                 }}
@@ -781,7 +793,18 @@ function PointageDuMoisContent() {
             </Tooltip>
           </Box>
         </Box>
-        <Box className="pdm-filter-option">
+        {/* Checkbox "Majorer" alignée à droite — calée sur la même verticale que le bouton
+            Rechercher (qui termine la grille filtres). Garde une largeur cohérente :
+            sur mobile elle s'étale, sur desktop elle reste compacte côté droit. */}
+        <Box
+          className="pdm-filter-option"
+          sx={{
+            display: 'flex',
+            justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            alignItems: 'center',
+            mt: 1,
+          }}
+        >
           <input type="checkbox" id="majorer" checked={majorerHeures} onChange={(e) => setMajorerHeures(e.target.checked)}
             style={{ accentColor: '#0040a1' }} />
           <label htmlFor="majorer" style={{ fontSize: 12, color: '#64748b', cursor: 'pointer' }}>

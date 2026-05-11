@@ -74,7 +74,17 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                return await _dbContext.Feriers.Where(s => s.Soccod == soccod && s.Ferdate == ferdate).Select(f=>f.Ferheure).FirstOrDefaultAsync();
+                if (!ferdate.HasValue) return null;
+                // ⚠ Normalisation .Date : les fériés importés depuis l'API gouv.fr sont
+                // persistés à 12:00 UTC, alors que presence.Dmdate est généralement à
+                // 00:00. Sans .Date des deux côtés, l'égalité ne matche jamais → la
+                // méthode renvoyait NULL et le caller (PresenceRepository férié branch)
+                // forçait Tothre à "00:00" pour un employé qui avait pourtant pointé.
+                var target = ferdate.Value.Date;
+                return await _dbContext.Feriers
+                    .Where(s => s.Soccod == soccod && s.Ferdate.HasValue && s.Ferdate.Value.Date == target)
+                    .Select(f => f.Ferheure)
+                    .FirstOrDefaultAsync();
             }
             catch (Exception)
             {
@@ -85,10 +95,15 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                if (!predat.HasValue) return 0;
+                var target = predat.Value.Date;
+                // Même normalisation que GetFerheure (cf. commentaire ci-dessus).
+                // Sans ce fix, NbhFerierTrv restait à 0 pour les fériés gouv.fr → la colonne
+                // "H.Fér.Trv" du pointage du mois affichait 0 même si l'employé avait pointé.
                 Ferier? ferier = await _dbContext.Feriers
-                    .Where(f => f.Soccod == soccod && f.Ferdate == predat)
+                    .Where(f => f.Soccod == soccod && f.Ferdate.HasValue && f.Ferdate.Value.Date == target)
                     .FirstOrDefaultAsync();
-                
+
 
                 if (ferier == null) return 0;
 
@@ -110,8 +125,10 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                if (!predat.HasValue) return 0;
+                var target = predat.Value.Date;
                 Ferier? ferier = await _dbContext.Feriers
-                    .Where(f => f.Soccod == soccod && f.Ferdate == predat)
+                    .Where(f => f.Soccod == soccod && f.Ferdate.HasValue && f.Ferdate.Value.Date == target)
                     .FirstOrDefaultAsync();
 
                 if (ferier == null) return 0;

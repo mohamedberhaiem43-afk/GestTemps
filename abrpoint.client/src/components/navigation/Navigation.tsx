@@ -728,7 +728,8 @@ import { resolveAssetUrl } from '../../helpers/assetUrl';
 function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authReady, clearAuth, userName, isAdmin } = useAuth();
+  const { authReady, clearAuth, userName, isAdmin, uticod } = useAuth();
+  const isAuthenticated = Boolean(uticod);
   const { i18n, t } = useTranslation();
   const NAVIGATION = useNavigationItems();
   const outerTheme = useMuiTheme();
@@ -949,11 +950,16 @@ function DashboardLayoutAccount(_props: DemoProps) {
         <PageFade routeKey={canonicalPathname}>
           <DemoPageContent pathname={canonicalPathname} />
         </PageFade>
-        {/* L'assistant IA reste accessible aussi sur la landing publique pour aider
-            les visiteurs à se renseigner sur les fonctionnalités / tarifs / inscription. */}
-        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-          <UnifiedAssistantHub />
-        </Box>
+        {/* Assistant IA : réservé aux utilisateurs connectés. Avant, on l'exposait sur
+            la landing publique « pour aider les visiteurs à se renseigner » — mais le
+            backend RAG exige un JWT valide (controllers gatés `[Authorize]` + feature
+            `RagAi`), donc le bouton ouvrait un panneau sur lequel tous les appels
+            échouaient en 401. On le masque pour les non-authentifiés. */}
+        {isAuthenticated && (
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <UnifiedAssistantHub />
+          </Box>
+        )}
       </>
     );
   }
@@ -1117,7 +1123,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
         </PageFade>
       </SidebarNavigationDualTier>
 
-      {pathname !== '/' && (
+      {pathname !== '/' && isAuthenticated && (
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
           <UnifiedAssistantHub />
         </Box>

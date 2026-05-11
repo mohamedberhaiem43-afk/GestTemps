@@ -942,14 +942,37 @@ namespace ABRPOINT.Server.Repository
                             }
                         }
 
-                        // 🔴 CAS JOUR FÉRIÉ : forcer les heures et ignorer le calcul normal
+                        // 🔴 CAS JOUR FÉRIÉ
                         if (ferier != null)
                         {
                             presence.Etat = $"Férié ({ferier.Fermotif})";
                             var ferHeure = await _jourFerierRepository.GetFerheure(soccod, presence.Dmdate);
 
-                            if (ferHeure.HasValue)
+                            // ⚠ Si l'employé a effectivement pointé ce jour férié (au moins
+                            // une entrée matin ou AM), on conserve les heures réellement
+                            // travaillées calculées via CalcHreTrav plus haut (ligne ~927).
+                            // Avant ce correctif, on écrasait `Tothre` par la durée standard
+                            // du férié (ou "00:00" si non configuré), masquant complètement
+                            // les heures effectivement pointées. Conséquences observées :
+                            //   - "Total Travaillé 00:00" alors que l'employé pointait 08-12
+                            //   - "H.Fér.Trv 0" en pointage du mois car le moteur lisait
+                            //     un Tothre forcé à zéro.
+                            bool hasPunches =
+                                !string.IsNullOrEmpty(presence.Preentmatup)
+                                || !string.IsNullOrEmpty(presence.Presortmatup)
+                                || !string.IsNullOrEmpty(presence.Preentamidiup)
+                                || !string.IsNullOrEmpty(presence.Presortamidiup);
+
+                            if (hasPunches && !string.IsNullOrEmpty(presence.Tothre) && presence.Tothre != "00:00")
                             {
+                                // Heures pointées sur férié — déjà dans presence.Tothre.
+                                // On expose le crédit férié contractuel via TotalHeure (utile
+                                // pour le calcul de majoration côté front), sans écraser Tothre.
+                                presence.TotalHeure = ferHeure ?? GenericMethodes.ConvertHHmmToDouble(presence.Tothre);
+                            }
+                            else if (ferHeure.HasValue)
+                            {
+                                // Pas de pointage : on affiche les heures contractuelles du férié.
                                 var time = TimeSpan.FromHours(ferHeure.Value);
                                 presence.Tothre = time.ToString(@"hh\:mm");
                                 presence.TotalHeure = ferHeure;
@@ -962,7 +985,6 @@ namespace ABRPOINT.Server.Repository
 
                             if (empparam.Empminhjour != 0)
                             {
-                                var midday = empparam.Empminhjour / 2;
                                 if (ferHeure <= empparam.Empminhjour && ferHeure > 1)
                                     presence.Jour = 0.5;
                                 else

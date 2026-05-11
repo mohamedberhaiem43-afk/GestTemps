@@ -385,37 +385,43 @@ function RubriqueModernContent() {
               <input type="text" placeholder={t('donneeBase.common.search')} value={search} onChange={e => setSearch(e.target.value)} />
             </Box>
           </Box>
-          <table className="ref-table">
-            <thead><tr><th style={{ width: 80 }}>{t('donneeBase.common.actions')}</th><th>{t('donneeBase.common.code')}</th><th>{t('donneeBase.common.label')}</th><th>{t('donneeBase.rubrique.unitLabel')}</th><th>Variable de pointage</th></tr></thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={5} className="ref-empty">{t('donneeBase.rubrique.noResults')}</td></tr>
-              ) : filtered.map(r => {
-                const vartypeLabel = VARTYPE_OPTIONS.find(o => o.code === r.vartype)?.label;
-                return (
-                  <tr key={r.rubcod}>
-                    <td><Box sx={{ display: 'flex', gap: '4px' }}>
-                      {canModify && (
-                        <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(r)}><EditIcon sx={{ fontSize: 16 }} /></button>
-                      )}
-                      {canDelete && (
-                        <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(r)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
-                      )}
-                      {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
-                    </Box></td>
-                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{r.rubcod}</td>
-                    <td>{r.rublib}</td>
-                    <td><span className="ref-badge ref-badge--gray">{r.rubunite || '—'}</span></td>
-                    <td>
-                      {r.vartype
-                        ? <span className="ref-badge ref-badge--blue" title={vartypeLabel}>{vartypeLabel || r.vartype}</span>
-                        : <span className="ref-badge ref-badge--gray">—</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          {/* Conteneur scrollable : utilise .ref-table-container (max-height 60vh +
+              overflow-y auto + thead sticky) défini dans RefModern.css. Évite que la
+              page entière déroule pour atteindre les dernières rubriques quand le
+              catalogue dépasse 25-30 entrées (typique après "Charger défauts" + import). */}
+          <Box className="ref-table-container">
+            <table className="ref-table">
+              <thead><tr><th style={{ width: 80 }}>{t('donneeBase.common.actions')}</th><th>{t('donneeBase.common.code')}</th><th>{t('donneeBase.common.label')}</th><th>{t('donneeBase.rubrique.unitLabel')}</th><th>Variable de pointage</th></tr></thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={5} className="ref-empty">{t('donneeBase.rubrique.noResults')}</td></tr>
+                ) : filtered.map(r => {
+                  const vartypeLabel = VARTYPE_OPTIONS.find(o => o.code === r.vartype)?.label;
+                  return (
+                    <tr key={r.rubcod}>
+                      <td><Box sx={{ display: 'flex', gap: '4px' }}>
+                        {canModify && (
+                          <button className="ref-action-btn ref-action-btn--edit" onClick={() => handleEdit(r)}><EditIcon sx={{ fontSize: 16 }} /></button>
+                        )}
+                        {canDelete && (
+                          <button className="ref-action-btn ref-action-btn--delete" onClick={() => handleDelete(r)}><DeleteOutlineIcon sx={{ fontSize: 16 }} /></button>
+                        )}
+                        {!canModify && !canDelete && <Typography variant="caption">—</Typography>}
+                      </Box></td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{r.rubcod}</td>
+                      <td>{r.rublib}</td>
+                      <td><span className="ref-badge ref-badge--gray">{r.rubunite || '—'}</span></td>
+                      <td>
+                        {r.vartype
+                          ? <span className="ref-badge ref-badge--blue" title={vartypeLabel}>{vartypeLabel || r.vartype}</span>
+                          : <span className="ref-badge ref-badge--gray">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Box>
           <Box className="ref-table-footer"><span>{t('donneeBase.rubrique.footerCount', { count: filtered.length })}</span></Box>
         </Box>
       </Box>

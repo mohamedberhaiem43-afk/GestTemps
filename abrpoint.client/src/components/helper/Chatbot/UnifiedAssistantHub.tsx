@@ -316,12 +316,13 @@ Posez-moi votre question !`;
           sx={{
             // Positionné verticalement au milieu de l'écran, côté droit :
             // top: 50% + translateY(-50%) garantit un vrai centrage indépendant
-            // de la hauteur du FAB et du viewport. Avant on était ancré en bas
-            // à droite (bottom: 24), ce qui pouvait masquer un bouton flottant
-            // local (ScrollToTopFab) déjà présent à 24/24.
+            // de la hauteur du FAB et du viewport. `right: 8` colle le FAB au
+            // bord (pas tout contre — on laisse 8 px pour éviter qu'un focus
+            // ring soit coupé) ; avant il était à 24 px et chevauchait visuellement
+            // les cellules d'agenda qui débordent légèrement à droite.
             position: 'fixed',
             top: '50%',
-            right: 24,
+            right: 8,
             transform: 'translateY(-50%)',
             zIndex: 1200,
             background: 'linear-gradient(135deg, #5b21b6 0%, #1a6eff 100%)',

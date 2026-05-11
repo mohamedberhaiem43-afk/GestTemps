@@ -419,10 +419,12 @@ namespace ABRPOINT.Server.Repository
             try
             {
                 // 1. Fetch employee + company data
+                //    ⚠ socimg ajouté (sinon ReplaceAllPlaceholders ne trouve pas le logo
+                //    téléversé via Paramètres société → [Logo_Entreprise] reste vide).
                 using var connection = new Microsoft.Data.SqlClient.SqlConnection(_sqlConnection.ConnectionString);
                 var emp = connection.QueryFirstOrDefault(@"
-                    select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp
-                    from employe e 
+                    select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp, s.socimg
+                    from employe e
                     inner join societe s on e.soccod = s.soccod
                     where e.empcod = @empcod and e.soccod = @soccod",
                     new { empcod, soccod });
@@ -622,17 +624,85 @@ namespace ABRPOINT.Server.Repository
                                          .Replace("[Periode_de_reference]", "...")
                                          .Replace("[Nombre_jours_delai_reponse]", "15");
 
-            // Replace Logo placeholder with actual image (if exists)
-            var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "abrpoint.client", "public", "Societe.jpg");
-            if (System.IO.File.Exists(logoPath) && processedHtml.Contains("[Logo_Entreprise]"))
+            // Remplacement du placeholder Logo par le logo réel de la société tenant.
+            //
+            // Priorité de résolution :
+            //   1. emp.socimg si renseigné (chemin relatif type "/api/uploads/<uuid>.png"
+            //      saisi via le formulaire « Paramètres société » → résolu sur le volume
+            //      uploads/ du serveur, base64'isé inline pour DinkToPdf).
+            //   2. Aucun logo → on retire silencieusement le placeholder pour ne pas
+            //      laisser de "[Logo_Entreprise]" en clair dans le PDF.
+            //
+            // Avant ce correctif, le code pointait sur un chemin hardcodé
+            // `abrpoint.client/public/Societe.jpg` (relatif au cwd dev) — absent en
+            // container Docker ⇒ aucun logo n'apparaissait jamais sur les templates,
+            // peu importe ce que l'admin avait téléversé.
+            if (processedHtml.Contains("[Logo_Entreprise]"))
             {
-                var logoBase64 = Convert.ToBase64String(System.IO.File.ReadAllBytes(logoPath));
-                processedHtml = processedHtml.Replace("[Logo_Entreprise]",
-                    $@"<img src=""data:image/jpeg;base64,{logoBase64}"" style=""height:60px; float:left; margin-right:15px;"" />");
-            }
-            else
-            {
-                processedHtml = processedHtml.Replace("[Logo_Entreprise]", "");
+                string? logoDataUri = null;
+                try
+                {
+                    string? socimg = null;
+                    if (emp != null)
+                    {
+                        var dict = (IDictionary<string, object>)emp;
+                        if (dict.TryGetValue("socimg", out var v) && v != null)
+                            socimg = v.ToString();
+                    }
+                    if (!string.IsNullOrWhiteSpace(socimg))
+                    {
+                        // Cas 1 : déjà une data URI inline (rare mais possible si saisi à la main)
+                        if (socimg.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                        {
+                            logoDataUri = socimg;
+                        }
+                        else
+                        {
+                            // Cas 2 : chemin relatif "/api/uploads/<uuid>.ext" — on retombe sur
+                            // le dossier réel (FileHelper.GetUploadsPath() gère Docker vs dev).
+                            var fileName = socimg.Replace("/api/uploads/", "", StringComparison.OrdinalIgnoreCase)
+                                                 .Replace("/uploads/", "", StringComparison.OrdinalIgnoreCase)
+                                                 .TrimStart('/');
+                            // Sanitize : on n'autorise que le nom de fichier (pas de path traversal).
+                            fileName = Path.GetFileName(fileName);
+                            if (!string.IsNullOrEmpty(fileName))
+                            {
+                                var diskPath = Path.Combine(Helpers.FileHelper.GetUploadsPath(), fileName);
+                                if (System.IO.File.Exists(diskPath))
+                                {
+                                    var ext = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant();
+                                    var mime = ext switch
+                                    {
+                                        "jpg" or "jpeg" => "image/jpeg",
+                                        "png" => "image/png",
+                                        "gif" => "image/gif",
+                                        "webp" => "image/webp",
+                                        "svg" => "image/svg+xml",
+                                        _ => "application/octet-stream",
+                                    };
+                                    var bytes = System.IO.File.ReadAllBytes(diskPath);
+                                    logoDataUri = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+                                }
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Lecture du logo best-effort — on retombe sur "pas de logo" en cas
+                    // d'erreur disque pour ne pas faire échouer la génération PDF.
+                    logoDataUri = null;
+                }
+
+                if (!string.IsNullOrEmpty(logoDataUri))
+                {
+                    processedHtml = processedHtml.Replace("[Logo_Entreprise]",
+                        $@"<img src=""{logoDataUri}"" style=""height:60px; float:left; margin-right:15px;"" />");
+                }
+                else
+                {
+                    processedHtml = processedHtml.Replace("[Logo_Entreprise]", "");
+                }
             }
 
             return processedHtml;

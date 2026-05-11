@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box,
-  Snackbar, Alert, Autocomplete } from '@mui/material';
+  Snackbar, Alert, Autocomplete, Select, MenuItem, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 import { useAuth } from '../../helper/AuthProvider';
@@ -20,7 +20,31 @@ interface TemplateFile {
   name: string;
   size: number;
   lastModified: string;
+  /**
+   * Catégorie canonique fournie par /api/Templates (cf. TemplatesController.InferCategory).
+   * Permet à la fiche collaborateur de regrouper les modèles par type (Contrat,
+   * Attestation, Demande de congé...). Optional pour les templates legacy.
+   */
+  category?: string;
 }
+
+/**
+ * Catalogue figé miroir du backend (TemplatesController.TemplateCategories).
+ * Source de vérité : l'endpoint /api/Templates/categories — on copie ici la liste
+ * pour pouvoir afficher le sélecteur sans round-trip, mais on doit garder les deux
+ * synchronisés à chaque ajout de catégorie.
+ */
+const TEMPLATE_CATEGORIES: Array<{ key: string; label: string }> = [
+  { key: 'Contrat',            label: 'Contrat de travail' },
+  { key: 'AttestationTravail', label: 'Attestation de travail' },
+  { key: 'AttestationSalaire', label: 'Attestation de salaire' },
+  { key: 'DemandeConge',       label: 'Demande de congé' },
+  { key: 'TitreConge',         label: 'Titre de congé' },
+  { key: 'AutorisationSortie', label: 'Autorisation de sortie' },
+  { key: 'VisiteMedicale',     label: 'Visite médicale' },
+  { key: 'Allaitement',        label: 'Allaitement' },
+  { key: 'Autre',              label: 'Autre' },
+];
 
 const ContractBuilderModern = () => {
   const { t } = useTranslation();
@@ -32,6 +56,10 @@ const ContractBuilderModern = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [openNewTpl, setOpenNewTpl] = useState(false);
   const [newTplName, setNewTplName] = useState('');
+  // Catégorie sélectionnée lors de la création (la « nomenclature » imposée :
+  // chaque template est obligatoirement préfixé par une catégorie canonique).
+  const [newTplCategory, setNewTplCategory] = useState<string>('Contrat');
+  const [newTplError, setNewTplError] = useState<string | null>(null);
   const [openRenameTpl, setOpenRenameTpl] = useState(false);
   const [renameTplName, setRenameTplName] = useState('');
   const [renameTplOriginal, setRenameTplOriginal] = useState('');
@@ -598,19 +626,55 @@ const ContractBuilderModern = () => {
          </DialogActions>
       </Dialog>
 
-      <Dialog open={openNewTpl} onClose={() => setOpenNewTpl(false)} PaperProps={{ className: 'rounded-3xl p-4' }}>
+      <Dialog open={openNewTpl} onClose={() => setOpenNewTpl(false)} PaperProps={{ className: 'rounded-3xl p-4', sx: { minWidth: 420 } }}>
         <DialogTitle className="font-black text-slate-900">{t('contractBuilder.newTemplate.title')}</DialogTitle>
         <DialogContent>
-           <TextField label={t('contractBuilder.newTemplate.name')} fullWidth variant="standard" value={newTplName} onChange={(e) => setNewTplName(e.target.value)} />
+          {/* Nomenclature imposée : l'utilisateur doit d'abord choisir une catégorie
+              (Contrat / Attestation / Demande de congé / ...). Le backend rejette
+              toute création hors catalogue → le nom final est `<Catégorie>_<suffixe>.html`,
+              ce qui permet à la fiche collaborateur d'identifier le type instantanément. */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Type de document
+              </Typography>
+              <Select
+                fullWidth size="small"
+                value={newTplCategory}
+                onChange={(e) => setNewTplCategory(e.target.value)}
+                sx={{ mt: 0.5, borderRadius: '10px', bgcolor: '#fff' }}
+              >
+                {TEMPLATE_CATEGORIES.map(c => (
+                  <MenuItem key={c.key} value={c.key}>{c.label}</MenuItem>
+                ))}
+              </Select>
+            </Box>
+            <TextField
+              label="Suffixe (optionnel)"
+              helperText={`Le fichier sera nommé "${newTplCategory}${newTplName.trim() ? '_' + newTplName.trim().replace(/[^\p{L}\p{N}_\- ]/gu, '').trim() : ''}.html". Laissez vide si vous n'avez qu'un seul modèle pour cette catégorie.`}
+              fullWidth variant="standard"
+              value={newTplName}
+              onChange={(e) => { setNewTplName(e.target.value); setNewTplError(null); }}
+              placeholder="ex: CDI, CDD, Cadre…"
+            />
+            {newTplError && (
+              <Alert severity="error" sx={{ borderRadius: '10px' }}>{newTplError}</Alert>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenNewTpl(false)} color="inherit">{t('contractBuilder.newTemplate.cancel')}</Button>
+          <Button onClick={() => { setOpenNewTpl(false); setNewTplError(null); }} color="inherit">{t('contractBuilder.newTemplate.cancel')}</Button>
           <Button onClick={async () => {
             try {
-              await apiInstance.post('/Templates', { name: newTplName });
+              setNewTplError(null);
+              await apiInstance.post('/Templates', { category: newTplCategory, name: newTplName });
               setOpenNewTpl(false);
+              setNewTplName('');
+              setNewTplCategory('Contrat');
               fetchTemplates();
-            } catch(e) { console.error(e); }
+            } catch(e: any) {
+              setNewTplError(e?.response?.data?.message || 'Erreur lors de la création du modèle.');
+            }
           }} variant="contained" className="bg-blue-700">{t('contractBuilder.newTemplate.create')}</Button>
         </DialogActions>
       </Dialog>
