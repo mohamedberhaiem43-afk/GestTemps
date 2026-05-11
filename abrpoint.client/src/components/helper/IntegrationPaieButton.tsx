@@ -30,9 +30,19 @@ interface RubriquePaireDto {
 
 interface PointageMois {
   empCode: string;
-  empMat: string;
+  empMat?: string | null;
   heuresSupplementairesResultats?: HeureSupResultat[];
 }
+
+/**
+ * Résout le matricule à exporter : `empMat` est le matricule "public" (souvent zéro-paddé,
+ * ex: "000003"). Quand il n'est pas saisi en base, on retombe sur `empCode` (PK technique
+ * mais lisible) plutôt que d'écrire une cellule vide dans le fichier paie — Sage planterait
+ * sur l'import ou poserait la ligne en exception. Aligné avec la helper du même nom dans
+ * PointageDuMoisModern.tsx.
+ */
+const resolveMatricule = (emp: { empMat?: string | null; empCode?: string | null }): string =>
+  (emp.empMat?.trim() || emp.empCode?.trim() || '');
 
 interface HeureSupResultat {
   tothre?: number;
@@ -218,7 +228,7 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
         // N'ajouter que si la valeur est > 0 (optimisation)
         if (valeur > 0) {
           rows.push({
-            Matricule: emp.empMat,
+            Matricule: resolveMatricule(emp),
             'Code Rubrique': rubrique.rubcod,
             // Pas d'arrondi à 2 décimales : on transmet la valeur exacte au moteur
             // de paie (un écart de 0.01 h = 36 secondes peut induire un mismatch
