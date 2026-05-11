@@ -314,17 +314,27 @@ Posez-moi votre question !`;
           aria-label="assistant-hub"
           onClick={() => setOpen(true)}
           sx={{
+            // Positionné verticalement au milieu de l'écran, côté droit :
+            // top: 50% + translateY(-50%) garantit un vrai centrage indépendant
+            // de la hauteur du FAB et du viewport. Avant on était ancré en bas
+            // à droite (bottom: 24), ce qui pouvait masquer un bouton flottant
+            // local (ScrollToTopFab) déjà présent à 24/24.
             position: 'fixed',
-            bottom: 24,
+            top: '50%',
             right: 24,
+            transform: 'translateY(-50%)',
             zIndex: 1200,
             background: 'linear-gradient(135deg, #5b21b6 0%, #1a6eff 100%)',
             color: 'white',
             boxShadow: '0 6px 20px rgba(91,33,182,0.35)',
+            // ⚠ Toutes les valeurs `transform` des keyframes et du :hover incluent
+            // `translateY(-50%)` pour préserver le centrage vertical. Sans ça, les
+            // animations « écrasent » la translation de base et le FAB chute en
+            // bas/haut pendant et après l'animation.
             '@keyframes hubFabIn': {
-              '0%':   { opacity: 0, transform: 'translateY(40px) scale(0.4) rotate(-20deg)' },
-              '60%':  { opacity: 1, transform: 'translateY(-6px) scale(1.1) rotate(8deg)' },
-              '100%': { opacity: 1, transform: 'translateY(0) scale(1) rotate(0deg)' },
+              '0%':   { opacity: 0, transform: 'translateY(calc(-50% + 40px)) scale(0.4) rotate(-20deg)' },
+              '60%':  { opacity: 1, transform: 'translateY(calc(-50% - 6px)) scale(1.1) rotate(8deg)' },
+              '100%': { opacity: 1, transform: 'translateY(-50%) scale(1) rotate(0deg)' },
             },
             '@keyframes hubFabPulse': {
               '0%, 100%': { boxShadow: '0 6px 20px rgba(91,33,182,0.35), 0 0 0 0 rgba(124,58,237,0.45)' },
@@ -333,7 +343,7 @@ Posez-moi votre question !`;
             animation: 'hubFabIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both, hubFabPulse 2.6s ease-out 0.8s infinite',
             '&:hover': {
               background: 'linear-gradient(135deg, #4c1d95 0%, #0040a1 100%)',
-              transform: 'scale(1.08) rotate(-4deg)',
+              transform: 'translateY(-50%) scale(1.08) rotate(-4deg)',
               animationPlayState: 'paused',
               boxShadow: '0 10px 30px rgba(91,33,182,0.55)',
             },
