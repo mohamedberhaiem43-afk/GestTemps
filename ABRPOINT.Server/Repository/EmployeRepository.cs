@@ -744,6 +744,12 @@ namespace ABRPOINT.Server.Repository
                           && (string.IsNullOrEmpty(empreg) || e.Empreg == empreg)
                           && (string.IsNullOrEmpty(service) || e.Sercod == service)
                           && (empcods == null || empcods.Count == 0 || empcods.Contains(e.Empcod))
+                          // ⚠ Filtrer par période d'emploi : un employé embauché en cours de
+                          // période (ex: Fares Bahloul, embauché le 6 mai) ne doit PAS voir
+                          // son TotalMinutes gonflé par des présences pré-embauche (imports
+                          // legacy, saisies manuelles antérieures, etc.). Idem pour le post-sortie.
+                          && (!e.Empemb.HasValue || p.Predat >= e.Empemb.Value)
+                          && (!e.Empsort.HasValue || p.Predat < e.Empsort.Value)
                     orderby e.Empcod, p.Predat, p.Tothre descending
                     select new
                     {
@@ -1009,6 +1015,22 @@ namespace ABRPOINT.Server.Repository
                     Presence = g.First()
                 })
                 .ToListAsync();
+
+            // ⚠ Filtrer côté mémoire (on a déjà chargé employeeDates ci-dessus) toutes
+            // les présences hors période d'emploi : un jour pointé AVANT embauche ou
+            // APRÈS sortie ne doit pas être compté comme « jour travaillé ». Sans ça,
+            // une saisie héritée d'un import legacy gonfle le compteur NbJours pour un
+            // employé fraîchement embauché.
+            presences = presences
+                .Where(p =>
+                {
+                    var empDates = employeeDates.GetValueOrDefault(p.Empcod);
+                    if (empDates == null) return true;
+                    if (empDates.Empemb.HasValue && p.Date < empDates.Empemb.Value) return false;
+                    if (empDates.Empsort.HasValue && p.Date >= empDates.Empsort.Value) return false;
+                    return true;
+                })
+                .ToList();
 
             if (!presences.Any() && !ferierDates.Any())
                 return new Dictionary<string, float>();
