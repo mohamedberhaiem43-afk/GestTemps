@@ -16,6 +16,10 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    // Plan gating : le coffre numérique fait partie du pack Standard+. Toutes les routes
+    // (upload/download/preview/delete/audit) sont bloquées sur Starter avec un 402
+    // « plan_feature_locked » que le front intercepte pour rediriger vers /upgrade.
+    [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.DigitalVault))]
     public class VaultController : ControllerBase
     {
         private readonly IVaultRepository _vaultRepository;
@@ -532,7 +536,13 @@ namespace ABRPOINT.Server.Controllers
         // SEC-07 — La signature électronique a une valeur juridique (verrouille la
         // suppression). Sans ownership check, n'importe qui pouvait signer le contrat
         // d'un autre employé. Restriction : seul le propriétaire (ou un admin) peut signer.
+        //
+        // Plan gating : la signature électronique fait partie du pack Standard+. Le filtre
+        // au niveau classe (DigitalVault) bloque déjà tout l'accès au coffre côté Starter ;
+        // l'attribut method-level ci-dessous garantit un blocage explicite si un futur plan
+        // active DigitalVault sans activer ElectronicSignature (ex : pack lecture seule).
         [HttpPost("sign/{id}")]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.ElectronicSignature))]
         public async Task<IActionResult> SignDocument(int id, [FromBody] SignRequest request)
         {
             var doc = await _vaultRepository.GetDocumentByIdAsync(id);

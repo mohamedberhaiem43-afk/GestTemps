@@ -3,6 +3,28 @@ import apiService from '../services/api';
 import { disableBiometricLogin } from '../services/biometric';
 import { clearRegisteredToken, registerForPushAsync } from '../services/push';
 
+/**
+ * Drapeaux fonctionnels actifs pour le tenant courant (mirroir du record
+ * PlanFeatures côté backend). Permet aux hooks de sécurité mobile (device trust,
+ * screenshot protection) de s'activer uniquement sur les plans qui les incluent
+ * (Premium aujourd'hui). Pendant l'essai, le backend renvoie tout à `true`.
+ */
+export interface PlanFeatures {
+  mobileApp: boolean;
+  geolocation: boolean;
+  digitalVault: boolean;
+  electronicSignature: boolean;
+  multiSite: boolean;
+  multiSociete: boolean;
+  advancedDashboards: boolean;
+  ragAi: boolean;
+  advancedAuditLogs: boolean;
+  customBranding: boolean;
+  deviceTrustEnforced: boolean;
+  screenshotProtection: boolean;
+  certificatePinning: boolean;
+}
+
 interface UserInfo {
   uticod: string;
   utilib: string;
@@ -16,6 +38,8 @@ interface UserInfo {
   soclib?: string;
   socimg?: string;
   sitcods?: string[];
+  planCode?: string;
+  planFeatures?: PlanFeatures | null;
 }
 
 interface AuthContextType {
@@ -68,6 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           soclib: userData.soclib,
           socimg: userData.socimg,
           sitcods: userData.sitcods,
+          planCode: userData.planCode,
+          planFeatures: userData.planFeatures ?? null,
         });
         // Re-enregistre le token push si la session est restaurée (idempotent côté push.ts).
         // Sans ça, un user déjà connecté n'a aucun token en base → /test-push renvoie sent=0.
@@ -103,6 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       soclib: userData.soclib,
       socimg: userData.socimg,
       sitcods: userData.sitcods,
+      planCode: userData.planCode,
+      planFeatures: userData.planFeatures ?? null,
     });
     registerForPushAsync(userData.soccod || userData.empInfo?.soccod);
   };
@@ -137,6 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         soclib: userData.soclib,
         socimg: userData.socimg,
         sitcods: userData.sitcods,
+        planCode: userData.planCode,
+        planFeatures: userData.planFeatures ?? null,
       });
     } catch (e) {
       console.log('refreshUser failed:', e);

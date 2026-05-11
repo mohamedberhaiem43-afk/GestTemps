@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { assessDeviceTrust, DeviceTrustReport } from '../services/deviceSecurity';
+import { useAuth } from '../contexts/AuthContext';
 
 let cached: DeviceTrustReport | null = null;
 
@@ -7,11 +8,22 @@ let cached: DeviceTrustReport | null = null;
  * Évalue une fois et met en cache (les caractéristiques du device ne changent
  * pas en cours de session). Tous les composants qui appellent ce hook récupèrent
  * la même évaluation sans re-trigger expo-device.
+ *
+ * Plan gating : la feature « Device Trust » fait partie du pack Premium. Sur
+ * Standard, on retourne `null` sans évaluer le device — DeviceTrustBanner ne
+ * s'affichera pas et l'app reste fonctionnelle. Pendant l'essai, toutes les
+ * features sont actives ⇒ évaluation comme un Premium.
  */
 export function useDeviceTrust(): DeviceTrustReport | null {
+  const { user } = useAuth();
+  const enabled = user?.planFeatures?.deviceTrustEnforced ?? true;
   const [report, setReport] = useState<DeviceTrustReport | null>(cached);
 
   useEffect(() => {
+    if (!enabled) {
+      setReport(null);
+      return;
+    }
     if (cached) return;
     let mounted = true;
     assessDeviceTrust()
@@ -33,7 +45,7 @@ export function useDeviceTrust(): DeviceTrustReport | null {
         if (mounted) setReport(fallback);
       });
     return () => { mounted = false; };
-  }, []);
+  }, [enabled]);
 
-  return report;
+  return enabled ? report : null;
 }

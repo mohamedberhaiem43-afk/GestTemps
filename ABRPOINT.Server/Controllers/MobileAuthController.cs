@@ -31,8 +31,13 @@ namespace ABRPOINT.Server.Controllers
         /// Mobile login endpoint that returns JWT token in response body (not cookies)
         /// </summary>
         // A7 — Rate limiting brute-force.
+        // Plan gating : l'app mobile fait partie du pack Standard+. Sur Starter, on bloque
+        // l'AUTH (login + biometric-login) — pas /me ni /refresh, qui doivent rester
+        // accessibles pour que les sessions existantes se ferment proprement (logout
+        // côté client après réception du 402, sans casser le device).
         [HttpPost("login")]
         [EnableRateLimiting("auth-login")]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.MobileApp))]
         public async Task<IActionResult> Login([FromBody] MobileLoginModel model)
         {
             if (string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.Password))
@@ -307,6 +312,17 @@ namespace ABRPOINT.Server.Controllers
                     utirole = fullUser.Utirole;
             }
 
+            // Plan info (consommé par le mobile pour activer/désactiver la sécurité renforcée :
+            // device trust, screenshot protection — cf. abrpoint.mobile/src/contexts/AuthContext).
+            // Pendant l'essai, on accorde toutes les features pour que l'utilisateur teste tout.
+            var tenant = _currentTenant?.Current;
+            var isTrialing = Tenancy.TrialPolicy.IsTrialing(tenant);
+            var planCode = Tenancy.PlanCatalog.Normalize(tenant?.PlanCode);
+            var planDef = Tenancy.PlanCatalog.GetPlan(planCode);
+            var effectiveFeatures = isTrialing && planDef is not null
+                ? new Tenancy.PlanFeatures(true, true, true, true, true, true, true, true, true, true, true, true, true)
+                : planDef?.Features;
+
             return Ok(new
             {
                 uticod = user.Uticod,
@@ -322,7 +338,24 @@ namespace ABRPOINT.Server.Controllers
                 sitcod,
                 soclib,
                 socimg,
-                sitcods
+                sitcods,
+                planCode,
+                planFeatures = effectiveFeatures is null ? null : new
+                {
+                    mobileApp = effectiveFeatures.MobileApp,
+                    geolocation = effectiveFeatures.Geolocation,
+                    digitalVault = effectiveFeatures.DigitalVault,
+                    electronicSignature = effectiveFeatures.ElectronicSignature,
+                    multiSite = effectiveFeatures.MultiSite,
+                    multiSociete = effectiveFeatures.MultiSociete,
+                    advancedDashboards = effectiveFeatures.AdvancedDashboards,
+                    ragAi = effectiveFeatures.RagAi,
+                    advancedAuditLogs = effectiveFeatures.AdvancedAuditLogs,
+                    customBranding = effectiveFeatures.CustomBranding,
+                    deviceTrustEnforced = effectiveFeatures.DeviceTrustEnforced,
+                    screenshotProtection = effectiveFeatures.ScreenshotProtection,
+                    certificatePinning = effectiveFeatures.CertificatePinning,
+                }
             });
         }
 
@@ -409,6 +442,7 @@ namespace ABRPOINT.Server.Controllers
         /// </summary>
         [HttpPost("biometric-login")]
         [EnableRateLimiting("auth-login")]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.MobileApp))]
         public async Task<IActionResult> BiometricLogin([FromBody] RefreshTokenRequest model)
         {
             if (string.IsNullOrEmpty(model.RefreshToken))

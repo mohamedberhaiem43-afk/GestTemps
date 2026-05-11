@@ -5,6 +5,7 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Repository;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -25,7 +26,8 @@ namespace ABRPOINT.Server.Controllers
         private readonly ILogger<PresencesController>? _logger;
         private readonly Services.IGeoZoneValidator? _geoValidator;
         private readonly IWebHostEnvironment _env;
-        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ApplicationDbContext db, IWebHostEnvironment env, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null)
+        private readonly ICurrentTenant? _currentTenant;
+        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ApplicationDbContext db, IWebHostEnvironment env, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null, ICurrentTenant? currentTenant = null)
         {
             _presenceRepository = presenceRepository;
             _reportGenerationService = reportGenerationService;
@@ -34,6 +36,7 @@ namespace ABRPOINT.Server.Controllers
             _env = env;
             _logger = logger;
             _geoValidator = geoValidator;
+            _currentTenant = currentTenant;
         }
 
         // S7 : en production on masque les détails techniques (stack/inner exception) car ils
@@ -284,6 +287,28 @@ namespace ABRPOINT.Server.Controllers
                 // dans l'URL — c'est de la fraude horaire. Manager/admin restent autorisés
                 // (cas légitime : pointage de rattrapage).
                 if (!await CallerOwnsOrManagesEmpAsync(empcod)) return Forbid();
+
+                // Plan gating : si des coordonnées GPS sont envoyées (pointage géolocalisé), on
+                // exige que le plan du tenant inclue la feature Geolocation. Sur Starter, le
+                // pointage reste possible mais sans GPS — on rejette ici les requêtes qui
+                // tenteraient de bypasser le gating UI via appel direct. Pendant l'essai
+                // (Trialing), toutes les features sont accordées.
+                if ((lat.HasValue || lon.HasValue) && _currentTenant?.Current is { } tenant
+                    && !TrialPolicy.IsTrialing(tenant))
+                {
+                    var plan = PlanCatalog.GetPlan(tenant.PlanCode);
+                    if (plan is not null && !plan.Features.Geolocation)
+                    {
+                        return new ObjectResult(new
+                        {
+                            code = "plan_feature_locked",
+                            feature = nameof(PlanFeatures.Geolocation),
+                            currentPlan = plan.Code,
+                            message = $"Le pointage géolocalisé n'est pas inclus dans le plan {plan.DisplayName}."
+                        })
+                        { StatusCode = StatusCodes.Status402PaymentRequired };
+                    }
+                }
 
                 // Validation de zone GPS — admin-définie via les colonnes sitlat/sitlon/sitrad
                 // de la table site, ou via la config legacy GeoZones:Zones.

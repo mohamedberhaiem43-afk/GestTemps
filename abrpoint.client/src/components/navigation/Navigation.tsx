@@ -352,7 +352,10 @@ const useNavigationItems = (): NavGroup[] => {
         // Notes de frais déplacé dans "Demandes et validations" (hub central de validation).
       ],
     }] : []),
-    ...(!isTrialing ? [{
+    // Rapports analytiques (état présence, retards, absences, échéances, cahier congé).
+    // Gating commercial : module « Reporting avancé » du pack Standard+. Sur Starter,
+    // la section est masquée (un dashboard basique reste accessible via /home).
+    ...(!isTrialing && planAllows('advancedDashboards') ? [{
       label: t('navigation.reports'),
       href: '/dashboard/rapports',
       icon: BarChart2,
