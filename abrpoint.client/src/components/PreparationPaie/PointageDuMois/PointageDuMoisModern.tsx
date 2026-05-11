@@ -7,7 +7,6 @@ import {
 } from '@mui/material';
 import { useMemo, useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import DownloadIcon from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
@@ -20,6 +19,10 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { toast } from 'react-toastify';
 import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './FilterPointageMoisContext';
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
@@ -200,6 +203,12 @@ function PointageDuMoisContent() {
   const [treatedAlerts, setTreatedAlerts] = useState<Record<string, 'traite' | 'ignore'>>({});
   const [alertFilter, setAlertFilter] = useState<'all' | 'retard' | 'absnj'>('all');
   const [showGuide, setShowGuide] = useState(false);
+  // Recherche locale dans le dropdown employés (utile dès 20+ employés).
+  const [empSearch, setEmpSearch] = useState('');
+  // Filtre rapide post-recherche : on garde la requête initiale et on filtre côté client
+  // la liste affichée pour pointer instantanément les employés à problème.
+  type QuickFilter = 'all' | 'retard' | 'absnj' | 'poste';
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
 
   // Le hook est typé `Record<string,string>[]` (le générique d'ApiClient.getAllWithParams),
   // mais l'API renvoie en réalité un dictionnaire unique `{ empcod: emplib }`. On normalise
@@ -220,6 +229,19 @@ function PointageDuMoisContent() {
       ...item,
       heuresSupplementairesResultats: item.heuresSupplementairesResultats || [],
     })), [pointageMoisData]);
+
+  // Liste affichée : on applique le quickFilter sur pointageMois (les KPIs et
+  // graphes globaux gardent la base complète pour rester représentatifs du mois).
+  const displayedPointageMois = useMemo(() => {
+    if (quickFilter === 'all') return pointageMois;
+    return pointageMois.filter(e => {
+      const weeks = e.heuresSupplementairesResultats ?? [];
+      if (quickFilter === 'retard') return weeks.some(r => (r.retard ?? 0) > 30);
+      if (quickFilter === 'absnj') return weeks.some(r => (r.absnj ?? 0) > 0);
+      if (quickFilter === 'poste') return weeks.some(r => (r.missingPosteDates ?? []).length > 0);
+      return true;
+    });
+  }, [pointageMois, quickFilter]);
 
   // ── Alerts data ──
   const alertsData = useMemo(() => {
@@ -278,6 +300,39 @@ function PointageDuMoisContent() {
       setSelectedService(managerSercod);
     }
   }, [isManagerScoped, managerSercod]);
+
+  // Nav période : prev/next bascule mois (et année si overflow).
+  const shiftMonth = (delta: number) => {
+    let y = parseInt(annee, 10);
+    let m = parseInt(mois, 10) + delta;
+    if (m < 1) { m = 12; y -= 1; }
+    if (m > 12) { m = 1; y += 1; }
+    setAnnee(String(y));
+    setMois(String(m));
+  };
+
+  // Réinitialise tous les filtres locaux (sans relancer la recherche : l'utilisateur
+  // doit cliquer Rechercher après pour matérialiser le changement côté tableau).
+  const handleResetFilters = () => {
+    setSelectedEmpcods([]);
+    setEmpSearch('');
+    setSelectedFiliale('');
+    if (!isManagerScoped) setSelectedService('');
+    setSelectedRegime('');
+    setMois(getCurrentMonth());
+    setAnnee(getCurrentYear());
+    setMajorerHeures(false);
+    setQuickFilter('all');
+  };
+
+  // Liste employés filtrée par la recherche locale.
+  const filteredEmployeesEntries = useMemo(() => {
+    const term = empSearch.trim().toLowerCase();
+    const entries = Object.entries(employeesLibs);
+    if (!term) return entries;
+    return entries.filter(([code, name]) =>
+      code.toLowerCase().includes(term) || String(name).toLowerCase().includes(term));
+  }, [employeesLibs, empSearch]);
 
   const handleSearch = () => {
     // Sélection vide = "Tous les employés" → on injecte la liste complète chargée
@@ -496,9 +551,6 @@ function PointageDuMoisContent() {
             soclib={sessionStorage.getItem('soclib') || ''}
             services={services}
           />
-          <Button className="pdm-export-btn" startIcon={<DownloadIcon />} onClick={handleExportAll} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            {t('pointageMois.export')}
-          </Button>
           <Tooltip title={showGuide ? 'Masquer le guide' : 'Afficher le guide d\'utilisation'}>
             <IconButton
               onClick={() => setShowGuide(v => !v)}
@@ -582,8 +634,41 @@ function PointageDuMoisContent() {
               <Box sx={{
                 position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1200,
                 backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 260, overflowY: 'auto', mt: 0.5,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 320, overflowY: 'auto', mt: 0.5,
               }}>
+                {/* Recherche locale dans la liste — apparaît dès 6 employés. */}
+                {Object.keys(employeesLibs).length > 6 && (
+                  <Box sx={{
+                    position: 'sticky', top: 0, zIndex: 1, bgcolor: '#fff',
+                    padding: '8px 10px', borderBottom: '1px solid #f1f5f9',
+                  }}>
+                    <Box sx={{
+                      display: 'flex', alignItems: 'center', gap: 1,
+                      bgcolor: '#f8fafc', borderRadius: '8px', px: 1.2, py: 0.5,
+                      border: '1px solid #e2e8f0',
+                    }}>
+                      <SearchIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
+                      <input
+                        autoFocus
+                        type="text"
+                        value={empSearch}
+                        onChange={(e) => setEmpSearch(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder={t('pointageMois.filters.searchEmployee', 'Rechercher…') as string}
+                        style={{
+                          border: 'none', outline: 'none', flex: 1, background: 'transparent',
+                          fontSize: 12, color: '#0f172a', fontFamily: 'inherit',
+                        }}
+                      />
+                      {empSearch && (
+                        <CloseIcon
+                          sx={{ fontSize: 14, color: '#94a3b8', cursor: 'pointer' }}
+                          onClick={(e) => { e.stopPropagation(); setEmpSearch(''); }}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                )}
                 <Box
                   onClick={() => { setSelectedEmpcods([]); setShowEmpDropdown(false); }}
                   sx={{
@@ -595,7 +680,12 @@ function PointageDuMoisContent() {
                   <input type="checkbox" readOnly checked={selectedEmpcods.length === 0} style={{ accentColor: '#0040a1' }} />
                   {t('pointageMois.filters.allEmployees')}
                 </Box>
-                {Object.entries(employeesLibs).map(([code, name]) => {
+                {filteredEmployeesEntries.length === 0 && (
+                  <Box sx={{ p: 2, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
+                    {t('pointageMois.filters.noResults', 'Aucun résultat')}
+                  </Box>
+                )}
+                {filteredEmployeesEntries.map(([code, name]) => {
                   const checked = selectedEmpcods.includes(code);
                   return (
                     <Box
@@ -653,7 +743,12 @@ function PointageDuMoisContent() {
           </Box>
           <Box className="pdm-filter-field">
             <label>{t('pointageMois.filters.period')}</label>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, background: '#fff', borderRadius: '12px', px: 2, py: 0.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, background: '#fff', borderRadius: '12px', px: 1, py: 0.5 }}>
+              <Tooltip title={t('pointageMois.filters.prevMonth', 'Mois précédent') as string}>
+                <IconButton size="small" onClick={() => shiftMonth(-1)} sx={{ p: 0.5, color: '#0040a1' }}>
+                  <KeyboardArrowLeftIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
               <ScheduleIcon sx={{ color: '#0040a1', fontSize: 18 }} />
               <TextField size="small" type="month" variant="standard"
                 value={`${ctxAnnee}-${String(ctxMois).padStart(2, '0')}`}
@@ -661,12 +756,29 @@ function PointageDuMoisContent() {
                 sx={{ '& .MuiInputBase-input': { fontSize: '13px', fontWeight: 500 } }}
                 InputProps={{ disableUnderline: true }}
               />
+              <Tooltip title={t('pointageMois.filters.nextMonth', 'Mois suivant') as string}>
+                <IconButton size="small" onClick={() => shiftMonth(1)} sx={{ p: 0.5, color: '#0040a1' }}>
+                  <KeyboardArrowRightIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Box>
-          <Box className="pdm-filter-field pdm-filter-field--action">
-            <Button className="pdm-search-btn" startIcon={<SearchIcon />} onClick={handleSearch}>
+          <Box className="pdm-filter-field pdm-filter-field--action" sx={{ gap: 1, display: 'flex' }}>
+            <Button className="pdm-search-btn" startIcon={<SearchIcon />} onClick={handleSearch} sx={{ flex: 1 }}>
               {t('pointageMois.filters.search')}
             </Button>
+            <Tooltip title={t('pointageMois.filters.reset', 'Réinitialiser les filtres') as string}>
+              <IconButton
+                onClick={handleResetFilters}
+                sx={{
+                  borderRadius: '12px', height: 40, width: 40,
+                  bgcolor: '#fff', border: '1px solid #e2e8f0', color: '#64748b',
+                  '&:hover': { bgcolor: '#f8fafc', color: '#0040a1', borderColor: '#bfdbfe' },
+                }}
+              >
+                <RestartAltIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
         <Box className="pdm-filter-option">
@@ -687,16 +799,62 @@ function PointageDuMoisContent() {
 
       {!isLoading && (
         <>
+          {/* ── Quick filters : drill-down par type de problème ── */}
+          {pointageMois.length > 0 && (
+            <Box sx={{
+              display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap',
+              mb: 2, px: 0.5,
+            }}>
+              <FilterAltIcon sx={{ fontSize: 16, color: '#64748b' }} />
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', mr: 0.5 }}>
+                {t('pointageMois.quickFilter.label', 'Filtre rapide')}
+              </Typography>
+              {([
+                ['all',     t('pointageMois.quickFilter.all', 'Tous'),                pointageMois.length],
+                ['retard',  t('pointageMois.quickFilter.delays', 'Avec retards'),     retardsCount],
+                ['absnj',   t('pointageMois.quickFilter.absNJ', 'Absences NJ'),       absNJCount],
+                ['poste',   t('pointageMois.quickFilter.missingPoste', 'Poste manquant'), employesAvecPosteManquant],
+              ] as const).map(([val, lbl, count]) => {
+                const active = quickFilter === val;
+                const disabled = (val !== 'all') && (count as number) === 0;
+                return (
+                  <Chip
+                    key={val as string}
+                    size="small"
+                    label={`${lbl} · ${count}`}
+                    onClick={disabled ? undefined : () => setQuickFilter(val as QuickFilter)}
+                    sx={{
+                      fontWeight: 700, fontSize: 11, height: 26, borderRadius: '8px',
+                      bgcolor: active ? '#0040a1' : disabled ? '#f1f5f9' : '#fff',
+                      color: active ? '#fff' : disabled ? '#cbd5e1' : '#475569',
+                      border: '1px solid',
+                      borderColor: active ? '#0040a1' : '#e2e8f0',
+                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      '&:hover': { bgcolor: active ? '#003080' : disabled ? '#f1f5f9' : '#f8fafc' },
+                    }}
+                  />
+                );
+              })}
+              {quickFilter !== 'all' && displayedPointageMois.length !== pointageMois.length && (
+                <Typography sx={{ fontSize: 11, color: '#64748b', ml: 'auto' }}>
+                  {t('pointageMois.quickFilter.showing', '{{shown}} sur {{total}} employés', {
+                    shown: displayedPointageMois.length, total: pointageMois.length,
+                  })}
+                </Typography>
+              )}
+            </Box>
+          )}
+
           {/* ── Ledger Table ── */}
           <Paper className="pdm-table-card" elevation={0}>
             {/* Mobile card list (hidden on desktop via CSS) */}
             <Box className="pdm-mobile-ledger">
-              {pointageMois.length === 0 ? (
+              {displayedPointageMois.length === 0 ? (
                 <Typography sx={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', py: 4 }}>
                   {t('pointageMois.table.noData')}
                 </Typography>
               ) : (
-                pointageMois.map((emp) => {
+                displayedPointageMois.map((emp) => {
                   const weeks = emp.heuresSupplementairesResultats ?? [];
                   const cumul = weeks.reduce((s, r) => s + (r.tothre ?? 0), 0);
                   const isSelected = selectedEmp?.empCode === emp.empCode;
@@ -758,10 +916,10 @@ function PointageDuMoisContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pointageMois.length === 0 ? (
+                  {displayedPointageMois.length === 0 ? (
                     <tr><td colSpan={10} className="pdm-empty">{t('pointageMois.table.noData')}</td></tr>
                   ) : (
-                    pointageMois.map((emp) => {
+                    displayedPointageMois.map((emp) => {
                       const weeks = emp.heuresSupplementairesResultats ?? [];
                       const cumul = weeks.reduce((s, r) => s + (r.tothre ?? 0), 0);
                       const isSelected = selectedEmp?.empCode === emp.empCode;
