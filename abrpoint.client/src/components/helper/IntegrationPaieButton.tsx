@@ -51,7 +51,19 @@ interface HeureSupResultat {
   heuresSupTranche1?: number;
   heuresSupTranche2?: number;
   hreSupSemaine?: number;
+  // ⚠ Distinction critique pour le mapping paie :
+  //  - jourFerier   = nb total de jours fériés tombant dans la semaine (calendrier)
+  //  - heureFerier  = nb total d'heures fériées tombant dans la semaine (calendrier)
+  //  - nbJourFerier = nb de fériés *TRAVAILLÉS* par cet employé
+  //  - nbhFerierTrv = nb d'heures fériées *TRAVAILLÉES*
+  //  - hreFerier    = nb d'heures fériées attribuées à l'employé (filtré période d'emploi)
+  // Avant ce correctif, l'interface n'exposait pas jourFerier/heureFerier/nbhFerierTrv
+  // → le mapping vartype 'F' tombait sur nbJourFerier (travaillé seulement) → JF=0
+  // dès qu'un salarié n'avait pas pointé un férié.
+  jourFerier?: number;
+  heureFerier?: number;
   hreFerier?: number;
+  nbhFerierTrv?: number;
   hreFerieTrv?: number;
   hreFerieTrv2?: number;
   nbJourFerier?: number;
@@ -166,37 +178,51 @@ const IntegrationPaieButton: React.FC<IntegrationPaieProps> = ({
   };
 
   /**
-   * Détermine la propriété à utiliser selon le vartype et l'unité
+   * Détermine la propriété à utiliser selon le vartype (grandeur source) et l'unité (H/J).
+   *
+   * Sémantique des vartypes liés aux fériés :
+   *   F → fériés *du calendrier* (tous les jours fériés, qu'ils soient travaillés ou non)
+   *       J → jourFerier   (compteur de jours)
+   *       H → heureFerier  (somme des heures fériées)
+   *   R → fériés *travaillés* (l'employé a pointé ce jour-là)
+   *       J → nbJourFerier (compteur)
+   *       H → nbhFerierTrv (heures pointées sur fériés)
+   *   Y → heures fériées travaillées *plafonnées* (limite MaxFerier) → hreFerieTrv
+   *   Z → heures fériées travaillées *au-delà* du plafond → hreFerieTrv2
+   *   I → férié non payé (correction présente : retombe sur jourFerier en J,
+   *                       hreFerier en H — le moteur ne distingue pas "non payé" séparément)
+   *
+   * Avant ce correctif, vartype 'F' + unité 'J' retournait `nbJourFerier` (fériés
+   * travaillés), donc la rubrique « JF » d'un employé absent les jours fériés tombait à 0.
    */
   const getPropertyForRubrique = (vartype: string, rubunite?: string): keyof HeureSupResultat | null => {
-    // Cas spéciaux selon l'unité
     if (rubunite === 'J') {
-      // Si unité est Jour, utiliser les propriétés de nombre de jours
       switch (vartype) {
         case 'P': return 'jourRepos';        // Repos travaillés
         case 'U': return 'nbNuits';          // Nuits
-        case 'C': return 'nbJourCngPaye';    // Congé
-        case 'F': return 'nbJourFerier';     // Férié
-        case 'R': return 'nbJourFerier';     // Férié travaillé
-        case 'T': return 'nbJourPointer';    // Nombre de jours
-        case 'H': return 'nbJours';          // Heures de jour
+        case 'C': return 'nbJourCngPaye';    // Congé payé
+        case 'F': return 'jourFerier';       // FIX : jours fériés du calendrier (général)
+        case 'I': return 'jourFerier';       // Férié non payé : faute de séparation côté moteur
+        case 'R': return 'nbJourFerier';     // Jours fériés TRAVAILLÉS
+        case 'T': return 'nbJourPointer';    // Jours pointés
+        case 'H': return 'nbJours';          // Jours complets
         default: break;
       }
     } else {
-      // Si unité est Heure, utiliser les propriétés d'heures
       switch (vartype) {
-        case 'P': return 'heureRepos';       // Repos travaillés
-        case 'U': return 'hreNuits';         // Nuits
-        case 'C': return 'nbHeureConge';     // Congé
-        case 'F': return 'hreFerier';        // Férié
-        case 'R': return 'hreFerieTrv';      // Férié travaillé
-        case 'T': return 'tothre';           // Nombre de jours
-        case 'H': return 'tothre';           // Heures de jour
+        case 'P': return 'heureRepos';       // Heures de repos travaillées
+        case 'U': return 'hreNuits';         // Heures de nuit
+        case 'C': return 'nbHeureConge';     // Heures de congé
+        case 'F': return 'heureFerier';      // FIX : heures fériées (général, du calendrier)
+        case 'I': return 'hreFerier';        // Heures fériées attribuées (filtre période emploi)
+        case 'R': return 'nbhFerierTrv';     // Heures fériées TRAVAILLÉES (total brut)
+        case 'T': return 'tothre';           // Heures travaillées
+        case 'H': return 'tothre';           // Heures travaillées totales
         default: break;
       }
     }
 
-    // Pour les autres vartypes, utiliser le mapping standard
+    // Vartypes hors fériés/congés/repos : mapping direct
     return VARTYPE_TO_PROPERTY_MAP[vartype] || null;
   };
 

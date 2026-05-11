@@ -76,6 +76,7 @@ const DEFAULT_RUBRIQUES_CATALOG: Array<{ rubcod: string; rublib: string; rubunit
   { rubcod: 'HS1',   rublib: 'Heures supp. tranche 1',      rubunite: 'H', vartype: '1' },
   // Fériés / Repos
   { rubcod: 'JF',    rublib: 'J. Fériés',                   rubunite: 'J', vartype: 'F' },
+  { rubcod: 'HF',    rublib: 'H. Fériés',                   rubunite: 'H', vartype: 'F' },
   { rubcod: 'JFT',   rublib: 'J. Fériés travaillés',        rubunite: 'J', vartype: 'R' },
   { rubcod: 'HFT',   rublib: 'H. Fériés travaillées',       rubunite: 'H', vartype: 'Y' },
   { rubcod: 'HFTS',  rublib: 'H. Fériés sup. travaillées',  rubunite: 'H', vartype: 'Z' },
