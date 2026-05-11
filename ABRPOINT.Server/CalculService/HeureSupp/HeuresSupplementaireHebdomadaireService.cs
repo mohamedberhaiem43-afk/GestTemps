@@ -175,7 +175,16 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     var param = await _parametreRepository.GetSuppAndFerierParamAsync(soccod, empniveau);
                     if (!param.HasSupp)
                     {
-                        result.HeuresNormales = result.NbhCalendSem;
+                        // ⚠ Pas de droit aux heures sup ⇒ on borne HeuresNormales aux heures
+                        // réellement comptabilisées (Tothre = travaillé + férié payé + congé payé),
+                        // plafonné à la base hebdomadaire contractuelle. Avant on forçait
+                        // HeuresNormales = NbhCalendSem sans tenir compte de la présence : un
+                        // employé absent affichait 35 h « normales » et touchait la Prime Qualité
+                        // (variable paie #9) à plein, ce qui était à la fois trompeur côté
+                        // tableau et incorrect côté paie.
+                        var tot = (float)Math.Max(0, result.Tothre ?? 0);
+                        var cap = result.NbhCalendSem ?? 0;
+                        result.HeuresNormales = (float)Math.Min(tot, cap);
                         result.HreSupSemaine = 0;
                         result.HeuresSupTranche1 = 0;
                         result.HeuresSupTranche2 = 0;
@@ -359,7 +368,14 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     // Calculate overtime for this week
                     if (!hasSupp)
                     {
-                        result.HeuresNormales = result.NbhCalendSem;
+                        // ⚠ Même règle que la version single-week : on borne HeuresNormales aux
+                        // heures réellement comptabilisées (Tothre = travaillé + férié payé + congé
+                        // payé) plafonnées à la base hebdo contractuelle. Empêche les semaines
+                        // d'absence complète d'afficher 35 h « normales » et de générer la Prime
+                        // Qualité sans présence réelle.
+                        var tot = (float)Math.Max(0, result.Tothre ?? 0);
+                        var cap = result.NbhCalendSem ?? 0;
+                        result.HeuresNormales = (float)Math.Min(tot, cap);
                         result.HreSupSemaine = 0;
                         result.HeuresSupTranche1 = 0;
                         result.HeuresSupTranche2 = 0;
