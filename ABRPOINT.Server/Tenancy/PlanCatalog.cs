@@ -46,7 +46,14 @@ public sealed record PlanFeatures(
     bool Missions,
     bool CompensationDays,
     bool GeneralLeave,
-    bool GeneralExit);
+    bool GeneralExit,
+    // 2026-05-12 : ajout LeaveManagement / AuthorizationManagement. Sur Starter,
+    // la gestion des congés (demande + titre) et des autorisations de sortie
+    // (demande + saisie) est masquée. L'état périodique reste accessible —
+    // c'est le seul rapport conservé sur Starter (cf. positionnement "pointage
+    // simple, sans workflow RH").
+    bool LeaveManagement,
+    bool AuthorizationManagement);
 
 /// <summary>
 /// Catalogue des plans commerciaux (Starter / Standard / Premium) et des
@@ -99,7 +106,9 @@ public static class PlanCatalog
             Missions: false,
             CompensationDays: false,
             GeneralLeave: false,
-            GeneralExit: false));
+            GeneralExit: false,
+            LeaveManagement: false,
+            AuthorizationManagement: false));
 
     public static readonly PlanDefinition Standard = new(
         Code: StandardCode,
@@ -129,7 +138,9 @@ public static class PlanCatalog
             Missions: true,
             CompensationDays: true,
             GeneralLeave: true,
-            GeneralExit: true));
+            GeneralExit: true,
+            LeaveManagement: true,
+            AuthorizationManagement: true));
 
     public static readonly PlanDefinition Premium = new(
         Code: PremiumCode,
@@ -156,7 +167,9 @@ public static class PlanCatalog
             Missions: true,
             CompensationDays: true,
             GeneralLeave: true,
-            GeneralExit: true));
+            GeneralExit: true,
+            LeaveManagement: true,
+            AuthorizationManagement: true));
 
     /// <summary>Retourne la définition pour un code donné, ou null si inconnu.</summary>
     public static PlanDefinition? GetPlan(string? rawCode)

@@ -15,6 +15,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.LeaveManagement))]
     public class CongesController : ControllerBase
     {
         private readonly ICongeRepository _congeRepository;

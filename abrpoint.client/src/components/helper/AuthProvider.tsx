@@ -63,6 +63,10 @@ export interface PlanFeatures {
   compensationDays: boolean;
   generalLeave: boolean;
   generalExit: boolean;
+  // 2026-05-12 : workflow congé + autorisation, exclus du pack Starter
+  // (positionnement "pointage simple" — seul l'état périodique reste accessible).
+  leaveManagement: boolean;
+  authorizationManagement: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({

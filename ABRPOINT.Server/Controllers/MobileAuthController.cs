@@ -321,7 +321,7 @@ namespace ABRPOINT.Server.Controllers
             var planDef = Tenancy.PlanCatalog.GetPlan(planCode);
             var effectiveFeatures = isTrialing && planDef is not null
                 ? new Tenancy.PlanFeatures(true, true, true, true, true, true, true, true, true, true, true, true, true,
-                                           true, true, true, true)
+                                           true, true, true, true, true, true)
                 : planDef?.Features;
 
             return Ok(new
@@ -360,6 +360,8 @@ namespace ABRPOINT.Server.Controllers
                     compensationDays = effectiveFeatures.CompensationDays,
                     generalLeave = effectiveFeatures.GeneralLeave,
                     generalExit = effectiveFeatures.GeneralExit,
+                    leaveManagement = effectiveFeatures.LeaveManagement,
+                    authorizationManagement = effectiveFeatures.AuthorizationManagement,
                 }
             });
         }

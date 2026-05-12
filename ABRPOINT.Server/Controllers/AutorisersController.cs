@@ -15,6 +15,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.AuthorizationManagement))]
     public class AutorisersController : ControllerBase
     {
         private readonly IautoriserRepository _autoriserRepository;

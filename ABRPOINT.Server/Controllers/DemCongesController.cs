@@ -14,6 +14,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.LeaveManagement))]
     public class DemCongesController : ControllerBase
     {
         private readonly IDemCongeRepository _demandecongeRepository;
