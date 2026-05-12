@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 
 namespace ABRPOINT.Server.Controllers;
@@ -33,6 +34,7 @@ public class SignupController : ControllerBase
     private readonly IBillingService _billing;
     private readonly ITenantStore _tenantStore;
     private readonly IConfiguration _cfg;
+    private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
     private readonly ILogger<SignupController> _log;
 
     public SignupController(
@@ -41,6 +43,7 @@ public class SignupController : ControllerBase
         IBillingService billing,
         ITenantStore tenantStore,
         IConfiguration cfg,
+        Microsoft.Extensions.Caching.Memory.IMemoryCache cache,
         ILogger<SignupController> log)
     {
         _masterFactory = masterFactory;
@@ -48,7 +51,46 @@ public class SignupController : ControllerBase
         _billing = billing;
         _tenantStore = tenantStore;
         _cfg = cfg;
+        _cache = cache;
         _log = log;
+    }
+
+    /// <summary>
+    /// Captcha arithmétique anti-bot pour le signup. Le serveur génère deux opérandes
+    /// (1-10) + une opération (+/−/×), garde la réponse en mémoire 5 min indexée par
+    /// challengeId (GUID). Le frontend renvoie {challengeId, answer} dans le POST signup.
+    /// Pas de tracker externe → conforme RGPD sans bandeau cookie supplémentaire.
+    /// </summary>
+    [HttpGet("captcha")]
+    public IActionResult GetCaptcha()
+    {
+        var rng = System.Random.Shared;
+        var a = rng.Next(1, 11);
+        var b = rng.Next(1, 11);
+        var op = rng.Next(3); // 0=+, 1=-, 2=×
+        int answer; string opSymbol;
+        switch (op)
+        {
+            case 1: opSymbol = "−"; answer = a - b; break;
+            case 2: opSymbol = "×"; answer = a * b; break;
+            default: opSymbol = "+"; answer = a + b; break;
+        }
+        var challengeId = Guid.NewGuid().ToString("N");
+        _cache.Set($"signup_captcha:{challengeId}", answer, TimeSpan.FromMinutes(5));
+        return Ok(new { challengeId, question = $"{a} {opSymbol} {b}" });
+    }
+
+    /// <summary>
+    /// Valide la réponse captcha et invalide le challenge (single-use, anti-rejeu).
+    /// Retourne false si introuvable, expiré ou mauvaise réponse.
+    /// </summary>
+    private bool ValidateCaptcha(string? challengeId, int? answer)
+    {
+        if (string.IsNullOrWhiteSpace(challengeId) || answer is null) return false;
+        var key = $"signup_captcha:{challengeId}";
+        if (!_cache.TryGetValue<int>(key, out var expected)) return false;
+        _cache.Remove(key); // single-use même si la réponse est fausse → empêche le brute force
+        return expected == answer.Value;
     }
 
     /// <summary>
@@ -104,6 +146,12 @@ public class SignupController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.CompanyName))
             return BadRequest(new { error = "Nom d'entreprise requis." });
 
+        // Captcha anti-bot. Validé avant toute écriture (DB / Stripe) pour ne pas créer
+        // de tenant fantôme si la vérif échoue. Le challenge est single-use (cf.
+        // ValidateCaptcha → cache.Remove) ce qui empêche le brute force.
+        if (!ValidateCaptcha(req.CaptchaChallengeId, req.CaptchaAnswer))
+            return BadRequest(new { error = "Captcha invalide ou expiré. Rechargez et réessayez.", code = "captcha_failed" });
+
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
 
         // Une éventuelle ligne existante pour ce slug : si elle est active, on refuse ;
@@ -126,7 +174,39 @@ public class SignupController : ControllerBase
                 && existing.Status == "Failed"
                 && string.Equals(emailIndexEntry.Slug, slug, StringComparison.OrdinalIgnoreCase);
             if (!isReusableFailedSlot)
-                return Conflict(new { error = "Cet email est déjà utilisé par un autre compte." });
+            {
+                // Cas spécial : l'email pointe vers un tenant résilié. On guide l'utilisateur
+                // vers le flow de réactivation au lieu de bloquer aveuglément — sinon il pense
+                // que son email est "interdit" alors qu'il peut récupérer son compte via login
+                // → Stripe Checkout (rétention 90j, cf. /billing/resume-checkout).
+                // Au-delà de la rétention, on libère l'email et on autorise un nouveau compte
+                // (les données du tenant Cancelled restent côté backup, accessibles via support).
+                var ownerTenant = await master.Tenants.AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Slug == emailIndexEntry.Slug, ct);
+                if (ownerTenant != null && string.Equals(ownerTenant.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                {
+                    var cancelledAt = ownerTenant.CancellationRequestedAt ?? DateTime.UtcNow;
+                    var withinRetention = (DateTime.UtcNow - cancelledAt).TotalDays <= 90;
+                    if (withinRetention)
+                    {
+                        return StatusCode(StatusCodes.Status409Conflict, new
+                        {
+                            error = "Cet email correspond à un compte résilié. Connectez-vous pour réactiver votre abonnement (vos données sont conservées 90 jours).",
+                            code = "cancelled_account_reactivatable",
+                            slug = emailIndexEntry.Slug,
+                        });
+                    }
+                    // Rétention dépassée → on libère l'email + l'index pour permettre une nouvelle inscription.
+                    master.TenantEmailIndex.Remove(await master.TenantEmailIndex
+                        .FirstAsync(x => x.Email == adminEmailLowerCheck, ct));
+                    await master.SaveChangesAsync(ct);
+                    emailIndexEntry = null;
+                }
+                else
+                {
+                    return Conflict(new { error = "Cet email est déjà utilisé par un autre compte." });
+                }
+            }
         }
 
         // Génération du DbName : tenant_<slug>_<8hex>. Limite 64 caractères enforce par Tenant entity.
@@ -136,13 +216,6 @@ public class SignupController : ControllerBase
         var dbSafeSlug = slug.Replace('-', '_');
         var dbName = $"tenant_{dbSafeSlug}_{suffix}";
         if (dbName.Length > 64) dbName = dbName.Substring(0, 64);
-
-        // Premium = pack sans essai gratuit (positionnement entreprise, paiement direct).
-        // Starter/Standard gardent les 30 jours offerts sans CB.
-        var canonicalPlan = ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(req.PlanCode);
-        var isPremiumSignup = string.Equals(canonicalPlan,
-            ABRPOINT.Server.Tenancy.PlanCatalog.PremiumCode, StringComparison.OrdinalIgnoreCase);
-        DateTime? trialEndsAt = isPremiumSignup ? null : DateTime.UtcNow.AddDays(TrialPolicy.TrialDurationDays);
 
         Tenant tenant;
         if (existing != null)
@@ -155,10 +228,12 @@ public class SignupController : ControllerBase
             tenant.AdminEmail = req.AdminEmail.Trim();
             tenant.CreatedAt = DateTime.UtcNow;
             // Promesse commerciale : 30 jours d'essai gratuit *sans carte bancaire* sur
-            // Starter et Standard. Premium est exclu — il bascule directement en
-            // PendingPayment et l'admin doit finaliser le Checkout Stripe avant de pouvoir
-            // entrer dans le dashboard.
-            tenant.TrialEndsAt = trialEndsAt;
+            // les 3 packs (Starter / Standard / Premium). Avant on faussait avec 14j et
+            // un branchement PendingPayment dès qu'un plan payant était choisi → on
+            // demandait implicitement une CB. Désormais l'inscription est toujours en
+            // Trialing pour la durée canonique TrialPolicy.TrialDurationDays, et un
+            // rappel push/in-app/email est émis 4 jours avant l'expiration.
+            tenant.TrialEndsAt = DateTime.UtcNow.AddDays(TrialPolicy.TrialDurationDays);
             tenant.Region = "eu-fr";
             tenant.LegacySoccod = "01";
             tenant.StripeCustomerId = null;
@@ -177,8 +252,8 @@ public class SignupController : ControllerBase
                 Status = "Provisioning",
                 AdminEmail = req.AdminEmail.Trim(),
                 CreatedAt = DateTime.UtcNow,
-                // Premium = pas d'essai (null), Starter/Standard = 30j (cf. note ci-dessus).
-                TrialEndsAt = trialEndsAt,
+                // 30 jours d'essai sans CB (cf. note ci-dessus).
+                TrialEndsAt = DateTime.UtcNow.AddDays(TrialPolicy.TrialDurationDays),
                 Region = "eu-fr",
                 LegacySoccod = "01",
                 PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim(),
@@ -212,10 +287,13 @@ public class SignupController : ControllerBase
                 _log.LogError(billingEx, "Billing échoué pour {Slug} mais provisioning OK — tenant marqué Trialing sans Stripe.", slug);
             }
 
-            // Starter/Standard → Trialing 30j. Premium → PendingPayment direct : le frontend
-            // déclenchera /api/billing/checkout dès que l'admin atterrit (status 402 bloque
-            // l'accès au dashboard tant que la subscription Stripe n'est pas active).
-            tenant.Status = isPremiumSignup ? "PendingPayment" : "Trialing";
+            // V3 : aucun pack n'exige la CB au signup → tous les nouveaux tenants entrent
+            // directement en Trialing pour 30 jours. Le RequiresPayment historique est ignoré
+            // pour préserver la rétro-compatibilité du payload front sans changer le comportement.
+            // À la fin de l'essai, ProcessTrialExpirationsAsync flippera en PendingPayment, et
+            // le rappel J-4 (cf. SendTrialExpiryRemindersAsync) aura déjà invité admin/manager
+            // à finaliser le paiement Stripe.
+            tenant.Status = "Trialing";
             // Index email→slug : permet à la page de login (root domain) de retrouver
             // le tenant à partir de l'email saisi, sans demander le code société.
             // Upsert : on remplace une éventuelle ligne existante (cas d'un re-signup
@@ -326,4 +404,8 @@ public class SignupRequest
     /// paiement Stripe n'est pas confirmé via le webhook checkout.session.completed.
     /// </summary>
     public bool RequiresPayment { get; set; }
+    /// <summary>ID du challenge captcha distribué par GET /api/signup/captcha.</summary>
+    public string? CaptchaChallengeId { get; set; }
+    /// <summary>Réponse numérique au challenge captcha.</summary>
+    public int? CaptchaAnswer { get; set; }
 }

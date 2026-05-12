@@ -238,7 +238,7 @@ const EmpRetard = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', xl: 'row' }, gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 2 }}>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack spacing={2.2}>
           <Paper sx={{ p: 2.5, borderRadius: 2.5, border: '1px solid #e7eaf0', boxShadow: '0 20px 48px -20px rgba(15,23,42,0.16)' }}>
@@ -401,13 +401,18 @@ const EmpRetard = () => {
 
       <Paper
         sx={{
-          width: 340,
+          // Largeur flexible : on remplace width:340 fixe + display:none<xl par un panneau
+          // qui rétrécit (260→340) et reste visible dès lg (1200px). À zoom > 80% (= viewport
+          // < 1536px sur écran 1080p), l'ancien display:'none' masquait le panneau alors qu'il
+          // restait largement la place pour l'afficher en colonne secondaire.
+          width: { xs: '100%', lg: 260, xl: 340 },
+          flexShrink: 0,
           p: 2,
           borderRadius: 2.5,
           border: '1px solid #e7eaf0',
           boxShadow: '0 20px 48px -24px rgba(15,23,42,0.25)',
           height: 'fit-content',
-          display: { xs: 'none', xl: 'block' },
+          display: { xs: 'none', lg: 'block' },
         }}
       >
         <Typography sx={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '1.1rem', mb: 2 }}>{t('etats.retard.detailsTitle')}</Typography>
@@ -439,10 +444,10 @@ const EmpRetard = () => {
               </Stack>
             </Paper>
 
-            <Stack spacing={1}>
-              <Button variant="outlined" fullWidth>{t('etats.retard.justifyAction')}</Button>
-              <Button variant="outlined" fullWidth>{t('etats.retard.notifyAction')}</Button>
-            </Stack>
+            {/* Boutons "Justifier ce retard" et "Notifier l'employé" supprimés faute de
+                flux back-end opérationnel (ils étaient placeholders). Le rapport reste
+                consultable ; la justification métier passe par /demande-autorisation et
+                la notification par les flux push/email standards. */}
           </Stack>
         ) : (
           <Alert severity="info">{t('etats.retard.noSelection')}</Alert>

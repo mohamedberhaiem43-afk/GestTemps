@@ -15,7 +15,8 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import CategoryIcon from '@mui/icons-material/Category';
 import GavelIcon from '@mui/icons-material/Gavel';
 import PeopleIcon from '@mui/icons-material/People';
-import useGetAbsencesLibs from '../../../../../hooks/absenceHooks/useGetAbsenceLibs';
+// Filtre Abscng='B' (Autorisation) — cohérent avec SaisieAutSortie + DemandeAutorisation.
+import useGetAutorisationLibs from '../../../../../hooks/absenceHooks/useGetAutorisationLibs';
 import useGetEmployee from '../../../../../hooks/employeHooks/useGetEmployee';
 import useAddBulkSortie from '../../../../../hooks/sortieHooks/useAddBulkSortie';
 import useGetSortie from '../../../../../hooks/sortieHooks/useGetSortie';
@@ -52,7 +53,7 @@ function AutSortieGeneraleContent() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Hooks
-  const { data: absencesRaw } = useGetAbsencesLibs();
+  const { data: absencesRaw } = useGetAutorisationLibs();
   const absences = useMemo(() => {
     if (Array.isArray(absencesRaw)) return absencesRaw;
     if (absencesRaw && typeof absencesRaw === 'object') {

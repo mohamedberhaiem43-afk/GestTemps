@@ -71,16 +71,47 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
                         bool hasAfternoonPunch = !string.IsNullOrEmpty(presence.Preentamidiup) || !string.IsNullOrEmpty(presence.Presortamidiup);
 
                         float morningHours = 0f, afternoonHours = 0f;
-                        if (TimeSpan.TryParse(mStart, out var ms) && TimeSpan.TryParse(mEnd, out var me))
-                            morningHours = (float)(me > ms ? (me - ms).TotalHours : ((me + TimeSpan.FromHours(24)) - ms).TotalHours);
-                        if (TimeSpan.TryParse(eStart, out var es) && TimeSpan.TryParse(eEnd, out var ee))
-                            afternoonHours = (float)(ee > es ? (ee - es).TotalHours : ((ee + TimeSpan.FromHours(24)) - es).TotalHours);
+                        TimeSpan? mStartTs = null, mEndTs = null, eStartTs = null, eEndTs = null;
+                        if (TimeSpan.TryParse(mStart, out var ms))
+                        {
+                            mStartTs = ms;
+                            if (TimeSpan.TryParse(mEnd, out var me))
+                            {
+                                mEndTs = me;
+                                morningHours = (float)(me > ms ? (me - ms).TotalHours : ((me + TimeSpan.FromHours(24)) - ms).TotalHours);
+                            }
+                        }
+                        if (TimeSpan.TryParse(eStart, out var es))
+                        {
+                            eStartTs = es;
+                            if (TimeSpan.TryParse(eEnd, out var ee))
+                            {
+                                eEndTs = ee;
+                                afternoonHours = (float)(ee > es ? (ee - es).TotalHours : ((ee + TimeSpan.FromHours(24)) - es).TotalHours);
+                            }
+                        }
 
                         float missedShiftHours = 0f;
                         if (!hasMorningPunch && morningHours > 0) missedShiftHours += morningHours;
                         if (!hasAfternoonPunch && afternoonHours > 0) missedShiftHours += afternoonHours;
                         if (missedShiftHours > 0)
-                            return MathF.Max(0, missedShiftHours - authHoursCredit);
+                        {
+                            // Correctif 2026-05-12 : ne créditer authHoursCredit que pour la
+                            // portion d'autorisation qui chevauche réellement la plage manquée.
+                            // Bug observé : autorisation matin (11h→12h) déduisait 1h des 3h
+                            // d'absence après-midi non pointée → 02h00 au lieu de 03h00 attendus.
+                            float overlappingAuth = 0f;
+                            if (autorisation?.Condep != null && autorisation?.Conret != null && autorisation.Abspayer != "O")
+                            {
+                                var authStart = autorisation.Condep.Value.TimeOfDay;
+                                var authEnd = autorisation.Conret.Value.TimeOfDay;
+                                if (!hasMorningPunch && mStartTs.HasValue && mEndTs.HasValue)
+                                    overlappingAuth += OverlapHours(authStart, authEnd, mStartTs.Value, mEndTs.Value);
+                                if (!hasAfternoonPunch && eStartTs.HasValue && eEndTs.HasValue)
+                                    overlappingAuth += OverlapHours(authStart, authEnd, eStartTs.Value, eEndTs.Value);
+                            }
+                            return MathF.Max(0, missedShiftHours - overlappingAuth);
+                        }
                     }
 
                     // Cas général : différence brute, en filtrant les variations < 15 min
@@ -96,6 +127,18 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
 			{
 				throw;
 			}
+        }
+
+        /// <summary>
+        /// Calcule en heures la durée de chevauchement entre deux intervalles horaires
+        /// [aStart, aEnd] et [bStart, bEnd]. Retourne 0 si pas de chevauchement.
+        /// </summary>
+        private static float OverlapHours(TimeSpan aStart, TimeSpan aEnd, TimeSpan bStart, TimeSpan bEnd)
+        {
+            var start = aStart > bStart ? aStart : bStart;
+            var end = aEnd < bEnd ? aEnd : bEnd;
+            if (end <= start) return 0f;
+            return (float)(end - start).TotalHours;
         }
     }
 }

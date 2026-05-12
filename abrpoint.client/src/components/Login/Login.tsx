@@ -34,6 +34,17 @@ export default function CredentialsSignInPage() {
   // Si l'utilisateur arrive depuis le PricingPage avec un plan choisi, on conserve l'info pour
   // l'envoyer vers la page de paiement après authentification réussie (style Odoo).
   const pendingPlan = (location.state as any)?.plan ? location.state : null;
+  // Pré-remplit l'email + affiche un bandeau d'information quand on arrive depuis la
+  // page Signup pour réactivation d'un compte résilié (cf. SignupPage : code
+  // 'cancelled_account_reactivatable').
+  useEffect(() => {
+    const s = location.state as { email?: string; notice?: string } | null;
+    if (s?.email) setUtimail(s.email);
+    if (s?.notice) setSuccess(s.notice);
+    // On efface le state pour ne pas re-déclencher sur un retour navigateur.
+    if (s?.email || s?.notice) navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false);

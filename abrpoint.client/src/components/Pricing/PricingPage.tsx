@@ -84,10 +84,7 @@ const PricingPage: React.FC = () => {
         'Onboarding accompagné · SLA premium · support prioritaire',
         'Intégrations futures : API / SSO / connecteurs paie',
       ],
-      cta: 'Démarrer Premium',
-      // Premium = pack enterprise, paiement direct (pas d'essai). On le distingue
-      // visuellement des packs avec essai via noTrial pour adapter le label CTA.
-      noTrial: true,
+      cta: '30 jours gratuits',
       accent: false,
     },
   ];
@@ -229,9 +226,7 @@ const PricingPage: React.FC = () => {
                   {plan.included} salariés inclus · +{formatPrice(plan.extraRate)} € / salarié sup.
                 </div>
                 <div className="mt-1 text-[11px] text-tertiary font-bold uppercase tracking-wider">
-                  {plan.noTrial
-                    ? 'Activation immédiate · paiement direct'
-                    : '30 jours gratuits · sans carte bancaire'}
+                  30 jours gratuits · sans carte bancaire
                 </div>
               </div>
               <p className="text-on-surface-variant mb-8 text-sm leading-relaxed min-h-[3rem]">

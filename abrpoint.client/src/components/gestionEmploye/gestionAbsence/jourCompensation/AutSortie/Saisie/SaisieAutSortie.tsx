@@ -26,7 +26,11 @@ import './SaisieAutSortie.css';
 import CheckboxListSecondary from "../../../../../CheckboxList/CheckboxListSecondary";
 import SelectInputComponent from "../../../../../SelectInputComponent/SelectInputComponent";
 import InputComponent from "../../../../../Inputs/Input";
-import useGetAbsencesLibs from "../../../../../../hooks/absenceHooks/useGetAbsenceLibs";
+// Avant : useGetAbsencesLibs (toutes les natures) → l'opérateur pouvait sélectionner
+// un congé / une mission par erreur sur une autorisation de sortie. On bascule sur
+// useGetAutorisationLibs (filtre Abscng='B' côté backend) pour ne lister que les
+// natures d'absence de type "Autorisation", en cohérence avec DemandeAutorisation.
+import useGetAutorisationLibs from "../../../../../../hooks/absenceHooks/useGetAutorisationLibs";
 import useGetEmployee from "../../../../../../hooks/employeHooks/useGetEmployee";
 import { useSortieGeneralContext } from "../../../../../helper/SortieGeneralContext";
 import useAddSortie from "../../../../../../hooks/sortieHooks/useAddSortie";
@@ -61,7 +65,7 @@ export default function SaisieAutSortie({ type }: SaisieAutSortieProps) {
   const [writable, setWritable] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { data: absences = [] } = useGetAbsencesLibs();
+  const { data: absences = [] } = useGetAutorisationLibs();
   const { data: employes = [] } = useGetEmployee();
   const { mutate: addSortie } = useAddSortie();
   const { mutate: addBulkSortie } = useAddBulkSortie();

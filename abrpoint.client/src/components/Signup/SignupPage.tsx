@@ -52,6 +52,24 @@ export default function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Captcha anti-bot (cf. GET /api/signup/captcha). Stocké côté serveur 5 min en
+  // mémoire (IMemoryCache), single-use. On (re)charge le challenge à l'arrivée + sur
+  // bouton refresh ; le frontend envoie {challengeId, answer} avec le POST signup.
+  const [captchaQuestion, setCaptchaQuestion] = useState<string>('');
+  const [captchaChallengeId, setCaptchaChallengeId] = useState<string>('');
+  const [captchaAnswer, setCaptchaAnswer] = useState<string>('');
+  const refreshCaptcha = async () => {
+    try {
+      const { data } = await apiInstance.get('/signup/captcha');
+      setCaptchaQuestion(data?.question ?? '');
+      setCaptchaChallengeId(data?.challengeId ?? '');
+      setCaptchaAnswer('');
+    } catch {
+      // Échec réseau : on laisse les champs vides, le submit échouera proprement.
+    }
+  };
+  useEffect(() => { refreshCaptcha(); }, []);
+
   // Auto-suggère un slug à partir du nom de société tant que l'utilisateur ne l'a pas modifié.
   useEffect(() => {
     if (!slugTouched) {
@@ -168,7 +186,9 @@ export default function SignupPage() {
     /.+@.+\..+/.test(email) &&
     emailStatus !== 'taken' &&
     emailStatus !== 'invalid' &&
-    password.length >= 8;
+    password.length >= 8 &&
+    captchaChallengeId.length > 0 &&
+    captchaAnswer.trim() !== '';
 
   const submit = async () => {
     setError(null);
@@ -189,6 +209,8 @@ export default function SignupPage() {
         planCode: planFromPricing?.plan,
         billingCycle: planFromPricing?.cycle,
         requiresPayment,
+        captchaChallengeId,
+        captchaAnswer: captchaAnswer === '' ? null : Number(captchaAnswer),
       });
       // On stocke le slug en localStorage pour que apiInstance l'injecte automatiquement
       // dans le header X-Tenant-Slug. Indispensable tant que le déploiement n'a pas
@@ -216,8 +238,26 @@ export default function SignupPage() {
         navigate('/dashboard', { state: { signupRedirectUrl: data.redirectUrl } });
       }
     } catch (e: any) {
+      // Cas spécial : email lié à un compte résilié, mais dans la fenêtre de réactivation
+      // (90j). On redirige l'utilisateur vers /login en pré-remplissant l'email — le login
+      // déclenchera resumeStripeCheckout (cas Cancelled) et créera une session Stripe.
+      if (e?.response?.data?.code === 'cancelled_account_reactivatable') {
+        const cancelledSlug = e?.response?.data?.slug;
+        if (cancelledSlug) localStorage.setItem('tenantSlug', cancelledSlug);
+        navigate('/login', {
+          state: {
+            email: email.trim(),
+            notice: 'Votre compte a été résilié. Connectez-vous pour le réactiver et reprendre votre abonnement (vos données sont conservées 90 jours).',
+          },
+        });
+        return;
+      }
       const msg = e?.response?.data?.error || e?.response?.data?.detail || 'Inscription échouée. Réessayez.';
       setError(msg);
+      // Captcha invalide → on régénère un nouveau challenge pour la prochaine tentative.
+      if (e?.response?.data?.code === 'captcha_failed') {
+        await refreshCaptcha();
+      }
     } finally {
       setSubmitting(false);
     }
@@ -234,18 +274,10 @@ export default function SignupPage() {
     }}>
       <Paper elevation={2} sx={{ maxWidth: 560, width: '100%', p: { xs: 3, md: 5 }, borderRadius: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          {/* Premium = paiement direct (pas d'essai). Starter/Standard = 30 jours offerts.
-              Visiteur sans plan choisi = parcours générique sur Standard par défaut. */}
-          {planFromPricing?.plan === 'Premium' ? (
-            <>
-              <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
-                Activer Premium
-              </Typography>
-              <Typography color="text.secondary">
-                Étape 1 sur 2 — paiement immédiat sur Stripe à l'étape suivante.
-              </Typography>
-            </>
-          ) : planFromPricing?.plan && planFromPricing?.userCount ? (
+          {/* Tous les packs (Starter/Standard/Premium) = 30 jours offerts sans CB. Le titre
+              s'adapte selon que l'utilisateur arrive depuis PlanConfiguration (étape 1 sur 2,
+              CB pré-enregistrée à l'étape suivante) ou en signup direct. */}
+          {planFromPricing?.plan && planFromPricing?.userCount ? (
             <>
               <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
                 Créer mon compte
@@ -363,6 +395,37 @@ export default function SignupPage() {
             InputProps={{ startAdornment: <InputAdornment position="start"><LockIcon /></InputAdornment> }}
           />
 
+          {/* Captcha anti-bot — question arithmétique simple, single-use, 5 min TTL.
+              Aucune dépendance tierce (RGPD-friendly, pas de bandeau cookie supplémentaire). */}
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+            <Box
+              sx={{
+                px: 2.5, py: 1.5, borderRadius: 1, bgcolor: '#f1f5f9',
+                fontFamily: 'monospace', fontSize: 18, fontWeight: 700, letterSpacing: 2,
+                minWidth: 110, textAlign: 'center', userSelect: 'none', color: '#0f172a',
+              }}
+            >
+              {captchaQuestion ? `${captchaQuestion} = ?` : '…'}
+            </Box>
+            <TextField
+              fullWidth
+              type="number"
+              label="Vérification anti-robot"
+              value={captchaAnswer}
+              onChange={(e) => setCaptchaAnswer(e.target.value)}
+              inputProps={{ inputMode: 'numeric' }}
+            />
+            <Button
+              size="small"
+              variant="text"
+              onClick={refreshCaptcha}
+              sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+              title="Générer un nouveau calcul"
+            >
+              ↻
+            </Button>
+          </Box>
+
           {error && <Alert severity="error">{error}</Alert>}
 
           <Button
@@ -374,8 +437,6 @@ export default function SignupPage() {
           >
             {submitting ? (
               <CircularProgress size={22} />
-            ) : planFromPricing?.plan === 'Premium' ? (
-              'Activer Premium — paiement Stripe'
             ) : planFromPricing?.plan && planFromPricing?.userCount ? (
               'Continuer vers le paiement'
             ) : (

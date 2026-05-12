@@ -286,13 +286,18 @@ const PlanConfigurationPage: React.FC = () => {
                   >
                     {submitting ? 'Redirection vers Stripe…' : "Confirmer l'achat"}
                   </button>
-                  <button
-                    onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
-                    className="w-full bg-surface-container-high text-on-surface py-5 rounded-2xl font-black hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
-                  >
-                    <FileText size={18} />
-                    {isAuthenticated ? 'Plus tard, retour au tableau de bord' : 'Plus tard, retour à la grille tarifaire'}
-                  </button>
+                  {/* Bouton "Plus tard" : pertinent uniquement pour un user connecté qui veut
+                      revenir à son dashboard. Pour un visiteur, il n'existe pas de dashboard et
+                      ce CTA secondaire est trompeur — on le masque entièrement. */}
+                  {isAuthenticated && (
+                    <button
+                      onClick={() => navigate('/dashboard')}
+                      className="w-full bg-surface-container-high text-on-surface py-5 rounded-2xl font-black hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
+                    >
+                      <FileText size={18} />
+                      Plus tard, retour au tableau de bord
+                    </button>
+                  )}
                 </div>
 
                 <p className="mt-8 text-[10px] text-center text-outline leading-relaxed font-bold">
