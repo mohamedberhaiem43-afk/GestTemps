@@ -58,4 +58,12 @@ public class Tenant
     /// </summary>
     [MaxLength(20)]
     public string? PlanCode { get; set; }
+
+    /// <summary>
+    /// Date d'envoi du rappel "fin d'essai imminente" (J-4 par défaut) aux admins et
+    /// managers du tenant. Null = jamais envoyé. Sert d'anti-doublon pour la sweep
+    /// horaire — on n'envoie le rappel qu'une seule fois par essai même si le job
+    /// passe plusieurs fois dans la fenêtre J-4 / J-3.
+    /// </summary>
+    public DateTime? TrialReminderSentAt { get; set; }
 }

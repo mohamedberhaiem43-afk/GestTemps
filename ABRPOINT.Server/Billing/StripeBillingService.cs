@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
@@ -8,6 +9,7 @@ public sealed class StripeBillingService : IBillingService
 {
     private readonly IDbContextFactory<MasterDbContext> _masterFactory;
     private readonly ITenantStore _store;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly StripeOptions _opts;
     private readonly ILogger<StripeBillingService> _log;
     private readonly CustomerService _customers;
@@ -16,11 +18,13 @@ public sealed class StripeBillingService : IBillingService
     public StripeBillingService(
         IDbContextFactory<MasterDbContext> masterFactory,
         ITenantStore store,
+        IServiceScopeFactory scopeFactory,
         IConfiguration cfg,
         ILogger<StripeBillingService> log)
     {
         _masterFactory = masterFactory;
         _store = store;
+        _scopeFactory = scopeFactory;
         _log = log;
         _opts = StripeOptions.Read(cfg);
 
@@ -123,6 +127,89 @@ public sealed class StripeBillingService : IBillingService
 
     public async Task SuspendAsync(string stripeCustomerId, CancellationToken ct = default)
         => await UpdateStatusByCustomerIdAsync(stripeCustomerId, "Suspended", ct);
+
+    public async Task SendTrialExpiryRemindersAsync(int daysBeforeEnd = 4, CancellationToken ct = default)
+    {
+        // Cherche les tenants Trialing dont la fin d'essai tombe dans une fenêtre
+        // [daysBeforeEnd-1 .. daysBeforeEnd] jours à partir de maintenant. La fenêtre
+        // d'1 jour absorbe le délai entre 2 sweeps (1h) sans risquer de manquer un
+        // tenant. Le flag TrialReminderSentAt évite le double envoi quand plusieurs
+        // sweeps tombent dans la fenêtre.
+        var now = DateTime.UtcNow;
+        var windowStart = now.AddDays(daysBeforeEnd - 1);
+        var windowEnd = now.AddDays(daysBeforeEnd);
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var candidates = await master.Tenants
+            .Where(t => t.Status == "Trialing"
+                        && t.TrialEndsAt != null
+                        && t.TrialEndsAt >= windowStart
+                        && t.TrialEndsAt <= windowEnd
+                        && t.TrialReminderSentAt == null)
+            .ToListAsync(ct);
+
+        if (candidates.Count == 0) return;
+
+        foreach (var tenant in candidates)
+        {
+            try
+            {
+                await SendReminderForOneTenantAsync(tenant, daysBeforeEnd, ct);
+                tenant.TrialReminderSentAt = DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                // Échec isolé d'un tenant ne doit pas bloquer le sweep. On laisse le flag
+                // null pour retenter au prochain passage horaire (au pire on aura quelques
+                // ré-essais avant que la fenêtre se referme).
+                _log.LogWarning(ex, "Trial reminder failed for tenant {Slug}.", tenant.Slug);
+            }
+        }
+        await master.SaveChangesAsync(ct);
+        _log.LogInformation("SendTrialExpiryReminders : {Count} tenant(s) notifié(s) (J-{Days}).", candidates.Count, daysBeforeEnd);
+    }
+
+    /// <summary>
+    /// Envoie le rappel "fin d'essai imminente" à tous les admins + managers d'un tenant.
+    /// La notification utilise <see cref="IUserNotificationService"/> qui couvre les 3 canaux
+    /// (push mobile, in-app, email best-effort). On bascule le tenant courant via
+    /// <see cref="ICurrentTenant"/> avant de créer le scope DI pour que l'<c>ApplicationDbContext</c>
+    /// pointe sur la bonne base.
+    /// </summary>
+    private async Task SendReminderForOneTenantAsync(Tenant tenant, int daysBeforeEnd, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var current = scope.ServiceProvider.GetService<ICurrentTenant>();
+        if (current is null)
+        {
+            _log.LogWarning("ICurrentTenant indisponible : reminder ignoré pour {Slug}.", tenant.Slug);
+            return;
+        }
+        current.Set(tenant);
+
+        var notify = scope.ServiceProvider.GetService<IUserNotificationService>();
+        if (notify is null) return;
+
+        var daysLabel = daysBeforeEnd == 1 ? "1 jour" : $"{daysBeforeEnd} jours";
+        var title = "⏰ Fin d'essai imminente";
+        var body = $"Votre période d'essai gratuite Concorde Workforce se termine dans {daysLabel}. " +
+                   "Finalisez votre paiement Stripe pour continuer sans interruption.";
+        // type=trial_expiry permet aux préférences utilisateur de filtrer ces rappels
+        // commerciaux (canal in-app/push indépendant des notifs métier).
+        var payload = new
+        {
+            type = "trial_expiry",
+            daysRemaining = daysBeforeEnd,
+            trialEndsAt = tenant.TrialEndsAt,
+            planCode = tenant.PlanCode,
+        };
+
+        // On notifie indépendamment admins et managers : ce sont les 2 rôles autorisés
+        // à gérer la facturation côté UI (/dashboard/payment). Si l'un n'a aucun user
+        // dans le tenant, l'autre reçoit quand même.
+        await notify.NotifyAdminsAsync(title, body, payload, ct);
+        await notify.NotifyManagersAsync(title, body, payload, ct);
+    }
 
     public async Task ProcessTrialExpirationsAsync(CancellationToken ct = default)
     {

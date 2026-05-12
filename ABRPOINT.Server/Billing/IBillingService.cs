@@ -29,6 +29,14 @@ public interface IBillingService
 
     /// <summary>Cron : marque trialed pendant trop longtemps en PastDue (déclenche le 1er paiement Stripe sinon).</summary>
     Task ProcessTrialExpirationsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Cron : notifie admins + managers des tenants dont l'essai expire dans
+    /// <paramref name="daysBeforeEnd"/> jours, pour leur rappeler de finaliser le paiement
+    /// Stripe avant la bascule en PendingPayment. Idempotent — chaque tenant n'est notifié
+    /// qu'une seule fois (champ Tenant.TrialReminderSentAt).
+    /// </summary>
+    Task SendTrialExpiryRemindersAsync(int daysBeforeEnd = 4, CancellationToken ct = default);
 }
 
 public sealed record BillingProvisionResult(

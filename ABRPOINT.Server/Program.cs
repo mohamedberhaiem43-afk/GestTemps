@@ -456,6 +456,13 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'PlanCode' AND Object_ID 
 BEGIN
     ALTER TABLE [Tenants] ADD [PlanCode] NVARCHAR(20) NULL;
 END");
+                // TrialReminderSentAt : flag horodaté servant d'anti-doublon pour le rappel
+                // "fin d'essai imminente" (J-4). Idempotent — appliqué aux bases master existantes.
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'TrialReminderSentAt' AND Object_ID = Object_ID(N'Tenants'))
+BEGIN
+    ALTER TABLE [Tenants] ADD [TrialReminderSentAt] DATETIME2 NULL;
+END");
                 // Migration 2026-05 : rename commercial Essentiel → Starter. Les tenants
                 // signés avant ce changement ont PlanCode='Essentiel' en base ; on aligne
                 // pour que PlanCatalog.GetPlan retourne directement Starter sans passer

@@ -174,10 +174,11 @@ export default function SignupPage() {
     setError(null);
     setSubmitting(true);
     try {
-      // requiresPayment = true quand l'utilisateur arrive d'un plan payant configuré.
-      // Le backend bascule alors le tenant en "PendingPayment" et bloque le login tant
-      // que Stripe n'a pas confirmé la transaction.
-      const requiresPayment = !!(planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType);
+      // V3 : tous les packs incluent 30 jours d'essai sans CB → on n'envoie plus
+      // requiresPayment=true (le backend ignore la valeur de toute façon). On
+      // garde le champ dans le payload pour compat API. La détection "l'utilisateur
+      // vient de PlanConfiguration" se fait désormais sur plan + userCount.
+      const requiresPayment = false;
       const { data } = await apiInstance.post('/signup', {
         slug,
         companyName: companyName.trim(),
@@ -196,17 +197,17 @@ export default function SignupPage() {
       // Recharge le contexte d'auth maintenant que les cookies JWT du nouveau tenant sont posés
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();
-      // L'utilisateur arrive depuis PlanConfigurationPage (visiteur) avec plan + userCount + packageType :
-      //   → on déclenche directement la session Stripe Checkout (pas d'écran de paiement custom).
+      // L'utilisateur arrive depuis PlanConfigurationPage (visiteur) avec plan + userCount :
+      //   → on déclenche directement la session Stripe Checkout pour pré-enregistrer
+      //     son mode de paiement (sans débit immédiat — l'essai gratuit reste actif).
       // Avec uniquement plan/cycle (PricingPage → signup direct) :
       //   → on l'envoie sur /dashboard/plan-configuration pour finaliser la config.
-      // Sans plan choisi : dashboard + trial 14j.
-      if (planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType) {
+      // Sans plan choisi : dashboard + trial 30j.
+      if (planFromPricing?.plan && planFromPricing?.userCount) {
         await startStripeCheckout({
           plan: planFromPricing.plan,
           cycle: planFromPricing.cycle ?? 'annual',
           userCount: planFromPricing.userCount,
-          packageType: planFromPricing.packageType,
         });
         return;
       } else if (planFromPricing?.plan) {
@@ -235,7 +236,7 @@ export default function SignupPage() {
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           {/* Le titre/sous-titre s'adapte : signup direct = essai gratuit ;
               signup post-PlanConfiguration = étape avant paiement. */}
-          {planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType ? (
+          {planFromPricing?.plan && planFromPricing?.userCount ? (
             <>
               <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
                 Créer mon compte
@@ -363,7 +364,7 @@ export default function SignupPage() {
           >
             {submitting ? (
               <CircularProgress size={22} />
-            ) : planFromPricing?.plan && planFromPricing?.userCount && planFromPricing?.packageType ? (
+            ) : planFromPricing?.plan && planFromPricing?.userCount ? (
               'Continuer vers le paiement'
             ) : (
               'Démarrer mon essai gratuit'

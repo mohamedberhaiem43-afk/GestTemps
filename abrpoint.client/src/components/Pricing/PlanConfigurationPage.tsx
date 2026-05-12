@@ -43,7 +43,6 @@ const PlanConfigurationPage: React.FC = () => {
     plan?: string;
     cycle?: 'monthly' | 'annual';
     userCount?: number;
-    packageType?: 'formation' | 'pack' | 'coaching';
   };
   const planCode: PlanKey = ((initialState.plan as PlanKey) in PLAN_CATALOG
     ? (initialState.plan as PlanKey)
@@ -53,7 +52,6 @@ const PlanConfigurationPage: React.FC = () => {
   // (10 / 25 / 50). Avant on hardcodait 50, ce qui donnait un overage faux sur Starter.
   const [userCount, setUserCount] = useState(initialState.userCount ?? plan.includedEmployees);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
-  const [packageType, setPackageType] = useState<'formation' | 'pack' | 'coaching'>(initialState.packageType ?? 'pack');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -80,7 +78,6 @@ const PlanConfigurationPage: React.FC = () => {
       price: monthlyTotal,
       cycle: billingCycle,
       userCount,
-      packageType,
     };
     if (!isAuthenticated) {
       navigate('/signup', { state });
@@ -89,7 +86,7 @@ const PlanConfigurationPage: React.FC = () => {
     setError(null);
     setSubmitting(true);
     try {
-      await startStripeCheckout({ plan: planCode, cycle: billingCycle, userCount, packageType });
+      await startStripeCheckout({ plan: planCode, cycle: billingCycle, userCount });
     } catch (e: any) {
       setError(e?.response?.data?.error || 'Échec de la redirection vers Stripe.');
       setSubmitting(false);
@@ -147,7 +144,14 @@ const PlanConfigurationPage: React.FC = () => {
                 </div>
               </section>
 
-              {/* Section: Accompagnement */}
+              {/* Section: Accompagnement
+                  Les 3 cartes ci-dessous sont uniquement *informatives* — elles
+                  présentent les services d'onboarding (formation, pack mise en
+                  place, coaching) mais ne sont pas sélectionnables : ces services
+                  sont vendus à part par les équipes commerciales, pas inclus dans
+                  l'abonnement Stripe. Avant, on simulait un choix interactif
+                  (`packageType`) qui prêtait à confusion ; on retire onClick,
+                  cursor-pointer, ring-selected et hover-shadow pour clarifier. */}
               <section>
                 <div className="flex items-center gap-3 mb-8">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -156,49 +160,28 @@ const PlanConfigurationPage: React.FC = () => {
                   <h2 className="text-xl font-black tracking-tight font-headline uppercase">Accompagnement</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Card 1 — Formation logiciel */}
-                  <div
-                    onClick={() => setPackageType('formation')}
-                    className={`group relative bg-white p-8 rounded-3xl border-2 transition-all cursor-pointer hover:shadow-xl ${
-                      packageType === 'formation' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
-                    }`}
-                  >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
-                      packageType === 'formation' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
-                    }`}>
+                  {/* Card 1 — Formation logiciel (informatif) */}
+                  <div className="relative bg-white p-8 rounded-3xl border border-surface-container-high">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-surface-container-low text-outline">
                       <span className="material-symbols-outlined text-2xl">school</span>
                     </div>
                     <h3 className="font-black text-lg mb-2 font-headline">Formation logiciel</h3>
                     <p className="text-sm text-on-surface-variant leading-relaxed">Vous utilisez Concorde-work-force et souhaitez exploiter tout son potentiel pour optimiser la gestion de votre entreprise ?</p>
                   </div>
 
-                  {/* Card 2 — Pack de mise en place (recommended) */}
-                  <div
-                    onClick={() => setPackageType('pack')}
-                    className={`group relative bg-white p-8 rounded-3xl border-2 transition-all cursor-pointer hover:shadow-xl ${
-                      packageType === 'pack' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
-                    }`}
-                  >
+                  {/* Card 2 — Pack de mise en place (informatif, badge "Conseillé" purement éditorial) */}
+                  <div className="relative bg-white p-8 rounded-3xl border border-surface-container-high">
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest shadow-lg">Conseillé</div>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
-                      packageType === 'pack' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
-                    }`}>
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-surface-container-low text-outline">
                       <span className="material-symbols-outlined text-2xl fill-icon">rocket_launch</span>
                     </div>
                     <h3 className="font-black text-lg mb-2 font-headline">Pack de mise en place</h3>
                     <p className="text-sm text-on-surface-variant leading-relaxed">Gagnez un temps précieux et assurez un démarrage optimal sur Concorde-work-force.</p>
                   </div>
 
-                  {/* Card 3 — Coaching sur mesure */}
-                  <div
-                    onClick={() => setPackageType('coaching')}
-                    className={`group relative bg-white p-8 rounded-3xl border-2 transition-all cursor-pointer hover:shadow-xl ${
-                      packageType === 'coaching' ? 'border-primary shadow-lg ring-4 ring-primary/5' : 'border-surface-container-high hover:border-primary/50'
-                    }`}
-                  >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
-                      packageType === 'coaching' ? 'bg-primary text-white' : 'bg-surface-container-low text-outline group-hover:bg-primary/10 group-hover:text-primary'
-                    }`}>
+                  {/* Card 3 — Coaching sur mesure (informatif) */}
+                  <div className="relative bg-white p-8 rounded-3xl border border-surface-container-high">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-surface-container-low text-outline">
                       <span className="material-symbols-outlined text-2xl">psychology</span>
                     </div>
                     <h3 className="font-black text-lg mb-2 font-headline">Coaching sur mesure</h3>
