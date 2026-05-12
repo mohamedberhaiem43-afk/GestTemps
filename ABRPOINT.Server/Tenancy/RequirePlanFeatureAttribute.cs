@@ -15,8 +15,11 @@ namespace ABRPOINT.Server.Tenancy;
 /// public async Task&lt;IActionResult&gt; Ask(...) { ... }
 /// </code>
 ///
-/// Pendant l'essai (status=Trialing), on accorde TOUTES les features pour que
-/// l'utilisateur puisse tester l'intégralité de la solution avant de choisir.
+/// Pendant l'essai (status=Trialing), le tenant voit les features de SON plan
+/// sélectionné — Starter en essai = vraies restrictions Starter. Cohérent avec la
+/// promesse commerciale "votre plan = vos modules" et évite l'effet falaise au
+/// moment du passage payant (modules qui disparaissent du jour au lendemain).
+/// Décision 2026-05-12.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
 public sealed class RequirePlanFeatureAttribute : ActionFilterAttribute
@@ -32,13 +35,6 @@ public sealed class RequirePlanFeatureAttribute : ActionFilterAttribute
     {
         var current = ctx.HttpContext.RequestServices.GetService(typeof(ICurrentTenant)) as ICurrentTenant;
         var tenant = current?.Current;
-
-        // Pendant l'essai, on accorde l'accès à toutes les features.
-        if (TrialPolicy.IsTrialing(tenant))
-        {
-            base.OnActionExecuting(ctx);
-            return;
-        }
 
         var plan = PlanCatalog.GetPlan(tenant?.PlanCode);
         if (plan is null)

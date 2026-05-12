@@ -611,10 +611,12 @@ namespace GestionDesTickets.Server.Controllers
             // Plan canonique (Starter remplace l'ancien "Essentiel") + matrice fonctionnelle
             // consommée par le front via useAuth().planAllows(feature).
             var planDef = ABRPOINT.Server.Tenancy.PlanCatalog.GetPlan(tenant?.PlanCode);
-            // En essai, on simule l'accès complet pour que l'utilisateur teste toutes les features.
-            var effectiveFeatures = isTrialing
-                ? ABRPOINT.Server.Tenancy.PlanCatalog.Premium.Features
-                : (planDef?.Features ?? ABRPOINT.Server.Tenancy.PlanCatalog.Premium.Features);
+            // 2026-05-12 : en essai, on n'accorde plus Premium-pour-tous. Le tenant voit
+            // les features de SON plan sélectionné — Starter en trial = vraies restrictions.
+            // Cohérent avec la promesse "votre plan = vos modules" et évite l'effet
+            // falaise au paiement (modules qui disparaissent brutalement). Fallback Premium
+            // uniquement si le tenant n'a pas de plan défini (cas legacy).
+            var effectiveFeatures = planDef?.Features ?? ABRPOINT.Server.Tenancy.PlanCatalog.Premium.Features;
 
             return Ok(new
             {

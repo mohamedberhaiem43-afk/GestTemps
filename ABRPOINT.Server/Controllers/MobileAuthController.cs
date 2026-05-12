@@ -314,15 +314,12 @@ namespace ABRPOINT.Server.Controllers
 
             // Plan info (consommé par le mobile pour activer/désactiver la sécurité renforcée :
             // device trust, screenshot protection — cf. abrpoint.mobile/src/contexts/AuthContext).
-            // Pendant l'essai, on accorde toutes les features pour que l'utilisateur teste tout.
+            // 2026-05-12 : en essai, le mobile voit les features du plan sélectionné — pas
+            // de Premium-pour-tous (cohérent avec la web app).
             var tenant = _currentTenant?.Current;
-            var isTrialing = Tenancy.TrialPolicy.IsTrialing(tenant);
             var planCode = Tenancy.PlanCatalog.Normalize(tenant?.PlanCode);
             var planDef = Tenancy.PlanCatalog.GetPlan(planCode);
-            var effectiveFeatures = isTrialing && planDef is not null
-                ? new Tenancy.PlanFeatures(true, true, true, true, true, true, true, true, true, true, true, true, true,
-                                           true, true, true, true, true, true)
-                : planDef?.Features;
+            var effectiveFeatures = planDef?.Features;
 
             return Ok(new
             {
