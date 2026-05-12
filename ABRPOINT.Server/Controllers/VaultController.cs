@@ -558,23 +558,76 @@ namespace ABRPOINT.Server.Controllers
                 return Forbid();
             }
 
-            // Save signature image to disk
+            // 1. Conserve l'image de signature en stand-alone (preuve séparée + fallback
+            //    pour les documents non-PDF type docx/xlsx qu'on ne sait pas tamponner).
             var (success, filePath, error) = await FileHelper.SaveBase64Image(request.SignatureData);
             if (success) doc.SignaturePath = filePath;
 
+            var signedAt = DateTime.UtcNow;
+            var certificateId = $"CERT-LEDG-{signedAt.Year}-{Guid.NewGuid().ToString()[..8].ToUpper()}";
+
+            // 2. Si le document source est un PDF statique, on imprime la signature
+            //    dans le PDF lui-même (bas de la dernière page) puis on aiguille
+            //    DocPath vers la nouvelle version signée.
+            //    DocPath est chiffré en base ; on doit le déchiffrer pour résoudre
+            //    le fichier physique, puis re-chiffrer le nouveau chemin.
+            try
+            {
+                var decryptedPath = _encryptionService.Decrypt(doc.DocPath);
+                var fileName = Path.GetFileName(decryptedPath);
+                var sourcePdf = Path.Combine(FileHelper.GetUploadsPath(), fileName);
+
+                if (System.IO.File.Exists(sourcePdf) &&
+                    string.Equals(Path.GetExtension(sourcePdf), ".pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Nom destinataire pour le tampon : on prend ce que le client envoie,
+                    // mais on retombe sur le libellé employé si vide.
+                    var signerLabel = string.IsNullOrWhiteSpace(request.SignerName)
+                        ? doc.Empcod
+                        : request.SignerName;
+
+                    var stampedPath = PdfSignatureStamper.Stamp(
+                        sourcePdf,
+                        request.SignatureData,
+                        new PdfSignatureStamper.StampOptions(
+                            SignerName: signerLabel,
+                            SignedAtUtc: signedAt,
+                            CertificateId: certificateId,
+                            Mention: request.Mention,
+                            Location: request.Location));
+
+                    if (!string.IsNullOrEmpty(stampedPath))
+                    {
+                        var stampedName = Path.GetFileName(stampedPath);
+                        // Même schéma URL que FileHelper.SaveFile : /api/uploads/<file>.
+                        doc.DocPath = _encryptionService.Encrypt("/api/uploads/" + stampedName);
+                        try { doc.DocSize = new FileInfo(stampedPath).Length; } catch { /* best effort */ }
+                    }
+                }
+            }
+            catch
+            {
+                // Échec de fusion = on garde le document original + signature séparée.
+                // Pas de raison de bloquer la signature pour ça.
+            }
+
             doc.IsSigned = true;
-            doc.SignatureDate = DateTime.UtcNow;
+            doc.SignatureDate = signedAt;
             doc.Status = "Signed";
 
             await _vaultRepository.UpdateDocumentAsync(doc);
-            
-            return Ok(new { success = true, certificateId = $"CERT-LEDG-{DateTime.Now.Year}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}" });
+
+            return Ok(new { success = true, certificateId });
         }
 
         public class SignRequest
         {
             public string SignatureData { get; set; } = null!;
             public string SignerName { get; set; } = null!;
+            // Métadonnées additionnelles envoyées par le SignaturePage web. Optionnelles
+            // côté API pour ne pas casser les anciens clients (mobile, scripts).
+            public string? Mention { get; set; }
+            public string? Location { get; set; }
         }
 
         private string GetContentType(string path)

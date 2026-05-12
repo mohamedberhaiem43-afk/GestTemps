@@ -58,6 +58,9 @@ interface EmployeFull {
   empreg?: string | null;
   natcod?: string | null;
   vilcod?: string | null;
+  /** Libellé ville (résolu server-side via la table `ville`) — préféré à `vilcod`
+   *  pour l'affichage humain ("Casablanca" plutôt que "CAS"). */
+  villib?: string | null;
   catcod?: string | null;
   sercod?: string | null;
   dircod?: string | null;
@@ -71,6 +74,9 @@ interface EmployeFull {
   empcat?: string | null;
   caltype?: string | null;
   actif?: string | null;
+  /** Avatar du compte utilisateur lié (Utilisateurs.Utiimg). Peut être une data
+   *  URI ou un chemin relatif servi par nginx. */
+  utiimg?: string | null;
 }
 
 const fmtDate = (d: any): string => {
@@ -182,8 +188,20 @@ export default function EmployeProfileView() {
     );
   }
 
+  // L'avatar préfère la photo de profil (Utiimg) servie via le backend ; on
+  // retombe sur les initiales si le compte n'a pas de photo (ou pas de compte
+  // utilisateur lié du tout). On accepte les deux formats émis par le backend :
+  // data URI ("data:image/...") ou chemin relatif type "/api/uploads/...".
+  const photoSrc = emp.utiimg
+    ? (emp.utiimg.startsWith('data:') || emp.utiimg.startsWith('http')
+        ? emp.utiimg
+        : emp.utiimg)
+    : null;
+  // Ville : libellé résolu prioritaire, fallback sur le code legacy.
+  const villeDisplay = emp.villib || emp.vilcod || '—';
+
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
       {/* Toolbar */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <Tooltip title="Retour à la liste">
@@ -216,163 +234,215 @@ export default function EmployeProfileView() {
         )}
       </Box>
 
-      {/* Hero card — bandeau gradient + avatar + nom + statut */}
+      {/* Layout 2 colonnes : sections détaillées à gauche, sidebar collaborateur
+          (photo + identité + statut) collée à droite — inspiré du drawer
+          d'état d'absences (sidebar fixe contenant la synthèse de la ligne).
+          Sur mobile, la sidebar bascule au-dessus du contenu pour rester lisible. */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 60%, #1a6eff 100%)',
-          borderRadius: '20px',
-          p: { xs: 3, md: 4 },
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 340px' },
           gap: 3,
-          flexWrap: 'wrap',
-          mb: 3,
-          boxShadow: '0 12px 32px rgba(0,64,161,0.20)',
-          animation: 'profileHeroIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both',
-          '@keyframes profileHeroIn': {
-            '0%':   { opacity: 0, transform: 'translateY(-12px) scale(0.97)' },
-            '100%': { opacity: 1, transform: 'translateY(0) scale(1)' },
-          },
+          alignItems: 'start',
         }}
       >
-        <Avatar
+        {/* ─── COLONNE PRINCIPALE : sections détaillées ─── */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+          gap: 2,
+        }}>
+          {/* Coordonnées */}
+          <SectionCard title="Coordonnées" icon={<EmailIcon fontSize="small" />}>
+            <InfoRow icon={<EmailIcon fontSize="small" />} label="Email" value={emp.empemail || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<PhoneIcon fontSize="small" />} label="Téléphone" value={emp.emptel || emp.empmob || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<HomeIcon fontSize="small" />} label="Adresse" value={emp.empadr || '—'} />
+          </SectionCard>
+
+          {/* Identité */}
+          <SectionCard title="Identité" icon={<BadgeIcon fontSize="small" />}>
+            <InfoRow icon={<BadgeIcon fontSize="small" />} label="CIN" value={emp.empcin ? `${emp.empcin}${emp.empacin ? ` (${emp.empacin})` : ''}` : '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<CakeIcon fontSize="small" />} label="Date de naissance"
+              value={`${fmtDate(emp.empdnais)}${emp.emplnais ? ` à ${emp.emplnais}` : ''}`} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<WcIcon fontSize="small" />} label="Sexe / Situation"
+              value={[emp.empsexe === 'M' ? 'Homme' : emp.empsexe === 'F' ? 'Femme' : null,
+                      emp.empsitfam, emp.empnbp != null ? `${emp.empnbp} enfant(s)` : null]
+                    .filter(Boolean).join(' · ') || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<FlagIcon fontSize="small" />} label="Nationalité" value={emp.natcod || '—'} />
+          </SectionCard>
+
+          {/* Poste & affectation */}
+          <SectionCard title="Poste & affectation" icon={<BusinessCenterIcon fontSize="small" />}>
+            <InfoRow icon={<BusinessCenterIcon fontSize="small" />} label="Fonction" value={emp.empfonc || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<ApartmentIcon fontSize="small" />} label="Direction / Service"
+              value={[emp.dircod, emp.sercod].filter(Boolean).join(' · ') || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<GroupsIcon fontSize="small" />} label="Manager" value={emp.empresp || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<SchoolIcon fontSize="small" />} label="Catégorie / Niveau"
+              value={[emp.catcod, emp.empniv].filter(Boolean).join(' · ') || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<VerifiedIcon fontSize="small" />} label="Qualification" value={emp.quacod || '—'} />
+          </SectionCard>
+
+          {/* Carrière */}
+          <SectionCard title="Carrière" icon={<CalendarTodayIcon fontSize="small" />}>
+            <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Date d'embauche" value={fmtDate(emp.empemb)} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<WorkHistoryIcon fontSize="small" />} label="Ancienneté" value={seniority} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Type de contrat" value={emp.empcontrat || '—'} />
+            {emp.empsort && (
+              <>
+                <Divider sx={{ borderColor: '#f1f5f9' }} />
+                <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Date de sortie" value={fmtDate(emp.empsort)} />
+              </>
+            )}
+          </SectionCard>
+
+          {/* Rémunération — visible uniquement si l'utilisateur a le droit modify
+              (les admins/RH), pour ne pas exposer le salaire à un manager simple
+              qui n'a que la consultation. */}
+          {canModify && (emp.empsbase || emp.empsbrut || emp.empsnet) && (
+            <SectionCard title="Rémunération" icon={<PaymentsIcon fontSize="small" />}>
+              <InfoRow icon={<PaymentsIcon fontSize="small" />} label="Salaire de base" value={emp.empsbase || '—'} />
+              <Divider sx={{ borderColor: '#f1f5f9' }} />
+              <InfoRow icon={<PaymentsIcon fontSize="small" />} label="Salaire brut" value={emp.empsbrut || '—'} />
+              <Divider sx={{ borderColor: '#f1f5f9' }} />
+              <InfoRow icon={<PaymentsIcon fontSize="small" />} label="Salaire net" value={emp.empsnet || '—'} />
+            </SectionCard>
+          )}
+
+          {/* Lieu de travail */}
+          <SectionCard title="Lieu de travail" icon={<LocationOnIcon fontSize="small" />}>
+            <InfoRow icon={<LocationOnIcon fontSize="small" />} label="Ville" value={villeDisplay} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<ApartmentIcon fontSize="small" />} label="Poste de travail" value={emp.poscod || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Calendrier" value={emp.caltype || '—'} />
+          </SectionCard>
+        </Box>
+
+        {/* ─── SIDEBAR DROITE : carte collaborateur (sticky) ─── */}
+        <Box
           sx={{
-            width: 96, height: 96,
-            background: 'rgba(255,255,255,0.18)',
-            border: '4px solid rgba(255,255,255,0.4)',
-            fontSize: 36, fontWeight: 800,
-            boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+            position: { md: 'sticky' },
+            top: { md: 16 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            order: { xs: -1, md: 0 },
           }}
         >
-          {initials}
-        </Avatar>
-        <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, opacity: 0.85 }}>
-            #{emp.empmat || emp.empcod}
-          </Typography>
-          <Typography sx={{ fontSize: { xs: 22, md: 28 }, fontWeight: 800, mt: 0.5, lineHeight: 1.2 }}>
-            {emp.emplib || '—'}
-          </Typography>
-          <Typography sx={{ fontSize: 14, opacity: 0.92, mt: 0.5 }}>
-            {emp.empfonc || 'Poste non défini'}
-            {emp.dircod ? ` · ${emp.dircod}` : ''}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, mt: 1.5, flexWrap: 'wrap' }}>
-            <Chip
-              label={isActive ? '● Actif' : '● Sorti'}
-              size="small"
+          {/* Carte profil — bandeau gradient + photo + identité, format vertical */}
+          <Box
+            sx={{
+              background: 'linear-gradient(160deg, #0040a1 0%, #0056d2 55%, #1a6eff 100%)',
+              borderRadius: '18px',
+              p: 3,
+              color: 'white',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              boxShadow: '0 12px 32px rgba(0,64,161,0.20)',
+              animation: 'profileHeroIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+              '@keyframes profileHeroIn': {
+                '0%':   { opacity: 0, transform: 'translateY(-12px) scale(0.97)' },
+                '100%': { opacity: 1, transform: 'translateY(0) scale(1)' },
+              },
+            }}
+          >
+            <Avatar
+              src={photoSrc || undefined}
               sx={{
-                background: isActive ? 'rgba(74,222,128,0.25)' : 'rgba(252,165,165,0.25)',
-                color: isActive ? '#86efac' : '#fca5a5',
-                fontWeight: 800, fontSize: 11, letterSpacing: 0.3,
+                width: 110, height: 110,
+                background: 'rgba(255,255,255,0.18)',
+                border: '4px solid rgba(255,255,255,0.4)',
+                fontSize: 40, fontWeight: 800,
+                boxShadow: '0 8px 20px rgba(0,0,0,0.18)',
+                mb: 2,
               }}
-            />
-            {emp.empcontrat && (
-              <Chip
-                label={emp.empcontrat}
-                size="small"
-                sx={{ background: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 700, fontSize: 11 }}
-              />
+            >
+              {/* Avatar fallback (initiales) si le src est null/cassé */}
+              {initials}
+            </Avatar>
+            <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, opacity: 0.85 }}>
+              #{emp.empmat || emp.empcod}
+            </Typography>
+            <Typography sx={{ fontSize: 18, fontWeight: 800, mt: 0.5, lineHeight: 1.2, wordBreak: 'break-word' }}>
+              {emp.emplib || '—'}
+            </Typography>
+            <Typography sx={{ fontSize: 12.5, opacity: 0.92, mt: 0.75 }}>
+              {emp.empfonc || 'Poste non défini'}
+            </Typography>
+            {emp.dircod && (
+              <Typography sx={{ fontSize: 11, opacity: 0.78, mt: 0.25 }}>
+                {emp.dircod}
+              </Typography>
             )}
-            {emp.empreg && (
+            <Box sx={{ display: 'flex', gap: 0.75, mt: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
               <Chip
-                label={emp.empreg === 'M' ? 'Mensuel' : emp.empreg === 'H' ? 'Horaire' : emp.empreg}
+                label={isActive ? '● Actif' : '● Sorti'}
                 size="small"
-                sx={{ background: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 700, fontSize: 11 }}
+                sx={{
+                  background: isActive ? 'rgba(74,222,128,0.25)' : 'rgba(252,165,165,0.25)',
+                  color: isActive ? '#86efac' : '#fca5a5',
+                  fontWeight: 800, fontSize: 11, letterSpacing: 0.3,
+                }}
               />
-            )}
+              {emp.empcontrat && (
+                <Chip
+                  label={emp.empcontrat}
+                  size="small"
+                  sx={{ background: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 700, fontSize: 11 }}
+                />
+              )}
+              {emp.empreg && (
+                <Chip
+                  label={emp.empreg === 'M' ? 'Mensuel' : emp.empreg === 'H' ? 'Horaire' : emp.empreg}
+                  size="small"
+                  sx={{ background: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 700, fontSize: 11 }}
+                />
+              )}
+            </Box>
             <Chip
               icon={<WorkHistoryIcon sx={{ color: '#fff !important', fontSize: 14 }} />}
               label={`Ancienneté : ${seniority}`}
               size="small"
-              sx={{ background: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 700, fontSize: 11 }}
+              sx={{ background: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 700, fontSize: 11, mt: 1 }}
             />
           </Box>
+
+          {/* Carte "à propos" compacte — contacts directs + lieu, en miroir du
+              header de drawer d'absences (champs label/value sobres). */}
+          <Box
+            sx={{
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              p: 2.25,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          >
+            <Typography sx={{ fontSize: 11, fontWeight: 800, color: '#0040a1', letterSpacing: 0.5, textTransform: 'uppercase', mb: 1 }}>
+              Synthèse
+            </Typography>
+            <InfoRow icon={<EmailIcon fontSize="small" />} label="Email" value={emp.empemail || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<PhoneIcon fontSize="small" />} label="Téléphone" value={emp.emptel || emp.empmob || '—'} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<LocationOnIcon fontSize="small" />} label="Ville" value={villeDisplay} />
+            <Divider sx={{ borderColor: '#f1f5f9' }} />
+            <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Date d'embauche" value={fmtDate(emp.empemb)} />
+          </Box>
         </Box>
-      </Box>
-
-      {/* Grid des sections */}
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
-        gap: 2,
-      }}>
-        {/* Coordonnées */}
-        <SectionCard title="Coordonnées" icon={<EmailIcon fontSize="small" />}>
-          <InfoRow icon={<EmailIcon fontSize="small" />} label="Email" value={emp.empemail || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<PhoneIcon fontSize="small" />} label="Téléphone" value={emp.emptel || emp.empmob || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<HomeIcon fontSize="small" />} label="Adresse" value={emp.empadr || '—'} />
-        </SectionCard>
-
-        {/* Identité */}
-        <SectionCard title="Identité" icon={<BadgeIcon fontSize="small" />}>
-          <InfoRow icon={<BadgeIcon fontSize="small" />} label="CIN" value={emp.empcin ? `${emp.empcin}${emp.empacin ? ` (${emp.empacin})` : ''}` : '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<CakeIcon fontSize="small" />} label="Date de naissance"
-            value={`${fmtDate(emp.empdnais)}${emp.emplnais ? ` à ${emp.emplnais}` : ''}`} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<WcIcon fontSize="small" />} label="Sexe / Situation"
-            value={[emp.empsexe === 'M' ? 'Homme' : emp.empsexe === 'F' ? 'Femme' : null,
-                    emp.empsitfam, emp.empnbp != null ? `${emp.empnbp} enfant(s)` : null]
-                  .filter(Boolean).join(' · ') || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<FlagIcon fontSize="small" />} label="Nationalité" value={emp.natcod || '—'} />
-        </SectionCard>
-
-        {/* Poste & affectation */}
-        <SectionCard title="Poste & affectation" icon={<BusinessCenterIcon fontSize="small" />}>
-          <InfoRow icon={<BusinessCenterIcon fontSize="small" />} label="Fonction" value={emp.empfonc || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<ApartmentIcon fontSize="small" />} label="Direction / Service"
-            value={[emp.dircod, emp.sercod].filter(Boolean).join(' · ') || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<GroupsIcon fontSize="small" />} label="Manager" value={emp.empresp || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<SchoolIcon fontSize="small" />} label="Catégorie / Niveau"
-            value={[emp.catcod, emp.empniv].filter(Boolean).join(' · ') || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<VerifiedIcon fontSize="small" />} label="Qualification" value={emp.quacod || '—'} />
-        </SectionCard>
-
-        {/* Carrière */}
-        <SectionCard title="Carrière" icon={<CalendarTodayIcon fontSize="small" />}>
-          <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Date d'embauche" value={fmtDate(emp.empemb)} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<WorkHistoryIcon fontSize="small" />} label="Ancienneté" value={seniority} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Type de contrat" value={emp.empcontrat || '—'} />
-          {emp.empsort && (
-            <>
-              <Divider sx={{ borderColor: '#f1f5f9' }} />
-              <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Date de sortie" value={fmtDate(emp.empsort)} />
-            </>
-          )}
-        </SectionCard>
-
-        {/* Rémunération — visible uniquement si l'utilisateur a le droit modify
-            (les admins/RH), pour ne pas exposer le salaire à un manager simple
-            qui n'a que la consultation. */}
-        {canModify && (emp.empsbase || emp.empsbrut || emp.empsnet) && (
-          <SectionCard title="Rémunération" icon={<PaymentsIcon fontSize="small" />}>
-            <InfoRow icon={<PaymentsIcon fontSize="small" />} label="Salaire de base" value={emp.empsbase || '—'} />
-            <Divider sx={{ borderColor: '#f1f5f9' }} />
-            <InfoRow icon={<PaymentsIcon fontSize="small" />} label="Salaire brut" value={emp.empsbrut || '—'} />
-            <Divider sx={{ borderColor: '#f1f5f9' }} />
-            <InfoRow icon={<PaymentsIcon fontSize="small" />} label="Salaire net" value={emp.empsnet || '—'} />
-          </SectionCard>
-        )}
-
-        {/* Lieu de travail */}
-        <SectionCard title="Lieu de travail" icon={<LocationOnIcon fontSize="small" />}>
-          <InfoRow icon={<LocationOnIcon fontSize="small" />} label="Ville" value={emp.vilcod || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<ApartmentIcon fontSize="small" />} label="Poste de travail" value={emp.poscod || '—'} />
-          <Divider sx={{ borderColor: '#f1f5f9' }} />
-          <InfoRow icon={<CalendarTodayIcon fontSize="small" />} label="Calendrier" value={emp.caltype || '—'} />
-        </SectionCard>
       </Box>
     </Box>
   );

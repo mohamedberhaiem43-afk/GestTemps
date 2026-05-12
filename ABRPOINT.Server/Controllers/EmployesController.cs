@@ -531,6 +531,27 @@ namespace ABRPOINT.Server.Controllers
                     employe.Empsnet = _encryptionService.Decrypt(employe.Empsnet);
                     // Populate utirole from utilisateur table
                     employe.Utirole = await _utilisateurRepository.GetRoleByUticodAsync(empcod);
+
+                    // Champs joints pour la fiche collaborateur (vue lecture seule) :
+                    //   - Utiimg  : avatar du compte lié (Empcod == Uticod)
+                    //   - Villib  : libellé ville résolu depuis le code Vilcod
+                    // Volontairement deux sous-requêtes simples plutôt qu'un Include() :
+                    // les tables `utilisateur` et `ville` n'ont pas de FK formelle vers
+                    // Employe (clé composite legacy), donc EF Core ne peut pas générer
+                    // un join automatique propre.
+                    employe.Utiimg = await _db.Utilisateurs
+                        .AsNoTracking()
+                        .Where(u => u.Uticod == empcod)
+                        .Select(u => u.Utiimg)
+                        .FirstOrDefaultAsync();
+                    if (!string.IsNullOrEmpty(employe.Vilcod))
+                    {
+                        employe.Villib = await _db.Villes
+                            .AsNoTracking()
+                            .Where(v => v.Vilcod == employe.Vilcod)
+                            .Select(v => v.Villib)
+                            .FirstOrDefaultAsync();
+                    }
                 }
                 return Ok(employe);
             }

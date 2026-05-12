@@ -262,5 +262,17 @@ public partial class Employe : BaseEntity
     [NotMapped]
     public string? _plainCin { get; set; }
 
+    /// <summary>Photo de profil du compte utilisateur lié (Utilisateurs.Utiimg).
+    /// Rempli par les endpoints qui font la jointure Empcod=Uticod — la fiche
+    /// collaborateur l'utilise pour afficher l'avatar plutôt que les initiales.</summary>
+    [NotMapped]
+    public string? Utiimg { get; set; }
+
+    /// <summary>Libellé ville résolu via la table `ville` à partir de `Vilcod`.
+    /// Côté UI on préfère afficher "Casablanca" plutôt que "CAS" — le code
+    /// reste utile pour les imports mais est techniquement opaque.</summary>
+    [NotMapped]
+    public string? Villib { get; set; }
+
 }
 

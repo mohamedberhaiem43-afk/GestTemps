@@ -168,6 +168,13 @@ function FilterRetard() {
     }
   };
 
+  // ── Layout calé sur la maquette EtatAbsence ──────────────────────────────
+  // Ligne 1 : filtres principaux (filiale, service, régime, dates) + sélecteur
+  // employés (largeur cappée à ~250px pour que les autres champs gardent leur
+  // taille de référence) + bouton Rechercher.
+  // Ligne 2 : options (case à cocher) + champs auxiliaires (année, retard min.)
+  // alignés à gauche, bouton Imprimer à droite.
+  // Ligne 3 : message de statut.
   return (
     <div className="cc-filter-section">
       <div className="cc-filter-row">
@@ -211,6 +218,26 @@ function FilterRetard() {
           <input className="cc-filter-input" type="date" value={dateFin} onChange={(e) => setEndDate(e.target.value)} />
         </div>
 
+        {/* Sélecteur employés : largeur bornée 220/260 pour s'aligner avec
+            les champs voisins (avant: flex:1 sans limite haute → il prenait
+            toute la place restante et désaxait les options de la ligne 2). */}
+        <div className="cc-filter-field" style={{ minWidth: 220, maxWidth: 260, flexGrow: 0 }}>
+          <label className="cc-filter-label">{t('etats.filter.employees')}</label>
+          <EmployeeMultiSelectDropdown
+            options={Object.entries((emplibs || {}) as Record<string, string>).map(([code, label]) => ({ code, label: String(label) }))}
+            value={selectedEmpCodes}
+            onChange={handleEmployeeSelection}
+            minWidth={220}
+          />
+        </div>
+
+        <button className="cc-search-btn" onClick={handleApplyFilter} disabled={!hasEffectiveEmployees}>
+          <SearchIcon sx={{ fontSize: 16 }} /> {t('etats.filter.filterBtn')}
+        </button>
+      </div>
+
+      {/* Options + champs auxiliaires (alignés sur la ligne 1) + bouton imprimer */}
+      <div className="cc-filter-row" style={{ marginTop: 12, alignItems: 'center' }}>
         <div className="cc-filter-field-narrow">
           <label className="cc-filter-label">{t('etats.filter.year')}</label>
           <input className="cc-filter-input" type="number" value={annee} onChange={(e) => setAnnee(e.target.value)} />
@@ -221,35 +248,23 @@ function FilterRetard() {
           <input className="cc-filter-input" type="number" value={retmin} onChange={(e) => setRetmin(Number(e.target.value || 0))} />
         </div>
 
-        <div className="cc-filter-field" style={{ minWidth: 220 }}>
-          <label className="cc-filter-label">{t('etats.filter.employees')}</label>
-          <EmployeeMultiSelectDropdown
-            options={Object.entries((emplibs || {}) as Record<string, string>).map(([code, label]) => ({ code, label: String(label) }))}
-            value={selectedEmpCodes}
-            onChange={handleEmployeeSelection}
-          />
+        <div style={{ display: 'inline-flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginLeft: 4 }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
+            <input type="checkbox" checked={compterAvance} onChange={(e) => setCompterAvance(e.target.checked)} /> {t('etats.filter.countAdvance')}
+          </label>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
+            <input type="checkbox" checked={retmat} onChange={(e) => setRetmat(e.target.checked)} /> {t('etats.filter.morningLate')}
+          </label>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
+            <input type="checkbox" checked={retapres} onChange={(e) => setRetapres(e.target.checked)} /> {t('etats.filter.afternoonLate')}
+          </label>
         </div>
 
-        <button className="cc-search-btn" onClick={handleApplyFilter} disabled={!hasEffectiveEmployees}>
-          <SearchIcon sx={{ fontSize: 16 }} /> {t('etats.filter.filterBtn')}
-        </button>
-
-        <button className="cc-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
-          <PrintIcon sx={{ fontSize: 16 }} /> {t('etats.filter.printBtn')}
-        </button>
-      </div>
-
-      <div className="cc-filter-row" style={{ marginTop: 10 }}>
-        <label className="cc-filter-label" style={{ marginBottom: 0, marginRight: 8 }}>{t('etats.filter.options')}:</label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
-          <input type="checkbox" checked={compterAvance} onChange={(e) => setCompterAvance(e.target.checked)} /> {t('etats.filter.countAdvance')}
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
-          <input type="checkbox" checked={retmat} onChange={(e) => setRetmat(e.target.checked)} /> {t('etats.filter.morningLate')}
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155' }}>
-          <input type="checkbox" checked={retapres} onChange={(e) => setRetapres(e.target.checked)} /> {t('etats.filter.afternoonLate')}
-        </label>
+        <div style={{ marginLeft: 'auto' }}>
+          <button className="cc-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
+            <PrintIcon sx={{ fontSize: 16 }} /> {t('etats.filter.printBtn')}
+          </button>
+        </div>
       </div>
 
       <Typography variant="body2" color={hasEffectiveEmployees ? "text.secondary" : "warning.main"} sx={{ mt: 1.2 }}>

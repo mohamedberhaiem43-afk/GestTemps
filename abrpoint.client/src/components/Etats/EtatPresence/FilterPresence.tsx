@@ -150,6 +150,8 @@ function FilterPresence() {
     }
   };
 
+  // Layout aligné sur FilterRetard : ligne 1 = filtres principaux + sélecteur
+  // employés + Rechercher ; ligne 2 = champ année + Imprimer (poussé à droite).
   return (
     <div className="cc-filter-section">
       <div className="cc-filter-row">
@@ -193,29 +195,38 @@ function FilterPresence() {
           <input className="cc-filter-input" type="date" value={dateFin} onChange={(e) => setEndDate(e.target.value)} />
         </div>
 
-        <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">{t('etats.filter.year')}</label>
-          <input className="cc-filter-input" type="number" value={annee} onChange={(e) => setAnnee(e.target.value)} />
-        </div>
-
-        <div className="cc-filter-field" style={{ minWidth: 220 }}>
+        {/* Sélecteur employés borné comme dans FilterRetard pour garder
+            l'alignement avec les autres champs au lieu de prendre tout l'espace. */}
+        <div className="cc-filter-field" style={{ minWidth: 220, maxWidth: 260, flexGrow: 0 }}>
           <label className="cc-filter-label">{t('etats.filter.employees')}</label>
           <EmployeeMultiSelectDropdown
             options={Object.entries((emplibs || {}) as Record<string, string>).map(([code, label]) => ({ code, label: String(label) }))}
             value={selectedEmpCodes}
             onChange={handleEmployeeSelection}
+            minWidth={220}
           />
         </div>
 
         <button className="cc-search-btn" onClick={handleApplyFilter} disabled={!hasEffectiveEmployees}>
           <SearchIcon sx={{ fontSize: 16 }} /> {t('etats.filter.filterBtn')}
         </button>
-
-        <button className="cc-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
-          <PrintIcon sx={{ fontSize: 16 }} /> {t('etats.filter.printBtn')}
-        </button>
       </div>
 
+      {/* Ligne 2 : année (champ auxiliaire) + bouton Imprimer à droite —
+          calque sur FilterRetard pour rester cohérent dans toute la suite
+          des états. */}
+      <div className="cc-filter-row" style={{ marginTop: 12, alignItems: 'center' }}>
+        <div className="cc-filter-field-narrow">
+          <label className="cc-filter-label">{t('etats.filter.year')}</label>
+          <input className="cc-filter-input" type="number" value={annee} onChange={(e) => setAnnee(e.target.value)} />
+        </div>
+
+        <div style={{ marginLeft: 'auto' }}>
+          <button className="cc-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
+            <PrintIcon sx={{ fontSize: 16 }} /> {t('etats.filter.printBtn')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

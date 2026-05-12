@@ -34,6 +34,10 @@ import CustomizedSnackbars from '../../Snackbar/Snackbar';
 import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import { useAuth } from '../../helper/AuthProvider';
 import { Contrat } from '../../../models/Contrat';
+// Hook retournant uniquement les sites auxquels l'utilisateur connecté
+// a accès (jointure Socusers côté backend dans /Sites/get-sitlibs/{soccod}/{uticod}).
+// On l'utilise pour résoudre row.sitcod → libellé humain dans la table.
+import useGetSiteLibs from '../../../hooks/siteHooks/useGetSiteLibs';
 
 interface ListContratsModernProps {
   onEdit?: (contract: Contrat) => void;
@@ -60,6 +64,16 @@ const ListContratsModern = ({ onEdit, onRenew }: ListContratsModernProps) => {
   const { uticod } = useAuth();
   const { data: allContracts, error } = useGetAllContrats('', '', { uticod: uticod || '' });
   const { mutate: deleteContrat } = useDeleteContrat();
+
+  // Sites autorisés pour cet utilisateur — la map permet d'afficher
+  // "Casablanca - Maarif" au lieu du code brut "S01" dans la colonne Site.
+  // Si la map ne contient pas le code (cas d'un contrat hérité sur un site
+  // qui a été retiré du périmètre de l'utilisateur), on retombe sur le code.
+  const { data: sitLibs = {} } = useGetSiteLibs();
+  const resolveSiteLabel = (code?: string | null) => {
+    if (!code) return '-';
+    return (sitLibs as Record<string, string>)[code] || code;
+  };
 
   const [openModal, setOpenModal] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<Contrat | null>(null);
@@ -126,7 +140,7 @@ const ListContratsModern = ({ onEdit, onRenew }: ListContratsModernProps) => {
       formatDate(row.empemb),
       formatDate(row.empsort),
       formatContractType(row.contype).label,
-      row.sitcod ?? '',
+      resolveSiteLabel(row.sitcod),
     ]);
 
     autoTable(doc, {
@@ -353,7 +367,7 @@ const ListContratsModern = ({ onEdit, onRenew }: ListContratsModernProps) => {
                       </TableCell>
                       <TableCell sx={{ py: 1.5, px: 1.5 }}>
                         <Typography sx={{ fontSize: '12px', color: '#515f74' }}>
-                          {row.sitcod || '-'}
+                          {resolveSiteLabel(row.sitcod)}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ py: 1.5, px: 2 }} align="right">

@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Dossier Technique &amp; Commercial — Concorde Workforce</title>
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 16mm 20mm 16mm;
+    @bottom-center {
+      content: counter(page);
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 9pt;
+      color: #6b7280;
+    }
+    @top-right {
+      content: "Concorde Workforce — Dossier Technique";
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 8.5pt;
+      color: #9ca3af;
+    }
+  }
+
+  /* Cover and TOC: no header/footer */
+  @page :first {
+    @top-right { content: ""; }
+    @bottom-center { content: ""; }
+  }
+  @page toc {
+    @top-right { content: ""; }
+    @bottom-center { content: ""; }
+  }
+  .toc-page { page: toc; }
+
+  :root {
+    --primary: #0a3a8c;
+    --primary-light: #1e5dbf;
+    --text: #1f2937;
+    --muted: #4b5563;
+    --border: #d1d5db;
+    --bg-soft: #f3f6fb;
+    --bg-stripe: #fafbfd;
+    --accent: #0a3a8c;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.42;
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3, h4 {
+    color: var(--primary);
+    font-weight: 600;
+    margin-top: 1.4em;
+    margin-bottom: 0.4em;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  h1 { font-size: 22pt; }
+  h2 {
+    font-size: 16pt;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 4pt;
+    page-break-before: always;
+    break-before: page;
+  }
+  h2:first-of-type { page-break-before: auto; break-before: auto; }
+  h3 { font-size: 12.5pt; }
+  h4 { font-size: 11pt; }
+
+  p { margin: 0.4em 0; text-align: justify; }
+  ul, ol { margin: 0.4em 0 0.6em 1.4em; padding: 0; }
+  li { margin: 0.15em 0; }
+
+  code, kbd, .mono {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    background: #eef2f8;
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8.6pt;
+    background: #0f172a;
+    color: #e5e7eb;
+    padding: 9px 11px;
+    border-radius: 4px;
+    overflow-x: hidden;
+    white-space: pre;
+    line-height: 1.3;
+    page-break-inside: avoid;
+  }
+
+  /* ---------- Cover page ---------- */
+  .cover {
+    text-align: center;
+    page-break-after: always;
+    padding-top: 30mm;
+  }
+  .cover img { width: 90mm; max-width: 80%; }
+  .cover h1 {
+    color: var(--primary);
+    font-size: 26pt;
+    margin-top: 12mm;
+    border: none;
+  }
+  .cover .subtitle {
+    color: var(--muted);
+    font-size: 14pt;
+    margin-top: 4mm;
+  }
+  .cover table.meta {
+    margin: 16mm auto 0 auto;
+    width: 130mm;
+    border-collapse: collapse;
+    font-size: 11pt;
+  }
+  .cover table.meta td {
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    text-align: left;
+  }
+  .cover table.meta td:first-child {
+    background: var(--bg-soft);
+    font-weight: 600;
+    color: var(--primary);
+    width: 32%;
+  }
+  .cover .footer-note {
+    margin-top: 22mm;
+    color: var(--muted);
+    font-size: 9pt;
+    font-style: italic;
+  }
+
+  /* ---------- TOC (paged.js: target-counter + leader) ---------- */
+  .toc { page-break-after: always; break-after: page; }
+  .toc h2 {
+    margin-top: 0;
+    page-break-before: auto;
+    break-before: auto;
+  }
+  .toc ul.toc-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 12pt 0 0 0;
+  }
+  .toc ul.toc-list li {
+    font-size: 11pt;
+    margin: 6pt 0;
+    line-height: 1.4;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .toc ul.toc-list li a {
+    color: var(--text);
+    text-decoration: none;
+    display: block;
+  }
+  .toc ul.toc-list li a::after {
+    content: leader(".") " " target-counter(attr(href), page);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .toc ul.toc-list li.toc-chapter > a {
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .toc ul.toc-list li.toc-section {
+    padding-left: 16pt;
+    font-size: 10pt;
+    color: var(--muted);
+  }
+  .toc ul.toc-list li.toc-section a { color: var(--muted); }
+
+  /* ---------- Tables ---------- */
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 14px 0;
+    font-size: 9.6pt;
+    table-layout: fixed;
+    page-break-inside: auto;
+  }
+  table.data thead { display: table-header-group; }
+  table.data tr { page-break-inside: avoid; }
+  table.data th, table.data td {
+    border: 1px solid var(--border);
+    padding: 5px 7px;
+    vertical-align: top;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+  }
+  table.data th {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 9.4pt;
+  }
+  table.data tbody tr:nth-child(even) { background: var(--bg-stripe); }
+  table.data code, table.data .mono { word-break: break-all; }
+
+  table.data.compact { font-size: 9pt; }
+  table.data.compact th, table.data.compact td { padding: 4px 6px; }
+
+  /* Specific column-width helpers (avoid header overlap on long identifiers) */
+  .col-narrow { width: 12%; }
+  .col-medium { width: 22%; }
+  .col-wide { width: 38%; }
+
+  /* "Bullet" admonitions */
+  .note, .info {
+    border-left: 4px solid var(--primary-light);
+    background: var(--bg-soft);
+    padding: 8px 12px;
+    margin: 10px 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+  .note strong, .info strong { color: var(--primary); }
+
+  /* Plan cards */
+  .plan-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    background: #fff;
+    page-break-inside: avoid;
+  }
+  .plan-card.popular { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
+  .plan-card h3 { margin-top: 0; }
+
+  .badge {
+    display: inline-block;
+    background: var(--primary);
+    color: #fff;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .check { color: #047857; font-weight: 700; }
+  .cross { color: #b91c1c; font-weight: 700; }
+
+  /* Section spacing */
+  section { margin-bottom: 6pt; }
+  h2 { page-break-before: auto; }
+
+  .small { font-size: 9.5pt; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 14pt 0; }
+
+  /* Logo header running on inner pages (optional, omitted here for simplicity) */
+</style>
+</head>
+<body>
+
+<!-- ============== COVER ============== -->
+<section class="cover">
+  <img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce" />
+  <h1>Dossier Technique &amp; Commercial</h1>
+  <div class="subtitle">Plateforme SaaS RH / Pointage</div>
+
+  <table class="meta">
+    <tr><td>Produit</td><td>Concorde Workforce</td></tr>
+    <tr><td>Cycle</td><td>Préparation lancement V1</td></tr>
+    <tr><td>Date</td><td>12 mai 2026</td></tr>
+    <tr><td>Backend</td><td>.NET 8 · ASP.NET Core · SQL Server 2022</td></tr>
+    <tr><td>Frontend</td><td>React 19 · Vite · MUI · TypeScript 5</td></tr>
+    <tr><td>Mobile</td><td>Expo SDK 54 · React Native 0.81</td></tr>
+    <tr><td>Infra</td><td>Docker Compose · nginx · Ubuntu 24.04 LTS</td></tr>
+    <tr><td>IA</td><td>Qdrant (RAG) · LangChain · multilingual-e5-large</td></tr>
+  </table>
+
+  <div class="footer-note">Document confidentiel — usage interne &amp; partenaires autorisés</div>
+</section>
+
+<!-- ============== TOC ============== -->
+<section class="toc toc-page">
+  <h2 style="border-bottom: 2px solid var(--primary); padding-bottom:6pt;">Table des matières</h2>
+  <ul class="toc-list">
+    <li class="toc-chapter"><a href="#sec-1">1. Synthèse exécutive</a></li>
+    <li class="toc-chapter"><a href="#sec-2">2. Architecture fonctionnelle</a></li>
+    <li class="toc-chapter"><a href="#sec-3">3. Modules existants</a></li>
+    <li class="toc-chapter"><a href="#sec-4">4. Workflows</a></li>
+    <li class="toc-chapter"><a href="#sec-5">5. Sécurité mobile renforcée (G1 → G6)</a></li>
+    <li class="toc-chapter"><a href="#sec-6">6. Sécurité backend &amp; infrastructure</a></li>
+    <li class="toc-chapter"><a href="#sec-7">7. APIs et architecture des services</a></li>
+    <li class="toc-chapter"><a href="#sec-8">8. Gestion des rôles et permissions</a></li>
+    <li class="toc-chapter"><a href="#sec-9">9. Performances et scalabilité</a></li>
+    <li class="toc-chapter"><a href="#sec-10">10. Modules — finalisés vs en cours</a></li>
+    <li class="toc-chapter"><a href="#sec-11">11. Stratégie SaaS et segmentation des offres</a></li>
+    <li class="toc-chapter"><a href="#sec-12">12. Packs tarifaires et fonctionnalités</a></li>
+    <li class="toc-chapter"><a href="#sec-13">13. Stratégie marketing</a></li>
+    <li class="toc-chapter"><a href="#sec-14">14. Préparation App Store et Google Play</a></li>
+    <li class="toc-chapter"><a href="#sec-15">15. Éléments pour démonstrations commerciales</a></li>
+    <li class="toc-chapter"><a href="#sec-16">16. Risques techniques</a></li>
+    <li class="toc-chapter"><a href="#sec-17">17. Roadmap de développement</a></li>
+    <li class="toc-chapter"><a href="#sec-18">18. Plan de durcissement infrastructure de production</a></li>
+    <li class="toc-chapter"><a href="#sec-19">19. Services tiers et dépendances</a></li>
+    <li class="toc-chapter"><a href="#sec-20">20. Conclusion</a></li>
+  </ul>
+</section>
+
+<!-- ============== 1. Synthèse exécutive ============== -->
+<h2 id="sec-1">1. Synthèse exécutive</h2>
+
+<h3>1.1 Vision produit</h3>
+<p>Plateforme SaaS multi-tenant proposant aux PME/ETI une solution intégrée :</p>
+<ul>
+  <li>Pointage présentiel et mobile avec géolocalisation</li>
+  <li>Gestion RH (employés, contrats, congés, RTT, absences, sanctions)</li>
+  <li>Préparation paie (rubriques, états périodiques, exports)</li>
+  <li>Coffre-fort numérique pour documents salariés (bulletins, contrats, justificatifs)</li>
+  <li>Signature électronique des documents</li>
+  <li>Dashboards &amp; reporting analytiques</li>
+  <li>Assistant IA contextuel (RAG)</li>
+</ul>
+
+<h3>1.2 Maturité actuelle</h3>
+<ul>
+  <li><strong>Backend</strong> : 64 contrôleurs API, 131 entités EF Core, multi-tenant master/tenant opérationnel, RAG branché, auto-migration de schéma au démarrage, seed automatique du référentiel pays.</li>
+  <li><strong>Web</strong> : ~30 modules métier complets en MUI, i18n FR/EN, animations, dashboard admin/employé/manager différencié.</li>
+  <li><strong>Mobile</strong> : 22 écrans (Expo SDK 54), GPS, push, biométrie, signature, vault, durcissement sécurité G1→G6.</li>
+  <li><strong>Tarification verrouillée</strong> : Starter 29,50 € / Standard 59,50 € / Premium 119 € avec facturation forfait + overage Stripe.</li>
+  <li><strong>Plan gating opérationnel</strong> : restrictions backend (<code>RequirePlanFeatureAttribute</code>), frontend (<code>planAllows</code>) et mobile.</li>
+  <li><strong>Infrastructure</strong> : déployable via <code>docker compose up</code>, certificats Let's Encrypt, HSTS + CSP + headers complets.</li>
+</ul>
+
+<h3>1.3 Cibles V1 (lancement)</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 36%;" />
+    <col style="width: 44%;" />
+    <col style="width: 20%;" />
+  </colgroup>
+  <thead><tr><th>Objectif</th><th>Détail</th><th>Statut</th></tr></thead>
+  <tbody>
+    <tr><td>Multi-tenant billing Stripe</td><td>Base + seat items</td><td><span class="check">✓</span> Fait</td></tr>
+    <tr><td>Pointage géolocalisé</td><td>Fiable cross-fuseau</td><td><span class="check">✓</span> Fait</td></tr>
+    <tr><td>Coffre-fort + signature</td><td>Flux complet</td><td><span class="check">✓</span> Fait</td></tr>
+    <tr><td>Préparation paie</td><td>Exports Excel standards</td><td><span class="check">✓</span> Fait</td></tr>
+    <tr><td>Hardening sécurité</td><td>OWASP top 10 + mobile</td><td><span class="check">✓</span> Fait</td></tr>
+    <tr><td>Infra production durcie</td><td>Ubuntu 24.04 LTS</td><td>☐ En cours</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 2. Architecture ============== -->
+<h2 id="sec-2">2. Architecture fonctionnelle</h2>
+
+<h3>2.1 Vue d'ensemble</h3>
+<pre>
++------------------+      HTTPS       +----------------------------+
+|  Web React PWA   |&lt;----------&gt;|  nginx-proxy (TLS, /api)   |
+|  (Vite, MUI)     |                  |  HSTS+CSP+headers          |
++------------------+                  |  Let's Encrypt + certbot   |
+                                      +-------------+--------------+
++------------------+      HTTPS                     |
+|  Mobile Expo     |&lt;----------+                    |
+|  (RN 0.81)       |Cert pin.  |        +-----------v-----------+
+|  Bio-token+JWT   |           |        |  abrpoint.server      |
++------------------+           |        |  ASP.NET Core 8       |
+                               |        +---------+-------------+
+                               |                  |
+                       +-------v---+      +-------v-------+
+                       | SQL Server|      |   rag-svc     |
+                       | master DB |      |  Python       |
+                       | + tenants |      |  Qdrant + e5  |
+                       +-----------+      +---------------+
+</pre>
+
+<h3>2.2 Stack technologique</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 22%;" />
+    <col style="width: 78%;" />
+  </colgroup>
+  <thead><tr><th>Couche</th><th>Technologies principales</th></tr></thead>
+  <tbody>
+    <tr><td>Backend API</td><td>.NET 8 · ASP.NET Core · EF Core 8 · Dapper 2.1 · AutoMapper 14 · MailKit · BCrypt · Otp.NET (TOTP) · QRCoder · Stripe.NET 47 · DinkToPdf · FastReport.OpenSource · DocumentFormat.OpenXml · PdfPig · Microsoft.SemanticKernel 1.30</td></tr>
+    <tr><td>Web</td><td>React 19 · Vite · TypeScript 5 · MUI 5 + x-charts + x-data-grid + x-date-pickers · React Query 5 · React Router · FullCalendar · jsPDF + autotable · ExcelJS · i18next FR/EN · dayjs · Recharts · axios</td></tr>
+    <tr><td>Mobile</td><td>Expo SDK 54 · React Native 0.81 · React Navigation 7 · expo-location · expo-camera · expo-document-picker · expo-secure-store · expo-notifications · expo-local-authentication · expo-screen-capture · React Native Paper</td></tr>
+    <tr><td>Infrastructure</td><td>Docker Compose · nginx (proxy + TLS) · SQL Server 2022 · Qdrant 1.12 · Python sidecar RAG (LangChain + multilingual-e5-large) · certbot</td></tr>
+    <tr><td>CI/CD</td><td>Manuel actuellement — Dockerfile séparés, image client publiée sur Docker Hub</td></tr>
+  </tbody>
+</table>
+
+<h3>2.3 Topologie Docker Compose</h3>
+<table class="data compact">
+  <colgroup>
+    <col style="width: 18%;" />
+    <col style="width: 24%;" />
+    <col style="width: 26%;" />
+    <col style="width: 32%;" />
+  </colgroup>
+  <thead><tr><th>Service</th><th>Image</th><th>Réseau</th><th>Volumes</th></tr></thead>
+  <tbody>
+    <tr><td>nginx-proxy</td><td>nginx:alpine</td><td>app-network 80/443</td><td>nginx.conf:ro, uploads RO</td></tr>
+    <tr><td>abrpoint.server</td><td>abrpoint-server:local</td><td>app-network 8080</td><td>uploads_data RW</td></tr>
+    <tr><td>abrpoint.client</td><td>abrpoint-client:latest</td><td>app-network 80</td><td>—</td></tr>
+    <tr><td>abrpoint.database</td><td>mssql 2022-latest</td><td>app-network</td><td>sqlserver-data, sql-backup</td></tr>
+    <tr><td>qdrant</td><td>qdrant:1.12.0</td><td>app-network 6333/6334</td><td>qdrant_data</td></tr>
+    <tr><td>rag-svc</td><td>abrpoint-rag-svc:local</td><td>app-network 8080</td><td>—</td></tr>
+    <tr><td>certbot</td><td>certbot/certbot</td><td>—</td><td>letsencrypt_data</td></tr>
+  </tbody>
+</table>
+
+<h3>2.4 Multi-tenant SaaS</h3>
+<p><strong>Modèle</strong> : <em>Database-per-tenant</em> + <em>master DB</em>.</p>
+<pre>
+Master DB (ABRPOINT_master)             Tenant DBs (ABRPOINT_&lt;slug&gt;)
++------------------------+              +-------------------------+
+| Tenants (slug, host)   |   ------&gt; | Sites, Employes,        |
+| TenantEmailIndex       |              | Presences, Vault, etc.  |
+| Plans, Subscriptions   |              | (schema migre a chaud)  |
++------------------------+              +-------------------------+
+</pre>
+<ul>
+  <li><strong>Résolution tenant</strong> : <code>TenantResolverMiddleware</code> lit le header <code>X-Tenant-Slug</code> ou le sous-domaine.</li>
+  <li><strong>DbContext factory dynamique</strong> : connection string générée via <code>TenantTemplate</code> si tenant résolu.</li>
+  <li><strong>Auto-migration</strong> : <code>BaseDataSchemaMigrator</code> applique les ALTER TABLE/CREATE INDEX idempotents. Un simple <code>docker compose up -d</code> propage les évolutions de schéma.</li>
+</ul>
+
+<h3>2.5 Modèle de données (haute densité)</h3>
+<p>131 entités organisées par familles :</p>
+<table class="data">
+  <colgroup>
+    <col style="width: 22%;" />
+    <col style="width: 78%;" />
+  </colgroup>
+  <thead><tr><th>Famille</th><th>Entités principales</th></tr></thead>
+  <tbody>
+    <tr><td>RH socle</td><td><code>Employe</code>, <code>Empuser</code>, <code>Direction</code>, <code>Fonction</code>, <code>Service</code>, <code>Section</code>, <code>Qualif</code>, <code>Site</code>, <code>Societe</code>, <code>Ville</code></td></tr>
+    <tr><td>Pointage</td><td><code>Presence</code>, <code>Pointeuse</code>, <code>Dmpoint</code>, <code>Dmpresence</code></td></tr>
+    <tr><td>Horaires</td><td><code>Poste</code>, <code>Lposte</code>, <code>Calendsoc</code>, <code>Lcalendsoc</code>, <code>Ferier</code></td></tr>
+    <tr><td>Congés/absences</td><td><code>Conge</code>, <code>Demconge</code>, <code>Absence</code>, <code>Sanction</code>, <code>DemandeAutorisation</code>, <code>Autoriser</code>, <code>Allaitement</code>, <code>Compenser</code></td></tr>
+    <tr><td>Paie</td><td><code>Rubrique</code>, <code>NoteDeFrais</code>, <code>Mission</code></td></tr>
+    <tr><td>Gestion droits</td><td><code>Roles</code>, <code>RolePermission</code>, <code>RolePointdroit</code>, <code>Module</code>, <code>Modusers</code></td></tr>
+    <tr><td>Contrats/docs</td><td><code>Contrat</code>, <code>DocumentVault</code>, <code>LetterTemplate</code></td></tr>
+    <tr><td>Tenancy</td><td><code>Tenant</code>, <code>TenantEmailIndex</code> (master DB)</td></tr>
+    <tr><td>Audit/sécu</td><td><code>AuditLog</code>, <code>RefreshToken</code></td></tr>
+    <tr><td>Notifications</td><td><code>PushToken</code>, <code>Notification</code>, <code>NotificationCategoryCatalog</code></td></tr>
+    <tr><td>RAG/IA</td><td><code>RagDocument</code>, <code>RagLetterTemplate</code>, <code>RagChatLog</code>, index Qdrant</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 3. Modules existants ============== -->
+<h2 id="sec-3">3. Modules existants</h2>
+
+<h3>3.1 Authentification &amp; sécurité</h3>
+<ul>
+  <li><strong>Login web/mobile</strong> : email + mot de passe BCrypt, JWT 8.0</li>
+  <li><strong>2FA TOTP</strong> : QR code via QRCoder lors de l'enrôlement, validation à chaque login</li>
+  <li><strong>Tokens</strong> : access token courte durée + <code>RefreshToken</code> long terme chiffré AES</li>
+  <li><strong>Mobile biométrie sans password</strong> (G2) : bio-token dédié (purpose=Biometric, expiry 90j, rotation à chaque usage). Aucun mot de passe stocké sur l'appareil.</li>
+  <li><strong>Quota refresh tokens par utilisateur</strong> (G6) : 5 derniers tokens actifs maximum, les plus anciens révoqués automatiquement.</li>
+  <li><strong>Anti-énumération</strong> : tous les contrôleurs <code>[Authorize]</code> + <code>[ValidateSoccod]</code>, refresh token rotatif.</li>
+</ul>
+
+<h3>3.2 Gestion RH</h3>
+<ul>
+  <li>CRUD complet employé + fiche enrichie (état civil, banque, compétences, sites)</li>
+  <li>Hiérarchie : Direction &gt; Service &gt; Section</li>
+  <li>Import Excel (rubriques, employés via <code>BulkImportController</code>)</li>
+</ul>
+
+<h3>3.3 Pointage &amp; présences</h3>
+<ul>
+  <li>Pointage manuel (web admin) via état périodique</li>
+  <li>Pointage employé (mobile) avec capture GPS, accuracy, horodatage local</li>
+  <li>Calculs dédiés : <code>HeureSuppService</code>, <code>HeuresAbsencesService</code>, <code>CalcTotHeuresService</code>, <code>PointageMoisService</code>, <code>PointageOptimizer</code></li>
+  <li>États : périodique, journalier, retards, assiduité, global</li>
+</ul>
+
+<h3>3.4 Pointage géolocalisé</h3>
+<ul>
+  <li>Colonnes <code>sitlat</code>, <code>sitlon</code>, <code>sitrad</code> (rayon m) créées automatiquement par <code>BaseDataSchemaMigrator</code></li>
+  <li>Validation Haversine (<code>GeoZoneValidator.cs</code>) — source DB prioritaire + fallback config</li>
+  <li>Contrôle au pointage : refus 422 <code>gps_required</code> / <code>outside_geofence</code> si hors rayon</li>
+  <li>Tolérance horloge : skew client/serveur bumped à 90 min (couverture Maghreb/Europe DST)</li>
+</ul>
+
+<h3>3.5 Congés &amp; autorisations</h3>
+<ul>
+  <li>Workflow : soumission → manager/admin approve/refuse → titre de congé émis</li>
+  <li>RTT : crédit, consommation, solde annuel par employé</li>
+  <li>CET (compte épargne temps) : conversion congés non pris</li>
+  <li>Demandes d'autorisation de sortie + Autorisations approuvées</li>
+  <li>Compensation jours fériés travaillés, Allaitement (réductions horaires)</li>
+</ul>
+
+<h3>3.6 Préparation paie</h3>
+<ul>
+  <li>Rubriques : CRUD, Excel import, formules</li>
+  <li>Pointage du mois : agrégation présences par employé, thread-safe (DbContext scoped)</li>
+  <li>Export paie : DocumentFormat.OpenXml (Excel) et PDF</li>
+  <li>Bulletins via <code>LetterTemplates</code> (templates HTML/Razor-like personnalisables)</li>
+</ul>
+
+<h3>3.7 Coffre-fort numérique</h3>
+<ul>
+  <li>Upload via FormData multipart (mobile + web)</li>
+  <li>Whitelist extensions : pdf, doc/docx, xls/xlsx, csv, png/jpg — bloque exécutables et SVG/HTML scriptables</li>
+  <li>Plafond 10 Mo par fichier (override via env <code>Uploads__MaxSizeMb</code>)</li>
+  <li>Path traversal : noms régénérés en GUID, jamais du nom client</li>
+  <li>Audit orphelins : endpoint admin réconciliant DB ↔ filesystem</li>
+  <li>Téléchargement direct via nginx (volume <code>uploads_data</code> RO) — sans hop backend</li>
+</ul>
+
+<h3>3.8 Signature électronique</h3>
+<ul>
+  <li>Web : SignaturePad + base64 → backend via <code>SaveBase64Image</code>, fichier <code>sig_*.png</code></li>
+  <li>Mobile : capture tactile, upload, statut signé verrouille la suppression. Capture d'écran bloquée pendant la session (G4).</li>
+  <li>Métadonnées : signataire, date, IP — visibles dans l'audit log</li>
+</ul>
+
+<h3>3.9 Notifications &amp; reporting</h3>
+<ul>
+  <li>Push mobile via Expo Push API, tokens stockés en <code>PushToken</code></li>
+  <li>Email : MailKit + SMTP, templates HTML</li>
+  <li>In-app : centre de notifications web + mobile, badge unread</li>
+  <li>Quiet hours : blocage des notifications hors plage horaire configurée</li>
+  <li>Rappels ponctualité : service hébergé balayant périodiquement</li>
+  <li>PDF : DinkToPdf (HTML→PDF), FastReport pour états réguliers</li>
+  <li>Excel : DocumentFormat.OpenXml (backend) + ExcelJS (web)</li>
+</ul>
+
+<!-- ============== 4. Workflows ============== -->
+<h2 id="sec-4">4. Workflows</h2>
+
+<h3>4.1 Workflow employé (mobile — golden path)</h3>
+<pre>
+Login email/pwd --&gt; (2FA TOTP si active) --&gt; JWT + refresh
+       |
+       v   (option : enrolement biometrique -&gt; bio-token serveur)
+HomeScreen --&gt; [Bouton POINTER]
+       |       | capture GPS (expo-location, 5s timeout)
+       |       | POST /Presences/mark-presence/{soc}/{emp}
+       |       v
+       |     Backend valide :
+       |       +- caller owns/manages employee OK
+       |       +- skew clock &lt;= 90 min OK
+       |       +- si geofence : GPS requis + dans rayon OK
+       |       +- dans periode d'emploi OK
+       |       v
+       |     INSERT/UPDATE presence + log GPS
+       |
+       +---&gt; Vault : upload doc / consulter / signer
+       +---&gt; Demandes conge / autorisation
+       +---&gt; Auto-lock apres 10 min inactivite
+       +---&gt; Notifications push (Expo)
+</pre>
+
+<h3>4.2 Workflow administrateur (web)</h3>
+<p>Le workflow admin couvre : Données de Base (Filiales, Sites, Villes), Gestion Employés (création, contrats, sanctions), Pointage (état périodique, optimiseur, imports CSV), Congés (workflow approbation), Préparation Paie (rubriques, pointage mois, états PDF), Vault (upload bulk + audit orphelins), et Paramètres (rôles &amp; permissions, plan/billing Stripe, notifications opt-in).</p>
+
+<h3>4.3 Workflow manager</h3>
+<p>Sous-ensemble de l'admin scopé à son service/section : approbation congés/autorisations de son équipe, vue dashboard via <code>ManagerDashboardController</code>.</p>
+
+<h3>4.4 Workflow signup tenant (onboarding technique)</h3>
+<pre>
+Landing /signup --&gt; [SignupController] (rate-limited 3/h/IP)
+       |
+       v
+1. Validation email unicite (master DB -&gt; TenantEmailIndex)
+2. Creation Tenant (slug = sous-domaine, host)
+3. Creation tenant DB (BaseDataSchemaMigrator clone schema)
+4. Provisioning admin initial
+5. Stripe customer si plan payant ; trial period sinon
+6. Email welcome + login -&gt; tenant scope actif
+</pre>
+
+<!-- ============== 5. Mobile G1-G6 ============== -->
+<h2 id="sec-5">5. Sécurité mobile renforcée (G1 → G6)</h2>
+<p>Six durcissements appliqués en plus du socle JWT/HTTPS :</p>
+<table class="data">
+  <colgroup>
+    <col style="width: 6%;" />
+    <col style="width: 22%;" />
+    <col style="width: 49%;" />
+    <col style="width: 23%;" />
+  </colgroup>
+  <thead><tr><th>ID</th><th>Risque</th><th>Mitigation</th><th>Plan</th></tr></thead>
+  <tbody>
+    <tr><td>G1</td><td>MITM via CA compromise</td><td>Certificate Pinning (Android <code>network_security_config.xml</code> + iOS <code>NSPinnedDomains</code>)</td><td>Tous (build-time)</td></tr>
+    <tr><td>G2</td><td>Vol credentials sur device</td><td>Bio-token sans password — endpoints <code>/MobileAuth/biometric-*</code></td><td>Standard+</td></tr>
+    <tr><td>G3</td><td>Reverse-engineering émulateur / root</td><td>Device trust assessment (<code>deviceSecurity.ts</code>), détection Genymotion / BlueStacks / Nox, OS obsolètes</td><td>Premium</td></tr>
+    <tr><td>G4</td><td>Exfiltration via screenshot</td><td><code>expo-screen-capture</code> + hook <code>useSecureScreen</code> sur Vault, Signature, Profile</td><td>Premium</td></tr>
+    <tr><td>G5</td><td>Session orpheline device perdu</td><td>Auto-lock 10 min foreground / 5 min arrière-plan, overlay LockScreen + Face ID</td><td>Standard+</td></tr>
+    <tr><td>G6</td><td>Sessions persistantes infinies</td><td>Quota 5 RT actifs / user, révocation automatique des plus anciens</td><td>Tous</td></tr>
+  </tbody>
+</table>
+<div class="note">
+  <strong>Note sur G1 (cert pinning) :</strong> la configuration est native au binaire mobile et n'est pas désactivable au runtime. Un client Standard bénéficie <em>de facto</em> du cert pinning. La valeur différenciante Premium reste G3/G4 (device trust + anti-screenshot).
+</div>
+
+<!-- ============== 6. Sécurité backend ============== -->
+<h2 id="sec-6">6. Sécurité backend &amp; infrastructure</h2>
+
+<h3>6.1 Surface protégée (OWASP Top 10)</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 30%;" />
+    <col style="width: 70%;" />
+  </colgroup>
+  <thead><tr><th>Vecteur</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>A01 — Broken Access Control</td><td><code>[Authorize]</code> + <code>[ValidateSoccod]</code> + permissions par module + caller-owns checks</td></tr>
+    <tr><td>A02 — Cryptographic Failures</td><td>BCrypt (passwords), refresh tokens chiffrés AES, TLS 1.2/1.3 only, HSTS preload 1 an + <code>includeSubDomains</code></td></tr>
+    <tr><td>A03 — Injection</td><td>EF Core paramétré ; pas de SQL concaténé utilisateur</td></tr>
+    <tr><td>A04 — Insecure Design</td><td>Garde-fous métier explicites (skew clock, hire/termination dates, GPS requis si geofence)</td></tr>
+    <tr><td>A05 — Security Misconfig</td><td>Header serveur masqué (<code>AddServerHeader = false</code>), <code>server_tokens off</code> côté nginx, erreurs masquées en prod</td></tr>
+    <tr><td>A07 — Identification &amp; Auth Failures</td><td>2FA TOTP, refresh rotatif + quota 5/user (G6), rate-limit <code>clock-in</code> (6/min/IP), <code>auth-signup</code> (3/h/IP), <code>auth-login</code></td></tr>
+    <tr><td>A08 — Software &amp; Data Integrity</td><td>Whitelist d'extensions uploads (anti-RCE), nginx <code>deny</code> sur <code>.php/.exe/.sh</code> dans <code>/api/uploads/</code></td></tr>
+    <tr><td>A09 — Logging &amp; Monitoring</td><td>Logging structuré (<code>ILogger&lt;&gt;</code>), table <code>AuditLog</code> pour actions critiques</td></tr>
+    <tr><td>A10 — SSRF</td><td>Sidecar RAG isolé sur réseau interne uniquement</td></tr>
+    <tr><td>Path traversal</td><td>Nommage UUID, répertoire parent constant</td></tr>
+    <tr><td>Mass assignment</td><td>DTOs explicites, récupération entité serveur avant patch</td></tr>
+    <tr><td>CSRF</td><td>Stateless JWT (Bearer header) → non applicable</td></tr>
+  </tbody>
+</table>
+
+<h3>6.2 Headers HTTP (nginx-proxy)</h3>
+<pre>
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(self), camera=(self), microphone=()
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
+  style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';
+  font-src 'self' data:; frame-src 'self' blob:; frame-ancestors 'self';
+  base-uri 'self'; form-action 'self';
+</pre>
+
+<h3>6.3 Healthchecks</h3>
+<ul>
+  <li><code>GET /healthz</code> → liveness (le process répond)</li>
+  <li><code>GET /readyz</code> → readiness (DB ping <code>SELECT 1</code>) — utilisable par orchestrateur ou monitoring externe</li>
+</ul>
+
+<!-- ============== 7. APIs ============== -->
+<h2 id="sec-7">7. APIs et architecture des services</h2>
+
+<h3>7.1 Conventions REST</h3>
+<ul>
+  <li>Préfixe <code>/api</code></li>
+  <li>Routes : <code>/api/&lt;Resource&gt;</code> + <code>/{soccod}/...</code> quand soccod fait partie du chemin</li>
+  <li><strong>Statuts métier custom</strong> : <code>402</code> (quota plan dépassé), <code>422</code> (règle métier violée), <code>403</code> (permission refusée)</li>
+  <li><strong>Headers requis</strong> : <code>Authorization: Bearer &lt;jwt&gt;</code>, <code>X-Tenant-Slug</code></li>
+</ul>
+
+<h3>7.2 Services horizontaux</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 36%;" />
+    <col style="width: 64%;" />
+  </colgroup>
+  <thead><tr><th>Service</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>EncryptionService</code></td><td>Chiffrement symétrique des refresh tokens et données sensibles</td></tr>
+    <tr><td><code>EmailService</code></td><td>Envoi MailKit avec templates HTML</td></tr>
+    <tr><td><code>ExpoPushService</code></td><td>Push mobile via Expo Push API (batchs, retries, nettoyage des tokens expirés)</td></tr>
+    <tr><td><code>GeoZoneValidator</code></td><td>Validation Haversine geofence (DB + configuration)</td></tr>
+    <tr><td><code>PunctualityReminderHostedService</code></td><td>Background service de rappels de ponctualité</td></tr>
+    <tr><td><code>QuietHoursResolver</code></td><td>Filtre des notifications hors plage horaire</td></tr>
+    <tr><td><code>AiService</code> + <code>Rag/</code></td><td>Indexation, recherche sémantique et génération IA</td></tr>
+    <tr><td><code>BaseDataSchemaMigrator</code></td><td>Provisionnement du schéma tenant à la volée</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 8. Rôles et permissions ============== -->
+<h2 id="sec-8">8. Gestion des rôles et permissions</h2>
+
+<h3>8.1 Modèle</h3>
+<ul>
+  <li><strong>Role</strong> : <code>Administrator</code>, <code>Manager</code>, <code>ResponsableRH</code>, <code>Employe</code>, <code>Comptable</code></li>
+  <li><strong>RolePermission</strong> : matrice rôle × module avec drapeaux <code>RpConsult</code>, <code>RpAdd</code>, <code>RpModify</code>, <code>RpDelete</code></li>
+  <li><strong>Modules</strong> : ~30 modules métier</li>
+  <li><code>Utiadm = '1'</code> : super-admin tenant, bypass total</li>
+</ul>
+
+<h3>8.2 Plan gating (verrouillage par pack commercial)</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 16%;" />
+    <col style="width: 42%;" />
+    <col style="width: 42%;" />
+  </colgroup>
+  <thead><tr><th>Couche</th><th>Mécanisme</th><th>Comportement en cas de refus</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Backend</td>
+      <td>Attribut <code>[RequirePlanFeature(...)]</code> sur contrôleur / action, résolu par réflexion sur <code>PlanFeatures</code></td>
+      <td>HTTP <code>402</code> avec payload <code>{ code: "plan_feature_locked", feature, currentPlan, message }</code></td>
+    </tr>
+    <tr>
+      <td>Frontend web</td>
+      <td>Hook <code>useAuth().planAllows('featureKey')</code> alimenté par <code>/me</code></td>
+      <td>Éléments de navigation masqués ; intercepteur axios redirige les 402 vers <code>/upgrade</code></td>
+    </tr>
+    <tr>
+      <td>Mobile</td>
+      <td><code>AuthContext.user.planFeatures</code> rempli au login et à <code>/MobileAuth/me</code></td>
+      <td>Hooks <code>useDeviceTrust</code> / <code>useSecureScreen</code> désactivés hors Premium</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Endpoints gatés :</strong></p>
+<table class="data">
+  <colgroup>
+    <col style="width: 46%;" />
+    <col style="width: 22%;" />
+    <col style="width: 32%;" />
+  </colgroup>
+  <thead><tr><th>Endpoint</th><th>Feature requise</th><th>Effet pour Starter</th></tr></thead>
+  <tbody>
+    <tr><td><code>POST /api/MobileAuth/login</code></td><td><code>MobileApp</code></td><td>App mobile inaccessible</td></tr>
+    <tr><td><code>POST /api/Presences/mark-presence</code> (avec GPS)</td><td><code>Geolocation</code></td><td>Refus 402</td></tr>
+    <tr><td>Toutes routes <code>/api/Vault/*</code></td><td><code>DigitalVault</code></td><td>Coffre masqué</td></tr>
+    <tr><td><code>POST /api/Vault/sign/{id}</code></td><td><code>ElectronicSignature</code></td><td>Refus 402</td></tr>
+    <tr><td>Toutes routes <code>/api/Rag/*</code></td><td><code>RagAi</code></td><td>Assistant IA inaccessible</td></tr>
+  </tbody>
+</table>
+
+<div class="info">
+  <strong>Pendant l'essai gratuit</strong> (statut <code>Trialing</code>), <code>RequirePlanFeatureAttribute</code> accorde toutes les features pour permettre l'évaluation complète. La facturation démarre à la conversion.
+</div>
+
+<!-- ============== 9. Performances ============== -->
+<h2 id="sec-9">9. Performances et scalabilité</h2>
+
+<h3>9.1 Techniques en place</h3>
+<ul>
+  <li>EF Core : <code>AsNoTracking()</code> sur tous les reads, queries projetées, pas de N+1 connus</li>
+  <li>Pagination systématique</li>
+  <li>Cache permissions (<code>IMemoryCache</code> ttl ~1 minute)</li>
+  <li>Uploads statiques servis directement par nginx — bypass backend, CDN-friendly</li>
+</ul>
+
+<h3>9.2 Limites identifiées</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 5%;" />
+    <col style="width: 28%;" />
+    <col style="width: 32%;" />
+    <col style="width: 35%;" />
+  </colgroup>
+  <thead><tr><th>#</th><th>Limitation</th><th>Impact</th><th>Mitigation prévue</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>DbContext non-pooled</td><td>Overhead ~5-10 ms/req</td><td><code>IDbContextFactory&lt;&gt;</code> poolé si &gt;200 tenants</td></tr>
+    <tr><td>2</td><td>PDF synchrone</td><td>Blocage thread</td><td>Queue Hangfire pour rapports massifs</td></tr>
+    <tr><td>3</td><td>Cache distribué absent</td><td>Sticky sessions si multi-instance</td><td>Redis (<code>IDistributedCache</code>)</td></tr>
+    <tr><td>4</td><td>Skew horloge local time</td><td>Pas de TZ-awareness</td><td>Envoyer UTC depuis client</td></tr>
+    <tr><td>5</td><td>Pas d'e2e automatisé</td><td>Régression UI possible</td><td>Playwright / Detox</td></tr>
+    <tr><td>6</td><td>RAG indexation manuelle</td><td>Documents récents absents</td><td>Scheduler auto sur upload</td></tr>
+    <tr><td>7</td><td>SQL Server single-region</td><td>Latence outre-mer</td><td>Read replicas régionales</td></tr>
+    <tr><td>8</td><td>Pas de monitoring APM</td><td>Diagnostic prod manuel</td><td>OpenTelemetry + Grafana</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 10. Modules finalisés ============== -->
+<h2 id="sec-10">10. Modules — finalisés vs en cours</h2>
+
+<h3>10.1 Modules finalisés</h3>
+<table class="data compact">
+  <colgroup>
+    <col style="width: 60%;" />
+    <col style="width: 40%;" />
+  </colgroup>
+  <thead><tr><th>Module</th><th>Statut</th></tr></thead>
+  <tbody>
+    <tr><td>Auth login + 2FA</td><td><span class="check">✓</span> Complet</td></tr>
+    <tr><td>Bio-token mobile (sans password)</td><td><span class="check">✓</span> Backend + mobile</td></tr>
+    <tr><td>Multi-tenant master/tenant + auto-migration</td><td><span class="check">✓</span> Complet</td></tr>
+    <tr><td>Pointage manuel + mobile</td><td><span class="check">✓</span> Complet</td></tr>
+    <tr><td>Géolocalisation pointage</td><td><span class="check">✓</span> Schéma + service + UI</td></tr>
+    <tr><td>Calculs présence / retard / heures sup.</td><td><span class="check">✓</span> Tests unitaires</td></tr>
+    <tr><td>Congés (demandes, titres, RTT, CET)</td><td><span class="check">✓</span> Workflow complet</td></tr>
+    <tr><td>Autorisations de sortie</td><td><span class="check">✓</span> Complet</td></tr>
+    <tr><td>Coffre-fort (web + mobile)</td><td><span class="check">✓</span> Audit orphelins admin</td></tr>
+    <tr><td>Signature électronique</td><td><span class="check">✓</span> Web + mobile</td></tr>
+    <tr><td>Notifications push + email + in-app</td><td><span class="check">✓</span> Quiet hours + catalogue</td></tr>
+    <tr><td>Dashboard admin / manager / employé</td><td><span class="check">✓</span> Animations count-up</td></tr>
+    <tr><td>Reporting PDF / Excel</td><td><span class="check">✓</span> Suite complète</td></tr>
+    <tr><td>Préparation paie (rubriques + pointage mois)</td><td><span class="check">✓</span> Exports complets</td></tr>
+    <tr><td>Stripe billing</td><td><span class="check">✓</span> Webhooks + plan limits 402</td></tr>
+    <tr><td>RAG / chatbot IA</td><td><span class="check">✓</span> Indexation + chat contextuel</td></tr>
+    <tr><td>Sécurité mobile G1–G6</td><td><span class="check">✓</span> 6 durcissements actifs</td></tr>
+    <tr><td>Headers sécurité + healthchecks</td><td><span class="check">✓</span> HSTS + CSP + COOP/CORP</td></tr>
+    <tr><td>Auto-migration de schéma</td><td><span class="check">✓</span> <code>BaseDataSchemaMigrator</code></td></tr>
+  </tbody>
+</table>
+
+<h3>10.2 En cours / à consolider</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 32%;" />
+    <col style="width: 68%;" />
+  </colgroup>
+  <thead><tr><th>Module</th><th>Détail</th></tr></thead>
+  <tbody>
+    <tr><td>Geofence — pédagogie UI</td><td>UI ok, documentation utilisateur à rédiger</td></tr>
+    <tr><td>RAG — fraîcheur index</td><td>Pas de réindexation incrémentale sur upload vault</td></tr>
+    <tr><td>Onboarding tenant</td><td><code>OnboardingGuide.tsx</code> à enrichir</td></tr>
+    <tr><td>Backups</td><td>Scripts créés, à brancher en cron prod</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 11. SaaS / segmentation ============== -->
+<h2 id="sec-11">11. Stratégie SaaS et segmentation des offres</h2>
+
+<h3>11.1 Segmentation cible</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 24%;" />
+    <col style="width: 36%;" />
+    <col style="width: 22%;" />
+    <col style="width: 18%;" />
+  </colgroup>
+  <thead><tr><th>Segment</th><th>Profil</th><th>Plan</th><th>Volume</th></tr></thead>
+  <tbody>
+    <tr><td>TPE / petites équipes</td><td>1-10 salariés, RH de base</td><td>Starter</td><td>10 inclus</td></tr>
+    <tr><td>PME en croissance</td><td>10-50 salariés, mobile + congés + paie</td><td>Standard</td><td>25 inclus</td></tr>
+    <tr><td>ETI / Multi-filiales</td><td>25-100+ salariés, IA + sécurité renforcée</td><td>Premium</td><td>50 inclus</td></tr>
+    <tr><td>Groupes / Comptes clés</td><td>&gt;100 salariés, API / SSO</td><td>Premium + add-ons</td><td>overage</td></tr>
+  </tbody>
+</table>
+
+<h3>11.2 Marché géographique prioritaire</h3>
+<ol>
+  <li><strong>France</strong> (cœur V1) : 4M+ PME, pression réglementaire (loi El Khomri, RGPD)</li>
+  <li><strong>Belgique</strong> : extension naturelle, législation RH proche, marché francophone</li>
+  <li><strong>Maghreb / Afrique francophone</strong> : Tunisie, Maroc, Algérie, Sénégal, Côte d'Ivoire</li>
+  <li><strong>DOM-TOM</strong> : couverture cross-fuseau native (skew 90 min)</li>
+</ol>
+
+<h3>11.3 Modèle d'abonnement</h3>
+<ul>
+  <li><strong>Facturation</strong> : forfait mensuel fixe + overage par salarié supplémentaire</li>
+  <li><strong>Modèle Stripe</strong> : subscription à 2 items — <code>base</code> (qty=1) + <code>seat</code> (qty=overage)</li>
+  <li><strong>Engagement</strong> : sans engagement (résiliation à tout moment, prorata)</li>
+  <li><strong>Essai</strong> : 30 jours gratuits sur tous les packs payants, sans carte bancaire</li>
+  <li><strong>Job synchronisation seats</strong> : <code>EmployeeBillingSyncService</code> (BackgroundService, 24 h)</li>
+</ul>
+
+<!-- ============== 12. Packs tarifaires ============== -->
+<h2 id="sec-12">12. Packs tarifaires et fonctionnalités</h2>
+
+<div class="plan-card">
+  <h3>12.1 Pack Starter — 29,50 € / mois</h3>
+  <p><strong>Cible</strong> : TPE / petites équipes<br />
+  <strong>Tarif</strong> : 29,50 € HT/mois — jusqu'à 10 salariés inclus — au-delà : +4,90 €/salarié supplémentaire<br />
+  <strong>Essai</strong> : 30 jours gratuits, sans carte bancaire</p>
+  <p><strong>Inclus :</strong> Gestion RH de base, pointage web manuel, calendrier d'absences, tableau de bord simple, exports PDF/Excel basique, 1 administrateur, support J+2.</p>
+  <p><strong>Désactivé (402 si appel direct) :</strong> <span class="cross">✗</span> App mobile <span class="cross">✗</span> Pointage géolocalisé <span class="cross">✗</span> Coffre numérique <span class="cross">✗</span> Signature électronique <span class="cross">✗</span> Multi-sites / sociétés <span class="cross">✗</span> Assistant IA</p>
+</div>
+
+<div class="plan-card popular">
+  <h3>12.2 Pack Standard — 59,50 € / mois <span class="badge">POPULAIRE</span></h3>
+  <p><strong>Cible</strong> : PME en croissance<br />
+  <strong>Tarif</strong> : 59,50 € HT/mois — jusqu'à 25 salariés inclus — au-delà : +6,90 €/salarié supplémentaire<br />
+  <strong>Essai</strong> : 30 jours gratuits, sans carte bancaire</p>
+  <p><strong>Tout le Starter, plus :</strong></p>
+  <ul>
+    <li><span class="check">✓</span> Application mobile (iOS + Android, biométrie, push)</li>
+    <li><span class="check">✓</span> Pointage géolocalisé (geofence par site)</li>
+    <li><span class="check">✓</span> Gestion congés complète (RTT, CET, sanctions)</li>
+    <li><span class="check">✓</span> Coffre-fort numérique</li>
+    <li><span class="check">✓</span> Signature électronique</li>
+    <li><span class="check">✓</span> Notifications push + email + in-app</li>
+    <li><span class="check">✓</span> Reporting avancé (PDF / Excel complets)</li>
+    <li><span class="check">✓</span> Préparation paie (export Sage Excel)</li>
+    <li><span class="check">✓</span> Multi-sites (MaxSites=3)</li>
+    <li><span class="check">✓</span> Support prioritaire (SLA 24 h)</li>
+  </ul>
+  <p><strong>Désactivé :</strong> <span class="cross">✗</span> Multi-sociétés <span class="cross">✗</span> Assistant IA <span class="cross">✗</span> Device trust / Screenshot blocking runtime</p>
+</div>
+
+<div class="plan-card">
+  <h3>12.3 Pack Premium — 119,00 € / mois</h3>
+  <p><strong>Cible</strong> : ETI / Multi-filiales<br />
+  <strong>Tarif</strong> : 119 € HT/mois — jusqu'à 50 salariés inclus — au-delà : +9,90 €/salarié supplémentaire<br />
+  <strong>Essai</strong> : 30 jours gratuits, sans carte bancaire</p>
+  <p><strong>Tout le Standard, plus :</strong></p>
+  <ul>
+    <li><span class="check">✓</span> Multi-sociétés illimité + multi-sites illimité</li>
+    <li><span class="check">✓</span> Tableaux de bord avancés (KPI temps réel)</li>
+    <li><span class="check">✓</span> Assistant IA contextuel (RAG Qdrant + sidecar Python)</li>
+    <li><span class="check">✓</span> Audit logs avancés (export RGPD)</li>
+    <li><span class="check">✓</span> Sécurité mobile renforcée (<code>useDeviceTrust</code> + <code>useSecureScreen</code> actifs)</li>
+    <li><span class="check">✓</span> Cert pinning (contractuellement Premium)</li>
+    <li><span class="check">✓</span> Conformité RGPD avancée</li>
+    <li><span class="check">✓</span> Onboarding accompagné (kick-off call, formation admin + manager)</li>
+  </ul>
+  <p class="small"><strong>Roadmap V1.1 (add-on) :</strong> API publique · SSO entreprise (SAML/OIDC) · Connecteurs paie directs (Sage, Cegid)</p>
+</div>
+
+<h3>12.4 Add-ons (sur devis)</h3>
+<ul>
+  <li>Pen-test annuel personnalisé</li>
+  <li>Hébergement région dédiée (FR / BE / MA)</li>
+  <li>Marque blanche complète (custom CSS + domaine personnalisé)</li>
+  <li>API publique pour intégrateurs partenaires</li>
+  <li>Formation présentielle administrateurs / managers</li>
+</ul>
+
+<!-- ============== 13. Marketing ============== -->
+<h2 id="sec-13">13. Stratégie marketing</h2>
+
+<h3>13.1 France</h3>
+<p><strong>Positionnement</strong> : alternative française à Factorial / Skello / Combo, focus pointage géolocalisé + RGPD natif.</p>
+<p><strong>Canaux</strong> : SEO (blog RH réglementaire), LinkedIn ads PME 10-200, partenariats experts-comptables, salons (Solutions RH Paris, Workspace Expo), SEA Google, référencement Capterra / GetApp / Appvizer.</p>
+
+<h3>13.2 Belgique</h3>
+<p><strong>Positionnement</strong> : extension France, conformité RGPD identique, marché francophone Wallonie + Bruxelles.</p>
+<p><strong>Canaux</strong> : partenariats secrétariats sociaux (Acerta, SD Worx, Partena), LinkedIn Bruxelles / Wallonie, connecteurs paie locaux (Acerta en roadmap).</p>
+
+<h3>13.3 Afrique francophone (Maghreb + UEMOA)</h3>
+<p><strong>Positionnement</strong> : modernisation pointage / paie pour PME / ETI, argument mobile-first (pénétration smartphone élevée), bio-token sans connexion permanente.</p>
+<p><strong>Pricing adapté</strong> : grille spécifique en MAD / TND / DZD / XOF (-30 à -50 % vs grille EUR).</p>
+
+<h3>13.4 Calendrier indicatif</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 18%;" />
+    <col style="width: 28%;" />
+    <col style="width: 27%;" />
+    <col style="width: 27%;" />
+  </colgroup>
+  <thead><tr><th>Trimestre</th><th>France</th><th>Belgique</th><th>Afrique francophone</th></tr></thead>
+  <tbody>
+    <tr><td>T1 V1</td><td>Lancement public, SEA, salons</td><td>—</td><td>—</td></tr>
+    <tr><td>T2 V1</td><td>Capterra / GetApp, contenus blog</td><td>Lancement Wallonie</td><td>Pilote 2-3 partenaires</td></tr>
+    <tr><td>T3 V1</td><td>Salons régionaux</td><td>Salons Bruxelles</td><td>Lancement Maroc + Tunisie</td></tr>
+    <tr><td>T4 V1</td><td>Account-based marketing ETI</td><td>Roadmap Acerta</td><td>Extension UEMOA</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 14. App Store / Google Play ============== -->
+<h2 id="sec-14">14. Préparation App Store et Google Play</h2>
+
+<h3>14.1 Prérequis comptes</h3>
+<ul>
+  <li>☐ Compte Apple Developer (99 $/an) au nom de l'entité Concorde</li>
+  <li>☐ Compte Google Play Developer (25 $ one-shot)</li>
+  <li>☐ Certificats iOS (distribution + push) via Apple Developer Portal</li>
+  <li>☐ Keystore Android signé, backupé hors repo</li>
+</ul>
+
+<h3>14.2 Prérequis techniques (en place)</h3>
+<ul>
+  <li><span class="check">✓</span> Build EAS Expo configuré (<code>eas.json</code> prod / preview)</li>
+  <li><span class="check">✓</span> Bundle ID iOS et <code>applicationId</code> Android distincts</li>
+  <li><span class="check">✓</span> Icône adaptive Android paddée</li>
+  <li><span class="check">✓</span> <code>network_security_config.xml</code> Android pour cert pinning prod</li>
+  <li><span class="check">✓</span> <code>Info.plist</code> iOS avec <code>NSPinnedDomains</code> + permissions</li>
+  <li><span class="check">✓</span> Versioning automatique via Expo</li>
+</ul>
+
+<h3>14.3 Risques de rejet anticipés</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 44%;" />
+    <col style="width: 56%;" />
+  </colgroup>
+  <thead><tr><th>Risque</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Apple : « app trop similaire à un site web »</td><td>Justifier les fonctions natives : GPS, biométrie, push, capture signature</td></tr>
+    <tr><td>Apple : usage géolocalisation arrière-plan</td><td>Pas d'arrière-plan — uniquement on-demand au pointage. À documenter en review notes.</td></tr>
+    <tr><td>Google : Data Safety incohérent</td><td>Audit checklist data collected vs déclaré</td></tr>
+    <tr><td>Cert pinning trop strict</td><td>Pinning conditionnel build prod uniquement ; dev pointe vers staging</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 15. Démos ============== -->
+<h2 id="sec-15">15. Éléments pour démonstrations commerciales</h2>
+
+<h3>15.1 Scénarios de démo (15-20 min)</h3>
+<p><strong>Démo 1 — Pointage simplifié (5 min)</strong> Connexion mobile employé → pointage entrée avec GPS → vue temps réel admin → tentative hors zone → refus 422.</p>
+<p><strong>Démo 2 — Cycle congé complet (5 min)</strong> Demande mobile → notification manager → approbation → notification employé → solde mis à jour + titre PDF.</p>
+<p><strong>Démo 3 — Coffre-fort &amp; signature (5 min)</strong> Upload bulletin → notification employé → signature tactile → statut signé verrouillé → audit log.</p>
+<p><strong>Démo 4 — Préparation paie (5 min)</strong> Pointage du mois agrégé → export Excel → état périodique PDF → KPIs dashboard.</p>
+
+<h3>15.2 Arguments différenciants</h3>
+<ol>
+  <li><strong>Sécurité mobile bancaire</strong> : cert pinning + screenshot blocking + auto-lock + bio-token sans password (rare sur le marché RH)</li>
+  <li><strong>IA contextuelle</strong> : assistant RAG sur vos documents — pas sur des données génériques</li>
+  <li><strong>Multi-tenant strict</strong> : 1 base SQL par client, isolation forte, hébergement région possible</li>
+  <li><strong>Mobile-first</strong> : 22 écrans natifs, pas une web-view dégradée</li>
+  <li><strong>Geofence natif</strong> : inclus dès Standard, pas un add-on</li>
+  <li><strong>Conformité RGPD</strong> : retention dates, soft delete, export, registre, audit log</li>
+  <li><strong>Internationalisation</strong> : FR/EN + multi-devise + skew horloge 90 min DST-safe</li>
+</ol>
+
+<!-- ============== 16. Risques ============== -->
+<h2 id="sec-16">16. Risques techniques</h2>
+<table class="data">
+  <colgroup>
+    <col style="width: 32%;" />
+    <col style="width: 14%;" />
+    <col style="width: 12%;" />
+    <col style="width: 42%;" />
+  </colgroup>
+  <thead><tr><th>Risque</th><th>Probabilité</th><th>Impact</th><th>Plan</th></tr></thead>
+  <tbody>
+    <tr><td>Indispo SQL Server</td><td>Moyenne</td><td>Élevé</td><td>Backup horaire + restore testé + failover documenté</td></tr>
+    <tr><td>Quota Expo Push dépassé</td><td>Faible</td><td>Moyen</td><td>Monitoring + bascule FCM direct</td></tr>
+    <tr><td>Saturation volume uploads</td><td>Moyenne</td><td>Élevé</td><td>Alerte 80 % + rotation / archivage</td></tr>
+    <tr><td>Stripe webhook désynchronisé</td><td>Faible</td><td>Moyen</td><td>Job de réconciliation quotidien</td></tr>
+    <tr><td>Charge IA imprévisible</td><td>Moyenne</td><td>Moyen</td><td>Quota par tenant, fallback modèle moins coûteux</td></tr>
+    <tr><td>Faille 0-day .NET</td><td>Faible-moy.</td><td>Élevé</td><td><code>dotnet list package --vulnerable</code> en CI, Dependabot</td></tr>
+    <tr><td>Cert pinning bloque app</td><td>Faible</td><td>Élevé</td><td>Pinning intermédiaires LE R10/R11 + procédure rotation</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 17. Roadmap ============== -->
+<h2 id="sec-17">17. Roadmap de développement</h2>
+
+<h3>17.1 Phase 1 — Hardening V1 (T+0 à T+3 semaines)</h3>
+<ul>
+  <li><span class="check">✓</span> Plan gating end-to-end (backend + frontend + mobile)</li>
+  <li><span class="check">✓</span> Tarification commerciale verrouillée + Stripe base+seat</li>
+  <li><span class="check">✓</span> Période d'essai 30 j sans CB</li>
+  <li><span class="check">✓</span> Job synchronisation seats Stripe (BackgroundService quotidien)</li>
+  <li><span class="check">✓</span> CSP <code>frame-src blob:</code> pour aperçus PDF</li>
+  <li>☐ Backups uploads + SQL automatisés (cron production)</li>
+  <li>☐ Monitoring Prometheus + alerting</li>
+  <li>☐ Pen-test externe et remédiation</li>
+  <li>☐ Documentation utilisateur (admin &amp; employé)</li>
+  <li>☐ Build EAS production iOS + Android signés</li>
+  <li>☐ Serveur Ubuntu 24.04 LTS durci — commande passée, mise en place §18</li>
+</ul>
+
+<h3>17.2 Phase 2 — Lancement V1 (T+3 à T+5 semaines)</h3>
+<p>Pricing public, Stripe live, onboarding guidé enrichi, centre d'aide / FAQ, status page publique, métriques business (MRR, churn), soumission stores.</p>
+
+<h3>17.3 Phase 3 — V1.1 (T+6 à T+10 semaines)</h3>
+<p>Redis + scale horizontal, queue rapports asynchrone (Hangfire), réindexation RAG automatique, connecteurs paie (Sage, Cegid), API publique, SSO (SAML/OIDC), moteur branding, mode offline mobile.</p>
+
+<h3>17.4 Phase 4 — V2 (T+3 mois et plus)</h3>
+<p>Workflow personnalisable (BPMN-light), multi-langue étendu (AR, ES), hébergement régional (FR / BE / MA / SN), failover SQL Server + load balancer multi-AZ (Premium SLA 99,9 %).</p>
+
+<!-- ============== 18. Infra production ============== -->
+<h2 id="sec-18">18. Plan de durcissement infrastructure de production</h2>
+
+<h3>18.1 Spécifications du serveur commandé</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 22%;" />
+    <col style="width: 30%;" />
+    <col style="width: 48%;" />
+  </colgroup>
+  <thead><tr><th>Caractéristique</th><th>Valeur retenue</th><th>Justification</th></tr></thead>
+  <tbody>
+    <tr><td>Hébergement</td><td>Serveur dédié France</td><td>Souveraineté données + RGPD (CNIL)</td></tr>
+    <tr><td>OS</td><td>Ubuntu Server 24.04 LTS</td><td>LTS jusqu'à avril 2029, .NET 8 supporté</td></tr>
+    <tr><td>Stockage</td><td>SSD NVMe</td><td>Performance SQL Server + rapports synchrones</td></tr>
+    <tr><td>RAM</td><td>64 Go</td><td>SQL Server réserve typiquement 50 %</td></tr>
+    <tr><td>Architecture</td><td>Scalable</td><td>Compatible multi-instance + Redis</td></tr>
+  </tbody>
+</table>
+
+<h3>18.2 Architecture cible (3 environnements)</h3>
+<pre>
++------------------+   +------------------+   +------------------+
+|   PRODUCTION     |   |   STAGING        |   |   TESTS / CI     |
+|   *.concorde-... |   |   staging.*      |   |   ephemere docker|
+|   Stripe live    |   |   Stripe test    |   |   data reinit.   |
+|   Donnees reelles|   |   Dump anonymise |   |   pas de backup  |
+|   Backups quotid.|   |   Backups hebdo  |   |                  |
++------------------+   +------------------+   +------------------+
+</pre>
+
+<h3>18.3 Étapes de sécurisation</h3>
+<h4>Phase 0 — Provisioning initial (J0 à J+1)</h4>
+<ol>
+  <li>Installation Ubuntu Server 24.04 LTS (partition <code>/var/lib/docker</code> séparée)</li>
+  <li>Utilisateur <code>concorde-ops</code> non-privilégié avec <code>sudo</code>, désactivation root</li>
+  <li>SSH par clé uniquement (<code>PasswordAuthentication no</code>, <code>PermitRootLogin no</code>)</li>
+  <li><code>ufw</code> : INPUT default deny ; autoriser 22/tcp (SSH), 80/tcp, 443/tcp</li>
+  <li><code>fail2ban</code> sur sshd (jail 24 h après 3 tentatives)</li>
+  <li><code>unattended-upgrades</code> pour mises à jour sécurité automatiques</li>
+  <li><code>auditd</code> activé (logs syscalls sensibles)</li>
+</ol>
+
+<h4>Phase 1 — Stack applicative</h4>
+<p>Docker Engine + Docker Compose v2 (repo officiel), volumes dédiés NVMe, premier <code>docker compose up -d</code> avec healthchecks.</p>
+
+<h4>Phase 2 — DNS et TLS</h4>
+<p>Pointage A/AAAA <code>concorde-work-force.com</code> + wildcard <code>*.concorde-work-force.com</code>, certbot DNS-01 challenge, HSTS preload après stabilisation 1 semaine.</p>
+
+<h4>Phase 3 — Monitoring</h4>
+<p>UptimeRobot sur <code>/api/healthz</code> (1 min) + <code>/readyz</code> (5 min), logs centralisés, alertes (5xx &gt; 1 %, p95 &gt; 2 s, disque &gt; 80 %, certs &lt; 14 j).</p>
+
+<h3>18.4 Politique de sauvegarde</h3>
+<table class="data compact">
+  <colgroup>
+    <col style="width: 26%;" />
+    <col style="width: 17%;" />
+    <col style="width: 22%;" />
+    <col style="width: 23%;" />
+    <col style="width: 12%;" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Quoi</th>
+      <th>Quand</th>
+      <th>Où</th>
+      <th>Rétention</th>
+      <th>Test restore</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>SQL Server (master + tenants)</td>
+      <td>Quotidien 03:00 UTC</td>
+      <td>S3 EU chiffré</td>
+      <td>30 j rolling + 12 fins de mois</td>
+      <td>Mensuel</td>
+    </tr>
+    <tr>
+      <td>Volume <code>uploads_data</code></td>
+      <td>Quotidien 03:30 UTC</td>
+      <td>Idem</td>
+      <td>30 j rolling</td>
+      <td>Mensuel</td>
+    </tr>
+    <tr>
+      <td>Config nginx / appsettings</td>
+      <td>Git + snapshot hebdo</td>
+      <td>Git + S3</td>
+      <td>Indéfini</td>
+      <td>Sur modif.</td>
+    </tr>
+    <tr>
+      <td>Volume Qdrant (RAG)</td>
+      <td>Hebdomadaire</td>
+      <td>Idem</td>
+      <td>4 semaines</td>
+      <td>Trimestriel</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>18.5 Plan de continuité simplifié (V1)</h3>
+<ul>
+  <li><strong>RPO cible</strong> : 24 h (sauvegarde quotidienne)</li>
+  <li><strong>RTO cible</strong> : 4 h (restore + redéploiement)</li>
+  <li>Pas de failover automatique en V1 — à durcir pour Premium (réplication SQL + load balancer multi-AZ)</li>
+</ul>
+
+<!-- ============== 19. Services tiers ============== -->
+<h2 id="sec-19">19. Services tiers et dépendances</h2>
+
+<h3>19.1 Services externes payants</h3>
+<table class="data">
+  <colgroup>
+    <col style="width: 28%;" />
+    <col style="width: 36%;" />
+    <col style="width: 36%;" />
+  </colgroup>
+  <thead><tr><th>Service</th><th>Usage</th><th>Plan V1</th></tr></thead>
+  <tbody>
+    <tr><td>Stripe</td><td>Billing abonnements + webhooks</td><td>Standard, frais 1,4 % + 0,25 € EU</td></tr>
+    <tr><td>OpenRouter (Gemini 2.0 Flash)</td><td>LLM RAG</td><td>Pay-as-you-go ; switch Claude possible</td></tr>
+    <tr><td>Expo Push API</td><td>Notifications mobile</td><td>Gratuit (~6000 push/min)</td></tr>
+    <tr><td>Let's Encrypt</td><td>TLS</td><td>Gratuit</td></tr>
+    <tr><td>SMTP (TBD)</td><td>Emails transactionnels</td><td>SendGrid / Mailgun / SES</td></tr>
+    <tr><td>Apple Developer</td><td>Distribution iOS</td><td>99 $/an</td></tr>
+    <tr><td>Google Play Developer</td><td>Distribution Android</td><td>25 $ one-shot</td></tr>
+  </tbody>
+</table>
+
+<!-- ============== 20. Conclusion ============== -->
+<h2 id="sec-20">20. Conclusion</h2>
+
+<p>La plateforme est dans un état de <strong>maturité fonctionnelle élevée</strong> : modules métier complets, multi-tenant opérationnel avec auto-migration de schéma, calculs paie couverts par tests, sécurité socle forte et durcissements mobiles bancaires (cert pinning, bio-token, device trust, screenshot blocking, auto-lock, RT quota) — les deux derniers gatés Premium au runtime.</p>
+
+<p>La <strong>tarification commerciale est verrouillée</strong> (Starter 29,50 € / Standard 59,50 € / Premium 119 €) avec un modèle forfait + overage par salarié, période d'essai 30 jours sans CB, et facturation Stripe à 2 items avec synchronisation automatique des seats.</p>
+
+<p>Le <strong>plan gating est appliqué de bout en bout</strong> : backend (<code>RequirePlanFeatureAttribute</code>), frontend (<code>planAllows</code>), mobile (hooks conditionnés au plan). Un tenant Starter ne peut pas accéder à l'app mobile, au coffre, à la signature, au reporting avancé, ni à l'IA — y compris par appel direct à l'API.</p>
+
+<p>Les <strong>trois axes critiques</strong> avant lancement commercial restent :</p>
+<ol>
+  <li><strong>Continuité de service</strong> : sauvegardes testées, monitoring, alerting — plan §18, mise en œuvre en cours</li>
+  <li><strong>Audit sécurité externe</strong> : pen-test à budgétiser avant le premier client Premium</li>
+  <li><strong>Tests de charge</strong> sur le serveur dédié final, confirmant les capacités annoncées</li>
+</ol>
+
+<p>L'architecture multi-tenant <em>DB-per-tenant</em> est adaptée au segment PME/ETI ciblé et offre une isolation forte. La stratégie commerciale tri-marché (France / Belgique / Afrique francophone) est cohérente avec les capacités techniques (multi-devise, skew horloge DST-safe, mobile-first).</p>
+
+<hr />
+
+<p class="small" style="text-align:center;">
+  Document généré à partir de l'inventaire de la base de code — 64 contrôleurs API, 131 entités EF, 22 écrans mobile, ~30 modules web.<br />
+  Version du 2026-05-12. Mises à jour à chaque itération significative.
+</p>
+
+</body>
+</html>

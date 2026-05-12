@@ -178,6 +178,46 @@ function CalendrierContent() {
   const cloneCalendrier = useCloneCalendrier();
   const addCalendrier = useAddCalendrier();
 
+  // ── Auto-clonage à l'ouverture de l'année courante ──────────────────────
+  // Si l'utilisateur ouvre la page calendrier après le 1er janvier d'une
+  // nouvelle année sans qu'aucune donnée n'ait été initialisée, on clone
+  // automatiquement le paramétrage de l'année précédente. Ce comportement
+  // évite à l'admin la corvée annuelle d'aller dans "Initialiser l'année"
+  // → "Cloner". Le bouton manuel reste disponible pour cloner depuis une
+  // autre source que N-1.
+  //
+  // Pré-conditions strictes pour ne pas déclencher abusivement :
+  //   1) la requête initiale a bien chargé (data est défini, pas en cours)
+  //   2) l'année affichée est l'année calendaire courante (System now)
+  //   3) cette année n'a aucune entrée
+  //   4) une mutation clone n'est pas déjà en cours (anti-double-trigger
+  //      en cas de re-render rapide)
+  //   5) on n'a pas déjà déclenché le clone dans cette session (idempotence)
+  const [autoCloneTried, setAutoCloneTried] = useState(false);
+  useEffect(() => {
+    const currentYear = new Date().getFullYear().toString();
+    if (selectedYear !== currentYear) return;
+    if (autoCloneTried) return;
+    if (cloneCalendrier.isLoading) return;
+    if (!Array.isArray(data)) return;
+    if ((data as CalendarEntry[]).length > 0) return;
+
+    setAutoCloneTried(true);
+    cloneCalendrier.mutate(Number(currentYear), {
+      onSuccess: () => {
+        refetch();
+        showFeedback(t('paramSoc.calendrier.autoCloneSuccess', {
+          year: currentYear,
+          source: (Number(currentYear) - 1).toString(),
+          defaultValue: `Calendrier ${currentYear} initialisé à partir de ${Number(currentYear) - 1}.`,
+        }));
+      },
+      // Échec silencieux : si l'année N-1 n'existe pas non plus, on laisse
+      // l'utilisateur passer par "Initialiser l'année" manuellement.
+      onError: () => { /* no-op */ },
+    });
+  }, [data, selectedYear, autoCloneTried, cloneCalendrier, refetch, t]);
+
   // Handlers
   const handleSave = () => {
     if (!activeCaltype) {
@@ -584,25 +624,9 @@ function CalendrierContent() {
             </div>
           </div>
 
-          {/* Bento Card: Employee Context */}
-          <div className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/10 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <img alt="Team member" className="w-12 h-12 rounded-full object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" />
-              <div>
-                <p className="text-[10px] font-label font-bold text-outline uppercase tracking-wider">{t('paramSoc.calendrier.sidebar.currentAssignment')}</p>
-                <h4 className="text-sm font-extrabold font-headline">{t('paramSoc.calendrier.sidebar.hub')}</h4>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-label text-on-surface-variant">{t('paramSoc.calendrier.sidebar.remainingLeaves')}</span>
-                <span className="text-xs font-headline font-bold">{t('paramSoc.calendrier.sidebar.remainingLeavesValue')}</span>
-              </div>
-              <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
-                <div className="h-full bg-primary w-2/3"></div>
-              </div>
-            </div>
-          </div>
+          {/* Carte "Solde de congés restants" retirée — info doublon avec
+              le tableau de bord employé, et hors-sujet pour la page calendrier
+              société (qui ne pilote pas les soldes individuels). */}
         </aside>
       </main>
 
