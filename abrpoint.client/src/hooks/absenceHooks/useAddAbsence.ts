@@ -14,16 +14,16 @@ const useAddAbsence = () => {
                 )
                 .then(res => res.data),
         {
-            onSuccess: (variables) => {
+            onSuccess: () => {
                 const soccod = sessionStorage.getItem("soccod");
-
-                // Update the cache directly
-                queryClient.setQueryData(['repos', soccod], (oldData: Absence[] | undefined) =>
-                    oldData ? [...oldData, variables] : [variables]
-                );
-
-                // Alternatively, invalidate the cache to refetch data
-                // queryClient.invalidateQueries(['repos', soccod]);
+                // Invalide toutes les listes d'absences consommées ailleurs : la liste
+                // principale (IntituleDesAbsenceList), la version "all-absences" et la
+                // combo box "nature mission" (Abscng='6') de la page Missions.
+                // Avant : seul `['repos', soccod]` était modifié → la nouvelle nature
+                // n'apparaissait dans le dropdown mission qu'après un refresh manuel.
+                queryClient.invalidateQueries(['absences', soccod]);
+                queryClient.invalidateQueries(['all-absences', soccod]);
+                queryClient.invalidateQueries(['missions', 'natures', soccod]);
             },
             onError: (err) => {
                 console.error("Error adding new data:", err);

@@ -282,7 +282,11 @@ public class BulkImportController : ControllerBase
                     Emplnais = row.Emplnais?.Trim(),
                     Empdnais = row.Empdnais?.Trim(),
                     Empemb = embDate,
-                    Actif = "1",
+                    // "A" = actif (convention partagée avec EmployeRepository.GetEmpLibs et
+                    // les requêtes de reporting). Avant : "1" qui ne matchait aucun filtre
+                    // → les employés importés n'apparaissaient ni dans les listes de pointage
+                    // ni dans les rapports tant qu'on ne ré-éditait pas la fiche.
+                    Actif = "A",
                     CreatedAt = DateTime.UtcNow,
                 });
                 await _db.SaveChangesAsync();

@@ -59,7 +59,7 @@ export default function MonAbonnementPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiInstance.get<SubscriptionInfo>('/api/billing/subscription');
+      const res = await apiInstance.get<SubscriptionInfo>('/billing/subscription');
       setInfo(res.data);
     } catch (e: any) {
       setError(e?.response?.data?.error || 'Impossible de charger les informations d\'abonnement.');
@@ -74,7 +74,7 @@ export default function MonAbonnementPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await apiInstance.post('/api/billing/cancel-subscription', {
+      const res = await apiInstance.post('/billing/cancel-subscription', {
         immediate: cancelMode === 'immediate',
         reason: cancelReason.trim() || null,
       });
@@ -104,7 +104,7 @@ export default function MonAbonnementPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await apiInstance.post('/api/billing/resume-subscription');
+      await apiInstance.post('/billing/resume-subscription');
       setSuccessMsg('Résiliation annulée. Votre abonnement continuera normalement.');
       await fetchInfo();
     } catch (e: any) {
