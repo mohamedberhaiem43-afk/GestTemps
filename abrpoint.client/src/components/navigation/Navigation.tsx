@@ -737,8 +737,12 @@ import { resolveAssetUrl } from '../../helpers/assetUrl';
 function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authReady, clearAuth, userName, isAdmin, isManager, uticod } = useAuth();
+  const { authReady, clearAuth, userName, isAdmin, isManager, uticod, planAllows } = useAuth();
   const isAuthenticated = Boolean(uticod);
+  // 2026-05-12 : l'assistant IA (RAG) est gaté au plan Premium. Sur Starter/Standard,
+  // on masque le bouton flottant — sinon l'utilisateur l'ouvre et tous les appels
+  // échouent en 402 côté backend (RagController gaté par RequirePlanFeature(RagAi)).
+  const chatbotAllowed = planAllows('ragAi');
   const { i18n, t } = useTranslation();
   const NAVIGATION = useNavigationItems();
   const outerTheme = useMuiTheme();
@@ -962,12 +966,11 @@ function DashboardLayoutAccount(_props: DemoProps) {
         <PageFade routeKey={canonicalPathname}>
           <DemoPageContent pathname={canonicalPathname} />
         </PageFade>
-        {/* Assistant IA : réservé aux utilisateurs connectés. Avant, on l'exposait sur
-            la landing publique « pour aider les visiteurs à se renseigner » — mais le
-            backend RAG exige un JWT valide (controllers gatés `[Authorize]` + feature
-            `RagAi`), donc le bouton ouvrait un panneau sur lequel tous les appels
-            échouaient en 401. On le masque pour les non-authentifiés. */}
-        {isAuthenticated && (
+        {/* Assistant IA : réservé aux utilisateurs connectés ET au plan Premium
+            (feature `RagAi` côté backend). Avant, on l'exposait sur la landing
+            publique mais le backend renvoyait 401 ; depuis 2026-05-12 on ajoute
+            aussi le gating de plan pour éviter les 402 sur Starter/Standard. */}
+        {isAuthenticated && chatbotAllowed && (
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>
             <UnifiedAssistantHub />
           </Box>
@@ -1135,7 +1138,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
         </PageFade>
       </SidebarNavigationDualTier>
 
-      {pathname !== '/' && isAuthenticated && (
+      {pathname !== '/' && isAuthenticated && chatbotAllowed && (
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
           <UnifiedAssistantHub />
         </Box>
