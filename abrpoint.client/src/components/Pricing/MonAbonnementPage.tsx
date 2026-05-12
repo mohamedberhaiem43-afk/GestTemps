@@ -114,6 +114,37 @@ export default function MonAbonnementPage() {
     }
   };
 
+  // Réactivation : tenant Cancelled dans la fenêtre de rétention (90j). On lance un
+  // nouveau Stripe Checkout — le webhook checkout.session.completed flippe Cancelled→Active
+  // et préserve toutes les données du tenant (employés, contrats, pointages…).
+  const handleReactivate = async () => {
+    if (!info?.planCode) {
+      setError("Aucune formule précédente trouvée. Contactez le support.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const origin = window.location.origin;
+      const { data } = await apiInstance.post('/billing/checkout', {
+        planCode: info.planCode,
+        billingCycle: 'monthly',
+        userCount: 1,
+        successUrl: `${origin}/dashboard?reactivated=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${origin}/dashboard/abonnement?reactivate=cancelled`,
+      });
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        setError("Impossible d'initialiser le paiement Stripe.");
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.error || "Échec de la réactivation. Réessayez plus tard.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
@@ -204,6 +235,17 @@ export default function MonAbonnementPage() {
         </Alert>
       )}
 
+      {isCancelled && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: '14px' }}>
+          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Abonnement résilié</Typography>
+          <Typography sx={{ fontSize: 14 }}>
+            Vos données sont conservées pendant <strong>90 jours</strong> à compter de la
+            résiliation. Vous pouvez réactiver votre abonnement à tout moment dans ce délai —
+            au-delà, un nouveau compte sera nécessaire (RGPD : conformité au droit à l'oubli).
+          </Typography>
+        </Alert>
+      )}
+
       <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: '20px', border: '1px solid #e2e8f0' }}>
         <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a', mb: 2 }}>
           Actions
@@ -217,6 +259,18 @@ export default function MonAbonnementPage() {
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
             >
               Changer de formule
+            </Button>
+          )}
+          {isCancelled && canManage && (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<RestartAltIcon />}
+              disabled={submitting}
+              onClick={handleReactivate}
+              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
+            >
+              Réactiver mon abonnement
             </Button>
           )}
           {scheduledCancel && !isCancelled && canManage && (
@@ -243,9 +297,9 @@ export default function MonAbonnementPage() {
             </Button>
           )}
         </Stack>
-        {!canManage && !isCancelled && (
+        {!canManage && (
           <Typography sx={{ mt: 2, fontSize: 13, color: '#64748b' }}>
-            Seuls les administrateurs et managers peuvent modifier ou résilier l'abonnement.
+            Seuls les administrateurs et managers peuvent modifier {isCancelled ? 'ou réactiver' : 'ou résilier'} l'abonnement.
           </Typography>
         )}
       </Paper>

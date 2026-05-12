@@ -27,6 +27,15 @@ public class BillingController : ControllerBase
     private readonly IConfiguration _cfg;
     private readonly ILogger<BillingController> _log;
 
+    /// <summary>
+    /// Délai de conservation des données du tenant après une résiliation, en jours.
+    /// Référentiel : Code du travail FR (bulletins/contrats : 5 ans) — mais ici on parle
+    /// uniquement de la fenêtre de réactivation "self-service" via /resume-checkout.
+    /// Au-delà : l'utilisateur doit re-créer un compte (les données peuvent être restaurées
+    /// par le support si dans la rétention légale stricte, sur demande RGPD ad hoc).
+    /// </summary>
+    private const int DataRetentionDaysAfterCancellation = 90;
+
     public BillingController(
         IDbContextFactory<MasterDbContext> masterFactory,
         ApplicationDbContext tenantDb,
@@ -173,9 +182,25 @@ public class BillingController : ControllerBase
         if (tenant is null)
             return NotFound(new { error = "Tenant introuvable." });
 
-        // Sécurité : on n'autorise la reprise que si le tenant attend effectivement un paiement.
-        if (!string.Equals(tenant.Status, "PendingPayment", StringComparison.OrdinalIgnoreCase))
+        // Sécurité : on autorise la reprise pour 2 cas
+        //   1) PendingPayment : essai expiré ou plan Premium au signup.
+        //   2) Cancelled : l'admin a résilié et veut réactiver avant la fin de la rétention.
+        // RétentionData = 90 jours après CancellationRequestedAt (cf. CGU). Au-delà, on
+        // considère le tenant comme définitivement clos et l'utilisateur doit re-signup.
+        var isPendingPayment = string.Equals(tenant.Status, "PendingPayment", StringComparison.OrdinalIgnoreCase);
+        var isCancelled = string.Equals(tenant.Status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+        if (!isPendingPayment && !isCancelled)
             return BadRequest(new { error = "Aucun paiement en attente pour ce compte." });
+        if (isCancelled)
+        {
+            var cancelledAt = tenant.CancellationRequestedAt ?? DateTime.UtcNow.AddDays(-DataRetentionDaysAfterCancellation - 1);
+            if (DateTime.UtcNow - cancelledAt > TimeSpan.FromDays(DataRetentionDaysAfterCancellation))
+                return BadRequest(new
+                {
+                    error = $"Délai de réactivation dépassé ({DataRetentionDaysAfterCancellation} jours). Veuillez créer un nouveau compte.",
+                    code = "retention_expired"
+                });
+        }
 
         var user = await _tenantDb.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail == req.Email, ct);
         if (user is null || !BCrypt.Net.BCrypt.Verify(req.Password, user.Utimps))

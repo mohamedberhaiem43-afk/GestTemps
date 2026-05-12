@@ -74,6 +74,10 @@ public sealed class StripeBillingService : IBillingService
         var canonical = ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(planCode);
         var basePriceId = ResolvePriceId(canonical, "base", billingCycle);
         var seatPriceId = ResolvePriceId(canonical, "seat", billingCycle);
+        // Premium n'a pas d'essai (positionnement enterprise — paiement direct). Pour les
+        // autres packs on garde la promesse "30 jours sans CB" via TrialPeriodDays côté Stripe.
+        var isPremium = string.Equals(canonical, ABRPOINT.Server.Tenancy.PlanCatalog.PremiumCode,
+            StringComparison.OrdinalIgnoreCase);
         Subscription? subscription = null;
         if (!string.IsNullOrEmpty(basePriceId))
         {
@@ -82,11 +86,10 @@ public sealed class StripeBillingService : IBillingService
             {
                 items.Add(new SubscriptionItemOptions { Price = seatPriceId, Quantity = 0 });
             }
-            subscription = await _subscriptions.CreateAsync(new SubscriptionCreateOptions
+            var subOpts = new SubscriptionCreateOptions
             {
                 Customer = customer.Id,
                 Items = items,
-                TrialPeriodDays = _opts.TrialDays,
                 PaymentBehavior = "default_incomplete",
                 PaymentSettings = new SubscriptionPaymentSettingsOptions
                 {
@@ -98,7 +101,9 @@ public sealed class StripeBillingService : IBillingService
                     ["plan"] = planCode ?? "Essentiel",
                     ["cycle"] = billingCycle ?? "monthly",
                 }
-            }, cancellationToken: ct);
+            };
+            if (!isPremium) subOpts.TrialPeriodDays = _opts.TrialDays;
+            subscription = await _subscriptions.CreateAsync(subOpts, cancellationToken: ct);
         }
         else
         {

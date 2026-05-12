@@ -137,6 +137,13 @@ public class SignupController : ControllerBase
         var dbName = $"tenant_{dbSafeSlug}_{suffix}";
         if (dbName.Length > 64) dbName = dbName.Substring(0, 64);
 
+        // Premium = pack sans essai gratuit (positionnement entreprise, paiement direct).
+        // Starter/Standard gardent les 30 jours offerts sans CB.
+        var canonicalPlan = ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(req.PlanCode);
+        var isPremiumSignup = string.Equals(canonicalPlan,
+            ABRPOINT.Server.Tenancy.PlanCatalog.PremiumCode, StringComparison.OrdinalIgnoreCase);
+        DateTime? trialEndsAt = isPremiumSignup ? null : DateTime.UtcNow.AddDays(TrialPolicy.TrialDurationDays);
+
         Tenant tenant;
         if (existing != null)
         {
@@ -148,12 +155,10 @@ public class SignupController : ControllerBase
             tenant.AdminEmail = req.AdminEmail.Trim();
             tenant.CreatedAt = DateTime.UtcNow;
             // Promesse commerciale : 30 jours d'essai gratuit *sans carte bancaire* sur
-            // les 3 packs (Starter / Standard / Premium). Avant on faussait avec 14j et
-            // un branchement PendingPayment dès qu'un plan payant était choisi → on
-            // demandait implicitement une CB. Désormais l'inscription est toujours en
-            // Trialing pour la durée canonique TrialPolicy.TrialDurationDays, et un
-            // rappel push/in-app/email est émis 4 jours avant l'expiration.
-            tenant.TrialEndsAt = DateTime.UtcNow.AddDays(TrialPolicy.TrialDurationDays);
+            // Starter et Standard. Premium est exclu — il bascule directement en
+            // PendingPayment et l'admin doit finaliser le Checkout Stripe avant de pouvoir
+            // entrer dans le dashboard.
+            tenant.TrialEndsAt = trialEndsAt;
             tenant.Region = "eu-fr";
             tenant.LegacySoccod = "01";
             tenant.StripeCustomerId = null;
@@ -172,8 +177,8 @@ public class SignupController : ControllerBase
                 Status = "Provisioning",
                 AdminEmail = req.AdminEmail.Trim(),
                 CreatedAt = DateTime.UtcNow,
-                // 30 jours d'essai sans CB (cf. note ci-dessus).
-                TrialEndsAt = DateTime.UtcNow.AddDays(TrialPolicy.TrialDurationDays),
+                // Premium = pas d'essai (null), Starter/Standard = 30j (cf. note ci-dessus).
+                TrialEndsAt = trialEndsAt,
                 Region = "eu-fr",
                 LegacySoccod = "01",
                 PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim(),
@@ -207,13 +212,10 @@ public class SignupController : ControllerBase
                 _log.LogError(billingEx, "Billing échoué pour {Slug} mais provisioning OK — tenant marqué Trialing sans Stripe.", slug);
             }
 
-            // V3 : aucun pack n'exige la CB au signup → tous les nouveaux tenants entrent
-            // directement en Trialing pour 30 jours. Le RequiresPayment historique est ignoré
-            // pour préserver la rétro-compatibilité du payload front sans changer le comportement.
-            // À la fin de l'essai, ProcessTrialExpirationsAsync flippera en PendingPayment, et
-            // le rappel J-4 (cf. SendTrialExpiryRemindersAsync) aura déjà invité admin/manager
-            // à finaliser le paiement Stripe.
-            tenant.Status = "Trialing";
+            // Starter/Standard → Trialing 30j. Premium → PendingPayment direct : le frontend
+            // déclenchera /api/billing/checkout dès que l'admin atterrit (status 402 bloque
+            // l'accès au dashboard tant que la subscription Stripe n'est pas active).
+            tenant.Status = isPremiumSignup ? "PendingPayment" : "Trialing";
             // Index email→slug : permet à la page de login (root domain) de retrouver
             // le tenant à partir de l'email saisi, sans demander le code société.
             // Upsert : on remplace une éventuelle ligne existante (cas d'un re-signup

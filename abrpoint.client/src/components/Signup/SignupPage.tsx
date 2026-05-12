@@ -234,15 +234,25 @@ export default function SignupPage() {
     }}>
       <Paper elevation={2} sx={{ maxWidth: 560, width: '100%', p: { xs: 3, md: 5 }, borderRadius: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          {/* Le titre/sous-titre s'adapte : signup direct = essai gratuit ;
-              signup post-PlanConfiguration = étape avant paiement. */}
-          {planFromPricing?.plan && planFromPricing?.userCount ? (
+          {/* Premium = paiement direct (pas d'essai). Starter/Standard = 30 jours offerts.
+              Visiteur sans plan choisi = parcours générique sur Standard par défaut. */}
+          {planFromPricing?.plan === 'Premium' ? (
+            <>
+              <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
+                Activer Premium
+              </Typography>
+              <Typography color="text.secondary">
+                Étape 1 sur 2 — paiement immédiat sur Stripe à l'étape suivante.
+              </Typography>
+            </>
+          ) : planFromPricing?.plan && planFromPricing?.userCount ? (
             <>
               <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
                 Créer mon compte
               </Typography>
               <Typography color="text.secondary">
-                Étape 1 sur 2 — votre paiement sera confirmé à l'étape suivante.
+                Étape 1 sur 2 — 30 jours gratuits sans CB. Votre moyen de paiement
+                sera pré-enregistré à l'étape suivante (aucun débit avant la fin de l'essai).
               </Typography>
             </>
           ) : (
@@ -251,7 +261,7 @@ export default function SignupPage() {
                 Démarrer mon essai gratuit
               </Typography>
               <Typography color="text.secondary">
-                14 jours, sans carte bancaire — Concorde Workforce
+                30 jours, sans carte bancaire — Concorde Workforce
               </Typography>
             </>
           )}
@@ -364,6 +374,8 @@ export default function SignupPage() {
           >
             {submitting ? (
               <CircularProgress size={22} />
+            ) : planFromPricing?.plan === 'Premium' ? (
+              'Activer Premium — paiement Stripe'
             ) : planFromPricing?.plan && planFromPricing?.userCount ? (
               'Continuer vers le paiement'
             ) : (

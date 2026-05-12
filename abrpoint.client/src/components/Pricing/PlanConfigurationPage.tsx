@@ -287,11 +287,11 @@ const PlanConfigurationPage: React.FC = () => {
                     {submitting ? 'Redirection vers Stripe…' : "Confirmer l'achat"}
                   </button>
                   <button
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
                     className="w-full bg-surface-container-high text-on-surface py-5 rounded-2xl font-black hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
                   >
                     <FileText size={18} />
-                    Plus tard, retour au tableau de bord
+                    {isAuthenticated ? 'Plus tard, retour au tableau de bord' : 'Plus tard, retour à la grille tarifaire'}
                   </button>
                 </div>
 

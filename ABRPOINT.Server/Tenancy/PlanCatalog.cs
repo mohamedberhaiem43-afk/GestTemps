@@ -107,8 +107,11 @@ public static class PlanCatalog
         FlatPriceMonthlyEur: 59.50m,
         IncludedEmployees: 25,
         OverageRatePerEmployeeEur: 6.90m,
+        // 2026-05 : Standard capé à 1 société / 1 filiale (avant : 3 sites). Le multi-filiales
+        // devient un différenciateur exclusif Premium pour clarifier le positionnement
+        // commercial (Standard = PME mono-entité, Premium = groupes multi-entités).
         MaxSocietes: 1,
-        MaxSites: 3,
+        MaxSites: 1,
         Features: new PlanFeatures(
             MobileApp: true,
             Geolocation: true,

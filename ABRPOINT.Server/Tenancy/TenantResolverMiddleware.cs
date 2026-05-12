@@ -81,12 +81,22 @@ public sealed class TenantResolverMiddleware
             return;
         }
 
-        // Tenant désactivé → bloquer l'accès aux endpoints applicatifs (sauf /api/billing/*).
+        // Tenant désactivé → on bloque l'accès aux endpoints applicatifs MAIS on laisse passer
+        // /api/billing/* pour permettre la réactivation Stripe (cas Cancelled : l'admin doit
+        // pouvoir re-souscrire dans la fenêtre de rétention sans devoir recréer un tenant).
         if (tenant.Status is "Suspended" or "Cancelled" or "Failed")
         {
-            ctx.Response.StatusCode = StatusCodes.Status402PaymentRequired;
-            await ctx.Response.WriteAsync($"Tenant '{slug}' désactivé (status={tenant.Status}).");
-            return;
+            if (path.StartsWith("/api/billing/", StringComparison.OrdinalIgnoreCase))
+            {
+                // Bypass — la route Billing gère sa propre auth (Authorize ou AllowAnonymous
+                // pour resume-checkout) et appliquera ses propres règles de réactivation.
+            }
+            else
+            {
+                ctx.Response.StatusCode = StatusCodes.Status402PaymentRequired;
+                await ctx.Response.WriteAsync($"Tenant '{slug}' désactivé (status={tenant.Status}).");
+                return;
+            }
         }
 
         // Tenant inscrit avec un plan payant non confirmé : seul /api/billing/* est autorisé

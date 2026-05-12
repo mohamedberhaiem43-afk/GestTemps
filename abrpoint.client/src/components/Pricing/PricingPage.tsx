@@ -59,7 +59,7 @@ const PricingPage: React.FC = () => {
         'Congés, RTT, CET, sanctions',
         'Coffre numérique & signature électronique',
         'Notifications push / email · reporting avancé',
-        'Préparation paie · multi-sites simple',
+        'Préparation paie complète',
         'Support prioritaire',
       ],
       cta: '30 jours gratuits',
@@ -81,10 +81,13 @@ const PricingPage: React.FC = () => {
         'Assistant IA (RAG) sur vos documents',
         'Audit logs avancés · branding personnalisé',
         'Sécurité mobile renforcée (device trust, cert pinning, screenshot blocking)',
-        'Onboarding accompagné · SLA premium',
-        'Conformité RGPD avancée · intégrations futures',
+        'Onboarding accompagné · SLA premium · support prioritaire',
+        'Intégrations futures : API / SSO / connecteurs paie',
       ],
-      cta: 'Contacter les ventes',
+      cta: 'Démarrer Premium',
+      // Premium = pack enterprise, paiement direct (pas d'essai). On le distingue
+      // visuellement des packs avec essai via noTrial pour adapter le label CTA.
+      noTrial: true,
       accent: false,
     },
   ];
@@ -226,7 +229,9 @@ const PricingPage: React.FC = () => {
                   {plan.included} salariés inclus · +{formatPrice(plan.extraRate)} € / salarié sup.
                 </div>
                 <div className="mt-1 text-[11px] text-tertiary font-bold uppercase tracking-wider">
-                  30 jours gratuits · sans carte bancaire
+                  {plan.noTrial
+                    ? 'Activation immédiate · paiement direct'
+                    : '30 jours gratuits · sans carte bancaire'}
                 </div>
               </div>
               <p className="text-on-surface-variant mb-8 text-sm leading-relaxed min-h-[3rem]">
@@ -244,13 +249,10 @@ const PricingPage: React.FC = () => {
               </div>
               <button
                 onClick={() => {
-                  // Plan Premium : devis sur mesure → page de contact ventes (pas de Stripe direct).
-                  if (plan.name === 'Premium') {
-                    navigate('/contact-sales', { state: { plan: plan.name, cycle: billingCycle } });
-                    return;
-                  }
-                  // Starter / Standard : tous les deux passent par la configuration Stripe avec
-                  // essai 30 jours sans CB (TrialPeriodDays = 30 côté backend).
+                  // Tous les packs (Starter/Standard/Premium) passent par /plan-configuration.
+                  // La différence se joue côté backend : Starter/Standard = trial 30j sans CB ;
+                  // Premium = pas de trial, Stripe Checkout immédiat (Status PendingPayment dès
+                  // le signup). Le label CTA reflète ce comportement (cf. plan.noTrial).
                   const target = isAuthenticated ? '/dashboard/plan-configuration' : '/plan-configuration';
                   navigate(target, {
                     state: {
