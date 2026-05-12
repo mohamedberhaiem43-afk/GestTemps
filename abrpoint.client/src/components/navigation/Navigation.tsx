@@ -279,9 +279,11 @@ const useNavigationItems = (): NavGroup[] => {
       icon: Fingerprint,
       items: [
         ...(canSee('liste-pointeuse') ? [{ label: t('navigation.clockingList'), href: '/dashboard/liste-pointeuse', icon: MonitorDot }] : []),
-        // L'état périodique expose le détail des heures supp / retards / absences :
-        // masqué pendant l'essai gratuit (cf. limites trial dans /me).
-        ...(canSee('etat-periodique') && !isTrialing ? [{ label: t('navigation.periodicReport'), href: '/dashboard/etat-periodique', icon: Activity }] : []),
+        // 2026-05-12 : état périodique disponible sur tous les plans (y compris Starter)
+        // — c'est le rapport de base du pointage. Le gating `!isTrialing` précédent
+        // partait du principe que trial = Premium-pour-tous ; désormais le plan
+        // dicte les modules, et Starter conserve explicitement ce rapport.
+        ...(canSee('etat-periodique') ? [{ label: t('navigation.periodicReport'), href: '/dashboard/etat-periodique', icon: Activity }] : []),
       ],
     }] : []),
     {
@@ -300,7 +302,12 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
       ],
     },
-    {
+    // 2026-05-12 : groupes "Demandes et validations" + "Absences" entièrement masqués
+    // sur Starter (positionnement "pointage simple, sans workflow RH"). On wrappe au
+    // niveau du groupe — sinon les items résiduels non gatés (notes de frais,
+    // affectation solde, CET, absence et sanction) feraient remonter le groupe vide
+    // de sens commercial pour ce plan.
+    ...(planAllows('leaveManagement') ? [{
       // Hub centralisé "Demandes et validations" : regroupe tout ce sur quoi un manager
       // attend une action (congé, autorisation, notes de frais...). Le label précédent
       // "Congé" était trop restrictif — la structure permet d'ajouter de nouveaux types
@@ -309,16 +316,16 @@ const useNavigationItems = (): NavGroup[] => {
       href: '/dashboard/conges',
       icon: CalendarDays,
       items: [
-        ...(canSee('gestion-de-conge') && planAllows('leaveManagement') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
-        ...(canSee('gestion-de-solde') && planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
-        ...(canSee('titre-de-conge') && planAllows('leaveManagement') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
+        ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
+        ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
+        ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
         ...(canSee('remboursement') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
       ],
-    },
-    {
+    }] : []),
+    ...(planAllows('authorizationManagement') || planAllows('compensationDays') ? [{
       label: t('navigation.absences'),
       href: '/dashboard/absences',
       icon: AlarmClock,
@@ -329,7 +336,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
         ...(canSee('absence-et-sanction') ? [{ label: t('navigation.absenceAndSanction'), href: '/dashboard/absence-et-sanction', icon: Gavel }] : []),
       ],
-    },
+    }] : []),
     {
       label: t('navigation.timeClass'),
       href: '/dashboard/temps',
