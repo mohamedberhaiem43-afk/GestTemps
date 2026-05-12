@@ -12,6 +12,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.Missions))]
     public class MissionsController : ControllerBase
     {
         private readonly IMissionRepository _repository;

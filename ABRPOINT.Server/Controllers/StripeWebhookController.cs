@@ -85,9 +85,47 @@ public class StripeWebhookController : ControllerBase
                 }
                 case "customer.subscription.deleted":
                 {
+                    // Émis soit après une résiliation immédiate, soit en fin de période d'une
+                    // résiliation planifiée. Dans les deux cas on bascule Cancelled (le précédent
+                    // mapping Suspended ne reflétait pas la résiliation utilisateur).
                     var sub = stripeEvent.Data.Object as Subscription;
                     if (!string.IsNullOrEmpty(sub?.CustomerId))
-                        await _billing.SuspendAsync(sub.CustomerId, ct);
+                    {
+                        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+                        var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.StripeCustomerId == sub.CustomerId, ct);
+                        if (tenant != null)
+                        {
+                            tenant.Status = "Cancelled";
+                            tenant.CancelAtPeriodEnd = false;
+                            if (tenant.CancellationRequestedAt == null) tenant.CancellationRequestedAt = DateTime.UtcNow;
+                            await master.SaveChangesAsync(ct);
+                            _tenantStore.Invalidate(tenant.Slug);
+                            _log.LogInformation("Tenant {Slug} → Cancelled via webhook subscription.deleted.", tenant.Slug);
+                        }
+                    }
+                    break;
+                }
+                case "customer.subscription.updated":
+                {
+                    // Sync cancel_at_period_end + current_period_end depuis Stripe (source de
+                    // vérité). Si l'admin résilie depuis le portail Stripe sans passer par
+                    // notre /cancel-subscription, on récupère quand même l'état.
+                    var sub = stripeEvent.Data.Object as Subscription;
+                    if (!string.IsNullOrEmpty(sub?.CustomerId))
+                    {
+                        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+                        var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.StripeCustomerId == sub.CustomerId, ct);
+                        if (tenant != null)
+                        {
+                            tenant.CancelAtPeriodEnd = sub.CancelAtPeriodEnd;
+                            if (sub.CurrentPeriodEnd != default) tenant.CurrentPeriodEndsAt = sub.CurrentPeriodEnd;
+                            else if (sub.CancelAt != default) tenant.CurrentPeriodEndsAt = sub.CancelAt;
+                            if (sub.CancelAtPeriodEnd && tenant.CancellationRequestedAt == null)
+                                tenant.CancellationRequestedAt = DateTime.UtcNow;
+                            await master.SaveChangesAsync(ct);
+                            _tenantStore.Invalidate(tenant.Slug);
+                        }
+                    }
                     break;
                 }
                 case "customer.subscription.trial_will_end":

@@ -320,7 +320,8 @@ namespace ABRPOINT.Server.Controllers
             var planCode = Tenancy.PlanCatalog.Normalize(tenant?.PlanCode);
             var planDef = Tenancy.PlanCatalog.GetPlan(planCode);
             var effectiveFeatures = isTrialing && planDef is not null
-                ? new Tenancy.PlanFeatures(true, true, true, true, true, true, true, true, true, true, true, true, true)
+                ? new Tenancy.PlanFeatures(true, true, true, true, true, true, true, true, true, true, true, true, true,
+                                           true, true, true, true)
                 : planDef?.Features;
 
             return Ok(new
@@ -355,6 +356,10 @@ namespace ABRPOINT.Server.Controllers
                     deviceTrustEnforced = effectiveFeatures.DeviceTrustEnforced,
                     screenshotProtection = effectiveFeatures.ScreenshotProtection,
                     certificatePinning = effectiveFeatures.CertificatePinning,
+                    missions = effectiveFeatures.Missions,
+                    compensationDays = effectiveFeatures.CompensationDays,
+                    generalLeave = effectiveFeatures.GeneralLeave,
+                    generalExit = effectiveFeatures.GeneralExit,
                 }
             });
         }

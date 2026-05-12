@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Billing;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -22,6 +23,7 @@ public class BillingController : ControllerBase
     private readonly IDbContextFactory<MasterDbContext> _masterFactory;
     private readonly ApplicationDbContext _tenantDb;
     private readonly ICurrentTenant _currentTenant;
+    private readonly IBillingService _billing;
     private readonly IConfiguration _cfg;
     private readonly ILogger<BillingController> _log;
 
@@ -29,12 +31,14 @@ public class BillingController : ControllerBase
         IDbContextFactory<MasterDbContext> masterFactory,
         ApplicationDbContext tenantDb,
         ICurrentTenant currentTenant,
+        IBillingService billing,
         IConfiguration cfg,
         ILogger<BillingController> log)
     {
         _masterFactory = masterFactory;
         _tenantDb = tenantDb;
         _currentTenant = currentTenant;
+        _billing = billing;
         _cfg = cfg;
         _log = log;
     }
@@ -244,5 +248,111 @@ public class BillingController : ControllerBase
         }
 
         return Ok(new { url = session.Url, sessionId = session.Id });
+    }
+
+    /// <summary>
+    /// Retourne l'état de l'abonnement courant pour la page "Mon abonnement" : plan, statut,
+    /// fin de période, fin d'essai, et indicateurs de résiliation en cours. Toutes les
+    /// données sont lues depuis la master DB — pas d'appel Stripe (les webhooks gardent
+    /// CurrentPeriodEndsAt à jour, ce qui suffit pour l'affichage).
+    /// </summary>
+    [HttpGet("subscription")]
+    public async Task<IActionResult> GetSubscription(CancellationToken ct)
+    {
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null)
+            return NotFound(new { error = "Tenant introuvable." });
+
+        return Ok(new
+        {
+            slug = tenant.Slug,
+            companyName = tenant.CompanyName,
+            status = tenant.Status,
+            planCode = tenant.PlanCode,
+            trialEndsAt = tenant.TrialEndsAt,
+            currentPeriodEndsAt = tenant.CurrentPeriodEndsAt,
+            cancelAtPeriodEnd = tenant.CancelAtPeriodEnd,
+            cancellationRequestedAt = tenant.CancellationRequestedAt,
+            hasActiveStripeSubscription = !string.IsNullOrEmpty(tenant.StripeSubscriptionId),
+        });
+    }
+
+    public sealed record CancelSubscriptionRequest(bool Immediate, string? Reason);
+
+    /// <summary>
+    /// Résilie l'abonnement du tenant courant. <c>Immediate=true</c> coupe l'accès tout de
+    /// suite, <c>Immediate=false</c> programme la résiliation pour la fin de la période en
+    /// cours (l'accès est conservé jusque-là, conforme aux attentes B2B SaaS).
+    /// Réservé aux rôles Admin / Manager (mêmes rôles que pour /checkout).
+    /// </summary>
+    [HttpPost("cancel-subscription")]
+    public async Task<IActionResult> CancelSubscription([FromBody] CancelSubscriptionRequest req, CancellationToken ct)
+    {
+        if (req is null)
+            return BadRequest(new { error = "Requête invalide." });
+
+        // Sécurité : seuls Admin/Manager peuvent résilier (mêmes rôles que la gestion de paiement).
+        var role = User?.FindFirst("role")?.Value ?? User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        if (!string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase))
+            return Forbid();
+
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null)
+            return NotFound(new { error = "Tenant introuvable." });
+
+        if (string.Equals(tenant.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { error = "Abonnement déjà résilié." });
+
+        var result = await _billing.CancelSubscriptionAsync(tenant, req.Immediate, req.Reason, ct);
+        if (!result.Success)
+            return StatusCode(502, new { error = result.ErrorMessage ?? "Échec de la résiliation." });
+
+        return Ok(new
+        {
+            success = true,
+            immediate = result.Immediate,
+            effectiveAt = result.EffectiveAt,
+        });
+    }
+
+    /// <summary>
+    /// Annule une résiliation planifiée (uniquement valable tant que la fin de période
+    /// n'est pas atteinte). Permet à l'utilisateur de revenir sur sa décision.
+    /// </summary>
+    [HttpPost("resume-subscription")]
+    public async Task<IActionResult> ResumeSubscription(CancellationToken ct)
+    {
+        var role = User?.FindFirst("role")?.Value ?? User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        if (!string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase))
+            return Forbid();
+
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null)
+            return NotFound(new { error = "Tenant introuvable." });
+        if (!tenant.CancelAtPeriodEnd)
+            return BadRequest(new { error = "Aucune résiliation planifiée à annuler." });
+
+        var ok = await _billing.ResumeSubscriptionAsync(tenant, ct);
+        if (!ok)
+            return StatusCode(502, new { error = "Impossible d'annuler la résiliation côté Stripe." });
+
+        return Ok(new { success = true });
     }
 }

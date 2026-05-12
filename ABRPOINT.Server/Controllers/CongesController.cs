@@ -245,6 +245,7 @@ namespace ABRPOINT.Server.Controllers
         // POST api/<CongesController>/bulk
         [HttpPost("bulk")]
         [CanAddCongeGeneral]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.GeneralLeave))]
         public async Task<IActionResult> PostMultipleConges([FromBody] List<Conge> conges)
         {
             if (conges == null || conges.Count == 0)

@@ -13,6 +13,7 @@ namespace ABRPOINT.Server.Controllers
     // SEC AI : ValidateSoccod manquait — n'importe qui pouvait modifier/supprimer les
     // enregistrements de compensation de toute société.
     [ValidateSoccod]
+    [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.CompensationDays))]
     public class CompensersController : ControllerBase
     {
         private readonly IcompenserRepository _compenserRepository;

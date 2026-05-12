@@ -39,6 +39,10 @@ export default function PlanUpgradePage() {
     DeviceTrustEnforced: 'Device trust mobile',
     ScreenshotProtection: 'Protection capture d\'écran',
     CertificatePinning: 'Certificate pinning',
+    Missions: 'Gestion des missions',
+    CompensationDays: 'Jours de compensation',
+    GeneralLeave: 'Titre de congé général',
+    GeneralExit: 'Autorisation de sortie générale',
   };
   const featureLabel = state.feature ? (featureLabels[state.feature] ?? state.feature) : 'Cette fonctionnalité';
   const currentPlan = state.currentPlan ?? planCode ?? 'Inconnu';

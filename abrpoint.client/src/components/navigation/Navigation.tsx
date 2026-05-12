@@ -66,6 +66,7 @@ import PricingPage from '../Pricing/PricingPage';
 import PlanUpgradePage from '../Pricing/PlanUpgradePage';
 import AboutPage from '../About/AboutPage';
 import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
+import MonAbonnementPage from '../Pricing/MonAbonnementPage';
 import ContactSalesPage from '../Pricing/ContactSalesPage';
 import CetPage from '../gestionEmploye/gestionConge/Cet/CetPage';
 import SupportPage from '../Support/SupportPage';
@@ -237,11 +238,11 @@ const useNavigationItems = (): NavGroup[] => {
         items: [
           { label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX },
           { label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck },
-          { label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase },
+          ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
           { label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt },
           { label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer },
           { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
-          { label: t('navigation.myVault'), href: '/dashboard/coffre-fort', icon: Shield },
+          ...(planAllows('digitalVault') ? [{ label: t('navigation.myVault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
         ],
       },
     ];
@@ -291,7 +292,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
         ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
         ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat/contrat', icon: FileText }] : []),
-        { label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase },
+        ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
         // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
         // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
         ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
@@ -311,7 +312,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
-        ...(canSee('titre-de-conge-general') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
+        ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
         ...(canSee('remboursement') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
@@ -322,9 +323,9 @@ const useNavigationItems = (): NavGroup[] => {
       href: '/dashboard/absences',
       icon: AlarmClock,
       items: [
-        ...(canSee('jour-de-compensation') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
+        ...(canSee('jour-de-compensation') && planAllows('compensationDays') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
         ...(canSee('autorisation-de-sortie') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
-        ...(canSee('autorisation-de-sortie-generale') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
+        ...(canSee('autorisation-de-sortie-generale') && planAllows('generalExit') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
         ...(canSee('demande-autorisation') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
         ...(canSee('absence-et-sanction') ? [{ label: t('navigation.absenceAndSanction'), href: '/dashboard/absence-et-sanction', icon: Gavel }] : []),
       ],
@@ -481,6 +482,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/sign-document': content = <SignaturePage />; break;
     case '/dashboard/pricing': content = <PricingPage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
+    case '/dashboard/mon-abonnement': content = <MonAbonnementPage />; break;
     case '/upgrade': content = <PlanUpgradePage />; break;
     case '/dashboard/support': content = <SupportPage />; break;
     case '/dashboard/support/faq': content = <FAQPage />; break;
@@ -728,7 +730,7 @@ import { resolveAssetUrl } from '../../helpers/assetUrl';
 function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authReady, clearAuth, userName, isAdmin, uticod } = useAuth();
+  const { authReady, clearAuth, userName, isAdmin, isManager, uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
   const { i18n, t } = useTranslation();
   const NAVIGATION = useNavigationItems();
@@ -926,6 +928,9 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   const footerItems: FooterItem[] = [
     { label: t('navigation.support'), href: '/dashboard/support', icon: LifeBuoy },
+    // Mon abonnement : réservé aux Admins / Managers (gestion facturation = même
+    // périmètre que /api/billing/cancel-subscription côté serveur).
+    ...((isAdmin || isManager) ? [{ label: t('navigation.mySubscription', 'Mon abonnement'), href: '/dashboard/mon-abonnement', icon: Wallet } as FooterItem] : []),
     { label: t('navigation.settings'), href: '/dashboard/parametres', icon: Settings },
     { label: t('navigation.logout'), href: '#', icon: LogOut, onClick: () => { clearAuth(); navigate('/'); } },
   ];

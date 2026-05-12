@@ -66,4 +66,24 @@ public class Tenant
     /// passe plusieurs fois dans la fenêtre J-4 / J-3.
     /// </summary>
     public DateTime? TrialReminderSentAt { get; set; }
+
+    /// <summary>
+    /// Date à laquelle l'utilisateur a demandé la résiliation (immédiate ou fin de période).
+    /// Null = aucune résiliation en cours. Permet l'audit/affichage côté UI.
+    /// </summary>
+    public DateTime? CancellationRequestedAt { get; set; }
+
+    /// <summary>
+    /// Si true : la résiliation a été planifiée pour la fin de la période en cours
+    /// (l'abonnement Stripe reste actif jusqu'à <see cref="CurrentPeriodEndsAt"/>).
+    /// Si false : résiliation immédiate (l'abonnement Stripe est annulé tout de suite,
+    /// le tenant bascule en "Cancelled" et perd l'accès).
+    /// </summary>
+    public bool CancelAtPeriodEnd { get; set; } = false;
+
+    /// <summary>
+    /// Fin de la période de facturation Stripe en cours — synchronisé via webhook
+    /// customer.subscription.updated. Sert d'affichage UI ("Vous garderez l'accès jusqu'au …").
+    /// </summary>
+    public DateTime? CurrentPeriodEndsAt { get; set; }
 }

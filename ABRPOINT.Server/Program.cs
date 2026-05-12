@@ -463,6 +463,21 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'TrialReminderSentAt' AND
 BEGIN
     ALTER TABLE [Tenants] ADD [TrialReminderSentAt] DATETIME2 NULL;
 END");
+                // Résiliation : 3 colonnes ajoutées en 2026-05 pour gérer le flow "annuler mon
+                // abonnement" (immédiat ou en fin de période courante). Idempotents.
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'CancellationRequestedAt' AND Object_ID = Object_ID(N'Tenants'))
+BEGIN
+    ALTER TABLE [Tenants] ADD [CancellationRequestedAt] DATETIME2 NULL;
+END
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'CancelAtPeriodEnd' AND Object_ID = Object_ID(N'Tenants'))
+BEGIN
+    ALTER TABLE [Tenants] ADD [CancelAtPeriodEnd] BIT NOT NULL CONSTRAINT [DF_Tenants_CancelAtPeriodEnd] DEFAULT 0;
+END
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'CurrentPeriodEndsAt' AND Object_ID = Object_ID(N'Tenants'))
+BEGIN
+    ALTER TABLE [Tenants] ADD [CurrentPeriodEndsAt] DATETIME2 NULL;
+END");
                 // Migration 2026-05 : rename commercial Essentiel → Starter. Les tenants
                 // signés avant ce changement ont PlanCode='Essentiel' en base ; on aligne
                 // pour que PlanCatalog.GetPlan retourne directement Starter sans passer

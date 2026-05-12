@@ -211,6 +211,139 @@ public sealed class StripeBillingService : IBillingService
         await notify.NotifyManagersAsync(title, body, payload, ct);
     }
 
+    public async Task<CancellationResult> CancelSubscriptionAsync(
+        Tenant tenant,
+        bool immediate,
+        string? reason,
+        CancellationToken ct = default)
+    {
+        if (!_opts.IsConfigured)
+        {
+            return new CancellationResult(false, immediate, null, "Stripe non configuré.");
+        }
+        if (string.IsNullOrEmpty(tenant.StripeSubscriptionId))
+        {
+            // Pas de subscription Stripe → on bascule juste l'état tenant (cas trial non
+            // provisionné ou tenant dev sans Stripe). Considéré comme un succès immédiat.
+            await SetTenantCancelledAsync(tenant.Id, ct);
+            return new CancellationResult(true, true, DateTime.UtcNow, null);
+        }
+
+        try
+        {
+            if (immediate)
+            {
+                // Résiliation immédiate : on annule Stripe (le webhook customer.subscription.deleted
+                // sera reçu et déclenchera SuspendAsync → mais on force Cancelled tout de suite
+                // pour que l'admin perçoive la résiliation sans attendre le round-trip webhook).
+                await _subscriptions.CancelAsync(
+                    tenant.StripeSubscriptionId,
+                    new SubscriptionCancelOptions
+                    {
+                        InvoiceNow = false,
+                        Prorate = false,
+                    },
+                    cancellationToken: ct);
+
+                await SetTenantCancelledAsync(tenant.Id, ct);
+                _log.LogInformation("Tenant {Slug} : résiliation immédiate effectuée (subscription={SubId}).",
+                    tenant.Slug, tenant.StripeSubscriptionId);
+                return new CancellationResult(true, true, DateTime.UtcNow, null);
+            }
+            else
+            {
+                // Résiliation planifiée : Stripe gère la date de fin via cancel_at_period_end.
+                // current_period_end est lu pour informer l'UI ("Accès jusqu'au …").
+                var updated = await _subscriptions.UpdateAsync(
+                    tenant.StripeSubscriptionId,
+                    new SubscriptionUpdateOptions
+                    {
+                        CancelAtPeriodEnd = true,
+                        CancellationDetails = new SubscriptionCancellationDetailsOptions
+                        {
+                            Comment = string.IsNullOrWhiteSpace(reason) ? null : reason,
+                        },
+                    },
+                    cancellationToken: ct);
+
+                DateTime? effectiveAt = updated.CurrentPeriodEnd != default
+                    ? updated.CurrentPeriodEnd
+                    : (updated.CancelAt != default ? updated.CancelAt : (DateTime?)null);
+
+                await SetTenantScheduledCancellationAsync(tenant.Id, effectiveAt, ct);
+                _log.LogInformation("Tenant {Slug} : résiliation planifiée en fin de période ({End}).",
+                    tenant.Slug, effectiveAt);
+                return new CancellationResult(true, false, effectiveAt, null);
+            }
+        }
+        catch (StripeException ex)
+        {
+            _log.LogError(ex, "Échec de résiliation Stripe pour tenant {Slug}. Code={Code}",
+                tenant.Slug, ex.StripeError?.Code);
+            return new CancellationResult(false, immediate, null,
+                "Stripe a refusé la résiliation. Réessayez plus tard ou contactez le support.");
+        }
+    }
+
+    public async Task<bool> ResumeSubscriptionAsync(Tenant tenant, CancellationToken ct = default)
+    {
+        if (!_opts.IsConfigured || string.IsNullOrEmpty(tenant.StripeSubscriptionId))
+            return false;
+
+        try
+        {
+            await _subscriptions.UpdateAsync(
+                tenant.StripeSubscriptionId,
+                new SubscriptionUpdateOptions { CancelAtPeriodEnd = false },
+                cancellationToken: ct);
+
+            await using var master = await _masterFactory.CreateDbContextAsync(ct);
+            var t = await master.Tenants.FirstOrDefaultAsync(x => x.Id == tenant.Id, ct);
+            if (t != null)
+            {
+                t.CancelAtPeriodEnd = false;
+                t.CancellationRequestedAt = null;
+                await master.SaveChangesAsync(ct);
+                _store.Invalidate(t.Slug);
+            }
+            _log.LogInformation("Tenant {Slug} : résiliation planifiée annulée.", tenant.Slug);
+            return true;
+        }
+        catch (StripeException ex)
+        {
+            _log.LogError(ex, "Échec de reprise de subscription Stripe pour tenant {Slug}.", tenant.Slug);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Bascule un tenant en statut Cancelled immédiat (résiliation effective). Met aussi
+    /// à jour CancellationRequestedAt et CancelAtPeriodEnd=false.
+    /// </summary>
+    private async Task SetTenantCancelledAsync(Guid tenantId, CancellationToken ct)
+    {
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var t = await master.Tenants.FirstOrDefaultAsync(x => x.Id == tenantId, ct);
+        if (t == null) return;
+        t.Status = "Cancelled";
+        t.CancellationRequestedAt = DateTime.UtcNow;
+        t.CancelAtPeriodEnd = false;
+        await master.SaveChangesAsync(ct);
+        _store.Invalidate(t.Slug);
+    }
+
+    private async Task SetTenantScheduledCancellationAsync(Guid tenantId, DateTime? effectiveAt, CancellationToken ct)
+    {
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var t = await master.Tenants.FirstOrDefaultAsync(x => x.Id == tenantId, ct);
+        if (t == null) return;
+        t.CancelAtPeriodEnd = true;
+        t.CancellationRequestedAt = DateTime.UtcNow;
+        if (effectiveAt.HasValue) t.CurrentPeriodEndsAt = effectiveAt;
+        await master.SaveChangesAsync(ct);
+        _store.Invalidate(t.Slug);
+    }
+
     public async Task ProcessTrialExpirationsAsync(CancellationToken ct = default)
     {
         await using var master = await _masterFactory.CreateDbContextAsync(ct);

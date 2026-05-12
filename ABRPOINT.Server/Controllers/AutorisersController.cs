@@ -167,6 +167,7 @@ namespace ABRPOINT.Server.Controllers
         }
         [HttpPut("bulk")]
         [CanAddAutSortieGeneral]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.GeneralExit))]
         public async Task BulkPost([FromBody] List<Autoriser> autorisers)
         {
             try

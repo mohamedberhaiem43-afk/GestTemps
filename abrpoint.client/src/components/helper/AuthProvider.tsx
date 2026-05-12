@@ -58,6 +58,11 @@ export interface PlanFeatures {
   deviceTrustEnforced: boolean;
   screenshotProtection: boolean;
   certificatePinning: boolean;
+  // Modules RH avancés réservés Standard/Premium.
+  missions: boolean;
+  compensationDays: boolean;
+  generalLeave: boolean;
+  generalExit: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({

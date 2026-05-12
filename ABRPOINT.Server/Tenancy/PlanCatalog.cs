@@ -40,7 +40,13 @@ public sealed record PlanFeatures(
     bool CustomBranding,
     bool DeviceTrustEnforced,
     bool ScreenshotProtection,
-    bool CertificatePinning);
+    bool CertificatePinning,
+    // Modules RH avancés réservés Standard/Premium (2026-05). Sur Starter, ces
+    // sections sont masquées dans la nav et les endpoints API renvoient 402.
+    bool Missions,
+    bool CompensationDays,
+    bool GeneralLeave,
+    bool GeneralExit);
 
 /// <summary>
 /// Catalogue des plans commerciaux (Starter / Standard / Premium) et des
@@ -89,7 +95,11 @@ public static class PlanCatalog
             CustomBranding: false,
             DeviceTrustEnforced: false,
             ScreenshotProtection: false,
-            CertificatePinning: false));
+            CertificatePinning: false,
+            Missions: false,
+            CompensationDays: false,
+            GeneralLeave: false,
+            GeneralExit: false));
 
     public static readonly PlanDefinition Standard = new(
         Code: StandardCode,
@@ -112,7 +122,11 @@ public static class PlanCatalog
             CustomBranding: false,
             DeviceTrustEnforced: false,
             ScreenshotProtection: false,
-            CertificatePinning: false));
+            CertificatePinning: false,
+            Missions: true,
+            CompensationDays: true,
+            GeneralLeave: true,
+            GeneralExit: true));
 
     public static readonly PlanDefinition Premium = new(
         Code: PremiumCode,
@@ -135,7 +149,11 @@ public static class PlanCatalog
             CustomBranding: true,
             DeviceTrustEnforced: true,
             ScreenshotProtection: true,
-            CertificatePinning: true));
+            CertificatePinning: true,
+            Missions: true,
+            CompensationDays: true,
+            GeneralLeave: true,
+            GeneralExit: true));
 
     /// <summary>Retourne la définition pour un code donné, ou null si inconnu.</summary>
     public static PlanDefinition? GetPlan(string? rawCode)

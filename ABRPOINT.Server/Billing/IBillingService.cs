@@ -37,6 +37,27 @@ public interface IBillingService
     /// qu'une seule fois (champ Tenant.TrialReminderSentAt).
     /// </summary>
     Task SendTrialExpiryRemindersAsync(int daysBeforeEnd = 4, CancellationToken ct = default);
+
+    /// <summary>
+    /// Résilie l'abonnement Stripe du tenant. Si <paramref name="immediate"/> est true,
+    /// la subscription est annulée immédiatement (Stripe SubscriptionService.CancelAsync)
+    /// et Tenant.Status bascule en "Cancelled". Sinon (résiliation planifiée), on met
+    /// cancel_at_period_end = true côté Stripe : l'accès reste actif jusqu'à
+    /// CurrentPeriodEndsAt et Stripe enverra customer.subscription.deleted en fin de période.
+    /// Idempotent : annuler une subscription déjà annulée renvoie Success=true sans erreur.
+    /// </summary>
+    Task<CancellationResult> CancelSubscriptionAsync(
+        Tenant tenant,
+        bool immediate,
+        string? reason,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Annule une résiliation planifiée (cancel_at_period_end = false côté Stripe).
+    /// Fonctionne tant que la fin de période n'est pas atteinte ; au-delà la subscription
+    /// est définitivement supprimée par Stripe et seul un nouveau Checkout peut la recréer.
+    /// </summary>
+    Task<bool> ResumeSubscriptionAsync(Tenant tenant, CancellationToken ct = default);
 }
 
 public sealed record BillingProvisionResult(
@@ -45,3 +66,9 @@ public sealed record BillingProvisionResult(
     DateTime? TrialEndsAt,
     bool Skipped,
     string? SkipReason);
+
+public sealed record CancellationResult(
+    bool Success,
+    bool Immediate,
+    DateTime? EffectiveAt,
+    string? ErrorMessage);
