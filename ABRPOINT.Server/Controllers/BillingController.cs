@@ -297,10 +297,9 @@ public class BillingController : ControllerBase
             return BadRequest(new { error = "Requête invalide." });
 
         // Sécurité : seuls Admin/Manager peuvent résilier (mêmes rôles que la gestion de paiement).
-        var role = User?.FindFirst("role")?.Value ?? User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-        if (!string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase))
-            return Forbid();
+        // On lit Utiadm + Utirole en base — le claim "role" du JWT n'est pas peuplé dans ce projet
+        // (voir UtilisateursController.UpdateUser qui suit la même convention).
+        if (!await CallerIsAdminOrManagerAsync()) return Forbid();
 
         var slug = _currentTenant.Current?.Slug;
         if (string.IsNullOrEmpty(slug))
@@ -333,10 +332,7 @@ public class BillingController : ControllerBase
     [HttpPost("resume-subscription")]
     public async Task<IActionResult> ResumeSubscription(CancellationToken ct)
     {
-        var role = User?.FindFirst("role")?.Value ?? User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-        if (!string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase))
-            return Forbid();
+        if (!await CallerIsAdminOrManagerAsync()) return Forbid();
 
         var slug = _currentTenant.Current?.Slug;
         if (string.IsNullOrEmpty(slug))
@@ -354,5 +350,26 @@ public class BillingController : ControllerBase
             return StatusCode(502, new { error = "Impossible d'annuler la résiliation côté Stripe." });
 
         return Ok(new { success = true });
+    }
+
+    /// <summary>
+    /// Vérifie en base que l'appelant est admin (Utiadm=1 ou rôle "Administrator") ou
+    /// manager (rôle dont le nom contient "manager"). Évite de dépendre du claim "role"
+    /// du JWT, qui n'est pas peuplé dans ce projet (cf. JwtAuthService).
+    /// </summary>
+    private async Task<bool> CallerIsAdminOrManagerAsync()
+    {
+        var uticod = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(uticod)) return false;
+        var user = await _tenantDb.Utilisateurs.AsNoTracking()
+            .Where(u => u.Uticod == uticod)
+            .Select(u => new { u.Utiadm, u.Utirole })
+            .FirstOrDefaultAsync();
+        if (user is null) return false;
+        if (user.Utiadm == "1") return true;
+        if (ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(user.Utirole)) return true;
+        if (!string.IsNullOrEmpty(user.Utirole)
+            && user.Utirole.Contains("manager", StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
     }
 }
