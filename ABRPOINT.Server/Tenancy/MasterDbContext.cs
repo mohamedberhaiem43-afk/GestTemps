@@ -19,6 +19,12 @@ public class MasterDbContext : DbContext
         {
             e.HasIndex(t => t.Slug).IsUnique();
             e.HasIndex(t => t.StripeCustomerId);
+            // Index non-unique sur Siret : on s'appuie sur un index unique filtré côté
+            // SQL Server (cf. Program.cs startup) pour autoriser plusieurs lignes Failed
+            // / Cancelled-hors-rétention avec le même SIRET, tout en garantissant un seul
+            // tenant actif par SIRET. EF Core ne sait pas modéliser de filtre conditionnel
+            // ici proprement, on garde donc l'index simple côté modèle pour les lookups.
+            e.HasIndex(t => t.Siret);
         });
 
         b.Entity<TenantEmailIndex>(e =>

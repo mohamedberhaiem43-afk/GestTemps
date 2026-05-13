@@ -32,6 +32,16 @@ public class Tenant
     [MaxLength(150)]
     public string? AdminEmail { get; set; }
 
+    /// <summary>
+    /// Numéro SIRET de l'entreprise (14 chiffres). Saisi à l'inscription et vérifié contre
+    /// l'API gouvernementale recherche-entreprises.api.gouv.fr. Sert de clé anti-fraude :
+    /// un même SIRET ne peut pas obtenir plusieurs essais gratuits (un seul tenant
+    /// Trialing/Active par SIRET hors lignes Failed et Cancelled-au-delà-rétention).
+    /// Nullable pour préserver la rétro-compat avec les tenants legacy créés avant 2026-05.
+    /// </summary>
+    [MaxLength(14)]
+    public string? Siret { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? TrialEndsAt { get; set; }

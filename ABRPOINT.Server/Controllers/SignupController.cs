@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using ABRPOINT.Server.Billing;
 using ABRPOINT.Server.Provisioning;
+using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,7 @@ public class SignupController : ControllerBase
     private readonly ITenantStore _tenantStore;
     private readonly IConfiguration _cfg;
     private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
+    private readonly ISiretValidator _siretValidator;
     private readonly ILogger<SignupController> _log;
 
     public SignupController(
@@ -44,6 +46,7 @@ public class SignupController : ControllerBase
         ITenantStore tenantStore,
         IConfiguration cfg,
         Microsoft.Extensions.Caching.Memory.IMemoryCache cache,
+        ISiretValidator siretValidator,
         ILogger<SignupController> log)
     {
         _masterFactory = masterFactory;
@@ -52,6 +55,7 @@ public class SignupController : ControllerBase
         _tenantStore = tenantStore;
         _cfg = cfg;
         _cache = cache;
+        _siretValidator = siretValidator;
         _log = log;
     }
 
@@ -128,6 +132,30 @@ public class SignupController : ControllerBase
         return Ok(new { available = !taken, reason = taken ? "taken" : null });
     }
 
+    /// <summary>
+    /// Vérifie en temps réel qu'un SIRET est valide ET qu'il n'a pas déjà été utilisé
+    /// pour souscrire un essai gratuit. Appelé en onBlur depuis le formulaire signup
+    /// pour donner un feedback immédiat à l'utilisateur (vs. découvrir l'erreur au submit
+    /// après avoir rempli tout le formulaire). La règle métier est dupliquée dans le
+    /// POST /api/signup pour empêcher tout contournement côté client.
+    /// </summary>
+    [HttpGet("check-siret")]
+    public async Task<IActionResult> CheckSiret([FromQuery] string siret, CancellationToken ct)
+    {
+        var validation = await _siretValidator.ValidateAsync(siret, ct);
+        if (!validation.IsValid)
+            return Ok(new { available = false, reason = validation.ErrorCode, message = validation.ErrorMessage });
+
+        var normalized = (siret ?? string.Empty).Replace(" ", "").Replace("-", "").Trim();
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var alreadyUsed = await master.Tenants.AsNoTracking()
+            .AnyAsync(t => t.Siret == normalized && t.Status != "Failed" && t.Status != "Cancelled", ct);
+        if (alreadyUsed)
+            return Ok(new { available = false, reason = "siret_already_used", message = "Un compte existe déjà pour ce SIRET. Connectez-vous depuis l'écran de login pour y accéder." });
+
+        return Ok(new { available = true, companyName = validation.CompanyName });
+    }
+
     [HttpPost]
     [EnableRateLimiting("auth-signup")] // SEC-29 : 3 signups/heure/IP — anti-bot tenant flooding.
     public async Task<IActionResult> Signup([FromBody] SignupRequest req, CancellationToken ct)
@@ -152,7 +180,31 @@ public class SignupController : ControllerBase
         if (!ValidateCaptcha(req.CaptchaChallengeId, req.CaptchaAnswer))
             return BadRequest(new { error = "Captcha invalide ou expiré. Rechargez et réessayez.", code = "captcha_failed" });
 
+        // Anti-fraude SIRET (2026-05) : un même SIRET ne peut bénéficier que d'un seul
+        // essai gratuit. Vérification en deux temps — checksum Luhn local puis appel à
+        // l'API Sirene pour confirmer existence + état actif. Si le SIRET est déjà lié
+        // à un tenant non-Failed/non-Cancelled, on refuse avec un message qui oriente
+        // vers le login (le compte existe peut-être déjà sous un autre email/slug).
+        var siretValidation = await _siretValidator.ValidateAsync(req.Siret, ct);
+        if (!siretValidation.IsValid)
+            return BadRequest(new { error = siretValidation.ErrorMessage ?? "SIRET invalide.", code = siretValidation.ErrorCode ?? "siret_invalid" });
+        var siretNormalized = (req.Siret ?? string.Empty).Replace(" ", "").Replace("-", "").Trim();
+
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
+
+        // Doublon SIRET : on autorise plusieurs lignes Failed (retries de provisioning)
+        // et plusieurs Cancelled (réactivations après rétention). Toute autre ligne avec
+        // ce SIRET est bloquante. L'index unique filtré côté SQL (cf. Program.cs) est le
+        // garde-fou contre les race conditions ; ce check explicite donne juste un
+        // message d'erreur clair plutôt qu'une 500 sur violation de contrainte.
+        var siretInUse = await master.Tenants.AsNoTracking()
+            .AnyAsync(t => t.Siret == siretNormalized && t.Status != "Failed" && t.Status != "Cancelled", ct);
+        if (siretInUse)
+            return Conflict(new
+            {
+                error = "Un compte existe déjà pour ce SIRET. Connectez-vous depuis l'écran de login pour accéder à votre espace, ou contactez le support si vous avez perdu vos identifiants.",
+                code = "siret_already_used",
+            });
 
         // Une éventuelle ligne existante pour ce slug : si elle est active, on refuse ;
         // si elle est en 'Failed' (tentative précédente échouée), on la réutilise pour
@@ -240,6 +292,7 @@ public class SignupController : ControllerBase
             tenant.StripeSubscriptionId = null;
             tenant.OnboardingCompleted = false;
             tenant.PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim();
+            tenant.Siret = siretNormalized;
         }
         else
         {
@@ -257,6 +310,7 @@ public class SignupController : ControllerBase
                 Region = "eu-fr",
                 LegacySoccod = "01",
                 PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim(),
+                Siret = siretNormalized,
             };
             master.Tenants.Add(tenant);
         }
@@ -396,6 +450,11 @@ public class SignupRequest
     public string AdminLastName { get; set; } = string.Empty;
     public string AdminEmail { get; set; } = string.Empty;
     public string AdminPassword { get; set; } = string.Empty;
+    /// <summary>
+    /// Numéro SIRET de l'entreprise (14 chiffres). Validé contre l'API Sirene et utilisé
+    /// comme clé anti-fraude : un seul essai gratuit par SIRET. Obligatoire depuis 2026-05.
+    /// </summary>
+    public string Siret { get; set; } = string.Empty;
     public string? PlanCode { get; set; }
     public string? BillingCycle { get; set; }
     /// <summary>

@@ -5,6 +5,7 @@ import {
   Paper, Stack, InputAdornment, Chip,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
+import BadgeIcon from '@mui/icons-material/Badge';
 import LinkIcon from '@mui/icons-material/Link';
 import PersonIcon from '@mui/icons-material/Person';
 import MailIcon from '@mui/icons-material/Mail';
@@ -19,8 +20,15 @@ const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
 type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'reserved';
 type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+// Statuts SIRET — reflètent les codes renvoyés par /api/signup/check-siret :
+//   format/checksum → SIRET mal formé localement (14 chiffres + Luhn) ;
+//   not_found/closed → API Sirene ne reconnaît pas l'établissement ou il est fermé ;
+//   already_used → un autre tenant actif utilise déjà ce SIRET (anti-fraude).
+type SiretStatus = 'idle' | 'checking' | 'available' | 'format' | 'checksum' | 'not_found' | 'closed' | 'already_used' | 'invalid';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// 14 chiffres, espaces tolérés en saisie (on les strip avant l'appel API).
+const SIRET_DIGITS_REGEX = /^[0-9]{14}$/;
 
 function slugify(input: string): string {
   return input
@@ -42,6 +50,13 @@ export default function SignupPage() {
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle');
+
+  // SIRET : 14 chiffres, validé contre l'API gouvernementale Sirene + contrôle
+  // d'unicité (anti-fraude essai gratuit). Le nom complet remonté par l'API est
+  // affiché pour rassurer l'utilisateur que c'est bien son entreprise.
+  const [siret, setSiret] = useState('');
+  const [siretStatus, setSiretStatus] = useState<SiretStatus>('idle');
+  const [siretCompanyName, setSiretCompanyName] = useState<string | null>(null);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -145,6 +160,79 @@ export default function SignupPage() {
     };
   }, [email]);
 
+  // Debounced SIRET validation : on appelle /signup/check-siret 400ms après la dernière
+  // frappe. L'appel fait Luhn local + API Sirene + check d'unicité — un seul aller-retour
+  // suffit donc à donner un feedback complet. Timeout 6s : l'API gouvernementale peut
+  // être lente, mais on ne veut pas non plus bloquer indéfiniment.
+  useEffect(() => {
+    const digits = siret.replace(/\D/g, '');
+    if (!digits) { setSiretStatus('idle'); setSiretCompanyName(null); return; }
+    if (digits.length !== 14) {
+      setSiretStatus('format');
+      setSiretCompanyName(null);
+      return;
+    }
+    if (!SIRET_DIGITS_REGEX.test(digits)) { setSiretStatus('format'); return; }
+
+    setSiretStatus('checking');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const handle = setTimeout(async () => {
+      try {
+        const { data } = await apiInstance.get('/signup/check-siret', {
+          params: { siret: digits },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (data.available) {
+          setSiretStatus('available');
+          setSiretCompanyName(data.companyName ?? null);
+        } else {
+          // Mapping des codes serveur vers les statuts locaux pour le helper text.
+          const reason = data.reason as string | undefined;
+          if (reason === 'siret_format') setSiretStatus('format');
+          else if (reason === 'siret_checksum') setSiretStatus('checksum');
+          else if (reason === 'siret_not_found') setSiretStatus('not_found');
+          else if (reason === 'siret_closed') setSiretStatus('closed');
+          else if (reason === 'siret_already_used') setSiretStatus('already_used');
+          else setSiretStatus('invalid');
+          setSiretCompanyName(null);
+        }
+      } catch {
+        clearTimeout(timeoutId);
+        // Timeout/réseau : on retombe en idle ; le backend re-valide à la soumission
+        // (et bénéficiera de la contrainte unique côté DB en garde-fou).
+        setSiretStatus('idle');
+      }
+    }, 400);
+    return () => {
+      clearTimeout(handle);
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [siret]);
+
+  const siretHelper = useMemo(() => {
+    switch (siretStatus) {
+      case 'checking': return { color: 'info' as const, text: 'Vérification auprès du référentiel Sirene…' };
+      case 'available': return {
+        color: 'success' as const,
+        text: siretCompanyName ? `Entreprise reconnue : ${siretCompanyName}.` : 'SIRET valide.',
+      };
+      case 'format': return { color: 'error' as const, text: 'Le SIRET doit contenir 14 chiffres.' };
+      case 'checksum': return { color: 'error' as const, text: 'Numéro SIRET invalide (clé de contrôle).' };
+      case 'not_found': return { color: 'error' as const, text: 'Aucune entreprise trouvée pour ce SIRET dans le référentiel Sirene.' };
+      case 'closed': return { color: 'error' as const, text: 'Cet établissement est administrativement fermé.' };
+      case 'already_used': return {
+        color: 'error' as const,
+        text: 'Un compte existe déjà pour ce SIRET. Connectez-vous depuis l\'écran de login.',
+      };
+      case 'invalid': return { color: 'error' as const, text: 'SIRET non valide.' };
+      default: return null;
+    }
+  }, [siretStatus, siretCompanyName]);
+
   const emailHelper = useMemo(() => {
     switch (emailStatus) {
       case 'checking': return { color: 'info' as const, text: 'Vérification…' };
@@ -177,10 +265,24 @@ export default function SignupPage() {
     && slugStatus !== 'reserved'
     && slugStatus !== 'invalid';
 
+  // Le SIRET est obligatoire (anti-fraude). On exige le format 14 chiffres et qu'on
+  // n'ait pas d'erreur explicite ; on ne bloque pas sur 'checking' ou 'idle' pour
+  // permettre la soumission si l'API Sirene est lente (le backend re-valide de toute
+  // façon et la contrainte unique en DB protège en dernier recours).
+  const siretAccepted =
+    SIRET_DIGITS_REGEX.test(siret.replace(/\D/g, '')) &&
+    siretStatus !== 'format' &&
+    siretStatus !== 'checksum' &&
+    siretStatus !== 'not_found' &&
+    siretStatus !== 'closed' &&
+    siretStatus !== 'already_used' &&
+    siretStatus !== 'invalid';
+
   const canSubmit =
     !submitting &&
     companyName.trim().length >= 2 &&
     slugAccepted &&
+    siretAccepted &&
     firstName.trim().length > 0 &&
     lastName.trim().length > 0 &&
     /.+@.+\..+/.test(email) &&
@@ -202,6 +304,7 @@ export default function SignupPage() {
       const { data } = await apiInstance.post('/signup', {
         slug,
         companyName: companyName.trim(),
+        siret: siret.replace(/\D/g, ''),
         adminFirstName: firstName.trim(),
         adminLastName: lastName.trim(),
         adminEmail: email.trim(),
@@ -314,6 +417,41 @@ export default function SignupPage() {
             onChange={(e) => setCompanyName(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><BusinessIcon /></InputAdornment> }}
           />
+
+          <Box>
+            <TextField
+              fullWidth
+              label="SIRET de l'entreprise"
+              value={siret}
+              onChange={(e) => {
+                // On accepte espaces/tirets en saisie pour confort (les SIRET sont souvent
+                // notés en groupes de 3+3+3+5), mais on persiste la chaîne brute pour que
+                // le useEffect strip avant de valider.
+                const cleaned = e.target.value.replace(/[^0-9\s-]/g, '').slice(0, 17);
+                setSiret(cleaned);
+              }}
+              placeholder="14 chiffres — ex. 123 456 789 00012"
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><BadgeIcon /></InputAdornment>,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {siretStatus === 'checking' && <CircularProgress size={18} />}
+                    {siretStatus === 'available' && <CheckCircleIcon color="success" fontSize="small" />}
+                    {['format', 'checksum', 'not_found', 'closed', 'already_used', 'invalid'].includes(siretStatus) && (
+                      <ErrorIcon color="error" fontSize="small" />
+                    )}
+                  </InputAdornment>
+                ),
+              }}
+              inputProps={{ inputMode: 'numeric' }}
+              helperText="Vérification anti-fraude : un seul essai gratuit par SIRET."
+            />
+            {siretHelper && (
+              <Typography variant="caption" color={`${siretHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>
+                {siretHelper.text}
+              </Typography>
+            )}
+          </Box>
 
           <Box>
             <TextField

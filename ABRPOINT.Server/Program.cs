@@ -484,6 +484,28 @@ END");
                 // par Normalize() à chaque requête.
                 await masterDb.Database.ExecuteSqlRawAsync(
                     "UPDATE [Tenants] SET [PlanCode] = 'Starter' WHERE [PlanCode] = 'Essentiel';");
+                // SIRET anti-fraude (2026-05) : colonne nullable + index filtré unique pour
+                // empêcher qu'un même SIRET souscrive plusieurs essais gratuits. Les lignes
+                // 'Failed' et 'Cancelled' sont exclues du filtre — une 'Failed' peut être
+                // recyclée par le même SIRET (retry après crash provisioning), et une
+                // 'Cancelled' au-delà de la rétention sera nettoyée par le flow signup.
+                // Tous les ALTER/CREATE sont idempotents pour rester safe au redémarrage.
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'Siret' AND Object_ID = Object_ID(N'Tenants'))
+BEGIN
+    ALTER TABLE [Tenants] ADD [Siret] NVARCHAR(14) NULL;
+END");
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tenants_Siret' AND object_id = OBJECT_ID('Tenants'))
+BEGIN
+    CREATE INDEX [IX_Tenants_Siret] ON [Tenants]([Siret]);
+END");
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Tenants_Siret_Active' AND object_id = OBJECT_ID('Tenants'))
+BEGIN
+    CREATE UNIQUE INDEX [UX_Tenants_Siret_Active] ON [Tenants]([Siret])
+        WHERE [Siret] IS NOT NULL AND [Status] NOT IN ('Failed', 'Cancelled');
+END");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }

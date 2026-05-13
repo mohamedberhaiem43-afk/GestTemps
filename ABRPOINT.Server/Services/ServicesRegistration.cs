@@ -108,6 +108,17 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddLogging();
 
+            // SIRET validator (anti-fraude inscription) : appel à l'API gouvernementale
+            // recherche-entreprises.api.gouv.fr — gratuite, sans auth. Timeout court car
+            // le validator est fail-open : si l'API ne répond pas, on laisse passer et
+            // on s'appuie sur la contrainte unique côté DB pour bloquer les doublons.
+            builder.Services.AddHttpClient<ISiretValidator, SiretValidator>(http =>
+            {
+                http.BaseAddress = new Uri("https://recherche-entreprises.api.gouv.fr/");
+                http.Timeout = TimeSpan.FromSeconds(5);
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("ConcordeWorkforce-Signup/1.0");
+            });
+
             // RAG : façade HTTP vers le sidecar Python rag-svc.
             // Auth par header partagé X-Sidecar-Key + résilience Polly v8 (retry + circuit breaker).
             builder.Services.Configure<RagOptions>(builder.Configuration.GetSection("Rag"));
