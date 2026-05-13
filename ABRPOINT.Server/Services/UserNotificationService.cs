@@ -44,6 +44,14 @@ public sealed class UserNotificationService : IUserNotificationService
         => RunInScopeAsync(async (db, push) =>
         {
             var managerCode = PermissionCatalog.Roles.Manager;
+            var adminCode = PermissionCatalog.Roles.Administrator;
+            // Sémantiquement, cette méthode notifie « ceux qui peuvent valider » — pas
+            // littéralement le rôle Manager. L'admin du tenant (Utiadm=1 ou Utirole=Administrator)
+            // a évidemment les droits de validation, et c'est souvent la seule personne
+            // active dans les petits comptes (TPE/PME qui démarrent). Avant ce fix, son
+            // centre de notifications restait vide même quand des employés créaient des
+            // demandes de congé/autorisation — bug observé en prod.
+            //
             // ⚠ Filtre Utiactif assoupli : avant on testait `== "1"`, ce qui éliminait
             // silencieusement tous les utilisateurs créés via les anciens imports (valeur
             // legacy "Oui", cf. UtilisateurRepository.ToggleUtiactif) ou sans valeur saisie
@@ -53,7 +61,9 @@ public sealed class UserNotificationService : IUserNotificationService
                 .AsNoTracking()
                 .Where(u => (u.Utiactif == null || (u.Utiactif != "0" && u.Utiactif != "Non")) &&
                             (u.Utirole == managerCode ||
-                             (u.Utirole != null && EF.Functions.Like(u.Utirole, "%manager%"))))
+                             (u.Utirole != null && EF.Functions.Like(u.Utirole, "%manager%")) ||
+                             u.Utiadm == "1" ||
+                             u.Utirole == adminCode))
                 .Select(u => u.Uticod!)
                 .ToListAsync(ct);
             return await SendToUsersAsync(db, push, uticods, title, body, data, ct);
