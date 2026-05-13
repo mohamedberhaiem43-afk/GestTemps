@@ -104,6 +104,14 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_failed_logins", "INT NULL", ct);
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_lockout_until", "DATETIME2 NULL", ct);
 
+        // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
+        // qui sait déjà créer push_tokens, notifications, notification_preferences,
+        // notification_user_settings, known_devices. Idempotent (TableExistsAsync avant CREATE)
+        // donc safe à rappeler à chaque démarrage du process. Crucial pour que les tenants
+        // existants (provisionnés avant 2026-05) reçoivent automatiquement `known_devices`
+        // et tout le pipeline notif au prochain restart sans intervention DBA.
+        await MobileTablesInstaller.InstallAsync(db, ct);
+
         // Seed nations : sans données, le sélecteur "Nationalité" / "Pays" de la fiche
         // collaborateur reste vide. Idempotent : on n'écrit que si la table est nulle.
         await SeedNationsIfEmptyAsync(db, ct);
