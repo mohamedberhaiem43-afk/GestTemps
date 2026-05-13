@@ -65,6 +65,50 @@ public class StripeWebhookController : ControllerBase
             return BadRequest("Invalid signature");
         }
 
+        // Replay protection : la signature Stripe valide UN payload + un timestamp dans la
+        // fenêtre tolerance (5 min par défaut), mais elle ne dédoublonne PAS les retries.
+        // Stripe rejoue tout webhook qui a renvoyé !=2xx ou timeout 30s (jusqu'à 3 jours).
+        // Sans cette table, un retry après un crash transient ré-exécute le handler →
+        // double subscription, double activation, etc. On insère event_id en clé primaire
+        // dès qu'on a une signature valide ; un INSERT en doublon = retry → on renvoie 200.
+        await using (var masterDedup = await _masterFactory.CreateDbContextAsync(ct))
+        {
+            var saveSucceeded = false;
+            try
+            {
+                masterDedup.StripeWebhookSeen.Add(new StripeWebhookSeen
+                {
+                    EventId = stripeEvent.Id,
+                    EventType = stripeEvent.Type,
+                });
+                await masterDedup.SaveChangesAsync(ct);
+                saveSucceeded = true;
+            }
+            catch (DbUpdateException)
+            {
+                // PK violation potentielle → vérifier que la ligne existe vraiment avant de
+                // swallow l'exception. Sans cette double-vérif, on masquerait un vrai problème
+                // SQL transient. C# interdit `await` dans une expression de filtre `when`, d'où
+                // ce pattern avec saveSucceeded plutôt que `catch when`.
+            }
+            if (!saveSucceeded)
+            {
+                if (await EventAlreadyProcessedAsync(stripeEvent.Id, ct))
+                {
+                    // Déjà traité avec succès. On renvoie 200 pour que Stripe arrête les retries.
+                    // Si la 1ère exécution avait crashé après l'insert mais avant la fin du handler,
+                    // Stripe retentera ; ce cas-là est rare et le côté métier est généralement
+                    // idempotent (UPDATE Status, MarkActive, etc.).
+                    _log.LogInformation("Stripe event {EventId} ({Type}) déjà traité — replay ignoré.", stripeEvent.Id, stripeEvent.Type);
+                    return Ok();
+                }
+                // Échec SaveChanges qui n'est PAS une duplication PK → vrai problème SQL transient.
+                // 500 → Stripe retentera ; on log pour audit.
+                _log.LogError("Échec dedup pour Stripe event {EventId} ({Type}) sans cause de duplication.", stripeEvent.Id, stripeEvent.Type);
+                return StatusCode(500);
+            }
+        }
+
         try
         {
             switch (stripeEvent.Type)
@@ -182,5 +226,16 @@ public class StripeWebhookController : ControllerBase
         }
 
         return Ok();
+    }
+
+    /// <summary>
+    /// Vérifie qu'un event_id figure bien dans la table de dédup. Utilisé pour confirmer
+    /// qu'un DbUpdateException vient bien d'une PK violation (déjà traité) et non d'un
+    /// autre problème transactionnel — sinon on swallow une vraie erreur silencieusement.
+    /// </summary>
+    private async Task<bool> EventAlreadyProcessedAsync(string eventId, CancellationToken ct)
+    {
+        await using var db = await _masterFactory.CreateDbContextAsync(ct);
+        return await db.StripeWebhookSeen.AsNoTracking().AnyAsync(e => e.EventId == eventId, ct);
     }
 }

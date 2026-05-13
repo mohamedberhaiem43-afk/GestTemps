@@ -32,18 +32,24 @@ namespace GestionDesTickets.Server.Controllers
         private readonly IConfiguration _configuration;
         private readonly ICurrentTenant _currentTenant;
         private readonly EncryptionService _encryptionService;
+        private readonly IPasswordBreachChecker _passwordBreach;
+        private readonly IKnownDeviceService _knownDevices;
         public UtilisateursController(
             IConfiguration configuration,
             ApplicationDbContext dbContext,
             IUtilisateurRepository utilisateurRepository,
             ICurrentTenant currentTenant,
-            EncryptionService encryptionService)
+            EncryptionService encryptionService,
+            IPasswordBreachChecker passwordBreach,
+            IKnownDeviceService knownDevices)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
             _currentTenant = currentTenant;
             _encryptionService = encryptionService;
+            _passwordBreach = passwordBreach;
+            _knownDevices = knownDevices;
         }
         private bool IsHttpsRequest()
         {
@@ -213,9 +219,40 @@ namespace GestionDesTickets.Server.Controllers
                 Utilisateur? dbUser = await _dbContext.Utilisateurs
                     .FirstOrDefaultAsync(u => u.Utimail == user.Utimail);
 
+                // Account lockout : si l'utilisateur est verrouillé, on refuse SANS comparer
+                // le mot de passe (timing-safe : pas d'info sur la validité du mdp pendant le
+                // lock). Le rate limiter `auth-login` par IP reste actif, mais celui-ci est
+                // par compte — couvre le ciblé (botnet qui change d'IP par essai).
+                if (dbUser != null && dbUser.UtiLockoutUntil.HasValue && dbUser.UtiLockoutUntil > DateTime.UtcNow)
+                {
+                    var remainingSeconds = (int)(dbUser.UtiLockoutUntil.Value - DateTime.UtcNow).TotalSeconds;
+                    return StatusCode(StatusCodes.Status423Locked, new
+                    {
+                        message = $"Compte temporairement verrouillé après des échecs répétés. Réessayez dans {remainingSeconds}s.",
+                        code = "account_locked",
+                        retryAfterSeconds = remainingSeconds,
+                    });
+                }
+
                 if (dbUser == null || !BCrypt.Net.BCrypt.Verify(user.Utimps, dbUser.Utimps))
                 {
+                    // Incrémente le compteur d'échecs uniquement si l'email existe — sinon un
+                    // attaquant pourrait énumérer les comptes existants en observant qui se
+                    // verrouille. Backoff progressif : 3→30s, 5→5min, 10→1h.
+                    if (dbUser != null)
+                    {
+                        await RegisterFailedLoginAsync(dbUser);
+                    }
                     return Unauthorized("Invalid credentials.");
+                }
+
+                // Login OK → reset compteur. Évite qu'un utilisateur légitime se retrouve
+                // verrouillé sur des échecs cumulés sur plusieurs jours.
+                if (dbUser.UtiFailedLogins > 0 || dbUser.UtiLockoutUntil != null)
+                {
+                    dbUser.UtiFailedLogins = 0;
+                    dbUser.UtiLockoutUntil = null;
+                    await _dbContext.SaveChangesAsync();
                 }
 
                 // Garde "compte désactivé" : Utilisateur.Utiactif="0" OU Employe.Actif="N" → connexion refusée.
@@ -253,6 +290,44 @@ namespace GestionDesTickets.Server.Controllers
             catch (Exception)
             {
                 return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+        /// <summary>
+        /// Enregistre un échec de login : incrémente le compteur, et pose un lock progressif
+        /// dont la durée dépend du seuil atteint. Le backoff suit la courbe OWASP recommandée :
+        /// les 2 premiers essais sont tolérés (typo de mdp), les suivants déclenchent un lock
+        /// croissant exponentiellement. Le compteur n'est PAS borné — il s'accumule jusqu'au
+        /// prochain login réussi, ce qui assure qu'un attaquant ne peut pas attendre la fin
+        /// d'un lock pour retenter à l'infini.
+        /// </summary>
+        private async Task RegisterFailedLoginAsync(Utilisateur dbUser)
+        {
+            try
+            {
+                var failed = (dbUser.UtiFailedLogins ?? 0) + 1;
+                dbUser.UtiFailedLogins = failed;
+
+                // Courbe OWASP : 3 essais → 30s, 5 → 5min, 10 → 1h, au-delà → 24h.
+                TimeSpan? lockFor = failed switch
+                {
+                    < 3 => null,
+                    < 5 => TimeSpan.FromSeconds(30),
+                    < 10 => TimeSpan.FromMinutes(5),
+                    < 20 => TimeSpan.FromHours(1),
+                    _ => TimeSpan.FromHours(24),
+                };
+                if (lockFor.HasValue)
+                    dbUser.UtiLockoutUntil = DateTime.UtcNow.Add(lockFor.Value);
+
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                // Best-effort : un échec de SaveChanges sur ce chemin ne doit jamais bloquer
+                // la réponse 401 au client (cas typique : SQL transient). Le rate limiter IP
+                // continue de fonctionner et protège pendant la fenêtre où le compteur n'a
+                // pas pu être incrémenté.
             }
         }
 
@@ -383,6 +458,14 @@ namespace GestionDesTickets.Server.Controllers
                 Response.Cookies.Append("refreshToken", refreshToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
                 Response.Cookies.Append("uticod", dbUser.Uticod ?? string.Empty, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
                 Response.Cookies.Append("admin", dbUser.Utiadm ?? "0", CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7), httpOnly: false));
+
+                // Détection de nouvel appareil/réseau + alerte email. Best-effort,
+                // n'interrompt jamais le login en cas d'erreur. Couvre les deux chemins
+                // (login sans 2FA et complete-2fa-login) puisque tous les deux passent ici.
+                if (!string.IsNullOrEmpty(dbUser.Uticod))
+                {
+                    _ = _knownDevices.RegisterAndAlertAsync(dbUser.Uticod, dbUser.Utimail, HttpContext, HttpContext.RequestAborted);
+                }
 
                 var socimg = await _dbContext.Societes
                     .Where(s => s.Soccod == company)
@@ -824,6 +907,21 @@ namespace GestionDesTickets.Server.Controllers
                     pwd.uticod = caller;
                 }
 
+                // Vérif HIBP avant d'écrire en base. Empêche un user de revenir vers un mdp
+                // fuité même s'il connaît son mdp actuel — c'est aussi la mesure défensive
+                // contre un attaquant qui aurait volé un cookie de session et tenterait de
+                // s'attribuer un mdp connu pour persister l'accès.
+                if (!string.IsNullOrEmpty(pwd.newPassword))
+                {
+                    var breachCount = await _passwordBreach.GetBreachCountAsync(pwd.newPassword, HttpContext.RequestAborted);
+                    if (breachCount > 0)
+                        return BadRequest(new
+                        {
+                            message = $"Ce mot de passe figure dans des fuites de données publiques (vu {breachCount:N0} fois). Choisissez un mot de passe différent.",
+                            code = "password_pwned",
+                        });
+                }
+
                 bool profile = await _utilisateurRepository.ChangePasswordAsync(pwd);
                 return Ok(new { success = profile });
             }
@@ -1041,6 +1139,17 @@ namespace GestionDesTickets.Server.Controllers
 
                 if (user.UtiResetCode != request.Code || !user.UtiResetCodeExpiry.HasValue || user.UtiResetCodeExpiry < DateTime.UtcNow)
                     return BadRequest(new { Message = "Code invalide ou expiré." });
+
+                // Vérif HIBP : refuse les mots de passe fuités. On préserve l'UX du reset
+                // (code valide → 400 explicite avec count) plutôt que de laisser l'utilisateur
+                // configurer "123456" via le flow forgot-password.
+                var breachCount = await _passwordBreach.GetBreachCountAsync(request.NewPassword, HttpContext.RequestAborted);
+                if (breachCount > 0)
+                    return BadRequest(new
+                    {
+                        Message = $"Ce mot de passe figure dans des fuites de données publiques (vu {breachCount:N0} fois). Choisissez un mot de passe différent.",
+                        code = "password_pwned",
+                    });
 
                 // Reset password
                 user.Utimps = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);

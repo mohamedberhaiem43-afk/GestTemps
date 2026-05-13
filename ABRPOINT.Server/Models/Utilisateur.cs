@@ -47,4 +47,20 @@ public partial class Utilisateur : BaseEntity
     public string? UtiTwoFactorSecret { get; set; }
     public string? UtiResetCode { get; set; }
     public DateTime? UtiResetCodeExpiry { get; set; }
+
+    /// <summary>
+    /// Compteur d'échecs de login consécutifs (reset à 0 après une connexion réussie).
+    /// Sert au backoff progressif : 3 échecs → lock 30s, 5 → 5min, 10 → 1h. Le rate
+    /// limiter `auth-login` par IP reste actif en parallèle — ces deux mesures sont
+    /// complémentaires (IP couvre le brute-force massif, account couvre le ciblé).
+    /// </summary>
+    [Column("uti_failed_logins")]
+    public int? UtiFailedLogins { get; set; }
+
+    /// <summary>
+    /// Date jusqu'à laquelle le compte est verrouillé suite à des échecs répétés.
+    /// Null = pas de verrou. Comparée à DateTime.UtcNow à chaque tentative.
+    /// </summary>
+    [Column("uti_lockout_until")]
+    public DateTime? UtiLockoutUntil { get; set; }
 }

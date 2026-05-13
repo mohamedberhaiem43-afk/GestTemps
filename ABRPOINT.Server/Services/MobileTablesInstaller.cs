@@ -19,7 +19,8 @@ public static class MobileTablesInstaller
         bool NotificationsCreated,
         bool NotificationPreferencesCreated,
         bool ChannelColumnsAdded,
-        bool UserSettingsCreated);
+        bool UserSettingsCreated,
+        bool KnownDevicesCreated);
 
     public static async Task<InstallReport> InstallAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
@@ -30,7 +31,33 @@ public static class MobileTablesInstaller
         // Migration en place pour les tenants ayant créé la table prefs avant le split push/inapp.
         var channels = await EnsurePreferenceChannelsAsync(db, ct);
         var settings = await EnsureUserSettingsAsync(db, ct);
-        return new InstallReport(pushTokens, reminderLog, notifications, prefs, channels, settings);
+        var knownDevices = await EnsureKnownDevicesAsync(db, ct);
+        return new InstallReport(pushTokens, reminderLog, notifications, prefs, channels, settings, knownDevices);
+    }
+
+    /// <summary>
+    /// Crée la table d'empreintes d'appareils connus utilisée pour l'alerte "connexion
+    /// depuis un nouvel appareil". Aucune donnée brute (UA / IP complète) n'est stockée :
+    /// seul un hash tronqué + un préfixe de réseau. Idempotent.
+    /// </summary>
+    private static async Task<bool> EnsureKnownDevicesAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var existed = await TableExistsAsync(db, "known_devices", ct);
+        if (existed) return false;
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE [known_devices] (
+    [kd_id]         INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_known_devices] PRIMARY KEY,
+    [uticod]        NVARCHAR(20)  NOT NULL,
+    [ua_hash]       NVARCHAR(16)  NOT NULL,
+    [ip_prefix]     NVARCHAR(40)  NOT NULL,
+    [device_label]  NVARCHAR(150) NULL,
+    [first_seen_at] DATETIME2     NOT NULL CONSTRAINT [DF_known_devices_first] DEFAULT (SYSUTCDATETIME()),
+    [last_seen_at]  DATETIME2     NOT NULL CONSTRAINT [DF_known_devices_last]  DEFAULT (SYSUTCDATETIME())
+);
+CREATE UNIQUE INDEX [UX_known_devices_user_ua_ip] ON [known_devices]([uticod], [ua_hash], [ip_prefix]);
+CREATE INDEX [IX_known_devices_uticod] ON [known_devices]([uticod]);
+", ct);
+        return true;
     }
 
     private static async Task<bool> EnsureUserSettingsAsync(ApplicationDbContext db, CancellationToken ct)

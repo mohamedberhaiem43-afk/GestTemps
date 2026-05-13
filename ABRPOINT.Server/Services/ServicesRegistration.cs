@@ -106,6 +106,13 @@ namespace ABRPOINT.Server.Services
             });
 
             builder.Services.AddScoped<IEmailService, EmailService>();
+            // Detection de nouveau device au login + alerte email. Scoped car dépend
+            // d'ApplicationDbContext (tenant courant).
+            builder.Services.AddScoped<IKnownDeviceService, KnownDeviceService>();
+            // Tokens HMAC stateless pour le lien "Ce n'était pas moi" dans les alertes
+            // nouvelle-connexion. Singleton car aucune dépendance scoped, et garde un
+            // accès partagé au IMemoryCache de single-use anti-replay.
+            builder.Services.AddSingleton<ISuspiciousLoginTokenService, SuspiciousLoginTokenService>();
             builder.Services.AddLogging();
 
             // SIRET validator (anti-fraude inscription) : appel à l'API gouvernementale
@@ -116,6 +123,16 @@ namespace ABRPOINT.Server.Services
             {
                 http.BaseAddress = new Uri("https://recherche-entreprises.api.gouv.fr/");
                 http.Timeout = TimeSpan.FromSeconds(5);
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("ConcordeWorkforce-Signup/1.0");
+            });
+
+            // HIBP Pwned Passwords (k-anonymity) : refuse les mots de passe déjà connus
+            // dans des fuites publiques. Gratuit, sans auth. Timeout court + fail-open
+            // pour ne pas bloquer le signup légitime si l'API tombe.
+            builder.Services.AddHttpClient<IPasswordBreachChecker, PasswordBreachChecker>(http =>
+            {
+                http.BaseAddress = new Uri("https://api.pwnedpasswords.com/");
+                http.Timeout = TimeSpan.FromSeconds(3);
                 http.DefaultRequestHeaders.UserAgent.ParseAdd("ConcordeWorkforce-Signup/1.0");
             });
 

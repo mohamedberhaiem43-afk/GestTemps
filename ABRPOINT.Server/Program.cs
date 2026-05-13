@@ -506,6 +506,21 @@ BEGIN
     CREATE UNIQUE INDEX [UX_Tenants_Siret_Active] ON [Tenants]([Siret])
         WHERE [Siret] IS NOT NULL AND [Status] NOT IN ('Failed', 'Cancelled');
 END");
+                // Stripe webhook replay protection : table des événements déjà traités.
+                // Stripe rejoue un webhook si le récepteur a renvoyé !=2xx ou timeout 30s.
+                // Sans dédoublonnage, on risque de créer deux subscriptions, débloquer
+                // deux fois un tenant, etc. On enregistre l'event_id en début de handler
+                // et on early-return s'il existe déjà.
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'StripeWebhookSeen')
+BEGIN
+    CREATE TABLE [StripeWebhookSeen] (
+        [EventId]     NVARCHAR(80) NOT NULL CONSTRAINT [PK_StripeWebhookSeen] PRIMARY KEY,
+        [EventType]   NVARCHAR(80) NULL,
+        [ProcessedAt] DATETIME2    NOT NULL CONSTRAINT [DF_StripeWebhookSeen_ProcessedAt] DEFAULT SYSUTCDATETIME()
+    );
+    CREATE INDEX [IX_StripeWebhookSeen_ProcessedAt] ON [StripeWebhookSeen]([ProcessedAt]);
+END");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }

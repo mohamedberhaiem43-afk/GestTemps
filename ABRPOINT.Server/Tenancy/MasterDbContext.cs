@@ -12,6 +12,7 @@ public class MasterDbContext : DbContext
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TenantEmailIndex> TenantEmailIndex => Set<TenantEmailIndex>();
+    public DbSet<StripeWebhookSeen> StripeWebhookSeen => Set<StripeWebhookSeen>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {

@@ -37,6 +37,7 @@ public class SignupController : ControllerBase
     private readonly IConfiguration _cfg;
     private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
     private readonly ISiretValidator _siretValidator;
+    private readonly IPasswordBreachChecker _passwordBreach;
     private readonly ILogger<SignupController> _log;
 
     public SignupController(
@@ -47,6 +48,7 @@ public class SignupController : ControllerBase
         IConfiguration cfg,
         Microsoft.Extensions.Caching.Memory.IMemoryCache cache,
         ISiretValidator siretValidator,
+        IPasswordBreachChecker passwordBreach,
         ILogger<SignupController> log)
     {
         _masterFactory = masterFactory;
@@ -56,6 +58,7 @@ public class SignupController : ControllerBase
         _cfg = cfg;
         _cache = cache;
         _siretValidator = siretValidator;
+        _passwordBreach = passwordBreach;
         _log = log;
     }
 
@@ -173,6 +176,17 @@ public class SignupController : ControllerBase
             return BadRequest(new { error = "Mot de passe trop court (8 caractères minimum)." });
         if (string.IsNullOrWhiteSpace(req.CompanyName))
             return BadRequest(new { error = "Nom d'entreprise requis." });
+
+        // Vérif HIBP : refuse les mots de passe figurant dans des fuites publiques. C'est la
+        // mesure single la plus efficace contre le credential stuffing (60-80% des attaques
+        // exploitent des mdp réutilisés/fuités). Fail-open si HIBP est inaccessible.
+        var breachCount = await _passwordBreach.GetBreachCountAsync(req.AdminPassword, ct);
+        if (breachCount > 0)
+            return BadRequest(new
+            {
+                error = $"Ce mot de passe figure dans des fuites de données publiques (vu {breachCount:N0} fois). Choisissez un mot de passe différent.",
+                code = "password_pwned",
+            });
 
         // Captcha anti-bot. Validé avant toute écriture (DB / Stripe) pour ne pas créer
         // de tenant fantôme si la vérif échoue. Le challenge est single-use (cf.

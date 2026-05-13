@@ -97,6 +97,13 @@ public static class BaseDataSchemaMigrator
             "(uticod, purpose, revoked) INCLUDE (expires_at, last_used_at)", ct);
         var refreshTokenColumnsAdded = rtPurpose || rtLastUsed || rtIndex;
 
+        // Account lockout (2026-05) : verrouillage progressif après échecs de login répétés.
+        // Complète le rate limiter `auth-login` par IP : un attaquant en botnet contourne le
+        // rate limit IP, mais le compteur par compte le bloque quand même. NULL = jamais
+        // d'échec → équivalent à 0, on ne backfill pas.
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_failed_logins", "INT NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_lockout_until", "DATETIME2 NULL", ct);
+
         // Seed nations : sans données, le sélecteur "Nationalité" / "Pays" de la fiche
         // collaborateur reste vide. Idempotent : on n'écrit que si la table est nulle.
         await SeedNationsIfEmptyAsync(db, ct);

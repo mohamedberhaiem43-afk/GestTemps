@@ -103,6 +103,30 @@ public class BillingController : ControllerBase
             ? req.CancelUrl
             : $"{origin}/dashboard/plan-configuration?checkout=cancelled";
 
+        // Validation server-side du userCount : le client envoie sa valeur dans le payload,
+        // mais on ne lui fait pas confiance — un attaquant peut envoyer 1 employé pour payer
+        // le forfait minimum tout en gérant 500 personnes en interne. On clamp donc sur :
+        //   - bas : nombre d'employés actifs réellement comptés (Empactif='A' ou Empactif='1') ;
+        //   - haut : seuil raisonnable (10000) pour rejeter les payloads aberrants.
+        var planDef = PlanCatalog.GetPlan(req.PlanCode);
+        var requestedQty = req.UserCount.HasValue && req.UserCount.Value > 0 ? req.UserCount.Value : 1;
+        if (requestedQty > 10_000)
+            return BadRequest(new { error = "Nombre d'utilisateurs irréaliste.", code = "user_count_too_high" });
+
+        // Comptage réel en base tenant — on n'écrase pas le payload si le client demande PLUS
+        // que les actifs (cas légitime : provisionnement futur, batch de recrutement). On bloque
+        // uniquement le sous-dimensionnement frauduleux. Le seuil minimum côté Stripe reste 1.
+        var activeEmployees = await _tenantDb.Employes
+            .CountAsync(e => e.Actif == "A" || e.Actif == "1" || e.Actif == "Oui", ct);
+        var minimumBilled = Math.Max(1, activeEmployees);
+        var billedQty = Math.Max(requestedQty, minimumBilled);
+        if (billedQty > requestedQty)
+        {
+            _log.LogWarning(
+                "Quantity Stripe ajustée pour {Slug} : client a demandé {Requested}, mais {Active} employés actifs trouvés → facturation sur {Billed}.",
+                slug, requestedQty, activeEmployees, billedQty);
+        }
+
         var sessionOptions = new SessionCreateOptions
         {
             Mode = "subscription",
@@ -113,7 +137,7 @@ public class BillingController : ControllerBase
                 new()
                 {
                     Price = priceId,
-                    Quantity = req.UserCount.HasValue && req.UserCount.Value > 0 ? req.UserCount.Value : 1,
+                    Quantity = billedQty,
                 }
             },
             ClientReferenceId = tenant.Id.ToString(),
@@ -124,6 +148,8 @@ public class BillingController : ControllerBase
                 ["plan"] = req.PlanCode,
                 ["cycle"] = req.BillingCycle,
                 ["package"] = req.PackageType ?? string.Empty,
+                ["billed_qty"] = billedQty.ToString(),
+                ["active_employees_at_checkout"] = activeEmployees.ToString(),
             },
         };
         if (!string.IsNullOrWhiteSpace(tenant.StripeCustomerId))
@@ -131,11 +157,21 @@ public class BillingController : ControllerBase
         else if (!string.IsNullOrWhiteSpace(tenant.AdminEmail))
             sessionOptions.CustomerEmail = tenant.AdminEmail;
 
+        // Idempotency-Key : sans ça, un double-clic sur le bouton "Confirmer l'achat" crée
+        // deux sessions Checkout distinctes (donc potentiellement deux subscriptions). On
+        // dérive la clé d'un hash stable du tuple (tenant, plan, cycle, quantité, ~minute) :
+        //   - identique sur retry rapide (= idempotence vraie),
+        //   - distincte si l'utilisateur change vraiment de plan plus tard.
+        // La fenêtre temporelle 1min est un compromis : assez large pour absorber un retry
+        // réseau, assez courte pour permettre un re-checkout immédiat après un cancel.
+        var idempotencyKey = ComputeIdempotencyKey(tenant.Id, req.PlanCode, req.BillingCycle, billedQty);
+        var requestOptions = new RequestOptions { IdempotencyKey = idempotencyKey };
+
         var sessionService = new SessionService();
         Session session;
         try
         {
-            session = await sessionService.CreateAsync(sessionOptions, cancellationToken: ct);
+            session = await sessionService.CreateAsync(sessionOptions, requestOptions, ct);
         }
         catch (StripeException ex)
         {
@@ -148,6 +184,20 @@ public class BillingController : ControllerBase
         }
 
         return Ok(new { url = session.Url, sessionId = session.Id });
+    }
+
+    /// <summary>
+    /// Clé d'idempotence Stripe stable pour un tuple (tenant, plan, cycle, quantité) dans
+    /// une fenêtre d'une minute. Hash SHA-256 tronqué → 32 hex chars, bien en-dessous de la
+    /// limite Stripe de 255. La granularité minute évite qu'un retry valide soit refusé tout
+    /// en empêchant qu'un double-clic crée deux sessions.
+    /// </summary>
+    private static string ComputeIdempotencyKey(Guid tenantId, string planCode, string cycle, long qty)
+    {
+        var bucket = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 60;
+        var raw = $"{tenantId}:{planCode}:{cycle}:{qty}:{bucket}";
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(raw));
+        return Convert.ToHexString(bytes, 0, 16);
     }
 
     public sealed record ResumeCheckoutRequest(
