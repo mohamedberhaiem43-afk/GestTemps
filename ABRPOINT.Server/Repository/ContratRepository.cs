@@ -295,12 +295,25 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                // Borne fin inclusive : "<=" sur un datetime tronque à minuit, donc la date de
+                // fin sélectionnée par l'utilisateur (ex: 2031-06-13) doit être ramenée à la
+                // fin de journée pour matcher une Empsort enregistrée avec une heure non nulle.
+                var echfinEnd = echfin.Date.AddDays(1).AddTicks(-1);
+
+                // On filtre sur c.Empsort (date de fin propre à CE contrat) plutôt que e.Empsort
+                // (qui contient seulement la date du dernier contrat via SyncEmployeContractDates).
+                // Sans ce changement, un employé avec plusieurs contrats successifs ne ferait
+                // remonter que son dernier contrat dans la liste d'échéance.
                 var result = await (
                     from s in _dbContext.Societes
                     join e in _dbContext.Employes on s.Soccod equals e.Soccod
-                    join c in _dbContext.Contrats on e.Empcod equals c.Empcod
+                    join c in _dbContext.Contrats on new { e.Soccod, e.Empcod } equals new { c.Soccod, c.Empcod }
                     join su in _dbContext.Socusers on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
-                    where s.Soccod == soccod && c.Condat >= echdeb && c.Condat <= echfin && su.Uticod == uticod
+                    where s.Soccod == soccod
+                          && c.Empsort.HasValue
+                          && c.Empsort >= echdeb
+                          && c.Empsort <= echfinEnd
+                          && su.Uticod == uticod
                     select new EcheanceContrat
                     {
                         Soccod = s.Soccod,
@@ -309,8 +322,8 @@ namespace ABRPOINT.Server.Repository
                         Empmat = e.Empmat,
                         Emplib = e.Emplib,
                         Condat = c.Condat.HasValue ? c.Condat.Value.Date : (DateTime?)null,
-                        Empemb = e.Empemb.HasValue ? e.Empemb.Value.Date : (DateTime?)null,
-                        Empsort = e.Empsort.HasValue ? e.Empsort.Value.Date : (DateTime?)null
+                        Empemb = c.Empemb.HasValue ? c.Empemb.Value.Date : (DateTime?)null,
+                        Empsort = c.Empsort.HasValue ? c.Empsort.Value.Date : (DateTime?)null
                     }).ToListAsync();
 
                 return result;

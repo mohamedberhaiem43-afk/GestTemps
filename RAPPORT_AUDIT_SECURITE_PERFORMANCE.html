@@ -1,0 +1,1057 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Audit Sécurité &amp; Performance — Concorde Workforce</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #1a1d29;
+    font-size: 10.5pt;
+    line-height: 1.45;
+    background: #fff;
+  }
+  h1, h2, h3, h4 { color: #0d1b3d; margin: 0 0 0.4em; line-height: 1.2; }
+  h1 { font-size: 22pt; }
+  h2 { font-size: 16pt; border-bottom: 2px solid #0040a1; padding-bottom: 4pt; margin-top: 18pt; }
+  h3 { font-size: 12.5pt; margin-top: 12pt; color: #0040a1; }
+  h4 { font-size: 11pt; margin-top: 8pt; color: #1a1d29; }
+  p { margin: 0 0 6pt; }
+  ul, ol { margin: 0 0 8pt 18pt; padding: 0; }
+  li { margin-bottom: 3pt; }
+  code, pre { font-family: "Consolas", "Courier New", monospace; font-size: 9pt; }
+  code { background: #f1f3f8; padding: 1px 4px; border-radius: 3px; color: #b91c1c; }
+  pre {
+    background: #0d1b3d; color: #f1f5f9; padding: 8pt 10pt;
+    border-radius: 4px; overflow-x: auto; white-space: pre-wrap;
+    margin: 4pt 0 8pt; font-size: 8.5pt; line-height: 1.4;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 9.5pt; }
+  th, td { border: 1px solid #d1d5db; padding: 5pt 7pt; text-align: left; vertical-align: top; }
+  th { background: #e0e7ff; color: #0d1b3d; font-weight: 600; }
+  tr:nth-child(even) td { background: #f9fafb; }
+
+  .cover {
+    page-break-after: always;
+    height: 250mm; display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding: 0 4mm;
+  }
+  .cover .kicker {
+    color: #0040a1; font-weight: 700; font-size: 11pt;
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12pt;
+  }
+  .cover h1 { font-size: 34pt; margin-bottom: 18pt; max-width: 90%; }
+  .cover .subtitle { font-size: 14pt; color: #475569; margin-bottom: 28pt; max-width: 80%; }
+  .cover .meta { font-size: 10pt; color: #64748b; }
+  .cover .meta strong { color: #1a1d29; }
+  .cover .badge {
+    display: inline-block; background: #0040a1; color: #fff;
+    padding: 4pt 10pt; border-radius: 4px; font-size: 9pt;
+    font-weight: 600; margin-bottom: 16pt;
+  }
+
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8pt; margin: 8pt 0 14pt;
+  }
+  .kpi {
+    border: 1px solid #cbd5e1; border-radius: 6px; padding: 10pt;
+    background: #f8fafc;
+  }
+  .kpi .v { font-size: 18pt; font-weight: 700; color: #0040a1; line-height: 1; }
+  .kpi .l { font-size: 8.5pt; color: #475569; margin-top: 4pt; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .sev { display: inline-block; padding: 1px 6pt; border-radius: 3px; font-size: 8.5pt; font-weight: 600; }
+  .sev-crit { background: #fee2e2; color: #991b1b; }
+  .sev-high { background: #fed7aa; color: #9a3412; }
+  .sev-med  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #d1fae5; color: #065f46; }
+  .sev-info { background: #dbeafe; color: #1e40af; }
+
+  .status { display: inline-block; padding: 1px 6pt; border-radius: 3px; font-size: 8.5pt; font-weight: 600; }
+  .status-done { background: #d1fae5; color: #065f46; }
+  .status-todo { background: #fef3c7; color: #92400e; }
+  .status-defer { background: #e5e7eb; color: #374151; }
+
+  .finding {
+    border-left: 4px solid #0040a1;
+    background: #f8fafc;
+    padding: 8pt 12pt;
+    margin: 8pt 0;
+    page-break-inside: avoid;
+  }
+  .finding .head { display: flex; gap: 8pt; margin-bottom: 4pt; align-items: baseline; flex-wrap: wrap; }
+  .finding .head .id { font-weight: 700; color: #0d1b3d; }
+  .finding .body { font-size: 9.5pt; }
+  .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+  .ba-grid > div > div:first-child { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 2pt; font-weight: 600; }
+
+  .footer-note {
+    margin-top: 24pt; padding-top: 8pt; border-top: 1px solid #e5e7eb;
+    font-size: 8.5pt; color: #64748b;
+  }
+
+  .toc ol { list-style: none; margin-left: 0; counter-reset: toc; padding-left: 0; }
+  .toc ol li { counter-increment: toc; padding: 3pt 0; border-bottom: 1px dotted #cbd5e1; }
+  .toc ol li::before { content: counter(toc) ". "; font-weight: 700; color: #0040a1; }
+
+  .pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="badge">CONFIDENTIEL · CONCORDE TECH</div>
+  <div class="kicker">Audit Sécurité &amp; Performance</div>
+  <h1>Concorde Workforce<br/>Rapport de remédiation</h1>
+  <div class="subtitle">
+    Application SaaS multi-tenant de gestion du temps — synthèse des vulnérabilités identifiées,
+    correctifs apportés et optimisations livrées.
+  </div>
+  <div class="meta">
+    <p><strong>Stack auditée :</strong> ASP.NET Core 8 · EF Core 8 · SQL Server · React 18 + Vite 6 + TypeScript 5</p>
+    <p><strong>Périmètre :</strong> backend ABRPOINT.Server &amp; frontend abrpoint.client (multi-tenant master/tenant)</p>
+    <p><strong>Auteur :</strong> Mohamed — Concorde Tech</p>
+    <p><strong>Date :</strong> Mai 2026</p>
+  </div>
+</section>
+
+<section>
+  <h2>1. Résumé exécutif</h2>
+  <p>
+    L'audit a couvert l'ensemble de la chaîne applicative — surface web (React/Vite), API ASP.NET Core
+    (auth, tenancy, contrôleurs métier, services hostés) et persistance (EF Core, repositories,
+    indexation SQL Server). Le périmètre incluait les flux à risque (authentification, upload, paiement
+    Stripe, chiffrement 2FA, isolation cross-tenant) ainsi que les chemins critiques en performance
+    (dashboard manager, état périodique, billing sync, pointage temps-réel).
+  </p>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="v">45+</div><div class="l">Findings traités</div></div>
+    <div class="kpi"><div class="v">108→0</div><div class="l">Stack traces fuités</div></div>
+    <div class="kpi"><div class="v">−65%</div><div class="l">Taille bundle JS</div></div>
+    <div class="kpi"><div class="v">52s</div><div class="l">Build (vs 1m32s)</div></div>
+  </div>
+
+  <h3>1.1 Faits saillants</h3>
+  <ul>
+    <li><strong>Isolation tenant durcie</strong> — JWT enrichi de la claim <code>tenant_slug</code>,
+        contrôle strict en middleware, élimination du bypass <code>/api/uploads</code>.</li>
+    <li><strong>Cryptographie alignée</strong> — passage AES-CBC → AES-GCM (HKDF), protection du
+        secret TOTP côté serveur, validateur de secrets bloquant les placeholders en prod.</li>
+    <li><strong>Surface XSS / mass-assignment réduite</strong> — DTO whitelist, sanitisation SVG /
+        DOMPurify, en-têtes COOP/COEP, suppression de <code>ex.Message</code> dans toutes les réponses HTTP.</li>
+    <li><strong>Charge SGBD divisée</strong> — cache mémoire des paramètres, indexation ciblée
+        (10 index critiques), N+1 éliminés sur état périodique et présence.</li>
+    <li><strong>Front allégé</strong> — code splitting (React.lazy), <code>manualChunks</code> Vite,
+        drop console/debugger en build prod, chiffrement bundle ramené à 194 Ko gzip.</li>
+  </ul>
+
+  <h3>1.2 Statut global</h3>
+  <table>
+    <thead>
+      <tr><th style="width:34%">Domaine</th><th style="width:22%">Findings</th><th>État</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Authentification &amp; session</td><td>8</td><td><span class="status status-done">Clos</span> Cookie HttpOnly, refresh rotation, captcha signup, rate-limit auth.</td></tr>
+      <tr><td>Multi-tenant &amp; autorisation</td><td>6</td><td><span class="status status-done">Clos</span> Claim <code>tenant_slug</code>, route guards, uploads authentifiés.</td></tr>
+      <tr><td>Chiffrement &amp; secrets</td><td>5</td><td><span class="status status-done">Clos</span> AES-GCM, HKDF, SecretsValidator, appsettings en placeholders.</td></tr>
+      <tr><td>Entrées &amp; uploads</td><td>7</td><td><span class="status status-done">Clos</span> Whitelist ext./taille, SVG strict, DOMPurify front.</td></tr>
+      <tr><td>Fuites d'information</td><td>9</td><td><span class="status status-done">Clos</span> Middleware exception globale, 108 <code>ex.Message</code> sanitisés.</td></tr>
+      <tr><td>Performance backend</td><td>10</td><td><span class="status status-done">Clos</span> Cache paramètres, parallel sync, batching N+1, indexation.</td></tr>
+      <tr><td>Performance frontend</td><td>6</td><td><span class="status status-done">Clos</span> Lazy routes, manualChunks, esbuild drop, react-query v5 migré.</td></tr>
+      <tr><td>Items différés (ops/data)</td><td>7</td><td><span class="status status-defer">Différé</span> Rotation secrets externes, virtualization Pointeuse, CSP nonce.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="pagebreak">
+  <h2>2. Sommaire</h2>
+  <div class="toc">
+    <ol>
+      <li>Résumé exécutif</li>
+      <li>Sommaire</li>
+      <li>Méthodologie d'audit</li>
+      <li>Sécurité — Authentification, session &amp; isolation tenant</li>
+      <li>Sécurité — Cryptographie &amp; gestion des secrets</li>
+      <li>Sécurité — Entrées, uploads &amp; surface XSS</li>
+      <li>Sécurité — Fuites d'information &amp; durcissement réponses</li>
+      <li>Performance — Backend (DB, services hostés, cache)</li>
+      <li>Performance — Frontend (bundle, rendu, requêtes)</li>
+      <li>Mesures &amp; résultats</li>
+      <li>Items différés &amp; recommandations</li>
+      <li>Annexe — Inventaire des modifications</li>
+    </ol>
+  </div>
+</section>
+
+<section class="pagebreak">
+  <h2>3. Méthodologie d'audit</h2>
+  <p>
+    L'analyse a été menée en revue de code exhaustive (white-box) avec corrélation runtime sur le
+    serveur de développement. Chaque finding documenté est rattaché à une référence applicative
+    (contrôleur, repository, hook React) et à une preuve d'impact (chemin d'exploitation pour le
+    volet sécurité, mesure ou trace SQL pour le volet performance).
+  </p>
+
+  <h3>3.1 Sources d'évidence</h3>
+  <ul>
+    <li>Lecture du code source backend (~210 contrôleurs, services, repositories) et frontend
+        (~430 composants React, hooks et services).</li>
+    <li>Inspection des artefacts de build : <code>vite build --report</code>, <code>dotnet publish</code>,
+        métriques de bundle, plans d'exécution SQL.</li>
+    <li>Tracing applicatif : journalisation Kestrel, traçage EF Core (sensitivedataLogging en dev),
+        DevTools du navigateur (waterfall, performance frame, mémoire).</li>
+    <li>Tests d'intrusion ciblés en environnement de dev (XSS reflété/persistant, IDOR cross-tenant,
+        mass-assignment, path traversal upload, énumération de comptes via signup).</li>
+  </ul>
+
+  <h3>3.2 Échelle de sévérité</h3>
+  <table>
+    <thead><tr><th>Niveau</th><th>Critère</th><th>Délai de remédiation</th></tr></thead>
+    <tbody>
+      <tr><td><span class="sev sev-crit">Critique</span></td><td>Compromission probable de données ou contournement d'auth.</td><td>Immédiat (≤ 24 h)</td></tr>
+      <tr><td><span class="sev sev-high">Élevée</span></td><td>Impact métier important, exploitation requérant un compte.</td><td>≤ 1 semaine</td></tr>
+      <tr><td><span class="sev sev-med">Moyenne</span></td><td>Dégradation utilisateur, exposition partielle.</td><td>≤ 1 mois</td></tr>
+      <tr><td><span class="sev sev-low">Faible</span></td><td>Bonne pratique, défense en profondeur.</td><td>Trimestre courant</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="pagebreak">
+  <h2>4. Sécurité — Authentification, session &amp; isolation tenant</h2>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S01</span>
+      <span class="sev sev-crit">Critique</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Cookie d'authentification accessible en JavaScript</span>
+    </div>
+    <div class="body">
+      <p>Le cookie JWT principal était positionné sans le flag <code>HttpOnly</code>, permettant à
+      tout script chargé dans la page (XSS, dépendance compromise, extension navigateur tiers)
+      de l'exfiltrer.</p>
+      <div class="ba-grid">
+        <div><div>Avant</div><pre><code>Response.Cookies.Append("token", jwt,
+  new CookieOptions { Secure = true });</code></pre></div>
+        <div><div>Après</div><pre><code>Response.Cookies.Append("token", jwt,
+  new CookieOptions {
+    HttpOnly = true,
+    Secure   = true,
+    SameSite = SameSiteMode.Strict,
+    Expires  = expires
+  });</code></pre></div>
+      </div>
+      <p><strong>Fichier :</strong> <code>UtilisateursController.cs</code> (login, login-admin, refresh, logout).</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S02</span>
+      <span class="sev sev-crit">Critique</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Risque d'IDOR cross-tenant via slug manipulable</span>
+    </div>
+    <div class="body">
+      <p>La résolution de tenant s'effectuait via header <code>X-Tenant-Slug</code> ou sous-domaine
+      sans corrélation avec la session. Un utilisateur authentifié pouvait, en modifiant le header,
+      consulter les écrans d'un autre tenant.</p>
+      <p><strong>Remédiation :</strong> ajout de la claim <code>tenant_slug</code> dans le JWT,
+      contrôle strict en middleware (rejet 403 si divergence claim ↔ slug courant). Le slug n'est plus
+      autoritaire — la claim signée l'est.</p>
+      <pre><code>// TenantResolverMiddleware.cs — extrait
+var claim = user.FindFirst("tenant_slug")?.Value;
+if (!string.IsNullOrEmpty(claim) &amp;&amp;
+    !string.Equals(claim, resolved.Slug, StringComparison.OrdinalIgnoreCase))
+{
+    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+    return;
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S03</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Endpoints <code>/api/uploads</code> en bypass d'authentification</span>
+    </div>
+    <div class="body">
+      <p>Les fichiers uploadés (justificatifs, signatures, photos d'employés) étaient servis sans
+      contrôle d'authentification ni d'isolation tenant. Toute personne devinant un nom de fichier
+      pouvait y accéder.</p>
+      <p><strong>Remédiation :</strong> nouveau contrôleur <code>UploadsController</code>
+      <code>[Authorize]</code>, anti-traversal sur le nom, streaming via <code>FileStreamResult</code>,
+      retrait de <code>/api/uploads</code> de la liste de bypass du middleware tenant.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S04</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Énumération de comptes via signup &amp; reset password</span>
+    </div>
+    <div class="body">
+      <p>Les endpoints publics renvoyaient des codes/messages distincts selon que l'email existait
+      ou non, permettant un user enumeration.</p>
+      <p><strong>Remédiation :</strong> messages génériques systématiques, rate-limit dédié
+      <code>public-form</code> (5 requêtes / minute / IP), captcha déclenché au-delà.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S05</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Champ <code>utiadm</code> persisté côté client</span>
+    </div>
+    <div class="body">
+      <p>L'AuthProvider stockait <code>utiadm</code> dans <code>localStorage</code>, créant un
+      vecteur d'escalade trivial via la console DevTools (l'application lisait la valeur côté front
+      pour afficher/masquer les routes admin).</p>
+      <p><strong>Remédiation :</strong> retrait de <code>utiadm</code> de <code>persistedKeys</code>,
+      lecture exclusivement depuis le JWT (claim) au moment de l'authentification ;
+      <code>RequireAdmin</code> route guard ajouté en complément.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S06</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Plan trial : accès aux fonctions premium côté front</span>
+    </div>
+    <div class="body">
+      <p>Le hook <code>planAllows</code> retournait <code>true</code> par défaut quand
+      <code>planFeatures</code> n'était pas encore chargé, ouvrant temporairement les écrans
+      premium avant le contrôle serveur.</p>
+      <p><strong>Remédiation :</strong> bascule en fail-closed (<code>return false</code> si
+      <code>planFeatures == null</code>), contrôle serveur déjà présent en filet de sécurité.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S07</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Refresh token non rotatif</span>
+    </div>
+    <div class="body">
+      <p>Le refresh token n'était pas régénéré à chaque échange, allongeant la fenêtre d'usage en
+      cas de vol.</p>
+      <p><strong>Remédiation :</strong> rotation systématique (rolling refresh), invalidation côté
+      serveur du précédent token, révocation explicite au logout.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S08</span>
+      <span class="sev sev-low">Faible</span>
+      <span class="status status-done">Corrigé</span>
+      <span>HSTS &amp; HTTPS redirection en environnement dev</span>
+    </div>
+    <div class="body">
+      <p>Activés indistinctement, ils interféraient avec le serveur de dev (Vite proxy en HTTP).</p>
+      <p><strong>Remédiation :</strong> ces middlewares sont désormais conditionnels à
+      <code>app.Environment.IsProduction()</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="pagebreak">
+  <h2>5. Sécurité — Cryptographie &amp; gestion des secrets</h2>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S09</span>
+      <span class="sev sev-crit">Critique</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Chiffrement AES-CBC sans authentification</span>
+    </div>
+    <div class="body">
+      <p>Le service <code>EncryptionService</code> utilisait AES-CBC sans MAC ; sensibles aux attaques
+      à oracle de padding et à l'altération silencieuse du chiffré.</p>
+      <p><strong>Remédiation :</strong> nouveau format AES-GCM (<code>"v2:"</code> + nonce[12] ||
+      cipher || tag[16]). Une branche de compatibilité tolère le format CBC historique pour
+      ne pas casser les données existantes pendant la migration.</p>
+      <pre><code>// EncryptionService.cs — schéma v2
+var nonce  = RandomNumberGenerator.GetBytes(12);
+var tag    = new byte[16];
+var cipher = new byte[plaintext.Length];
+using var aes = new AesGcm(key, tagSizeInBytes: 16);
+aes.Encrypt(nonce, plaintext, cipher, tag);
+return "v2:" + Convert.ToBase64String(Combine(nonce, cipher, tag));</code></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S10</span>
+      <span class="sev sev-crit">Critique</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Secret TOTP stocké en clair</span>
+    </div>
+    <div class="body">
+      <p>Le secret partagé du 2FA était enregistré tel quel dans la base ; toute compromission de la
+      BD donnait accès à la 2FA de l'ensemble des utilisateurs.</p>
+      <p><strong>Remédiation :</strong> service dédié <code>TwoFactorSecretProtector</code>, clé
+      dérivée par HKDF-SHA256 depuis <code>Encryption:AesKey</code>, format
+      <code>"2fa:v1:" + base64(nonce[12] || cipher || tag[16])</code>. Migration progressive :
+      lecture transparente du legacy, ré-encodage à la première utilisation réussie.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S11</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Secrets en clair dans <code>appsettings.json</code></span>
+    </div>
+    <div class="body">
+      <p>Connection strings, clés JWT, secrets Stripe et OVH versionnés en clair.</p>
+      <p><strong>Remédiation :</strong> remplacement par des placeholders
+      <code>REPLACE_WITH_*</code>, lecture obligatoire via variables d'environnement, ajout d'un
+      <code>SecretsValidator</code> qui refuse le boot en production si un placeholder n'a pas été
+      substitué.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S12</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Pas de vérification des mots de passe compromis</span>
+    </div>
+    <div class="body">
+      <p>Les utilisateurs pouvaient choisir des mots de passe figurant dans les corpus HaveIBeenPwned.</p>
+      <p><strong>Remédiation :</strong> service <code>PasswordBreachCheckService</code> appelant
+      l'API HIBP en k-anonymity (5 caractères du SHA-1, comparaison locale), résultats cachés en
+      <code>IMemoryCache</code> 1 h pour limiter les appels sortants.</p>
+    </div>
+  </div>
+</section>
+
+<section class="pagebreak">
+  <h2>6. Sécurité — Entrées, uploads &amp; surface XSS</h2>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S13</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Mass-assignment sur création d'utilisateur</span>
+    </div>
+    <div class="body">
+      <p><code>AddUtilisateur</code> liait directement le modèle EF reçu en POST, exposant les
+      colonnes <code>Utiroleid</code>, <code>Utisuper</code>, <code>Utitenantid</code>.</p>
+      <p><strong>Remédiation :</strong> DTO whitelist <code>CreateUtilisateurDto</code> (champs
+      autorisés explicitement), mapping manuel vers l'entité, valeurs sensibles dérivées
+      côté serveur.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S14</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>XSS persistant via upload SVG</span>
+    </div>
+    <div class="body">
+      <p>Le pad de signature acceptait des images base64 (PNG côté web, SVG côté mobile). L'extension
+      n'était pas inférée correctement : un SVG portant <code>&lt;script&gt;</code> ou
+      <code>onload</code> stocké sous <code>.png</code> pouvait être servi sur la même origine et
+      exécuté lors de la prévisualisation.</p>
+      <p><strong>Remédiation :</strong> détection MIME stricte côté <code>FileHelper.SaveBase64Image</code>,
+      validation SVG en parsing XML (whitelist d'éléments <code>path</code> / <code>polyline</code> /
+      <code>line</code>…), rejet de tout attribut <code>on*</code> ou URL
+      <code>javascript:</code> / <code>data:text/html</code>.</p>
+      <pre><code>// FileHelper.cs — IsSafeSvg (extrait)
+if (attr.StartsWith("on", StringComparison.OrdinalIgnoreCase))
+    return reason = "attribut événement interdit", false;
+if (value.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase))
+    return reason = "URL suspecte", false;</code></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S15</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Upload sans whitelist d'extension ni plafond de taille</span>
+    </div>
+    <div class="body">
+      <p>Tout type de fichier était accepté (<code>.aspx</code>, <code>.php</code>, <code>.exe</code>),
+      sans limite de taille — saturation disque possible.</p>
+      <p><strong>Remédiation :</strong> whitelist <code>AllowedExtensions</code> (PDF, images
+      courantes, bureautique), nom de fichier régénéré en UUID (anti path-traversal et
+      double-extension), plafond uniforme 10 Mo paramétrable par <code>Uploads__MaxSizeMb</code>.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S16</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>HTML riche injecté sans sanitisation (constructeur de contrats)</span>
+    </div>
+    <div class="body">
+      <p>4 sites utilisaient <code>dangerouslySetInnerHTML</code> ou <code>element.innerHTML</code>
+      sur du contenu utilisateur (templates de contrats, signature de modèle).</p>
+      <p><strong>Remédiation :</strong> utilitaire <code>sanitizeRichHtml</code> basé sur DOMPurify,
+      appliqué systématiquement avant injection. Promu en dépendance directe et retiré de
+      <code>overrides</code>.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S17</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Signup sans captcha</span>
+    </div>
+    <div class="body">
+      <p>L'inscription publique permettait la création automatisée de comptes.</p>
+      <p><strong>Remédiation :</strong> captcha intégré au formulaire de signup, vérification serveur,
+      couplée au rate-limit <code>public-form</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="pagebreak">
+  <h2>7. Sécurité — Fuites d'information &amp; durcissement réponses</h2>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S18</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>108 occurrences de <code>ex.Message</code> renvoyées au client</span>
+    </div>
+    <div class="body">
+      <p>L'inventaire a relevé 108 retours HTTP contenant <code>ex.Message</code> (avec parfois la
+      stack trace dans <code>Details</code>). Risque : exposition de noms de tables, contraintes
+      uniques, chemins absolus, secrets de configuration partiellement résolus.</p>
+      <p><strong>Remédiation :</strong> trois passes :</p>
+      <ol>
+        <li>Substitution automatisée (PowerShell + <code>UTF8Encoding($false)</code> pour éviter le BOM)
+            sur les patterns courants : <code>details</code>, <code>error</code>, <code>Message</code>,
+            <code>BadRequest(ex.Message)</code>, etc.</li>
+        <li>Passe complémentaire sur les variantes camelCase et interpolations.</li>
+        <li>Passe manuelle ciblée sur les cas restants (<code>UtilisateursController</code> lignes 657/678/696,
+            <code>FileHelper.SaveBase64Image</code>, <code>EmployeRepository.DeleteEmployeAsync</code>).</li>
+      </ol>
+      <p>Le logger serveur (<code>_logger.LogError(ex, …)</code>) est systématiquement préservé.
+      Message client uniforme : <em>« Erreur interne. Consultez les logs serveur pour le détail. »</em></p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S19</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Pas de filet d'exception global</span>
+    </div>
+    <div class="body">
+      <p>Une exception non gérée dans un contrôleur pouvait remonter une page d'erreur ASP.NET
+      détaillée (en dev) ou un body vide (en prod) sans corrélation avec les logs.</p>
+      <p><strong>Remédiation :</strong> middleware <code>GlobalExceptionHandler</code> :
+      logs serveur incluant le <code>TraceIdentifier</code>, réponse HTTP 500 générique au client
+      référençant ce <code>correlationId</code> pour le support.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S20</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Source maps front livrées en production</span>
+    </div>
+    <div class="body">
+      <p>Les <code>.map</code> étaient générées en build de production, exposant le source TS et les
+      éventuels secrets inlinés.</p>
+      <p><strong>Remédiation :</strong> <code>build.sourcemap = false</code> dans
+      <code>vite.config.ts</code> ; <code>esbuild.drop = ['console', 'debugger']</code> en prod pour
+      éliminer les traces de debug résiduelles.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">S21</span>
+      <span class="sev sev-low">Faible</span>
+      <span class="status status-done">Corrigé</span>
+      <span>En-têtes de sécurité incomplets</span>
+    </div>
+    <div class="body">
+      <p>Absence de <code>Strict-Transport-Security</code> en prod, X-Content-Type-Options inconstant.</p>
+      <p><strong>Remédiation :</strong> HSTS, X-Content-Type-Options, Referrer-Policy ajoutés en
+      pipeline. CSP nonce-based listée pour un sprint dédié (cf. items différés).</p>
+    </div>
+  </div>
+</section>
+
+<section class="pagebreak">
+  <h2>8. Performance — Backend (DB, services hostés, cache)</h2>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P01</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Lecture des paramètres tenant à chaque requête</span>
+    </div>
+    <div class="body">
+      <p><code>ParametreRepository</code> faisait une lecture SQL à chaque appel — appelée des
+      dizaines de fois par requête utilisateur via les helpers métier (arrondi, périodes, devises).</p>
+      <p><strong>Remédiation :</strong> <code>GetParametreCachedAsync</code> backé par
+      <code>IMemoryCache</code> (TTL 5 min, clé tenant-scoped), invalidation explicite sur
+      Add/Update/Delete.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P02</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>N+1 sur l'état périodique (employé × mois)</span>
+    </div>
+    <div class="body">
+      <p>Pour chaque employé du périmètre, un SELECT distinct par mois : sur un export annuel
+      multi-employés, plusieurs centaines de requêtes étaient émises.</p>
+      <p><strong>Remédiation :</strong> nouvelle méthode <code>GetEmpparamBatchAsync</code> qui charge
+      l'ensemble en 3 SELECT (paramètres employé, calendrier, présences) puis assemble en mémoire.
+      Sur un export 50 employés × 12 mois : ~600 requêtes → 3.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P03</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Recompilation systématique des <code>DbContextOptions</code> par tenant</span>
+    </div>
+    <div class="body">
+      <p>La factory tenant reconstruisait les options EF Core à chaque résolution — coût d'analyse
+      du provider et du model snapshot.</p>
+      <p><strong>Remédiation :</strong> cache statique <code>ConcurrentDictionary&lt;string,
+      DbContextOptions&gt;</code>, clé = connection string. ApplicationDbContext (master) bénéficie
+      du même cache via <code>_dbOptionsCache</code> dans <code>Program.cs</code>.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P04</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Synchronisation billing séquentielle</span>
+    </div>
+    <div class="body">
+      <p>Le service hosté <code>EmployeeBillingSyncService</code> traitait les tenants en boucle
+      <code>foreach await</code>, sérialisant les appels Stripe.</p>
+      <p><strong>Remédiation :</strong> <code>Parallel.ForEachAsync</code> avec
+      <code>MaxDegreeOfParallelism = 8</code>, compteurs <code>Interlocked.Increment</code> pour la
+      télémétrie. Idem pour <code>PunctualityReminderHostedService</code> (degree=4).</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P05</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Listes employés/libellés non plafonnées et trackées</span>
+    </div>
+    <div class="body">
+      <p><code>GetAllAsync</code> et <code>GetEmpLibs</code> chargeaient l'intégralité de la table
+      en tracking EF — saturation mémoire sur tenant 5k+ employés.</p>
+      <p><strong>Remédiation :</strong> <code>AsNoTracking()</code> systématique, plafonds (2000
+      pour <code>GetAllAsync</code>, 5000 pour <code>GetEmpLibs</code>) avec instrumentation
+      d'alerte si atteint.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P06</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Dashboard manager : 6 <code>CountAsync</code> distincts</span>
+    </div>
+    <div class="body">
+      <p><code>ManagerDashboardController</code> émettait 6 round-trips SQL pour calculer les KPI
+      d'accueil.</p>
+      <p><strong>Remédiation :</strong> projection unique sur <code>Societes</code> agrégeant les
+      6 indicateurs en un <code>SELECT … COUNT(CASE WHEN …)</code>.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P07</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Indexation manquante sur les tables chaudes</span>
+    </div>
+    <div class="body">
+      <p>Les plans d'exécution montraient des scans complets sur <code>Presences</code>,
+      <code>Pointages</code>, <code>Employes</code>, <code>DemConges</code>.</p>
+      <p><strong>Remédiation :</strong> méthode <code>EnsurePerformanceIndexesAsync</code> exécutée
+      au démarrage, créant 10 index ciblés (clés composites tenant + date / tenant + statut /
+      tenant + employé selon le cas) si absents.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P08</span>
+      <span class="sev sev-low">Faible</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Téléchargement Vault via <code>MemoryStream</code> intermédiaire</span>
+    </div>
+    <div class="body">
+      <p>Le contrôleur Vault chargeait le fichier entier en mémoire avant de l'écrire dans la
+      réponse — pression GC sur les pièces volumineuses.</p>
+      <p><strong>Remédiation :</strong> <code>FileStreamResult</code> direct avec
+      <code>FileStream</code> ouvert en lecture séquentielle.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P09</span>
+      <span class="sev sev-low">Faible</span>
+      <span class="status status-done">Corrigé</span>
+      <span><code>async void</code> sur signature de repository</span>
+    </div>
+    <div class="body">
+      <p><code>PresenceRepository.Update</code> était déclaré <code>async void</code> — les
+      exceptions remontaient en <code>UnobservedTaskException</code>.</p>
+      <p><strong>Remédiation :</strong> conversion en <code>async Task</code>, callers awaitent.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P10</span>
+      <span class="sev sev-low">Faible</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Imports en masse non groupés</span>
+    </div>
+    <div class="body">
+      <p><code>BulkImportController</code> faisait un <code>SaveChanges</code> par ligne,
+      multipliant les round-trips.</p>
+      <p><strong>Remédiation :</strong> <code>BatchCodeGenerator</code> + un seul
+      <code>SaveChangesAsync</code> par lot ; gestion d'erreurs sanitisée
+      (<code>"{lib}: erreur interne"</code> au lieu de l'exception brute).</p>
+    </div>
+  </div>
+</section>
+
+<section class="pagebreak">
+  <h2>9. Performance — Frontend (bundle, rendu, requêtes)</h2>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P11</span>
+      <span class="sev sev-high">Élevée</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Bundle JS monolithique de 1,99 Mo (537 Ko gzip)</span>
+    </div>
+    <div class="body">
+      <p>Chargement intégral à l'authentification : MUI, MUI X DataGrid, jsPDF, xlsx, FullCalendar,
+      Recharts, DOMPurify regroupés dans un seul fichier.</p>
+      <p><strong>Remédiation :</strong></p>
+      <ul>
+        <li><code>React.lazy</code> sur ~60 routes pages + <code>&lt;React.Suspense&gt;</code>
+            avec fallback léger.</li>
+        <li><code>build.manualChunks</code> Vite : <em>mui-core</em>, <em>mui-x</em>, <em>pdf</em>,
+            <em>spreadsheet</em>, <em>calendar</em>, <em>charts</em> isolés.</li>
+        <li><code>esbuild.drop = ['console', 'debugger']</code>, <code>sourcemap: false</code>.</li>
+      </ul>
+      <p>Résultat : <strong>630 Ko / 194 Ko gzip</strong> sur le chunk principal
+      (<strong>−65 %</strong>), build 1m32s → 52s.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P12</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Re-renders globaux via AuthProvider</span>
+    </div>
+    <div class="body">
+      <p>L'objet <code>value</code> du contexte était reconstruit à chaque render, propageant le
+      re-render à toute la sous-arbre.</p>
+      <p><strong>Remédiation :</strong> <code>useCallback</code> sur <code>setAuth</code> /
+      <code>clearAuth</code>, mémoïsation du <code>value</code> via <code>useMemo</code> avec
+      dépendances minimales. <code>clearAuth</code> appelle désormais
+      <code>/Utilisateurs/logout</code> pour révoquer le refresh token serveur.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P13</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Liste de pointages saturée (10k+ lignes)</span>
+    </div>
+    <div class="body">
+      <p><code>PointageList</code> rendait l'intégralité des pointages d'une journée — gel UI
+      sur tenant fortement actif.</p>
+      <p><strong>Remédiation :</strong> plafond à 500 lignes avec bandeau « affichage tronqué »,
+      <code>key</code> stable <code>${employe_code}-${time}</code> pour limiter les reconciliations.
+      Virtualization complète prévue en sprint dédié (cf. items différés).</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P14</span>
+      <span class="sev sev-med">Moyenne</span>
+      <span class="status status-done">Corrigé</span>
+      <span>react-query v3 / v5 cohabitation et erreurs typage</span>
+    </div>
+    <div class="body">
+      <p>L'audit a relevé 174 hooks utilisant l'ancienne syntaxe <code>react-query</code> (v3)
+      coexistant avec <code>@tanstack/react-query</code> v5. <code>tsc</code> remontait
+      <strong>144 erreurs</strong> typées.</p>
+      <p><strong>Remédiation :</strong> migration complète :</p>
+      <ul>
+        <li><code>isLoading</code> → <code>isPending</code> sur les mutations (15 composants).</li>
+        <li><code>invalidateQueries(key)</code> → <code>invalidateQueries({ queryKey })</code>
+            (objet obligatoire en v5).</li>
+        <li><code>cacheTime</code> → <code>gcTime</code>.</li>
+        <li>Retrait de <code>onError</code> sur <code>useQuery</code> (non supporté en v5).</li>
+        <li>Conversion signatures tuple <code>(key, fn, opts)</code> → objet
+            <code>{ queryKey, queryFn, … }</code> sur 5 hooks et CahierConge.</li>
+        <li>Narrowing du type <code>data: never[] | TQueryFnData</code> via cast
+            <code>X[] = dataRaw ?? []</code> (EmployeModern, PaysModern, DashboardModern, CahierConge).</li>
+      </ul>
+      <p>Résultat : <code>npx tsc -b</code> → <strong>exit 0, 0 erreurs</strong>.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P15</span>
+      <span class="sev sev-low">Faible</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Dépendances inutilisées en bundle</span>
+    </div>
+    <div class="body">
+      <p>Inventaire <code>package.json</code> : <code>dotenv</code>, <code>material-react</code>,
+      <code>@types/react-router-dom</code> tirés sans usage.</p>
+      <p><strong>Remédiation :</strong> suppression ; gain mineur mais utile en lockfile et
+      audit de licences. <code>dompurify</code> promu en dépendance directe (retrait de
+      <code>overrides</code>).</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="head">
+      <span class="id">P16</span>
+      <span class="sev sev-low">Faible</span>
+      <span class="status status-done">Corrigé</span>
+      <span>Assets statiques non optimisés</span>
+    </div>
+    <div class="body">
+      <p>Favicon mono-taille, OG image manquante, logo unique haute résolution chargé sur toute
+      la nav.</p>
+      <p><strong>Remédiation :</strong> set complet (<code>favicon-32.png</code>,
+      <code>icon-192.png</code>, <code>logo-256.png</code>, <code>og-image.jpg</code>), références
+      consolidées dans <code>index.html</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="pagebreak">
+  <h2>10. Mesures &amp; résultats</h2>
+
+  <h3>10.1 Métriques avant / après</h3>
+  <table>
+    <thead>
+      <tr><th style="width:42%">Indicateur</th><th>Avant</th><th>Après</th><th>Δ</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Bundle JS principal (gzip)</td><td>537 Ko</td><td>194 Ko</td><td><strong>−64 %</strong></td></tr>
+      <tr><td>Bundle JS principal (brut)</td><td>1,99 Mo</td><td>630 Ko</td><td><strong>−68 %</strong></td></tr>
+      <tr><td>Temps de build front</td><td>1m32s</td><td>52s</td><td><strong>−44 %</strong></td></tr>
+      <tr><td>Erreurs <code>tsc</code></td><td>144</td><td>0</td><td><strong>−100 %</strong></td></tr>
+      <tr><td>Retours HTTP avec <code>ex.Message</code></td><td>108</td><td>0</td><td><strong>−100 %</strong></td></tr>
+      <tr><td>Requêtes SQL — export état périodique (50 emp / 12 mois)</td><td>~600</td><td>3</td><td><strong>−99 %</strong></td></tr>
+      <tr><td>SELECT dashboard manager (chargement)</td><td>6</td><td>1</td><td><strong>−83 %</strong></td></tr>
+      <tr><td>Endpoints exposés sans auth</td><td>1 (<code>/api/uploads/*</code>)</td><td>0</td><td><strong>résolu</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h3>10.2 Conformité après remédiation</h3>
+  <table>
+    <thead><tr><th style="width:36%">Domaine OWASP / RGPD</th><th>Avant</th><th>Après</th></tr></thead>
+    <tbody>
+      <tr><td>A01 Broken Access Control</td><td>Cross-tenant via slug, uploads anonymes</td><td>Claim signée + middleware strict, endpoints authentifiés</td></tr>
+      <tr><td>A02 Cryptographic Failures</td><td>AES-CBC, secrets en clair, TOTP non protégé</td><td>AES-GCM, HKDF, placeholders + validateur secrets</td></tr>
+      <tr><td>A03 Injection / XSS</td><td>SVG XSS, innerHTML non sanitisé, mass-assignment</td><td>Validation SVG, DOMPurify, DTO whitelist</td></tr>
+      <tr><td>A04 Insecure Design</td><td>Pas de rate-limit signup, énumération comptes</td><td>Rate-limit + captcha, messages uniformes</td></tr>
+      <tr><td>A05 Security Misconfiguration</td><td>HSTS partout, source maps prod, secrets versionnés</td><td>HSTS prod-only, sourcemap off, secrets externalisés</td></tr>
+      <tr><td>A07 Identification &amp; Auth Failures</td><td>Cookie non-HttpOnly, refresh non rotatif</td><td>HttpOnly + Secure + SameSite, rolling refresh</td></tr>
+      <tr><td>A09 Logging &amp; Monitoring Failures</td><td>Stack traces au client, pas de corrélation</td><td>GlobalExceptionHandler + TraceIdentifier</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="pagebreak">
+  <h2>11. Items différés &amp; recommandations</h2>
+  <p>
+    Les items ci-dessous ne sont pas bloquants mais sont planifiés sur les sprints à venir.
+    Ils relèvent d'opérations infrastructure, d'actions data ou de refactors lourds dont
+    le coût/risque a été jugé incompatible avec la fenêtre de remédiation immédiate.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Item</th><th>Type</th><th>Estimation</th><th>Justification du report</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Rotation des secrets externes (Stripe, OVH, JWT)</td>
+        <td>Ops</td><td>0,5 j</td>
+        <td>Coordination avec admin Stripe/OVH ; à exécuter dans la même fenêtre que le déploiement prod.</td>
+      </tr>
+      <tr>
+        <td>Migration uploads par sous-dossier tenant (<code>/uploads/{tenant}/…</code>)</td>
+        <td>Ops + data</td><td>2 j</td>
+        <td>Nécessite migration des fichiers existants + mise à jour des URL en base.</td>
+      </tr>
+      <tr>
+        <td>Suppression branches legacy <code>EncryptionService.Decrypt</code> (AES-CBC)</td>
+        <td>Refacto</td><td>0,5 j</td>
+        <td>À planifier après ré-encodage à 100 % des champs concernés (script de migration data).</td>
+      </tr>
+      <tr>
+        <td>CSP nonce-based stricte (<code>script-src 'nonce-…'</code>)</td>
+        <td>Sécurité</td><td>3 j</td>
+        <td>Impact transverse sur les scripts inlines et les libs tierces ; sprint dédié.</td>
+      </tr>
+      <tr>
+        <td>Imports MUI deep paths (codemod <code>@mui/codemod</code>)</td>
+        <td>Perf front</td><td>1 j</td>
+        <td>Gain bundle estimé 30-50 Ko ; codemod officiel à appliquer et tester en intégration.</td>
+      </tr>
+      <tr>
+        <td>Virtualization full DataGrid (Pointeuse / ListeEmploye / EmpEtatPeriodique)</td>
+        <td>Perf front</td><td>2 j</td>
+        <td>Le cap à 500 lignes mitige déjà ; virtualization à activer pour tenants > 5k pointages/j.</td>
+      </tr>
+      <tr>
+        <td>Retrait <code>material-symbols</code> (137 usages × 17 fichiers)</td>
+        <td>Bundle</td><td>1,5 j</td>
+        <td>Substitution un-pour-un par MUI Icons ; mécanique, non risquée mais volumineuse.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>11.1 Recommandations stratégiques</h3>
+  <ul>
+    <li><strong>SIEM / observabilité</strong> — corréler les <code>correlationId</code>
+        désormais émis par le GlobalExceptionHandler avec un agrégateur de logs centralisé
+        (Seq, Grafana Loki ou équivalent) pour faciliter le triage post-incident.</li>
+    <li><strong>Tests d'intrusion périodiques</strong> — programmer un pentest externe annuel
+        une fois la CSP nonce-based déployée, idéalement après la rotation des secrets.</li>
+    <li><strong>SAST / Dependabot</strong> — activer un scan automatique des PR (CodeQL ou
+        SonarCloud) pour prévenir la réintroduction des patterns corrigés
+        (<code>ex.Message</code>, <code>innerHTML</code> non sanitisé, <code>cacheTime</code>…).</li>
+    <li><strong>Plan de continuité 2FA</strong> — documenter le chemin de récupération pour
+      les utilisateurs ayant perdu leur secret TOTP désormais chiffré (la base seule ne suffit
+      plus à le récupérer, ce qui est l'effet recherché).</li>
+  </ul>
+</section>
+
+<section class="pagebreak">
+  <h2>12. Annexe — Inventaire des modifications</h2>
+
+  <h3>12.1 Fichiers backend créés / modifiés</h3>
+  <table>
+    <thead><tr><th style="width:48%">Fichier</th><th>Nature</th></tr></thead>
+    <tbody>
+      <tr><td><code>ABRPOINT.Server/Controllers/UtilisateursController.cs</code></td><td>Cookie HttpOnly, claim tenant_slug, DTO whitelist, sanitisation ex.Message.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Controllers/BulkImportController.cs</code></td><td>BatchCodeGenerator, sanitisation erreurs.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Controllers/ManagerDashboardController.cs</code></td><td>6 CountAsync → 1 projection.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Controllers/UploadsController.cs</code></td><td><em>Nouveau</em> — endpoint [Authorize] + streaming.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Controllers/VaultController.cs</code></td><td>FileStreamResult direct.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Tenancy/TenantResolverMiddleware.cs</code></td><td>Contrôle strict claim tenant_slug, retrait bypass uploads.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Tenancy/ITenantDbContextFactory.cs</code></td><td>Cache statique des DbContextOptions.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Services/EncryptionService.cs</code></td><td>AES-GCM v2, fallback CBC tolérant.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Services/TwoFactorSecretProtector.cs</code></td><td><em>Nouveau</em> — HKDF + AES-GCM, format 2fa:v1:.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Services/PasswordBreachCheckService.cs</code></td><td>HIBP k-anonymity + IMemoryCache.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Services/BaseDataSchemaMigrator.cs</code></td><td>EnsurePerformanceIndexesAsync (10 index).</td></tr>
+      <tr><td><code>ABRPOINT.Server/Billing/EmployeeBillingSyncService.cs</code></td><td>Parallel.ForEachAsync degree=8.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Services/PunctualityReminderHostedService.cs</code></td><td>Parallel.ForEachAsync degree=4.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Middleware/GlobalExceptionHandler.cs</code></td><td><em>Nouveau</em> — TraceIdentifier + log + 500 générique.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Helpers/FileHelper.cs</code></td><td>Whitelist + IsSafeSvg + plafond paramétrable.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Helpers/SecretsValidator.cs</code></td><td><em>Nouveau</em> — refus boot prod sur placeholders.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Helpers/SequentialCodeGenerator.cs</code></td><td>BatchCodeGenerator.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Repository/EmployeRepository.cs</code></td><td>GetEmpparamBatchAsync, caps + AsNoTracking, sanitisation.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Repository/ParametreRepository.cs</code></td><td>GetParametreCachedAsync + invalidation.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Repository/PresenceRepository.cs</code></td><td>async void → async Task.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Dtaos/CreateUtilisateurDto.cs</code></td><td><em>Nouveau</em> — DTO whitelist anti mass-assignment.</td></tr>
+      <tr><td><code>ABRPOINT.Server/Program.cs</code></td><td>Cache options, HSTS prod, rate-limit, GlobalExceptionHandler.</td></tr>
+      <tr><td><code>ABRPOINT.Server/appsettings.json</code></td><td>Tous secrets → REPLACE_WITH_*.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.2 Fichiers frontend créés / modifiés</h3>
+  <table>
+    <thead><tr><th style="width:48%">Fichier</th><th>Nature</th></tr></thead>
+    <tbody>
+      <tr><td><code>abrpoint.client/src/components/navigation/Navigation.tsx</code></td><td>React.lazy + Suspense, useMemo, RouteGuards.</td></tr>
+      <tr><td><code>abrpoint.client/src/components/helper/AuthProvider.tsx</code></td><td>useCallback / useMemo, fail-closed planAllows, retrait utiadm persisté, logout serveur.</td></tr>
+      <tr><td><code>abrpoint.client/src/components/helper/RouteGuards.tsx</code></td><td><em>Nouveau</em> — RequireAuth, RequireAdmin, classifyRoute.</td></tr>
+      <tr><td><code>abrpoint.client/src/components/helper/sanitizeHtml.ts</code></td><td><em>Nouveau</em> — wrapper DOMPurify.</td></tr>
+      <tr><td><code>abrpoint.client/src/components/gestionEmploye/Vault/ContractBuilderModern.tsx</code></td><td>4 sites innerHTML sanitisés.</td></tr>
+      <tr><td><code>abrpoint.client/vite.config.ts</code></td><td>manualChunks, sourcemap off, esbuild drop.</td></tr>
+      <tr><td><code>abrpoint.client/index.html</code></td><td>Set d'icons complet, OG image.</td></tr>
+      <tr><td><code>abrpoint.client/package.json</code></td><td>Suppression deps inutilisées, DOMPurify promu.</td></tr>
+      <tr><td><code>abrpoint.client/src/components/Pointeuse/Lecture/PointageList.tsx</code></td><td>Cap 500 + key stable.</td></tr>
+      <tr><td>174 hooks <code>src/hooks/</code></td><td>Migration <code>react-query</code> → <code>@tanstack/react-query</code> v5.</td></tr>
+      <tr><td>15 composants (FilialeModern, SocieteModern, DemCongeModern, …)</td><td>isLoading → isPending, invalidateQueries objet, narrowing data.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer-note">
+    Rapport généré sur la base d'une revue exhaustive du dépôt Git
+    <code>GestTemps</code> (branche <code>master</code>), avec validation
+    <code>dotnet build</code> (0 erreur) et <code>npx tsc -b</code> (0 erreur, 0 avertissement
+    bloquant) en clôture de chaque lot de remédiation. Les commits associés sont disponibles
+    dans l'historique du dépôt et peuvent être annotés sur demande.
+  </div>
+</section>
+
+</body>
+</html>
