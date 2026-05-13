@@ -49,7 +49,7 @@ public class ServicesController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ex.Message);
+            return StatusCode(500, "Erreur interne. Consultez les logs serveur pour le détail.");
         }
     }
 
@@ -82,7 +82,7 @@ public class ServicesController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
         }
     }
 

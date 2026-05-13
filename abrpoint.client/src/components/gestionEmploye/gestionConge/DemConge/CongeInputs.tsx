@@ -61,7 +61,7 @@ export default function CongeForm() {
   const { data:employeOptions = [] } = useGetEmployee();
   const { refetch } = useGetDemConges();
   const mutation = useAddDemConge();
-  const { mutate: updateDemConge,isLoading:updateLoading} = useUpdateDemConge();
+  const { mutate: updateDemConge,isPending:updateLoading} = useUpdateDemConge();
   const [writable,setWritable] = useState(true)
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);

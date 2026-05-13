@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -24,7 +24,7 @@ import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
 import { useTranslation } from 'react-i18next';
 import generateNumeroOrdre from '../../helper/GenerateNumOrdre';
 import getTodayDate from '../../helper/TimeConverter/TodayDate';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Contrat } from '../../../models/Contrat';
 
 interface SaisieContratProps {
@@ -169,7 +169,7 @@ const SaisieContrat = ({ editingContract, setEditingContract }: SaisieContratPro
     setMessage(successMessage);
     setSeverity('success');
     setIsSnackbarOpen(true);
-    queryClient.invalidateQueries(['contrats']);
+    queryClient.invalidateQueries({ queryKey: ['contrats'] });
     resetForm();
   };
 

@@ -11,7 +11,6 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import apiInstance from '../../../components/API/apiInstance';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -197,13 +196,8 @@ const Nation = () => {
     </Box>
   );
 };
-
-const queryClient = new QueryClient();
-
 const Pays = () => (
-  <QueryClientProvider client={queryClient}>
-    <Nation />
-  </QueryClientProvider>
+  <Nation />
 );
 
 export default Pays;

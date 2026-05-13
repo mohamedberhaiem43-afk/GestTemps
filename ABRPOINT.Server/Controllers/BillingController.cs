@@ -218,6 +218,7 @@ public class BillingController : ControllerBase
     /// </summary>
     [HttpPost("resume-checkout")]
     [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-resume")]
     public async Task<IActionResult> ResumeCheckout([FromBody] ResumeCheckoutRequest req, CancellationToken ct)
     {
         if (req is null || string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
@@ -319,7 +320,7 @@ public class BillingController : ControllerBase
         catch (StripeException ex)
         {
             _log.LogError(ex, "Stripe Checkout (resume) création échouée pour tenant {Slug}.", slug);
-            return StatusCode(502, new { error = "Erreur Stripe : " + ex.Message });
+            return StatusCode(502, new { error = "Erreur Stripe : " });
         }
 
         return Ok(new { url = session.Url, sessionId = session.Id });

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { Box, Typography, Button, Snackbar, Alert, CircularProgress } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
 import PublicIcon from '@mui/icons-material/Public';
@@ -11,6 +10,7 @@ import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
 import '../shared/RefModern.css';
 import useGetRestCountries from '../../../hooks/restCountriesHooks/useGetRestCountries';
+import { RestCountry } from '../../../models/RestCountry';
 
 const emptyForm: PaysModel = { natcod: '', natlib: '' };
 
@@ -21,14 +21,15 @@ function PaysModernContent() {
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
   const [search, setSearch] = useState('');
 
-  const { data: countries = [], isLoading, isError, refetch } = useGetRestCountries();
+  const { data: countriesData, isLoading, isError, refetch } = useGetRestCountries();
+  const countries: RestCountry[] = countriesData ?? [];
 
   const canAdd = hasPermission('Données de Base', 'add');
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo<RestCountry[]>(() => {
     if (!search) return countries;
     const q = search.toLowerCase();
-    return countries.filter(c =>
+    return countries.filter((c: RestCountry) =>
       c.nameFr.toLowerCase().includes(q) ||
       c.nameCommon.toLowerCase().includes(q) ||
       c.cca2.toLowerCase().includes(q) ||
@@ -156,7 +157,7 @@ function PaysModernContent() {
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={5} className="ref-empty">{t('donneeBase.pays.noResults')}</td></tr>
-                ) : filtered.map(c => (
+                ) : filtered.map((c: RestCountry) => (
                   <tr key={c.cca3}>
                     <td>
                       {c.flagPng && (
@@ -194,6 +195,5 @@ function PaysModernContent() {
 }
 
 export default function PaysModern() {
-  const qc = new QueryClient();
-  return <QueryClientProvider client={qc}><PaysModernContent /></QueryClientProvider>;
+  return <PaysModernContent />;
 }

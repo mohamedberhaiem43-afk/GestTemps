@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import EcheanceContratService from "../../services/ContratService/EcheanceContratService";
 import EchContrat from "../../models/EcheanceContrat";
 import { useAuth } from "../../components/helper/AuthProvider";

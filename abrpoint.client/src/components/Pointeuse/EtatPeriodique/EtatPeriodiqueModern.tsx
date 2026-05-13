@@ -9,7 +9,6 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import TimerIcon from '@mui/icons-material/Timer';
 import TuneIcon from '@mui/icons-material/Tune';
 import { useTranslation } from 'react-i18next';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { EmployeeProvider, EmployeeContext } from './EmployeeContext';
 import { DateRangeProvider, useDateRange } from './FilterContext';
 import { useAuth } from '../../helper/AuthProvider';
@@ -1067,15 +1066,12 @@ function EtatPeriodiqueModernInner() {
 }
 
 function EtatPeriodiqueModern() {
-  const qc = new QueryClient();
   return (
-    <QueryClientProvider client={qc}>
-      <DateRangeProvider>
+    <DateRangeProvider>
         <EmployeeProvider>
           <EtatPeriodiqueModernInner />
         </EmployeeProvider>
       </DateRangeProvider>
-    </QueryClientProvider>
   );
 }
 

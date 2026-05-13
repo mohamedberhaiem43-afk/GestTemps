@@ -40,7 +40,7 @@ public class LetterTemplatesController : ControllerBase
     public async Task<IActionResult> Create([FromBody] RagLetterTemplateUpsertRequest req, CancellationToken ct)
     {
         try { return Ok(await _service.CreateAsync(req, ct)); }
-        catch (ArgumentException ex) { return BadRequest(new { error = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { error = "Erreur interne. Consultez les logs serveur pour le détail." }); }
     }
 
     [HttpPut("{id:int}")]
@@ -52,7 +52,7 @@ public class LetterTemplatesController : ControllerBase
             var dto = await _service.UpdateAsync(id, req, ct);
             return dto == null ? NotFound() : Ok(dto);
         }
-        catch (ArgumentException ex) { return BadRequest(new { error = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { error = "Erreur interne. Consultez les logs serveur pour le détail." }); }
     }
 
     [HttpDelete("{id:int}")]
@@ -83,11 +83,11 @@ public class LetterTemplatesController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return StatusCode(404, new { error = ex.Message });
+            return StatusCode(404, new { error = "Erreur interne. Consultez les logs serveur pour le détail." });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { error = "Génération échouée", detail = ex.Message });
+            return StatusCode(500, new { error = "Génération échouée", detail = "Erreur interne. Consultez les logs serveur pour le détail." });
         }
     }
 }

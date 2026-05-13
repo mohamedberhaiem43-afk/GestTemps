@@ -81,8 +81,8 @@ function SocieteModernContent() {
     return type;
   };
 
-  const { mutate: addSociete, isLoading: isAdding } = useAddSociete();
-  const { mutate: updateSociete, isLoading: isUpdating } = useUpdateSociete();
+  const { mutate: addSociete, isPending: isAdding } = useAddSociete();
+  const { mutate: updateSociete, isPending: isUpdating } = useUpdateSociete();
   const { data: societes = [], refetch } = useGetSocietes();
   const { mutate: deleteSociete } = useDeleteSociete();
   const { data: users = [] } = useGetUsers();

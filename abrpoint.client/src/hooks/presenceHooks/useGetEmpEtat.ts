@@ -1,4 +1,4 @@
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import EmpEtatService from '../../services/PersenceService/EmpEtatService';
 
 interface UseGetEmpEtatParams {
@@ -40,7 +40,7 @@ const useGetEmpEtat = ({ soccod, selectedEmpMat, dateRange }: UseGetEmpEtatParam
     },
     enabled: !!soccod && !!selectedEmpMat && !!formattedDateDebut && !!formattedDateFin,
     staleTime: 1000 * 60 * 5, // 5 minutes - data is considered fresh
-    cacheTime: 1000 * 60 * 30, // 30 minutes - keep in cache
+    gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
     retry: 2,
     refetchOnWindowFocus: true,
   });

@@ -98,7 +98,7 @@ const { data: fetchedSanction } = useGetSanctionDate(
   const [selectedRow, setSelectedRow] = useState<EmpEtat | null>(null);
   const [motif, setMotif] = useState<string>('');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
-  const { mutate: updateCompensation, isLoading: loadingComp } = useUpdateCompensation();
+  const { mutate: updateCompensation, isPending: loadingComp } = useUpdateCompensation();
 
   const { setSelectedEmpPoste,setDate,setSelectedEmp,setArrondi,setArrondiSup } = useContext(EmployeeContext);
 

@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import RubriqueService from "../../services/RubriqueService/RubriqueService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

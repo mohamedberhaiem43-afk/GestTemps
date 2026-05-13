@@ -23,7 +23,6 @@ import AddIcon from '@mui/icons-material/Add';
 import CheckboxComponent from "../../CheckboxComponent/CheckboxComponent";
 import { useEffect, useState } from "react";
 import useGetParametres from "../../../hooks/parametreHooks/useGetParametres";
-import { QueryClient, QueryClientProvider } from "react-query";
 import useGetParTranche from "../../../hooks/partrancheHooks/useGetParTranche";
 import ParTranche from "../../../models/ParTranche";
 import useGetSocHeures from "../../../hooks/societeHooks/useGetSocHeures";
@@ -190,8 +189,6 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
   ];
   
   const Taux = [0, 25, 50, 75, 100];
-  const queryClient = new QueryClient();
-
   // Fonctions pour ajouter de nouvelles lignes
   const addTrancheH = () => {
     setTranchesH([...tranchesH, { caltype: '', tranche1: 0, taux1: 0, tranche2: 0, taux2: 0 }]);
@@ -318,8 +315,7 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Box p={2}>
+    <Box p={2}>
         <Grid container xs={12} md={6} mt={-4}>
           <Grid xs={6} md={6}>
             <Paper elevation={1} sx={{ padding: 2 }}>
@@ -441,7 +437,6 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
           </Grid>
         </Grid>
       </Box>
-    </QueryClientProvider>
   );
 };
 

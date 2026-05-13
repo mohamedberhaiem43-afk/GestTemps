@@ -269,7 +269,7 @@ function buildTheme(mode: 'light' | 'dark') {
 
 // ── Dark Mode Context ──
 import { createContext, useContext } from 'react';
-import { QueryClient, QueryClientProvider } from "react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 interface ThemeModeContextType {
   mode: 'light' | 'dark';

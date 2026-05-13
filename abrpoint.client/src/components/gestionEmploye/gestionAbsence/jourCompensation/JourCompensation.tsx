@@ -7,7 +7,6 @@ import {
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -317,6 +316,5 @@ function JourDeCompensationContent() {
 }
 
 export default function JourDeCompensation() {
-   const qc = new QueryClient();
-   return <QueryClientProvider client={qc}><JourDeCompensationContent /></QueryClientProvider>;
+   return <JourDeCompensationContent />;
 }

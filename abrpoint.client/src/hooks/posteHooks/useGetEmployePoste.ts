@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import PosteService from "../../services/PosteService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

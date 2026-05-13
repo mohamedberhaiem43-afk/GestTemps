@@ -16,7 +16,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import SaveIcon from '@mui/icons-material/Save';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation, Trans } from 'react-i18next';
 import { CongeProvider, useCongeContext } from '../../../helper/CongeContext';
 import '../DemConge/DemCongeModern.css';
@@ -113,7 +112,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
   const { data: absences = [] } = useGetCongeAbsenceLibs();
   const { data: employeOptions = [] } = useGetEmployee();
   const { mutate: addConge, isLoading: adding } = useAddConge();
-  const { mutate: updateConge, isLoading: updating } = useUpdateTitreConge();
+  const { mutate: updateConge, isPending: updating } = useUpdateTitreConge();
 
   const [empcod, setEmpcod] = useState('');
   const [concod, setConcod] = useState('');
@@ -709,13 +708,10 @@ function TitreCongeInner() {
 }
 
 const TitreConge = () => {
-  const qc = new QueryClient();
   return (
-    <QueryClientProvider client={qc}>
-      <CongeProvider>
+    <CongeProvider>
         <TitreCongeInner />
       </CongeProvider>
-    </QueryClientProvider>
   );
 };
 

@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -157,6 +156,5 @@ function QualificationModernContent() {
 }
 
 export default function QualificationModern() {
-  const qc = new QueryClient();
-  return <QueryClientProvider client={qc}><QualificationModernContent /></QueryClientProvider>;
+  return <QualificationModernContent />;
 }

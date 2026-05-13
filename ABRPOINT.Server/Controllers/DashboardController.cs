@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.CalculService.DashboardService;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
@@ -115,7 +115,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération de l'évolution", error = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération de l'évolution", error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -144,7 +144,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des statuts", error = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération des statuts", error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -185,7 +185,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération du résumé", error = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération du résumé", error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -230,7 +230,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des KPIs", error = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération des KPIs", error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
     

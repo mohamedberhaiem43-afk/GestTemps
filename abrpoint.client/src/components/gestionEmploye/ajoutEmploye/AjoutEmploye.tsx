@@ -5,7 +5,6 @@ import EmployeDetails from '../EmployeDetails/EmployeDetails';
 import { Alert, Button, IconButton, Snackbar, Tooltip } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { Item } from '../../helper/Item/Item';
 import Employe from '../../../models/Employe';
 import { EmployeeContext, EmployeeProvider } from '../../Pointeuse/EtatPeriodique/EmployeeContext';
@@ -142,7 +141,6 @@ export default function BasicGrid() {
         actif: combinedData.actif,
       };
 
-      
       addEmploye(employeToSave, {
         onSuccess: (res: any) => {
           setMessage(res.message || t('employe.addSuccess'));
@@ -200,12 +198,8 @@ export default function BasicGrid() {
       setIsSnackbarOpen(true);
     }
   };
-
-  const queryClient = new QueryClient();
-  
   return (
-    <QueryClientProvider client={queryClient}>
-      <EmployeeProvider>
+    <EmployeeProvider>
         <Box sx={{ flexGrow: 1 }} maxWidth={'97vw'} mt={-2} height={'55vh'}>
           <Grid item sx={{ float: 'right' }} position={'fixed'} top={60} right={0}>
             <Tooltip title={mode === 'save' ? t('employe.save') : t('employe.update')}>
@@ -237,6 +231,5 @@ export default function BasicGrid() {
           </Snackbar>
         </Box>
       </EmployeeProvider>
-    </QueryClientProvider>
   );
 }

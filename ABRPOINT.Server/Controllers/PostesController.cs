@@ -340,7 +340,7 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = ex.Message
+                    message = "Erreur interne. Consultez les logs serveur pour le détail."
                 });
             }
             catch (RepositoryException ex)
@@ -348,7 +348,7 @@ namespace ABRPOINT.Server.Controllers
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = ex.Message
+                    message = "Erreur interne. Consultez les logs serveur pour le détail."
                 });
             }
             catch (Exception)

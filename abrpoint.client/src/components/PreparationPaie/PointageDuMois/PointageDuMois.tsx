@@ -20,7 +20,6 @@ import FilterPointageMois from './FilterPointageMois';
 import WeeklyHoursTable from './WeeklyHoursTable';
 import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './FilterPointageMoisContext';
 import { useMemo, useState } from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { PointageMois } from '../../../models/PointageMois';
 import DataList from '../../lists/list';
 import { MRT_ColumnDef } from 'material-react-table';
@@ -71,7 +70,6 @@ const generateEtatGlobalReport = async (
 
   return response.data;
 };
-
 
 // Fonction utilitaire pour tÃ©lÃ©charger le PDF
 const downloadPDF = (blob: Blob, filename: string) => {
@@ -246,7 +244,6 @@ const totals = useMemo(() => {
   }
   return base;
 }, [selectedEmp,majorerHeures]);
-
 
 const handleGenerateReport = async () => {
   if (!selectedEmp || !totals) {
@@ -622,8 +619,6 @@ const handleGenerateReportAll = async () => {
               )}
             </Grid>
 
-       
-
             {/* Ligne finale : Weekly Hours */}
             <Grid item xs={12}>
               <WeeklyHoursTable
@@ -691,20 +686,14 @@ const handleGenerateReportAll = async () => {
 };
 
 const PointageDuMois = () => {
-  const queryClient = new QueryClient();
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <DateMoisPointageRangeProvider>
+    <DateMoisPointageRangeProvider>
         <Box maxWidth={'95vw'}>
           <PointageDuMoisContent />
         </Box>
       </DateMoisPointageRangeProvider>
-    </QueryClientProvider>
   );
 };
 
 export default PointageDuMois;
-
-
 

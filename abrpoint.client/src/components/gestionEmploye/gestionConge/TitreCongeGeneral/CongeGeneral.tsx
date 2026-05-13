@@ -17,7 +17,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import SaveIcon from '@mui/icons-material/Save';
 import PeopleIcon from '@mui/icons-material/People';
 import GavelIcon from '@mui/icons-material/Gavel';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation, Trans } from 'react-i18next';
 import { CongeProvider, useCongeContext } from '../../../helper/CongeContext';
 import '../DemConge/DemCongeModern.css';
@@ -117,7 +116,7 @@ function CongeFormDialog({ open, onClose, editConge, isBulk }: { open: boolean; 
   const { data: employeOptions = [] } = useGetEmployee();
   const { mutate: addConge, isLoading: adding } = useAddConge();
   const { mutate: addBulkConges, isLoading: bulkAdding } = useAddBulkConges();
-  const { mutate: updateConge, isLoading: updating } = useUpdateTitreConge();
+  const { mutate: updateConge, isPending: updating } = useUpdateTitreConge();
 
   const [empcod, setEmpcod] = useState('');
   const [concod, setConcod] = useState(generateNumeroOrdre());
@@ -644,13 +643,10 @@ function CongeGeneralInner() {
 }
 
 const CongeGeneral = () => {
-  const qc = new QueryClient();
   return (
-    <QueryClientProvider client={qc}>
-      <CongeProvider>
+    <CongeProvider>
         <CongeGeneralInner />
       </CongeProvider>
-    </QueryClientProvider>
   );
 };
 

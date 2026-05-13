@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import GetVilles from "../../services/VilleService/GetVilles";
 
 const useGetVilles = () => {

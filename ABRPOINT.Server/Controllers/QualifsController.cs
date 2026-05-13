@@ -58,11 +58,11 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return StatusCode(500, new { message = ex.Message, details = ex.InnerException?.Message });
+                return StatusCode(500, new { message = "Erreur interne. Consultez les logs serveur pour le détail.", details = ex.InnerException?.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des qualifications", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération des qualifications", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -98,7 +98,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de l'ajout de la qualification", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de l'ajout de la qualification", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -131,7 +131,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la suppression de la qualification", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la suppression de la qualification", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
     }

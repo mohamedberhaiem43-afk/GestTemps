@@ -1,19 +1,16 @@
-import React from 'react';
+﻿import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { ListAllaitementModern } from './ListeAllaitementModern';
 import AllaitementSaisieModern from './AllaitementSaisieModern';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { AllaitementProvider } from '../../helper/AllaitementContext';
 import './AllaitementModern.css';
 
 export const AllaitementModern: React.FC = () => {
-  const queryClient = new QueryClient();
   const { t } = useTranslation();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AllaitementProvider>
+    <AllaitementProvider>
         <Box className="allaitement-modern-container">
 
           {/* HEADER */}
@@ -56,7 +53,6 @@ export const AllaitementModern: React.FC = () => {
           </Box>
         </Box>
       </AllaitementProvider>
-    </QueryClientProvider>
   );
 };
 

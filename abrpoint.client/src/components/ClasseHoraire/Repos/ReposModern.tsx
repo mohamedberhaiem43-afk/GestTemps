@@ -14,7 +14,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import { FerierProvider, useFerierContext } from '../../helper/ReposContext';
 import useGetRepos from '../../../hooks/Repos/useGetRepos';
@@ -95,7 +94,7 @@ function ReposModernInner() {
 
   const { data = [], isLoading, refetch } = useGetRepos();
   const { mutate: addRepos, isLoading: adding } = useAddRepos();
-  const { mutate: editRepos, isLoading: editing } = useUpdateRepos();
+  const { mutate: editRepos, isPending: editing } = useUpdateRepos();
   const { mutate: deleteRepos } = useDeleteRepos();
 
   const isSaving = adding || editing;
@@ -492,11 +491,9 @@ function ReposModernInner() {
 }
 
 const ReposModern = () => (
-  <QueryClientProvider client={new QueryClient()}>
-    <FerierProvider>
+  <FerierProvider>
       <ReposModernInner />
     </FerierProvider>
-  </QueryClientProvider>
 );
 
 export default ReposModern;

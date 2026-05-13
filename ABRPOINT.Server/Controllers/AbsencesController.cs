@@ -59,7 +59,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de rÃ©cupÃ©rer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de rÃ©cupÃ©rer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
         [HttpGet("get-autorisations-libs/{soccod}")]
@@ -142,8 +142,8 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error generating report: {ex.Message}");
-                return StatusCode(500, new { message = "Problème génération état d'absences", error = ex.Message });
+                Console.WriteLine($"Error generating report: erreur interne");
+                return StatusCode(500, new { message = "Problème génération état d'absences", error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -198,7 +198,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la génération du rapport : " + ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la génération du rapport : " });
             }
         }
         // POST api/<DirectionsController>
@@ -223,7 +223,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Problème d'ajout d'absence : " + ex.Message);
+                return StatusCode(500, "Problème d'ajout d'absence : ");
             }
         }
 

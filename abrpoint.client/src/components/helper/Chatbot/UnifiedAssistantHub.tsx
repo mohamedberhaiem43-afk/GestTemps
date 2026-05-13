@@ -16,7 +16,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -32,9 +31,6 @@ import { useAuth } from '../AuthProvider';
 import apiInstance from '../../API/apiInstance';
 import RagService, { RagChatAnswer, RagChatSource } from '../../../services/RagService';
 import { useAskRag, useRagFeedback } from '../../../hooks/ragHooks/useRagChat';
-
-const queryClient = new QueryClient();
-
 // Unified hub :
 // - Onglet "Assistant" — opérationnel (KPIs, présence, congés, navigation) via /AIAssistant/chat (Gemini + plugins).
 // - Onglet "Documents juridiques" — RAG sur les documents du tenant via /ChatRag/ask (sources + feedback).
@@ -595,8 +591,6 @@ Posez-moi votre question !`;
 
 export default function UnifiedAssistantHub() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <HubContent />
-    </QueryClientProvider>
+    <HubContent />
   );
 }

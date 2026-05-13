@@ -2,9 +2,11 @@ using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Globalization;
 
 namespace ABRPOINT.Server.Repository
@@ -14,16 +16,61 @@ namespace ABRPOINT.Server.Repository
         private readonly ApplicationDbContext _dbContext;
         private readonly IPosteRepository _posteRepository;
         private readonly IMapper _mapper;
-        public ParametreRepository(ApplicationDbContext dbContext,IPosteRepository posteRepository,IMapper mapper)
+        private readonly IMemoryCache _cache;
+        private readonly ICurrentTenant? _currentTenant;
+
+        // PERF — Parametres quasi-statique (changé manuellement par l'admin), cache 5 min.
+        // Au-delà : risque de servir une valeur obsolète après un update admin. Acceptable
+        // sur tous les écrans de reporting / état périodique / dashboard.
+        private static readonly TimeSpan ParametreCacheTtl = TimeSpan.FromMinutes(5);
+
+        public ParametreRepository(
+            ApplicationDbContext dbContext,
+            IPosteRepository posteRepository,
+            IMapper mapper,
+            IMemoryCache cache,
+            ICurrentTenant? currentTenant = null)
         {
             _dbContext = dbContext;
             _posteRepository = posteRepository;
             _mapper = mapper;
+            _cache = cache;
+            _currentTenant = currentTenant;
+        }
+
+        /// <summary>
+        /// PERF — Lit le Parametre complet du tenant pour <paramref name="soccod"/>, en
+        /// passant par <see cref="IMemoryCache"/>. La clé inclut le slug du tenant courant
+        /// pour éviter toute fuite cross-tenant si deux tenants partagent un même soccod.
+        /// </summary>
+        private Task<Parametre?> GetParametreCachedAsync(string soccod, CancellationToken ct = default)
+        {
+            var tenantKey = _currentTenant?.Current?.Slug ?? "default";
+            var cacheKey = $"param:{tenantKey}:{soccod}";
+            return _cache.GetOrCreateAsync(cacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = ParametreCacheTtl;
+                return await _dbContext.Parametres.AsNoTracking()
+                    .Where(p => p.Soccod == soccod)
+                    .FirstOrDefaultAsync(ct);
+            });
+        }
+
+        /// <summary>
+        /// Invalide le cache Parametres pour <paramref name="soccod"/>. À appeler après
+        /// tout `Add`/`Update`/`Delete` côté admin pour que le prochain lecteur voie la
+        /// nouvelle valeur sans attendre l'expiration du TTL.
+        /// </summary>
+        public void InvalidateParametreCache(string soccod)
+        {
+            var tenantKey = _currentTenant?.Current?.Slug ?? "default";
+            _cache.Remove($"param:{tenantKey}:{soccod}");
         }
         public async Task AddAsync(Parametre entity)
         {
             await _dbContext.Parametres.AddAsync(entity);
             await _dbContext.SaveChangesAsync();
+            if (!string.IsNullOrEmpty(entity.Soccod)) InvalidateParametreCache(entity.Soccod);
         }
 
         public async Task DeleteAsync(Parametre entity)
@@ -32,6 +79,7 @@ namespace ABRPOINT.Server.Repository
             {
                 _dbContext.Parametres.Remove(entity);
                 await _dbContext.SaveChangesAsync();
+                if (!string.IsNullOrEmpty(entity.Soccod)) InvalidateParametreCache(entity.Soccod);
             }
         }
         public async Task<Dictionary<DateTime, bool>> GetReposDaysByPeriodAsync(string soccod, string empcod, List<DateTime> dates)
@@ -350,6 +398,7 @@ namespace ABRPOINT.Server.Repository
             {
                 _dbContext.Parametres.Update(entity);
                 await _dbContext.SaveChangesAsync();
+                if (!string.IsNullOrEmpty(entity.Soccod)) InvalidateParametreCache(entity.Soccod);
             }
         }
 
@@ -611,70 +660,39 @@ namespace ABRPOINT.Server.Repository
 
         public async Task<short?> GetLongbdgAsync(string soccod)
         {
-            try
-            {
-                var longbdg = await _dbContext.Parametres.Where(p => p.Soccod == soccod).Select(p => p.Longbdg).FirstOrDefaultAsync();
-                return longbdg;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            // PERF — Cache via GetParametreCachedAsync (TTL 5 min).
+            var p = await GetParametreCachedAsync(soccod);
+            return p?.Longbdg;
         }
         public async Task<ArrondiParam?> GetEtatPeriodiqueParamAsync(string soccod)
         {
-            try
+            var p = await GetParametreCachedAsync(soccod);
+            if (p is null) return null;
+            return new ArrondiParam
             {
-                // Récupération du paramètre pour la société
-                var param = await _dbContext.Parametres
-                    .Where(p => p.Soccod == soccod)
-                    .Select(p => new ArrondiParam
-                    {
-                        Arrhsup = p.Arrhsup,
-                        Arrondi = p.Arrondi
-                    })
-                    .FirstOrDefaultAsync();
-
-                return param;
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
+                Arrhsup = p.Arrhsup,
+                Arrondi = p.Arrondi
+            };
         }
 
 
         public async Task<string> GetPaieAsync(string soccod)
         {
-            try
-            {
-                string? paie = await _dbContext.Parametres.Where(p=>p.Soccod ==soccod).Select(p=>p.Paie).SingleOrDefaultAsync();
-                return paie;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            var p = await GetParametreCachedAsync(soccod);
+            return p?.Paie;
         }
 
         public async Task<float?> GetNbhCongeAsync(string soccod)
         {
-            try
-            {
-                var nbhconge = await  _dbContext.Parametres.Where(p => p.Soccod == soccod).Select(p => p.Nbhconge).SingleOrDefaultAsync();
-                return nbhconge;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            var p = await GetParametreCachedAsync(soccod);
+            return p?.Nbhconge;
         }
-        public Task<int?> GetNbhFerierAsync(string soccod)
+        public async Task<int?> GetNbhFerierAsync(string soccod)
         {
             try
             {
-                var nbhferier =  _dbContext.Parametres.Where(p => p.Soccod == soccod).Select(p => p.Nbhferier).SingleOrDefaultAsync();
-                return nbhferier;
+                var p = await GetParametreCachedAsync(soccod);
+                return p?.Nbhferier;
             }
             catch (Exception)
             {

@@ -54,6 +54,45 @@ export default defineConfig({
             '@': fileURLToPath(new URL('./src', import.meta.url))
         }
     },
+    // PERF — Optimisations du build de prod :
+    //   - sourcemap: false explicite (évite la fuite du code source en prod et
+    //     allège le bundle livré).
+    //   - manualChunks : sépare les grosses libs en chunks dédiés. Le navigateur
+    //     met en cache chaque chunk indépendamment, ce qui :
+    //       1) réduit le code rejoué à chaque mise en prod (le hash d'app change
+    //          mais les chunks MUI/charts/etc. restent stables tant qu'on ne les
+    //          met pas à jour) ;
+    //       2) parallélise mieux les téléchargements (HTTP/2 multiplexing) ;
+    //       3) évite que `jspdf`/`xlsx`/`exceljs` (lourds, usage ponctuel) ne
+    //          plombent le chunk principal.
+    //   - esbuild.drop : retire console.log/debugger en prod, économise du KB et
+    //     supprime des fuites d'info via la console (cf. audit perf front #12).
+    build: {
+        sourcemap: false,
+        chunkSizeWarningLimit: 1500,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'mui-core': ['@mui/material', '@emotion/react', '@emotion/styled'],
+                    'mui-x': ['@mui/x-data-grid', '@mui/x-date-pickers', '@mui/x-charts'],
+                    'pdf': ['jspdf', 'jspdf-autotable'],
+                    'spreadsheet': ['xlsx', 'exceljs'],
+                    'docx': ['mammoth'],
+                    'calendar': [
+                        '@fullcalendar/core',
+                        '@fullcalendar/daygrid',
+                        '@fullcalendar/timegrid',
+                        '@fullcalendar/interaction',
+                        '@fullcalendar/react',
+                    ],
+                    'charts': ['recharts'],
+                },
+            },
+        },
+    },
+    esbuild: {
+        drop: env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+    },
     server: {
         proxy: {
             '^/weatherforecast': {

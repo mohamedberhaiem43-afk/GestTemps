@@ -1,5 +1,5 @@
 import SocieteService from "../../services/SocieteService/SocieteService";
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import useGetSocietes from "./useGetSocietes";
 
 const useDeleteSociete = () => {

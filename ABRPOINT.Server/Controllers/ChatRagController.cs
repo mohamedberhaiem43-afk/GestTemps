@@ -49,11 +49,11 @@ public class ChatRagController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return StatusCode(503, new { error = ex.Message });
+            return StatusCode(503, new { error = "Erreur interne. Consultez les logs serveur pour le détail." });
         }
         catch (HttpRequestException ex)
         {
-            return StatusCode(502, new { error = "Service IA temporairement indisponible.", detail = ex.Message });
+            return StatusCode(502, new { error = "Service IA temporairement indisponible.", detail = "Erreur interne. Consultez les logs serveur pour le détail." });
         }
     }
 

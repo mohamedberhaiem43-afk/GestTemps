@@ -7,7 +7,6 @@ import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-picker
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
@@ -84,8 +83,6 @@ function AutSortieGeneraleContent() {
     }
     return 0;
   }, [condat]);
-
-
 
   const toggleEmployee = (empcod: string) => {
     const next = new Set(checkedEmployees);
@@ -318,6 +315,5 @@ function AutSortieGeneraleContent() {
 }
 
 export default function AutSortieGenerale() {
-  const qc = new QueryClient();
-  return <QueryClientProvider client={qc}><AutSortieGeneraleContent /></QueryClientProvider>;
+  return <AutSortieGeneraleContent />;
 }

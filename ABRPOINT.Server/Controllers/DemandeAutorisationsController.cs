@@ -87,7 +87,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Erreur lors de la génération du numéro: " + ex.Message);
+                return StatusCode(500, "Erreur lors de la génération du numéro: ");
             }
         }
 
@@ -267,7 +267,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Erreur interne du serveur: {ex.Message}" });
+                return StatusCode(500, new { success = false, message = $"Erreur interne du serveur: erreur interne" });
             }
         }
 
@@ -297,7 +297,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Erreur interne du serveur: {ex.Message}" });
+                return StatusCode(500, new { success = false, message = $"Erreur interne du serveur: erreur interne" });
             }
         }
     }

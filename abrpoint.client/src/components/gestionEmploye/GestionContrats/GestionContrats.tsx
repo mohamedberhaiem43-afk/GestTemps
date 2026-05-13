@@ -1,19 +1,16 @@
-import { Box, Grid, Stack } from '@mui/material';
+﻿import { Box, Grid, Stack } from '@mui/material';
 import ListContrats from './ListContrats';
 import './GestionContrats.css';
 import SaisieContrat from './SaisieContrat';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useState } from 'react';
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import { Contrat } from '../../../models/Contrat';
 
 const GestionContrats = () => {
-  const queryClient = new QueryClient();
   const [editingContract, setEditingContract] = useState<Contrat | null>(null);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Box width="100%">
+    <Box width="100%">
         <Stack spacing={1}>
           <BreadcrumbNavigation />
           <Grid container spacing={1}>
@@ -26,7 +23,6 @@ const GestionContrats = () => {
           </Grid>
         </Stack>
       </Box>
-    </QueryClientProvider>
   );
 };
 

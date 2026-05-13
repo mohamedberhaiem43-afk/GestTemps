@@ -367,7 +367,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des employés", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération des employés", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
         // A11 — `get-my-kpis` est un endpoint self-service. Avant : l'`uticod` venait
@@ -619,7 +619,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -634,7 +634,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -649,7 +649,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -861,7 +861,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de l'ajout d'employé", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de l'ajout d'employé", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
         [HttpPut]
@@ -1009,7 +1009,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de l'ajout d'employé", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de l'ajout d'employé", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
 
         }
@@ -1094,11 +1094,11 @@ namespace ABRPOINT.Server.Controllers
             {
                 // La ligne (Soccod, Sitcod, Empcod) n'existe pas : 404 explicite plutôt que
                 // 500, pour que le frontend affiche un message clair au lieu d'un faux succès.
-                return NotFound(new { message = ex.Message });
+                return NotFound(new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la modification de l'employé", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la modification de l'employé", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1162,7 +1162,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la mise à jour des coordonnées", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la mise à jour des coordonnées", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1208,7 +1208,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = $"Erreur serveur : {ex.Message}" });
+                return BadRequest(new { message = $"Erreur serveur : erreur interne" });
             }
         }
     }

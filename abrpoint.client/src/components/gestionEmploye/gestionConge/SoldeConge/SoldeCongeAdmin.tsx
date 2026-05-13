@@ -12,7 +12,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import PersonIcon from '@mui/icons-material/Person';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
-import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../helper/AuthProvider';
 import useGetSolde from '../../../../hooks/soldeCongeHooks/useGetSolde';
@@ -21,9 +21,6 @@ import useAddSolde from '../../../../hooks/soldeCongeHooks/useAddSolde';
 import useUpdateSolde from '../../../../hooks/soldeCongeHooks/useUpdateSolde';
 import { Solde } from '../../../../models/Solde';
 import apiInstance from '../../../API/apiInstance';
-
-const queryClient = new QueryClient();
-
 function SoldeCongeAdminInner() {
   const { t } = useTranslation();
   const { soccod } = useAuth();
@@ -132,7 +129,7 @@ function SoldeCongeAdminInner() {
       });
 
       // Refresh data
-      queryClientLocal.invalidateQueries('soldes');
+      queryClientLocal.invalidateQueries({ queryKey: ['soldes'] });
     } catch (err) {
       console.error('Save error:', err);
       setSnackbar({
@@ -191,7 +188,7 @@ function SoldeCongeAdminInner() {
 
           <Button
             startIcon={<RefreshIcon />}
-            onClick={() => queryClientLocal.invalidateQueries('soldes')}
+            onClick={() => queryClientLocal.invalidateQueries({ queryKey: ['soldes'] })}
             sx={{ textTransform: 'none', fontWeight: 700, color: '#0040a1' }}
           >
             {t('conge.soldeAdmin.refresh')}
@@ -212,7 +209,7 @@ function SoldeCongeAdminInner() {
                   severity: 'success',
                   message: t('conge.rtt.admin.closeYearSuccess', { count }),
                 });
-                queryClientLocal.invalidateQueries('soldes');
+                queryClientLocal.invalidateQueries({ queryKey: ['soldes'] });
               } catch {
                 setSnackbar({
                   open: true,
@@ -353,7 +350,7 @@ function SoldeCongeAdminInner() {
                   const currentSolde = existingSolde?.conge ?? 0;
                   const isEditing = editingRows[empcod] !== undefined;
                   const editValue = isEditing ? editingRows[empcod] : String(currentSolde);
-                  const isSaving = addSolde.isLoading || updateSolde.isLoading;
+                  const isSaving = addSolde.isPending || updateSolde.isPending;
 
                   return (
                     <TableRow
@@ -484,8 +481,6 @@ function SoldeCongeAdminInner() {
 
 export default function SoldeCongeAdmin() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SoldeCongeAdminInner />
-    </QueryClientProvider>
+    <SoldeCongeAdminInner />
   );
 }

@@ -39,7 +39,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -53,7 +53,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -72,11 +72,11 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return StatusCode(500, new { message = ex.Message, details = ex.InnerException?.Message });
+                return StatusCode(500, new { message = "Erreur interne. Consultez les logs serveur pour le détail.", details = ex.InnerException?.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération des sites", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -94,7 +94,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération des sites pour l'utilisateur", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération des sites pour l'utilisateur", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -113,7 +113,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la récupération du site", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la récupération du site", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -158,7 +158,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { isValid = false, message = "Erreur lors de l'ajout du site", details = ex.Message });
+                return StatusCode(500, new { isValid = false, message = "Erreur lors de l'ajout du site", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -184,7 +184,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la modification du site", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la modification du site", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -211,7 +211,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la suppression du site", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la suppression du site", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
     }

@@ -36,7 +36,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import dayjs from 'dayjs';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { EmployeeContext, EmployeeProvider } from '../Pointeuse/EtatPeriodique/EmployeeContext';
 import useAddEmploye from '../../hooks/employeHooks/useAddEmploye';
 import useUpdateEmploye from '../../hooks/employeHooks/useUpdateEmploye';
@@ -64,7 +64,7 @@ import { ROLE_LABELS } from '../../models/Utilisateur';
 // warning TS6133 « never used ».
 import { Role } from '../../models/Role';
 import './EmployeModern.css';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import useGetVillesLibs from '../../hooks/villeHooks/useGetVillesLibs';
 import { staggerSx } from '../helper/animations/Stagger';
 import { Skeleton } from '@mui/material';
@@ -282,7 +282,8 @@ function SelectWithAdd({ value, onChange, options, onAdd, addTitle }: {
 // pour ne pas perdre la donnée existante.
 function CountrySelect({ value, onChange }: { value: string; onChange: (cca3: string) => void }) {
     const { t } = useTranslation();
-    const { data: countries = [], isLoading } = useGetRestCountries();
+    const { data: countriesData, isLoading } = useGetRestCountries();
+    const countries: RestCountry[] = countriesData ?? [];
 
     // Tri par nom français — déjà fait côté service mais on sécurise.
     const sorted = useMemo<RestCountry[]>(
@@ -491,7 +492,7 @@ const EmployeModernInner = () => {
         try {
             const res = await apiInstance.post('/Directions', { soccod, dircod: code, dirlib: lib });
             const newCode = res.data?.dircod || code;
-            queryClient.invalidateQueries('directions');
+            queryClient.invalidateQueries({ queryKey: ['directions'] });
             showSnackbar(t('employe.addedDirection'), 'success');
             return { code: newCode, lib };
         } catch (err) {
@@ -503,7 +504,7 @@ const EmployeModernInner = () => {
         try {
             const res = await apiInstance.post('/Fonctions', { soccod, foncod: code, fonlib: lib });
             const newCode = res.data?.foncod || code;
-            queryClient.invalidateQueries('fonlibs');
+            queryClient.invalidateQueries({ queryKey: ['fonlibs'] });
             showSnackbar(t('employe.addedFunction'), 'success');
             return { code: newCode, lib };
         } catch (err) {
@@ -515,7 +516,7 @@ const EmployeModernInner = () => {
         try {
             const res = await apiInstance.post('/Sections', { soccod, seccod: code, seclib: lib });
             const newCode = res.data?.seccod || code;
-            queryClient.invalidateQueries('sec-libs');
+            queryClient.invalidateQueries({ queryKey: ['sec-libs'] });
             showSnackbar(t('employe.addedSection'), 'success');
             return { code: newCode, lib };
         } catch (err) {
@@ -527,7 +528,7 @@ const EmployeModernInner = () => {
         try {
             const res = await apiInstance.post('/Qualifs', { soccod, quacod: code, qualib: lib });
             const newCode = res.data?.quacod || code;
-            queryClient.invalidateQueries('qualifs');
+            queryClient.invalidateQueries({ queryKey: ['qualifs'] });
             showSnackbar(t('employe.addedQualification'), 'success');
             return { code: newCode, lib };
         } catch (err) {
@@ -573,7 +574,7 @@ const EmployeModernInner = () => {
                 return next.toString().padStart(2, '0');
             })();
             await apiInstance.post('/Sites', { soccod, sitcod: effectiveCode, sitlib: lib });
-            queryClient.invalidateQueries('sitlibs');
+            queryClient.invalidateQueries({ queryKey: ['sitlibs'] });
             showSnackbar(t('employe.addedBranch'), 'success');
             return { code: effectiveCode, lib };
         } catch (err) {
@@ -585,7 +586,7 @@ const EmployeModernInner = () => {
         try {
             const res = await apiInstance.post('/Villes', { soccod, vilcod: code, villib: lib });
             const newCode = res.data?.vilcod || code;
-            queryClient.invalidateQueries('villibs');
+            queryClient.invalidateQueries({ queryKey: ['villibs'] });
             showSnackbar(t('employe.addedCity'), 'success');
             return { code: newCode, lib };
         } catch (err) {
@@ -808,8 +809,8 @@ const EmployeModernInner = () => {
             empRttForfaitJours: numOrNull(formData.empRttForfaitJours),
         };
         const onSuccess = async (res: any) => {
-            queryClient.invalidateQueries('employe');
-            queryClient.invalidateQueries(['employee-horaires', soccod, formData.empcod]);
+            queryClient.invalidateQueries({ queryKey: ['employe'] });
+            queryClient.invalidateQueries({ queryKey: ['employee-horaires', soccod, formData.empcod] });
             setIsSaving(false);
             // Animation succès joue à chaque save/update — confirmation visuelle
             // au-delà du snackbar discret en haut.
@@ -1828,15 +1829,10 @@ const EmployeModernInner = () => {
         </Box>
 );
 };
-
-const queryClient = new QueryClient();
-
 const EmployeModern = () => (
-    <QueryClientProvider client={queryClient}>
-        <EmployeeProvider>
+    <EmployeeProvider>
             <EmployeModernInner />
         </EmployeeProvider>
-    </QueryClientProvider>
 );
 
 export default EmployeModern;

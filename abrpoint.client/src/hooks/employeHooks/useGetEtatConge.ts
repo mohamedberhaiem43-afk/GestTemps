@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import EtatCongeService from "../../services/EmployeService/EtatCongeService";
 
 const useGetEtatConge = (soccod: string | null, empcod: string | null, moisdeb: number | null, moisfin: number | null, annee: number | null) => {

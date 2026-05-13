@@ -1,4 +1,4 @@
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { DashboardRequest, PointageInvalideDto } from '../../models/DashboardModels';
 import apiInstance from '../../components/API/apiInstance';
 

@@ -2,6 +2,16 @@ namespace ABRPOINT.Server.Helpers
 {
     public static class FileHelper
     {
+        // SEC — Whitelist de tags SVG acceptés. Couvre les signatures dessinées
+        // côté client (path/polyline/line, etc.) sans laisser passer les vecteurs
+        // d'XSS : <script>, <foreignObject>, <iframe>, <image href="javascript:...">.
+        private static readonly HashSet<string> AllowedSvgElements = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "svg", "g", "title", "desc",
+            "path", "polyline", "polygon", "line", "rect", "circle", "ellipse",
+            "defs", "linearGradient", "radialGradient", "stop",
+        };
+
         // SEC-15 — Whitelist d'extensions autorisées pour TOUS les uploads ASP.NET.
         // On bloque les fichiers exécutables (.exe, .dll, .sh, .bat, .ps1), les
         // scripts serveur (.aspx, .php, .jsp, .asp), les SVG/HTML qui peuvent
@@ -115,6 +125,21 @@ namespace ABRPOINT.Server.Helpers
                 // SEC-15 : limite aussi l'image base64 (évite la saturation par signature géante).
                 if (bytes.Length > ResolveMaxBytes())
                     return (false, null, "Image trop volumineuse.");
+
+                // SEC — Validation stricte des SVG : refuse tout fichier qui contient un
+                // tag/attribut hors de la whitelist (script, foreignObject, on*, javascript:).
+                // Avant ce check, un attaquant pouvait uploader un SVG contenant un onload
+                // exfiltrant la session via une URL data: — XSS persistant inter-tenant
+                // (les uploads étaient publics avant, et même protégés ils sont servis par
+                // le même origin que l'app).
+                if (ext == "svg")
+                {
+                    var svgText = System.Text.Encoding.UTF8.GetString(bytes);
+                    if (!IsSafeSvg(svgText, out var reason))
+                        return (false, null, $"SVG refusé : {reason}");
+                    bytes = System.Text.Encoding.UTF8.GetBytes(svgText);
+                }
+
                 var uploads = GetUploadsPath();
                 Directory.CreateDirectory(uploads);
 
@@ -124,9 +149,76 @@ namespace ABRPOINT.Server.Helpers
                 await File.WriteAllBytesAsync(filePath, bytes);
                 return (true, "/api/uploads/" + fileName, null);
             }
+            catch (Exception)
+            {
+                // SEC — Pas de fuite ex.Message vers le caller (qui le remonte au client
+                // via une réponse HTTP). Le détail est dans les logs serveur (Kestrel + ASP.NET).
+                return (false, null, "Erreur lors de l'enregistrement du fichier.");
+            }
+        }
+
+        /// <summary>
+        /// SEC — Valide un SVG en parsing XML strict : refuse tout élément hors whitelist
+        /// (script, foreignObject, iframe, image href=javascript:, etc.), tout attribut
+        /// commençant par `on` (onerror, onload…), et toute URL avec schéma `javascript:`.
+        ///
+        /// Renvoie `false` + raison si le SVG est suspect. La validation est volontairement
+        /// agressive : on préfère refuser un SVG légitime exotique plutôt qu'autoriser
+        /// un XSS. Les signatures dessinées (cas d'usage principal) restent acceptées.
+        /// </summary>
+        private static bool IsSafeSvg(string svg, out string reason)
+        {
+            reason = string.Empty;
+            try
+            {
+                var settings = new System.Xml.XmlReaderSettings
+                {
+                    DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                    XmlResolver = null, // pas de fetch externe (XXE)
+                    IgnoreComments = true,
+                    IgnoreWhitespace = true,
+                };
+                using var sr = new System.IO.StringReader(svg);
+                using var xr = System.Xml.XmlReader.Create(sr, settings);
+
+                while (xr.Read())
+                {
+                    if (xr.NodeType == System.Xml.XmlNodeType.Element)
+                    {
+                        var local = xr.LocalName;
+                        if (!AllowedSvgElements.Contains(local))
+                        {
+                            reason = $"élément <{local}> non autorisé";
+                            return false;
+                        }
+                        if (xr.HasAttributes)
+                        {
+                            while (xr.MoveToNextAttribute())
+                            {
+                                var attr = xr.LocalName;
+                                if (attr.StartsWith("on", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    reason = $"attribut événement {attr} interdit";
+                                    return false;
+                                }
+                                var v = xr.Value?.TrimStart();
+                                if (!string.IsNullOrEmpty(v) &&
+                                    (v.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
+                                     v.StartsWith("data:text/html", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    reason = $"URL suspecte dans {attr}";
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
             catch (Exception ex)
             {
-                return (false, null, ex.Message);
+                reason = $"SVG malformé ({ex.GetType().Name})";
+                return false;
             }
         }
     }

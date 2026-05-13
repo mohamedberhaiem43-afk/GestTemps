@@ -1074,23 +1074,16 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async void Update(Presence presence)
+        // PERF / SEC — `async void` était dangereux ici : les exceptions remontaient
+        // au SynchronizationContext (pouvant crasher le process) et le caller croyait
+        // l'opération synchrone, partant avant le SaveChanges. Conversion en
+        // `async Task` pour que les rares appelants puissent l'await proprement.
+        public async Task Update(Presence presence)
         {
-            try
-            {
-                if (presence != null)
-                {
-                    await CalculatePresenceAsync(presence);
-                    _dbContext.Presences.Update(presence);
-                    _dbContext.SaveChanges();
-                }
-            }
-            catch (Exception ex)
-            {
-
-                throw new Exception("",ex);
-            }
-            
+            if (presence is null) return;
+            await CalculatePresenceAsync(presence);
+            _dbContext.Presences.Update(presence);
+            await _dbContext.SaveChangesAsync();
         }
         public async Task CalculatePresenceAsync(Presence presence)
         {

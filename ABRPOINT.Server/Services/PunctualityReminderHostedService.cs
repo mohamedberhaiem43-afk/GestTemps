@@ -68,11 +68,33 @@ public sealed class PunctualityReminderHostedService : BackgroundService
                 .AsNoTracking()
                 .Where(t => t.Status == "Active" || t.Status == "Trialing")
                 .ToListAsync(ct);
-            foreach (var t in tenants)
-            {
-                var cs = template.Replace("{DbName}", t.DbName);
-                await ProcessOneAsync(cs, t.Slug, ct);
-            }
+
+            // PERF — Parallélisation bornée. Chaque tenant ouvre son propre DbContext
+            // (cf. ProcessOneAsync) et appelle Firebase Cloud Messaging (HTTP). Sur 50
+            // tenants × ~300-500 ms de traitement, on passait à ~15-25 s en séquentiel.
+            // Degré 4 : compromis entre rapidité et charge sur FCM/SQL (ne pas saturer
+            // le pool de connexions tenant). Le sweep tourne toutes les 15 min, on a
+            // largement le temps.
+            await Parallel.ForEachAsync(
+                tenants,
+                new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = 4,
+                    CancellationToken = ct,
+                },
+                async (t, innerCt) =>
+                {
+                    try
+                    {
+                        var cs = template.Replace("{DbName}", t.DbName);
+                        await ProcessOneAsync(cs, t.Slug, innerCt);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Une base tenant indisponible ne doit pas bloquer les autres.
+                        _log.LogWarning(ex, "Reminder tenant {Slug} échoué", t.Slug);
+                    }
+                });
         }
         else if (!string.IsNullOrWhiteSpace(defaultConn))
         {

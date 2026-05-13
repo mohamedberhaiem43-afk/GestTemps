@@ -74,79 +74,86 @@ namespace ABRPOINT.Server.Controllers
                 });
             }
 
-            // Sous-requête : empcods autorisés (ceux du soccod dont le sitcod
-            // est dans la liste). Réutilisé pour scoper toutes les autres
-            // entités qui n'ont pas de Sitcod direct mais référencent Empcod.
-            var allowedEmpcodsQuery = _db.Employes
+            // PERF — Empcods autorisés matérialisés UNE FOIS. Avant, la sous-query
+            // IQueryable était re-traduite dans chacun des 6 CountAsync ci-dessous →
+            // SQL Server ne pouvait pas la cacher, et l'on payait son coût 5x.
+            // Avec un List<string>, Contains() est expansé en IN(...) côté SQL.
+            var allowedEmpcods = await _db.Employes
                 .AsNoTracking()
                 .Where(e => e.Soccod == soccod && allowedSites.Contains(e.Sitcod))
-                .Select(e => e.Empcod);
+                .Select(e => e.Empcod)
+                .ToListAsync(ct);
 
-            // 1. Demandes de congé en attente. Une demande est considérée pending
-            //    tant qu'aucune ligne miroir n'a été créée dans Conges (= validation
-            //    ou refus).
-            var pendingLeaves = await _db.Demconges
+            // PERF — Les 6 compteurs sont agrégés dans une seule projection EF Core qui
+            // se traduit en un unique SELECT avec sous-queries scalar. Avant, 6 round-trips
+            // SQL séquentiels (~30-80 ms cumulés). Maintenant, 1 round-trip. Ce dashboard
+            // est l'endpoint mobile cible "< 200 ms en 4G".
+            var stats = await _db.Societes
                 .AsNoTracking()
-                .Where(d => d.Soccod == soccod
-                    && allowedEmpcodsQuery.Contains(d.Empcod)
-                    && !_db.Conges.Any(c => c.Soccod == d.Soccod && c.Concod == d.Concod))
-                .CountAsync(ct);
+                .Where(s => s.Soccod == soccod)
+                .Select(s => new
+                {
+                    // 1. Demandes de congé en attente (aucune ligne miroir dans Conges).
+                    PendingLeaves = _db.Demconges.Count(d => d.Soccod == soccod
+                        && allowedEmpcods.Contains(d.Empcod)
+                        && !_db.Conges.Any(c => c.Soccod == d.Soccod && c.Concod == d.Concod)),
 
-            // 2. Demandes d'autorisation en attente.
-            var pendingAuth = await _db.DemandeAutorisations
-                .AsNoTracking()
-                .Where(d => d.Soccod == soccod
-                    && d.Statut == "En attente"
-                    && allowedEmpcodsQuery.Contains(d.Empcod))
-                .CountAsync(ct);
+                    // 2. Demandes d'autorisation en attente.
+                    PendingAuth = _db.DemandeAutorisations.Count(d => d.Soccod == soccod
+                        && d.Statut == "En attente"
+                        && allowedEmpcods.Contains(d.Empcod)),
 
-            // 3. Notes de frais en attente.
-            var pendingExpenses = await _db.NoteDeFrais
-                .AsNoTracking()
-                .Where(n => n.Soccod == soccod
-                    && n.Etat == "Pending"
-                    && allowedEmpcodsQuery.Contains(n.Empcod))
-                .CountAsync(ct);
+                    // 3. Notes de frais en attente.
+                    PendingExpenses = _db.NoteDeFrais.Count(n => n.Soccod == soccod
+                        && n.Etat == "Pending"
+                        && allowedEmpcods.Contains(n.Empcod)),
 
-            // 4. Missions en attente.
-            var pendingMissions = await _db.Missions
-                .AsNoTracking()
-                .Where(m => m.Soccod == soccod
-                    && m.Misetat == "Pending"
-                    && allowedEmpcodsQuery.Contains(m.Empcod))
-                .CountAsync(ct);
+                    // 4. Missions en attente.
+                    PendingMissions = _db.Missions.Count(m => m.Soccod == soccod
+                        && m.Misetat == "Pending"
+                        && allowedEmpcods.Contains(m.Empcod)),
 
-            // 5. Contrats expirant dans les 30 jours (employés actifs sur sites autorisés).
-            var contractsExpiring = await _db.Employes
-                .AsNoTracking()
-                .Where(e => e.Soccod == soccod
-                    && allowedSites.Contains(e.Sitcod)
-                    && e.Empsort != null
-                    && e.Empsort >= today
-                    && e.Empsort <= horizon
-                    && e.Actif != "N")
-                .CountAsync(ct);
+                    // 5. Contrats expirant dans les 30 jours.
+                    ContractsExpiring = _db.Employes.Count(e => e.Soccod == soccod
+                        && allowedSites.Contains(e.Sitcod)
+                        && e.Empsort != null
+                        && e.Empsort >= today
+                        && e.Empsort <= horizon
+                        && e.Actif != "N"),
 
-            // 6. Équipe absente aujourd'hui sur les sites autorisés.
-            var absentToday = await _db.Conges
-                .AsNoTracking()
-                .Where(c => c.Soccod == soccod
-                    && c.Conrefus != "1"
-                    && c.Condep <= today && c.Conret >= today
-                    && allowedEmpcodsQuery.Contains(c.Empcod))
-                .Select(c => c.Empcod)
-                .Distinct()
-                .CountAsync(ct);
+                    // 6. Équipe absente aujourd'hui (Distinct sur Empcod via sous-query).
+                    AbsentToday = _db.Conges
+                        .Where(c => c.Soccod == soccod
+                            && c.Conrefus != "1"
+                            && c.Condep <= today && c.Conret >= today
+                            && allowedEmpcods.Contains(c.Empcod))
+                        .Select(c => c.Empcod)
+                        .Distinct()
+                        .Count(),
+                })
+                .FirstOrDefaultAsync(ct);
+
+            // Si la société n'existe pas dans la base (cas très rare puisque soccod
+            // est validé par ValidateSoccod), on retourne des compteurs nuls.
+            if (stats is null)
+            {
+                return Ok(new
+                {
+                    pendingLeaves = 0, pendingAuth = 0, pendingExpenses = 0,
+                    pendingMissions = 0, pendingTotal = 0,
+                    contractsExpiring = 0, absentToday = 0,
+                });
+            }
 
             return Ok(new
             {
-                pendingLeaves,
-                pendingAuth,
-                pendingExpenses,
-                pendingMissions,
-                pendingTotal = pendingLeaves + pendingAuth + pendingExpenses + pendingMissions,
-                contractsExpiring,
-                absentToday,
+                pendingLeaves = stats.PendingLeaves,
+                pendingAuth = stats.PendingAuth,
+                pendingExpenses = stats.PendingExpenses,
+                pendingMissions = stats.PendingMissions,
+                pendingTotal = stats.PendingLeaves + stats.PendingAuth + stats.PendingExpenses + stats.PendingMissions,
+                contractsExpiring = stats.ContractsExpiring,
+                absentToday = stats.AbsentToday,
             });
         }
     }

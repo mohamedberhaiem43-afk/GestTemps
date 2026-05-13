@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import CompensationService from "../../services/ComensationService/CompensationService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

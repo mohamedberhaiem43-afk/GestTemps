@@ -118,7 +118,7 @@ const PricingPage: React.FC = () => {
             onClick={() => navigate('/')}
           >
             <img
-              src="/Concorde.png"
+              src="/logo-256.png"
               alt="Logo Concorde"
               style={{ height: 64, width: 'auto', objectFit: 'contain' }}
             />
@@ -312,7 +312,7 @@ const PricingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-start gap-12">
           <div className="max-w-xs">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/Concorde.png" alt="Logo Concorde" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
+              <img src="/logo-256.png" alt="Logo Concorde" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
               <div className="text-2xl font-black text-on-surface font-headline uppercase tracking-tighter">Concorde Workforce</div>
             </div>
             <p className="text-on-surface-variant text-sm font-body leading-relaxed">

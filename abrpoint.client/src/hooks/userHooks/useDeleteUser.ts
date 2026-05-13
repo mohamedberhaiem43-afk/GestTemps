@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import UtilisateurService from "../../services/UtilisateurService/UtilisateurService";
 
 export default function useDeleteUser() {
@@ -6,8 +6,8 @@ export default function useDeleteUser() {
     return useMutation({
         mutationFn: (uticod: string) => UtilisateurService.deleteUser(uticod),
         onSuccess: () => {
-            queryClient.invalidateQueries(["users"]);
-            queryClient.invalidateQueries(["utilisateurs"]);
+            queryClient.invalidateQueries({ queryKey: ["users"] });
+            queryClient.invalidateQueries({ queryKey: ["utilisateurs"] });
         },
     });
 }

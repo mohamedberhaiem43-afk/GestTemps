@@ -46,6 +46,11 @@ public class AuthLookupController : ControllerBase
     public sealed record LookupTenantRequest(string Email);
 
     [HttpPost("lookup-tenant")]
+    // SEC — Rate limit strict : sans limite, cet endpoint permettait l'énumération
+    // exhaustive des emails clients (un attaquant essaie des emails et lit la réponse
+    // 200/404). 5/h/IP coupe les bots. Sur cookie + IP rotation, le fallback "scan
+    // toutes les bases" reste coûteux côté serveur — limite supplémentaire utile.
+    [EnableRateLimiting("public-form")]
     public async Task<IActionResult> LookupTenant([FromBody] LookupTenantRequest req, CancellationToken ct)
     {
         var email = (req?.Email ?? string.Empty).Trim().ToLowerInvariant();
@@ -63,57 +68,60 @@ public class AuthLookupController : ControllerBase
         // On scanne les bases des tenants actifs pour retrouver l'utilisateur via Utilisateurs.Utimail
         // ou Employes.Empemail, et on backfill l'index pour les prochains logins.
         var template = _cfg.GetConnectionString("TenantTemplate");
-        if (string.IsNullOrWhiteSpace(template))
-            return NotFound(new { error = "Aucun compte trouvé pour cet email." });
-
-        var tenants = await master.Tenants.AsNoTracking()
-            .Where(t => t.Status == "Active" || t.Status == "Trialing" || t.Status == "Provisioning")
-            .ToListAsync(ct);
-
-        foreach (var t in tenants)
+        if (!string.IsNullOrWhiteSpace(template))
         {
-            try
+            var tenants = await master.Tenants.AsNoTracking()
+                .Where(t => t.Status == "Active" || t.Status == "Trialing" || t.Status == "Provisioning")
+                .ToListAsync(ct);
+
+            foreach (var t in tenants)
             {
-                var connStr = template.Replace("{DbName}", t.DbName);
-                var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                    .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
-                    .Options;
-                await using var tdb = new ApplicationDbContext(options);
-
-                var found = await tdb.Utilisateurs.AsNoTracking()
-                    .AnyAsync(u => u.Utimail == email, ct);
-                if (!found)
+                try
                 {
-                    found = await tdb.Employes.AsNoTracking()
-                        .AnyAsync(e => e.Empemail != null && e.Empemail.ToLower() == email, ct);
-                }
+                    var connStr = template.Replace("{DbName}", t.DbName);
+                    var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                        .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+                        .Options;
+                    await using var tdb = new ApplicationDbContext(options);
 
-                if (found)
-                {
-                    // Backfill l'index pour court-circuiter le scan au prochain login.
-                    var existing = await master.TenantEmailIndex
-                        .FirstOrDefaultAsync(x => x.Email == email, ct);
-                    if (existing == null)
+                    var found = await tdb.Utilisateurs.AsNoTracking()
+                        .AnyAsync(u => u.Utimail == email, ct);
+                    if (!found)
                     {
-                        master.TenantEmailIndex.Add(new TenantEmailIndex
-                        {
-                            Email = email,
-                            Slug = t.Slug,
-                            CreatedAt = DateTime.UtcNow,
-                        });
-                        await master.SaveChangesAsync(ct);
+                        found = await tdb.Employes.AsNoTracking()
+                            .AnyAsync(e => e.Empemail != null && e.Empemail.ToLower() == email, ct);
                     }
-                    return Ok(new { slug = t.Slug });
+
+                    if (found)
+                    {
+                        // Backfill l'index pour court-circuiter le scan au prochain login.
+                        var existing = await master.TenantEmailIndex
+                            .FirstOrDefaultAsync(x => x.Email == email, ct);
+                        if (existing == null)
+                        {
+                            master.TenantEmailIndex.Add(new TenantEmailIndex
+                            {
+                                Email = email,
+                                Slug = t.Slug,
+                                CreatedAt = DateTime.UtcNow,
+                            });
+                            await master.SaveChangesAsync(ct);
+                        }
+                        return Ok(new { slug = t.Slug });
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                // Une base tenant indisponible ne doit pas faire échouer le lookup global.
-                _log.LogWarning(ex, "Scan tenant {Slug} ({DbName}) échoué pour lookup email", t.Slug, t.DbName);
+                catch (Exception ex)
+                {
+                    // Une base tenant indisponible ne doit pas faire échouer le lookup global.
+                    _log.LogWarning(ex, "Scan tenant {Slug} ({DbName}) échoué pour lookup email", t.Slug, t.DbName);
+                }
             }
         }
 
-        return NotFound(new { error = "Aucun compte trouvé pour cet email." });
+        // SEC — Réponse 200 + slug=null au lieu de 404 : ne révèle pas l'existence du
+        // compte, et n'a pas de signature différente (status code, longueur) facilement
+        // distinguable par un attaquant qui voudrait scanner.
+        return Ok(new { slug = (string?)null });
     }
 
     public sealed record ForgotPasswordPublicRequest(string Email);

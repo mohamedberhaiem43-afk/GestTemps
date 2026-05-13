@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Filiale } from "../../models/Filiale";
 import FilialeService from "../../services/FilialeService/FilialeService";
 

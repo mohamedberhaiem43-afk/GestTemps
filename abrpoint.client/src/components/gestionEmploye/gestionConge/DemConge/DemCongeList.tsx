@@ -9,14 +9,9 @@ import './ListConge.css'
 import { Conge } from '../../../../models/Conge';
 import useGetDemConges from '../../../../hooks/congeHooks/useGetDemConges';
 import DataList from '../../../lists/list';
-import { QueryClient, QueryClientProvider } from 'react-query';
-
-
 export default function  DemCongeList (){
-  const queryClient = new QueryClient();
   const { data = [] } = useGetDemConges();
-  
-  
+
     const columns = useMemo<MRT_ColumnDef<Conge>[]>(() => [
       {
         id: 'congeDetails',
@@ -63,17 +58,13 @@ export default function  DemCongeList (){
         ],
       },
     ], []);
-    
-  
-  return (
-    <QueryClientProvider client={queryClient}>
 
-      <Box>
+  return (
+    <Box>
         <DataList data={data} columns={columns} message={undefined} deleteMethod={undefined} idKey={undefined}
         refetchMethod={undefined} reportGeneration1={undefined} reportGeneration2={undefined} reportGeneration3={undefined}
         reportGeneration4={undefined} empHoraires={undefined} setData={undefined} pageSize={5} purge={undefined}        />
       </Box>
-    </QueryClientProvider>
   );
 };
 

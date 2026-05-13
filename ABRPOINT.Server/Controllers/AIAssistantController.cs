@@ -88,7 +88,7 @@ namespace ABRPOINT.Server.Controllers
                 // l'erreur sans déclencher la branche "Erreur API: 500" du front.
                 return Ok(new
                 {
-                    response = $"❌ Une erreur s'est produite : {ex.Message}"
+                    response = $"❌ Une erreur s'est produite : erreur interne"
                 });
             }
         }

@@ -1,17 +1,12 @@
-import React from 'react';
+﻿import React from 'react';
 import { Box, Grid } from '@mui/material';
 import { ListAllaitement } from './ListeAllaitement';
 import AllaitementSaisie from './AllaitementSaisie';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { AllaitementProvider } from '../../helper/AllaitementContext';
 import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 
 export const Allaitement: React.FC = () => {
-  
-  const queryClient = new QueryClient();
-
   return (
-    <QueryClientProvider client={queryClient}>
     <AllaitementProvider>
       <Box sx={{ display: 'flex', flexDirection: 'column'}} height={'90vh'}width={'95vw'}>
         <BreadcrumbNavigation />
@@ -26,7 +21,6 @@ export const Allaitement: React.FC = () => {
         </Grid>
       </Box>
     </AllaitementProvider>
-    </QueryClientProvider>
   );
 };
 

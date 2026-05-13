@@ -254,7 +254,7 @@ Règles importantes:
                 }
                 catch (JsonException ex)
                 {
-                    Console.WriteLine($"[DocumentScan] JSON Parse Error: {ex.Message}\nRaw: {cleanedJson}");
+                    Console.WriteLine($"[DocumentScan] JSON Parse Error: erreur interne\nRaw: {cleanedJson}");
                     return Ok(new
                     {
                         success = false,
@@ -283,8 +283,8 @@ Règles importantes:
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DocumentScan] Error: {ex.Message}\n{ex.StackTrace}");
-                return StatusCode(500, new { message = "Erreur lors de l'analyse du document.", details = ex.Message });
+                Console.WriteLine($"[DocumentScan] Error: erreur interne\n{ex.StackTrace}");
+                return StatusCode(500, new { message = "Erreur lors de l'analyse du document.", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -386,7 +386,7 @@ Réponds UNIQUEMENT en JSON sans markdown:
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors du scan rapide.", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors du scan rapide.", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 

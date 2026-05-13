@@ -31,7 +31,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function CongeList() {
   const { setSelectedConge: setSelectedCongeForEdit } = useCongeContext();
-  const { mutate: acceptConge, isLoading: isAccepting } = useAcceptDemConge();
+  const { mutate: acceptConge, isPending: isAccepting } = useAcceptDemConge();
   const { data = [], isLoading } = useGetDemConges();
   const { isEmp, uticod: currentEmpCode } = useAuth();
   const { t } = useTranslation();

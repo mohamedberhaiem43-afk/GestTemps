@@ -1,18 +1,14 @@
 import { Section } from "jspdf-autotable";
-import axios from 'axios';
+// SEC/PERF — Centralisation sur apiInstance (cf. GetFonctions.ts).
+import apiInstance from '../../components/API/apiInstance';
 
-// Lecture lazy de soccod (cf. GetSectionsLibs.ts pour les détails). Évite
-// l'URL `Sections/null` au boot quand l'auth n'a pas encore rempli sessionStorage.
-const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_REACT_APP_API_URL,
-  withCredentials: true,
-});
-
+// Lecture lazy de soccod : évite l'URL `Sections/null` au boot quand l'auth
+// n'a pas encore rempli sessionStorage.
 export default {
   getAll: async (): Promise<Section[]> => {
     const soccod = sessionStorage.getItem('soccod');
     if (!soccod || soccod === 'null') return [];
-    const res = await axiosInstance.get<Section[]>(`Sections/${soccod}`);
+    const res = await apiInstance.get<Section[]>(`Sections/${soccod}`);
     return res.data;
   },
 };

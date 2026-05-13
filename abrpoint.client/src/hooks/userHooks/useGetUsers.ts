@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import UtilisateurService from "../../services/UtilisateurService/UtilisateurService";
 import UtilisateurDto from "../../models/Utilisateur";
 import { useAuth } from "../../components/helper/AuthProvider";

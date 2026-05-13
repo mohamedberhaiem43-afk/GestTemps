@@ -6,7 +6,6 @@ import {
   TextField, Snackbar, Alert,
 } from '@mui/material';
 import { useMemo, useState, useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
@@ -1432,13 +1431,10 @@ function PointageDuMoisContent() {
 }
 
 const PointageDuMoisModern = () => {
-  const qc = new QueryClient();
   return (
-    <QueryClientProvider client={qc}>
-      <DateMoisPointageRangeProvider>
+    <DateMoisPointageRangeProvider>
         <PointageDuMoisContent />
       </DateMoisPointageRangeProvider>
-    </QueryClientProvider>
   );
 };
 

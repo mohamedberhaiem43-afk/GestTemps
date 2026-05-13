@@ -11,7 +11,6 @@ import EventIcon from '@mui/icons-material/Event';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../../../helper/AuthProvider';
 import useGetSoldeByEmp from '../../../../hooks/soldeCongeHooks/useGetSoldeByEmp';
@@ -37,7 +36,6 @@ const getStatus = (c: Conge): SoldeStatusKey => {
   if (n.includes('accept')) return 'accepted';
   return 'pending';
 };
-
 
 // ── Balance Card ──────────────────────────────────────────────────────────────
 interface BalanceCardProps {
@@ -557,11 +555,8 @@ function SoldeCongeModernInner() {
 }
 
 const SoldeCongeModern = () => {
-  const qc = new QueryClient();
   return (
-    <QueryClientProvider client={qc}>
-      <SoldeCongeModernInner />
-    </QueryClientProvider>
+    <SoldeCongeModernInner />
   );
 };
 

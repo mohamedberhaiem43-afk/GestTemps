@@ -187,7 +187,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest("Erreur lors de l'extraction du PDF : " + ex.Message);
+                return BadRequest("Erreur lors de l'extraction du PDF : ");
             }
         }
 
@@ -324,7 +324,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Erreur lors de la génération de l'aperçu : " + ex.Message });
+                return BadRequest(new { message = "Erreur lors de la génération de l'aperçu : " });
             }
         }
 

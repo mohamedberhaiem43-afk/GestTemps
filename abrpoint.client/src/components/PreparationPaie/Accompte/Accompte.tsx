@@ -3,7 +3,6 @@ import AccompteList from "./AccompteList";
 import { useState } from "react";
 import InputComponent from "../../Inputs/Input";
 import RadioGroupComponent from "../../RadioGroupComponent/RadioGroupComponent";
-import { QueryClient, QueryClientProvider } from "react-query";
 import { t } from "i18next";
 import { useAuth } from "../../helper/AuthProvider";
 import AccessDenied from "../../helper/AccessDenied";
@@ -22,10 +21,8 @@ export default function Accompte() {
     const handleSearch = () => {
         setFilters({ month, year,niveau });
     };
-    const queryClient = new QueryClient();
     return (
-        <QueryClientProvider client={queryClient}>
-            <Container sx={{ml:3, minWidth: '93vw',height:'80vh' }}>
+        <Container sx={{ml:3, minWidth: '93vw',height:'80vh' }}>
             <Typography variant="h5" color={'primary'} fontWeight={'bold'} gutterBottom mt={-2} mb={2}>
                 Accompte sur salaire
             </Typography>
@@ -57,6 +54,5 @@ export default function Accompte() {
             {/* Results Table */}
             <AccompteList month={filters.month} year={filters.year} niveau = {filters.niveau} />
         </Container>
-        </QueryClientProvider>
     );
 }

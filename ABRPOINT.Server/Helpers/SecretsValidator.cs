@@ -62,6 +62,18 @@ public static class SecretsValidator
                 continue;
             }
 
+            // SEC — Placeholders génériques (REPLACE_*, CHANGEME_*, TODO, etc.) :
+            // n'importe quelle valeur de cette forme indique un secret non configuré.
+            // Détection au-delà des WeakValues explicites du record.
+            if (value.StartsWith("REPLACE_", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("CHANGEME", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("TODO", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("changeme", StringComparison.OrdinalIgnoreCase))
+            {
+                problems.Add($"{s.DisplayName} ({s.Path}) utilise un placeholder générique ({value.Substring(0, Math.Min(value.Length, 32))}...).");
+                continue;
+            }
+
             if (s.WeakValues.Any(w => string.Equals(w, value, StringComparison.Ordinal)))
             {
                 problems.Add($"{s.DisplayName} ({s.Path}) utilise une valeur de placeholder connue.");

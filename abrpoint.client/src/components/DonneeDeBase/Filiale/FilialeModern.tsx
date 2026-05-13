@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -34,8 +33,8 @@ function FilialeModernContent() {
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
   const [search, setSearch] = useState('');
 
-  const { mutate: addSite, isLoading: isAdding } = useAddSite();
-  const { mutate: updateSite, isLoading: isUpdating } = useUpdateSite();
+  const { mutate: addSite, isPending: isAdding } = useAddSite();
+  const { mutate: updateSite, isPending: isUpdating } = useUpdateSite();
   const { data: rawData, refetch } = useGetSites();
   const { mutate: deleteSite } = useDeleteSite();
 
@@ -367,6 +366,5 @@ function FilialeModernContent() {
 }
 
 export default function FilialeModern() {
-  const qc = new QueryClient();
-  return <QueryClientProvider client={qc}><FilialeModernContent /></QueryClientProvider>;
+  return <FilialeModernContent />;
 }

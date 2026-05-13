@@ -11,7 +11,6 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -137,7 +136,6 @@ const FonctionTable = () => {
           fonpchoix: '0',
         };
 
-
         const response = await apiInstance.post(
           `/Fonctions`,
           sanitized
@@ -243,13 +241,8 @@ const FonctionTable = () => {
     </Box>
   );
 };
-
-const queryClient = new QueryClient();
-
 const Fonction = () => (
-  <QueryClientProvider client={queryClient}>
-    <FonctionTable />
-  </QueryClientProvider>
+  <FonctionTable />
 );
 
 export default Fonction;

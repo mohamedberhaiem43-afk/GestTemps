@@ -38,7 +38,7 @@ public class DocumentsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { error = "Erreur interne. Consultez les logs serveur pour le détail." });
         }
     }
 

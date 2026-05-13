@@ -14,7 +14,6 @@ import {
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { PointageMois } from '../../../models/PointageMois';
 import DataList from '../../lists/list';
 import { MRT_ColumnDef } from 'material-react-table';
@@ -41,7 +40,6 @@ const PointageDuMoisContent = () => {
   const [error, setError] = useState<string | null>(null);
   const [majorerHeures, setMajorerHeures] = useState<boolean>(false);
   const { t } = useTranslation();
-
 
   const queryParams = new URLSearchParams();
   empcods.forEach(code => queryParams.append("empcods", code));
@@ -250,16 +248,12 @@ const PointageDuMoisContent = () => {
 };
 
 const Optimisation = () => {
-  const queryClient = new QueryClient();
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <DateMoisPointageRangeProvider>
+    <DateMoisPointageRangeProvider>
         <Box maxWidth={'95vw'}>
           <PointageDuMoisContent />
         </Box>
       </DateMoisPointageRangeProvider>
-    </QueryClientProvider>
   );
 };
 

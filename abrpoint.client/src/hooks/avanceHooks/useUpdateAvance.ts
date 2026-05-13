@@ -1,5 +1,5 @@
 // ✅ useUpdateAvance.ts
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import AvanceService from "../../services/AvanceService";
 
 const useUpdateAvance = () => {

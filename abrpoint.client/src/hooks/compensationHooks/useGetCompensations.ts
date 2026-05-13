@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import CompensationService from "../../services/ComensationService/CompensationService";
 import { Compenser } from "../../Compense";
 import { useAuth } from "../../components/helper/AuthProvider";

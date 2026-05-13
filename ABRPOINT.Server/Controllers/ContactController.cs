@@ -2,6 +2,7 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 
@@ -10,6 +11,10 @@ namespace ABRPOINT.Server.Controllers
     [ApiController]
     [Route("api/contact")]
     [AllowAnonymous]
+    // SEC — Rate limit strict : ces endpoints anonymes envoient des emails via le SMTP
+    // OVH authentifié. Sans limite, un bot peut spammer des milliers de messages et
+    // faire blacklister le domaine. 5/h/IP suffit pour un usage humain normal.
+    [EnableRateLimiting("public-form")]
     public class ContactController : ControllerBase
     {
         private const string SupportInbox = "contact@concorde-tech.fr";

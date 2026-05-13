@@ -188,4 +188,65 @@ public static class SequentialCodeGenerator
         } while (taken.Contains(candidate));
         return candidate;
     }
+
+    /// <summary>
+    /// PERF — Générateur batch en mémoire pour les imports massifs. Charge UNE FOIS
+    /// les codes existants depuis la DB, puis chaque appel à <see cref="Next"/>
+    /// incrémente en mémoire (sans round-trip). Le caller fait un seul SaveChanges
+    /// à la fin de la boucle d'import.
+    ///
+    /// Utilisation type :
+    ///   var gen = await SequentialCodeGenerator.CreateBatchAsync(
+    ///       db.Services.IgnoreQueryFilters().Where(s => s.Soccod == soccod).Select(s => s.Sercod),
+    ///       width: 4, ct);
+    ///   foreach (var row in rows) {
+    ///       var code = gen.Next();
+    ///       db.Services.Add(new Service { Sercod = code, ... });
+    ///   }
+    ///   await db.SaveChangesAsync(ct);
+    /// </summary>
+    public static async Task<BatchCodeGenerator> CreateBatchAsync(IQueryable<string?> codesQuery, int width, CancellationToken ct = default)
+    {
+        var codes = await codesQuery.ToListAsync(ct);
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var max = 0;
+        foreach (var c in codes)
+        {
+            if (string.IsNullOrWhiteSpace(c)) continue;
+            var raw = c.Trim();
+            taken.Add(raw);
+            if (int.TryParse(raw, out var n) && n > max) max = n;
+        }
+        return new BatchCodeGenerator(taken, max, width);
+    }
+}
+
+/// <summary>
+/// Générateur séquentiel en mémoire pour les imports batch. Construit via
+/// <see cref="SequentialCodeGenerator.CreateBatchAsync"/>.
+/// </summary>
+public sealed class BatchCodeGenerator
+{
+    private readonly HashSet<string> _taken;
+    private int _max;
+    private readonly int _width;
+
+    internal BatchCodeGenerator(HashSet<string> taken, int max, int width)
+    {
+        _taken = taken;
+        _max = max;
+        _width = width;
+    }
+
+    public string Next()
+    {
+        string candidate;
+        do
+        {
+            _max++;
+            candidate = _max.ToString().PadLeft(_width, '0');
+        } while (_taken.Contains(candidate));
+        _taken.Add(candidate);
+        return candidate;
+    }
 }

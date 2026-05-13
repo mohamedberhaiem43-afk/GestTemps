@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ABRPOINT.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,13 @@ public sealed class TenantDbContextFactory : ITenantDbContextFactory
     private readonly ICurrentTenant _current;
     private readonly IConfiguration _cfg;
 
+    // PERF — Cache statique des DbContextOptions par connection string. Sans ça,
+    // chaque Create() reconstruisait l'OptionsBuilder complet (parse de la connection
+    // string, configuration UseSqlServer, callbacks de retry) — coût mesurable quand
+    // KnownDeviceService ou les hosted services appellent Create() en boucle.
+    private static readonly ConcurrentDictionary<string, DbContextOptions<ApplicationDbContext>> _optionsCache
+        = new(StringComparer.Ordinal);
+
     public TenantDbContextFactory(ICurrentTenant current, IConfiguration cfg)
     {
         _current = current;
@@ -41,9 +49,10 @@ public sealed class TenantDbContextFactory : ITenantDbContextFactory
         // Le template contient un placeholder {DbName} qu'on substitue par le DbName du tenant.
         var connStr = template.Replace("{DbName}", t.DbName);
 
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
-            .Options;
+        var options = _optionsCache.GetOrAdd(connStr, cs =>
+            new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseSqlServer(cs, sql => sql.EnableRetryOnFailure())
+                .Options);
 
         return new ApplicationDbContext(options);
     }

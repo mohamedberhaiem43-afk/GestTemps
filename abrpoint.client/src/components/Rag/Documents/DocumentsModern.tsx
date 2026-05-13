@@ -20,7 +20,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -38,9 +37,6 @@ import {
 } from '../../../hooks/ragHooks/useRagDocuments';
 import RagService from '../../../services/RagService';
 import { RagDocument, RagDocumentCategory, RagDocumentStatus } from '../../../models/RagDocument';
-
-const queryClient = new QueryClient();
-
 const ALLOWED_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -289,8 +285,6 @@ function DocumentsModernContent() {
 
 export default function DocumentsModern() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <DocumentsModernContent />
-    </QueryClientProvider>
+    <DocumentsModernContent />
   );
 }

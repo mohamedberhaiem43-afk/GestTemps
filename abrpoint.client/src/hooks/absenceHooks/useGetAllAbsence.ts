@@ -1,5 +1,5 @@
 import apiInstance from "../../components/API/apiInstance";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 
 const useGetAllAbsences = () => {
     const soccod = sessionStorage.getItem('soccod');

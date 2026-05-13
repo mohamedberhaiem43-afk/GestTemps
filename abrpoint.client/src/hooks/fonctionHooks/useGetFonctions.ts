@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import GetFonctions from "../../services/FonctionService/GetFonctions";
 
 const useGetFonctions = () => {

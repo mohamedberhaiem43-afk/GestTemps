@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import apiInstance from "../../components/API/apiInstance";
 import { useAuth } from "../../components/helper/AuthProvider";
 
@@ -62,8 +62,8 @@ const useAddPointage = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["pointages"]);
-      queryClient.invalidateQueries(["kpis", soccod]);
+      queryClient.invalidateQueries({ queryKey: ["pointages"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis", soccod] });
     },
   });
 };

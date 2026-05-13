@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.EtatsAttributes;
+using ABRPOINT.Server.Annotations.EtatsAttributes;
 using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
@@ -70,7 +70,7 @@ namespace ABRPOINT.Server.Controllers
                     soccod, mois, annee, semaine, empcods.Count);
                 if (_env.IsDevelopment())
                 {
-                    return StatusCode(500, new { message = "Erreur interne du serveur.", details = ex.Message });
+                    return StatusCode(500, new { message = "Erreur interne du serveur.", details = "Erreur interne. Consultez les logs serveur pour le détail." });
                 }
                 return StatusCode(500, new { message = "Erreur interne du serveur." });
             }

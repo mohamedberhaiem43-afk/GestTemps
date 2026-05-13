@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Helper;
+using ABRPOINT.Helper;
 using ABRPOINT.Server.Annotations.FerierAttributes;
 using ABRPOINT.Server.Annotations.PointeuseAttributes;
 using ABRPOINT.Server.Authorization;
@@ -57,7 +57,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                results.Add($"Error on {ip}: {ex.Message}");
+                results.Add($"Error on {ip}: erreur interne");
             }
             return Ok(results);
         }
@@ -81,7 +81,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error: {ex.Message}");
+                return BadRequest($"Error: erreur interne");
             }
         }
         [HttpPost("purger")]
@@ -95,7 +95,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error purging logs: {ex.Message}");
+                return BadRequest($"Error purging logs: erreur interne");
             }
         }
 
@@ -136,7 +136,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"Internal server error: erreur interne");
             }
         }
 

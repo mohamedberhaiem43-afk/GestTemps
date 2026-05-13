@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from "react";
 import { Alert, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
 import { useTranslation, Trans } from "react-i18next";
 import SaisieUtilisateur, { SaisieUtilisateurHandle } from "./SaisieUtilisateur";
-import { QueryClientProvider, QueryClient, useQuery } from "react-query";
+import { useQuery } from '@tanstack/react-query';
 import UserProvider, { useUserContext } from "../../helper/UserProvider";
 import UtilisateurService from "../../../services/UtilisateurService/UtilisateurService";
 import { ROLE_LABELS } from "../../../models/Utilisateur";
@@ -25,9 +25,6 @@ import "./Utilisateur.css";
 import useDeleteUser from "../../../hooks/userHooks/useDeleteUser";
 import useResetPassword from "../../../hooks/userHooks/useResetPassword";
 import useToggleUserStatus from "../../../hooks/userHooks/useToggleUserStatus";
-
-const queryClient = new QueryClient();
-
 // ── Inner component ──────────────────────────────────────────────
 function UtilisateurContent() {
   const { t } = useTranslation();
@@ -485,10 +482,8 @@ function UtilisateurContent() {
 // ── Outer component ──────────────────────────────────────────────
 export default function Utilisateur() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <UserProvider>
+    <UserProvider>
         <UtilisateurContent />
       </UserProvider>
-    </QueryClientProvider>
   );
 }

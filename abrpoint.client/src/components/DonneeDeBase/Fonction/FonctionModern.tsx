@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -172,6 +171,5 @@ function FonctionModernContent() {
 }
 
 export default function FonctionModern() {
-  const qc = new QueryClient();
-  return <QueryClientProvider client={qc}><FonctionModernContent /></QueryClientProvider>;
+  return <FonctionModernContent />;
 }

@@ -37,7 +37,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error fetching roles", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error fetching roles", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -56,7 +56,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error fetching role", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error fetching role", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -100,7 +100,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error creating role", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error creating role", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -126,7 +126,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Erreur durant le seed des rôles système.", Error = ex.Message });
+                return StatusCode(500, new { Message = "Erreur durant le seed des rôles système.", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -149,7 +149,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Erreur lors de l'installation des tables mobiles.", Error = ex.Message });
+                return StatusCode(500, new { Message = "Erreur lors de l'installation des tables mobiles.", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -191,7 +191,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error updating role", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error updating role", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -238,7 +238,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error updating permissions", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error updating permissions", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -281,7 +281,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error fetching role pointdroits", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error fetching role pointdroits", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -324,7 +324,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error updating role pointdroits", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error updating role pointdroits", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -353,7 +353,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error deleting role", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error deleting role", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
     }

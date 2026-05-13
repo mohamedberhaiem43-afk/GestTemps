@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ABRPOINT.Server.Services;
 
@@ -29,11 +30,18 @@ public sealed class PasswordBreachChecker : IPasswordBreachChecker
 {
     private readonly HttpClient _http;
     private readonly ILogger<PasswordBreachChecker> _log;
+    private readonly IMemoryCache _cache;
 
-    public PasswordBreachChecker(HttpClient http, ILogger<PasswordBreachChecker> log)
+    // PERF — TTL du cache HIBP : 1h. Les listes HIBP ne sont mises à jour qu'à
+    // chaque release publique (mensuel/trimestriel), donc 1h est conservateur
+    // sans gaspiller de mémoire. Chaque entrée = ~5-30 KB de hashes.
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(1);
+
+    public PasswordBreachChecker(HttpClient http, ILogger<PasswordBreachChecker> log, IMemoryCache cache)
     {
         _http = http;
         _log = log;
+        _cache = cache;
     }
 
     public async Task<int> GetBreachCountAsync(string password, CancellationToken ct)
@@ -46,18 +54,29 @@ public sealed class PasswordBreachChecker : IPasswordBreachChecker
 
         try
         {
-            // Header "Add-Padding: true" recommandé par HIBP — masque le nombre exact de
-            // résultats au niveau réseau (anti-traffic-analysis si un MITM observe les tailles).
-            using var req = new HttpRequestMessage(HttpMethod.Get, $"range/{prefix}");
-            req.Headers.Add("Add-Padding", "true");
-            using var resp = await _http.SendAsync(req, ct);
-            if (!resp.IsSuccessStatusCode)
+            // PERF — Cache par préfixe SHA1[0..5]. Un préfixe matche ~500-800
+            // mots de passe — donc le cache absorbe quasi tous les signups suivants
+            // qui partagent un préfixe (souvent vrai sur mots de passe communs).
+            // Économise un round-trip HTTP de ~200-500 ms.
+            var cacheKey = $"hibp:{prefix}";
+            string? body;
+            if (!_cache.TryGetValue(cacheKey, out body) || body is null)
             {
-                _log.LogWarning("HIBP a renvoyé {Status} pour préfixe {Prefix}. Vérification tolérée.", resp.StatusCode, prefix);
-                return 0;
+                // Header "Add-Padding: true" recommandé par HIBP — masque le nombre exact de
+                // résultats au niveau réseau (anti-traffic-analysis si un MITM observe les tailles).
+                using var req = new HttpRequestMessage(HttpMethod.Get, $"range/{prefix}");
+                req.Headers.Add("Add-Padding", "true");
+                using var resp = await _http.SendAsync(req, ct);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    _log.LogWarning("HIBP a renvoyé {Status} pour préfixe {Prefix}. Vérification tolérée.", resp.StatusCode, prefix);
+                    return 0;
+                }
+
+                body = await resp.Content.ReadAsStringAsync(ct);
+                _cache.Set(cacheKey, body, CacheTtl);
             }
 
-            var body = await resp.Content.ReadAsStringAsync(ct);
             // Format : "<SUFFIX>:<COUNT>\r\n" répété. Recherche linéaire — la liste fait
             // ~500-800 entrées max, donc négligeable côté CPU.
             foreach (var line in body.Split('\n'))

@@ -34,7 +34,7 @@ namespace ABRPOINT.Server.Controllers
                     }
                     contextText = sb.ToString();
                 } catch (Exception ex) {
-                    return BadRequest("Impossible de lire le fichier exemple : " + ex.Message);
+                    return BadRequest("Impossible de lire le fichier exemple : ");
                 }
             }
 
@@ -42,7 +42,7 @@ namespace ABRPOINT.Server.Controllers
                 var html = await _aiService.GenerateTemplateAsync(prompt, contextText);
                 return Ok(new { html });
             } catch (Exception ex) {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, "Erreur interne. Consultez les logs serveur pour le détail.");
             }
         }
     }

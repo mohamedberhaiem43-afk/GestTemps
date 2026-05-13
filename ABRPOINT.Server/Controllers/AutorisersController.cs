@@ -116,7 +116,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de récupérer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de récupérer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 

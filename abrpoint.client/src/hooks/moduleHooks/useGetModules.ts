@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import ModuleService from "../../services/ModuleService/ModuleService";
 
 const useGetModules = () => {

@@ -46,11 +46,11 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (HttpRequestException ex)
             {
-                return StatusCode(502, new { message = "Service externe injoignable", detail = ex.Message });
+                return StatusCode(502, new { message = "Service externe injoignable", detail = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de l'import", detail = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de l'import", detail = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 

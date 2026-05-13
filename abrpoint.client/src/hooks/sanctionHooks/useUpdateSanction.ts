@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import SanctionService from "../../services/SanctionService/SanctionService";
 import { Sanction } from "../../models/Sanction";
 
@@ -11,7 +11,7 @@ const useUpdateSanction = () => {
       SanctionService.putWithoutParams(sanction),
 
     onSuccess: () => {
-      queryClient.invalidateQueries(["sanction"]);
+      queryClient.invalidateQueries({ queryKey: ["sanction"] });
     },
   });
 };

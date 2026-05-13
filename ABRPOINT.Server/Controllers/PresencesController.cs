@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Annotations.EtatPriodiqueAttributes;
+using ABRPOINT.Server.Annotations.EtatPriodiqueAttributes;
 using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
@@ -45,7 +45,7 @@ namespace ABRPOINT.Server.Controllers
         private object MaskedError(string userMessage, Exception ex)
         {
             if (_env.IsDevelopment())
-                return new { message = userMessage, details = ex.Message };
+                return new { message = userMessage, details = "Erreur interne. Consultez les logs serveur pour le détail." };
             return new { message = userMessage };
         }
 
@@ -257,7 +257,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 

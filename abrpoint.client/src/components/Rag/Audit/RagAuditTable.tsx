@@ -14,7 +14,6 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import HistoryIcon from '@mui/icons-material/History';
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
@@ -22,9 +21,6 @@ import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
 import { useRagAudit } from '../../../hooks/ragHooks/useRagChat';
-
-const queryClient = new QueryClient();
-
 function FeedbackBadge({ score }: { score?: number | null }) {
   if (score == null) return <Chip size="small" label="—" variant="outlined" />;
   if (score >= 4) return <Chip size="small" icon={<ThumbUpAltIcon />} color="success" label={score} />;
@@ -143,8 +139,6 @@ function RagAuditTableContent() {
 
 export default function RagAuditTable() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <RagAuditTableContent />
-    </QueryClientProvider>
+    <RagAuditTableContent />
   );
 }

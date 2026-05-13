@@ -45,9 +45,9 @@ export function QualificationForm({
     severity: "success",
   });
 
-  const { mutate: addQualification, isLoading: isAdding } =
+  const { mutate: addQualification, isPending: isAdding } =
     useAddQualification();
-  const { mutate: updateQualification, isLoading: isUpdating } =
+  const { mutate: updateQualification, isPending: isUpdating } =
     useUpdateQualification();
 
   const isEditMode = !!qualificationToEdit;

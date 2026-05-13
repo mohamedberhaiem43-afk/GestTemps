@@ -37,7 +37,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -52,7 +52,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -67,7 +67,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -82,7 +82,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -99,7 +99,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -114,7 +114,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -138,7 +138,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
         [HttpGet("get-list-echeance/{soccod}/{uticod}")]
@@ -151,7 +151,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -171,7 +171,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de l'ajout du contrat", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de l'ajout du contrat", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -193,11 +193,11 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors du renouvellement du contrat", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors du renouvellement du contrat", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -215,7 +215,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de modification du contrat", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de modification du contrat", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -251,7 +251,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats qui expirent", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats qui expirent", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -288,7 +288,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats qui expirent", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de recuperer les contrats qui expirent", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -304,7 +304,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de la génération du numéro de contrat", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de la génération du numéro de contrat", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -323,7 +323,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de suppression du contrat", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur lors de suppression du contrat", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
     }

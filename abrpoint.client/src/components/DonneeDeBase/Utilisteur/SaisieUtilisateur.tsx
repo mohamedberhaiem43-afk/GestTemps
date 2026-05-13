@@ -6,7 +6,7 @@ import useGetSiteLibs from "../../../hooks/siteHooks/useGetSiteLibs";
 import useAddUser from "../../../hooks/userHooks/useAddUser";
 import Utilisateur from "../../../models/Utilisateur";
 import { ROLE_OPTIONS } from "../../../models/Utilisateur";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useUserContext } from "../../helper/UserProvider";
 import UtilisateurService from "../../../services/UtilisateurService/UtilisateurService";
 import "./Utilisateur.css";

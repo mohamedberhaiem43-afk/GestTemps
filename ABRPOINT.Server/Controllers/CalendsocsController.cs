@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,7 +25,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération du cumul: {ex.Message}");
+                Console.WriteLine($"Erreur lors de la récupération du cumul: erreur interne");
                 return StatusCode(500, "Erreur interne du serveur");
             }
         }
@@ -39,7 +39,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération de la calendrier: {ex.Message}");
+                Console.WriteLine($"Erreur lors de la récupération de la calendrier: erreur interne");
                 return StatusCode(500, "Erreur interne du serveur");
             }
         }
@@ -53,7 +53,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération de la calendrier: {ex.Message}");
+                Console.WriteLine($"Erreur lors de la récupération de la calendrier: erreur interne");
                 return (IDictionary<string, string>)StatusCode(500, "Erreur interne du serveur");
             }
         }
@@ -68,7 +68,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la modification de la calendrier: {ex.Message}");
+                Console.WriteLine($"Erreur lors de la modification de la calendrier: erreur interne");
                 return StatusCode(500, "Erreur interne du serveur");
             }
         }
@@ -83,7 +83,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'ajout du calendrier: {ex.Message}");
+                Console.WriteLine($"Erreur lors de l'ajout du calendrier: erreur interne");
                 return StatusCode(500, "Erreur interne du serveur");
             }
         }

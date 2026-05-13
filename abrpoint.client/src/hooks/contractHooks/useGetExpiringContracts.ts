@@ -1,4 +1,4 @@
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import apiInstance from '../../components/API/apiInstance';
 
 interface ExpiringContract {
@@ -11,15 +11,16 @@ interface ExpiringContract {
 }
 
 const useGetExpiringContracts = (soccod: string | null) => {
-  return useQuery<ExpiringContract[]>(
-    ['expiring-contracts', soccod],
-    async () => {
+  return useQuery<ExpiringContract[]>({
+    queryKey: ['expiring-contracts', soccod],
+    queryFn: async () => {
       if (!soccod) return [];
       const { data } = await apiInstance.get(`/Contrats/expiring/${soccod}`);
       return data;
     },
-    { enabled: !!soccod, staleTime: 5 * 60 * 1000 }
-  );
+    enabled: !!soccod,
+    staleTime: 5 * 60 * 1000,
+  });
 };
 
 export default useGetExpiringContracts;

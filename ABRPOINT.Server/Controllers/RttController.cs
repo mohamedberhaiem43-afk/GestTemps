@@ -50,7 +50,7 @@ public class RttController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
         }
     }
 

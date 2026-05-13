@@ -1,5 +1,4 @@
-import { Box, Grid } from "@mui/material";
-import { QueryClient, QueryClientProvider } from "react-query";
+﻿import { Box, Grid } from "@mui/material";
 import { ClasseHoraireProvider } from "../helper/ClasseHoraireContext";
 import { Item } from "../helper/Item/Item";
 import PosteHoraireList from "./PosteHoraireList";
@@ -8,14 +7,10 @@ import PeriodiciteNew from "./Periodicite/PeriodiciteNew";
 import BreadcrumbNavigation from "../helper/BreadcrumbNavigation";
 
 export default function ClasseHoraire() {
-  const queryClient = new QueryClient();
-  
   return (
-    <QueryClientProvider client={queryClient}>
-      <ClasseHoraireProvider>
+    <ClasseHoraireProvider>
         <Content />
       </ClasseHoraireProvider>
-    </QueryClientProvider>
   );
 }
 

@@ -80,7 +80,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 

@@ -41,7 +41,13 @@ var connectionString = !string.IsNullOrWhiteSpace(dbName) && !string.IsNullOrWhi
 //     un context bound à la base de ce tenant via le template TenantTemplate.
 //   - Sinon (démarrage, signup, master endpoints, ou simplement dev sans tenant), on retombe
 //     sur DefaultConnection (= base legacy ABRPOINT). Préserve la compat ascendante.
-// Note : on perd le DbContext pooling parce que la connection est dynamique. Acceptable.
+//
+// PERF — Pooling des DbContextOptions par connection string. Avant, chaque requête HTTP
+// reconstruisait un `DbContextOptionsBuilder<>` complet (parse de la connection string,
+// configuration UseSqlServer, callbacks de retry) — coût mesurable sur ~100 req/s ×
+// 50 tenants. Maintenant on cache les `DbContextOptions` finis dans un ConcurrentDictionary
+// indexé par connection string : lookup O(1), construction unique par tenant.
+var _dbOptionsCache = new System.Collections.Concurrent.ConcurrentDictionary<string, DbContextOptions<ApplicationDbContext>>(StringComparer.Ordinal);
 builder.Services.AddScoped<ApplicationDbContext>(sp =>
 {
     var current = sp.GetService<ICurrentTenant>();
@@ -59,9 +65,10 @@ builder.Services.AddScoped<ApplicationDbContext>(sp =>
         resolvedConnStr = connectionString;
     }
 
-    var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-        .UseSqlServer(resolvedConnStr, sql => sql.EnableRetryOnFailure())
-        .Options;
+    var options = _dbOptionsCache.GetOrAdd(resolvedConnStr, cs =>
+        new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlServer(cs, sql => sql.EnableRetryOnFailure())
+            .Options);
     return new ApplicationDbContext(options);
 });
 
@@ -166,6 +173,41 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 3,
                 Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+            });
+    });
+
+    // SEC — Rate limit dédié à /billing/resume-checkout (endpoint anonyme qui prend
+    // email+password et appelle BCrypt.Verify). Sans limite, c'était un canal de
+    // brute-force qui contournait le compteur d'échec lié à /Utilisateurs/connect.
+    // 5/minute/IP : aligné avec auth-login pour cohérence.
+    options.AddPolicy("auth-resume", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ip,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            });
+    });
+
+    // SEC — Endpoints publics potentiellement abusables :
+    //   - /api/contact/* : envoie un email via SMTP authentifié → abus = blacklist OVH.
+    //   - /api/auth/lookup-tenant : permet d'énumérer les emails clients.
+    // 5/heure/IP : adapté à un usage humain normal (un visiteur ne soumet pas plus
+    // de 5 formulaires de contact à l'heure), mais coupe les bots.
+    options.AddPolicy("public-form", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ip,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
                 QueueLimit = 0,
             });
     });
@@ -352,7 +394,25 @@ var app = builder.Build();
 // 'unsafe-inline'/'unsafe-eval' restent nécessaires tant que MUI/emotion injecte
 // du CSS inline et que certaines libs charts (recharts, fullcalendar) compilent
 // du code à la volée. À durcir progressivement quand on aura ajouté des nonces.
+//
+// Plan de durcissement CSP nonce-based (à planifier en sprint dédié, ~1-2j) :
+//   1. Middleware : générer un nonce CSPRNG par requête (RandomNumberGenerator.GetBytes(16)),
+//      le stocker dans HttpContext.Items["csp-nonce"].
+//   2. MapFallbackToFile : remplacer le simple sendFile par un endpoint custom qui lit
+//      index.html, injecte le nonce dans tous les <script>/<link rel="stylesheet"> et le
+//      header CSP correspondant.
+//   3. Vite : configurer `build.rollupOptions.output.entryFileNames` + injecter le nonce
+//      via un plugin (vite-plugin-csp) lors du build.
+//   4. Emotion (MUI) : configurer `createCache({ nonce: <nonce> })` dans main.tsx en lisant
+//      le nonce depuis un <meta name="csp-nonce"> injecté par le serveur.
+//   5. Tester : recharts et @fullcalendar utilisent souvent eval/Function() à la volée. Si
+//      du JS dynamique persiste, garder 'wasm-unsafe-eval' (ciblé) plutôt que 'unsafe-eval'.
+//
+// HSTS (Strict-Transport-Security) ajouté en PROD uniquement : déclarer un max-age
+// non nul sur un dev local en HTTP bloquerait le navigateur sur HTTPS pour la durée
+// du cache, empêchant le retour à HTTP. En dev on omet le header.
 // ─────────────────────────────────────────────────────────────────────────────
+var isProd = app.Environment.IsProduction();
 app.Use(async (context, next) =>
 {
     context.Response.OnStarting(() =>
@@ -368,16 +428,22 @@ app.Use(async (context, next) =>
                 "font-src 'self' data:",
                 "img-src 'self' data: blob: https:",
                 "connect-src 'self' https: wss:",
-                "frame-ancestors 'self'",
+                "frame-ancestors 'none'",
                 "form-action 'self'",
                 "base-uri 'self'",
                 "object-src 'none'"
             });
         }
         if (!h.ContainsKey("X-Content-Type-Options")) h["X-Content-Type-Options"] = "nosniff";
-        if (!h.ContainsKey("X-Frame-Options")) h["X-Frame-Options"] = "SAMEORIGIN";
+        // frame-ancestors 'none' (CSP) couvre déjà X-Frame-Options sur les navigateurs
+        // modernes, mais on garde DENY explicite pour les vieux clients/proxies.
+        if (!h.ContainsKey("X-Frame-Options")) h["X-Frame-Options"] = "DENY";
         if (!h.ContainsKey("Referrer-Policy")) h["Referrer-Policy"] = "strict-origin-when-cross-origin";
         if (!h.ContainsKey("Permissions-Policy")) h["Permissions-Policy"] = "geolocation=(self), camera=(self), microphone=()";
+        // SEC — HSTS uniquement en prod (cf. note plus haut). max-age 1 an + sub-domains
+        // pour couvrir les sous-domaines tenants (<slug>.concorde.com).
+        if (isProd && !h.ContainsKey("Strict-Transport-Security"))
+            h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
         return Task.CompletedTask;
     });
     await next();
@@ -415,12 +481,10 @@ Directory.CreateDirectory(uploadsPath);
 
 app.UseStaticFiles(); // default wwwroot
 
-// Serve /app/uploads or local uploads folder as /uploads
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(uploadsPath),
-    RequestPath = "/api/uploads"  // match the URL you're calling
-});
+// SEC — /api/uploads n'est PLUS servi en static files. Tout passe par
+// UploadsController qui exige [Authorize] et applique des checks anti
+// path-traversal. Sans ce changement, n'importe qui connaissant le GUID
+// d'un bulletin de paie/contrat pouvait le télécharger publiquement.
 using (var scope = app.Services.CreateScope())
 {
     var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
@@ -565,6 +629,13 @@ END");
 
 app.UseDefaultFiles();
 
+// SEC — Handler global d'exception : intercepte tout ce qui remonte sans avoir été
+// capturé par un controller, logue côté serveur avec le TraceIdentifier, et renvoie
+// au client une réponse 500 générique + correlationId (pas de stack trace ni de
+// `ex.Message` SQL/EF). Doit être placé tôt dans le pipeline pour couvrir un max
+// de middlewares.
+app.UseMiddleware<ABRPOINT.Server.Middleware.GlobalExceptionHandler>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -572,7 +643,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseCors("AllowReactApp");
-//app.UseHttpsRedirection();
+// SEC — Redirige HTTP → HTTPS uniquement en prod. En dev, Kestrel sert souvent
+// en HTTP local (http://localhost:xxxx) et le redirect casserait le flow. Doit
+// rester aligné avec HSTS (cf. headers ci-dessus) — les deux sont prod-only.
+if (isProd)
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 
 // Tenant resolver (entre Auth et Authorization pour pouvoir lire les claims JWT

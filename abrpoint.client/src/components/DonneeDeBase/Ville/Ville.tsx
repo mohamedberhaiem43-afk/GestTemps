@@ -6,7 +6,6 @@ import {
   useMaterialReactTable,
 } from 'material-react-table';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import apiInstance from '../../API/apiInstance';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -180,13 +179,8 @@ const VilleTable = () => {
     </Box>
   );
 };
-
-const queryClient = new QueryClient();
-
 const Ville = () => (
-  <QueryClientProvider client={queryClient}>
-    <VilleTable />
-  </QueryClientProvider>
+  <VilleTable />
 );
 
 export default Ville;

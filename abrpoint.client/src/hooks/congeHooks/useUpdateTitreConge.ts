@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Conge } from "../../models/Conge";
 import CongeService from "../../services/CongeService/CongeService";
 

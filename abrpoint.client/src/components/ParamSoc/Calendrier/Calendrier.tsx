@@ -19,15 +19,11 @@ import {
   X,
   AlertCircle
 } from 'lucide-react';
-import { QueryClient, QueryClientProvider } from "react-query";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-const queryClient = new QueryClient();
-
 interface CalendarEntry {
   soccod: string;
   caltype?: string;
@@ -732,11 +728,9 @@ function CalendrierContent() {
 
 function Calendrier() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <CalendrierProvider>
+    <CalendrierProvider>
         <CalendrierContent />
       </CalendrierProvider>
-    </QueryClientProvider>
   )
 }
 

@@ -53,8 +53,8 @@ interface DashboardCongeListProps {
 }
 
 export default function DashboardCongeList({ data = [], isLoading }: DashboardCongeListProps) {
-  const { mutate: acceptConge, isLoading: accepting } = useAcceptDemConge();
-  const { mutate: refuseConge, isLoading: refusing } = useRefuseDemConge();
+  const { mutate: acceptConge, isPending: accepting } = useAcceptDemConge();
+  const { mutate: refuseConge, isPending: refusing } = useRefuseDemConge();
   const { data: absenceLibs } = useGetCongeAbsenceLibs();
 
   const [congeToAccept, setCongeToAccept] = useState<Conge | null>(null);

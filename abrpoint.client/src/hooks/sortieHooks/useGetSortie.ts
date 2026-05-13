@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Autoriser } from "../../models/Autoriser";
 import SortieService from "../../services/SortieService/SortieService";
 import { useAuth } from "../../components/helper/AuthProvider";

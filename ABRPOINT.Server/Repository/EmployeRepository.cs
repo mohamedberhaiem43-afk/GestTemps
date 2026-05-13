@@ -247,7 +247,16 @@ namespace ABRPOINT.Server.Repository
 
         public async Task<IEnumerable<Employe>> GetAllAsync()
         {
-            return await _dbContext.Employes.ToListAsync();
+            // PERF/SEC — Cap dur : bloque le dump complet d'une table qui peut atteindre
+            // plusieurs milliers de lignes sur un gros tenant. Cette méthode n'est utilisée
+            // qu'en fallback interne (cf. GetAllAsync(soccod, uticod) ligne ~554) ; le flux
+            // normal passe par GetBySitcodAndDircod ou GetByEmpcod (filtrés). Si un caller
+            // a réellement besoin de toute la table, il doit passer par une méthode paginée.
+            return await _dbContext.Employes
+                .AsNoTracking()
+                .OrderBy(e => e.Empcod)
+                .Take(2000)
+                .ToListAsync();
         }
 
         public async Task<(TimeSpan? Debut, TimeSpan? Fin)> GetEmpNuitIntervalle(string soccod, string empcod)
@@ -597,11 +606,19 @@ namespace ABRPOINT.Server.Repository
                 if (!string.IsNullOrEmpty(empreg))
                     query = query.Where(e => e.Empreg == empreg);
 
-                var employes = await query.Select(e => new { e.Empcod, e.Emplib })
+                // PERF — Cap dur à 5000 lignes. Sur un tenant ultra-volumineux, le dictionnaire
+                // complet est lourd à transférer ET inutile pour l'UX (un dropdown employés
+                // sans pagination devient inutilisable au-delà). Si un tenant dépasse, l'UI
+                // doit basculer sur une recherche serveur (autocomplete avec ?q=...).
+                var employes = await query.AsNoTracking()
+                                          .Select(e => new { e.Empcod, e.Emplib })
                                           .Distinct()
+                                          .Take(5000)
                                           .ToListAsync();
 
-                var res = employes.ToDictionary(e => e.Empcod, e => e.Emplib);
+                var res = employes
+                    .GroupBy(e => e.Empcod) // Distinct() peut laisser passer des libellés différents
+                    .ToDictionary(g => g.Key, g => g.First().Emplib);
 
                 return res;
             }
@@ -1056,22 +1073,14 @@ namespace ABRPOINT.Server.Repository
             // =====================================
             // 4?? Pré-charger les emparam pour tous les employés
             // =====================================
-            var empparams = new Dictionary<(string, DateTime), EmpparamPointageMois>();
-
+            // PERF — Batch en 3 requêtes SQL au lieu de empcods × dates round-trips.
             var dates = presences
                 .Select(p => p.Date)
                 .Concat(ferierDates)
                 .Distinct()
                 .ToList();
 
-            foreach (var empcod in empcods)
-            {
-                foreach (var date in dates)
-                {
-                    empparams[(empcod, date)] =
-                        await GetEmpparam(soccod, empcod, date, null);
-                }
-            }
+            var empparams = await GetEmpparamBatchAsync(soccod, empcods, dates);
 
             // =====================================
             // 5?? Calcul NbJours (exclusion repos)
@@ -1587,7 +1596,10 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-                return (false, $"Erreur lors de la suppression : {ex.Message}");
+                // SEC — Pas de fuite ex.Message vers le caller (qui le remonte au client).
+                // Le détail est logué côté serveur.
+                _logger.LogError(ex, "Erreur lors de la suppression de l'employé");
+                return (false, "Erreur lors de la suppression de l'employé.");
             }
         }
 
@@ -1676,6 +1688,112 @@ namespace ABRPOINT.Server.Repository
             catch (Exception)
             {
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// PERF — Version batch de <see cref="GetEmpparam"/>. Charge en 3 requêtes SQL
+        /// (employes, lcategories pour codposte, postes) tout le matériel nécessaire,
+        /// puis compose le dictionnaire (empcod, date) → EmpparamPointageMois en mémoire.
+        ///
+        /// Avant cette méthode, l'état périodique mensuel faisait
+        /// `foreach (empcod) foreach (date) await GetEmpparam(...)` → 30 emp × 30 jours
+        /// = 900 round-trips séquentiels (3+ SELECT chacun). Maintenant : ~3 SELECT au total.
+        /// </summary>
+        public async Task<Dictionary<(string Empcod, DateTime Date), EmpparamPointageMois>> GetEmpparamBatchAsync(
+            string soccod,
+            IEnumerable<string> empcods,
+            IEnumerable<DateTime> dates)
+        {
+            var empcodList = empcods.Distinct().ToList();
+            var dateList = dates.Distinct().ToList();
+            var result = new Dictionary<(string, DateTime), EmpparamPointageMois>();
+
+            if (empcodList.Count == 0 || dateList.Count == 0) return result;
+
+            // 1. Tous les employés concernés en une seule requête.
+            var employes = await _dbContext.Employes.AsNoTracking()
+                .Where(e => e.Soccod == soccod && empcodList.Contains(e.Empcod))
+                .Select(e => new
+                {
+                    e.Empcod,
+                    e.Emppanier,
+                    e.Empmaxhre,
+                    e.Empmaxjour,
+                    e.Empminhjour,
+                })
+                .ToDictionaryAsync(e => e.Empcod);
+
+            // 2. Codes poste pour chaque couple (empcod, date) — le helper PosteRepository
+            //    a déjà sa batch interne (1 SELECT employes, 1 SELECT lcategories), pas
+            //    de round-trip par couple.
+            var demandes = empcodList
+                .SelectMany(e => dateList.Select(d => (Empcod: e, Date: d)))
+                .ToList();
+            // GetEmpPosteBatch retourne Dict<empcod, codposte> (indépendant de la date
+            // dans son implémentation actuelle). On en dérive un lookup par empcod.
+            var codePostesByEmp = await _posteRepository.GetEmpPosteBatch(soccod, demandes);
+
+            // 3. Tous les Postes concernés en une seule requête.
+            var codpostes = codePostesByEmp.Values
+                .Where(c => !string.IsNullOrEmpty(c))
+                .Cast<string>()
+                .Distinct()
+                .ToList();
+
+            var postes = codpostes.Count == 0
+                ? new Dictionary<string, Poste>()
+                : await _dbContext.Postes.AsNoTracking()
+                    .Where(p => p.Soccod == soccod && codpostes.Contains(p.Codposte))
+                    .ToDictionaryAsync(p => p.Codposte);
+
+            // 4. Composition en mémoire.
+            foreach (var empcod in empcodList)
+            {
+                if (!employes.TryGetValue(empcod, out var emp)) continue;
+
+                var baseparam = new EmpparamPointageMois
+                {
+                    Emppanier = emp.Emppanier,
+                    Empmaxhre = emp.Empmaxhre,
+                    Empmaxjour = emp.Empmaxjour,
+                    Empminhjour = emp.Empminhjour,
+                };
+
+                codePostesByEmp.TryGetValue(empcod, out var codposte);
+                Poste? poste = null;
+                if (!string.IsNullOrEmpty(codposte))
+                    postes.TryGetValue(codposte, out poste);
+
+                foreach (var date in dateList)
+                {
+                    var entry = new EmpparamPointageMois
+                    {
+                        Emppanier = baseparam.Emppanier,
+                        Empmaxhre = baseparam.Empmaxhre,
+                        Empmaxjour = baseparam.Empmaxjour,
+                        Empminhjour = baseparam.Empminhjour,
+                    };
+                    ApplyPosteParamsForDay(entry, poste, date);
+                    result[(empcod, date)] = entry;
+                }
+            }
+
+            return result;
+        }
+
+        private static void ApplyPosteParamsForDay(EmpparamPointageMois target, Poste? poste, DateTime date)
+        {
+            if (poste is null) return;
+            switch (date.DayOfWeek)
+            {
+                case DayOfWeek.Monday:    target.PosteMaxhre = poste.Maxhrelun; target.PosteMinhJour = poste.Minhjourlun; target.PosteMinhDemiJour = poste.Minhdemijourlun; break;
+                case DayOfWeek.Tuesday:   target.PosteMaxhre = poste.Maxhremar; target.PosteMinhJour = poste.Minhjourmar; target.PosteMinhDemiJour = poste.Minhdemijourmar; break;
+                case DayOfWeek.Wednesday: target.PosteMaxhre = poste.Maxhremer; target.PosteMinhJour = poste.Minhjourmer; target.PosteMinhDemiJour = poste.Minhdemijourmer; break;
+                case DayOfWeek.Thursday:  target.PosteMaxhre = poste.Maxhrejeu; target.PosteMinhJour = poste.Minhjourjeu; target.PosteMinhDemiJour = poste.Minhdemijourjeu; break;
+                case DayOfWeek.Friday:    target.PosteMaxhre = poste.Maxhreven; target.PosteMinhJour = poste.Minhjourven; target.PosteMinhDemiJour = poste.Minhdemijourven; break;
+                case DayOfWeek.Saturday:  target.PosteMaxhre = poste.Maxhresam; target.PosteMinhJour = poste.Minhjoursam; target.PosteMinhDemiJour = poste.Minhdemijoursam; break;
+                case DayOfWeek.Sunday:    target.PosteMaxhre = poste.Maxhredim; target.PosteMinhJour = poste.Minhjourdim; target.PosteMinhDemiJour = poste.Minhdemijourdim; break;
             }
         }
 

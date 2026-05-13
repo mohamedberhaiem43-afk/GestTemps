@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Autocomplete, CircularProgress, TextField } from '@mui/material';
-import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
@@ -25,10 +25,6 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import GroupIcon from '@mui/icons-material/Group';
 import './CahierConge.css';
-
-const queryClient = new QueryClient();
-
-
 function CahierCongePage() {
   const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
@@ -86,17 +82,18 @@ function CahierCongePage() {
   const formattedFin = dateFin + 'T00:00:00';
 
   const {
-    data: cahierData = [],
+    data: cahierDataRaw,
     isLoading,
     refetch,
-  } = useQuery<CahierConge[]>(
-    ['cahier-conge', soccod, dateDebut, dateFin, queryParams],
-    () =>
+  } = useQuery<CahierConge[]>({
+    queryKey: ['cahier-conge', soccod, dateDebut, dateFin, queryParams],
+    queryFn: () =>
       CahierCongeService.getAllWithParams(
         `get-cahier-conge/${soccod}/${formattedDebut}/${formattedFin}?${queryParams}`
       ),
-    { enabled: !!soccod && searchTriggered && !!queryParams }
-  );
+    enabled: !!soccod && searchTriggered && !!queryParams,
+  });
+  const cahierData: CahierConge[] = cahierDataRaw ?? [];
 
   // Load initial dates from parametres API
   useEffect(() => {
@@ -873,8 +870,6 @@ function CahierCongePage() {
 
 export default function CahierCongeWrapper() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <CahierCongePage />
-    </QueryClientProvider>
+    <CahierCongePage />
   );
 }

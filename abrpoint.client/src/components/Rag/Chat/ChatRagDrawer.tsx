@@ -14,7 +14,6 @@ import {
   Typography,
 } from '@mui/material';
 import { keyframes } from '@mui/system';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import GavelIcon from '@mui/icons-material/Gavel';
 import CloseIcon from '@mui/icons-material/Close';
@@ -25,9 +24,6 @@ import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 import RagService, { RagChatAnswer, RagChatSource } from '../../../services/RagService';
 import { useAskRag, useRagFeedback } from '../../../hooks/ragHooks/useRagChat';
-
-const queryClient = new QueryClient();
-
 // Animations CSS — pensées pour rester sobres : un pulse léger sur le FAB pour
 // signaler qu'il est interactif, des points qui rebondissent pendant la
 // recherche, et un float discret sur l'icône d'accueil.
@@ -407,8 +403,6 @@ function ChatRagDrawerContent() {
 
 export default function ChatRagDrawer() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ChatRagDrawerContent />
-    </QueryClientProvider>
+    <ChatRagDrawerContent />
   );
 }

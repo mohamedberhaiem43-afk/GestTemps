@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Lcategorie } from "../../models/Lcategorie";
 import LcategorieService from "../../services/LcategorieService/LcategorieService";
 

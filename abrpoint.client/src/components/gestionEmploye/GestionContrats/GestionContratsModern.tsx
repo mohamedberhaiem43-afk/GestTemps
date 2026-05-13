@@ -15,7 +15,6 @@ import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { Skeleton } from '@mui/material';
 import { staggerSx } from '../../helper/animations/Stagger';
 import { Contrat } from '../../../models/Contrat';
@@ -35,7 +34,6 @@ import OnboardingNextStepHint from '../../Dashboard/OnboardingNextStepHint';
 import { useQuery } from 'react-query';
 import dayjs from 'dayjs';
 import './GestionContratsModern.css';
-
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (d: any) => {
@@ -882,9 +880,7 @@ const GestionContratsModernInner = () => {
 };
 
 const GestionContratsModern = () => (
-  <QueryClientProvider client={new QueryClient()}>
-    <GestionContratsModernInner />
-  </QueryClientProvider>
+  <GestionContratsModernInner />
 );
 
 export default GestionContratsModern;

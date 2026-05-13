@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import apiInstance from "../../components/API/apiInstance";
 
 export interface RenewContractPayload {
@@ -24,7 +24,7 @@ const useRenouvellementContrat = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["contrats"]);
+      queryClient.invalidateQueries({ queryKey: ["contrats"] });
     },
   });
 };

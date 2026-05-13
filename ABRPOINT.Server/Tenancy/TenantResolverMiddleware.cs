@@ -39,7 +39,8 @@ public sealed class TenantResolverMiddleware
         "/api/auth",
         "/api/contact",
         "/swagger",
-        "/api/uploads",
+        // SEC — /api/uploads N'EST PLUS en bypass : passe par UploadsController
+        // qui exige [Authorize] et donc passe par le check tenant_slug.
     };
 
     private static readonly string[] ReservedSubdomains = new[]
@@ -111,13 +112,30 @@ public sealed class TenantResolverMiddleware
             return;
         }
 
-        // Si un JWT est présent et porte un claim tenant_slug, il doit matcher le subdomain courant.
-        var claimSlug = ctx.User?.FindFirst("tenant_slug")?.Value;
-        if (!string.IsNullOrEmpty(claimSlug) && !string.Equals(claimSlug, slug, StringComparison.OrdinalIgnoreCase))
+        // SEC — Tout JWT authentifié sur /api/* DOIT porter un claim tenant_slug qui
+        // matche le tenant résolu. Si le claim est absent ou différent → 401.
+        // Avant ce durcissement, l'absence du claim était silencieusement tolérée :
+        // un JWT émis pour le tenant A passait sur b.concorde.com (compromission
+        // cross-tenant totale).
+        var isAuthenticatedApi = path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
+            && ctx.User?.Identity?.IsAuthenticated == true;
+        if (isAuthenticatedApi)
         {
-            _log.LogWarning("JWT tenant_slug={ClaimSlug} != subdomain={UrlSlug} → reject.", claimSlug, slug);
-            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return;
+            var claimSlug = ctx.User!.FindFirst("tenant_slug")?.Value;
+            if (string.IsNullOrEmpty(claimSlug))
+            {
+                _log.LogWarning("JWT sans claim tenant_slug sur {Path} (slug URL={UrlSlug}) → reject.", path, slug);
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await ctx.Response.WriteAsync("JWT invalide : claim tenant_slug manquant.");
+                return;
+            }
+            if (!string.Equals(claimSlug, slug, StringComparison.OrdinalIgnoreCase))
+            {
+                _log.LogWarning("JWT tenant_slug={ClaimSlug} != subdomain={UrlSlug} → reject.", claimSlug, slug);
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await ctx.Response.WriteAsync("JWT invalide : tenant_slug ne correspond pas au tenant courant.");
+                return;
+            }
         }
 
         current.Set(tenant);

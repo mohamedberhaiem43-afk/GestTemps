@@ -6,7 +6,6 @@ import {
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -532,6 +531,5 @@ function AbsenceSanctionModernContent() {
 }
 
 export default function AbsenceSanctionModern() {
-  const qc = new QueryClient();
-  return <QueryClientProvider client={qc}><AbsenceSanctionModernContent /></QueryClientProvider>;
+  return <AbsenceSanctionModernContent />;
 }

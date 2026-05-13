@@ -18,7 +18,6 @@ import NightlightIcon from '@mui/icons-material/Nightlight';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import GroupIcon from '@mui/icons-material/Group';
 import TuneIcon from '@mui/icons-material/Tune';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 import AccessDenied from '../helper/AccessDenied';
@@ -541,7 +540,7 @@ function ClasseHoraireModernInner() {
   );
   const { mutateAsync: saveLcategorie } = usePostLcategorie();
   const { mutateAsync: updateLcategorie } = useUpdateLcategorie();
-  const { mutateAsync: deleteLcategorie, isLoading: deleting } = useDeleteLcategorie();
+  const { mutateAsync: deleteLcategorie, isPending: deleting } = useDeleteLcategorie();
 
   // Map code → libellé des postes
   const postesMap: Record<string, string> = useMemo(() => {
@@ -1079,11 +1078,9 @@ function ClasseHoraireModernInner() {
 }
 
 const ClasseHoraireModern = () => (
-  <QueryClientProvider client={new QueryClient()}>
-    <ClasseHoraireProvider>
+  <ClasseHoraireProvider>
       <ClasseHoraireModernInner />
     </ClasseHoraireProvider>
-  </QueryClientProvider>
 );
 
 export default ClasseHoraireModern;

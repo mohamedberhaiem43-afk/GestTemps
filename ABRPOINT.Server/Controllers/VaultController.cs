@@ -464,14 +464,13 @@ namespace ABRPOINT.Server.Controllers
                 // Sinon : fall-through vers le retour standard du fichier brut.
             }
 
-            var memory = new MemoryStream();
-            using (var stream = new FileStream(filePath, FileMode.Open))
-            {
-                await stream.CopyToAsync(memory);
-            }
-            memory.Position = 0;
-
-            return File(memory, GetContentType(filePath), doc.DocName);
+            // PERF — Streaming direct depuis disque (ASP.NET dispose le stream après le
+            // PipeWriter). Avant : tout le fichier (jusqu'à 20 Mo pour un PDF signé) était
+            // copié dans un MemoryStream → GC pressure + LOH fragmentation sous charge.
+            // FileOptions.Asynchronous + SequentialScan = lecture optimisée pour streaming.
+            var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                bufferSize: 4096, options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+            return File(fileStream, GetContentType(filePath), doc.DocName, enableRangeProcessing: true);
         }
 
         // SEC-06 — Preview : même ownership check que download.
@@ -516,21 +515,19 @@ namespace ABRPOINT.Server.Controllers
                     return File(pdf, "application/pdf", doc.DocName.Replace(".frx", ".pdf").Replace(".html", ".pdf"));
                 }
                 catch (Exception ex) {
-                    return BadRequest(new { message = "Impossible de générer l'aperçu : " + ex.Message });
+                    return BadRequest(new { message = "Impossible de générer l'aperçu : " });
                 }
             }
 
             var contentType = GetContentType(filePath);
-            var memory = new MemoryStream();
-            using (var stream = new FileStream(filePath, FileMode.Open))
-            {
-                await stream.CopyToAsync(memory);
-            }
-            memory.Position = 0;
+
+            // PERF — Streaming direct (cf. Download). Pas de buffering complet en mémoire.
+            var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                bufferSize: 4096, options: FileOptions.Asynchronous | FileOptions.SequentialScan);
 
             // Inline disposition — browser renders it instead of downloading
             Response.Headers["Content-Disposition"] = $"inline; filename=\"{doc.DocName}\"";
-            return File(memory, contentType);
+            return File(fileStream, contentType, enableRangeProcessing: true);
         }
 
         // SEC-07 — La signature électronique a une valeur juridique (verrouille la

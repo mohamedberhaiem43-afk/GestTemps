@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
@@ -88,7 +88,7 @@ namespace ABRPOINT.Server.Controllers
             catch (Exception ex)
             {
                 // optional: log ex
-                return StatusCode(500, new { message = "Erreur interne du serveur", error = ex.Message });
+                return StatusCode(500, new { message = "Erreur interne du serveur", error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -113,7 +113,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur interne du serveur", error = ex.Message });
+                return StatusCode(500, new { message = "Erreur interne du serveur", error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 

@@ -116,7 +116,78 @@ public static class BaseDataSchemaMigrator
         // collaborateur reste vide. Idempotent : on n'écrit que si la table est nulle.
         await SeedNationsIfEmptyAsync(db, ct);
 
+        // PERF — Indexes critiques sur les hot-paths (présence, notifications, vault,
+        // congés, autorisations, push tokens, employés, audit). Création idempotente
+        // par vérification dans sys.indexes. Sans ces index, l'état périodique mensuel
+        // sur >1M lignes de présence passe de ~50 ms à plusieurs secondes (scan complet).
+        await EnsurePerformanceIndexesAsync(db, ct);
+
         return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise, siteGeofenceAdded, refreshTokenColumnsAdded);
+    }
+
+    /// <summary>
+    /// PERF — Crée les index non-clustered identifiés par l'audit performance, si
+    /// absents. Chaque création est gardée par :
+    ///   1. Existence de la table cible (TableExistsAsync) — évite l'erreur "Invalid
+    ///      object name" sur les bases qui n'ont pas tout le schéma (legacy).
+    ///   2. Absence de l'index dans sys.indexes — idempotent.
+    /// Toute exception est avalée individuellement pour qu'un index manquant
+    /// n'empêche pas la création des suivants. Le caller ignore déjà les erreurs
+    /// de migration (cf. middleware) donc l'app boot toujours.
+    /// </summary>
+    private static async Task EnsurePerformanceIndexesAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var indexes = new (string Table, string IndexName, string CreateSql)[]
+        {
+            ("presence", "ix_presence_soccod_predat",
+                "CREATE NONCLUSTERED INDEX ix_presence_soccod_predat ON presence (soccod, predat) INCLUDE (empcod, preentmatup, presortmatup, preentamidiup, presortamidiup, tothre, tothsup, tothabs);"),
+            ("presence", "ix_presence_empcod_predat",
+                "CREATE NONCLUSTERED INDEX ix_presence_empcod_predat ON presence (empcod, predat DESC);"),
+            ("notification", "ix_notification_uticod_isread",
+                "CREATE NONCLUSTERED INDEX ix_notification_uticod_isread ON notification (uticod, isread) INCLUDE (createdat, title, category);"),
+            ("documentvault", "ix_documentvault_soccod_empcod_docdate",
+                "CREATE NONCLUSTERED INDEX ix_documentvault_soccod_empcod_docdate ON documentvault (soccod, empcod, docdate DESC) INCLUDE (docname, doctype, docsize, issigned, status);"),
+            ("demconge", "ix_demconge_soccod_condg",
+                "CREATE NONCLUSTERED INDEX ix_demconge_soccod_condg ON demconge (soccod, condg) INCLUDE (empcod, condep, conret, condat);"),
+            ("pushtoken", "ix_pushtoken_uticod_active",
+                "CREATE NONCLUSTERED INDEX ix_pushtoken_uticod_active ON pushtoken (uticod, active) INCLUDE (token);"),
+            ("employe", "ix_employe_soccod_empetat",
+                "CREATE NONCLUSTERED INDEX ix_employe_soccod_empetat ON employe (soccod, empetat) INCLUDE (empcod, empmat, emplib, sercod, secncod, dircod, sitcod);"),
+            ("demandeautorisation", "ix_demandeautorisation_soccod_statut",
+                "CREATE NONCLUSTERED INDEX ix_demandeautorisation_soccod_statut ON demandeautorisation (soccod, statut) INCLUDE (empcod, condep, conret, abscod);"),
+            ("auditlog", "ix_auditlog_uticod_createdat",
+                "CREATE NONCLUSTERED INDEX ix_auditlog_uticod_createdat ON auditlog (uticod, createdat DESC);"),
+            // SEC — Refresh tokens : la rotation et le logout filtrent uticod + revoked + expires_at.
+            ("RefreshTokens", "ix_refresh_tokens_uticod_revoked_expires",
+                "CREATE NONCLUSTERED INDEX ix_refresh_tokens_uticod_revoked_expires ON RefreshTokens (Uticod, Revoked, ExpiresAt);"),
+        };
+
+        foreach (var (table, indexName, createSql) in indexes)
+        {
+            try
+            {
+                if (!await TableExistsAsync(db, table, ct)) continue;
+                if (await IndexExistsAsync(db, table, indexName, ct)) continue;
+                await db.Database.ExecuteSqlRawAsync(createSql, ct);
+            }
+            catch
+            {
+                // Best-effort : on n'interrompt jamais l'app pour un index manquant.
+                // Le scan complet reste fonctionnel ; on retentera au prochain boot.
+            }
+        }
+    }
+
+    private static async Task<bool> IndexExistsAsync(ApplicationDbContext db, string tableName, string indexName, CancellationToken ct)
+    {
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(1) FROM sys.indexes WHERE name = @i AND object_id = OBJECT_ID(@t);";
+        var pi = cmd.CreateParameter(); pi.ParameterName = "@i"; pi.Value = indexName; cmd.Parameters.Add(pi);
+        var pt = cmd.CreateParameter(); pt.ParameterName = "@t"; pt.Value = tableName; cmd.Parameters.Add(pt);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return Convert.ToInt32(result) > 0;
     }
 
     /// <summary>

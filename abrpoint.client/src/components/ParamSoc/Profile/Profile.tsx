@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Alert, Snackbar } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -26,9 +25,6 @@ import { useAuth } from '../../helper/AuthProvider';
 import { resolveAssetUrl } from '../../../helpers/assetUrl';
 import './Profile.css';
 import NotificationPreferences from '../../Profil/NotificationPreferences';
-
-const queryClient = new QueryClient();
-
 function getInitials(nom: string | null, prn: string | null) {
   const n = nom?.trim() || '';
   const p = prn?.trim() || '';
@@ -634,8 +630,6 @@ function ProfilePage() {
 
 export default function Profile() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ProfilePage />
-    </QueryClientProvider>
+    <ProfilePage />
   );
 }

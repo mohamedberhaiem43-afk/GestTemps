@@ -109,6 +109,13 @@ public class BulkImportController : ControllerBase
             .ToHashSet();
         var inserted = 0; var skipped = 0; var errors = new List<string>();
 
+        // PERF — Une seule lecture des codes existants + un seul SaveChanges en fin
+        // de boucle. Avant : N round-trips de génération + N SaveChanges → 500 lignes
+        // pouvaient prendre 30 s ; maintenant ~1 s.
+        var gen = await SequentialCodeGenerator.CreateBatchAsync(
+            _db.Services.IgnoreQueryFilters().Where(s => s.Soccod == soccod).Select(s => s.Sercod),
+            width: 4);
+
         foreach (var row in req.Rows)
         {
             var lib = row.Serlib?.Trim();
@@ -116,13 +123,17 @@ public class BulkImportController : ControllerBase
             if (existing.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
             try
             {
-                var code = await SequentialCodeGenerator.NextServiceCodeAsync(_db, soccod);
+                var code = gen.Next();
                 _db.Services.Add(new Service { Sercod = code, Soccod = soccod, Serlib = lib, CreatedAt = DateTime.UtcNow });
-                await _db.SaveChangesAsync();
                 existing.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+        }
+        if (inserted > 0)
+        {
+            try { await _db.SaveChangesAsync(); }
+            catch (Exception ex) { errors.Add($"SaveChanges global: erreur interne"); inserted = 0; }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -141,6 +152,11 @@ public class BulkImportController : ControllerBase
             .ToHashSet();
         var inserted = 0; var skipped = 0; var errors = new List<string>();
 
+        // PERF — Batch en mémoire (cf. ImportServices ci-dessus).
+        var gen = await SequentialCodeGenerator.CreateBatchAsync(
+            _db.Fonctions.IgnoreQueryFilters().Where(f => f.Soccod == soccod).Select(f => f.Foncod),
+            width: 6);
+
         foreach (var row in req.Rows)
         {
             var lib = row.Fonlib?.Trim();
@@ -148,13 +164,17 @@ public class BulkImportController : ControllerBase
             if (existing.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
             try
             {
-                var code = await SequentialCodeGenerator.NextFonctionCodeAsync(_db, soccod);
+                var code = gen.Next();
                 _db.Fonctions.Add(new Fonction { Foncod = code, Soccod = soccod, Fonlib = lib, Fontype = row.Fontype?.Trim(), CreatedAt = DateTime.UtcNow });
-                await _db.SaveChangesAsync();
                 existing.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+        }
+        if (inserted > 0)
+        {
+            try { await _db.SaveChangesAsync(); }
+            catch (Exception ex) { errors.Add($"SaveChanges global: erreur interne"); inserted = 0; }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -296,7 +316,7 @@ public class BulkImportController : ControllerBase
             catch (Exception ex)
             {
                 _log.LogWarning(ex, "Import employé échoué pour {Name}", name);
-                errors.Add($"{name}: {ex.Message}");
+                errors.Add($"{name}: erreur interne");
             }
         }
         return Ok(new ImportReport(inserted, skipped, created, errors));
@@ -317,15 +337,18 @@ public class BulkImportController : ControllerBase
             .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c!.Trim().ToLowerInvariant()).ToHashSet();
         var inserted = 0; var skipped = 0; var errors = new List<string>();
 
+        // PERF — Batch en mémoire pour les codes auto-générés (largeur 4, cf. SequentialCodeGenerator).
+        var gen = await SequentialCodeGenerator.CreateBatchAsync(
+            _db.Directions.IgnoreQueryFilters().Where(d => d.Soccod == soccod).Select(d => d.Dircod),
+            width: 4);
+
         foreach (var row in req.Rows)
         {
             var lib = row.Dirlib?.Trim();
             if (string.IsNullOrWhiteSpace(lib)) { skipped++; continue; }
             try
             {
-                var code = string.IsNullOrWhiteSpace(row.Dircod)
-                    ? await SequentialCodeGenerator.NextDirectionCodeAsync(_db, soccod)
-                    : row.Dircod!.Trim();
+                var code = string.IsNullOrWhiteSpace(row.Dircod) ? gen.Next() : row.Dircod!.Trim();
                 if (existingCodes.Contains(code.ToUpperInvariant()) || existingLibs.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
 
                 _db.Directions.Add(new Direction
@@ -334,12 +357,16 @@ public class BulkImportController : ControllerBase
                     Dirloc = row.Dirloc?.Trim(), Diremail = row.Diremail?.Trim(), Dirresp = row.Dirresp?.Trim(),
                     CreatedAt = DateTime.UtcNow,
                 });
-                await _db.SaveChangesAsync();
                 existingCodes.Add(code.ToUpperInvariant());
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+        }
+        if (inserted > 0)
+        {
+            try { await _db.SaveChangesAsync(); }
+            catch (Exception ex) { errors.Add($"SaveChanges global: erreur interne"); inserted = 0; }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -375,7 +402,7 @@ public class BulkImportController : ControllerBase
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -404,7 +431,7 @@ public class BulkImportController : ControllerBase
                 existingCodes.Add(code.ToUpperInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -433,7 +460,7 @@ public class BulkImportController : ControllerBase
                 existingCodes.Add(code.ToUpperInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -491,7 +518,7 @@ public class BulkImportController : ControllerBase
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -521,7 +548,7 @@ public class BulkImportController : ControllerBase
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: {ex.Message}"); }
+            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }

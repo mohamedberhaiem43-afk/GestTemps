@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import PosteService from "../../services/PosteService";
 import { UpdatePoste } from "../../models/PosteDto";
 

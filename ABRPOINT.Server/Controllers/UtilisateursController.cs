@@ -34,6 +34,7 @@ namespace GestionDesTickets.Server.Controllers
         private readonly EncryptionService _encryptionService;
         private readonly IPasswordBreachChecker _passwordBreach;
         private readonly IKnownDeviceService _knownDevices;
+        private readonly TwoFactorSecretProtector _totpProtector;
         public UtilisateursController(
             IConfiguration configuration,
             ApplicationDbContext dbContext,
@@ -41,7 +42,8 @@ namespace GestionDesTickets.Server.Controllers
             ICurrentTenant currentTenant,
             EncryptionService encryptionService,
             IPasswordBreachChecker passwordBreach,
-            IKnownDeviceService knownDevices)
+            IKnownDeviceService knownDevices,
+            TwoFactorSecretProtector totpProtector)
         {
             _configuration = configuration;
             _dbContext = dbContext;
@@ -50,6 +52,7 @@ namespace GestionDesTickets.Server.Controllers
             _encryptionService = encryptionService;
             _passwordBreach = passwordBreach;
             _knownDevices = knownDevices;
+            _totpProtector = totpProtector;
         }
         private bool IsHttpsRequest()
         {
@@ -98,28 +101,70 @@ namespace GestionDesTickets.Server.Controllers
         [Authorize]
         [HttpGet]
         [Admin]
-        public async Task<IActionResult> GetAllUtilisateurs()
+        // PERF — Pagination opt-in pour éviter de charger l'ensemble de la table
+        // Utilisateurs (peut atteindre quelques milliers de lignes sur un gros tenant).
+        //
+        // Contrats supportés :
+        //   • Aucun param fourni → array `[]` direct (rétrocompat avec les callers
+        //     historiques qui font `getAllWithoutParams()`), avec un cap dur de 1000.
+        //   • Au moins `page`, `pageSize` ou `q` fourni → objet `{items, total, page, pageSize}`
+        //     pour pagination explicite et recherche serveur.
+        //
+        // Tout pageSize > 200 est ramené à 200 (anti-DoS soft).
+        public async Task<IActionResult> GetAllUtilisateurs([FromQuery] int? page = null, [FromQuery] int? pageSize = null, [FromQuery] string? q = null)
         {
             try
             {
-                var users = await _dbContext.Utilisateurs
-                    .Select(u => new {
-                        u.Uticod,
-                        u.Utinom,
-                        u.Utiprn,
-                        u.Utimail,
-                        u.Utiactif,
-                        u.Utiadm,
-                        u.Utirole,
-                        uti2fa_enabled = u.UtiTwoFactorEnabled,
-                        u.Utiimg
-                    })
-                    .ToListAsync();
-                return Ok(users);
+                var paginationRequested = page.HasValue || pageSize.HasValue || !string.IsNullOrWhiteSpace(q);
+
+                var query = _dbContext.Utilisateurs.AsNoTracking();
+                if (!string.IsNullOrWhiteSpace(q))
+                {
+                    var term = q.Trim();
+                    query = query.Where(u =>
+                        (u.Uticod != null && u.Uticod.Contains(term)) ||
+                        (u.Utimail != null && u.Utimail.Contains(term)) ||
+                        (u.Utinom != null && u.Utinom.Contains(term)) ||
+                        (u.Utiprn != null && u.Utiprn.Contains(term)));
+                }
+
+                if (paginationRequested)
+                {
+                    var p = page is null or < 1 ? 1 : page.Value;
+                    var ps = pageSize is null or < 1 ? 50 : pageSize.Value;
+                    if (ps > 200) ps = 200;
+
+                    var total = await query.CountAsync();
+                    var items = await query
+                        .OrderBy(u => u.Uticod)
+                        .Skip((p - 1) * ps)
+                        .Take(ps)
+                        .Select(u => new {
+                            u.Uticod, u.Utinom, u.Utiprn, u.Utimail, u.Utiactif,
+                            u.Utiadm, u.Utirole, uti2fa_enabled = u.UtiTwoFactorEnabled, u.Utiimg
+                        })
+                        .ToListAsync();
+                    return Ok(new { items, total, page = p, pageSize = ps });
+                }
+                else
+                {
+                    // Mode rétrocompat : array direct + cap dur à 1000 pour bloquer le DoS.
+                    var users = await query
+                        .OrderBy(u => u.Uticod)
+                        .Take(1000)
+                        .Select(u => new {
+                            u.Uticod, u.Utinom, u.Utiprn, u.Utimail, u.Utiactif,
+                            u.Utiadm, u.Utirole, uti2fa_enabled = u.UtiTwoFactorEnabled, u.Utiimg
+                        })
+                        .ToListAsync();
+                    return Ok(users);
+                }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { Message = "Error fetching users", Error = ex.Message });
+                // SEC — Ne pas exposer ex.Message (cf. GlobalExceptionHandler) ; le détail
+                // est logué côté serveur via le middleware.
+                return StatusCode(500, new { Message = "Error fetching users" });
             }
         }
 
@@ -169,20 +214,50 @@ namespace GestionDesTickets.Server.Controllers
         [Admin]
         [ValidateSoccod]
         [HttpPost("add-user/{soccod}/{sitcod}")]
-        public async Task<IActionResult> AddUtilisateur([FromBody] Utilisateur utilisateur,string sitcod,string soccod)
+        // SEC — Binding via DTO whitelist (CreateUtilisateurDto) au lieu de l'entité
+        // Utilisateur directement. Empêche un caller (même admin tenant) de poser
+        // UtiTwoFactorSecret/UtiTwoFactorEnabled/UtiResetCode/UtiFailedLogins/UtiLockoutUntil
+        // (potentielle escalade ou neutralisation 2FA d'autres comptes par ricochet).
+        public async Task<IActionResult> AddUtilisateur([FromBody] CreateUtilisateurDto dto, string sitcod, string soccod)
         {
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Uticod) || string.IsNullOrWhiteSpace(dto.Utimps))
+                return BadRequest(new { message = "Uticod et mot de passe requis." });
+
             try
             {
+                // Mapping explicite — tout champ absent du DTO reste null/default sur l'entité.
+                var utilisateur = new Utilisateur
+                {
+                    Uticod = dto.Uticod,
+                    Utinom = dto.Utinom,
+                    Utiprn = dto.Utiprn,
+                    Utimps = dto.Utimps,
+                    Utiactif = dto.Utiactif,
+                    Utiadm = dto.Utiadm,
+                    Utimail = dto.Utimail,
+                    Utiimg = dto.Utiimg,
+                    Utirole = dto.Utirole,
+                    // Champs sensibles non bindables : restent null par défaut.
+                    UtiTwoFactorEnabled = null,
+                    UtiTwoFactorSecret = null,
+                    UtiResetCode = null,
+                    UtiResetCodeExpiry = null,
+                    UtiFailedLogins = 0,
+                    UtiLockoutUntil = null,
+                };
 
-                Socuser socuser = new Socuser();
-                socuser.Uticod = utilisateur.Uticod;
-                socuser.Soccod = soccod;
-                socuser.Sitcod = sitcod;
-                await _utilisateurRepository.AddAsync(utilisateur,socuser);
-                return  Ok(utilisateur);
+                var socuser = new Socuser
+                {
+                    Uticod = utilisateur.Uticod,
+                    Soccod = soccod,
+                    Sitcod = sitcod,
+                };
+                await _utilisateurRepository.AddAsync(utilisateur, socuser);
+                return Ok(new { uticod = utilisateur.Uticod });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
+                // SEC — Ne pas exposer ex.Message (le détail va dans le GlobalExceptionHandler).
                 return StatusCode(500, new { message = "Erreur lors de l'ajout de l'utilisateur." });
             }
         }
@@ -397,7 +472,12 @@ namespace GestionDesTickets.Server.Controllers
                 if (dbUser.UtiTwoFactorEnabled != "1" || string.IsNullOrEmpty(dbUser.UtiTwoFactorSecret))
                     return BadRequest("2FA not enabled for user.");
 
-                var secretBytes = Base32Encoding.ToBytes(dbUser.UtiTwoFactorSecret);
+                // SEC — Secret stocké chiffré (TwoFactorSecretProtector). On déchiffre
+                // pour reformer le secret Base32 attendu par Otp.NET.
+                var rawSecret = _totpProtector.Unprotect(dbUser.UtiTwoFactorSecret);
+                if (string.IsNullOrEmpty(rawSecret))
+                    return BadRequest("2FA not enabled for user.");
+                var secretBytes = Base32Encoding.ToBytes(rawSecret);
                 var totp = new Totp(secretBytes);
                 if (!totp.VerifyTotp(request.Code, out _, new VerificationWindow(1, 1)))
                 {
@@ -457,7 +537,9 @@ namespace GestionDesTickets.Server.Controllers
                 Response.Cookies.Append("accessToken", accessToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddMinutes(30)));
                 Response.Cookies.Append("refreshToken", refreshToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
                 Response.Cookies.Append("uticod", dbUser.Uticod ?? string.Empty, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
-                Response.Cookies.Append("admin", dbUser.Utiadm ?? "0", CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7), httpOnly: false));
+                // SEC — Cookie posé en HttpOnly : aucune raison fonctionnelle de le laisser
+                // accessible au JS, le front lit l'info admin depuis /me (réponse JSON).
+                Response.Cookies.Append("admin", dbUser.Utiadm ?? "0", CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(7)));
 
                 // Détection de nouvel appareil/réseau + alerte email. Best-effort,
                 // n'interrompt jamais le login en cas d'erreur. Couvre les deux chemins
@@ -545,7 +627,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while refreshing token", error = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while refreshing token", error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -572,7 +654,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Erreur interne lors de la suppression.", Details = ex.Message });
+                return StatusCode(500, new { Message = "Erreur interne lors de la suppression.", Details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -593,7 +675,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Erreur lors de la réinitialisation.", Details = ex.Message });
+                return StatusCode(500, new { Message = "Erreur lors de la réinitialisation.", Details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -611,7 +693,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Erreur lors de la mise à jour du statut.", Details = ex.Message });
+                return StatusCode(500, new { Message = "Erreur lors de la mise à jour du statut.", Details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -760,7 +842,7 @@ namespace GestionDesTickets.Server.Controllers
                 Response.Cookies.Delete("accessToken", CreateDeleteCookieOptions());
                 Response.Cookies.Delete("refreshToken", CreateDeleteCookieOptions());
                 Response.Cookies.Delete("uticod", CreateDeleteCookieOptions());
-                Response.Cookies.Delete("admin", CreateDeleteCookieOptions(httpOnly: false));
+                Response.Cookies.Delete("admin", CreateDeleteCookieOptions());
 
                 return Ok(new { message = "Logged out successfully" });
             }
@@ -953,7 +1035,11 @@ namespace GestionDesTickets.Server.Controllers
                 var secretKey = KeyGeneration.GenerateRandomKey(20);
                 var base32Secret = Base32Encoding.ToString(secretKey);
 
-                user.UtiTwoFactorSecret = base32Secret;
+                // SEC — Stockage chiffré via TwoFactorSecretProtector (clé dérivée
+                // HKDF d'Encryption:AesKey, séparée de la clé PII). Un dump SQL ne
+                // permet plus de régénérer les codes 2FA sans connaître aussi la
+                // clé maître.
+                user.UtiTwoFactorSecret = _totpProtector.Protect(base32Secret);
                 user.UtiTwoFactorEnabled = "0";
                 await _dbContext.SaveChangesAsync();
 
@@ -984,7 +1070,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error enabling 2FA", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error enabling 2FA", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1005,7 +1091,11 @@ namespace GestionDesTickets.Server.Controllers
                 if (string.IsNullOrEmpty(user.UtiTwoFactorSecret))
                     return BadRequest(new { Message = "2FA not initialized." });
 
-                var secretBytes = Base32Encoding.ToBytes(user.UtiTwoFactorSecret);
+                // SEC — Déchiffrement du secret protégé avant vérification.
+                var rawSecret = _totpProtector.Unprotect(user.UtiTwoFactorSecret);
+                if (string.IsNullOrEmpty(rawSecret))
+                    return BadRequest(new { Message = "2FA not initialized." });
+                var secretBytes = Base32Encoding.ToBytes(rawSecret);
                 var totp = new Totp(secretBytes);
 
                 if (totp.VerifyTotp(request.Code, out _, new VerificationWindow(1, 1)))
@@ -1019,7 +1109,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error verifying 2FA", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error verifying 2FA", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1047,7 +1137,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error disabling 2FA", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error disabling 2FA", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1065,7 +1155,11 @@ namespace GestionDesTickets.Server.Controllers
                 if (string.IsNullOrEmpty(user.UtiTwoFactorSecret))
                     return BadRequest(new { Message = "2FA not configured" });
 
-                var secretBytes = Base32Encoding.ToBytes(user.UtiTwoFactorSecret);
+                // SEC — Déchiffrement du secret protégé avant vérification.
+                var rawSecret = _totpProtector.Unprotect(user.UtiTwoFactorSecret);
+                if (string.IsNullOrEmpty(rawSecret))
+                    return BadRequest(new { Message = "2FA not configured" });
+                var secretBytes = Base32Encoding.ToBytes(rawSecret);
                 var totp = new Totp(secretBytes);
 
                 if (totp.VerifyTotp(request.Code, out _, new VerificationWindow(1, 1)))
@@ -1077,7 +1171,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error verifying 2FA", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error verifying 2FA", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1116,7 +1210,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Erreur lors de la demande de réinitialisation.", Error = ex.Message });
+                return StatusCode(500, new { Message = "Erreur lors de la demande de réinitialisation.", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1161,7 +1255,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Erreur lors de la réinitialisation.", Error = ex.Message });
+                return StatusCode(500, new { Message = "Erreur lors de la réinitialisation.", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1192,7 +1286,7 @@ namespace GestionDesTickets.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Error updating role", Error = ex.Message });
+                return StatusCode(500, new { Message = "Error updating role", Error = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -1214,11 +1308,19 @@ namespace GestionDesTickets.Server.Controllers
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+            // SEC — Le claim tenant_slug isole le JWT au tenant qui l'a émis. Le
+            // middleware TenantResolverMiddleware rejette toute requête authentifiée
+            // dont le slug d'URL ne matche pas ce claim → un JWT volé sur le tenant A
+            // ne peut pas être rejoué sur b.concorde.com.
+            var tenantSlug = _currentTenant?.Current?.Slug
+                ?? throw new InvalidOperationException("Tenant context manquant lors de l'émission du JWT.");
+
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, username),
                 new Claim(ClaimTypes.NameIdentifier, username),
                 new Claim(ClaimTypes.Name, username),
+                new Claim("tenant_slug", tenantSlug),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
@@ -1250,10 +1352,13 @@ namespace GestionDesTickets.Server.Controllers
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var tenantSlug = _currentTenant?.Current?.Slug
+                ?? throw new InvalidOperationException("Tenant context manquant lors de l'émission du JWT 2FA-pending.");
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, uticod),
                 new Claim("purpose", "2fa-pending"),
+                new Claim("tenant_slug", tenantSlug),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
             var token = new JwtSecurityToken(

@@ -11,7 +11,6 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import { AbsenceProvider, useAbsenceContext } from '../../helper/AbsenceContext';
 import useGetAllAbsences from '../../../hooks/absenceHooks/useGetAllAbsence';
@@ -103,7 +102,7 @@ function IntituleDesAbsencesModernInner() {
 
   const { data: absences = [], isLoading, refetch } = useGetAllAbsences();
   const { mutate: addAbsence, isLoading: adding } = useAddAbsence();
-  const { mutate: editAbsence, isLoading: editing } = useUpdateAbsence();
+  const { mutate: editAbsence, isPending: editing } = useUpdateAbsence();
   const { mutate: deleteAbsence } = useDeleteAbsence();
 
   const isSaving = adding || editing;
@@ -379,11 +378,9 @@ function IntituleDesAbsencesModernInner() {
 }
 
 const IntituleDesAbsencesModern = () => (
-  <QueryClientProvider client={new QueryClient()}>
-    <AbsenceProvider>
+  <AbsenceProvider>
       <IntituleDesAbsencesModernInner />
     </AbsenceProvider>
-  </QueryClientProvider>
 );
 
 export default IntituleDesAbsencesModern;

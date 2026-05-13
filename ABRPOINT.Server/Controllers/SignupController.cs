@@ -399,7 +399,8 @@ public class SignupController : ControllerBase
             var token = IssueAdminJwt(slug, "AD");
             Response.Cookies.Append("accessToken", token, BuildAuthCookie(DateTimeOffset.UtcNow.AddHours(1)));
             Response.Cookies.Append("uticod", "AD", BuildAuthCookie(DateTimeOffset.UtcNow.AddDays(7)));
-            Response.Cookies.Append("admin", "1", BuildAuthCookie(DateTimeOffset.UtcNow.AddDays(7), httpOnly: false));
+            // SEC — Cookie HttpOnly : le statut admin est lu par le front via /me, pas via document.cookie.
+            Response.Cookies.Append("admin", "1", BuildAuthCookie(DateTimeOffset.UtcNow.AddDays(7)));
 
             var rootDomain = _cfg["Hosting:RootDomain"] ?? "concorde.com";
             var redirectUrl = $"https://{slug}.{rootDomain}/dashboard";

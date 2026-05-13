@@ -1,6 +1,10 @@
-import axios from "axios";
 import Utilisateur from "../../models/Utilisateur";
 import ApiClient from "../apiClient";
+// SEC/PERF — Centralisation sur apiInstance singleton :
+//   - header X-Tenant-Slug garanti ;
+//   - interceptor refresh-token coalescé propagé ;
+//   - plus de duplication d'instance.
+import apiInstance from "../../components/API/apiInstance";
 
 class UtilisateurServiceClass extends ApiClient<Utilisateur> {
     constructor() {
@@ -8,23 +12,18 @@ class UtilisateurServiceClass extends ApiClient<Utilisateur> {
     }
 
     deleteUser = (uticod: string) => {
-        return axiosInstance.delete(`${this.endPoint}/delete/${uticod}`).then(res => res.data);
+        return apiInstance.delete(`${this.endPoint}/delete/${uticod}`).then(res => res.data);
     };
 
     resetPassword = (uticod: string, newPassword: string) => {
-        return axiosInstance.post(`${this.endPoint}/reset-password-admin/${uticod}`, { NewPassword: newPassword }, {
+        return apiInstance.post(`${this.endPoint}/reset-password-admin/${uticod}`, { NewPassword: newPassword }, {
             headers: { 'Content-Type': 'application/json' }
         }).then(res => res.data);
     };
 
     toggleStatus = (uticod: string) => {
-        return axiosInstance.post(`${this.endPoint}/toggle-status/${uticod}`).then(res => res.data);
+        return apiInstance.post(`${this.endPoint}/toggle-status/${uticod}`).then(res => res.data);
     };
 }
-
-const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_REACT_APP_API_URL,
-    withCredentials: true,
-});
 
 export default new UtilisateurServiceClass();

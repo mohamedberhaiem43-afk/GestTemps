@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircularProgress } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 
 // Icons
@@ -30,9 +29,6 @@ import RenewContractDialog from '../../gestionEmploye/GestionContrats/RenewContr
 import { Contrat } from '../../../models/Contrat';
 
 import '../EtatAbsence/Etatabsence.css';
-
-const queryClient = new QueryClient();
-
 // Heuristique d'urgence : nombre de jours restants → couleur de badge.
 const urgencyClass = (daysLeft: number) => {
   if (daysLeft <= 0) return 'ea-abs-badge-red';
@@ -375,8 +371,6 @@ function EcheanceContratInner() {
 
 export default function EcheanceContrat() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <EcheanceContratInner />
-    </QueryClientProvider>
+    <EcheanceContratInner />
   );
 }

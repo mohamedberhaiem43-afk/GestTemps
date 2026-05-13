@@ -1,87 +1,96 @@
-import { Box, IconButton, Tooltip, useTheme as useMuiTheme, Typography, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import React from 'react';
+import { Box, IconButton, Tooltip, useTheme as useMuiTheme, Typography, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider, CircularProgress } from '@mui/material';
 import { Search as SearchIcon, X as CloseIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-/* ── Page components (Synchronous for maximum compatibility) ── */
-import FilialeModern from '../DonneeDeBase/Filiale/FilialeModern';
-import FonctionModern from '../DonneeDeBase/Fonction/FonctionModern';
-import BasicTabs from '../ParamSoc/ParamSoc';
-import AllaitementModern from '../gestionEmploye/Allaitement/AllaitementModern';
-import GestionContratsModern from '../gestionEmploye/GestionContrats/GestionContratsModern';
-import ClasseHoraireModern from '../ClasseHoraire/ClasseHoraireModern';
-import CredentialsSignInPage from '../Login/Login';
-import SignupPage from '../Signup/SignupPage';
-import IntituleDesAbsencesModern from '../ClasseHoraire/IntituleDesAbsences/IntituleDesAbsencesModern';
-import ReposModern from '../ClasseHoraire/Repos/ReposModern';
-import JourDeCompensation from '../gestionEmploye/gestionAbsence/jourCompensation/JourCompensation';
-import AutSortieModern from '../gestionEmploye/gestionAbsence/jourCompensation/AutSortie/AutSortieModern';
-import AbsenceSanctionModern from '../gestionEmploye/gestionAbsence/jourCompensation/AbsenceSanction/AbsenceSanctionModern';
-import OrgStructureModern from '../DonneeDeBase/OrgStructure/OrgStructureModern';
-import PaysModern from '../DonneeDeBase/Pays/PaysModern';
-import VilleModern from '../DonneeDeBase/Ville/VilleModern';
-import Pointeuse from '../Pointeuse/Pointeuse';
-import AutSortieGenerale from '../gestionEmploye/gestionAbsence/jourCompensation/AutSortieGenerale/AutSortieGenerale';
-import DashboardModernSync from '../Dashboard/DashboardModern';
-import EtatPeriodiqueModern from '../Pointeuse/EtatPeriodique/EtatPeriodiqueModern';
-// RenouvellementContrat (page autonome) supprimée : le renouvellement est intégré à la liste
-// des contrats (bouton "Renouveler" par ligne) et au dashboard (KPI échéance → dialog).
-import Utilisateur from '../DonneeDeBase/Utilisteur/Utilisateur';
-import DemCongeModern from '../gestionEmploye/gestionConge/DemConge/DemCongeModern';
-import DemandeAutorisationModern from '../gestionEmploye/DemandeAutorisation/DemandeAutorisationModern';
-import SoldeCongeModern from '../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern';
-import SoldeCongeAdmin from '../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin';
-import TitreConge from '../gestionEmploye/gestionConge/TitreConge/TitreConge';
-import CongeGneral from '../gestionEmploye/gestionConge/TitreCongeGeneral/CongeGeneral';
-import SocieteModern from '../DonneeDeBase/Societe/SocieteModern';
-import Calendrier from '../ParamSoc/Calendrier/Calendrier';
-import RubriqueModern from '../DonneeDeBase/Rubrique/RubriqueModern';
-// import Accompte from '../PreparationPaie/Accompte/Accompte';
-import PointageDuMoisModern from '../PreparationPaie/PointageDuMois/PointageDuMoisModern';
-import EtatDroitConge from '../PreparationPaie/DroitConge/EtatDroitConge';
-import EcheanceContrat from '../Etats/EchanceContrat/EcheanceContrat';
-import EtatPresence from '../Etats/EtatPresence/EtatPresence';
-import EtatRetard from '../Etats/EtatRetard/EtatRetard';
-import EtatAbsence from '../Etats/EtatAbsence/EtatAbsence';
-import EmployeModern from '../gestionEmploye/EmployeModern';
-import EmployeProfileView from '../gestionEmploye/EmployeProfileView';
-import EffectifsGlobaux from '../gestionEmploye/EffectifsGlobaux';
-import CahierConge from '../Etats/CahierConge/CahierConge';
-import TeamCalendarPage from '../Etats/TeamCalendar/TeamCalendarPage';
-import RemboursementModern from '../gestionEmploye/Remboursement/RemboursementModern';
-import MissionPage from '../gestionEmploye/Mission/MissionPage';
-import MainModern from '../PosteTravail/MainModern';
-import DroitAccessPointeuse from '../Admin/PointeuseAccees/DroitAcceesPointeuse';
-import SiteAccessPage from '../Admin/SiteAccessPage';
-import Profile from '../ParamSoc/Profile/Profile';
-import QualificationModern from '../DonneeDeBase/Qualification/QualificationModern';
-import CoffreFortModern from '../gestionEmploye/CoffreFortModern';
-import AdminVaultModern from '../gestionEmploye/Vault/AdminVaultModern';
-import ContractBuilderModern from '../gestionEmploye/Vault/ContractBuilderModern';
-import DocumentsModern from '../Rag/Documents/DocumentsModern';
-import RagAuditTable from '../Rag/Audit/RagAuditTable';
-import UnifiedAssistantHub from '../helper/Chatbot/UnifiedAssistantHub';
-import LetterTemplatesModern from '../Rag/Letters/LetterTemplatesModern';
-import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
-import PricingPage from '../Pricing/PricingPage';
+/* ── Page components (lazy-loadées) ──
+ * PERF — Avant : tous les composants de pages étaient chargés en synchrone au
+ * boot, ce qui produisait un index.js > 530 KB gzippé (cf. audit perf front #1).
+ * Maintenant : chaque page = un chunk séparé téléchargé à la demande. Le bundle
+ * initial contient juste le shell de navigation + HomePage (landing publique).
+ *
+ * Composants gardés SYNCHRONES : ceux qui s'affichent dans le layout permanent
+ * (sidebar, header, bannière, animations, palette, chatbot) ainsi que HomePage
+ * (route '/' = LCP critique). Le reste est React.lazy.
+ */
 import HomePage from '../Home/HomePage';
-import PlanUpgradePage from '../Pricing/PlanUpgradePage';
-import AboutPage from '../About/AboutPage';
-import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
-import MonAbonnementPage from '../Pricing/MonAbonnementPage';
-import ContactSalesPage from '../Pricing/ContactSalesPage';
-import CetPage from '../gestionEmploye/gestionConge/Cet/CetPage';
-import SupportPage from '../Support/SupportPage';
-import FAQPage from '../Support/FAQPage';
-import FormationsPage from '../Support/FormationsPage';
-import CoachingPage from '../Support/CoachingPage';
-import PackMiseEnPlacePage from '../Support/PackMiseEnPlacePage';
-import ContactPage from '../Support/ContactPage';
+import { RequireAuth, RequireAdmin, classifyRoute } from '../helper/RouteGuards';
 import NotificationCenter from './NotificationCenter';
 import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './SidebarNavigationDualTier';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import TrialBanner from '../helper/TrialBanner';
 import PageFade from '../helper/animations/PageFade';
 import CommandPalette from '../helper/CommandPalette/CommandPalette';
+import UnifiedAssistantHub from '../helper/Chatbot/UnifiedAssistantHub';
+
+const FilialeModern = React.lazy(() => import('../DonneeDeBase/Filiale/FilialeModern'));
+const FonctionModern = React.lazy(() => import('../DonneeDeBase/Fonction/FonctionModern'));
+const BasicTabs = React.lazy(() => import('../ParamSoc/ParamSoc'));
+const AllaitementModern = React.lazy(() => import('../gestionEmploye/Allaitement/AllaitementModern'));
+const GestionContratsModern = React.lazy(() => import('../gestionEmploye/GestionContrats/GestionContratsModern'));
+const ClasseHoraireModern = React.lazy(() => import('../ClasseHoraire/ClasseHoraireModern'));
+const CredentialsSignInPage = React.lazy(() => import('../Login/Login'));
+const SignupPage = React.lazy(() => import('../Signup/SignupPage'));
+const IntituleDesAbsencesModern = React.lazy(() => import('../ClasseHoraire/IntituleDesAbsences/IntituleDesAbsencesModern'));
+const ReposModern = React.lazy(() => import('../ClasseHoraire/Repos/ReposModern'));
+const JourDeCompensation = React.lazy(() => import('../gestionEmploye/gestionAbsence/jourCompensation/JourCompensation'));
+const AutSortieModern = React.lazy(() => import('../gestionEmploye/gestionAbsence/jourCompensation/AutSortie/AutSortieModern'));
+const AbsenceSanctionModern = React.lazy(() => import('../gestionEmploye/gestionAbsence/jourCompensation/AbsenceSanction/AbsenceSanctionModern'));
+const OrgStructureModern = React.lazy(() => import('../DonneeDeBase/OrgStructure/OrgStructureModern'));
+const PaysModern = React.lazy(() => import('../DonneeDeBase/Pays/PaysModern'));
+const VilleModern = React.lazy(() => import('../DonneeDeBase/Ville/VilleModern'));
+const Pointeuse = React.lazy(() => import('../Pointeuse/Pointeuse'));
+const AutSortieGenerale = React.lazy(() => import('../gestionEmploye/gestionAbsence/jourCompensation/AutSortieGenerale/AutSortieGenerale'));
+const DashboardModernSync = React.lazy(() => import('../Dashboard/DashboardModern'));
+const EtatPeriodiqueModern = React.lazy(() => import('../Pointeuse/EtatPeriodique/EtatPeriodiqueModern'));
+const Utilisateur = React.lazy(() => import('../DonneeDeBase/Utilisteur/Utilisateur'));
+const DemCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/DemConge/DemCongeModern'));
+const DemandeAutorisationModern = React.lazy(() => import('../gestionEmploye/DemandeAutorisation/DemandeAutorisationModern'));
+const SoldeCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern'));
+const SoldeCongeAdmin = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin'));
+const TitreConge = React.lazy(() => import('../gestionEmploye/gestionConge/TitreConge/TitreConge'));
+const CongeGneral = React.lazy(() => import('../gestionEmploye/gestionConge/TitreCongeGeneral/CongeGeneral'));
+const SocieteModern = React.lazy(() => import('../DonneeDeBase/Societe/SocieteModern'));
+const Calendrier = React.lazy(() => import('../ParamSoc/Calendrier/Calendrier'));
+const RubriqueModern = React.lazy(() => import('../DonneeDeBase/Rubrique/RubriqueModern'));
+const PointageDuMoisModern = React.lazy(() => import('../PreparationPaie/PointageDuMois/PointageDuMoisModern'));
+const EtatDroitConge = React.lazy(() => import('../PreparationPaie/DroitConge/EtatDroitConge'));
+const EcheanceContrat = React.lazy(() => import('../Etats/EchanceContrat/EcheanceContrat'));
+const EtatPresence = React.lazy(() => import('../Etats/EtatPresence/EtatPresence'));
+const EtatRetard = React.lazy(() => import('../Etats/EtatRetard/EtatRetard'));
+const EtatAbsence = React.lazy(() => import('../Etats/EtatAbsence/EtatAbsence'));
+const EmployeModern = React.lazy(() => import('../gestionEmploye/EmployeModern'));
+const EmployeProfileView = React.lazy(() => import('../gestionEmploye/EmployeProfileView'));
+const EffectifsGlobaux = React.lazy(() => import('../gestionEmploye/EffectifsGlobaux'));
+const CahierConge = React.lazy(() => import('../Etats/CahierConge/CahierConge'));
+const TeamCalendarPage = React.lazy(() => import('../Etats/TeamCalendar/TeamCalendarPage'));
+const RemboursementModern = React.lazy(() => import('../gestionEmploye/Remboursement/RemboursementModern'));
+const MissionPage = React.lazy(() => import('../gestionEmploye/Mission/MissionPage'));
+const MainModern = React.lazy(() => import('../PosteTravail/MainModern'));
+const DroitAccessPointeuse = React.lazy(() => import('../Admin/PointeuseAccees/DroitAcceesPointeuse'));
+const SiteAccessPage = React.lazy(() => import('../Admin/SiteAccessPage'));
+const Profile = React.lazy(() => import('../ParamSoc/Profile/Profile'));
+const QualificationModern = React.lazy(() => import('../DonneeDeBase/Qualification/QualificationModern'));
+const CoffreFortModern = React.lazy(() => import('../gestionEmploye/CoffreFortModern'));
+const AdminVaultModern = React.lazy(() => import('../gestionEmploye/Vault/AdminVaultModern'));
+const ContractBuilderModern = React.lazy(() => import('../gestionEmploye/Vault/ContractBuilderModern'));
+const DocumentsModern = React.lazy(() => import('../Rag/Documents/DocumentsModern'));
+const RagAuditTable = React.lazy(() => import('../Rag/Audit/RagAuditTable'));
+const LetterTemplatesModern = React.lazy(() => import('../Rag/Letters/LetterTemplatesModern'));
+const SignaturePage = React.lazy(() => import('../gestionEmploye/Vault/SignaturePage'));
+const PricingPage = React.lazy(() => import('../Pricing/PricingPage'));
+const PlanUpgradePage = React.lazy(() => import('../Pricing/PlanUpgradePage'));
+const AboutPage = React.lazy(() => import('../About/AboutPage'));
+const PlanConfigurationPage = React.lazy(() => import('../Pricing/PlanConfigurationPage'));
+const MonAbonnementPage = React.lazy(() => import('../Pricing/MonAbonnementPage'));
+const ContactSalesPage = React.lazy(() => import('../Pricing/ContactSalesPage'));
+const CetPage = React.lazy(() => import('../gestionEmploye/gestionConge/Cet/CetPage'));
+const SupportPage = React.lazy(() => import('../Support/SupportPage'));
+const FAQPage = React.lazy(() => import('../Support/FAQPage'));
+const FormationsPage = React.lazy(() => import('../Support/FormationsPage'));
+const CoachingPage = React.lazy(() => import('../Support/CoachingPage'));
+const PackMiseEnPlacePage = React.lazy(() => import('../Support/PackMiseEnPlacePage'));
+const ContactPage = React.lazy(() => import('../Support/ContactPage'));
 
 /* ── Lucide icons ── */
 import {
@@ -133,7 +142,6 @@ import {
   History,
   ShieldCheck,
 } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 /* ══════════════════════════════════════════════════════ */
@@ -156,12 +164,17 @@ const useNavigationItems = (): NavGroup[] => {
   const { t } = useTranslation();
   const { authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing } = useAuth();
 
+  // PERF — Toute la construction d'allGroups (~250 lignes de spreads conditionnels et
+  // de filtres) est mémoïsée. Avant, chaque render du layout reconstruisait l'array
+  // → 3 useEffect en aval (cf. plus bas, openedTabs / recentPages / localStorage)
+  // s'exécutaient en boucle à chaque keystroke.
+  return React.useMemo<NavGroup[]>(() => {
+  if (!authReady) return [];
+
   // utiadm='1' est un fallback admin — utile pendant la fenêtre où /me n'a pas encore
   // répondu mais où sessionStorage a hydraté utiadm. Évite que le sidebar perde la
   // plupart de ses items après un reload.
   const isAdminEffective = isAdmin || utiadm === '1';
-
-  if (!authReady) return [];
 
   const segmentToModule: Record<string, string> = {
     'gestion-societe': 'Données de Base',
@@ -408,6 +421,7 @@ const useNavigationItems = (): NavGroup[] => {
   return allGroups.filter(
     (g) => g.items === undefined || g.items.length > 0 || g.href === '/dashboard'
   );
+  }, [authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing, t]);
 };
 
 /* ══════════════════════════════════════════════════════ */
@@ -503,6 +517,20 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     default: content = <DashboardModernSync />;
   }
 
+  // SEC — Wrapper selon la classification de la route. Sans ce garde-fou, un
+  // utilisateur non authentifié ou non-admin pouvait voir le squelette d'UI des
+  // pages privilégiées avant que le backend ne renvoie 401/402. Ne remplace pas
+  // la sécurité serveur — couvre la surface UI.
+  const kind = classifyRoute(pathname);
+  const guardedContent = kind === 'admin'
+    ? <RequireAdmin>{content}</RequireAdmin>
+    : kind === 'auth'
+      ? <RequireAuth>{content}</RequireAuth>
+      : content;
+
+  // PERF — Suspense pour les pages React.lazy(). Sans Suspense, le 1er rendu d'une
+  // page lazy throw et React démonte l'arbre. Le fallback est minimal (loader
+  // centré) pour ne pas surcharger la transition entre routes.
   return (
     <Box sx={{
       py: 0, px: 0,
@@ -511,7 +539,15 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
       minHeight: 0,
       bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#f8fafc',
     }}>
-      {content}
+      <React.Suspense
+        fallback={
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+            <CircularProgress />
+          </Box>
+        }
+      >
+        {guardedContent}
+      </React.Suspense>
     </Box>
   );
 }
@@ -776,13 +812,13 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   const [societeImage, setSocieteImage] = React.useState<string>(() => {
     const stored = localStorage.getItem('societeImage');
-    return stored ? resolveAssetUrl(stored) : '/Concorde.png';
+    return stored ? resolveAssetUrl(stored) : '/logo-256.png';
   });
 
   React.useEffect(() => {
     const handleStorageChange = () => {
       const societe = localStorage.getItem('societeImage');
-      setSocieteImage(societe ? resolveAssetUrl(societe) : '/Concorde.png');
+      setSocieteImage(societe ? resolveAssetUrl(societe) : '/logo-256.png');
     };
     globalThis.window.addEventListener('storage', handleStorageChange);
     globalThis.window.addEventListener('imageUpdated', handleStorageChange);

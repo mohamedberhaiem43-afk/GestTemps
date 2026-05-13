@@ -10,7 +10,7 @@ import {
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import EmployeService from '../../../services/EmployeService/EmployeService';
 import {
   useMissionsBySoc,

@@ -26,7 +26,7 @@ import ForbiddenMessage from '../../AlertModal/ForbiddenMessage';
 import getDatePart from '../../helper/TimeConverter/ExtractDateOnly';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
 import getTodayDate from '../../helper/TimeConverter/TodayDate';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Contrat } from '../../../models/Contrat';
 import type Employe from '../../../models/Employe';
 
@@ -266,7 +266,7 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
     setMessage(successMessage);
     setSeverity('success');
     setIsSnackbarOpen(true);
-    queryClient.invalidateQueries(['contrats']);
+    queryClient.invalidateQueries({ queryKey: ['contrats'] });
     resetForm();
     setIsLoading(false);
   };

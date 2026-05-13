@@ -1,18 +1,14 @@
-import { Box, Grid } from "@mui/material";
+﻿import { Box, Grid } from "@mui/material";
 import SaisieRepos from "./SaisieRepos/SaisieRepos";
 import FerierList from "./ReposList";
-import { QueryClient, QueryClientProvider } from "react-query";
 import { FerierProvider } from "../../helper/ReposContext";
 import { Item } from "../../helper/Item/Item";
 import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
-
-const queryClient = new QueryClient()
 export default function Repos()
 {
     return(
         <>
-        <QueryClientProvider client={queryClient}>
-         <Box sx={{ flexGrow: 1 }} height={'90vh'} >
+        <Box sx={{ flexGrow: 1 }} height={'90vh'} >
             <BreadcrumbNavigation />
                 <Grid container>
                     <FerierProvider>
@@ -28,7 +24,6 @@ export default function Repos()
             
                 </Grid>
             </Box>
-        </QueryClientProvider>
         </>
     )
 }

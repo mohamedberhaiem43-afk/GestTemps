@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import apiInstance from "../API/apiInstance";
 import { RolePermission } from "../../models/Role";
 
@@ -96,16 +96,20 @@ const AuthContext = createContext<AuthContextType>({
   clearAuth: () => { },
 });
 
-const persistedKeys = new Set(["soccod", "soclib", "sitcod", "userName", "uticod", "utiadm"]);
+// SEC — `utiadm` n'est PLUS persisté : sa valeur est lisible/modifiable depuis la
+// console DevTools, donc un attaquant pouvait écrire `sessionStorage.setItem('utiadm','1')`
+// pour obtenir l'UI admin (le backend restait le vrai garde-fou, mais l'UI exposait
+// la matrice de modules privilégiés). L'état admin n'est désormais dérivé que de la
+// réponse `/me` authentifiée.
+const persistedKeys = new Set(["soccod", "soclib", "sitcod", "userName", "uticod"]);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const requestIdRef = useRef(0);
-  // Hydrate l'état initial depuis sessionStorage. Sans ça, après un reload, isAdmin=false
-  // pendant la fenêtre où /me est en vol → le sidebar (et tout filtrage par permission) se
-  // construit sur une vue tronquée du compte. On préfère partir de la dernière vérité connue
-  // et corriger via /me ensuite.
+  // Hydrate l'état initial depuis sessionStorage uniquement pour les libellés
+  // d'affichage non sensibles (soccod, soclib, sitcod, userName, uticod). Les flags
+  // de privilège (isAdmin, utiadm, isManager, permissions, planFeatures) restent
+  // null/false jusqu'à la réponse `/me`.
   const persistedUticod = sessionStorage.getItem('uticod');
-  const persistedUtiadm = sessionStorage.getItem('utiadm');
   const [authReady, setAuthReady] = useState(false);
   const [authData, setAuthData] = useState({
     soccod: sessionStorage.getItem('soccod'),
@@ -113,11 +117,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     soclib: sessionStorage.getItem('soclib'),
     userName: sessionStorage.getItem('userName') || null,
     uticod: persistedUticod,
-    utiadm: persistedUtiadm,
+    utiadm: null as string | null,
     roleName: null as string | null,
-    // Si utiadm='1' était persisté, on présume admin tant que /me n'a pas confirmé. Cela évite
-    // que le sidebar bascule en mode "minimal" pendant la requête de refresh.
-    isAdmin: persistedUtiadm === '1',
+    isAdmin: false,
     isEmp: false,
     isManager: false,
     sercod: null as string | null,
@@ -180,8 +182,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (response.data.soclib) sessionStorage.setItem('soclib', response.data.soclib);
       if (response.data.utilib) sessionStorage.setItem('userName', response.data.utilib);
       if (response.data.uticod) sessionStorage.setItem('uticod', response.data.uticod);
-      // utiadm persisté pour hydratation rapide au reload (cf. initial state ci-dessus).
-      if (response.data.utiadm != null) sessionStorage.setItem('utiadm', String(response.data.utiadm));
+      // SEC — utiadm N'EST PLUS persisté côté client (cf. note en tête du fichier).
+      // L'état admin se redérive de /me à chaque init de l'app.
 
       // Photo de profil : on synchronise localStorage('profileImage') dès que /me
       // remonte une nouvelle valeur, et on dispatche `imageUpdated` pour que la
@@ -231,7 +233,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     refreshAuth();
   }, [refreshAuth]);
 
-  const setAuth = (data: Partial<AuthContextType>) => {
+  // PERF — useCallback stables : ces fonctions sont passées dans value={...} du
+  // Provider. Sans ça, chaque render du Provider créait de nouvelles références →
+  // tous les consumers de useAuth (Navigation, dashboards, pages) re-rendaient.
+  const setAuth = useCallback((data: Partial<AuthContextType>) => {
     setAuthData((prev) => ({ ...prev, ...data }));
 
     Object.entries(data).forEach(([key, value]) => {
@@ -243,14 +248,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         sessionStorage.removeItem(key);
       }
     });
-  };
+  }, []);
 
-  const clearAuth = () => {
+  const clearAuth = useCallback(() => {
     requestIdRef.current += 1;
+    // SEC — Best-effort : informer le serveur de révoquer le refresh-token. Pas
+    // d'await sur le contrôle de flux UI — si le serveur est down, on logout
+    // quand même côté client. apiInstance retourne 401 silencieusement si déjà
+    // expiré, ce qui est OK.
+    apiInstance.post('/Utilisateurs/logout').catch(() => { /* best-effort */ });
+
     sessionStorage.removeItem('soccod');
     sessionStorage.removeItem('soclib');
     sessionStorage.removeItem('sitcod');
     sessionStorage.removeItem('userName');
+    sessionStorage.removeItem('uticod');
+    sessionStorage.removeItem('utiadm'); // nettoyage rétrocompat
+    localStorage.removeItem('profileImage');
+    localStorage.removeItem('societeImage');
 
     setAuthReady(true);
     setAuthData({
@@ -273,16 +288,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       planFeatures: null,
       permissions: [],
     });
-  };
+  }, []);
 
   /**
    * Vérifie qu'une feature commerciale (cf. PlanCatalog côté backend) est ouverte au plan
    * courant. Pendant l'essai, le backend force tous les flags à true.
-   * En l'absence de planFeatures (tenant legacy, /me pas encore appelé), on est permissif
-   * (return true) plutôt que de masquer les modules — la 402 backend reste la barrière dure.
+   *
+   * SEC — Fail-closed : si planFeatures est null (tenant legacy, /me pas encore appelé,
+   * erreur réseau), on refuse l'accès au lieu de l'autoriser. Avant ce durcissement, une
+   * erreur transitoire ouvrait toute la matrice Premium côté UI (le backend renvoyait 402
+   * mais l'expérience révélait toutes les features payantes). Le rendu des sections
+   * premium doit accepter le state "loading" pendant que /me est en vol.
    */
   const planAllows = useCallback((feature: keyof PlanFeatures) => {
-    if (!authData.planFeatures) return true;
+    if (!authData.planFeatures) return false;
     return Boolean(authData.planFeatures[feature]);
   }, [authData.planFeatures]);
 
@@ -302,8 +321,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [authData.permissions, authData.utiadm, authData.isAdmin]);
 
+  // PERF — `value` mémoïsé : sans cette mémoïsation, un nouvel objet était créé à
+  // chaque render du Provider (les callbacks/data étant identiques), forçant tous
+  // les consumers de `useAuth()` (Navigation, dashboards, ~70 pages) à re-render.
+  // Avec useMemo, on ne reconstruit qu'aux vrais changements de state authentif.
+  const value = useMemo(
+    () => ({ ...authData, authReady, hasPermission, planAllows, setAuthData: setAuth, refreshAuth, clearAuth }),
+    [authData, authReady, hasPermission, planAllows, setAuth, refreshAuth, clearAuth]
+  );
+
   return (
-    <AuthContext.Provider value={{ ...authData, authReady, hasPermission, planAllows, setAuthData: setAuth, refreshAuth, clearAuth }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,3 @@
-import { QueryClientProvider, QueryClient } from "react-query";
 import { useTranslation } from "react-i18next";
 import UserProvider from "../../helper/UserProvider";
 
@@ -8,9 +7,6 @@ import RolePointeuseAccess from "../../DonneeDeBase/Utilisteur/RolePointeuseAcce
 
 import { Shield, People, Fingerprint } from "@mui/icons-material";
 import "../PointeuseAccees/DroitAccees.css";
-
-const queryClient = new QueryClient();
-
 function DroitAccessContent() {
   const { t } = useTranslation();
   return (
@@ -65,10 +61,8 @@ function DroitAccessContent() {
 
 export default function DroitAccessPointeuse() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <UserProvider>
+    <UserProvider>
         <DroitAccessContent />
       </UserProvider>
-    </QueryClientProvider>
   );
 }

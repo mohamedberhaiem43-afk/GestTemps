@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+﻿import { useMemo, useState, useEffect } from 'react';
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
@@ -6,7 +6,6 @@ import {
   useMaterialReactTable,
 } from 'material-react-table';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 import { DirectionModel } from '../../../models/DirectionModel';
@@ -296,13 +295,8 @@ const handleEditDirections = async()=>{
         <MaterialReactTable table={table} />
         </Box>
   );};
-
-const queryClient = new QueryClient();
-
 const Direction = () => (
-  <QueryClientProvider client={queryClient}>
-    <DirectionTable />
-  </QueryClientProvider>
+  <DirectionTable />
 );
 
 export default Direction;

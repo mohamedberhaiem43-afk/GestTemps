@@ -1,4 +1,4 @@
-﻿using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Models;
 using Microsoft.AspNetCore.Mvc;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Dtaos;
@@ -58,7 +58,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Erreur lors de la génération du numéro: " + ex.Message);
+                return StatusCode(500, "Erreur lors de la génération du numéro: ");
             }
         }
         // GET: api/<DirectionsController>
@@ -134,7 +134,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "An error occurred while generating the report: " + ex.Message);
+                return StatusCode(500, "An error occurred while generating the report: ");
             }
         }
 
@@ -150,7 +150,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "An error occurred while generating the report: " + ex.Message);
+                return StatusCode(500, "An error occurred while generating the report: ");
             }
         }
         [HttpGet("get-droit-de-conge-report/{soccod}/{datedebut}/{datefin}")]
@@ -165,7 +165,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "An error occurred while generating the report: " + ex.Message);
+                return StatusCode(500, "An error occurred while generating the report: ");
             }
         }
         
@@ -195,7 +195,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "An error occurred while retrieving the rights: " + ex.Message);
+                return StatusCode(500, "An error occurred while retrieving the rights: ");
             }
         }
 

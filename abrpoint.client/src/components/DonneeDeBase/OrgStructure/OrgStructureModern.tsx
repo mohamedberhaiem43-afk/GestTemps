@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Box, Button, Typography, Snackbar, Alert, Menu, MenuItem } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import EditIcon from '@mui/icons-material/Edit';
@@ -377,12 +376,8 @@ function OrgStructureContent() {
     </Box>
   );
 }
-
-const queryClient = new QueryClient();
 export default function OrgStructureModern() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <OrgStructureContent />
-    </QueryClientProvider>
+    <OrgStructureContent />
   );
 }

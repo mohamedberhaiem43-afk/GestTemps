@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import UtilisateurService from "../../services/UtilisateurService/UtilisateurService";
 
 export default function useToggleUserStatus() {
@@ -6,8 +6,8 @@ export default function useToggleUserStatus() {
     return useMutation({
         mutationFn: (uticod: string) => UtilisateurService.toggleStatus(uticod),
         onSuccess: () => {
-            queryClient.invalidateQueries(["users"]);
-            queryClient.invalidateQueries(["utilisateurs"]);
+            queryClient.invalidateQueries({ queryKey: ["users"] });
+            queryClient.invalidateQueries({ queryKey: ["utilisateurs"] });
         },
     });
 }

@@ -1,5 +1,5 @@
 import apiInstance from "../../components/API/apiInstance";
-import { useQuery, useQueryClient } from "react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetServiceLibs = () => {

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGetNoteDeFraisByEmp, useGetNoteDeFraisBySoc } from '../../../hooks/expenseHooks/useGetNoteDeFrais';
 import { useAddNoteDeFrais, useDeleteNoteDeFrais, useUpdateNoteDeFraisStatus } from '../../../hooks/expenseHooks/useAddNoteDeFrais';
 import { NoteDeFrais } from '../../../models/NoteDeFrais';
@@ -19,9 +18,6 @@ import { useAuth } from '../../helper/AuthProvider';
 import { resolveAssetUrl } from '../../../helpers/assetUrl';
 import { useMissionsByEmp } from '../../../hooks/missionHooks/useMissions';
 import { useTranslation, Trans } from 'react-i18next';
-
-const queryClient = new QueryClient();
-
 const ROWS_PER_PAGE = 10;
 
 // Stable enum keys for status (data layer / API values).
@@ -1100,9 +1096,7 @@ function RemboursementModernContent() {
 }
 
 const RemboursementModern = () => (
-    <QueryClientProvider client={queryClient}>
-        <RemboursementModernContent />
-    </QueryClientProvider>
+    <RemboursementModernContent />
 );
 
 export default RemboursementModern;

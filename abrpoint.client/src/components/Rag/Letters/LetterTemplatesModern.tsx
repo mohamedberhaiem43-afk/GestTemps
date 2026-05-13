@@ -23,7 +23,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -40,9 +39,6 @@ import {
 } from '../../../hooks/ragHooks/useRagLetters';
 import { RagLetterTemplate, RagLetterTemplateUpsert } from '../../../models/RagLetterTemplate';
 import LetterGenerateDialog from './LetterGenerateDialog';
-
-const queryClient = new QueryClient();
-
 const emptyForm: RagLetterTemplateUpsert = {
   name: '',
   description: '',
@@ -306,8 +302,6 @@ function LetterTemplatesModernContent() {
 
 export default function LetterTemplatesModern() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <LetterTemplatesModernContent />
-    </QueryClientProvider>
+    <LetterTemplatesModernContent />
   );
 }

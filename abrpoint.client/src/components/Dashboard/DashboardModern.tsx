@@ -35,7 +35,7 @@ import useGetDashboardData from '../../hooks/dashboardHooks/useGetDashboardData'
 import useGetEvolution from '../../hooks/dashboardHooks/useGetEvolution';
 import useGetPointagesInvalides from '../../hooks/dashboardHooks/useGetPointagesInvalides';
 import useGetDirectionLibs from '../../hooks/directionHooks/useGetDirectionLibs';
-import useGetExpiringContracts from '../../hooks/contractHooks/useGetExpiringContracts';
+import useGetExpiringContracts, { type ExpiringContract } from '../../hooks/contractHooks/useGetExpiringContracts';
 import { DashboardRequest } from '../../models/DashboardModels';
 import { CongeProvider } from '../helper/CongeContext';
 import DashboardCongeList from './DashboardCongeList';
@@ -221,7 +221,8 @@ function DashboardModernAdmin() {
     setVisibility((v) => ({ ...v, [key]: !v[key] }));
   const resetWidgets = () => setVisibility(DEFAULT_VISIBILITY);
 
-  const { data: expiringContracts = [] } = useGetExpiringContracts(soccod);
+  const { data: expiringContractsData } = useGetExpiringContracts(soccod);
+  const expiringContracts: ExpiringContract[] = expiringContractsData ?? [];
   const { data: directionsResponse } = useGetDirectionLibs();
   const directionLibs = useMemo(() => {
     if (!directionsResponse || typeof directionsResponse !== 'object') return [];

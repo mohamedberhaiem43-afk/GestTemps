@@ -2,7 +2,7 @@ import { Box, Typography, Switch, Paper, Collapse, IconButton, Button } from "@m
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import { useContext, useState, useEffect, useMemo, useCallback } from "react";
-import { useQueryClient } from "react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { PosteContext } from "../helper/PostProvider/PostContext";
 import { Poste } from "../../models/Poste";
@@ -156,8 +156,8 @@ export default function PosteTravailModern() {
       updatePoste(mergedData, {
         onSuccess: () => {
           showSnackbar(t('posteTravail.msg.updatedSuccess'), "success");
-          queryClient.invalidateQueries(["postes", soccod]);
-          queryClient.invalidateQueries(["all-postes", soccod]);
+          queryClient.invalidateQueries({ queryKey: ["postes", soccod] });
+          queryClient.invalidateQueries({ queryKey: ["all-postes", soccod] });
         },
         onError: (err: any) => showSnackbar(err?.response?.data?.message || t('posteTravail.msg.updateError'), "error")
       });
@@ -167,8 +167,8 @@ export default function PosteTravailModern() {
           showSnackbar(res.message, res.success ? "success" : "warning");
           // Le poste n'apparaît pas dans la liste tant que la query [postes, soccod] reste cachée :
           // on invalide pour que useGetPoste refasse la requête et affiche le nouveau poste.
-          queryClient.invalidateQueries(["postes", soccod]);
-          queryClient.invalidateQueries(["all-postes", soccod]);
+          queryClient.invalidateQueries({ queryKey: ["postes", soccod] });
+          queryClient.invalidateQueries({ queryKey: ["all-postes", soccod] });
           if (res.success && mergedData.codposte) {
             setSelectedPoste({ codposte: mergedData.codposte || '', libposte: mergedData.libposte || '', soccod: soccod || '' });
           }
@@ -185,8 +185,8 @@ export default function PosteTravailModern() {
       {
         onSuccess: (res) => {
           showSnackbar(res.message, res.success ? "success" : "warning");
-          queryClient.invalidateQueries(["postes", soccod]);
-          queryClient.invalidateQueries(["all-postes", soccod]);
+          queryClient.invalidateQueries({ queryKey: ["postes", soccod] });
+          queryClient.invalidateQueries({ queryKey: ["all-postes", soccod] });
           setModalOpen(false);
           resetForm();
         },

@@ -5,7 +5,6 @@ import {
   type MRT_ColumnDef,
 } from 'material-react-table';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -158,13 +157,8 @@ const SectionTable = () => {
     </Box>
   );
 };
-
-const queryClient = new QueryClient();
-
 const Section = () => (
-  <QueryClientProvider client={queryClient}>
-    <SectionTable />
-  </QueryClientProvider>
+  <SectionTable />
 );
 
 export default Section;

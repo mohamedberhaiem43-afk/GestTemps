@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import PresenceService from "../../services/PersenceService/PresenceService";
 import { useAuth } from "../../components/helper/AuthProvider";
 
@@ -29,9 +29,6 @@ const useGetPresence = (
     enabled: !!soccod && !!datedebut && !!datefin && !!regime,
     staleTime: 1000 * 60 * 5,
     retry: 2,
-    onError: (error) => {
-      console.error("Error fetching presence data:", error);
-    }
   });
 };
 

@@ -80,6 +80,9 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<ISiteAccessService, SiteAccessService>();
             builder.Services.AddScoped<IAiService, AiService>();
             builder.Services.AddScoped<EncryptionService>();
+            // SEC — Protecteur dédié aux secrets TOTP (2FA). Clé dérivée HKDF de
+            // Encryption:AesKey, indépendante du chiffrement PII général.
+            builder.Services.AddSingleton<TwoFactorSecretProtector>();
             builder.Services.AddScoped<Kernel>(sp =>
             {
                 var kernelBuilder = Kernel.CreateBuilder();

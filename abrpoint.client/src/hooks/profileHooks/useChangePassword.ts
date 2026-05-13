@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import { PasswordUpdate } from "../../models/Utilisateur";
 import ProfileService from "../../services/ProfileService/ProfileService";
 

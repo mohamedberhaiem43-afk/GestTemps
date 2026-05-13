@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import CongeService from "../../services/CongeService/CongeService";
 import { useAuth } from "../../components/helper/AuthProvider";
 

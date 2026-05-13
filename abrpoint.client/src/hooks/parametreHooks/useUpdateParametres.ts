@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Parametre } from "../../models/Parametre";
 import ParametreService from "../../services/ParametreService/ParametreService";
 

@@ -22,7 +22,7 @@ export default function EmployeeDashboardMobile() {
   const { data: profile } = useGetProfile();
   const { data: kpiData, isLoading: loadingKPIs } = useGetMyKPIs(soccod ?? undefined, uticod ?? undefined);
   const { data: leaveRequests, isLoading: loadingLeaves } = useGetDemConges();
-  const { mutate: addPointage, isLoading: isPointing } = useAddPointage();
+  const { mutate: addPointage, isPending: isPointing } = useAddPointage();
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 

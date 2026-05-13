@@ -42,7 +42,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, "Erreur interne. Consultez les logs serveur pour le détail.");
             }
         }
 

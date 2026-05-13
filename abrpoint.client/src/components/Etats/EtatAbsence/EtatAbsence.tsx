@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import EmployeeMultiSelectDropdown from '../../helper/EmployeeMultiSelectDropdown';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
 import { useEmployeeFilter } from '../../../hooks/employeHooks/useEmployeeFilter';
@@ -31,9 +30,6 @@ import useGetEtatAbsence from '../../../hooks/absenceHooks/useGetEtatAbsence';
 import { useAbsenceContext, AbsParamsProvider } from '../../helper/AbsParamsContext';
 
 import './Etatabsence.css';
-
-const queryClient = new QueryClient();
-
 const regimeOptions: Record<string, string> = {
   '': 'Tous',
   M: 'Mensuelle',
@@ -760,10 +756,8 @@ function EtatAbsence() {
 // ─────────────────────────────────────────────
 export default function EtatAbsencePageWrapper() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AbsParamsProvider>
+    <AbsParamsProvider>
         <EtatAbsence />
       </AbsParamsProvider>
-    </QueryClientProvider>
   );
 }

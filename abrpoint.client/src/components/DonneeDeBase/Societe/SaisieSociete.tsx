@@ -37,8 +37,8 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('error');
 
-    const { mutate: addSociete, isLoading: isAdding } = useAddSociete();
-    const { mutate: updateSociete, isLoading: isUpdating } = useUpdateSociete();
+    const { mutate: addSociete, isPending: isAdding } = useAddSociete();
+    const { mutate: updateSociete, isPending: isUpdating } = useUpdateSociete();
     const { refetch } = useGetSocietes();
     const { t } = useTranslation();
 

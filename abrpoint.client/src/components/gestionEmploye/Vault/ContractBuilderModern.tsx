@@ -4,6 +4,7 @@ import { CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, Dialo
 import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 import { useAuth } from '../../helper/AuthProvider';
+import { sanitizeRichHtml } from '../../helper/sanitizeHtml';
 import useGetEmployee from '../../../hooks/employeHooks/useGetEmployee';
 import './ContractBuilder.css';
 
@@ -168,8 +169,9 @@ const ContractBuilderModern = () => {
       // Bug fix : les noms de modèles peuvent contenir espaces / accents / parenthèses.
       // Sans encodeURIComponent, la requête échoue avec 404 ou 400.
       const res = await apiInstance.get(`/Templates/${encodeURIComponent(name)}`);
-      setContent(res.data.content);
-      if (editorRef.current) editorRef.current.innerHTML = res.data.content;
+      const safe = sanitizeRichHtml(res.data.content);
+      setContent(safe);
+      if (editorRef.current) editorRef.current.innerHTML = safe;
     } catch (err) {
       setContent('<h1>Error</h1>');
       showSnack(t('contractBuilder.snack.loadTemplateError', { name }), 'error');
@@ -328,9 +330,10 @@ const ContractBuilderModern = () => {
 
   const applyAiResult = () => {
     if (!aiResult) return;
+    const safe = sanitizeRichHtml(aiResult);
     if (editorRef.current) {
-        editorRef.current.innerHTML = aiResult;
-        setContent(aiResult);
+        editorRef.current.innerHTML = safe;
+        setContent(safe);
     }
     setOpenAi(false);
     setAiResult(null);
@@ -371,7 +374,7 @@ const ContractBuilderModern = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (editorRef.current) {
-         editorRef.current.innerHTML += res.data.text;
+         editorRef.current.innerHTML += sanitizeRichHtml(res.data.text);
          setContent(editorRef.current.innerHTML);
       }
     } catch (err: any) {
@@ -526,7 +529,7 @@ const ContractBuilderModern = () => {
                 contentEditable
                 onDrop={onDrop}
                 onDragOver={(e) => e.preventDefault()}
-                dangerouslySetInnerHTML={{ __html: content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(content) }}
                 onBlur={(e) => setContent(e.currentTarget.innerHTML)}
               />
            </div>

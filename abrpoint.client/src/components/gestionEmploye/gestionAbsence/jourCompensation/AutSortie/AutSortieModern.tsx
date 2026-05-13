@@ -9,7 +9,6 @@ import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-picker
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
@@ -774,10 +773,7 @@ function AutSortieModernContent() {
 }
 
 export default function AutSortieModern() {
-  const qc = new QueryClient();
   return (
-    <QueryClientProvider client={qc}>
-      <AutSortieModernContent />
-    </QueryClientProvider>
+    <AutSortieModernContent />
   );
 }

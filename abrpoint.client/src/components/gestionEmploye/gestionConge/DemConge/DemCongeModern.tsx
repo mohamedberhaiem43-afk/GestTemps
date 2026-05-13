@@ -134,8 +134,8 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   const { refetch } = useGetDemConges();
   const { data: absences = [], refetch: refetchAbsences } = useGetCongeAbsenceLibs();
   const { data: employeOptions = [] } = useGetEmployee();
-  const { mutate: addConge, isLoading: adding } = useAddDemConge();
-  const { mutate: updateConge, isLoading: updating } = useUpdateDemConge();
+  const { mutate: addConge, isPending: adding } = useAddDemConge();
+  const { mutate: updateConge, isPending: updating } = useUpdateDemConge();
   const { mutate: addAbsence, isLoading: addingAbsence } = useAddAbsence();
   const canAddAbsence = hasPermission('Paramètres de Temps', 'add');
 

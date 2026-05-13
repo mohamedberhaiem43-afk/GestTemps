@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
     Button, Checkbox, FormControlLabel, Grid, Box,
     Paper, Typography, Divider, TextField, Snackbar, Alert
@@ -6,7 +6,6 @@ import {
 import { Save, Refresh, Cancel } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { FilialeList } from './FilialeList';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import useAddSite from '../../../hooks/siteHooks/useAddSite';
 import useUpdateSite from '../../../hooks/siteHooks/useUpdateSite';
 import useGetSites from '../../../hooks/siteHooks/useGetSites';
@@ -14,15 +13,13 @@ import BreadcrumbNavigation from '../../helper/BreadcrumbNavigation';
 import { Filiale as FilialeModel } from '../../../models/Filiale';
 import { useAuth } from '../../helper/AuthProvider';
 
-
-
 interface FilialeFormProps {
     filialeToEdit?: FilialeModel | null;
     onEditComplete?: () => void;
 }
 
 function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
-    const { soccod } = useAuth(); // ✅ HERE
+    const { soccod } = useAuth(); // âœ… HERE
     const { t } = useTranslation();
 
     const emptyForm: FilialeModel = {
@@ -48,8 +45,8 @@ function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
         open: false, message: '', severity: 'success'
     });
 
-    const { mutate: addSite, isLoading: isAdding } = useAddSite();
-    const { mutate: updateSite, isLoading: isUpdating } = useUpdateSite();
+    const { mutate: addSite, isPending: isAdding } = useAddSite();
+    const { mutate: updateSite, isPending: isUpdating } = useUpdateSite();
     const { refetch } = useGetSites();
 
     const isEditMode = !!filialeToEdit;
@@ -209,11 +206,8 @@ function FilialeForm({ filialeToEdit, onEditComplete }: FilialeFormProps) {
 
 export function Filiale() {
     const [selectedFiliale, setSelectedFiliale] = useState<FilialeModel | null>(null);
-    const queryClient = new QueryClient();
-
     return (
-        <QueryClientProvider client={queryClient}>
-            <Box sx={{ minWidth: '90vw', px: 2, mt: -25 }}>
+        <Box sx={{ minWidth: '90vw', px: 2, mt: -25 }}>
                 <BreadcrumbNavigation />
                 <FilialeForm
                     filialeToEdit={selectedFiliale}
@@ -221,6 +215,5 @@ export function Filiale() {
                 />
                 <FilialeList onEdit={(filiale) => setSelectedFiliale(filiale)} />
             </Box>
-        </QueryClientProvider>
     );
 }

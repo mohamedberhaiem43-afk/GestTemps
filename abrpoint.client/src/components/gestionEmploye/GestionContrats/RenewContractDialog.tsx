@@ -145,8 +145,8 @@ const RenewContractDialog: React.FC<RenewContractDialogProps> = ({ open, onClose
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={renew.isLoading}>Annuler</Button>
-        <Button variant="contained" onClick={handleConfirm} disabled={renew.isLoading} startIcon={renew.isLoading ? <CircularProgress size={16} /> : <RefreshIcon />}>
+        <Button onClick={onClose} disabled={renew.isPending}>Annuler</Button>
+        <Button variant="contained" onClick={handleConfirm} disabled={renew.isPending} startIcon={renew.isPending ? <CircularProgress size={16} /> : <RefreshIcon />}>
           Renouveler
         </Button>
       </DialogActions>

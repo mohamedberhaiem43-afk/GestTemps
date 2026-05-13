@@ -156,7 +156,7 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur serveur", details = ex.Message });
+                return StatusCode(500, new { message = "Erreur serveur", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }
 
@@ -607,11 +607,17 @@ namespace ABRPOINT.Server.Controllers
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+            // SEC — Claim tenant_slug obligatoire pour isoler le JWT à son tenant
+            // d'émission. Empêche le rejouage cross-tenant via X-Tenant-Slug.
+            var tenantSlug = _currentTenant?.Current?.Slug
+                ?? throw new InvalidOperationException("Tenant context manquant lors de l'émission du JWT mobile.");
+
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, username),
                 new Claim(ClaimTypes.NameIdentifier, username),
                 new Claim(ClaimTypes.Name, username),
+                new Claim("tenant_slug", tenantSlug),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

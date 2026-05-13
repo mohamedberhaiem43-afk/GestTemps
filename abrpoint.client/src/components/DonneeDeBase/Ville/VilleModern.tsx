@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { Box, Typography, Button, Snackbar, Alert, CircularProgress } from '@mui/material';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -180,6 +179,5 @@ function VilleModernContent() {
 }
 
 export default function VilleModern() {
-  const qc = new QueryClient();
-  return <QueryClientProvider client={qc}><VilleModernContent /></QueryClientProvider>;
+  return <VilleModernContent />;
 }
