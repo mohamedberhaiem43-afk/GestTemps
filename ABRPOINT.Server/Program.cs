@@ -514,11 +514,15 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tenants_Siret' AND obj
 BEGIN
     CREATE INDEX [IX_Tenants_Siret] ON [Tenants]([Siret]);
 END");
+                // Note SQL Server : un prédicat d'index filtré n'accepte PAS `NOT IN`
+                // (parser refuse — Erreur 102 "Incorrect syntax near 'NOT'"). On éclate
+                // donc l'exclusion en deux comparaisons `<>` chaînées par AND, sémantique
+                // identique mais syntaxe acceptée.
                 await masterDb.Database.ExecuteSqlRawAsync(@"
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Tenants_Siret_Active' AND object_id = OBJECT_ID('Tenants'))
 BEGIN
     CREATE UNIQUE INDEX [UX_Tenants_Siret_Active] ON [Tenants]([Siret])
-        WHERE [Siret] IS NOT NULL AND [Status] NOT IN ('Failed', 'Cancelled');
+        WHERE [Siret] IS NOT NULL AND [Status] <> 'Failed' AND [Status] <> 'Cancelled';
 END");
                 // Stripe webhook replay protection : table des événements déjà traités.
                 // Stripe rejoue un webhook si le récepteur a renvoyé !=2xx ou timeout 30s.

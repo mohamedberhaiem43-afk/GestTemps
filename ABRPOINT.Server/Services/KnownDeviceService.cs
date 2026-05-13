@@ -29,7 +29,7 @@ public interface IKnownDeviceService
 
 public sealed class KnownDeviceService : IKnownDeviceService
 {
-    private readonly ApplicationDbContext _db;
+    private readonly Tenancy.ITenantDbContextFactory _dbFactory;
     private readonly IEmailService _email;
     private readonly ISuspiciousLoginTokenService _tokens;
     private readonly Tenancy.ICurrentTenant _currentTenant;
@@ -37,14 +37,25 @@ public sealed class KnownDeviceService : IKnownDeviceService
     private readonly ILogger<KnownDeviceService> _log;
 
     public KnownDeviceService(
-        ApplicationDbContext db,
+        Tenancy.ITenantDbContextFactory dbFactory,
         IEmailService email,
         ISuspiciousLoginTokenService tokens,
         Tenancy.ICurrentTenant currentTenant,
         IConfiguration cfg,
         ILogger<KnownDeviceService> log)
     {
-        _db = db;
+        // On prend un TenantDbContextFactory plutôt que l'ApplicationDbContext scoped. Raison :
+        // CompleteLoginSequence appelle ce service en fire-and-forget (`_ = RegisterAndAlertAsync(...)`)
+        // pour ne pas bloquer la réponse de login sur la création de l'empreinte / envoi mail.
+        // Si on partageait le DbContext de la requête HTTP, on aurait deux scénarios cassés :
+        //   1) Race : le contrôleur fait `await _dbContext.Societes...` en parallèle de notre
+        //      `await _db.KnownDevices...` → "A second operation was started on this context"
+        //      → 500 sur la réponse du contrôleur (bug observé en prod 2026-05-13).
+        //   2) Dispose : si le contrôleur termine avant nous, le scope est disposé, notre
+        //      continuation tape un ApplicationDbContext disposé → ObjectDisposedException.
+        // Avec ce factory on crée un DbContext dédié, connecté à la base du tenant courant,
+        // dont le cycle de vie est entièrement piloté par notre `await using`.
+        _dbFactory = dbFactory;
         _email = email;
         _tokens = tokens;
         _currentTenant = currentTenant;
@@ -54,10 +65,22 @@ public sealed class KnownDeviceService : IKnownDeviceService
 
     public async Task<bool> RegisterAndAlertAsync(string uticod, string? email, HttpContext httpContext, CancellationToken ct)
     {
+        // Snapshot des données HTTP MAINTENANT (la requête peut se terminer pendant qu'on
+        // travaille en fire-and-forget — accéder à httpContext après serait risqué).
+        string userAgent;
+        string ip;
         try
         {
-            var userAgent = httpContext.Request.Headers.UserAgent.ToString();
-            var ip = ResolveClientIp(httpContext);
+            userAgent = httpContext.Request.Headers.UserAgent.ToString();
+            ip = ResolveClientIp(httpContext);
+        }
+        catch
+        {
+            return false;
+        }
+
+        try
+        {
             var uaHash = HashUa(userAgent);
             var ipPrefix = TruncateIp(ip);
 
@@ -66,7 +89,10 @@ public sealed class KnownDeviceService : IKnownDeviceService
             if (string.IsNullOrEmpty(uaHash) || string.IsNullOrEmpty(ipPrefix))
                 return false;
 
-            var existing = await _db.KnownDevices
+            // DbContext dédié à cette opération (cf. constructeur pour le pourquoi).
+            await using var db = _dbFactory.Create();
+
+            var existing = await db.KnownDevices
                 .FirstOrDefaultAsync(d => d.Uticod == uticod && d.UaHash == uaHash && d.IpPrefix == ipPrefix, ct);
 
             if (existing != null)
@@ -74,17 +100,17 @@ public sealed class KnownDeviceService : IKnownDeviceService
                 // Appareil déjà connu : on rafraîchit juste last_seen_at — sert au debug
                 // ("dernière connexion depuis ce device") sans déclencher d'alerte.
                 existing.LastSeenAt = DateTime.UtcNow;
-                await _db.SaveChangesAsync(ct);
+                await db.SaveChangesAsync(ct);
                 return false;
             }
 
             // Empreinte inconnue → c'est soit le 1er login (utilisateur n'a aucun device
             // enregistré), soit un vrai nouveau contexte. On distingue les deux pour ne
             // pas envoyer une alerte lors du tout 1er login (faux positif sécurité).
-            var isFirstEverLogin = !await _db.KnownDevices.AnyAsync(d => d.Uticod == uticod, ct);
+            var isFirstEverLogin = !await db.KnownDevices.AnyAsync(d => d.Uticod == uticod, ct);
 
             var label = BuildDeviceLabel(userAgent, ip);
-            _db.KnownDevices.Add(new KnownDevice
+            db.KnownDevices.Add(new KnownDevice
             {
                 Uticod = uticod,
                 UaHash = uaHash,
@@ -93,13 +119,13 @@ public sealed class KnownDeviceService : IKnownDeviceService
                 FirstSeenAt = DateTime.UtcNow,
                 LastSeenAt = DateTime.UtcNow,
             });
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
 
             if (!isFirstEverLogin && !string.IsNullOrEmpty(email))
             {
                 // Fire-and-forget : on ne bloque pas la réponse de login sur l'envoi SMTP.
-                // Le scope DB de la requête se ferme avant le send, mais EmailService n'utilise
-                // ni le contexte HTTP ni le DbContext — il a son propre SmtpClient.
+                // EmailService n'utilise ni le contexte HTTP ni le DbContext — il a son
+                // propre SmtpClient, donc safe à appeler hors scope HTTP.
                 var slug = _currentTenant.Current?.Slug ?? string.Empty;
                 var revokeToken = !string.IsNullOrEmpty(slug) ? _tokens.Generate(slug, uticod) : null;
                 _ = SendAlertAsync(email, label, ip, slug, revokeToken);
