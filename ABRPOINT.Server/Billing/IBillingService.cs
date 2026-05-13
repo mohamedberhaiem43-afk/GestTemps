@@ -71,4 +71,7 @@ public sealed record CancellationResult(
     bool Success,
     bool Immediate,
     DateTime? EffectiveAt,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    bool Prorated = false,
+    decimal? RefundedAmount = null,
+    string? RefundCurrency = null);

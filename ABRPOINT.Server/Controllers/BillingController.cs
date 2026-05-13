@@ -397,6 +397,9 @@ public class BillingController : ControllerBase
             success = true,
             immediate = result.Immediate,
             effectiveAt = result.EffectiveAt,
+            prorated = result.Prorated,
+            refundedAmount = result.RefundedAmount,
+            refundCurrency = result.RefundCurrency,
         });
     }
 

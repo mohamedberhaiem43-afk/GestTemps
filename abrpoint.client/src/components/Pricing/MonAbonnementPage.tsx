@@ -80,11 +80,17 @@ export default function MonAbonnementPage() {
       });
       const immediate = res.data?.immediate;
       const effectiveAt = res.data?.effectiveAt;
+      const prorated = !!res.data?.prorated;
+      const refundedAmount: number | null = typeof res.data?.refundedAmount === 'number' ? res.data.refundedAmount : null;
+      const refundCurrency: string | null = typeof res.data?.refundCurrency === 'string' ? res.data.refundCurrency : null;
       setCancelOpen(false);
       setCancelReason('');
+      const refundLine = prorated && refundedAmount != null && refundCurrency
+        ? ` Un remboursement prorata temporis de ${refundedAmount.toFixed(2)} ${refundCurrency.toUpperCase()} a été émis vers votre carte (délai bancaire 5–10 jours).`
+        : '';
       setSuccessMsg(
         immediate
-          ? 'Votre abonnement a été résilié immédiatement. Vous allez être déconnecté.'
+          ? `Votre abonnement a été résilié immédiatement.${refundLine} Vous allez être déconnecté.`
           : `Votre résiliation a bien été enregistrée. Vous gardez l'accès jusqu'au ${formatDate(effectiveAt)}.`
       );
       await fetchInfo();

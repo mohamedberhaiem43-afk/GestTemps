@@ -233,9 +233,39 @@ public sealed class StripeBillingService : IBillingService
         {
             if (immediate)
             {
+                // Récupère la subscription avec items.price expanded pour détecter la périodicité.
+                // Politique commerciale : un abonnement ANNUEL résilié en cours de période donne
+                // droit à un remboursement prorata temporis du temps non consommé (engagement
+                // d'un an payé d'avance → restitution équitable). Un abonnement MENSUEL ne donne
+                // pas droit à remboursement (usage SaaS B2B standard, le mois en cours est dû).
+                Subscription subscription;
+                try
+                {
+                    subscription = await _subscriptions.GetAsync(
+                        tenant.StripeSubscriptionId,
+                        new SubscriptionGetOptions
+                        {
+                            Expand = new List<string> { "items.data.price" },
+                        },
+                        cancellationToken: ct);
+                }
+                catch (StripeException ex) when (ex.HttpStatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // Subscription déjà supprimée côté Stripe (retry idempotent ou race avec webhook
+                    // subscription.deleted). On considère la résiliation effective.
+                    await SetTenantCancelledAsync(tenant.Id, ct);
+                    return new CancellationResult(true, true, DateTime.UtcNow, null);
+                }
+
+                var isAnnual = IsAnnualSubscription(subscription);
+
                 // Résiliation immédiate : on annule Stripe (le webhook customer.subscription.deleted
                 // sera reçu et déclenchera SuspendAsync → mais on force Cancelled tout de suite
                 // pour que l'admin perçoive la résiliation sans attendre le round-trip webhook).
+                // Prorate/InvoiceNow restent false : on gère le remboursement nous-mêmes via
+                // Refund API pour que l'argent revienne sur la CB du client (et non en crédit
+                // sur la balance Stripe qui ne serait restitué qu'au prochain paiement — or il
+                // n'y en aura pas après résiliation).
                 await _subscriptions.CancelAsync(
                     tenant.StripeSubscriptionId,
                     new SubscriptionCancelOptions
@@ -245,10 +275,38 @@ public sealed class StripeBillingService : IBillingService
                     },
                     cancellationToken: ct);
 
+                decimal refundedMajor = 0;
+                string? refundCurrency = null;
+                if (isAnnual)
+                {
+                    try
+                    {
+                        (refundedMajor, refundCurrency) = await IssueProratedRefundAsync(subscription, ct);
+                    }
+                    catch (StripeException refundEx)
+                    {
+                        // La résiliation reste effective même si le remboursement échoue. Le support
+                        // traitera le remboursement manuellement via le Dashboard Stripe — on log
+                        // suffisamment d'info pour retracer la facture concernée.
+                        _log.LogError(refundEx,
+                            "Remboursement prorata échoué pour tenant {Slug} (subscription={SubId}). " +
+                            "Code Stripe={Code}. À traiter manuellement via Dashboard.",
+                            tenant.Slug, tenant.StripeSubscriptionId, refundEx.StripeError?.Code);
+                    }
+                }
+
                 await SetTenantCancelledAsync(tenant.Id, ct);
-                _log.LogInformation("Tenant {Slug} : résiliation immédiate effectuée (subscription={SubId}).",
-                    tenant.Slug, tenant.StripeSubscriptionId);
-                return new CancellationResult(true, true, DateTime.UtcNow, null);
+                _log.LogInformation(
+                    "Tenant {Slug} : résiliation immédiate effectuée (subscription={SubId}, annual={Annual}, refunded={Refunded} {Cur}).",
+                    tenant.Slug, tenant.StripeSubscriptionId, isAnnual, refundedMajor, refundCurrency ?? "-");
+                return new CancellationResult(
+                    Success: true,
+                    Immediate: true,
+                    EffectiveAt: DateTime.UtcNow,
+                    ErrorMessage: null,
+                    Prorated: isAnnual && refundedMajor > 0,
+                    RefundedAmount: refundedMajor > 0 ? refundedMajor : (decimal?)null,
+                    RefundCurrency: refundCurrency);
             }
             else
             {
@@ -314,6 +372,108 @@ public sealed class StripeBillingService : IBillingService
             _log.LogError(ex, "Échec de reprise de subscription Stripe pour tenant {Slug}.", tenant.Slug);
             return false;
         }
+    }
+
+    /// <summary>
+    /// True si au moins un item de la subscription est facturé annuellement (Price.Recurring.Interval == "year").
+    /// On considère qu'une subscription contenant un item annuel est globalement annuelle —
+    /// le modèle Stripe permet techniquement de mixer base+seat avec intervalles différents,
+    /// mais notre catalogue PlanCatalog n'expose que des combinaisons homogènes (base+seat
+    /// même intervalle), donc tester le premier item suffit en pratique.
+    /// </summary>
+    private static bool IsAnnualSubscription(Subscription sub)
+    {
+        if (sub?.Items?.Data == null) return false;
+        foreach (var it in sub.Items.Data)
+        {
+            var interval = it?.Price?.Recurring?.Interval;
+            if (!string.IsNullOrEmpty(interval) && string.Equals(interval, "year", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Émet un remboursement prorata temporis sur la dernière facture payée de la subscription.
+    /// Le ratio remboursé = secondes restantes jusqu'à CurrentPeriodEnd / durée totale de la
+    /// période. Ce remboursement va sur la carte d'origine via la Refund API Stripe (et non
+    /// en crédit balance, qui serait perdu après cancel). Retourne le montant remboursé en
+    /// unité majeure (ex: 47.50 EUR) et le code devise ISO.
+    /// </summary>
+    private async Task<(decimal amountMajor, string? currency)> IssueProratedRefundAsync(
+        Subscription sub, CancellationToken ct)
+    {
+        if (sub == null) return (0, null);
+        var periodStart = sub.CurrentPeriodStart;
+        var periodEnd = sub.CurrentPeriodEnd;
+        if (periodStart == default || periodEnd == default || periodEnd <= periodStart)
+        {
+            _log.LogWarning("Période Stripe invalide sur {SubId} — prorata non calculable.", sub.Id);
+            return (0, null);
+        }
+
+        var totalSeconds = (periodEnd - periodStart).TotalSeconds;
+        var now = DateTime.UtcNow;
+        if (now <= periodStart) return (0, null); // période pas encore commencée
+        if (now >= periodEnd) return (0, null);   // période terminée → rien à rembourser
+        var remainingSeconds = (periodEnd - now).TotalSeconds;
+        var unusedRatio = (decimal)(remainingSeconds / totalSeconds);
+        if (unusedRatio <= 0m) return (0, null);
+
+        // Identifie la dernière facture payée de la subscription pour cibler le PaymentIntent
+        // (ou Charge en fallback). On limite à 1 résultat : c'est l'invoice de l'engagement
+        // annuel en cours.
+        var invoiceService = new InvoiceService();
+        var invoices = await invoiceService.ListAsync(new InvoiceListOptions
+        {
+            Subscription = sub.Id,
+            Status = "paid",
+            Limit = 1,
+        }, cancellationToken: ct);
+        var lastInvoice = invoices?.Data?.FirstOrDefault();
+        if (lastInvoice == null)
+        {
+            _log.LogWarning("Aucune facture payée pour {SubId} — prorata non remboursable.", sub.Id);
+            return (0, null);
+        }
+
+        var refundAmountMinor = (long)Math.Floor(lastInvoice.AmountPaid * unusedRatio);
+        if (refundAmountMinor <= 0) return (0, lastInvoice.Currency);
+
+        var refundOptions = new RefundCreateOptions
+        {
+            Amount = refundAmountMinor,
+            Reason = "requested_by_customer",
+            Metadata = new Dictionary<string, string>
+            {
+                ["stripe_subscription_id"] = sub.Id,
+                ["stripe_invoice_id"] = lastInvoice.Id,
+                ["prorata_unused_ratio"] = unusedRatio.ToString("F6", System.Globalization.CultureInfo.InvariantCulture),
+                ["prorata_unused_seconds"] = ((long)remainingSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["billing_interval"] = "year",
+            },
+        };
+        var paymentIntentId = lastInvoice.PaymentIntentId;
+        var chargeId = lastInvoice.ChargeId;
+        if (!string.IsNullOrEmpty(paymentIntentId))
+            refundOptions.PaymentIntent = paymentIntentId;
+        else if (!string.IsNullOrEmpty(chargeId))
+            refundOptions.Charge = chargeId;
+        else
+        {
+            _log.LogWarning(
+                "Facture {InvId} sans PaymentIntent ni Charge — prorata non remboursable (paiement par balance/voucher ?).",
+                lastInvoice.Id);
+            return (0, lastInvoice.Currency);
+        }
+
+        var refundService = new RefundService();
+        var refund = await refundService.CreateAsync(refundOptions, cancellationToken: ct);
+        var amountMajor = refund.Amount / 100m;
+        _log.LogInformation(
+            "Refund prorata créé : {Amount} {Cur} pour subscription {SubId} (ratio {Ratio:P2}, restant {Days:F1}j).",
+            amountMajor, refund.Currency, sub.Id, unusedRatio, remainingSeconds / 86400.0);
+        return (amountMajor, refund.Currency);
     }
 
     /// <summary>

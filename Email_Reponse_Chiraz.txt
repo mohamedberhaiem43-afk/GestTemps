@@ -1,0 +1,28 @@
+Objet : Re : Maquette page d'accueil Concorde Workforce — version conforme à la charte
+
+Bonjour Chiraz,
+
+Merci beaucoup pour cette première maquette, elle m'a vraiment bien aidé pour cadrer la structure de la page (le découpage en sections, le banner promo, l'aperçu dashboard, la mise en valeur du parcours en 4 étapes, etc.). L'idée de fond est excellente.
+
+Comme vous l'aviez bien anticipé, la version IA partait sur une charte gold/dark qui ne colle pas à notre identité visuelle. Je me suis donc permis de reproduire la même architecture mais en l'alignant strictement sur notre design system existant :
+
+  • Palette Material 3 déjà en place dans la plateforme (primary #0040a1, surface #f7f9fb, tertiary #005136 pour les accents de succès)
+  • Typographies Manrope (titres) et Inter (corps), comme sur le reste de l'application
+  • Cards blanches sur fond clair avec ombres douces — cohérent avec la PricingPage et le dashboard existants
+  • Logo et nom "Concorde Workforce" identiques à ceux utilisés en production
+
+J'ai également adapté quelques contenus pour qu'ils reflètent la réalité fonctionnelle de la plateforme :
+
+  • Les 3 plans (Starter 29,50 € · Standard 59,50 € · Premium 119 €) sont conformes au catalogue tarifaire backend, avec le modèle "forfait + N salariés inclus + tarif par employé supplémentaire"
+  • Le formulaire d'inscription intègre les 4 pays supportés (France, Belgique, Maroc, Sénégal) avec leurs identifiants entreprise respectifs (SIRET, BCE, ICE, NINEA)
+  • L'essai gratuit est positionné à 30 jours sans CB (cohérent avec la promesse commerciale actuelle)
+  • Les fonctionnalités mentionnées (pointage géolocalisé, coffre numérique, congés/RTT/CET, préparation paie, assistant IA, etc.) correspondent exactement à ce qui est implémenté
+
+Vous trouverez le fichier joint : Maquette_Concorde_Workforce.html — ouvrable directement dans n'importe quel navigateur. Il est entièrement responsive et inclut les mêmes interactions que votre maquette (auto-rotation des étapes, toggle mensuel/annuel sur les prix, countdown timer, formulaire connexion/inscription).
+
+N'hésitez pas à me dire si vous voulez ajuster certains contenus ou reprendre cette base sur Figma pour itérer plus facilement avec les équipes commerciales et marketing. Si l'esprit général vous convient, je pourrai aussi transposer cette maquette en composant React intégré directement à la plateforme à la place de l'actuelle PricingPage.
+
+Bonne journée et merci encore pour le travail de structuration que vous avez fourni — ça a vraiment accéléré la mise en forme.
+
+Cordialement,
+Mohamed

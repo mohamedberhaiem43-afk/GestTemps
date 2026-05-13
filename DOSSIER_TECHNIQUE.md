@@ -10,14 +10,38 @@
 **Application mobile** : Concorde Workly (iOS / Android)
 **Éditeur** : groupe Concorde — [concorde-tech.fr](https://www.concorde-tech.fr)
 **Cycle** : Préparation lancement V1 — infrastructure de production commandée
-**Date de référence** : 2026-05-13 (version 2)
+**Date de référence** : 2026-05-13 (version 3)
 **Stack résumé** : .NET 8 + ASP.NET Core / React 19 + Vite + MUI / Expo 54 + React Native 0.81 / PostgreSQL 16 / Docker Compose + nginx-proxy / Qdrant (RAG) / Ubuntu Server 24.04 LTS sur serveur dédié OVH KS-5-B (datacenter France)
 
-> **Évolutions depuis la v1 (2026-05-10)** : tarification commerciale verrouillée
+> **Évolutions depuis la v2 (2026-05-12)** — durcissement sécurité authentification + signup
+> et alignement contractuel de la politique de résiliation :
+> - **Anti-fraude au signup** : validation d'identifiant entreprise (SIRET / BCE / ICE / NINEA)
+>   selon le pays choisi avec appels API officiels (Sirene `api-recherche-entreprises.fr`,
+>   `cbeapi.be`) ; index unique filtré côté master DB pour empêcher la multi-inscription
+>   gratuite d'un même établissement (cf. §3.12 et §6.5).
+> - **Sélecteur pays au signup** : 4 pays supportés (France, Belgique, Maroc, Sénégal)
+>   avec champ d'identifiant entreprise adapté dynamiquement (label, longueur, placeholder, validation).
+> - **Mots de passe** : vérification HIBP Pwned Passwords par k-anonymity (envoi des 5 premiers
+>   caractères du SHA-1 uniquement) au signup, au changement et au reset (cf. §6.5).
+> - **Account lockout progressif** anti-brute-force (3→30 s, 5→5 min, 10→1 h, 20+→24 h)
+>   appliqué sur `/Utilisateurs/connect` (cf. §6.5).
+> - **Alerte connexion depuis un nouvel appareil** (table `known_devices` + email instantané
+>   avec lien sécurisé HMAC « Ce n'était pas moi ») permettant la révocation immédiate des
+>   sessions et la réinitialisation du compte (cf. §6.5).
+> - **Idempotence Stripe** : clé `Idempotency-Key` SHA-256 sur la création de session Checkout
+>   pour bloquer les doublons issus de double-clic ou retry réseau.
+> - **Anti-replay webhooks Stripe** : table `StripeWebhookSeen` (clé primaire = event_id),
+>   insertion en début de pipeline → un même event ne peut être traité qu'une seule fois.
+> - **Validation server-side du userCount** au checkout : la quantité facturée est plafonnée
+>   par le nombre d'employés actifs réellement comptés en base tenant (anti sous-déclaration).
+> - **Prorata de remboursement** appliqué aux résiliations immédiates d'abonnements **annuels**
+>   uniquement (cf. §11.3) — politique alignée sur l'engagement payé d'avance ; le mensuel
+>   reste sans remboursement conformément aux usages SaaS B2B.
+>
+> **Évolutions v2 (2026-05-12)** : tarification commerciale verrouillée
 > (Starter 29,50 € / Standard 59,50 € / Premium 119 € + overage par salarié),
 > verrouillage des fonctionnalités payantes (plan gating backend + frontend + mobile),
-> commande du serveur de production et plan de durcissement infra associé. Cf. §11, §13
-> et §26 pour les nouvelles sections.
+> commande du serveur de production et plan de durcissement infra associé.
 
 ---
 
@@ -48,7 +72,7 @@ Plateforme SaaS multi-tenant proposant aux PME/ETI une solution intégrée :
 - Coffre-fort + signature en flux complet — **fait** (avec gating Standard+ et signature gatée Standard+).
 - Préparation paie compatible avec exports paie standards (Excel) — **fait** (nomenclature de rubriques par défaut, mapping vartype/unité aligné moteur de pointage).
 - Hardening sécurité OWASP top 10 + protections mobiles renforcées (cert pinning, screenshot blocking, auto-lock, anti-émulateur) — **fait** (Premium seul reçoit l'expérience renforcée à l'exception du cert pinning qui est natif au binaire).
-- Infrastructure de production durcie sur Ubuntu Server 24.04 LTS — **provisioning planifié** (cf. §24 : UFW, Fail2Ban, SSH clés, séparation prod/staging, sauvegardes).
+- Infrastructure de production durcie sur Ubuntu Server 24.04 LTS — **provisioning planifié** (cf. §23 : UFW, Fail2Ban, SSH clés, séparation prod/staging, sauvegardes).
 
 ---
 
@@ -160,6 +184,9 @@ Convention de nommage SQL : tables/colonnes en minuscule 3-7 caractères (`emp*`
 - **Tokens** : access token courte durée + `RefreshToken` long terme stocké en DB chiffré (`EncryptionService`)
 - **Mobile biométrie sans password** (G2) : à l'activation Face ID/empreinte, le serveur émet un *bio-token* dédié (purpose=Biometric, expiry 90j, rotation à chaque usage). **Aucun mot de passe n'est stocké sur l'appareil.**
 - **Quota refresh tokens par utilisateur** (G6) : 5 derniers tokens "Refresh" actifs maximum, les plus anciens (par `last_used_at`) sont révoqués automatiquement.
+- **Account lockout progressif** ([UtilisateursController](ABRPOINT.Server/Controllers/UtilisateursController.cs)) : compteur d'échecs `uti_failed_logins` + `uti_locked_until`. Paliers OWASP : 3 échecs → 30 s, 5 → 5 min, 10 → 1 h, 20+ → 24 h. Réinitialisé à chaque login réussi. Combiné au rate-limit IP (`auth-login`), bloque le brute-force credential-stuffing.
+- **Vérification HIBP Pwned Passwords** ([PasswordBreachCheckService](ABRPOINT.Server/Services/PasswordBreachCheckService.cs)) : au signup, changement et reset de mot de passe, k-anonymity SHA-1 (5 premiers hex envoyés seulement), header `Add-Padding: true` (anti corrélation taille de réponse). Mode *fail-open* si l'API HIBP est indisponible — la disponibilité du service n'est pas dépendante d'un tiers.
+- **Alerte connexion depuis un nouvel appareil** ([KnownDeviceService](ABRPOINT.Server/Services/KnownDeviceService.cs)) : table `known_devices` indexée par `(uticod, ua_hash, ip_prefix)`. À chaque login web réussi, on hash le User-Agent (SHA-256 tronqué 16 hex) et on prend le préfixe IP (/16 IPv4, /48 IPv6). Si combinaison inconnue ET pas la toute première connexion de l'utilisateur, e-mail instantané « Connexion depuis un nouvel appareil détectée » avec lien « Ce n'était pas moi » signé HMAC-SHA256, TTL 7 j, usage unique via `IMemoryCache`. Le clic révoque tous les refresh tokens, réinitialise le lockout, génère un code de reset 6 chiffres et envoie un e-mail de récupération ([AuthLookupController.RevokeSuspiciousLogin](ABRPOINT.Server/Controllers/AuthLookupController.cs), [SuspiciousLoginTokenService](ABRPOINT.Server/Services/SuspiciousLoginTokenService.cs) — `CryptographicOperations.FixedTimeEquals` pour la comparaison anti-timing).
 - **Anti-énumération** : tous les contrôleurs `[Authorize]` + `[ValidateSoccod]`, refresh token rotatif
 
 ### 3.2 Gestion RH
@@ -187,7 +214,7 @@ Convention de nommage SQL : tables/colonnes en minuscule 3-7 caractères (`emp*`
 - **Mode résolu auto** : `off` si aucun geofence, `reject` dès qu'un site a `(sitlat, sitlon, sitrad)` configuré (override possible via `GeoZones:Mode`)
 - **Contrôle au pointage** ([PresencesController.MarkPresence](ABRPOINT.Server/Controllers/PresencesController.cs#L264)) : refus 422 `gps_required` si zones configurées sans GPS, `outside_geofence` si hors rayon
 - **UI admin** : carte « Pointage Géolocalisé » dans [FilialeModern.tsx](abrpoint.client/src/components/DonneeDeBase/Filiale/FilialeModern.tsx) — bouton « Utiliser ma position », lien OpenStreetMap, reset
-- **Tolérance horloge** : skew client/server bumpé à 90 min (couverture Maghreb/Europe DST)
+- **Tolérance horloge** : skew client/serveur tolérant (jusqu'à 90 min) — couverture Maroc / Europe DST sans rejet de pointage
 
 ### 3.5 Congés & autorisations
 - **Demandes de congé** ([DemCongeModern.tsx](abrpoint.client/src/components/gestionEmploye/gestionConge/DemConge/DemCongeModern.tsx)) : workflow soumission → manager/admin approve/refuse → titre de congé émis
@@ -251,10 +278,14 @@ Convention de nommage SQL : tables/colonnes en minuscule 3-7 caractères (`emp*`
 > Module ajouté au sprint mai 2026 — alignement sur les standards SaaS (Odoo, HubSpot) et conformité légale française.
 
 - **Inscription publique anti-bot** ([SignupController](ABRPOINT.Server/Controllers/SignupController.cs)) : page `/signup` protégée par **captcha mathématique** côté serveur (challenge arithmétique généré, validation à usage unique via `IMemoryCache` avec TTL 5 min) — pas de dépendance externe Google reCAPTCHA, RGPD-friendly
+- **Sélecteur pays (FR / BE / MA / SN)** : drapeaux servis par l'API publique `restcountries.com` (même source que la fiche collaborateur, pour cohérence) ; le champ d'identifiant entreprise change dynamiquement selon le pays choisi (SIRET 14 chiffres FR, BCE 10 chiffres BE, ICE 15 chiffres MA, NINEA 9 caractères SN), avec validation backend dédiée par pays (cf. §6.5)
+- **Anti-fraude par identifiant entreprise** ([SiretValidationService](ABRPOINT.Server/Services/SiretValidationService.cs)) : appels API officiels (Sirene `api-recherche-entreprises.fr` pour FR, `cbeapi.be` Bearer-auth pour BE, validation algorithmique mod 97 pour BE en filet de sécurité, format-only pour MA/SN qui n'exposent pas d'API publique stable) ; **index unique filtré** côté master DB `UX_Tenants_Siret_Active WHERE Siret IS NOT NULL AND Status NOT IN ('Failed','Cancelled')` — un même établissement (SIRET/BCE/ICE/NINEA) ne peut pas bénéficier de plusieurs essais gratuits en parallèle
+- **Vérification HIBP du mot de passe au signup** (cf. §3.1) : si le mot de passe figure dans les fuites publiques (`pwnedpasswords.com`), `/signup` retourne 400 `password_breached` avant la création du tenant
 - **Sélection de plan en amont** : Starter / Standard / Premium choisis avant création du tenant ; le plan détermine immédiatement les modules visibles (cf. §3.13)
 - **Essai gratuit 30 jours** sur tous les plans (sans CB requise) — politique unifiée mai 2026, anciennement réservée à Standard. Le tenant en essai accède aux modules de **son plan sélectionné** (pas Premium-pour-tous) pour cohérence commerciale et éviter l'effet falaise au paiement
-- **Paiement Stripe Checkout** : abonnement récurrent mensuel, prix forfaitaire + overage par salarié au-delà du seuil inclus ; webhook signé `customer.subscription.{created|updated|deleted}` synchronise l'état tenant
+- **Paiement Stripe Checkout** : abonnement récurrent (mensuel ou annuel, configurable par tenant), prix forfaitaire + overage par salarié au-delà du seuil inclus ; webhook signé `customer.subscription.{created|updated|deleted}` synchronise l'état tenant ; **idempotence native** : clé `Idempotency-Key` SHA-256 (tenant + plan + cycle + qty + bucket 1 min) sur la création de session Checkout pour bloquer doublons issus de double-clic ; **anti-replay webhook** : table `StripeWebhookSeen` (event_id en PK) garantit qu'un même event n'est traité qu'une seule fois côté serveur ; **validation server-side du userCount** : la quantité facturée est plafonnée par le nombre d'employés actifs réellement comptés en base tenant pour empêcher la sous-déclaration frauduleuse
 - **Résiliation libre** ([BillingController](ABRPOINT.Server/Controllers/BillingController.cs)) : deux modes — *immédiate* (Stripe `CancelAsync`, accès coupé) ou *fin de période* (`cancel_at_period_end`, l'utilisateur conserve l'accès jusqu'à la date payée). Réservée Admin/Manager via vérification base de données du rôle (`Utiadm` / `Utirole`)
+- **Prorata de remboursement (abonnements annuels uniquement)** : à la résiliation immédiate d'un abonnement annuel, le montant non consommé est remboursé sur la carte de paiement d'origine via la Refund API Stripe ; détection par lecture de `Price.Recurring.Interval == "year"` sur les items de subscription, calcul `montantRemboursé = AmountPaid × (secondes restantes / durée totale période)`, idempotence et fail-soft (la résiliation reste effective même en cas d'échec du remboursement, repris manuellement par le support). **Le mensuel reste sans remboursement** (cf. §11.3)
 - **Réactivation post-résiliation** conforme au droit français du contrat : tenant en statut `Cancelled` conservé **90 jours en rétention** ; pendant cette fenêtre, l'utilisateur peut se ré-inscrire avec la **même adresse e-mail** et récupérer ses données (code `cancelled_account_reactivatable` retourné par `/signup`, endpoint `/billing/resume-checkout` accepte les Cancelled). Au-delà de 90 jours : suppression effective (RGPD *droit à l'effacement*)
 - **Reprise d'abonnement** : avant la date de coupure, l'admin peut annuler la résiliation en un clic (`ResumeSubscriptionAsync` → Stripe `cancel_at_period_end = false`)
 - **Multi-tenant strict** : `TenantResolverMiddleware` bypasse explicitement `/api/billing/*` pour les tenants Suspended/Cancelled/Failed afin de permettre le flux de réactivation sans contourner les autres protections
@@ -379,7 +410,7 @@ Six durcissements appliqués en plus du socle JWT/HTTPS :
 | **A03 — Injection** | EF Core paramétré ; pas de SQL concat utilisateur |
 | **A04 — Insecure Design** | Garde-fous métier explicites (skew clock, hire/termination dates, GPS requis si geofence) |
 | **A05 — Security Misconfig** | Server header masqué (`AddServerHeader = false`), `server_tokens off` côté nginx, erreurs masquées en prod |
-| **A07 — Identification & Auth Failures** | 2FA TOTP, refresh rotatif + quota 5/user (G6), rate-limit `clock-in` (6/min/IP), `auth-signup` (3/h/IP), `auth-login` (rate-limited) |
+| **A07 — Identification & Auth Failures** | 2FA TOTP, refresh rotatif + quota 5/user (G6), rate-limit `clock-in` (6/min/IP), `auth-signup` (3/h/IP), `auth-login` (rate-limited), **account lockout progressif par compte** (3→30 s, 5→5 min, 10→1 h, 20+→24 h), **vérification HIBP Pwned Passwords k-anonymity** au signup/change/reset, **alerte connexion depuis un nouvel appareil** + lien sécurisé de révocation (cf. §6.5) |
 | **A08 — Software & Data Integrity** | Whitelist d'extensions uploads (anti-RCE), nginx `deny` sur `.php/.exe/.sh` dans `/api/uploads/` |
 | **A09 — Logging & Monitoring** | Logging structuré (`ILogger<>`), `AuditLog` table pour actions critiques |
 | **A10 — SSRF** | RAG sidecar isolé sur réseau interne uniquement |
@@ -415,7 +446,26 @@ CSP émise sur **une seule ligne** (les headers HTTP n'autorisent pas les LF —
 ### 6.4 Auto-migration de schéma
 [BaseDataSchemaMigrator.cs](ABRPOINT.Server/Services/BaseDataSchemaMigrator.cs) applique au démarrage, **par tenant et de façon idempotente**, toutes les évolutions de schéma : nouvelles colonnes (`AddColumnIfMissingAsync`), nouveaux index (`EnsureIndexAsync`), nouvelles tables (`EnsureXxxTableAsync`). Aucune intervention DBA, aucune migration EF formelle à appliquer manuellement.
 
-Liste actuelle des migrations idempotentes intégrées : ville (vilcod/villib), parametre (parmodemp, CET), employe (RTT 4 cols + vilcod), site (geofence sitlat/sitlon/sitrad), refresh_tokens (purpose, last_used_at, index quota), mission (recréation table propre), notedefrais (missionid, devise), RAG (rag_document, rag_letter_template, rag_chat_log), **seed initial du référentiel pays/nations** (40 entrées FR, Maghreb, Afrique francophone, marchés annexes — appliqué uniquement si la table est vide pour respecter la liberté de l'admin de modifier la liste a posteriori).
+Liste actuelle des migrations idempotentes intégrées : ville (vilcod/villib), parametre (parmodemp, CET), employe (RTT 4 cols + vilcod), site (geofence sitlat/sitlon/sitrad), refresh_tokens (purpose, last_used_at, index quota), mission (recréation table propre), notedefrais (missionid, devise), RAG (rag_document, rag_letter_template, rag_chat_log), **colonnes lockout sur utilisateurs (`uti_failed_logins`, `uti_locked_until`, `uti_last_failed_login_at`)**, **table `known_devices` (uticod, ua_hash, ip_prefix, first_seen_at, last_seen_at)**, **table master `StripeWebhookSeen` + colonnes Tenant.Siret / Tenant.CountryCode + index unique filtré `UX_Tenants_Siret_Active`**, et **seed initial du référentiel pays/nations** (40 entrées FR, Maghreb, Afrique francophone, marchés annexes — appliqué uniquement si la table est vide pour respecter la liberté de l'admin de modifier la liste a posteriori).
+
+### 6.5 Anti-fraude au signup et durcissement de l'authentification
+
+Couche dédiée empilée sur le socle JWT/2FA. Sa logique : empêcher (i) la fraude par multi-inscription gratuite d'un même établissement, (ii) le brute-force / credential-stuffing, et (iii) la prise de contrôle silencieuse d'un compte légitime.
+
+| Mécanisme | Cible | Implémentation | Effet |
+|---|---|---|---|
+| **Validation d'identifiant entreprise au signup** | Multi-inscription gratuite par changement d'e-mail | [SiretValidationService.cs](ABRPOINT.Server/Services/SiretValidationService.cs) — appel `api-recherche-entreprises.fr` (FR) ou `cbeapi.be` (BE Bearer), mod 97 BE en filet, format-only MA/SN. `IHttpClientFactory` avec clients nommés (`sirene`, `cbe`), timeout 5 s, fail-open (la validation locale algorithmique reste le verrou) | Une entreprise inexistante / format invalide est rejetée au signup (HTTP 400 avec code spécifique) |
+| **Index unique filtré sur SIRET** | Doublon d'établissement actif | `WHERE Siret IS NOT NULL AND Status NOT IN ('Failed','Cancelled')` sur master DB. Une seconde tentative d'inscription avec le même identifiant et un statut actif/trial échoue avec `siret_already_active` | Un même SIRET ne peut être "Trialing" ou "Active" qu'une seule fois à la fois |
+| **HIBP Pwned Passwords** | Compte avec mot de passe déjà compromis | [PasswordBreachCheckService.cs](ABRPOINT.Server/Services/PasswordBreachCheckService.cs) — k-anonymity SHA-1 (5 premiers hex envoyés), header `Add-Padding: true`, appliqué au signup + change-password + reset-password. Fail-open en cas d'indispo HIBP | Mot de passe trouvé dans les fuites publiques → 400 `password_breached`, l'utilisateur doit en choisir un autre |
+| **Account lockout progressif** | Brute-force / credential-stuffing | Colonnes `uti_failed_logins`, `uti_locked_until` sur Utilisateurs (auto-migrées). Paliers OWASP : 3 échecs → 30 s, 5 → 5 min, 10 → 1 h, 20+ → 24 h. Combiné au rate-limit IP `auth-login` côté ASP.NET | Un attaquant ne peut pas tester plus de quelques mots de passe par heure sur un compte donné |
+| **Captcha mathématique au signup** | Bots de signup en masse | Challenge arithmétique côté serveur, validation à usage unique via `IMemoryCache` TTL 5 min. **Aucune dépendance Google reCAPTCHA** (RGPD-friendly, pas de transfert hors UE) | Bloque l'automatisation naïve, sans tracker tiers |
+| **Alerte nouvel appareil** | Détection de prise de contrôle silencieuse | Table `known_devices(uticod, ua_hash, ip_prefix)`. SHA-256 UA tronqué 16 hex + préfixe IP (/16 IPv4, /48 IPv6). Premier login d'un user : pas d'alerte (cas légitime). Devices suivants inconnus : e-mail instantané | L'utilisateur légitime reçoit l'alerte en temps réel et peut révoquer immédiatement |
+| **Token "Was that me?" HMAC** | Action sécurisée à partir d'un e-mail (pas de session) | [SuspiciousLoginTokenService.cs](ABRPOINT.Server/Services/SuspiciousLoginTokenService.cs) — payload `{slug}\|{uticod}\|{issuedAtUnix}` signé HMAC-SHA256 (clé `Encryption:AesKey`), TTL 7 j, usage unique via `IMemoryCache`. Comparaison `CryptographicOperations.FixedTimeEquals` (anti-timing) | Le clic révoque tous les refresh tokens du compte, réinitialise le lockout et envoie un code de reset 6 chiffres |
+| **Idempotence Stripe Checkout** | Doublon de session par double-clic / retry réseau | Clé `Idempotency-Key` SHA-256(tenant + plan + cycle + qty + bucket 1 min) → identique sur retry rapide, distincte sur changement réel de plan | Double-clic = 1 seule session Stripe |
+| **Anti-replay webhooks Stripe** | Rejeu malveillant ou doublon réseau | Table master `StripeWebhookSeen` (PK = `event_id` Stripe). INSERT en début de pipeline → si violation de PK, l'event est considéré déjà traité et retourné `200 OK` sans rejouer l'effet métier | Un même event ne déclenche jamais deux fois la mutation Tenant.Status |
+| **Validation server-side du userCount** | Sous-déclaration frauduleuse au checkout | `billedQty = Math.Max(requestedQty, COUNT(Empactif='A'))` plafonné à 10 000, log warning si correction | Un attaquant ne peut pas payer le forfait minimum tout en gérant 500 personnes |
+
+**Conformité RGPD** : aucun de ces mécanismes n'envoie de PII hors UE. HIBP reçoit uniquement les 5 premiers hex SHA-1 (l'algorithme de k-anonymity garantit qu'aucun mot de passe complet ni hash complet ne sort). Sirene et CBE reçoivent uniquement un identifiant légal d'entreprise public. L'IP est tronquée avant stockage (`/16` IPv4, `/48` IPv6) — empreinte au sens RGPD non identifiante directe, finalité documentée (détection de prise de contrôle).
 
 ---
 
@@ -578,22 +628,27 @@ En sus du modèle Role × Module ci-dessus, une seconde couche d'autorisation co
 
 1. **France** (cœur du marché V1) : 4M+ PME, pression réglementaire (loi El Khomri sur le pointage, RGPD), forte appétence SaaS RH
 2. **Belgique** (extension proche) : législation RH proche, marché francophone, besoins RGPD identiques
-3. **Maghreb / Afrique francophone** : Tunisie, Maroc, Algérie, Sénégal, Côte d'Ivoire — forte demande digitalisation, peu d'offres locales
-4. **DOM-TOM** : couverture cross-fuseau native (skew 90 min)
+3. **Maroc et Sénégal** : modernisation du pointage et de la paie pour les PME / ETI locales — forte demande de digitalisation, peu d'offres adaptées au marché
 
 ### 11.3 Modèle d'abonnement
 
 - **Facturation** : **forfait mensuel fixe + overage** par salarié supplémentaire au-delà du seuil inclus. Cf. §12 pour les barèmes.
 - **Modèle Stripe** : subscription à 2 items — `base` (qty=1, prix forfaitaire) + `seat` (qty=overage, prix par salarié supplémentaire). Lors d'un ajout de salariés en cours de mois, Stripe applique un ajustement immédiat (`ProrationBehavior = create_prorations`) — calcul transparent et automatique pour l'utilisateur. Cette logique d'ajustement à l'ajout de seats est distincte de la politique de résiliation décrite ci-dessous.
 - **Engagement** : sans engagement de durée. L'utilisateur résilie à tout moment, selon deux modalités au choix :
-  - *Résiliation immédiate* — effet instantané, sans remboursement de la fraction non utilisée du mois en cours.
-  - *Résiliation à l'échéance* — l'utilisateur conserve l'accès jusqu'au terme de la période déjà payée, aucune facturation ultérieure n'est émise.
-
-  **Aucun remboursement prorata temporis n'est appliqué** — modalité conforme aux usages des abonnements SaaS mensuels reconductibles.
+  - *Résiliation immédiate* — effet instantané. **Si l'abonnement est annuel**, un remboursement *prorata temporis* du temps non consommé est automatiquement émis sur la carte d'origine via la Refund API Stripe (cf. infra). **Si l'abonnement est mensuel**, aucun remboursement n'est appliqué — modalité conforme aux usages des abonnements SaaS mensuels reconductibles.
+  - *Résiliation à l'échéance* — l'utilisateur conserve l'accès jusqu'au terme de la période déjà payée, aucune facturation ultérieure n'est émise. Aucun remboursement (la prestation est consommée jusqu'au terme).
+- **Mécanisme de remboursement prorata (annuel)** :
+  - **Périmètre** : applicable uniquement aux abonnements annuels résiliés en cours de période. Les abonnements mensuels ne donnent pas droit à remboursement (le mois en cours est dû, usage SaaS B2B standard).
+  - **Calcul** : `montant remboursé = montant initialement payé × (temps restant jusqu'à l'échéance / durée totale de la période annuelle)`. Exemple : un Premium annuel facturé 1 428 € résilié à mi-parcours donne lieu à un remboursement de 714 €.
+  - **Modalités** : le remboursement est crédité **sur la carte bancaire ayant servi au paiement initial** via la *Refund API* du prestataire de paiement (Stripe). Délai bancaire indicatif : 5 à 10 jours ouvrés selon la banque émettrice.
+  - **Traçabilité** : chaque remboursement est tracé côté Stripe avec les métadonnées d'audit (référence subscription, référence facture initiale, ratio non consommé), exploitables en cas de contestation.
+  - **Réponse client** : la confirmation de résiliation affichée à l'utilisateur indique le montant remboursé et la devise ; un mail récapitulatif est également envoyé.
+  - **Continuité en cas d'incident** : si le remboursement automatique échoue pour une raison technique (carte expirée, refus banque, panne API), la résiliation reste effective, l'incident est journalisé et le support traite le remboursement manuellement sous 48 h ouvrées.
+  - **Idempotence** : un éventuel renvoi de la demande de résiliation ne déclenche jamais un double remboursement (la résiliation effective court-circuite toute nouvelle exécution).
 - **Période d'essai** : **30 jours gratuits sur tous les plans (Starter, Standard, Premium), sans carte bancaire**. Pendant l'essai, l'utilisateur accède aux fonctionnalités de son plan sélectionné (Starter = modules Starter, Premium = modules Premium) afin de respecter la promesse commerciale du pack choisi et d'éviter toute rupture d'expérience au moment du paiement. Quotas d'évaluation : 10 salariés / 1 société / 1 site, dimensionnés pour une évaluation représentative.
 - **Encaissement** : Stripe (CB EU + Apple Pay + Google Pay), webhooks `customer.subscription.*`, gestion automatique des renewal/dunning.
 - **Job synchronisation seats** : `EmployeeBillingSyncService` (BackgroundService, intervalle 24 h configurable) compte les `Empactif='A'` par tenant et pousse la quantité Stripe via `SubscriptionItemService.UpdateAsync` — idempotent (skip si quantité identique), résilient (try/catch par tenant). Garantit que l'overage est facturé en temps réel.
-- **Devises supportées** : EUR (France/Belgique/UE), MAD/TND/DZD (Maghreb), XOF (UEMOA) — multi-devise sur missions/notes de frais (ISO 4217). La facturation tenant est en EUR par défaut.
+- **Devises supportées** : EUR (France / Belgique / UE), MAD (Maroc), XOF (Sénégal) — multi-devise sur missions / notes de frais (ISO 4217). La facturation tenant est en EUR par défaut.
 
 ---
 
@@ -682,12 +737,29 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - 🔜 SSO entreprise (SAML / OIDC)
 - 🔜 Connecteurs paie directs (Sage Paie, Cegid Quadra) — l'export Excel reste disponible nativement
 
-### 12.4 Add-ons (sur devis indépendant du pack)
-- Pen-test annuel personnalisé
-- Hébergement région dédiée (FR/BE/MA) — instance isolée
-- Marque blanche complète (custom CSS + domaine personnalisé)
-- API publique pour intégrateurs partenaires
-- Formation présentielle administrateurs / managers
+### 12.4 Services et add-ons (sur devis, indépendants du pack)
+
+Catalogue de prestations complémentaires souscriptibles à tout moment, indépendamment du pack commercial choisi (Starter / Standard / Premium). Tarifs personnalisés selon le périmètre — chiffrage sous 5 jours ouvrés après qualification du besoin.
+
+| Catégorie | Service | Modalité | Tarif |
+|---|---|---|---|
+| **Formation** | Formation administrateurs (visio) | Sessions à distance, 1 à 4 personnes, modules de 2 h | Sur devis |
+| **Formation** | Formation sur site | Journée présentielle dans les locaux du client (France métropolitaine ; déplacement Outre-mer / international en sus) | Sur devis |
+| **Intégration** | API publique | Accès aux endpoints partenaires (token dédié, quota requêtes, sandbox) | Sur devis |
+| **Hébergement** | Hébergement dédié | Instance isolée région FR / BE / MA, ressources réservées, plan de sauvegarde renforcé | Sur devis |
+| **Sécurité** | Pen-test annuel | Audit de sécurité externe par cabinet partenaire, rapport remédiation, retest inclus | Sur devis |
+| **Intégration** | Connecteurs ERP / Paie standard | Sage Paie, Cegid Quadra, Silae — intégration packagée | Sur devis |
+| **Intégration** | Connecteurs ERP personnalisés | Développement spécifique selon ERP du client | Sur devis |
+| **Mise en service** | Import de données assisté | Récupération depuis ancien outil RH, nettoyage, mapping, import contrôlé | Sur devis |
+| **Mise en service** | Onboarding Premium | Kick-off call dédié, paramétrage initial du tenant, formation admin + manager incluse | Sur devis |
+| **Accompagnement** | Coaching personnalisé (visio) | Sessions de coaching à distance, format flexible (1–2 h) | Sur devis |
+| **Accompagnement** | Coaching personnalisé — demi-journée | Session de 4 h, visio ou présentiel | Sur devis |
+| **Accompagnement** | Coaching personnalisé — journée complète | Session de 7 h, visio ou présentiel | Sur devis |
+| **Support** | Support prioritaire 24/7 | Astreinte 24 h / 24, 7 j / 7, SLA réponse renforcé (1 h ouvré / 4 h non ouvré) | Sur devis |
+| **Infrastructure** | Stockage supplémentaire | Quota additionnel pour le coffre numérique au-delà du seuil inclus dans le pack | Sur devis |
+| **Personnalisation** | Domaine personnalisé | URL `<client>.com` ou `<sous-domaine>.<client>.com` à la place du sous-domaine `concorde-work-force.com`, certificats TLS gérés | Sur devis |
+
+> Toutes ces prestations font l'objet d'un devis dédié et d'un bon de commande contractualisé indépendamment du contrat d'abonnement principal. Elles sont facturées en EUR HT, conditions de paiement 30 jours net (sauf accord particulier).
 
 ---
 
@@ -720,66 +792,15 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 ---
 
-## 14. Stratégie marketing France / Belgique / Afrique francophone
+## 14. Préparation App Store et Google Play
 
-### 14.1 France
-**Positionnement** : alternative française à Factorial / Skello / Combo, focus pointage géolocalisé + RGPD natif.
-
-**Canaux** :
-- SEO : contenus blog (« obligation pointage légal », « calcul RTT 2026 », « gérer les congés payés »)
-- LinkedIn ads ciblage RH / Office Manager / DAF — PME 10-200
-- Partenariats experts-comptables et cabinets RH (commission ou marque blanche)
-- Salons : Solutions RH Paris, Workspace Expo, salons régionaux CCI
-- SEA Google : mots clés « logiciel pointage », « gestion congés », « SaaS RH » (CPC élevé mais conversion forte)
-- Référencement annuaires : Capterra, GetApp, Appvizer
-
-**Tarification** : EUR, TVA française, facturation Stripe (entreprise FR)
-
-### 14.2 Belgique
-**Positionnement** : extension naturelle France, conformité RGPD identique, langue française pour la Wallonie + Bruxelles.
-
-**Canaux** :
-- Partenariats secrétariats sociaux (Acerta, SD Worx, Partena Professional)
-- LinkedIn ciblage Bruxelles / Wallonie
-- Adaptation petite : références belges, témoignages clients
-- Connecteurs paie locaux (priorité Acerta sur roadmap)
-
-**Tarification** : EUR, TVA belge, conformité ONSS / Limosa documentée
-
-### 14.3 Afrique francophone (Maghreb + UEMOA)
-**Positionnement** : modernisation du pointage et de la paie pour PME/ETI dont les outils actuels sont obsolètes (Excel, logiciels desktop monopostes). Argument fort : **mobile-first** (pénétration smartphone élevée), **bio-token sans connexion permanente**.
-
-**Canaux** :
-- Partenariats intégrateurs locaux (Maroc : pôle Casablanca, Tunisie : pôle Tunis, Sénégal : pôle Dakar)
-- LinkedIn et Facebook Business ciblage DRH PME locales
-- Présence salons : SIDIB Tunis, Africa CEO Forum, GITEX Africa
-- **Pricing adapté** : grille spécifique en MAD/TND/DZD/XOF (-30 à -50% vs grille EUR pour s'aligner aux salaires locaux)
-- Témoignages clients locaux mis en avant
-
-**Spécificités techniques** :
-- Skew horloge 90 min (couverture DST Maroc/Algérie/Tunisie)
-- Multi-devise sur missions et notes de frais
-- Hébergement région optionnel (Premium add-on) pour souveraineté de la donnée
-
-### 14.4 Calendrier indicatif marketing
-| Trimestre | France | Belgique | Afrique fr. |
-|---|---|---|---|
-| T1 V1 | Lancement public, SEA, salons | — | — |
-| T2 V1 | Capterra/GetApp, contenus blog | Lancement Wallonie | Pilote 2-3 partenaires |
-| T3 V1 | Salons régionaux | Salons Bruxelles | Lancement officiel Maroc + Tunisie |
-| T4 V1 | Account-based marketing ETI | Roadmap connecteur Acerta | Extension UEMOA |
-
----
-
-## 15. Préparation App Store et Google Play
-
-### 15.1 Prérequis comptes
+### 14.1 Prérequis comptes
 - [ ] Compte Apple Developer (99$/an) au nom de l'entité Concorde
 - [ ] Compte Google Play Developer (25$ one-shot) au nom de l'entité Concorde
 - [ ] Certificats iOS (distribution + push) générés via Apple Developer Portal
 - [ ] Keystore Android signé (production) backupé hors repo
 
-### 15.2 Prérequis techniques (en place)
+### 14.2 Prérequis techniques (en place)
 - [x] Build EAS Expo configuré (`eas.json` avec channels prod/preview)
 - [x] Bundle ID iOS et `applicationId` Android distincts (cohérents avec slug bundle)
 - [x] Icône adaptive Android paddée (script `generate-padded-icon.js`)
@@ -787,7 +808,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - [x] `Info.plist` iOS avec `NSPinnedDomains` + permissions location/camera/biometric/microphone
 - [x] Versioning automatique via Expo
 
-### 15.3 Métadonnées stores (à finaliser)
+### 14.3 Métadonnées stores (à finaliser)
 - [ ] **Description courte** (80 chars max)
 - [ ] **Description longue** (4000 chars Apple / 4000 Google)
 - [ ] **Captures d'écran** : 5-6 par store (login, home pointage, vault, signature, dashboard)
@@ -799,7 +820,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - [ ] **Privacy Manifest iOS** (iOS 17+ : déclaration des APIs sensibles utilisées)
 - [ ] **Data Safety Google** : déclaration des données collectées (location, biométrie, fichiers)
 
-### 15.4 Tests pré-soumission
+### 14.4 Tests pré-soumission
 - [ ] Build release Android (AAB signé) installé en interne
 - [ ] Build release iOS distribué via TestFlight (groupe interne 5-10 utilisateurs)
 - [ ] Validation des permissions runtime (location, camera, photos, notifications)
@@ -807,7 +828,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - [ ] Test bio-token end-to-end (enrôlement, login, expiry, rotation)
 - [ ] Soumission TestFlight externe (50 testeurs beta) avant prod
 
-### 15.5 Risques de rejet (anticipés)
+### 14.5 Risques de rejet (anticipés)
 | Risque | Mitigation |
 |---|---|
 | Apple : « app trop similaire à un site web » | Justifier les fonctions natives : GPS, biométrie, push, capture signature, capacités hors-ligne |
@@ -817,9 +838,9 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 ---
 
-## 16. Éléments pour démonstrations commerciales
+## 15. Éléments pour démonstrations commerciales
 
-### 16.1 Scénarios de démo (15-20 min)
+### 15.1 Scénarios de démo (15-20 min)
 
 **Démo 1 — Le pointage simplifié (5 min)**
 1. Connexion mobile employé
@@ -845,14 +866,14 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 3. État périodique PDF
 4. Vue dashboard KPIs : présence, retards, h.supp
 
-### 16.2 Tenant de démo
+### 15.2 Tenant de démo
 - **Slug** : `demo`
 - **URL** : `demo.concorde-work-force.com`
 - **Compte démo** : `demo@concorde-work-force.com` / mot de passe rotatif fourni au commercial
 - **Données** : 50 employés fictifs, 6 mois de pointages générés, congés en différents statuts, vault avec docs exemples
 - **Reset hebdomadaire** automatique des données pour garder une démo propre
 
-### 16.3 Supports commerciaux
+### 15.3 Supports commerciaux
 - [ ] Pitch deck 12 slides (PDF + PowerPoint)
 - [ ] One-pager A4 par segment (Startups / PME / ETI)
 - [ ] Vidéos screencast démos (à enregistrer post-V1)
@@ -861,7 +882,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - [ ] ROI calculator (gain heures admin × tarif horaire — vs coût SaaS)
 - [ ] Page « Pourquoi Concorde » avec arguments différenciants : RGPD natif, mobile-first, multi-tenant strict, IA contextuelle, cert pinning
 
-### 16.4 Arguments différenciants à valoriser
+### 15.4 Arguments différenciants à valoriser
 1. **Sécurité mobile bancaire** : cert pinning + screenshot blocking + auto-lock + bio-token sans password (rare sur le marché RH)
 2. **IA contextuelle** : assistant RAG qui répond sur **vos** documents (contrats, conventions, procédures internes) — pas sur des données génériques
 3. **Multi-tenant strict** : 1 base SQL par client, isolation forte, hébergement région possible
@@ -872,9 +893,9 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 ---
 
-## 17. Structure de la page pricing
+## 16. Structure de la page pricing
 
-### 17.1 Architecture de la page (`/pricing`)
+### 16.1 Architecture de la page (`/pricing`)
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -908,7 +929,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 └─────────────────────────────────────────────────┘
 ```
 
-### 17.2 Conventions UI
+### 16.2 Conventions UI
 - **Format prix** : 2 décimales max, sans padding (`8` reste `8`, pas `8,00` — sauf si nécessaire). Locale `fr-FR` (virgule). Élimine les artefacts float (8.8 × 12 ≠ `105.60000000000001`).
 - **Toggle mensuel/annuel** : annuel affiche le prix mensualisé barré + nouveau prix avec mention « -20% » badge
 - **Badge POPULAR** : sur Standard, accentué visuellement (border primary, slight scale-up)
@@ -919,7 +940,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - **FAQ** : cible objections classiques (changement plan, calcul utilisateur, sécurité, intégrations existantes)
 - **Section comparatif** : table dépliable avec ✓ / quota / ✗, pour aider la décision
 
-### 17.3 Composants existants
+### 16.3 Composants existants
 - [PricingPage.tsx](abrpoint.client/src/components/Pricing/PricingPage.tsx) — page publique
 - [PlanConfigurationPage.tsx](abrpoint.client/src/components/Pricing/PlanConfigurationPage.tsx) — page admin de gestion abonnement
 - [ContactSalesPage.tsx](abrpoint.client/src/components/Pricing/ContactSalesPage.tsx) — formulaire Premium
@@ -927,9 +948,9 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 ---
 
-## 18. Limitations actuelles & optimisations avant lancement
+## 17. Limitations actuelles & optimisations avant lancement
 
-### 18.1 Backend
+### 17.1 Backend
 - [ ] Ajouter Redis (`IDistributedCache`) — nécessaire pour scale horizontal
 - [ ] Migrer rapports lourds en queue asynchrone (Hangfire ou worker dédié)
 - [x] Index DB ciblés (livré : `presence`, `notification`, `documentvault`, `demconge`, `pushtoken`, `employe`, `demandeautorisation`, `auditlog`)
@@ -939,14 +960,14 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - [x] Rate limiting login + signup
 - [ ] Audit log automatisé sur DELETE et PUT critiques
 
-### 18.2 Frontend web
+### 17.2 Frontend web
 - [ ] Code splitting par route (Vite dynamic imports)
 - [ ] PWA manifest + service worker pour mode offline limité
 - [ ] Tests unitaires composants critiques (Vitest + Testing Library)
 - [ ] Lighthouse audit a11y / performance / SEO
 - [ ] Vérifier toutes les routes ont `<AccessDenied>` quand permission manquante
 
-### 18.3 Mobile
+### 17.3 Mobile
 - [x] Cert pinning prod (G1) — config en place, pins à renseigner à la veille du build
 - [x] Screenshot protection (G4)
 - [x] Auto-lock après inactivité (G5)
@@ -958,14 +979,14 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - [ ] Mise en cache offline (TanStack Query persist) pour vault et historique présence
 - [ ] Build EAS production (Android signed AAB + iOS TestFlight)
 
-### 18.4 Infrastructure
+### 17.4 Infrastructure
 - [x] Scripts de sauvegarde base + uploads (`backup.sh` / `restore.sh`) livrés — activation cron sur le serveur de production planifiée à la mise en exploitation
 - [ ] Monitoring nginx (4xx/5xx, latence)
 - [ ] Plan de DR documenté
 - [ ] Rotation logs Docker (max-size + max-file)
 - [x] HSTS preload, headers sécurité complets, CSP
 
-### 18.5 Sécurité
+### 17.5 Sécurité
 - [ ] Pen-test externe avant V1
 - [ ] Audit dépendances `npm audit` + `dotnet list package --vulnerable` en CI
 - [ ] WAF (Cloudflare ou ModSecurity)
@@ -974,9 +995,9 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 ---
 
-## 19. Synthèse des tests disponibles
+## 18. Synthèse des tests disponibles
 
-### 19.1 Tests stabilité (unitaires + intégration)
+### 18.1 Tests stabilité (unitaires + intégration)
 **Stack** : xUnit + Moq, fixtures déterministes
 **Couverture actuelle** ([ABRPOINT.Server.Tests/](ABRPOINT.Server.Tests/)) :
 
@@ -993,7 +1014,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 **À ajouter** : tests d'intégration full-stack avec base SQLite ou TestContainers.
 
-### 19.2 Tests sécurité
+### 18.2 Tests sécurité
 
 **Existant** :
 - Statique : Semgrep (overrides postcss / fast-uri commentés dans `package.json`)
@@ -1006,17 +1027,17 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - `npm audit --omit=dev` en CI
 - Pen-test externe par mandataire qualifié (PASSI ou équivalent) planifié avant l'ouverture commerciale du palier Premium
 
-### 19.3 Tests API
+### 18.3 Tests API
 - **Validation manuelle** via Swashbuckle (Swagger UI exposé en dev `/swagger`)
 - **Roadmap d'automatisation** : suite Postman / Bruno collection versionnée
 - **Smoke en CI** : build + tests + healthcheck `/readyz` après `compose up`
 
-### 19.4 Tests mobile
+### 18.4 Tests mobile
 - **Tests manuels** validés sur Android (Expo Go + builds EAS) sur les parcours golden paths
 - **Roadmap d'automatisation** : Detox sur Android (golden paths login + pointage + demande congé + signature)
 - **Test cert pinning** : procédure de rotation sur staging documentée, automatisation planifiée
 
-### 19.5 Tests performances
+### 18.5 Tests performances
 - **Cible** : 100 utilisateurs concurrents par tenant, 10 tenants, p95 < 500 ms sur endpoints HOT
 - **Outil suggéré** : k6 + Grafana k6 cloud OU Apache Bench
 - **Inputs spécifiques** :
@@ -1024,11 +1045,11 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
   - `GET /Dashboard/kpis` avec filtres période variable
   - `POST /Vault/upload` 10 Mo
 
-### 19.6 Tests multi-utilisateurs
+### 18.6 Tests multi-utilisateurs
 - **Scénarios planifiés** : k6 ou Locust — login simultané, pointage concurrent, lecture KPIs
 - **Conception thread-safe** : `PointageMoisService` est exécuté séquentiellement, avec un DbContext scoped par requête (architecture conforme aux bonnes pratiques EF Core)
 
-### 19.7 Tests géolocalisation et pointage
+### 18.7 Tests géolocalisation et pointage
 | Cas | Attendu |
 |---|---|
 | Aucun geofence configuré, GPS absent | Pointage accepté |
@@ -1042,7 +1063,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 | Pointage par employé pour autrui | 403 |
 | Pointage 7 fois/min depuis même IP | 429 (rate limit) |
 
-### 19.8 Tests signature électronique
+### 18.8 Tests signature électronique
 | Cas | Attendu |
 |---|---|
 | Signature web SignaturePad → upload | Fichier `sig_<uuid>.png` créé, statut signé |
@@ -1055,7 +1076,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 ---
 
-## 20. Scénarios opérationnels anticipés
+## 19. Scénarios opérationnels anticipés
 
 Cette section recense les scénarios d'exploitation pour lesquels des mesures préventives ont été mises en place, conformément aux bonnes pratiques SaaS de continuité de service.
 
@@ -1071,7 +1092,7 @@ Cette section recense les scénarios d'exploitation pour lesquels des mesures pr
 
 ---
 
-## 21. Roadmap de développement
+## 20. Roadmap de développement
 
 ### Phase 1 — Hardening V1 (T+0 à T+3 semaines)
 - [x] Plan gating end-to-end (backend + frontend + mobile) — **livré V2**
@@ -1081,13 +1102,13 @@ Cette section recense les scénarios d'exploitation pour lesquels des mesures pr
 - [x] Catalogue nomenclature templates (catégories canoniques imposées) — **livré V2**
 - [x] Seed pays/nations automatique au provisioning tenant — **livré V2**
 - [x] CSP frame-src blob: pour aperçus PDF — **livré V2**
-- [ ] Backups uploads + base de données automatisés (cron production) — *activation planifiée, cf. §24.4*
-- [ ] Monitoring Prometheus + alerting basique — *cf. §24.3*
+- [ ] Backups uploads + base de données automatisés (cron production) — *activation planifiée, cf. §23.4*
+- [ ] Monitoring Prometheus + alerting basique — *cf. §23.3*
 - [ ] Pen-test externe et remédiation
 - [ ] Documentation utilisateur (admin & employé)
 - [ ] Tests E2E mobile golden paths (Detox)
 - [ ] Build EAS production iOS + Android signés
-- [ ] Provisioning du serveur de production OVH KS-5-B sous Ubuntu Server 24.04 LTS, avec durcissement (UFW, Fail2Ban, accès SSH par clé, séparation prod/staging) — *commande passée, mise en place planifiée §24*
+- [ ] Provisioning du serveur de production OVH KS-5-B sous Ubuntu Server 24.04 LTS, avec durcissement (UFW, Fail2Ban, accès SSH par clé, séparation prod/staging) — *commande passée, mise en place planifiée §23*
 
 ### Phase 2 — Lancement V1 (T+3 à T+5 semaines)
 - Pricing public + landing page (page tarifaire alignée avec PlanCatalog)
@@ -1116,7 +1137,7 @@ Cette section recense les scénarios d'exploitation pour lesquels des mesures pr
 
 ---
 
-## 22. Checklist technique pré-production
+## 21. Checklist technique pré-production
 
 ### Code
 - [ ] Aucune branche feature ouverte non mergée
@@ -1178,9 +1199,9 @@ Cette section recense les scénarios d'exploitation pour lesquels des mesures pr
 
 ---
 
-## 23. Dépendances et services tiers
+## 22. Dépendances et services tiers
 
-### 23.1 Services externes payants
+### 22.1 Services externes payants
 | Service | Usage | Plan estimé V1 |
 |---|---|---|
 | **Stripe** | Billing abonnements + webhooks | Standard, frais 1.4% + 0.25€ EU |
@@ -1191,7 +1212,7 @@ Cette section recense les scénarios d'exploitation pour lesquels des mesures pr
 | **Apple Developer** | Distribution iOS | 99$/an |
 | **Google Play Developer** | Distribution Android | 25$ one-shot |
 
-### 23.2 Stack open-source critique
+### 22.2 Stack open-source critique
 - **.NET 8** (LTS jusqu'à nov 2026)
 - **EF Core 8** + **PostgreSQL 16** (provider Npgsql)
 - **React 19**, **MUI 5/6**, **TanStack Query 5**
@@ -1199,7 +1220,7 @@ Cette section recense les scénarios d'exploitation pour lesquels des mesures pr
 - **Qdrant 1.12** (vector DB)
 - **nginx alpine**
 
-### 23.3 Bibliothèques métier sensibles
+### 22.3 Bibliothèques métier sensibles
 - `BCrypt.Net-Next 4.0.3` — hashage passwords
 - `Otp.NET 1.4.1` — TOTP 2FA
 - `Stripe.net 47.x` — billing
@@ -1214,13 +1235,13 @@ Cette section recense les scénarios d'exploitation pour lesquels des mesures pr
 
 ---
 
-## 24. Plan de durcissement infrastructure de production
+## 23. Plan de durcissement infrastructure de production
 
 > Section ajoutée en V2 (mai 2026) suite à la commande du serveur de production. Détaille
 > l'architecture cible, les étapes de sécurisation et la cadence opérationnelle envisagée.
 > Périmètre : préparation du serveur dédié → mise en production → continuité de service.
 
-### 24.1 Spécifications du serveur commandé
+### 23.1 Spécifications du serveur commandé
 
 | Caractéristique | Valeur retenue | Justification |
 |---|---|---|
@@ -1231,7 +1252,7 @@ Cette section recense les scénarios d'exploitation pour lesquels des mesures pr
 | **RAM** | 64 Go | `shared_buffers` PostgreSQL typiquement 25 % ; reste partagé entre Kestrel, nginx, Qdrant, sidecar RAG |
 | **Architecture** | Scalable (montée verticale + ajout instances horizontales possible) | Compatible avec l'évolution multi-instance prévue (Redis cache distribué dès >2 instances API) |
 
-### 24.2 Architecture cible (3 environnements)
+### 23.2 Architecture cible (3 environnements)
 
 Séparation physique ou logique stricte pour éviter qu'une bétâ casse la prod :
 
@@ -1251,7 +1272,7 @@ Séparation physique ou logique stricte pour éviter qu'une bétâ casse la prod
 
 Recommandation forte : la promotion staging → prod doit être manuelle (pas de CI/CD auto sur main) tant que la batterie de tests e2e n'est pas en place.
 
-### 24.3 Étapes de sécurisation (avant exposition publique)
+### 23.3 Étapes de sécurisation (avant exposition publique)
 
 **Phase 0 — Provisioning initial** (J0 à J+1)
 1. Installation Ubuntu Server 24.04 LTS (image officielle vérifiée, partition `/var/lib/docker` séparée pour cloisonner)
@@ -1280,7 +1301,7 @@ Recommandation forte : la promotion staging → prod doit être manuelle (pas de
 3. Alertes : 5xx > 1 % sur 5 min, latency p95 > 2 s, disque > 80 %, RAM > 85 %, certificats < 14 j d'expiration
 4. Slack / email pour les alertes critiques (PagerDuty ou alternative à terme)
 
-### 24.4 Politique de sauvegarde
+### 23.4 Politique de sauvegarde
 
 | Quoi | Quand | Où | Rétention | Test restore |
 |---|---|---|---|---|
@@ -1293,13 +1314,13 @@ Recommandation forte : la promotion staging → prod doit être manuelle (pas de
 
 **Snapshots VM** : snapshot hebdomadaire complémentaire de la VM via OVHcloud, indépendant de la stratégie applicative. Couvre les scénarios de corruption Docker / OS pour accélérer le retour à un état stable.
 
-### 24.5 Données sensibles et conformité
+### 23.5 Données sensibles et conformité
 
 - **Coffre numérique** : les documents sont chiffrés au repos via `EncryptionService` (clé tenant rotable). Garantie complétée par chiffrement du volume Docker au niveau OS via LUKS sur le disque NVMe.
 - **Données de géolocalisation** : traçabilité du `clock-in` GPS journalisée pour audit anti-fraude, rétention 12 mois maximum (par défaut RGPD pour les pointages). Cette politique est documentée dans le registre RGPD côté client final.
 - **Données RH** : un DPA (Data Processing Agreement) est signé avec chaque tenant — le tenant est responsable de traitement, Concorde Workforce est sous-traitant au sens RGPD.
 
-### 24.6 Plan de continuité de service (V1)
+### 23.6 Plan de continuité de service (V1)
 
 - **RPO cible** : 24 h (sauvegarde quotidienne)
 - **RTO cible** : 4 h (restauration + redéploiement)
@@ -1307,16 +1328,121 @@ Recommandation forte : la promotion staging → prod doit être manuelle (pas de
 
 ---
 
+## 24. Annexes juridiques et conformité
+
+> Section annexée à l'attention du conseil juridique. Elle consolide, sans les recréer, les éléments épars dans le corps du document afin de faciliter la rédaction des CGV / DPA / politique de confidentialité et la tenue du registre des traitements (art. 30 RGPD). Toutes les durées et finalités citées sont implémentées dans le code (références entre crochets) ; toute évolution doit être propagée simultanément ici, dans le code et dans les documents contractuels publiés.
+
+### 24.1 Sous-processeurs (art. 28 RGPD)
+
+Le service est hébergé en France et la chaîne de sous-traitance est volontairement limitée. Liste exhaustive à date :
+
+| Sous-processeur | Localisation | Finalité | Données traitées | Encadrement |
+|---|---|---|---|---|
+| **OVHcloud (OVH SAS)** | France (datacenter Roubaix / Gravelines) | Hébergement serveur dédié + sauvegardes Object Storage | Toutes données plateforme (base SQL, uploads, logs) | DPA OVHcloud signé, hébergement UE strict, certifications ISO 27001 / HDS partielle (selon offre souscrite) |
+| **Stripe Payments Europe Ltd** | Irlande (UE) | Encaissement abonnements, traitement CB | Données de facturation : email admin, raison sociale, identifiant entreprise, montant, IP de paiement, 4 derniers chiffres CB | DPA Stripe inclus dans les conditions Stripe Connect, certifié PCI-DSS niveau 1 |
+| **HIBP (Have I Been Pwned)** | Royaume-Uni (décision d'adéquation UE en vigueur) | Vérification de mot de passe compromis | **Aucune PII transférée** — seuls les 5 premiers hex du SHA-1 du mot de passe (k-anonymity) ; le mot de passe complet ni le hash complet ne sortent jamais | Pas de DPA requis (pas de donnée personnelle au sens RGPD ; cf. note ci-dessous) |
+| **api-recherche-entreprises.fr** | France (DINUM, service public) | Validation SIRET au signup | Identifiant SIRET (donnée publique INSEE) | Service public ouvert, pas de DPA — donnée publique légalement |
+| **cbeapi.be** | Belgique (UE) | Validation BCE au signup | Identifiant BCE (donnée publique) | Idem, donnée publique légalement |
+| **restcountries.com** | UE (hébergement Hetzner DE / FR selon CDN) | Liste pays + drapeaux au signup | **Aucune donnée utilisateur transmise** — appel statique côté navigateur, charge un JSON public | Pas de transfert de données utilisateur |
+| **OpenRouter Inc.** | États-Unis | Inférence LLM pour l'assistant IA contextuel (RAG, plan Premium uniquement) | Extrait du document consulté (chunk de ~500 tokens) + question utilisateur | **Transfert hors UE** encadré par CCT (clauses contractuelles types) ou Data Privacy Framework selon statut. **Option Anthropic UE** disponible en alternative. **Désactivable** par tenant Premium (feature flag `RagAi`) |
+| **Expo Push API (Expo Inc.)** | États-Unis | Acheminement des notifications push mobile | Token Expo (identifiant opaque), corps de notification (titre/texte uniquement, pas de PII détaillée) | Service technique pass-through ; corps des notifications conçus pour ne pas révéler de PII sensible (« Une demande de congé est en attente », pas le nom du salarié) |
+| **OVH SMTP (ssl0.ovh.net)** | France | Envoi d'emails transactionnels (welcome, alertes, reset password, alerte nouvel appareil) | Adresse email, contenu de l'email | Inclus dans le contrat d'hébergement OVHcloud |
+| **Let's Encrypt** | États-Unis (ISRG) | Émission certificats TLS | Nom de domaine uniquement (CT log public) | Pas de PII utilisateur |
+| **Apple Push Notification Service** *(roadmap mobile)* | États-Unis | Push iOS | Token APNs, corps notification | CCT applicables, opt-in utilisateur via permissions OS |
+| **Google Firebase Cloud Messaging** *(roadmap mobile)* | États-Unis | Push Android | Token FCM, corps notification | CCT applicables, opt-in utilisateur via permissions OS |
+
+> **Note HIBP / k-anonymity** : le protocole *Pwned Passwords* envoie au serveur HIBP les **5 premiers caractères hexadécimaux** du SHA-1 du mot de passe ; il reçoit en retour une liste de hashes suffixes complétant ce préfixe, et la comparaison finale a lieu **côté serveur Concorde**. Le mot de passe en clair, son hash complet, et l'identité de l'utilisateur ne sortent à aucun moment de notre infrastructure. La CNIL et l'ICO britannique considèrent ce protocole comme **non-identifiant** ; il n'est donc pas qualifié de transfert de données personnelles au sens RGPD.
+
+### 24.2 Bases légales de traitement (art. 6 RGPD)
+
+| Finalité | Base légale | Référence interne |
+|---|---|---|
+| Fourniture du service (gestion comptes, pointage, congés, paie, coffre, signature) | **Exécution du contrat** (art. 6.1.b) | CGV §3 *Objet du contrat* |
+| Facturation et encaissement | **Exécution du contrat** + **Obligation légale** (art. 6.1.c, Code de commerce art. L.123-22) | §11.3, §3.12 |
+| Conservation des bulletins de paie et contrats salariés | **Obligation légale** (Code du travail art. L.3243-4 — 5 ans ; art. D.3171-16 — 5 ans pointage) | §23.5 |
+| Anti-fraude SIRET / index unique filtré | **Intérêt légitime** (art. 6.1.f) — prévention de la fraude commerciale ; documenté par AIPD interne | §6.5 |
+| Vérification HIBP, lockout, alerte nouvel appareil | **Obligation légale de sécurité** (art. 32 RGPD) + **Intérêt légitime** | §3.1, §6.5 |
+| Géolocalisation au pointage | **Exécution du contrat de travail** côté client final + **Information préalable des salariés** (Code du travail art. L.1222-4, jurisprudence Cass. soc. 3 nov. 2011) | §3.4 — l'éditeur fournit l'outil, le tenant (employeur) est responsable de la base légale opérationnelle |
+| Notifications push commerciales / rappels essai | **Consentement** (art. 6.1.a) — opt-in via `NotificationUserSettings` | §3.9 |
+| Logs d'audit et journalisation sécurité | **Obligation légale de sécurité** (art. 32 RGPD) + **Intérêt légitime** | §6.1, table `AuditLog` |
+| Assistant IA (RAG) | **Consentement** explicite tenant Premium (feature opt-in) ; transfert hors UE encadré | §3.11, §24.1 |
+
+### 24.3 Durées de conservation des données
+
+Politique de rétention par catégorie. Les durées « légales » s'imposent ; les durées « contractuelles » sont configurables par tenant dans les limites des minimums légaux.
+
+| Catégorie | Durée | Fondement | Mise en œuvre |
+|---|---|---|---|
+| **Compte utilisateur actif** | Pendant la durée du contrat + 30 j de grâce | Contrat | Soft-delete après inactivité, suppression effective sur demande |
+| **Bulletins de paie générés** | 5 ans (Code du travail art. L.3243-4) | Légal | Coffre numérique chiffré, purge automatique au-delà sauf instruction tenant |
+| **Données de pointage / présence** | 5 ans (art. D.3171-16) — souvent 1 à 3 ans en pratique selon politique tenant | Légal min., contractuel | Table `Presence`, archivage froid au-delà de 13 mois |
+| **Coordonnées GPS journalisées au pointage** | **12 mois maximum** par défaut (recommandation CNIL secteur RH) | CNIL — délibération 2018-101 et lignes directrices | Configurable côté tenant, purge planifiée |
+| **Logs de connexion / authentification** | 12 mois | LCEN art. 6-II + recommandations ANSSI/CNIL | Table `AuditLog`, rotation logs nginx 12 mois |
+| **Refresh tokens / sessions** | Inactif > 30 j → révoqué automatiquement ; quota 5 actifs max/utilisateur | Sécurité art. 32 | Cleanup background + quota G6 |
+| **Données de facturation Stripe** | 10 ans (Code de commerce art. L.123-22 — pièces comptables) | Légal | Stripe conserve nativement ; pas de duplication locale au-delà du nécessaire |
+| **Tenant résilié** | **90 jours en rétention** post-résiliation (réactivation self-service) → puis suppression effective | Contractuel + RGPD *droit à l'effacement* (art. 17) | §3.12, statut `Cancelled`, purge planifiée J+90 |
+| **Données après droit à l'effacement** | 30 j de délai technique max (sauf obligation légale concurrente, ex : paie 5 ans) | RGPD art. 17, 12 | Procédure documentée, registre des suppressions |
+| **Embeddings RAG (Premium)** | Durée du contrat + suppression à la résiliation | Contractuel | Qdrant collections par tenant, purgeables |
+| **Sauvegardes chiffrées** | 30 j rolling + 1 sauvegarde fin de mois × 12 | Contrat de service / RTO | §23.4 |
+
+### 24.4 Récapitulatif des engagements contractuels
+
+Synthèse des engagements de l'éditeur opposables au client, à reprendre tels quels (ou à raffiner) dans les CGV.
+
+| Engagement | Modalité actuelle | Référence |
+|---|---|---|
+| **Essai gratuit** | 30 jours sur tous les plans (Starter / Standard / Premium), **sans carte bancaire requise**, accès aux modules du plan choisi | §11.3 |
+| **Durée d'engagement** | Sans engagement de durée. L'utilisateur résilie à tout moment | §11.3 |
+| **Résiliation à l'échéance** | Accès maintenu jusqu'au terme de la période payée, aucune facturation ultérieure | §11.3, §3.12 |
+| **Résiliation immédiate — mensuel** | Effet instantané, **pas de remboursement** du mois en cours | §11.3 |
+| **Résiliation immédiate — annuel** | Effet instantané, **remboursement prorata temporis automatique** sur la CB d'origine via Stripe Refund API, délai bancaire 5–10 jours ouvrés | §11.3, [StripeBillingService.IssueProratedRefundAsync](ABRPOINT.Server/Billing/StripeBillingService.cs) |
+| **Rétention post-résiliation** | 90 jours de réactivation self-service avec récupération intégrale des données ; au-delà, suppression effective (sauf obligations légales concurrentes : bulletins de paie 5 ans) | §3.12 |
+| **Hébergement** | France (OVH datacenter Roubaix / Gravelines) — données primaires et sauvegardes en UE | §24.1, §23.5 |
+| **Conformité RGPD** | Plateforme conçue *privacy by design*, DPA disponible, registre des traitements interne tenu | §23.5 |
+| **Sécurité** | Mesures techniques conformes art. 32 RGPD (chiffrement transport TLS 1.2+, chiffrement repos LUKS, BCrypt mots de passe, refresh tokens chiffrés AES, lockout, HIBP, alerte nouvel appareil) | §6, §6.5 |
+| **Disponibilité** | SLA Standard 99 % (V1), Premium 99,9 % (palier roadmap) | §23.6 |
+| **Notification d'incident de sécurité** | Notification client sous 72 h conformément à l'art. 33 RGPD si fuite de données personnelles affecte ses utilisateurs | À formaliser CGV §[XX] |
+| **Audit client** | Possibilité pour le client de demander un audit annuel de conformité (modalités à préciser CGV, préavis raisonnable, frais éventuels) | À formaliser CGV §[XX] |
+| **Signature électronique** | Valeur probante de niveau « simple » au sens eIDAS (règlement UE 910/2014) — horodatage, IP signataire, hash document conservés ; **pas qualifiée** (sans certificat de signature électronique avancée) | §3.8 |
+| **Validation identifiant entreprise** | SIRET / BCE / ICE / NINEA vérifiés contre registres officiels au signup ; un même établissement ne peut bénéficier que d'un essai gratuit à la fois | §3.12, §6.5 |
+
+### 24.5 Transferts internationaux et garanties
+
+| Transfert | Justification | Garantie applicable |
+|---|---|---|
+| **HIBP (UK)** | Pas un transfert de données personnelles (k-anonymity, cf. §24.1) | Sans objet |
+| **OpenRouter (US)** | Sous-traitant IA pour la fonctionnalité RAG Premium | Clauses contractuelles types UE→US et/ou inscription DPF, **opt-in** au niveau du tenant via feature flag |
+| **Expo Push (US), Let's Encrypt (US)** | Services techniques (push token, certificats domaine) | Pas de PII utilisateur transférée ; CCT applicables |
+| **APNs / FCM (US)** | Notifications mobile via stores | Inhérent aux écosystèmes Apple / Google, opt-in via permissions OS |
+
+### 24.6 Trous à combler côté juridique (action attendue)
+
+Éléments **non couverts** par le code et qui doivent être produits / publiés par le département juridique :
+
+- [ ] **CGV / CGU** finalisées et opposables, intégrant les engagements §24.4
+- [ ] **Mentions légales** publiques (RCS, capital social, identité du DPO si désigné, contact, hébergeur)
+- [ ] **Politique de confidentialité** publique (URL HTTPS obligatoire pour soumission App Store / Play Store, cf. §14.3)
+- [ ] **DPA-type** (modèle d'accord de sous-traitance) annexable aux contrats clients
+- [ ] **Privacy Manifest iOS** (iOS 17+, requis Apple) — déclaration des APIs sensibles utilisées
+- [ ] **Data Safety Google Play** — alignement des données déclarées avec la réalité collectée
+- [ ] **Registre des traitements** RGPD (art. 30) tenu côté éditeur ; modèle disponible auprès de la CNIL
+- [ ] **Analyse d'impact (AIPD/PIA)** sur le traitement « pointage géolocalisé » et sur le traitement « signature électronique avec stockage IP » — recommandé par la CNIL pour ce type de traitement RH
+- [ ] **Procédure interne de notification de violation** (art. 33 — 72 h) — chaîne de responsabilité interne, modèle de notification client
+- [ ] **Procédure de demande RGPD** (accès, rectification, effacement, portabilité) — formulaire et SLA de réponse 1 mois (art. 12)
+- [ ] **Désignation d'un DPO** — recommandée mais non obligatoire au sens strict (l'éditeur ne fait pas du traitement à grande échelle au sens art. 37) ; le tenant employeur peut être tenu de désigner le sien
+
+---
+
 ## 25. Conclusion
 
-La plateforme est dans un état de **maturité fonctionnelle élevée** : modules métier complets, multi-tenant opérationnel avec auto-migration de schéma, calculs paie couverts par tests, sécurité socle forte (JWT + 2FA + permissions matricielles + multi-tenant scoping) **et durcissements mobiles bancaires** (cert pinning, bio-token, device trust, screenshot blocking, auto-lock, RT quota) — ces deux derniers gatés Premium au runtime.
+La plateforme est dans un état de **maturité fonctionnelle élevée** : modules métier complets, multi-tenant opérationnel avec auto-migration de schéma, calculs paie couverts par tests, sécurité socle forte (JWT + 2FA + permissions matricielles + multi-tenant scoping) **et durcissements mobiles bancaires** (cert pinning, bio-token, device trust, screenshot blocking, auto-lock, RT quota) — ces deux derniers gatés Premium au runtime. La **v3 ajoute une couche anti-fraude au signup** (identifiant entreprise vérifié auprès des registres officiels Sirene/CBE, index unique filtré pour empêcher la multi-inscription gratuite, sélecteur pays FR/BE/MA/SN dynamique) **et un durcissement de l'authentification** (lockout progressif, vérification HIBP des mots de passe, alerte instantanée sur nouvel appareil avec révocation HMAC). Côté paiement, **idempotence Stripe Checkout**, **anti-replay des webhooks** et **validation server-side du userCount** ferment les vecteurs classiques (double facturation, rejeu, sous-déclaration).
 
-La **tarification commerciale est désormais verrouillée** (Starter 29,50 € / Standard 59,50 € / Premium 119 €) avec un modèle forfait + overage par salarié, période d'essai 30 jours sans CB, et facturation Stripe à 2 items (base + seat) avec synchronisation automatique de la quantité seats par job de fond quotidien.
+La **tarification commerciale est désormais verrouillée** (Starter 29,50 € / Standard 59,50 € / Premium 119 €) avec un modèle forfait + overage par salarié, période d'essai 30 jours sans CB, et facturation Stripe à 2 items (base + seat) avec synchronisation automatique de la quantité seats par job de fond quotidien. La **politique de résiliation** est alignée sur l'engagement payé d'avance : **remboursement prorata temporis automatique sur les abonnements annuels** (Refund API Stripe vers la carte d'origine, métadonnées tracées pour audit) ; les abonnements mensuels conservent l'usage SaaS B2B standard (mois en cours dû, pas de remboursement).
 
 Le **plan gating est appliqué de bout en bout** : couche backend (`RequirePlanFeatureAttribute`), couche frontend (`planAllows` dans `useAuth`), couche mobile (hooks de sécurité conditionnés au plan, `/MobileAuth/me` expose `planFeatures`). Un tenant Starter ne peut pas accéder à l'app mobile, ni au coffre, ni à la signature, ni au reporting avancé, ni à l'IA — y compris par appel direct à l'API.
 
 Les **trois axes prioritaires** de la phase de mise en production sont :
-1. **Continuité de service** (sauvegardes testées, monitoring, alerting) — plan détaillé §24, déploiement planifié sur le serveur OVH KS-5-B nouvellement provisionné
+1. **Continuité de service** (sauvegardes testées, monitoring, alerting) — plan détaillé §23, déploiement planifié sur le serveur OVH KS-5-B nouvellement provisionné
 2. **Audit sécurité externe** (pen-test indépendant) — démarche complémentaire de validation pour les clients Premium, planifiée avant l'ouverture commerciale du palier Premium
 3. **Tests de charge** sur le serveur dédié final, validant les capacités annoncées dans le SLA
 
@@ -1328,4 +1454,4 @@ La stratégie commerciale tri-marché (France / Belgique / Afrique francophone) 
 
 ---
 
-*Document généré à partir de l'inventaire de la base de code à date — 64 contrôleurs API, 131 entités EF, 22 écrans mobile, ~30 modules web. Version 2 du 2026-05-12 : intègre le plan gating commercial complet, la tarification définitive, et le plan de durcissement infrastructure post-commande du serveur de production. Mises à jour à chaque itération significative.*
+*Document généré à partir de l'inventaire de la base de code à date — 64 contrôleurs API, 131 entités EF, 22 écrans mobile, ~30 modules web. **Version 3 du 2026-05-13** : intègre la couche anti-fraude au signup (validation SIRET/BCE/ICE/NINEA + index unique filtré + sélecteur pays FR/BE/MA/SN), le durcissement de l'authentification (lockout progressif, HIBP, alerte nouvel appareil + révocation HMAC), les protections paiement (idempotence Stripe, anti-replay webhooks, validation server-side du userCount) et la politique de remboursement prorata temporis sur les abonnements annuels résiliés en cours de période. Mises à jour à chaque itération significative.*
