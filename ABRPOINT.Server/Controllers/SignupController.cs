@@ -136,25 +136,28 @@ public class SignupController : ControllerBase
     }
 
     /// <summary>
-    /// Vérifie en temps réel qu'un SIRET est valide ET qu'il n'a pas déjà été utilisé
-    /// pour souscrire un essai gratuit. Appelé en onBlur depuis le formulaire signup
-    /// pour donner un feedback immédiat à l'utilisateur (vs. découvrir l'erreur au submit
-    /// après avoir rempli tout le formulaire). La règle métier est dupliquée dans le
-    /// POST /api/signup pour empêcher tout contournement côté client.
+    /// Vérifie en temps réel qu'un identifiant entreprise (SIRET FR / BCE BE / ICE MA /
+    /// NINEA SN) est valide ET qu'il n'a pas déjà été utilisé pour souscrire un essai
+    /// gratuit. Appelé en onBlur depuis le formulaire signup pour donner un feedback
+    /// immédiat à l'utilisateur. La règle métier est dupliquée dans le POST /api/signup
+    /// pour empêcher tout contournement côté client.
     /// </summary>
     [HttpGet("check-siret")]
-    public async Task<IActionResult> CheckSiret([FromQuery] string siret, CancellationToken ct)
+    public async Task<IActionResult> CheckSiret([FromQuery] string siret, [FromQuery] string? country, CancellationToken ct)
     {
-        var validation = await _siretValidator.ValidateAsync(siret, ct);
+        var validation = await _siretValidator.ValidateAsync(siret, country, ct);
         if (!validation.IsValid)
             return Ok(new { available = false, reason = validation.ErrorCode, message = validation.ErrorMessage });
 
-        var normalized = (siret ?? string.Empty).Replace(" ", "").Replace("-", "").Trim();
+        var normalized = (siret ?? string.Empty).Replace(" ", "").Replace("-", "").Replace(".", "").Trim();
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        // Unicité globale (tous pays confondus) sur l'ID brut : un attaquant ne peut pas
+        // contourner en changeant le pays s'il garde le même numéro. La contrainte unique
+        // filtrée côté SQL (UX_Tenants_Siret_Active) est la barrière dure côté DB.
         var alreadyUsed = await master.Tenants.AsNoTracking()
             .AnyAsync(t => t.Siret == normalized && t.Status != "Failed" && t.Status != "Cancelled", ct);
         if (alreadyUsed)
-            return Ok(new { available = false, reason = "siret_already_used", message = "Un compte existe déjà pour ce SIRET. Connectez-vous depuis l'écran de login pour y accéder." });
+            return Ok(new { available = false, reason = "siret_already_used", message = "Un compte existe déjà pour ce numéro d'entreprise. Connectez-vous depuis l'écran de login pour y accéder." });
 
         return Ok(new { available = true, companyName = validation.CompanyName });
     }
@@ -194,15 +197,19 @@ public class SignupController : ControllerBase
         if (!ValidateCaptcha(req.CaptchaChallengeId, req.CaptchaAnswer))
             return BadRequest(new { error = "Captcha invalide ou expiré. Rechargez et réessayez.", code = "captcha_failed" });
 
-        // Anti-fraude SIRET (2026-05) : un même SIRET ne peut bénéficier que d'un seul
-        // essai gratuit. Vérification en deux temps — checksum Luhn local puis appel à
-        // l'API Sirene pour confirmer existence + état actif. Si le SIRET est déjà lié
-        // à un tenant non-Failed/non-Cancelled, on refuse avec un message qui oriente
-        // vers le login (le compte existe peut-être déjà sous un autre email/slug).
-        var siretValidation = await _siretValidator.ValidateAsync(req.Siret, ct);
+        // Anti-fraude business ID multi-pays (2026-05) : un même identifiant entreprise
+        // (SIRET FR / BCE BE / ICE MA / NINEA SN) ne peut bénéficier que d'un seul
+        // essai gratuit. La validation diffère par pays (FR a une API complète, BE a un
+        // checksum local mod 97, MA/SN n'ont qu'un check format), mais l'unicité en base
+        // s'applique globalement.
+        var countryNormalized = string.IsNullOrWhiteSpace(req.Country) ? "FR" : req.Country.Trim().ToUpperInvariant();
+        if (!IsSupportedCountry(countryNormalized))
+            return BadRequest(new { error = "Pays non supporté. Choisissez parmi : FR, BE, MA, SN.", code = "country_unsupported" });
+
+        var siretValidation = await _siretValidator.ValidateAsync(req.Siret, countryNormalized, ct);
         if (!siretValidation.IsValid)
-            return BadRequest(new { error = siretValidation.ErrorMessage ?? "SIRET invalide.", code = siretValidation.ErrorCode ?? "siret_invalid" });
-        var siretNormalized = (req.Siret ?? string.Empty).Replace(" ", "").Replace("-", "").Trim();
+            return BadRequest(new { error = siretValidation.ErrorMessage ?? "Identifiant entreprise invalide.", code = siretValidation.ErrorCode ?? "siret_invalid" });
+        var siretNormalized = (req.Siret ?? string.Empty).Replace(" ", "").Replace("-", "").Replace(".", "").Trim();
 
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
 
@@ -216,7 +223,7 @@ public class SignupController : ControllerBase
         if (siretInUse)
             return Conflict(new
             {
-                error = "Un compte existe déjà pour ce SIRET. Connectez-vous depuis l'écran de login pour accéder à votre espace, ou contactez le support si vous avez perdu vos identifiants.",
+                error = "Un compte existe déjà pour ce numéro d'entreprise. Connectez-vous depuis l'écran de login pour accéder à votre espace, ou contactez le support si vous avez perdu vos identifiants.",
                 code = "siret_already_used",
             });
 
@@ -307,6 +314,7 @@ public class SignupController : ControllerBase
             tenant.OnboardingCompleted = false;
             tenant.PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim();
             tenant.Siret = siretNormalized;
+            tenant.CountryCode = countryNormalized;
         }
         else
         {
@@ -325,6 +333,7 @@ public class SignupController : ControllerBase
                 LegacySoccod = "01",
                 PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim(),
                 Siret = siretNormalized,
+                CountryCode = countryNormalized,
             };
             master.Tenants.Add(tenant);
         }
@@ -442,6 +451,15 @@ public class SignupController : ControllerBase
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    /// <summary>
+    /// Liste blanche des pays supportés à l'inscription. Toute extension passe par ce
+    /// catalogue + l'ajout d'une stratégie de validation correspondante côté
+    /// <see cref="SiretValidator"/>. On évite les ISO codes inconnus dans la base
+    /// pour préserver l'intégrité des reports/audit.
+    /// </summary>
+    private static bool IsSupportedCountry(string code) =>
+        code == "FR" || code == "BE" || code == "MA" || code == "SN";
+
     private CookieOptions BuildAuthCookie(DateTimeOffset expires, bool httpOnly = true)
     {
         var isHttps = Request.IsHttps;
@@ -465,10 +483,16 @@ public class SignupRequest
     public string AdminEmail { get; set; } = string.Empty;
     public string AdminPassword { get; set; } = string.Empty;
     /// <summary>
-    /// Numéro SIRET de l'entreprise (14 chiffres). Validé contre l'API Sirene et utilisé
-    /// comme clé anti-fraude : un seul essai gratuit par SIRET. Obligatoire depuis 2026-05.
+    /// Identifiant entreprise (SIRET FR / BCE BE / ICE MA / NINEA SN). Validé selon le
+    /// pays choisi et utilisé comme clé anti-fraude : un seul essai gratuit par ID.
+    /// Obligatoire depuis 2026-05.
     /// </summary>
     public string Siret { get; set; } = string.Empty;
+    /// <summary>
+    /// Code pays ISO 3166-1 alpha-2. Valeurs supportées : FR | BE | MA | SN.
+    /// Défaut FR si absent (rétro-compat). Détermine le format attendu pour Siret.
+    /// </summary>
+    public string? Country { get; set; }
     public string? PlanCode { get; set; }
     public string? BillingCycle { get; set; }
     /// <summary>

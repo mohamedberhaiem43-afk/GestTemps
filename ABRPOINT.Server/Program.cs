@@ -493,7 +493,21 @@ END");
                 await masterDb.Database.ExecuteSqlRawAsync(@"
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'Siret' AND Object_ID = Object_ID(N'Tenants'))
 BEGIN
-    ALTER TABLE [Tenants] ADD [Siret] NVARCHAR(14) NULL;
+    ALTER TABLE [Tenants] ADD [Siret] NVARCHAR(20) NULL;
+END");
+                // Multi-pays (2026-05) : élargit Siret 14→20 chars pour accommoder ICE (15 chiffres)
+                // et ajoute CountryCode. Migration in-place idempotente pour les bases déjà déployées
+                // avec Siret NVARCHAR(14). ALTER COLUMN safe car on agrandit (pas de truncation).
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF EXISTS (SELECT 1 FROM sys.columns c JOIN sys.types t ON c.user_type_id = t.user_type_id
+           WHERE c.Object_ID = Object_ID(N'Tenants') AND c.Name = N'Siret' AND c.max_length = 28)
+BEGIN
+    ALTER TABLE [Tenants] ALTER COLUMN [Siret] NVARCHAR(20) NULL;
+END");
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'CountryCode' AND Object_ID = Object_ID(N'Tenants'))
+BEGIN
+    ALTER TABLE [Tenants] ADD [CountryCode] NVARCHAR(2) NULL;
 END");
                 await masterDb.Database.ExecuteSqlRawAsync(@"
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tenants_Siret' AND object_id = OBJECT_ID('Tenants'))

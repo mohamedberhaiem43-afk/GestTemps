@@ -115,16 +115,27 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddSingleton<ISuspiciousLoginTokenService, SuspiciousLoginTokenService>();
             builder.Services.AddLogging();
 
-            // SIRET validator (anti-fraude inscription) : appel à l'API gouvernementale
-            // recherche-entreprises.api.gouv.fr — gratuite, sans auth. Timeout court car
-            // le validator est fail-open : si l'API ne répond pas, on laisse passer et
-            // on s'appuie sur la contrainte unique côté DB pour bloquer les doublons.
-            builder.Services.AddHttpClient<ISiretValidator, SiretValidator>(http =>
+            // Validator entreprise multi-pays (anti-fraude inscription). Le service utilise
+            // IHttpClientFactory pour disposer de plusieurs HttpClient nommés — un par API
+            // externe. Tous les appels sont fail-open : si l'API tombe, on tombe sur la
+            // validation locale + l'unicité DB qui restent les garde-fous solides.
+            builder.Services.AddHttpClient(SiretValidator.SireneClientName, http =>
             {
+                // 🇫🇷 recherche-entreprises.api.gouv.fr — API gouvernementale gratuite, sans auth.
                 http.BaseAddress = new Uri("https://recherche-entreprises.api.gouv.fr/");
                 http.Timeout = TimeSpan.FromSeconds(5);
                 http.DefaultRequestHeaders.UserAgent.ParseAdd("ConcordeWorkforce-Signup/1.0");
             });
+            builder.Services.AddHttpClient(SiretValidator.CbeClientName, http =>
+            {
+                // 🇧🇪 cbeapi.be — API payante (clé via Cbe:ApiKey config). Bearer auth.
+                // Le bearer est ajouté par requête (pas DefaultRequestHeaders) pour permettre
+                // le hot-reload de la clé via IConfiguration sans recréer l'HttpClient.
+                http.BaseAddress = new Uri("https://cbeapi.be/");
+                http.Timeout = TimeSpan.FromSeconds(5);
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("ConcordeWorkforce-Signup/1.0");
+            });
+            builder.Services.AddScoped<ISiretValidator, SiretValidator>();
 
             // HIBP Pwned Passwords (k-anonymity) : refuse les mots de passe déjà connus
             // dans des fuites publiques. Gratuit, sans auth. Timeout court + fail-open

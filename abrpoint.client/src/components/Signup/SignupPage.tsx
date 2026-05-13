@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert,
-  Paper, Stack, InputAdornment, Chip,
+  Paper, Stack, InputAdornment, Chip, MenuItem,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import BadgeIcon from '@mui/icons-material/Badge';
+import PublicIcon from '@mui/icons-material/Public';
 import LinkIcon from '@mui/icons-material/Link';
 import PersonIcon from '@mui/icons-material/Person';
 import MailIcon from '@mui/icons-material/Mail';
@@ -15,20 +16,75 @@ import ErrorIcon from '@mui/icons-material/Error';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
 import { startStripeCheckout } from '../Pricing/stripeCheckout';
+import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
 type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'reserved';
 type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 // Statuts SIRET — reflètent les codes renvoyés par /api/signup/check-siret :
-//   format/checksum → SIRET mal formé localement (14 chiffres + Luhn) ;
+//   format/checksum → ID mal formé localement (format dépend du pays) ;
 //   not_found/closed → API Sirene ne reconnaît pas l'établissement ou il est fermé ;
-//   already_used → un autre tenant actif utilise déjà ce SIRET (anti-fraude).
+//   already_used → un autre tenant actif utilise déjà ce numéro (anti-fraude).
 type SiretStatus = 'idle' | 'checking' | 'available' | 'format' | 'checksum' | 'not_found' | 'closed' | 'already_used' | 'invalid';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// 14 chiffres, espaces tolérés en saisie (on les strip avant l'appel API).
-const SIRET_DIGITS_REGEX = /^[0-9]{14}$/;
+
+// ─────────────────────────────────────────────────────────────────────────
+// Multi-pays (2026-05) : 4 pays supportés au signup. La config détermine le
+// label/placeholder/regex du champ ID + le message d'aide. Le mapping est
+// CALÉ sur les validations côté backend (SiretValidator.ValidateXxx) — toute
+// modification ici doit être propagée là-bas et vice-versa.
+// ─────────────────────────────────────────────────────────────────────────
+type CountryCode = 'FR' | 'BE' | 'MA' | 'SN';
+
+interface CountryConfig {
+  code: CountryCode;
+  label: string; // libellé FR
+  cca3: string;  // pour matcher avec restcountries (drapeau)
+  idLabel: string;
+  idDigits: number;
+  idPlaceholder: string;
+  idHelper: string;
+  apiValidated: boolean; // true = format + API publique ; false = format uniquement
+}
+
+const COUNTRY_CONFIG: Record<CountryCode, CountryConfig> = {
+  FR: {
+    code: 'FR', label: 'France', cca3: 'FRA',
+    idLabel: 'SIRET de l\'entreprise',
+    idDigits: 14,
+    idPlaceholder: '14 chiffres — ex. 123 456 789 00012',
+    idHelper: 'Vérifié contre le référentiel Sirene (API gouvernementale).',
+    apiValidated: true,
+  },
+  BE: {
+    code: 'BE', label: 'Belgique', cca3: 'BEL',
+    idLabel: 'Numéro BCE (Banque-Carrefour des Entreprises)',
+    idDigits: 10,
+    idPlaceholder: '10 chiffres — ex. 0123456789',
+    idHelper: 'Vérifié contre le registre BCE (cbeapi.be) + clé de contrôle mod 97.',
+    apiValidated: true,
+  },
+  MA: {
+    code: 'MA', label: 'Maroc', cca3: 'MAR',
+    idLabel: 'ICE (Identifiant Commun de l\'Entreprise)',
+    idDigits: 15,
+    idPlaceholder: '15 chiffres — ex. 001234567000089',
+    idHelper: 'Validation du format uniquement (15 chiffres). Aucune API publique fiable n\'est disponible côté DGI.',
+    apiValidated: false,
+  },
+  SN: {
+    code: 'SN', label: 'Sénégal', cca3: 'SEN',
+    idLabel: 'NINEA (Numéro d\'Identification Nationale)',
+    idDigits: 9,
+    idPlaceholder: '9 chiffres — ex. 123456789',
+    idHelper: 'Validation du format uniquement (9 chiffres). Aucune API publique n\'est disponible côté ADEPME.',
+    apiValidated: false,
+  },
+};
+
+const SUPPORTED_COUNTRIES: CountryCode[] = ['FR', 'BE', 'MA', 'SN'];
 
 function slugify(input: string): string {
   return input
@@ -51,9 +107,21 @@ export default function SignupPage() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle');
 
-  // SIRET : 14 chiffres, validé contre l'API gouvernementale Sirene + contrôle
-  // d'unicité (anti-fraude essai gratuit). Le nom complet remonté par l'API est
-  // affiché pour rassurer l'utilisateur que c'est bien son entreprise.
+  // Pays de l'entreprise. Détermine le format de l'ID demandé (SIRET FR, BCE BE,
+  // ICE MA, NINEA SN). Default FR — cohérent avec le marché commercial principal.
+  const [country, setCountry] = useState<CountryCode>('FR');
+  const countryConfig = COUNTRY_CONFIG[country];
+
+  // Drapeaux récupérés de restcountries.com (même API que la fiche collaborateur).
+  // On filtre côté client sur les 4 pays supportés. Si l'appel échoue, l'app reste
+  // fonctionnelle — les drapeaux sont juste un confort UX, pas critiques.
+  const [countryFlags, setCountryFlags] = useState<Record<CountryCode, string>>({
+    FR: '', BE: '', MA: '', SN: '',
+  });
+
+  // Identifiant entreprise. Validé selon le pays sélectionné — quand le user change
+  // de pays, on reset l'ID et son statut pour éviter d'afficher une validation
+  // périmée (ex: SIRET FR valide affiché comme valide après bascule sur la Belgique).
   const [siret, setSiret] = useState('');
   const [siretStatus, setSiretStatus] = useState<SiretStatus>('idle');
   const [siretCompanyName, setSiretCompanyName] = useState<string | null>(null);
@@ -84,6 +152,36 @@ export default function SignupPage() {
     }
   };
   useEffect(() => { refreshCaptcha(); }, []);
+
+  // Chargement des drapeaux : on tape la même API restcountries.com utilisée par la
+  // fiche collaborateur. On extrait uniquement nos 4 pays supportés. Best-effort : si
+  // l'appel échoue, l'app reste utilisable, juste sans icônes drapeau.
+  useEffect(() => {
+    (async () => {
+      try {
+        const all = await GetRestCountries.getAll();
+        const flags: Record<CountryCode, string> = { FR: '', BE: '', MA: '', SN: '' };
+        for (const cc of SUPPORTED_COUNTRIES) {
+          const cca3 = COUNTRY_CONFIG[cc].cca3;
+          const match = all.find(c => c.cca3 === cca3);
+          if (match) flags[cc] = match.flagPng || match.flagSvg || '';
+        }
+        setCountryFlags(flags);
+      } catch {
+        // restcountries.com inaccessible — on tolère, le dropdown affichera juste les
+        // noms sans drapeaux. Pas de blocage du signup.
+      }
+    })();
+  }, []);
+
+  // Quand l'utilisateur change de pays : reset complet de l'ID. Sinon un SIRET FR
+  // validé resterait marqué "available" même après bascule vers la Belgique alors
+  // qu'il ne correspondrait plus au format BCE 10 chiffres.
+  useEffect(() => {
+    setSiret('');
+    setSiretStatus('idle');
+    setSiretCompanyName(null);
+  }, [country]);
 
   // Auto-suggère un slug à partir du nom de société tant que l'utilisateur ne l'a pas modifié.
   useEffect(() => {
@@ -160,19 +258,18 @@ export default function SignupPage() {
     };
   }, [email]);
 
-  // Debounced SIRET validation : on appelle /signup/check-siret 400ms après la dernière
-  // frappe. L'appel fait Luhn local + API Sirene + check d'unicité — un seul aller-retour
-  // suffit donc à donner un feedback complet. Timeout 6s : l'API gouvernementale peut
-  // être lente, mais on ne veut pas non plus bloquer indéfiniment.
+  // Debounced validation de l'identifiant entreprise. Le nombre de chiffres attendu
+  // varie selon le pays (countryConfig.idDigits). Le backend valide en deux temps :
+  // format + (pour FR) appel API Sirene. Pour BE on a un checksum local, MA/SN
+  // format seul. Timeout 6s — adapté au pire cas (API Sirene lente).
   useEffect(() => {
     const digits = siret.replace(/\D/g, '');
     if (!digits) { setSiretStatus('idle'); setSiretCompanyName(null); return; }
-    if (digits.length !== 14) {
+    if (digits.length !== countryConfig.idDigits) {
       setSiretStatus('format');
       setSiretCompanyName(null);
       return;
     }
-    if (!SIRET_DIGITS_REGEX.test(digits)) { setSiretStatus('format'); return; }
 
     setSiretStatus('checking');
     const controller = new AbortController();
@@ -181,7 +278,7 @@ export default function SignupPage() {
     const handle = setTimeout(async () => {
       try {
         const { data } = await apiInstance.get('/signup/check-siret', {
-          params: { siret: digits },
+          params: { siret: digits, country: countryConfig.code },
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
@@ -211,27 +308,35 @@ export default function SignupPage() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [siret]);
+  }, [siret, countryConfig.idDigits, countryConfig.code]);
 
   const siretHelper = useMemo(() => {
+    // Messages cohérents avec le pays : on remplace "SIRET" par le nom métier de l'ID
+    // selon le pays sélectionné, et on adapte "API Sirene" quand l'API n'est pas FR.
+    const idName = countryConfig.idLabel.split(' ')[0]; // "SIRET" / "Numéro" / "ICE" / "NINEA"
+    // Source de vérification dépend du pays : Sirene pour FR, cbeapi.be pour BE, sinon format local.
+    const verifSource =
+      country === 'FR' ? 'auprès du référentiel Sirene' :
+      country === 'BE' ? 'auprès du registre BCE' :
+      'du format et de l\'unicité';
     switch (siretStatus) {
-      case 'checking': return { color: 'info' as const, text: 'Vérification auprès du référentiel Sirene…' };
+      case 'checking': return { color: 'info' as const, text: `Vérification ${verifSource}…` };
       case 'available': return {
         color: 'success' as const,
-        text: siretCompanyName ? `Entreprise reconnue : ${siretCompanyName}.` : 'SIRET valide.',
+        text: siretCompanyName ? `Entreprise reconnue : ${siretCompanyName}.` : `${idName} valide.`,
       };
-      case 'format': return { color: 'error' as const, text: 'Le SIRET doit contenir 14 chiffres.' };
-      case 'checksum': return { color: 'error' as const, text: 'Numéro SIRET invalide (clé de contrôle).' };
-      case 'not_found': return { color: 'error' as const, text: 'Aucune entreprise trouvée pour ce SIRET dans le référentiel Sirene.' };
+      case 'format': return { color: 'error' as const, text: `Le numéro doit contenir ${countryConfig.idDigits} chiffres.` };
+      case 'checksum': return { color: 'error' as const, text: `Numéro invalide (clé de contrôle ${country === 'FR' ? 'SIRET' : country === 'BE' ? 'mod 97' : ''}).` };
+      case 'not_found': return { color: 'error' as const, text: 'Aucune entreprise trouvée pour ce numéro dans le référentiel.' };
       case 'closed': return { color: 'error' as const, text: 'Cet établissement est administrativement fermé.' };
       case 'already_used': return {
         color: 'error' as const,
-        text: 'Un compte existe déjà pour ce SIRET. Connectez-vous depuis l\'écran de login.',
+        text: 'Un compte existe déjà pour ce numéro. Connectez-vous depuis l\'écran de login.',
       };
-      case 'invalid': return { color: 'error' as const, text: 'SIRET non valide.' };
+      case 'invalid': return { color: 'error' as const, text: 'Numéro non valide.' };
       default: return null;
     }
-  }, [siretStatus, siretCompanyName]);
+  }, [siretStatus, siretCompanyName, country, countryConfig]);
 
   const emailHelper = useMemo(() => {
     switch (emailStatus) {
@@ -265,12 +370,13 @@ export default function SignupPage() {
     && slugStatus !== 'reserved'
     && slugStatus !== 'invalid';
 
-  // Le SIRET est obligatoire (anti-fraude). On exige le format 14 chiffres et qu'on
-  // n'ait pas d'erreur explicite ; on ne bloque pas sur 'checking' ou 'idle' pour
-  // permettre la soumission si l'API Sirene est lente (le backend re-valide de toute
-  // façon et la contrainte unique en DB protège en dernier recours).
+  // L'ID entreprise est obligatoire (anti-fraude). Format exigé selon le pays
+  // (countryConfig.idDigits) ; on ne bloque pas sur 'checking' ou 'idle' pour
+  // permettre la soumission si l'API Sirene FR est lente (le backend re-valide
+  // de toute façon et la contrainte unique en DB protège en dernier recours).
+  const siretDigitsRegex = new RegExp(`^[0-9]{${countryConfig.idDigits}}$`);
   const siretAccepted =
-    SIRET_DIGITS_REGEX.test(siret.replace(/\D/g, '')) &&
+    siretDigitsRegex.test(siret.replace(/\D/g, '')) &&
     siretStatus !== 'format' &&
     siretStatus !== 'checksum' &&
     siretStatus !== 'not_found' &&
@@ -305,6 +411,7 @@ export default function SignupPage() {
         slug,
         companyName: companyName.trim(),
         siret: siret.replace(/\D/g, ''),
+        country,
         adminFirstName: firstName.trim(),
         adminLastName: lastName.trim(),
         adminEmail: email.trim(),
@@ -418,19 +525,47 @@ export default function SignupPage() {
             InputProps={{ startAdornment: <InputAdornment position="start"><BusinessIcon /></InputAdornment> }}
           />
 
+          {/* Sélecteur de pays — placé AVANT l'ID parce que le format de l'ID change
+              avec le pays. Limité aux 4 pays cibles de la commercialisation 2026. */}
+          <TextField
+            fullWidth
+            select
+            label="Pays de l'entreprise"
+            value={country}
+            onChange={(e) => setCountry(e.target.value as CountryCode)}
+            InputProps={{ startAdornment: <InputAdornment position="start"><PublicIcon /></InputAdornment> }}
+          >
+            {SUPPORTED_COUNTRIES.map((cc) => {
+              const cfg = COUNTRY_CONFIG[cc];
+              const flag = countryFlags[cc];
+              return (
+                <MenuItem key={cc} value={cc}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    {flag ? (
+                      <img src={flag} alt="" style={{ width: 22, height: 16, objectFit: 'cover', borderRadius: 2 }} />
+                    ) : (
+                      <Box sx={{ width: 22, height: 16, bgcolor: '#e2e8f0', borderRadius: 0.5 }} />
+                    )}
+                    <span>{cfg.label}</span>
+                  </Box>
+                </MenuItem>
+              );
+            })}
+          </TextField>
+
           <Box>
             <TextField
               fullWidth
-              label="SIRET de l'entreprise"
+              label={countryConfig.idLabel}
               value={siret}
               onChange={(e) => {
-                // On accepte espaces/tirets en saisie pour confort (les SIRET sont souvent
-                // notés en groupes de 3+3+3+5), mais on persiste la chaîne brute pour que
-                // le useEffect strip avant de valider.
-                const cleaned = e.target.value.replace(/[^0-9\s-]/g, '').slice(0, 17);
+                // On accepte espaces/tirets/points en saisie pour confort (variants de
+                // formatage : BCE "0123.456.789", ICE par segments…). On persiste la
+                // chaîne brute, le useEffect strip avant validation.
+                const cleaned = e.target.value.replace(/[^0-9\s\-.]/g, '').slice(0, countryConfig.idDigits + 6);
                 setSiret(cleaned);
               }}
-              placeholder="14 chiffres — ex. 123 456 789 00012"
+              placeholder={countryConfig.idPlaceholder}
               InputProps={{
                 startAdornment: <InputAdornment position="start"><BadgeIcon /></InputAdornment>,
                 endAdornment: (
@@ -444,7 +579,7 @@ export default function SignupPage() {
                 ),
               }}
               inputProps={{ inputMode: 'numeric' }}
-              helperText="Vérification anti-fraude : un seul essai gratuit par SIRET."
+              helperText={countryConfig.idHelper + ' Un seul essai gratuit par numéro.'}
             />
             {siretHelper && (
               <Typography variant="caption" color={`${siretHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>

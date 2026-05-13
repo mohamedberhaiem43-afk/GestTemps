@@ -33,14 +33,22 @@ public class Tenant
     public string? AdminEmail { get; set; }
 
     /// <summary>
-    /// Numéro SIRET de l'entreprise (14 chiffres). Saisi à l'inscription et vérifié contre
-    /// l'API gouvernementale recherche-entreprises.api.gouv.fr. Sert de clé anti-fraude :
-    /// un même SIRET ne peut pas obtenir plusieurs essais gratuits (un seul tenant
-    /// Trialing/Active par SIRET hors lignes Failed et Cancelled-au-delà-rétention).
-    /// Nullable pour préserver la rétro-compat avec les tenants legacy créés avant 2026-05.
+    /// Identifiant entreprise (SIRET FR / BCE BE / ICE MA / NINEA SN). Le format dépend
+    /// de <see cref="CountryCode"/>. Sert de clé anti-fraude : un même ID ne peut pas
+    /// obtenir plusieurs essais gratuits (un seul tenant Trialing/Active par ID hors lignes
+    /// Failed et Cancelled-au-delà-rétention). Stocké en NVARCHAR(20) pour accommoder le
+    /// plus long format (ICE 15 chiffres). Nullable pour rétro-compat tenants legacy.
     /// </summary>
-    [MaxLength(14)]
+    [MaxLength(20)]
     public string? Siret { get; set; }
+
+    /// <summary>
+    /// Code pays ISO 3166-1 alpha-2 : FR / BE / MA / SN. Détermine le format attendu pour
+    /// <see cref="Siret"/> et l'API de validation utilisée au signup. Nullable = legacy
+    /// (avant le support multi-pays) → traité comme "FR" par défaut côté code.
+    /// </summary>
+    [MaxLength(2)]
+    public string? CountryCode { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
