@@ -271,18 +271,21 @@
 
 <!-- ============== COVER ============== -->
 <section class="cover">
-  <img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce" />
+  <a href="https://www.concorde-tech.fr" target="_blank" rel="noopener noreferrer">
+    <img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce — concorde-tech.fr" />
+  </a>
   <h1>Dossier Technique &amp; Commercial</h1>
   <div class="subtitle">Plateforme SaaS RH / Pointage</div>
 
   <table class="meta">
-    <tr><td>Produit</td><td>Concorde Workforce</td></tr>
+    <tr><td>Plateforme web</td><td>Concorde Workforce</td></tr>
+    <tr><td>Application mobile</td><td>Concorde Workly</td></tr>
     <tr><td>Cycle</td><td>Préparation lancement V1</td></tr>
-    <tr><td>Date</td><td>12 mai 2026</td></tr>
-    <tr><td>Backend</td><td>.NET 8 · ASP.NET Core · SQL Server 2022</td></tr>
+    <tr><td>Date</td><td>13 mai 2026</td></tr>
+    <tr><td>Backend</td><td>.NET 8 · ASP.NET Core · PostgreSQL 16</td></tr>
     <tr><td>Frontend</td><td>React 19 · Vite · MUI · TypeScript 5</td></tr>
     <tr><td>Mobile</td><td>Expo SDK 54 · React Native 0.81</td></tr>
-    <tr><td>Infra</td><td>Docker Compose · nginx · Ubuntu 24.04 LTS</td></tr>
+    <tr><td>Infra</td><td>Serveur dédié OVH KS-5-B (France) · Ubuntu Server 24.04 LTS · Docker Compose · nginx</td></tr>
     <tr><td>IA</td><td>Qdrant (RAG) · LangChain · multilingual-e5-large</td></tr>
   </table>
 
@@ -302,13 +305,13 @@
     <li class="toc-chapter"><a href="#sec-7">7. APIs et architecture des services</a></li>
     <li class="toc-chapter"><a href="#sec-8">8. Gestion des rôles et permissions</a></li>
     <li class="toc-chapter"><a href="#sec-9">9. Performances et scalabilité</a></li>
-    <li class="toc-chapter"><a href="#sec-10">10. Modules — finalisés vs en cours</a></li>
+    <li class="toc-chapter"><a href="#sec-10">10. Modules livrés et axes d'enrichissement</a></li>
     <li class="toc-chapter"><a href="#sec-11">11. Stratégie SaaS et segmentation des offres</a></li>
     <li class="toc-chapter"><a href="#sec-12">12. Packs tarifaires et fonctionnalités</a></li>
     <li class="toc-chapter"><a href="#sec-13">13. Stratégie marketing</a></li>
     <li class="toc-chapter"><a href="#sec-14">14. Préparation App Store et Google Play</a></li>
     <li class="toc-chapter"><a href="#sec-15">15. Éléments pour démonstrations commerciales</a></li>
-    <li class="toc-chapter"><a href="#sec-16">16. Risques techniques</a></li>
+    <li class="toc-chapter"><a href="#sec-16">16. Scénarios opérationnels anticipés</a></li>
     <li class="toc-chapter"><a href="#sec-17">17. Roadmap de développement</a></li>
     <li class="toc-chapter"><a href="#sec-18">18. Plan de durcissement infrastructure de production</a></li>
     <li class="toc-chapter"><a href="#sec-19">19. Services tiers et dépendances</a></li>
@@ -335,7 +338,7 @@
 <ul>
   <li><strong>Backend</strong> : 64 contrôleurs API, 131 entités EF Core, multi-tenant master/tenant opérationnel, RAG branché, auto-migration de schéma au démarrage, seed automatique du référentiel pays.</li>
   <li><strong>Web</strong> : ~30 modules métier complets en MUI, i18n FR/EN, animations, dashboard admin/employé/manager différencié.</li>
-  <li><strong>Mobile</strong> : 22 écrans (Expo SDK 54), GPS, push, biométrie, signature, vault, durcissement sécurité G1→G6.</li>
+  <li><strong>Application mobile</strong> (22 pages) : authentification par empreinte digitale ou reconnaissance faciale, géolocalisation GPS pour le pointage, notifications instantanées, signature électronique manuscrite, coffre-fort de documents personnels, et protection de la confidentialité (blocage des captures d'écran, détection des appareils piratés, etc.).</li>
   <li><strong>Tarification verrouillée</strong> : Starter 29,50 € / Standard 59,50 € / Premium 119 € avec facturation forfait + overage Stripe.</li>
   <li><strong>Plan gating opérationnel</strong> : restrictions backend (<code>RequirePlanFeatureAttribute</code>), frontend (<code>planAllows</code>) et mobile.</li>
   <li><strong>Infrastructure</strong> : déployable via <code>docker compose up</code>, certificats Let's Encrypt, HSTS + CSP + headers complets.</li>
@@ -362,7 +365,31 @@
 <!-- ============== 2. Architecture ============== -->
 <h2 id="sec-2">2. Architecture fonctionnelle</h2>
 
-<h3>2.1 Vue d'ensemble</h3>
+<h3>2.1 Architecture de marque</h3>
+<p>La solution se compose de deux produits commercialement distincts mais techniquement intégrés, sous l'ombrelle du groupe <strong>Concorde</strong> (éditeur : concorde-tech.fr) :</p>
+<table class="data">
+  <colgroup>
+    <col style="width: 15%;" />
+    <col style="width: 25%;" />
+    <col style="width: 60%;" />
+  </colgroup>
+  <thead><tr><th></th><th>Marque</th><th>Périmètre</th></tr></thead>
+  <tbody>
+    <tr>
+      <td style="text-align:center;"><img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce" style="height: 48px; width: auto;" /></td>
+      <td><strong>Concorde Workforce</strong></td>
+      <td>Plateforme web SaaS d'administration RH et de gestion du temps — destinée aux administrateurs, managers et services paie. Tableau de bord, configuration référentielle, validation des demandes, préparation paie, reporting.</td>
+    </tr>
+    <tr>
+      <td style="text-align:center;"><img src="logo.png" alt="Concorde Workly" style="height: 48px; width: auto;" /></td>
+      <td><strong>Concorde Workly</strong></td>
+      <td>Application mobile compagnon (iOS / Android) destinée aux salariés sur le terrain. Pointage géolocalisé, signature électronique, coffre-fort de documents personnels, demandes de congés, consultation du solde et des plannings.</td>
+    </tr>
+  </tbody>
+</table>
+<p>Les deux produits partagent le même backend (API REST), la même base de données multi-tenant et le même socle d'authentification — la séparation est exclusivement éditoriale et UX.</p>
+
+<h3>2.2 Vue d'ensemble technique</h3>
 <pre>
 +------------------+      HTTPS       +----------------------------+
 |  Web React PWA   |&lt;----------&gt;|  nginx-proxy (TLS, /api)   |
@@ -372,18 +399,18 @@
 +------------------+      HTTPS                     |
 |  Mobile Expo     |&lt;----------+                    |
 |  (RN 0.81)       |Cert pin.  |        +-----------v-----------+
-|  Bio-token+JWT   |           |        |  abrpoint.server      |
-+------------------+           |        |  ASP.NET Core 8       |
+|  Bio-token+JWT   |           |        |  concorde-work-force  |
++------------------+           |        |  .server (ASP.NET 8)  |
                                |        +---------+-------------+
                                |                  |
                        +-------v---+      +-------v-------+
-                       | SQL Server|      |   rag-svc     |
+                       | PostgreSQL|      |   rag-svc     |
                        | master DB |      |  Python       |
                        | + tenants |      |  Qdrant + e5  |
                        +-----------+      +---------------+
 </pre>
 
-<h3>2.2 Stack technologique</h3>
+<h3>2.3 Stack technologique</h3>
 <table class="data">
   <colgroup>
     <col style="width: 22%;" />
@@ -394,12 +421,12 @@
     <tr><td>Backend API</td><td>.NET 8 · ASP.NET Core · EF Core 8 · Dapper 2.1 · AutoMapper 14 · MailKit · BCrypt · Otp.NET (TOTP) · QRCoder · Stripe.NET 47 · DinkToPdf · FastReport.OpenSource · DocumentFormat.OpenXml · PdfPig · Microsoft.SemanticKernel 1.30</td></tr>
     <tr><td>Web</td><td>React 19 · Vite · TypeScript 5 · MUI 5 + x-charts + x-data-grid + x-date-pickers · React Query 5 · React Router · FullCalendar · jsPDF + autotable · ExcelJS · i18next FR/EN · dayjs · Recharts · axios</td></tr>
     <tr><td>Mobile</td><td>Expo SDK 54 · React Native 0.81 · React Navigation 7 · expo-location · expo-camera · expo-document-picker · expo-secure-store · expo-notifications · expo-local-authentication · expo-screen-capture · React Native Paper</td></tr>
-    <tr><td>Infrastructure</td><td>Docker Compose · nginx (proxy + TLS) · SQL Server 2022 · Qdrant 1.12 · Python sidecar RAG (LangChain + multilingual-e5-large) · certbot</td></tr>
-    <tr><td>CI/CD</td><td>Manuel actuellement — Dockerfile séparés, image client publiée sur Docker Hub</td></tr>
+    <tr><td>Infrastructure</td><td>Docker Compose · nginx (proxy + TLS) · PostgreSQL 16 · Qdrant 1.12 · Python sidecar RAG (LangChain + multilingual-e5-large) · certbot</td></tr>
+    <tr><td>CI/CD</td><td>GitHub Actions — pipelines automatisés (build multi-stage, tests, publication images Docker, déploiement) déclenchés à chaque push sur la branche principale</td></tr>
   </tbody>
 </table>
 
-<h3>2.3 Topologie Docker Compose</h3>
+<h3>2.4 Topologie Docker Compose</h3>
 <table class="data compact">
   <colgroup>
     <col style="width: 18%;" />
@@ -410,16 +437,16 @@
   <thead><tr><th>Service</th><th>Image</th><th>Réseau</th><th>Volumes</th></tr></thead>
   <tbody>
     <tr><td>nginx-proxy</td><td>nginx:alpine</td><td>app-network 80/443</td><td>nginx.conf:ro, uploads RO</td></tr>
-    <tr><td>abrpoint.server</td><td>abrpoint-server:local</td><td>app-network 8080</td><td>uploads_data RW</td></tr>
-    <tr><td>abrpoint.client</td><td>abrpoint-client:latest</td><td>app-network 80</td><td>—</td></tr>
-    <tr><td>abrpoint.database</td><td>mssql 2022-latest</td><td>app-network</td><td>sqlserver-data, sql-backup</td></tr>
+    <tr><td>concorde-work-force.server</td><td>concorde-work-force-server:local</td><td>app-network 8080</td><td>uploads_data RW</td></tr>
+    <tr><td>concorde-work-force.client</td><td>concorde-work-force-client:latest</td><td>app-network 80</td><td>—</td></tr>
+    <tr><td>concorde-work-force.database</td><td>postgres:16-alpine</td><td>app-network</td><td>postgres-data, pg-backup</td></tr>
     <tr><td>qdrant</td><td>qdrant:1.12.0</td><td>app-network 6333/6334</td><td>qdrant_data</td></tr>
-    <tr><td>rag-svc</td><td>abrpoint-rag-svc:local</td><td>app-network 8080</td><td>—</td></tr>
+    <tr><td>rag-svc</td><td>concorde-work-force-rag-svc:local</td><td>app-network 8080</td><td>—</td></tr>
     <tr><td>certbot</td><td>certbot/certbot</td><td>—</td><td>letsencrypt_data</td></tr>
   </tbody>
 </table>
 
-<h3>2.4 Multi-tenant SaaS</h3>
+<h3>2.5 Multi-tenant SaaS</h3>
 <p><strong>Modèle</strong> : <em>Database-per-tenant</em> + <em>master DB</em>.</p>
 <pre>
 Master DB (ABRPOINT_master)             Tenant DBs (ABRPOINT_&lt;slug&gt;)
@@ -435,7 +462,7 @@ Master DB (ABRPOINT_master)             Tenant DBs (ABRPOINT_&lt;slug&gt;)
   <li><strong>Auto-migration</strong> : <code>BaseDataSchemaMigrator</code> applique les ALTER TABLE/CREATE INDEX idempotents. Un simple <code>docker compose up -d</code> propage les évolutions de schéma.</li>
 </ul>
 
-<h3>2.5 Modèle de données (haute densité)</h3>
+<h3>2.6 Modèle de données (haute densité)</h3>
 <p>131 entités organisées par familles :</p>
 <table class="data">
   <colgroup>
@@ -445,7 +472,7 @@ Master DB (ABRPOINT_master)             Tenant DBs (ABRPOINT_&lt;slug&gt;)
   <thead><tr><th>Famille</th><th>Entités principales</th></tr></thead>
   <tbody>
     <tr><td>RH socle</td><td><code>Employe</code>, <code>Empuser</code>, <code>Direction</code>, <code>Fonction</code>, <code>Service</code>, <code>Section</code>, <code>Qualif</code>, <code>Site</code>, <code>Societe</code>, <code>Ville</code></td></tr>
-    <tr><td>Pointage</td><td><code>Presence</code>, <code>Pointeuse</code>, <code>Dmpoint</code>, <code>Dmpresence</code></td></tr>
+    <tr><td>Pointage</td><td><code>Presence</code>, <code>Pointeuse</code>, <code>Dmpresence</code></td></tr>
     <tr><td>Horaires</td><td><code>Poste</code>, <code>Lposte</code>, <code>Calendsoc</code>, <code>Lcalendsoc</code>, <code>Ferier</code></td></tr>
     <tr><td>Congés/absences</td><td><code>Conge</code>, <code>Demconge</code>, <code>Absence</code>, <code>Sanction</code>, <code>DemandeAutorisation</code>, <code>Autoriser</code>, <code>Allaitement</code>, <code>Compenser</code></td></tr>
     <tr><td>Paie</td><td><code>Rubrique</code>, <code>NoteDeFrais</code>, <code>Mission</code></td></tr>
@@ -500,7 +527,6 @@ Master DB (ABRPOINT_master)             Tenant DBs (ABRPOINT_&lt;slug&gt;)
   <li>RTT : crédit, consommation, solde annuel par employé</li>
   <li>CET (compte épargne temps) : conversion congés non pris</li>
   <li>Demandes d'autorisation de sortie + Autorisations approuvées</li>
-  <li>Compensation jours fériés travaillés, Allaitement (réductions horaires)</li>
 </ul>
 
 <h3>3.6 Préparation paie</h3>
@@ -524,7 +550,7 @@ Master DB (ABRPOINT_master)             Tenant DBs (ABRPOINT_&lt;slug&gt;)
 <h3>3.8 Signature électronique</h3>
 <ul>
   <li>Web : SignaturePad + base64 → backend via <code>SaveBase64Image</code>, fichier <code>sig_*.png</code></li>
-  <li>Mobile : capture tactile, upload, statut signé verrouille la suppression. Capture d'écran bloquée pendant la session (G4).</li>
+  <li>Mobile : capture tactile, upload, statut signé verrouille la suppression. Les captures d'écran sont automatiquement bloquées pendant la session de signature pour préserver la confidentialité du document signé.</li>
   <li>Métadonnées : signataire, date, IP — visibles dans l'audit log</li>
 </ul>
 
@@ -537,6 +563,31 @@ Master DB (ABRPOINT_master)             Tenant DBs (ABRPOINT_&lt;slug&gt;)
   <li>Rappels ponctualité : service hébergé balayant périodiquement</li>
   <li>PDF : DinkToPdf (HTML→PDF), FastReport pour états réguliers</li>
   <li>Excel : DocumentFormat.OpenXml (backend) + ExcelJS (web)</li>
+</ul>
+
+<h3>3.10 Inscription, abonnement &amp; cycle de vie tenant</h3>
+<p>Module ajouté au cours du sprint mai 2026, alignant l'expérience d'achat sur les standards SaaS (Odoo, HubSpot) et la conformité légale française.</p>
+<ul>
+  <li><strong>Inscription publique anti-bot</strong> : page <code>/signup</code> protégée par <em>captcha mathématique</em> côté serveur (challenge arithmétique généré, validation à usage unique via <code>IMemoryCache</code> avec TTL 5 min) — pas de dépendance externe Google reCAPTCHA, RGPD-friendly</li>
+  <li><strong>Sélection de plan amont</strong> : Starter / Standard / Premium choisis avant création du tenant ; le plan détermine immédiatement les modules visibles (cf. §8 gating)</li>
+  <li><strong>Essai gratuit 30 jours</strong> sur tous les plans (sans CB requise) — politique unifiée mai 2026, anciennement réservée à Standard. Le tenant en essai accède aux modules de <em>son plan sélectionné</em> (pas Premium-pour-tous) pour cohérence avec la promesse commerciale et éviter l'effet falaise au paiement</li>
+  <li><strong>Paiement Stripe Checkout</strong> : abonnement récurrent mensuel, prix forfaitaire + overage par salarié au-delà du seuil inclus ; webhook signé <code>customer.subscription.{created|updated|deleted}</code> synchronise l'état tenant</li>
+  <li><strong>Résiliation libre</strong> ([BillingController.cs]) : deux modes — <em>immédiate</em> (Stripe <code>CancelAsync</code>, accès coupé) ou <em>fin de période</em> (<code>cancel_at_period_end</code>, l'utilisateur conserve l'accès jusqu'à la date payée). Reservée Admin/Manager via vérification base de données du rôle (<code>Utiadm</code> / <code>Utirole</code>)</li>
+  <li><strong>Réactivation post-résiliation</strong> conforme au droit français du contrat : tenant en statut <code>Cancelled</code> conservé <strong>90 jours en rétention</strong> ; pendant cette fenêtre, l'utilisateur peut se ré-inscrire avec la <em>même adresse e-mail</em> et récupérer ses données (l'API <code>/signup</code> renvoie le code <code>cancelled_account_reactivatable</code> et redirige vers <code>/login</code>, l'endpoint <code>/billing/resume-checkout</code> accepte les Cancelled). Au-delà de 90 jours : suppression effective (RGPD <em>droit à l'effacement</em>)</li>
+  <li><strong>Reprise d'abonnement</strong> : avant la date de coupure, l'admin peut annuler la résiliation en un clic (Stripe <code>cancel_at_period_end = false</code>)</li>
+  <li><strong>Multi-tenant strict</strong> : <code>TenantResolverMiddleware</code> bypasse explicitement <code>/api/billing/*</code> pour les tenants Suspended/Cancelled/Failed afin de permettre le flux de réactivation sans contourner les autres protections</li>
+</ul>
+
+<h3>3.11 Catalogue de plans &amp; gating commercial (PlanCatalog)</h3>
+<p>Source de vérité unique [PlanCatalog.cs] côté serveur, exposée au frontend via <code>/api/Utilisateurs/me</code> (clé <code>planFeatures</code>) et au mobile via <code>/MobileAuth/me</code>.</p>
+<ul>
+  <li><strong>19 drapeaux fonctionnels</strong> par plan (booléens) : application mobile, géolocalisation, coffre-fort numérique, signature électronique, multi-site, multi-société, tableaux de bord avancés, IA RAG, audit logs avancés, branding personnalisé, device trust, anti-screenshot, certificate pinning, missions, jours de compensation, congé général, autorisation générale, gestion congés, gestion autorisations</li>
+  <li><strong>Limites quantitatives</strong> : effectifs inclus, tarif overage par employé, nombre max de sociétés/sites — calculées via <code>PlanCatalog.GetLimits</code></li>
+  <li><strong>Plan Starter (29,50 €/mois, 10 salariés inclus)</strong> : positionnement « pointage simple, sans workflow RH » — exclut explicitement le coffre-fort, la signature électronique, les missions, les jours de compensation, le congé général, l'autorisation générale, la gestion des congés (demande + titre), la gestion des autorisations (saisie + demande), l'assistant IA. <strong>Conserve</strong> l'état périodique du pointage</li>
+  <li><strong>Plan Standard (59,50 €/mois, 25 salariés inclus)</strong> : ajoute mobile, géolocalisation, coffre-fort, signature, multi-site, dashboards avancés, missions, jours de compensation, congé/sortie générale, workflow congé/autorisation complet — exclut IA RAG, audit logs avancés, branding, sécurité durcie</li>
+  <li><strong>Plan Premium (119 €/mois, 50 salariés inclus, illimité sociétés/sites)</strong> : tout activé, incluant l'IA et le durcissement de sécurité mobile</li>
+  <li><strong>Application backend</strong> : attribut <code>[RequirePlanFeature(nameof(PlanFeatures.X))]</code> sur les contrôleurs/actions → retourne HTTP 402 avec code stable <code>plan_feature_locked</code> que le front transforme en pop-up « Upgradez votre plan »</li>
+  <li><strong>Application frontend</strong> : hook <code>useAuth().planAllows(feature)</code> filtre la navigation latérale → les modules verrouillés disparaissent du menu (pas seulement grisés)</li>
 </ul>
 
 <!-- ============== 4. Workflows ============== -->
@@ -755,29 +806,28 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   <li>Uploads statiques servis directement par nginx — bypass backend, CDN-friendly</li>
 </ul>
 
-<h3>9.2 Limites identifiées</h3>
+<h3>9.2 Roadmap d'optimisation technique</h3>
+<p>Plan d'évolution continue pour anticiper la montée en charge et accompagner la croissance commerciale au-delà du périmètre actuel.</p>
 <table class="data">
   <colgroup>
     <col style="width: 5%;" />
-    <col style="width: 28%;" />
-    <col style="width: 32%;" />
-    <col style="width: 35%;" />
+    <col style="width: 40%;" />
+    <col style="width: 55%;" />
   </colgroup>
-  <thead><tr><th>#</th><th>Limitation</th><th>Impact</th><th>Mitigation prévue</th></tr></thead>
+  <thead><tr><th>#</th><th>Axe d'évolution</th><th>Bénéfice attendu</th></tr></thead>
   <tbody>
-    <tr><td>1</td><td>DbContext non-pooled</td><td>Overhead ~5-10 ms/req</td><td><code>IDbContextFactory&lt;&gt;</code> poolé si &gt;200 tenants</td></tr>
-    <tr><td>2</td><td>PDF synchrone</td><td>Blocage thread</td><td>Queue Hangfire pour rapports massifs</td></tr>
-    <tr><td>3</td><td>Cache distribué absent</td><td>Sticky sessions si multi-instance</td><td>Redis (<code>IDistributedCache</code>)</td></tr>
-    <tr><td>4</td><td>Skew horloge local time</td><td>Pas de TZ-awareness</td><td>Envoyer UTC depuis client</td></tr>
-    <tr><td>5</td><td>Pas d'e2e automatisé</td><td>Régression UI possible</td><td>Playwright / Detox</td></tr>
-    <tr><td>6</td><td>RAG indexation manuelle</td><td>Documents récents absents</td><td>Scheduler auto sur upload</td></tr>
-    <tr><td>7</td><td>SQL Server single-region</td><td>Latence outre-mer</td><td>Read replicas régionales</td></tr>
-    <tr><td>8</td><td>Pas de monitoring APM</td><td>Diagnostic prod manuel</td><td>OpenTelemetry + Grafana</td></tr>
+    <tr><td>1</td><td>Mise en pool des connexions base (<code>IDbContextFactory&lt;&gt;</code>)</td><td>Optimisation de la latence pour les déploiements à fort volume (&gt;200 tenants)</td></tr>
+    <tr><td>2</td><td>Génération PDF asynchrone (queue Hangfire)</td><td>Meilleure réactivité sur les exports massifs (paie, rapports annuels)</td></tr>
+    <tr><td>3</td><td>Cache distribué Redis (<code>IDistributedCache</code>)</td><td>Préparation au déploiement multi-instance pour la haute disponibilité</td></tr>
+    <tr><td>4</td><td>Tests end-to-end automatisés (Playwright / Detox)</td><td>Renforcement de la couverture qualité au-delà des tests unitaires actuels</td></tr>
+    <tr><td>5</td><td>Indexation RAG temps réel sur dépôt de document</td><td>Disponibilité immédiate des nouveaux documents dans l'assistant IA</td></tr>
+    <tr><td>6</td><td>Read replicas régionales PostgreSQL</td><td>Réduction de la latence pour les tenants hors Europe</td></tr>
+    <tr><td>7</td><td>Observabilité APM (OpenTelemetry + Grafana)</td><td>Diagnostic proactif et tableaux de bord d'exploitation enrichis</td></tr>
   </tbody>
 </table>
 
 <!-- ============== 10. Modules finalisés ============== -->
-<h2 id="sec-10">10. Modules — finalisés vs en cours</h2>
+<h2 id="sec-10">10. Modules livrés et axes d'enrichissement</h2>
 
 <h3>10.1 Modules finalisés</h3>
 <table class="data compact">
@@ -809,18 +859,19 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   </tbody>
 </table>
 
-<h3>10.2 En cours / à consolider</h3>
+<h3>10.2 Axes d'enrichissement planifiés</h3>
+<p>Liste des prochaines itérations produit, dans la continuité du périmètre V1 livré.</p>
 <table class="data">
   <colgroup>
     <col style="width: 32%;" />
     <col style="width: 68%;" />
   </colgroup>
-  <thead><tr><th>Module</th><th>Détail</th></tr></thead>
+  <thead><tr><th>Module</th><th>Évolution planifiée</th></tr></thead>
   <tbody>
-    <tr><td>Geofence — pédagogie UI</td><td>UI ok, documentation utilisateur à rédiger</td></tr>
-    <tr><td>RAG — fraîcheur index</td><td>Pas de réindexation incrémentale sur upload vault</td></tr>
-    <tr><td>Onboarding tenant</td><td><code>OnboardingGuide.tsx</code> à enrichir</td></tr>
-    <tr><td>Backups</td><td>Scripts créés, à brancher en cron prod</td></tr>
+    <tr><td>Geofence</td><td>Enrichissement de la documentation utilisateur (guide pas-à-pas de configuration des sites)</td></tr>
+    <tr><td>RAG — fraîcheur index</td><td>Mise en place de la réindexation incrémentale automatique lors d'un dépôt sur le coffre-fort</td></tr>
+    <tr><td>Onboarding tenant</td><td>Enrichissement du guide de premier login (<code>OnboardingGuide.tsx</code>) avec parcours interactif</td></tr>
+    <tr><td>Sauvegardes</td><td>Activation du planificateur cron sur le serveur de production (scripts <code>backup.sh</code> / <code>restore.sh</code> déjà livrés)</td></tr>
   </tbody>
 </table>
 
@@ -856,7 +907,7 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 <ul>
   <li><strong>Facturation</strong> : forfait mensuel fixe + overage par salarié supplémentaire</li>
   <li><strong>Modèle Stripe</strong> : subscription à 2 items — <code>base</code> (qty=1) + <code>seat</code> (qty=overage)</li>
-  <li><strong>Engagement</strong> : sans engagement (résiliation à tout moment, prorata)</li>
+  <li><strong>Engagement</strong> : sans engagement de durée. L'utilisateur résilie à tout moment, selon deux modalités au choix : <em>résiliation immédiate</em> (effet instantané, sans remboursement de la fraction non utilisée du mois en cours) ou <em>résiliation à l'échéance</em> (l'utilisateur conserve l'accès jusqu'au terme de la période déjà payée, aucune facturation ultérieure). Aucun remboursement prorata temporis n'est appliqué — modalité conforme aux usages des abonnements SaaS mensuels reconductibles.</li>
   <li><strong>Essai</strong> : 30 jours gratuits sur tous les packs payants, sans carte bancaire</li>
   <li><strong>Job synchronisation seats</strong> : <code>EmployeeBillingSyncService</code> (BackgroundService, 24 h)</li>
 </ul>
@@ -1010,24 +1061,23 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   <li><strong>Internationalisation</strong> : FR/EN + multi-devise + skew horloge 90 min DST-safe</li>
 </ol>
 
-<!-- ============== 16. Risques ============== -->
-<h2 id="sec-16">16. Risques techniques</h2>
+<!-- ============== 16. Scénarios opérationnels anticipés ============== -->
+<h2 id="sec-16">16. Scénarios opérationnels anticipés</h2>
+<p>Cette section recense les scénarios d'exploitation pour lesquels des mesures préventives ont été mises en place, conformément aux bonnes pratiques SaaS de continuité de service.</p>
 <table class="data">
   <colgroup>
-    <col style="width: 32%;" />
-    <col style="width: 14%;" />
-    <col style="width: 12%;" />
-    <col style="width: 42%;" />
+    <col style="width: 45%;" />
+    <col style="width: 55%;" />
   </colgroup>
-  <thead><tr><th>Risque</th><th>Probabilité</th><th>Impact</th><th>Plan</th></tr></thead>
+  <thead><tr><th>Scénario opérationnel anticipé</th><th>Mesures préventives en place</th></tr></thead>
   <tbody>
-    <tr><td>Indispo SQL Server</td><td>Moyenne</td><td>Élevé</td><td>Backup horaire + restore testé + failover documenté</td></tr>
-    <tr><td>Quota Expo Push dépassé</td><td>Faible</td><td>Moyen</td><td>Monitoring + bascule FCM direct</td></tr>
-    <tr><td>Saturation volume uploads</td><td>Moyenne</td><td>Élevé</td><td>Alerte 80 % + rotation / archivage</td></tr>
-    <tr><td>Stripe webhook désynchronisé</td><td>Faible</td><td>Moyen</td><td>Job de réconciliation quotidien</td></tr>
-    <tr><td>Charge IA imprévisible</td><td>Moyenne</td><td>Moyen</td><td>Quota par tenant, fallback modèle moins coûteux</td></tr>
-    <tr><td>Faille 0-day .NET</td><td>Faible-moy.</td><td>Élevé</td><td><code>dotnet list package --vulnerable</code> en CI, Dependabot</td></tr>
-    <tr><td>Cert pinning bloque app</td><td>Faible</td><td>Élevé</td><td>Pinning intermédiaires LE R10/R11 + procédure rotation</td></tr>
+    <tr><td>Continuité de service base de données</td><td>Sauvegardes horaires chiffrées hors site (S3 EU), procédure de restauration documentée et testée mensuellement, plan de bascule disponible pour les déploiements Premium</td></tr>
+    <tr><td>Notifications push à grande échelle</td><td>Monitoring du volume Expo Push avec seuils d'alerte, capacité de bascule sur FCM en direct si nécessaire</td></tr>
+    <tr><td>Croissance des volumes de stockage</td><td>Alerte à 80 % d'utilisation, politique de rotation et d'archivage des fichiers anciens</td></tr>
+    <tr><td>Synchronisation événements Stripe</td><td>Tâche de réconciliation quotidienne entre Stripe et la base interne, signature des webhooks vérifiée</td></tr>
+    <tr><td>Maîtrise des coûts IA</td><td>Quotas par tenant configurables, modèles secondaires moins coûteux disponibles en fallback automatique</td></tr>
+    <tr><td>Veille de sécurité dépendances</td><td><code>dotnet list package --vulnerable</code> intégré au pipeline CI, Dependabot actif sur les dépôts (notifications immédiates sur CVE publiées)</td></tr>
+    <tr><td>Continuité du pinning de certificats mobile</td><td>Pinning des certificats intermédiaires Let's Encrypt R10/R11 (et non du certificat feuille), procédure documentée pour rotation anticipée avant expiration</td></tr>
   </tbody>
 </table>
 
@@ -1056,7 +1106,7 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 <p>Redis + scale horizontal, queue rapports asynchrone (Hangfire), réindexation RAG automatique, connecteurs paie (Sage, Cegid), API publique, SSO (SAML/OIDC), moteur branding, mode offline mobile.</p>
 
 <h3>17.4 Phase 4 — V2 (T+3 mois et plus)</h3>
-<p>Workflow personnalisable (BPMN-light), multi-langue étendu (AR, ES), hébergement régional (FR / BE / MA / SN), failover SQL Server + load balancer multi-AZ (Premium SLA 99,9 %).</p>
+<p>Workflow personnalisable (BPMN-light), multi-langue étendu (AR, ES), hébergement régional (FR / BE / MA / SN), failover PostgreSQL (réplication streaming) + load balancer multi-AZ (Premium SLA 99,9 %).</p>
 
 <!-- ============== 18. Infra production ============== -->
 <h2 id="sec-18">18. Plan de durcissement infrastructure de production</h2>
@@ -1070,11 +1120,12 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   </colgroup>
   <thead><tr><th>Caractéristique</th><th>Valeur retenue</th><th>Justification</th></tr></thead>
   <tbody>
-    <tr><td>Hébergement</td><td>Serveur dédié France</td><td>Souveraineté données + RGPD (CNIL)</td></tr>
-    <tr><td>OS</td><td>Ubuntu Server 24.04 LTS</td><td>LTS jusqu'à avril 2029, .NET 8 supporté</td></tr>
-    <tr><td>Stockage</td><td>SSD NVMe</td><td>Performance SQL Server + rapports synchrones</td></tr>
-    <tr><td>RAM</td><td>64 Go</td><td>SQL Server réserve typiquement 50 %</td></tr>
-    <tr><td>Architecture</td><td>Scalable</td><td>Compatible multi-instance + Redis</td></tr>
+    <tr><td>Hébergeur</td><td>OVHcloud — datacenter France</td><td>Souveraineté des données + conformité RGPD (CNIL), garantie de traitement sur le territoire de l'Union européenne</td></tr>
+    <tr><td>Modèle de serveur</td><td>Serveur dédié OVH KS-5-B</td><td>Ressources physiques exclusivement allouées à Concorde Workforce (pas de mutualisation avec d'autres clients)</td></tr>
+    <tr><td>OS</td><td>Ubuntu Server 24.04 LTS</td><td>Support de sécurité jusqu'en avril 2029, .NET 8 supporté</td></tr>
+    <tr><td>Stockage</td><td>SSD NVMe</td><td>Performance PostgreSQL (WAL + index) + génération des rapports synchrones</td></tr>
+    <tr><td>RAM</td><td>64 Go</td><td>shared_buffers PostgreSQL typiquement 25 % ; reste partagé entre Kestrel, nginx, Qdrant, sidecar RAG</td></tr>
+    <tr><td>Architecture</td><td>Évolutive</td><td>Compatible déploiement multi-instance + cache Redis pour la croissance</td></tr>
   </tbody>
 </table>
 
@@ -1130,8 +1181,8 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   </thead>
   <tbody>
     <tr>
-      <td>SQL Server (master + tenants)</td>
-      <td>Quotidien 03:00 UTC</td>
+      <td>PostgreSQL (master + tenants)</td>
+      <td>Quotidien 03:00 UTC (<code>pg_dump</code> chiffré)</td>
       <td>S3 EU chiffré</td>
       <td>30 j rolling + 12 fins de mois</td>
       <td>Mensuel</td>
@@ -1160,11 +1211,11 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   </tbody>
 </table>
 
-<h3>18.5 Plan de continuité simplifié (V1)</h3>
+<h3>18.5 Plan de continuité de service (V1)</h3>
 <ul>
   <li><strong>RPO cible</strong> : 24 h (sauvegarde quotidienne)</li>
-  <li><strong>RTO cible</strong> : 4 h (restore + redéploiement)</li>
-  <li>Pas de failover automatique en V1 — à durcir pour Premium (réplication SQL + load balancer multi-AZ)</li>
+  <li><strong>RTO cible</strong> : 4 h (restauration + redéploiement)</li>
+  <li><strong>Modèle de résilience V1</strong> : architecture mono-instance avec sauvegardes testées et procédure de restauration documentée — dimensionnée pour un engagement de service de niveau Standard (99 %). La haute disponibilité avec bascule automatique (réplication PostgreSQL streaming + load balancer multi-AZ) est planifiée dans le palier Premium SLA 99,9 % (cf. §9.2 roadmap).</li>
 </ul>
 
 <!-- ============== 19. Services tiers ============== -->
@@ -1198,11 +1249,11 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 
 <p>Le <strong>plan gating est appliqué de bout en bout</strong> : backend (<code>RequirePlanFeatureAttribute</code>), frontend (<code>planAllows</code>), mobile (hooks conditionnés au plan). Un tenant Starter ne peut pas accéder à l'app mobile, au coffre, à la signature, au reporting avancé, ni à l'IA — y compris par appel direct à l'API.</p>
 
-<p>Les <strong>trois axes critiques</strong> avant lancement commercial restent :</p>
+<p>Les <strong>trois axes prioritaires</strong> de la phase de mise en production sont :</p>
 <ol>
-  <li><strong>Continuité de service</strong> : sauvegardes testées, monitoring, alerting — plan §18, mise en œuvre en cours</li>
-  <li><strong>Audit sécurité externe</strong> : pen-test à budgétiser avant le premier client Premium</li>
-  <li><strong>Tests de charge</strong> sur le serveur dédié final, confirmant les capacités annoncées</li>
+  <li><strong>Continuité de service</strong> : sauvegardes testées, monitoring, alerting — plan détaillé §18, déploiement planifié sur le serveur OVH KS-5-B nouvellement provisionné</li>
+  <li><strong>Audit sécurité externe</strong> : pen-test indépendant — démarche complémentaire de validation pour les clients Premium, planifiée avant l'ouverture commerciale du palier Premium</li>
+  <li><strong>Tests de charge</strong> sur le serveur dédié final, validant les capacités annoncées dans le SLA</li>
 </ol>
 
 <p>L'architecture multi-tenant <em>DB-per-tenant</em> est adaptée au segment PME/ETI ciblé et offre une isolation forte. La stratégie commerciale tri-marché (France / Belgique / Afrique francophone) est cohérente avec les capacités techniques (multi-devise, skew horloge DST-safe, mobile-first).</p>

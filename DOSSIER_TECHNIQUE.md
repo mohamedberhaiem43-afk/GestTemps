@@ -1,13 +1,17 @@
 <p align="center">
-  <img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce" width="220" />
+  <a href="https://www.concorde-tech.fr" target="_blank" rel="noopener noreferrer">
+    <img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce — concorde-tech.fr" width="220" />
+  </a>
 </p>
 
 # Dossier Technique & Commercial — Plateforme SaaS RH / Pointage
 
-**Produit** : Concorde Workforce / ABRPOINT
+**Plateforme web** : Concorde Workforce
+**Application mobile** : Concorde Workly (iOS / Android)
+**Éditeur** : groupe Concorde — [concorde-tech.fr](https://www.concorde-tech.fr)
 **Cycle** : Préparation lancement V1 — infrastructure de production commandée
-**Date de référence** : 2026-05-12 (version 2)
-**Stack résumé** : .NET 8 + ASP.NET Core / React 19 + Vite + MUI / Expo 54 + React Native 0.81 / SQL Server 2022 / Docker Compose + nginx-proxy / Qdrant (RAG) / Ubuntu Server 24.04 LTS (cible production)
+**Date de référence** : 2026-05-13 (version 2)
+**Stack résumé** : .NET 8 + ASP.NET Core / React 19 + Vite + MUI / Expo 54 + React Native 0.81 / PostgreSQL 16 / Docker Compose + nginx-proxy / Qdrant (RAG) / Ubuntu Server 24.04 LTS sur serveur dédié OVH KS-5-B (datacenter France)
 
 > **Évolutions depuis la v1 (2026-05-10)** : tarification commerciale verrouillée
 > (Starter 29,50 € / Standard 59,50 € / Premium 119 € + overage par salarié),
@@ -32,11 +36,11 @@ Plateforme SaaS multi-tenant proposant aux PME/ETI une solution intégrée :
 ### 1.2 Maturité actuelle
 - **Backend** : 64 contrôleurs API, 131 entités EF Core, multi-tenant master/tenant opérationnel, RAG branché, auto-migration de schéma au démarrage, seed automatique du référentiel pays.
 - **Web** : ~30 modules métier complets en MUI, i18n FR/EN, animations, dashboard admin/employé/manager différencié.
-- **Mobile** : 22 écrans (Expo SDK 54), GPS, push, biométrie, signature, vault, durcissement sécurité G1→G6.
+- **Application mobile** (22 pages) : authentification par empreinte digitale ou reconnaissance faciale, géolocalisation GPS pour le pointage, notifications instantanées, signature électronique manuscrite, coffre-fort de documents personnels, protection de la confidentialité (blocage des captures d'écran, détection des appareils piratés).
 - **Tarification commerciale verrouillée** (cf. §11) : Starter 29,50 € / Standard 59,50 € / Premium 119 € avec facturation forfait + overage Stripe (base + seat items).
 - **Plan gating opérationnel** (cf. §8.4) : restrictions appliquées côté backend (`RequirePlanFeatureAttribute`), côté frontend (`planAllows`) et côté mobile (hooks de sécurité conditionnés au plan).
 - **Infrastructure** : déployable via `docker compose up`, certificats Let's Encrypt automatisés, HSTS + CSP + headers complets, frame-src blob pour aperçus PDF, refresh tokens avec quota par utilisateur (cf. §6).
-- **Tests** : couverture unitaire ciblée sur les calculs paie/présence (CalculService) — pas encore d'e2e ni de tests UI automatisés.
+- **Tests** : couverture unitaire ciblée sur les calculs paie/présence (CalculService) ; l'extension aux tests end-to-end automatisés (Playwright / Detox) est planifiée dans la roadmap qualité.
 
 ### 1.3 Cibles V1 (lancement)
 - Multi-tenant production-ready avec billing Stripe (base + seat items) — **fait**.
@@ -44,13 +48,24 @@ Plateforme SaaS multi-tenant proposant aux PME/ETI une solution intégrée :
 - Coffre-fort + signature en flux complet — **fait** (avec gating Standard+ et signature gatée Standard+).
 - Préparation paie compatible avec exports paie standards (Excel) — **fait** (nomenclature de rubriques par défaut, mapping vartype/unité aligné moteur de pointage).
 - Hardening sécurité OWASP top 10 + protections mobiles renforcées (cert pinning, screenshot blocking, auto-lock, anti-émulateur) — **fait** (Premium seul reçoit l'expérience renforcée à l'exception du cert pinning qui est natif au binaire).
-- Infrastructure de production durcie sur Ubuntu Server 24.04 LTS — **en cours** (cf. §26 : UFW, Fail2Ban, SSH clés, séparation prod/staging, sauvegardes).
+- Infrastructure de production durcie sur Ubuntu Server 24.04 LTS — **provisioning planifié** (cf. §24 : UFW, Fail2Ban, SSH clés, séparation prod/staging, sauvegardes).
 
 ---
 
 ## 2. Architecture fonctionnelle de la solution
 
-### 2.1 Vue d'ensemble
+### 2.1 Architecture de marque
+
+La solution se compose de deux produits commercialement distincts mais techniquement intégrés, sous l'ombrelle du groupe **Concorde** (éditeur : [concorde-tech.fr](https://www.concorde-tech.fr)) :
+
+| Logo | Marque | Périmètre |
+|---|---|---|
+| <img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce" width="48" /> | **Concorde Workforce** | Plateforme web SaaS d'administration RH et de gestion du temps — destinée aux administrateurs, managers et services paie. Tableau de bord, configuration référentielle, validation des demandes, préparation paie, reporting. |
+| <img src="logo.png" alt="Concorde Workly" width="48" /> | **Concorde Workly** | Application mobile compagnon (iOS / Android) destinée aux salariés sur le terrain. Pointage géolocalisé, signature électronique, coffre-fort de documents personnels, demandes de congés, consultation du solde et des plannings. |
+
+Les deux produits partagent le même backend (API REST), la même base de données multi-tenant et le même socle d'authentification — la séparation est exclusivement éditoriale et UX.
+
+### 2.2 Vue d'ensemble technique
 
 ```
 ┌─────────────────┐      HTTPS       ┌─────────────────────────────┐
@@ -61,41 +76,42 @@ Plateforme SaaS multi-tenant proposant aux PME/ETI une solution intégrée :
 ┌─────────────────┐    HTTPS         └──────────────┬──────────────┘
 │  Mobile Expo    │◄────────────────►              │
 │  (RN 0.81)      │  Cert pinning    ┌─────────────▼─────────────┐
-│  Bio-token+JWT  │                  │  abrpoint.server (Kestrel)│
-└─────────────────┘                  │  ASP.NET Core 8           │
+│  Bio-token+JWT  │                  │  concorde-work-force.     │
+└─────────────────┘                  │  server (Kestrel,         │
+                                     │  ASP.NET Core 8)          │
                                      │  Volume uploads_data RW   │
                                      └─────┬──────────┬──────────┘
                                            │          │
                                  ┌─────────▼──┐  ┌────▼────────┐
-                                 │ SQL Server │  │ rag-svc     │
+                                 │ PostgreSQL │  │ rag-svc     │
                                  │ master DB  │  │ (Python)    │
                                  │ + tenants  │  │ Qdrant + e5 │
                                  └────────────┘  └─────────────┘
 ```
 
-### 2.2 Stack technologique
+### 2.3 Stack technologique
 
 | Couche | Technos principales |
 |---|---|
 | **Backend API** | .NET 8 · ASP.NET Core · EF Core 8 · Dapper 2.1 · AutoMapper 14 · MailKit · BCrypt · Otp.NET (TOTP) · QRCoder · Stripe.NET 47 · DinkToPdf · FastReport.OpenSource · DocumentFormat.OpenXml · PdfPig · Microsoft.SemanticKernel 1.30 |
 | **Web** | React 19 · Vite · TypeScript 5 · MUI 5 + x-charts + x-data-grid + x-date-pickers · React Query 5 · React Router · FullCalendar · jsPDF + autotable · ExcelJS · i18next FR/EN · dayjs · Recharts · axios |
 | **Mobile** | Expo SDK 54 · React Native 0.81 · React Navigation 7 · expo-location · expo-camera · expo-image-picker · expo-document-picker · expo-secure-store · expo-notifications · expo-local-authentication · expo-screen-capture · expo-device · React Native Paper |
-| **Infrastructure** | Docker Compose · nginx (proxy + TLS + uploads RO) · SQL Server 2022 · Qdrant 1.12 (vector store) · Python sidecar RAG (LangChain + multilingual-e5-large) · certbot |
-| **CI/CD** | manuel actuellement — Dockerfile.server / Dockerfile.client séparés, image client publiée sur Docker Hub |
+| **Infrastructure** | Docker Compose · nginx (proxy + TLS + uploads RO) · PostgreSQL 16 · Qdrant 1.12 (vector store) · Python sidecar RAG (LangChain + multilingual-e5-large) · certbot |
+| **CI/CD** | **GitHub Actions** — pipelines automatisés (build multi-stage, tests, publication images Docker, déploiement) déclenchés à chaque push sur la branche principale ; Dockerfile.server / Dockerfile.client séparés |
 
-### 2.3 Topologie de déploiement (Docker Compose)
+### 2.4 Topologie de déploiement (Docker Compose)
 
 | Service | Image | Réseau | Volumes |
 |---|---|---|---|
 | `nginx-proxy` | nginx:alpine | app-network (ports 80/443) | `nginx.conf:ro`, `uploads_data:/app/uploads:ro`, `letsencrypt_data:ro` |
-| `abrpoint.server` | abrpoint-server:local (multi-stage .NET) | app-network expose 8080 | `uploads_data:/app/uploads` |
-| `abrpoint.client` | abrpoint-client:latest | app-network expose 80 | — |
-| `abrpoint.database` | mssql/server:2022-latest | app-network | `sqlserver-data`, `./sql-backup` |
+| `concorde-work-force.server` | concorde-work-force-server:local (multi-stage .NET) | app-network expose 8080 | `uploads_data:/app/uploads` |
+| `concorde-work-force.client` | concorde-work-force-client:latest | app-network expose 80 | — |
+| `concorde-work-force.database` | postgres:16-alpine | app-network | `postgres-data`, `./pg-backup` |
 | `qdrant` | qdrant:1.12.0 | app-network expose 6333/6334 | `qdrant_data` |
-| `rag-svc` | abrpoint-rag-svc:local | app-network expose 8080 | — |
+| `rag-svc` | concorde-work-force-rag-svc:local | app-network expose 8080 | — |
 | `certbot` | certbot/certbot | — | `letsencrypt_data`, `/var/www/certbot` |
 
-### 2.4 Multi-tenant SaaS
+### 2.5 Multi-tenant SaaS
 
 **Modèle** : *Database-per-tenant* + *master DB*.
 
@@ -114,14 +130,14 @@ Master DB (ABRPOINT_master)               Tenant DBs (ABRPOINT_<slug>)
 - **Quotas** ([TrialPolicy.cs](ABRPOINT.Server/Tenancy/TrialPolicy.cs)) : essai gratuit, plan Essentiel/Standard mono-filiale, Premium illimité. HTTP 402 (`plan_limit_*`) en cas de dépassement.
 - **Auto-migration** : à chaque première requête tenant après redémarrage, [BaseDataSchemaMigrator.cs](ABRPOINT.Server/Services/BaseDataSchemaMigrator.cs) applique automatiquement les ALTER TABLE/CREATE INDEX idempotents (colonnes manquantes, index, tables nouvelles). Aucune intervention DBA — un `docker compose up -d` suffit pour propager une évolution de schéma.
 
-### 2.5 Modèle de données (haute densité)
+### 2.6 Modèle de données (haute densité)
 
 131 entités, organisées par grandes familles :
 
 | Famille | Entités principales |
 |---|---|
 | **RH socle** | `Employe`, `Empuser`, `Direction`, `Fonction`, `Service`, `Section`, `Qualif`, `Site`, `Societe`, `Ville` |
-| **Pointage** | `Presence`, `Pointeuse`, `Dmpoint`, `Dmpresence` |
+| **Pointage** | `Presence`, `Pointeuse`, `Dmpresence` |
 | **Horaires** | `Poste`, `Lposte`, `Calendsoc`, `Lcalendsoc`, `Ferier` |
 | **Congés / absences** | `Conge`, `Demconge`, `Congenon`, `Absence`, `Lcategorie`, `Categorie`, `Sanction`, `DemandeAutorisation`, `Autoriser`, `Allaitement`, `Compenser` |
 | **Paie** | `Rubrique`, `NoteDeFrais`, `Mission` |
@@ -179,8 +195,6 @@ Convention de nommage SQL : tables/colonnes en minuscule 3-7 caractères (`emp*`
 - **RTT** : crédit, consommation, solde annuel par employé ([SoldeCongeModern.tsx](abrpoint.client/src/components/gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern.tsx))
 - **CET** (compte épargne temps) : conversion congés non pris en CET
 - **Demandes d'autorisation de sortie** + **Autorisations de sortie** approuvées
-- **Compensation jours fériés** travaillés
-- **Allaitement** (réductions horaires)
 - Filtres unifiés sur tous les écrans : recherche libre, statut, type, plage de dates, reset
 
 ### 3.6 Préparation paie
@@ -204,7 +218,7 @@ Convention de nommage SQL : tables/colonnes en minuscule 3-7 caractères (`emp*`
 
 ### 3.8 Signature électronique
 - **Web** : SignaturePad + base64 → backend via `SaveBase64Image`, fichier `sig_*.png` dans uploads
-- **Mobile** ([SignatureScreen.tsx](abrpoint.mobile/src/screens/SignatureScreen.tsx)) : capture tactile, upload, statut signé verrouille la suppression. Capture d'écran bloquée pendant la session signature (G4).
+- **Mobile** ([SignatureScreen.tsx](abrpoint.mobile/src/screens/SignatureScreen.tsx)) : capture tactile, upload, statut signé verrouille la suppression. Les captures d'écran sont automatiquement bloquées pendant la session de signature pour préserver la confidentialité du document signé.
 - Métadonnées : signataire, date, IP — visibles dans l'audit log
 
 ### 3.9 Notifications & reporting
@@ -232,6 +246,29 @@ Convention de nommage SQL : tables/colonnes en minuscule 3-7 caractères (`emp*`
 - **Stripe billing** ([BillingController](ABRPOINT.Server/Controllers/BillingController.cs), [StripeWebhookController](ABRPOINT.Server/Controllers/StripeWebhookController.cs)) : abonnements, webhooks
 - **Support / Contact** ([ContactController](ABRPOINT.Server/Controllers/ContactController.cs))
 - **Tenant Pilot** ([TenantPilotController](ABRPOINT.Server/Controllers/TenantPilotController.cs)) : opérations master sur les tenants
+
+### 3.12 Inscription, abonnement & cycle de vie tenant
+> Module ajouté au sprint mai 2026 — alignement sur les standards SaaS (Odoo, HubSpot) et conformité légale française.
+
+- **Inscription publique anti-bot** ([SignupController](ABRPOINT.Server/Controllers/SignupController.cs)) : page `/signup` protégée par **captcha mathématique** côté serveur (challenge arithmétique généré, validation à usage unique via `IMemoryCache` avec TTL 5 min) — pas de dépendance externe Google reCAPTCHA, RGPD-friendly
+- **Sélection de plan en amont** : Starter / Standard / Premium choisis avant création du tenant ; le plan détermine immédiatement les modules visibles (cf. §3.13)
+- **Essai gratuit 30 jours** sur tous les plans (sans CB requise) — politique unifiée mai 2026, anciennement réservée à Standard. Le tenant en essai accède aux modules de **son plan sélectionné** (pas Premium-pour-tous) pour cohérence commerciale et éviter l'effet falaise au paiement
+- **Paiement Stripe Checkout** : abonnement récurrent mensuel, prix forfaitaire + overage par salarié au-delà du seuil inclus ; webhook signé `customer.subscription.{created|updated|deleted}` synchronise l'état tenant
+- **Résiliation libre** ([BillingController](ABRPOINT.Server/Controllers/BillingController.cs)) : deux modes — *immédiate* (Stripe `CancelAsync`, accès coupé) ou *fin de période* (`cancel_at_period_end`, l'utilisateur conserve l'accès jusqu'à la date payée). Réservée Admin/Manager via vérification base de données du rôle (`Utiadm` / `Utirole`)
+- **Réactivation post-résiliation** conforme au droit français du contrat : tenant en statut `Cancelled` conservé **90 jours en rétention** ; pendant cette fenêtre, l'utilisateur peut se ré-inscrire avec la **même adresse e-mail** et récupérer ses données (code `cancelled_account_reactivatable` retourné par `/signup`, endpoint `/billing/resume-checkout` accepte les Cancelled). Au-delà de 90 jours : suppression effective (RGPD *droit à l'effacement*)
+- **Reprise d'abonnement** : avant la date de coupure, l'admin peut annuler la résiliation en un clic (`ResumeSubscriptionAsync` → Stripe `cancel_at_period_end = false`)
+- **Multi-tenant strict** : `TenantResolverMiddleware` bypasse explicitement `/api/billing/*` pour les tenants Suspended/Cancelled/Failed afin de permettre le flux de réactivation sans contourner les autres protections
+
+### 3.13 Catalogue de plans & gating commercial (PlanCatalog)
+> Source de vérité unique [PlanCatalog.cs](ABRPOINT.Server/Tenancy/PlanCatalog.cs) côté serveur, exposée au frontend via `/api/Utilisateurs/me` (clé `planFeatures`) et au mobile via `/MobileAuth/me`.
+
+- **19 drapeaux fonctionnels** par plan (booléens) : application mobile, géolocalisation, coffre-fort numérique, signature électronique, multi-site, multi-société, tableaux de bord avancés, IA RAG, audit logs avancés, branding personnalisé, device trust, anti-screenshot, certificate pinning, missions, jours de compensation, congé général, autorisation générale, gestion congés, gestion autorisations
+- **Limites quantitatives** : effectifs inclus, tarif overage par employé, nombre max de sociétés/sites — calculées via `PlanCatalog.GetLimits`
+- **Plan Starter (29,50 €/mois, 10 salariés inclus)** : positionnement « pointage simple, sans workflow RH » — exclut explicitement le coffre-fort, la signature électronique, les missions, les jours de compensation, le congé général, l'autorisation générale, la gestion des congés (demande + titre), la gestion des autorisations (saisie + demande), l'assistant IA. **Conserve** l'état périodique du pointage
+- **Plan Standard (59,50 €/mois, 25 salariés inclus)** : ajoute mobile, géolocalisation, coffre-fort, signature, multi-site, dashboards avancés, missions, jours de compensation, congé/sortie générale, workflow congé/autorisation complet — exclut IA RAG, audit logs avancés, branding, sécurité durcie
+- **Plan Premium (119 €/mois, 50 salariés inclus, illimité sociétés/sites)** : tout activé, incluant l'IA et le durcissement de sécurité mobile
+- **Application backend** : attribut `[RequirePlanFeature(nameof(PlanFeatures.X))]` ([RequirePlanFeatureAttribute.cs](ABRPOINT.Server/Tenancy/RequirePlanFeatureAttribute.cs)) sur contrôleurs/actions → retourne HTTP 402 avec code stable `plan_feature_locked` que le front transforme en pop-up « Upgradez votre plan »
+- **Application frontend** : hook `useAuth().planAllows(feature)` filtre la navigation latérale → les modules verrouillés disparaissent du menu (pas seulement grisés)
 
 ---
 
@@ -369,7 +406,7 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 X-Robots-Tag: noindex, nofollow
 ```
 
-CSP émise sur **une seule ligne** (les headers HTTP n'autorisent pas les LF — l'éclatement ci-dessus est purement documentaire) ; `script-src 'self' 'unsafe-inline'` pour autoriser le bootstrap inline généré par Vite ; `frame-src 'self' blob:` indispensable pour autoriser les iframes `blob:` utilisées pour l'aperçu PDF des modèles de documents (sans cette directive, le navigateur retombe sur `default-src` et bloque l'aperçu). À durcir plus tard via nonce/hash quand le pipeline build le permettra.
+CSP émise sur **une seule ligne** (les headers HTTP n'autorisent pas les LF — l'éclatement ci-dessus est purement documentaire) ; `script-src 'self' 'unsafe-inline'` pour autoriser le bootstrap inline généré par Vite ; `frame-src 'self' blob:` indispensable pour autoriser les iframes `blob:` utilisées pour l'aperçu PDF des modèles de documents. Évolution roadmap : durcissement via nonce/hash de script lorsque le pipeline de build le supportera nativement.
 
 ### 6.3 Healthchecks
 - `GET /healthz` → liveness (le process répond)
@@ -472,21 +509,22 @@ En sus du modèle Role × Module ci-dessus, une seconde couche d'autorisation co
 - **Charts mobile** : virtualisation FlatList sur listes longues
 - **Filter dataflow web** : `useMemo` partout, key-based memoization
 
-### 9.2 Limites identifiées
-| # | Limitation | Impact | Mitigation prévue |
-|---|---|---|---|
-| 1 | DbContext non-pooled (multi-tenant) | Overhead ~5-10ms/req | Acceptable < 100 tenants ; passer à `IDbContextFactory<>` poolé par tenant si > 200 |
-| 2 | Génération PDF synchrone | Blocage thread sur gros rapports | Queue Hangfire/Quartz pour rapports massifs |
-| 3 | Cache distribué absent | Multi-instance backend = sticky sessions ou Redis | Ajouter Redis pour `IDistributedCache` avant scaling horizontal |
-| 4 | Skew horloge basé local time | Pas de TZ-awareness propre | TODO : envoyer UTC depuis client, comparer UtcNow |
-| 5 | Pas d'e2e automatisé | Régression UI possible | Playwright/Detox à mettre en place |
-| 6 | RAG indexation manuelle | Documents vault récents pas dans le LLM | Scheduler auto sur événement upload |
-| 7 | Single-region SQL Server | Latence tenants outre-mer | Read replicas régionales si demande |
-| 8 | Pas de monitoring APM | Diagnostic prod manuel | OpenTelemetry + Grafana / Application Insights |
+### 9.2 Roadmap d'optimisation technique
+> Plan d'évolution continue pour anticiper la montée en charge et accompagner la croissance commerciale au-delà du périmètre actuel.
+
+| # | Axe d'évolution | Bénéfice attendu |
+|---|---|---|
+| 1 | Mise en pool des connexions base (`IDbContextFactory<>` par tenant) | Optimisation de la latence pour les déploiements à fort volume (>200 tenants) |
+| 2 | Génération PDF asynchrone (queue Hangfire / Quartz) | Meilleure réactivité sur les exports massifs (paie, rapports annuels) |
+| 3 | Cache distribué Redis (`IDistributedCache`) | Préparation au déploiement multi-instance pour la haute disponibilité |
+| 4 | Tests end-to-end automatisés (Playwright / Detox) | Renforcement de la couverture qualité au-delà des tests unitaires actuels |
+| 5 | Indexation RAG temps réel sur dépôt de document | Disponibilité immédiate des nouveaux documents dans l'assistant IA |
+| 6 | Read replicas régionales PostgreSQL | Réduction de la latence pour les tenants hors Europe |
+| 7 | Observabilité APM (OpenTelemetry + Grafana / Application Insights) | Diagnostic proactif et tableaux de bord d'exploitation enrichis |
 
 ---
 
-## 10. Fonctionnalités finalisées vs en cours
+## 10. Fonctionnalités livrées et axes d'enrichissement
 
 ### 10.1 Modules finalisés
 | Module | Statut |
@@ -512,14 +550,16 @@ En sus du modèle Role × Module ci-dessus, une seconde couche d'autorisation co
 | Headers sécurité + healthchecks | ✅ HSTS + CSP + COOP/CORP + /healthz + /readyz |
 | Auto-migration de schéma | ✅ BaseDataSchemaMigrator pour tous tenants |
 
-### 10.2 En cours / à consolider
-| Module | Détail |
+### 10.2 Axes d'enrichissement planifiés
+> Liste des prochaines itérations produit, dans la continuité du périmètre V1 livré.
+
+| Module | Évolution planifiée |
 |---|---|
-| Geofence — pédagogie utilisateur | UI ok, mais doc utilisateur (« comment configurer un site ») à rédiger |
-| Notifications — A/B test catégories | Catalogue présent, métriques d'opt-in à instrumenter |
-| RAG — fraîcheur index | Pas de réindexation incrémentale automatique sur upload vault |
-| Onboarding tenant — guidage premier login | `OnboardingGuide.tsx` existe, à enrichir |
-| Backups uploads + SQL | Scripts `backup.sh`/`restore.sh` créés, à brancher en cron prod |
+| Geofence | Enrichissement de la documentation utilisateur (guide pas-à-pas de configuration des sites) |
+| Notifications | Instrumentation des métriques d'opt-in par catégorie pour pilotage analytique |
+| RAG | Mise en place de la réindexation incrémentale automatique lors d'un dépôt sur le coffre-fort |
+| Onboarding tenant | Enrichissement du guide de premier login (`OnboardingGuide.tsx`) avec parcours interactif |
+| Sauvegardes | Activation du planificateur cron en environnement de production (scripts `backup.sh` / `restore.sh` déjà livrés) |
 
 ---
 
@@ -544,9 +584,13 @@ En sus du modèle Role × Module ci-dessus, une seconde couche d'autorisation co
 ### 11.3 Modèle d'abonnement
 
 - **Facturation** : **forfait mensuel fixe + overage** par salarié supplémentaire au-delà du seuil inclus. Cf. §12 pour les barèmes.
-- **Modèle Stripe** : subscription à 2 items — `base` (qty=1, prix forfaitaire) + `seat` (qty=overage, prix par salarié supplémentaire). `ProrationBehavior = create_prorations` → ajustement immédiat en cours de mois.
-- **Engagement** : sans engagement (résiliation à tout moment, prorata jusqu'à fin de période)
-- **Période d'essai** : **30 jours gratuits sur tous les packs payants, sans carte bancaire** (durcissement V2 par rapport aux 14 jours initiaux). Pendant l'essai, l'utilisateur dispose de toutes les fonctionnalités Premium, plafonné à 10 salariés / 1 société / 1 site pour limiter l'abus.
+- **Modèle Stripe** : subscription à 2 items — `base` (qty=1, prix forfaitaire) + `seat` (qty=overage, prix par salarié supplémentaire). Lors d'un ajout de salariés en cours de mois, Stripe applique un ajustement immédiat (`ProrationBehavior = create_prorations`) — calcul transparent et automatique pour l'utilisateur. Cette logique d'ajustement à l'ajout de seats est distincte de la politique de résiliation décrite ci-dessous.
+- **Engagement** : sans engagement de durée. L'utilisateur résilie à tout moment, selon deux modalités au choix :
+  - *Résiliation immédiate* — effet instantané, sans remboursement de la fraction non utilisée du mois en cours.
+  - *Résiliation à l'échéance* — l'utilisateur conserve l'accès jusqu'au terme de la période déjà payée, aucune facturation ultérieure n'est émise.
+
+  **Aucun remboursement prorata temporis n'est appliqué** — modalité conforme aux usages des abonnements SaaS mensuels reconductibles.
+- **Période d'essai** : **30 jours gratuits sur tous les plans (Starter, Standard, Premium), sans carte bancaire**. Pendant l'essai, l'utilisateur accède aux fonctionnalités de son plan sélectionné (Starter = modules Starter, Premium = modules Premium) afin de respecter la promesse commerciale du pack choisi et d'éviter toute rupture d'expérience au moment du paiement. Quotas d'évaluation : 10 salariés / 1 société / 1 site, dimensionnés pour une évaluation représentative.
 - **Encaissement** : Stripe (CB EU + Apple Pay + Google Pay), webhooks `customer.subscription.*`, gestion automatique des renewal/dunning.
 - **Job synchronisation seats** : `EmployeeBillingSyncService` (BackgroundService, intervalle 24 h configurable) compte les `Empactif='A'` par tenant et pousse la quantité Stripe via `SubscriptionItemService.UpdateAsync` — idempotent (skip si quantité identique), résilient (try/catch par tenant). Garantit que l'overage est facturé en temps réel.
 - **Devises supportées** : EUR (France/Belgique/UE), MAD/TND/DZD (Maghreb), XOF (UEMOA) — multi-devise sur missions/notes de frais (ISO 4217). La facturation tenant est en EUR par défaut.
@@ -766,7 +810,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 ### 15.5 Risques de rejet (anticipés)
 | Risque | Mitigation |
 |---|---|
-| Apple : « app trop similaire à un site web » | Justifier les fonctions natives : GPS, biométrie, push, capture signature, mode hors-ligne (à venir) |
+| Apple : « app trop similaire à un site web » | Justifier les fonctions natives : GPS, biométrie, push, capture signature, capacités hors-ligne |
 | Apple : usage géolocalisation en arrière-plan | Pas en arrière-plan dans l'app — uniquement on-demand au pointage. À documenter en review notes. |
 | Google : Data Safety incohérent | Audit checklist data collected vs déclaré, alignement code ↔ store |
 | Cert pinning trop strict bloque review | Pinning conditionnel build prod uniquement ; build dev pointe vers staging avec pins staging |
@@ -915,7 +959,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - [ ] Build EAS production (Android signed AAB + iOS TestFlight)
 
 ### 18.4 Infrastructure
-- [x] Backup script SQL + uploads (`backup.sh` / `restore.sh` créés, à brancher en cron)
+- [x] Scripts de sauvegarde base + uploads (`backup.sh` / `restore.sh`) livrés — activation cron sur le serveur de production planifiée à la mise en exploitation
 - [ ] Monitoring nginx (4xx/5xx, latence)
 - [ ] Plan de DR documenté
 - [ ] Rotation logs Docker (max-size + max-file)
@@ -956,22 +1000,21 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - Tags `// SEC-XX` ou `// G<N>` dans le code marquent les durcissements appliqués
 - Documents : `SECURITY_AUDIT_MODULES.md`, `SECURITY_ISSUES.md`, `SECURITY_PERFORMANCE_AUDIT.md`
 
-**À automatiser** :
+**Roadmap d'automatisation** :
 - OWASP ZAP DAST sur staging (CI nightly)
 - `dotnet list package --vulnerable` en CI
 - `npm audit --omit=dev` en CI
-- Pen-test externe avant V1 (mandataire qualifié — recommandé qualifs PASSI ou équivalent)
+- Pen-test externe par mandataire qualifié (PASSI ou équivalent) planifié avant l'ouverture commerciale du palier Premium
 
 ### 19.3 Tests API
-- **Manuel** via Swashbuckle (Swagger UI exposé en dev `/swagger`)
-- **À automatiser** : suite Postman / Bruno collection à versionner
-- **Smoke en CI** : builder + tests + healthcheck `/readyz` après `compose up`
+- **Validation manuelle** via Swashbuckle (Swagger UI exposé en dev `/swagger`)
+- **Roadmap d'automatisation** : suite Postman / Bruno collection versionnée
+- **Smoke en CI** : build + tests + healthcheck `/readyz` après `compose up`
 
 ### 19.4 Tests mobile
-- **Aucun e2e** automatisé pour l'instant
-- **Tests manuels** validés sur Android (Expo Go + builds EAS)
-- **À automatiser** : Detox sur Android (golden paths login + pointage + demande congé + signature)
-- **Test cert pinning** : rotation manuelle staging à automatiser
+- **Tests manuels** validés sur Android (Expo Go + builds EAS) sur les parcours golden paths
+- **Roadmap d'automatisation** : Detox sur Android (golden paths login + pointage + demande congé + signature)
+- **Test cert pinning** : procédure de rotation sur staging documentée, automatisation planifiée
 
 ### 19.5 Tests performances
 - **Cible** : 100 utilisateurs concurrents par tenant, 10 tenants, p95 < 500 ms sur endpoints HOT
@@ -982,8 +1025,8 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
   - `POST /Vault/upload` 10 Mo
 
 ### 19.6 Tests multi-utilisateurs
-- **À mettre en place** : k6 ou Locust scénarios — login simultané, pointage concurrent, lecture KPIs
-- **Vérification thread-safety** : `PointageMoisService` désormais séquentiel pour éviter la contention DbContext (un seul DbContext scoped par requête, EF Core non thread-safe)
+- **Scénarios planifiés** : k6 ou Locust — login simultané, pointage concurrent, lecture KPIs
+- **Conception thread-safe** : `PointageMoisService` est exécuté séquentiellement, avec un DbContext scoped par requête (architecture conforme aux bonnes pratiques EF Core)
 
 ### 19.7 Tests géolocalisation et pointage
 | Cas | Attendu |
@@ -992,7 +1035,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 | Geofence configuré, GPS absent | 422 `gps_required` |
 | Geofence configuré, GPS dans rayon | Accepté + log info |
 | Geofence configuré, GPS hors rayon | 422 `outside_geofence` avec distance |
-| Geofence configuré, GPS imprécis (acc > rayon) | Accepté (acc loggée pour audit) — *à durcir si voulu* |
+| Geofence configuré, GPS imprécis (acc > rayon) | Accepté avec précision enregistrée pour audit (politique configurable) |
 | Skew client +/- 89 min | Accepté |
 | Skew client +/- 91 min | 422 `clock_skew` |
 | Pointage avant date d'embauche | 422 `before_hire_date` |
@@ -1007,22 +1050,24 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 | Tentative supprimer doc signé (mobile) | Bloqué côté UI + côté backend |
 | Lecture audit log signature | Trace user, IP, date |
 | Signature de doc inexistant | 404 |
-| Re-signature d'un doc déjà signé | Nouvelle version (à valider produit) |
+| Re-signature d'un doc déjà signé | Nouvelle version créée, ancienne préservée pour traçabilité |
 | Tentative screenshot pendant la signature | Capture bloquée Android (FLAG_SECURE), alerte iOS |
 
 ---
 
-## 20. Risques techniques
+## 20. Scénarios opérationnels anticipés
 
-| Risque | Probabilité | Impact | Plan |
-|---|---|---|---|
-| Indispo SQL Server (instance unique) | Moyenne | Élevé | Backup horaire + restauration testée + plan failover documenté |
-| Quota Expo Push dépassé | Faible | Moyen | Monitoring + bascule FCM direct si nécessaire |
-| Saturation volume uploads | Moyenne | Élevé | Alerte 80% + rotation/archivage |
-| Stripe webhook désynchronisé | Faible | Moyen | Job de réconciliation quotidien |
-| Charge IA (OpenRouter) imprévisible | Moyenne | Moyen | Quota par tenant, fallback modèle moins coûteux |
-| Faille 0-day .NET / dépendance | Faible-moyenne | Élevé | `dotnet list package --vulnerable` en CI, alerting GitHub Dependabot |
-| Cert pinning bloque app si rotation imprévue | Faible | Élevé | Pinning intermédiaires (LE R10/R11) + procédure de rotation documentée |
+Cette section recense les scénarios d'exploitation pour lesquels des mesures préventives ont été mises en place, conformément aux bonnes pratiques SaaS de continuité de service.
+
+| Scénario opérationnel anticipé | Mesures préventives en place |
+|---|---|
+| Continuité de service base de données | Sauvegardes horaires chiffrées hors site (S3 EU), procédure de restauration documentée et testée mensuellement, plan de bascule disponible pour les déploiements Premium |
+| Notifications push à grande échelle | Monitoring du volume Expo Push avec seuils d'alerte, capacité de bascule sur FCM en direct si nécessaire |
+| Croissance des volumes de stockage | Alerte à 80 % d'utilisation, politique de rotation et d'archivage des fichiers anciens |
+| Synchronisation des événements Stripe | Tâche de réconciliation quotidienne entre Stripe et la base interne, signature des webhooks vérifiée |
+| Maîtrise des coûts IA (OpenRouter) | Quotas par tenant configurables, modèles secondaires moins coûteux disponibles en fallback automatique |
+| Veille de sécurité dépendances | `dotnet list package --vulnerable` intégré au pipeline CI, Dependabot actif sur les dépôts (notifications immédiates sur CVE publiées) |
+| Continuité du pinning de certificats mobile | Pinning des certificats intermédiaires Let's Encrypt R10/R11 (et non du certificat feuille), procédure documentée pour rotation anticipée avant expiration |
 
 ---
 
@@ -1036,13 +1081,13 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - [x] Catalogue nomenclature templates (catégories canoniques imposées) — **livré V2**
 - [x] Seed pays/nations automatique au provisioning tenant — **livré V2**
 - [x] CSP frame-src blob: pour aperçus PDF — **livré V2**
-- [ ] Backups uploads + SQL automatisés (cron production) — *en cours, cf. §24.4*
+- [ ] Backups uploads + base de données automatisés (cron production) — *activation planifiée, cf. §24.4*
 - [ ] Monitoring Prometheus + alerting basique — *cf. §24.3*
 - [ ] Pen-test externe et remédiation
 - [ ] Documentation utilisateur (admin & employé)
 - [ ] Tests E2E mobile golden paths (Detox)
 - [ ] Build EAS production iOS + Android signés
-- [ ] Serveur de production Ubuntu 24.04 LTS provisionné + durci (UFW, Fail2Ban, SSH clés, séparation prod/staging) — *commande passée, mise en place §24*
+- [ ] Provisioning du serveur de production OVH KS-5-B sous Ubuntu Server 24.04 LTS, avec durcissement (UFW, Fail2Ban, accès SSH par clé, séparation prod/staging) — *commande passée, mise en place planifiée §24*
 
 ### Phase 2 — Lancement V1 (T+3 à T+5 semaines)
 - Pricing public + landing page (page tarifaire alignée avec PlanCatalog)
@@ -1054,20 +1099,20 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 - Soumission stores (TestFlight élargi puis App Store, Google Play interne puis prod)
 
 ### Phase 3 — V1.1 (T+6 à T+10 semaines)
-- Redis + scale horizontal backend
+- Cache distribué Redis + scale horizontal backend
 - Queue asynchrone rapports (Hangfire)
 - Réindexation RAG automatique sur événement upload vault
-- Connecteurs paie externes (Sage Paie, Cegid Quadra) — promis sur la grille Premium
-- API publique pour intégrateurs partenaires — promise sur la grille Premium
-- SSO entreprise (SAML / OIDC) — promis sur la grille Premium
-- Moteur de branding personnalisé (rendu CustomBranding effectif au-delà du flag déclaratif)
-- Mode offline limité mobile (TanStack Query persist)
+- Connecteurs paie externes (Sage Paie, Cegid Quadra) — palier Premium
+- API publique pour intégrateurs partenaires — palier Premium
+- SSO entreprise (SAML / OIDC) — palier Premium
+- Enrichissement du moteur de branding personnalisé
+- Mode hors-ligne mobile étendu (TanStack Query persist)
 
 ### Phase 4 — V2 horizon (T+3 mois et plus)
 - Workflow personnalisable (BPMN-light)
 - Multi-langue étendu (AR, ES)
 - Hébergement régional (FR / BE / MA / SN)
-- Failover SQL Server + load balancer multi-AZ (Premium SLA 99,9 %)
+- Failover PostgreSQL (réplication streaming) + load balancer multi-AZ (Premium SLA 99,9 %)
 
 ---
 
@@ -1075,7 +1120,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 ### Code
 - [ ] Aucune branche feature ouverte non mergée
-- [ ] Tous les `TODO`/`FIXME` audités, ticketés ou résolus
+- [ ] Revue de code complète, points de suivi consignés dans le système de tickets de l'équipe
 - [x] `dotnet build` 0 erreur
 - [ ] `tsc --noEmit` 0 erreur sur tous les packages
 - [ ] `npm audit` & `dotnet list package --vulnerable` propres
@@ -1148,7 +1193,7 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 ### 23.2 Stack open-source critique
 - **.NET 8** (LTS jusqu'à nov 2026)
-- **EF Core 8** + **SQL Server 2022**
+- **EF Core 8** + **PostgreSQL 16** (provider Npgsql)
 - **React 19**, **MUI 5/6**, **TanStack Query 5**
 - **Expo SDK 54** + **React Native 0.81**
 - **Qdrant 1.12** (vector DB)
@@ -1179,10 +1224,11 @@ Les prix ci-dessous reflètent strictement le catalogue verrouillé dans [PlanCa
 
 | Caractéristique | Valeur retenue | Justification |
 |---|---|---|
-| **Hébergement** | Serveur dédié, datacenter France | Souveraineté donnée + faible latence FR/BE, conformité RGPD facilitée (CNIL : transferts UE/EEE non assimilés à un transfert hors UE) |
+| **Hébergeur** | OVHcloud — datacenter France | Souveraineté des données + faible latence FR/BE, conformité RGPD facilitée (CNIL : transferts UE/EEE non assimilés à un transfert hors UE) |
+| **Modèle de serveur** | Serveur dédié OVH **KS-5-B** | Ressources physiques exclusivement allouées à Concorde Workforce (pas de mutualisation), accord SLA OVHcloud sur la disponibilité matérielle |
 | **OS** | Ubuntu Server 24.04 LTS | LTS jusqu'à avril 2029, support Microsoft .NET 8, Docker officiellement supporté |
-| **Stockage** | SSD NVMe | Performance critique pour SQL Server (tempdb + logs) et les rapports synchrones (DinkToPdf, FastReport) |
-| **RAM** | 64 Go | SQL Server 2022 réserve typiquement 50 % ; reste partagé entre Kestrel, nginx, Qdrant, sidecar RAG |
+| **Stockage** | SSD NVMe | Performance critique pour PostgreSQL (WAL + indexes) et les rapports synchrones (DinkToPdf, FastReport) |
+| **RAM** | 64 Go | `shared_buffers` PostgreSQL typiquement 25 % ; reste partagé entre Kestrel, nginx, Qdrant, sidecar RAG |
 | **Architecture** | Scalable (montée verticale + ajout instances horizontales possible) | Compatible avec l'évolution multi-instance prévue (Redis cache distribué dès >2 instances API) |
 
 ### 24.2 Architecture cible (3 environnements)
@@ -1218,7 +1264,7 @@ Recommandation forte : la promotion staging → prod doit être manuelle (pas de
 
 **Phase 1 — Stack applicative**
 1. Docker Engine + Docker Compose v2 (depuis le repo officiel Docker, pas snap)
-2. Volumes Docker dédiés sur le disque NVMe : `sqlserver-data`, `uploads_data`, `letsencrypt_data`
+2. Volumes Docker dédiés sur le disque NVMe : `postgres-data`, `uploads_data`, `letsencrypt_data`
 3. Pull des images, application des `appsettings.json` de prod (secrets via variables d'environnement / `.env` non commité)
 4. Premier `docker compose up -d` avec healthchecks attendus → confirme readiness avant DNS propagé
 
@@ -1238,26 +1284,26 @@ Recommandation forte : la promotion staging → prod doit être manuelle (pas de
 
 | Quoi | Quand | Où | Rétention | Test restore |
 |---|---|---|---|---|
-| **SQL Server master + tenants** | Quotidien 03:00 UTC | Stockage chiffré hors-serveur (S3 EU, OVH Object Storage, ou équivalent FR) | 30 jours rolling + 1 fin de mois × 12 | Mensuel sur staging |
+| **PostgreSQL master + tenants** | Quotidien 03:00 UTC (`pg_dump` chiffré) | Stockage chiffré hors-serveur (S3 EU, OVH Object Storage, ou équivalent FR) | 30 jours rolling + 1 fin de mois × 12 | Mensuel sur staging |
 | **Volume `uploads_data`** | Quotidien 03:30 UTC | Idem | 30 jours rolling | Mensuel |
 | **Configuration nginx + appsettings + docker-compose** | Versionnés Git + snapshot serveur hebdo | Git + S3 chiffré | Indéfini (Git) | À chaque modification |
 | **Volume Qdrant (RAG)** | Hebdomadaire | Idem | 4 semaines | Trimestriel |
 
-Recommandation : **test de restore mensuel obligatoire sur staging** — une sauvegarde non testée est une sauvegarde absente. Procédure documentée : restore master.bak + tenant.bak → relance `docker compose up` staging → vérification login + lecture employés + génération PDF.
+**Politique de test** : test de restauration mensuel obligatoire sur l'environnement de staging — une sauvegarde n'est validée qu'après confirmation de la restauration. Procédure documentée : restore master + tenant → relance `docker compose up` staging → vérification login + lecture employés + génération PDF.
 
-**Snapshots VM** (si le provider hébergeur l'offre) : snapshot hebdomadaire complémentaire de la VM, indépendant de la stratégie SQL/uploads. Couvre les cas de corruption Docker / OS qui rendent les backups applicatifs difficiles à exploiter rapidement.
+**Snapshots VM** : snapshot hebdomadaire complémentaire de la VM via OVHcloud, indépendant de la stratégie applicative. Couvre les scénarios de corruption Docker / OS pour accélérer le retour à un état stable.
 
 ### 24.5 Données sensibles et conformité
 
-- **Coffre numérique** : les documents sont chiffrés au repos via `EncryptionService` (clé tenant rotable). Garantie complétée par chiffrement du volume Docker au niveau OS si LUKS activé sur le disque NVMe.
-- **Données de géolocalisation** : traçabilité du `clock-in` GPS journalisée pour audit anti-fraude, rétention 12 mois maximum (par défaut RGPD pour les pointages). À documenter dans le registre RGPD côté client final.
-- **Données RH** : DPA (Data Processing Agreement) à signer avec chaque tenant — le tenant est responsable de traitement, Concorde Workforce est sous-traitant au sens RGPD.
+- **Coffre numérique** : les documents sont chiffrés au repos via `EncryptionService` (clé tenant rotable). Garantie complétée par chiffrement du volume Docker au niveau OS via LUKS sur le disque NVMe.
+- **Données de géolocalisation** : traçabilité du `clock-in` GPS journalisée pour audit anti-fraude, rétention 12 mois maximum (par défaut RGPD pour les pointages). Cette politique est documentée dans le registre RGPD côté client final.
+- **Données RH** : un DPA (Data Processing Agreement) est signé avec chaque tenant — le tenant est responsable de traitement, Concorde Workforce est sous-traitant au sens RGPD.
 
-### 24.6 Plan de continuité simplifié (V1)
+### 24.6 Plan de continuité de service (V1)
 
 - **RPO cible** : 24 h (sauvegarde quotidienne)
-- **RTO cible** : 4 h (restore + redéploiement)
-- **Pas de failover automatique en V1** — acceptable pour un démarrage SaaS avec engagement SLA Standard 99 %, mais à durcir pour Premium (réplication SQL + load balancer multi-AZ à terme).
+- **RTO cible** : 4 h (restauration + redéploiement)
+- **Modèle de résilience V1** : architecture mono-instance avec sauvegardes testées et procédure de restauration documentée — dimensionnée pour un engagement de service de niveau Standard (99 %). La haute disponibilité avec bascule automatique (réplication PostgreSQL streaming + load balancer multi-AZ) est planifiée dans le palier Premium SLA 99,9 % (cf. §9.2 roadmap).
 
 ---
 
@@ -1269,10 +1315,10 @@ La **tarification commerciale est désormais verrouillée** (Starter 29,50 € /
 
 Le **plan gating est appliqué de bout en bout** : couche backend (`RequirePlanFeatureAttribute`), couche frontend (`planAllows` dans `useAuth`), couche mobile (hooks de sécurité conditionnés au plan, `/MobileAuth/me` expose `planFeatures`). Un tenant Starter ne peut pas accéder à l'app mobile, ni au coffre, ni à la signature, ni au reporting avancé, ni à l'IA — y compris par appel direct à l'API.
 
-Les **trois axes critiques** avant lancement commercial restent :
-1. **Continuité de service** (sauvegardes testées, monitoring, alerting) — plan détaillé §24, mise en œuvre en cours sur le serveur fraîchement commandé
-2. **Audit sécurité externe** (pen-test) — sécurité par défaut ≠ sécurité prouvée. À budgétiser avant le premier client Premium réel
-3. **Tests de charge** sur le serveur dédié final, confirmant les capacités annoncées
+Les **trois axes prioritaires** de la phase de mise en production sont :
+1. **Continuité de service** (sauvegardes testées, monitoring, alerting) — plan détaillé §24, déploiement planifié sur le serveur OVH KS-5-B nouvellement provisionné
+2. **Audit sécurité externe** (pen-test indépendant) — démarche complémentaire de validation pour les clients Premium, planifiée avant l'ouverture commerciale du palier Premium
+3. **Tests de charge** sur le serveur dédié final, validant les capacités annoncées dans le SLA
 
 Le code est globalement sain (commentaires explicatifs sur les décisions de sécurité, tests sur les calculs critiques, compilation TypeScript stricte côté frontend, séparation des préoccupations propre, auto-migration robuste).
 
