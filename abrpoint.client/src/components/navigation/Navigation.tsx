@@ -63,6 +63,7 @@ import UnifiedAssistantHub from '../helper/Chatbot/UnifiedAssistantHub';
 import LetterTemplatesModern from '../Rag/Letters/LetterTemplatesModern';
 import SignaturePage from '../gestionEmploye/Vault/SignaturePage';
 import PricingPage from '../Pricing/PricingPage';
+import HomePage from '../Home/HomePage';
 import PlanUpgradePage from '../Pricing/PlanUpgradePage';
 import AboutPage from '../About/AboutPage';
 import PlanConfigurationPage from '../Pricing/PlanConfigurationPage';
@@ -421,8 +422,10 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
   let content: React.ReactNode;
 
   switch (pathname) {
-    // Public marketing/pricing landing — visible sans authentification (approche Odoo).
-    case '/': content = <PricingPage />; break;
+    // Landing publique : nouvelle homepage marketing (HomePage). PricingPage reste
+    // accessible via /dashboard/pricing pour les utilisateurs authentifiés qui veulent
+    // changer de plan, mais la racine '/' sert désormais la maquette commerciale.
+    case '/': content = <HomePage />; break;
     case '/about': content = <AboutPage />; break;
     case '/login': content = <CredentialsSignInPage />; break;
     case '/signup': content = <SignupPage />; break;
