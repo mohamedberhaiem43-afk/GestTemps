@@ -56,21 +56,35 @@ export default function DownloadPage() {
       .catch(() => setApkInfo({ available: false }));
   }, []);
 
-  // QR code : on encode TOUJOURS l'URL réellement servie (window.location.origin
-  // + /download). Le domaine vanity concordeworkly.com n'est pas encore actif
-  // (redirection OVH en attente), donc le pointer dans le QR donnait "site
-  // indisponible" au scan. Quand la redirection OVH sera active, on pourra
-  // basculer ici sur l'URL canonique pour la marque — mais sans casser les QR
-  // déjà imprimés / partagés, qui pointent sur l'URL réelle.
+  // URL encodée dans le QR. Stratégie :
+  //   1) Si `VITE_DOWNLOAD_VANITY_URL` est défini dans la conf build (ex:
+  //      "https://concordeworkly.com"), on l'utilise — utile UNIQUEMENT quand
+  //      la redirection OVH concordeworkly.com → /download est active.
+  //   2) Sinon, on retombe sur window.location.origin + /download, c'est-à-dire
+  //      l'URL qui sert effectivement la page (par ex.
+  //      https://www.concorde-work-force.com/download). Garanti de fonctionner.
+  //
+  // Pour activer le vanity URL : ajouter VITE_DOWNLOAD_VANITY_URL=https://concordeworkly.com
+  // dans .env / .env.production / docker-compose.yml et rebuild le client.
+  // Les anciens QR déjà imprimés/partagés continuent de fonctionner car ils
+  // encodaient la version origin/download (qui ne change pas).
   const scanUrl = useMemo(() => {
+    const vanity = (import.meta.env.VITE_DOWNLOAD_VANITY_URL as string | undefined)?.trim();
+    if (vanity) return vanity.replace(/\/+$/, ''); // strip trailing slash(es)
     if (typeof window === 'undefined') return '/download';
     return `${window.location.origin}/download`;
   }, []);
 
-  // Label affiché sous le QR — séparé de l'URL réellement encodée. On garde
-  // « concordeworkly.com » en branding (vanity URL future) pour la lisibilité,
-  // mais l'utilisateur voit aussi l'URL effectivement encodée en plus petit.
-  const brandedLabel = 'concordeworkly.com';
+  // Label affiché sous le QR pour le branding. On l'extrait du vanity URL si
+  // défini (host), sinon on retombe sur "concordeworkly.com" comme marque
+  // visuelle même si on encode une autre URL (cohérent avec le reste du site).
+  const brandedLabel = useMemo(() => {
+    const vanity = (import.meta.env.VITE_DOWNLOAD_VANITY_URL as string | undefined)?.trim();
+    if (vanity) {
+      try { return new URL(vanity).host; } catch { /* noop */ }
+    }
+    return 'concordeworkly.com';
+  }, []);
 
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(scanUrl)}`;
 

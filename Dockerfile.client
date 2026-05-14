@@ -9,6 +9,12 @@ COPY abrpoint.client/ ./
 # Override env vars for Docker build
 ARG VITE_REACT_APP_API_URL=/api
 ENV VITE_REACT_APP_API_URL=$VITE_REACT_APP_API_URL
+# URL « vanity » encodée dans le QR de /download. Vide par défaut → fallback sur
+# window.location.origin/download (URL réellement servie). Une fois la redirection
+# OVH concordeworkly.com → /download active, builder avec :
+#   docker build --build-arg VITE_DOWNLOAD_VANITY_URL=https://concordeworkly.com ...
+ARG VITE_DOWNLOAD_VANITY_URL=
+ENV VITE_DOWNLOAD_VANITY_URL=$VITE_DOWNLOAD_VANITY_URL
 ENV DOCKER_BUILD=true
 
 # Build will use the ENV variable, overriding .env files
