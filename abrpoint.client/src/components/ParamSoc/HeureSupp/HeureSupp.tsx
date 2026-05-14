@@ -392,6 +392,7 @@ const HeureSupp: React.FC<HeureSuppProps> = ({ onChange, onChange1 }) => {
               <MenuItem value="1">{t('paramSoc.heuresSup.elim1')}</MenuItem>
               <MenuItem value="2">{t('paramSoc.heuresSup.elim2')}</MenuItem>
               <MenuItem value="3">{t('paramSoc.heuresSup.elim3')}</MenuItem>
+              <MenuItem value="4">{t('paramSoc.heuresSup.elim4')}</MenuItem>
             </Select>
           </Grid>
           <Grid item xs={6} md={6}>

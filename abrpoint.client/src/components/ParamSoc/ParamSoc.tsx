@@ -369,12 +369,15 @@ export default function ParamSocModern() {
                 <MenuItem value="0">{t('paramSoc.calculs.elim0')}</MenuItem>
                 <MenuItem value="1">{t('paramSoc.calculs.elim1')}</MenuItem>
                 <MenuItem value="2">{t('paramSoc.calculs.elim2')}</MenuItem>
+                <MenuItem value="3">{t('paramSoc.calculs.elim3')}</MenuItem>
+                <MenuItem value="4">{t('paramSoc.calculs.elim4')}</MenuItem>
               </Select>
             </div>
             <div className="ps-modern-form-group">
               <label className="ps-modern-label">{t('paramSoc.calculs.modeDeductionRepos')}</label>
               <Select fullWidth variant="standard" value={formData.parreptrv || '0'} onChange={(e) => handleInputChange('parreptrv', e.target.value)}>
                 <MenuItem value="0">{t('paramSoc.calculs.rep0')}</MenuItem>
+                <MenuItem value="1">{t('paramSoc.calculs.rep1')}</MenuItem>
                 <MenuItem value="2">{t('paramSoc.calculs.rep2')}</MenuItem>
                 <MenuItem value="3">{t('paramSoc.calculs.rep3')}</MenuItem>
               </Select>

@@ -145,11 +145,21 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                // Utiliser une jointure avec Socusers au lieu de Contains
+                // BUG fix : avant on faisait un INNER JOIN sur Absences (`c.Abscod equals a.Abscod`).
+                // Les autorisations issues d'une demande approuvée peuvent avoir `Abscod` null
+                // (champ optionnel sur DemandeAutorisation → recopié tel quel dans Autoriser),
+                // ce qui faisait disparaître TOUTES ces lignes de la liste. On passe en LEFT JOIN
+                // et on scope correctement la jointure par tenant (Soccod, Abscod) pour éviter
+                // toute fuite cross-tenant si un code d'absence est partagé entre sociétés.
+                // Idem pour Employes : on joint sur (Soccod, Empcod) au lieu de Empcod seul.
                 var rawResult = await (
                     from c in _dbContext.Autorisers
-                    join a in _dbContext.Absences on c.Abscod equals a.Abscod
-                    join e in _dbContext.Employes on c.Empcod equals e.Empcod
+                    join e in _dbContext.Employes
+                        on new { Soccod = c.Soccod, Empcod = c.Empcod } equals new { Soccod = (string?)e.Soccod, Empcod = (string?)e.Empcod }
+                    join a in _dbContext.Absences
+                        on new { Soccod = c.Soccod, Abscod = c.Abscod } equals new { Soccod = (string?)a.Soccod, Abscod = (string?)a.Abscod }
+                        into absJoin
+                    from a in absJoin.DefaultIfEmpty()
                     join su in _dbContext.Socusers
                         on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
                     where e.Soccod == soccod
@@ -163,7 +173,7 @@ namespace ABRPOINT.Server.Repository
                         Condep = c.Condep,
                         Conret = c.Conret,
                         Connbjour = c.Connbjour,
-                        Abslib = a.Abslib,
+                        Abslib = a != null ? a.Abslib : null,
                     }).ToListAsync();
 
                 // Tri et dédoublonnage en mémoire
