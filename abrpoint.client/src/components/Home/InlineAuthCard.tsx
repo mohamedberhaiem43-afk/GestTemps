@@ -5,6 +5,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import apiInstance from '../API/apiInstance';
+import { lookupTenantCached } from '../API/tenantLookupCache';
 import { useAuth } from '../helper/AuthProvider';
 import { useFeedbackSnackbar } from '../helper/FeedbackSnackbar';
 import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
@@ -65,10 +66,38 @@ export default function InlineAuthCard() {
   const [tab, setTab] = useState<AuthTab>('login');
 
   // ── LOGIN STATE ─────────────────────────────────────────────────
+  // loginStep : 'creds' = email+password normal ; 'forgot' = sous-formulaire
+  // « mot de passe oublié » qui envoie un code de réinitialisation par mail
+  // SANS rediriger vers /login (cf. demande utilisateur 2026-05-14).
+  type LoginStep = 'creds' | 'forgot' | 'forgot-sent';
+  const [loginStep, setLoginStep] = useState<LoginStep>('creds');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPwd, setShowLoginPwd] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  // Envoi du code de reset par mail. Anti-énumération côté backend → toujours
+  // 200, donc on affiche le même message succès quel que soit le résultat.
+  // Le user RESTE sur la home (pas de navigate('/login')) — il reçoit le mail
+  // qui contient le lien vers la page de reset complète.
+  const handleSendResetCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail.trim()) {
+      feedback.showError('Veuillez saisir votre email.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await apiInstance.post('/auth/forgot-password', { Email: loginEmail.trim() });
+      feedback.showSuccess(res.data?.message || 'Si cet email existe, un code de réinitialisation a été envoyé.');
+      setLoginStep('forgot-sent');
+    } catch (err: any) {
+      feedback.showError(err?.response?.data?.message || "Impossible d'envoyer le code. Réessayez dans un instant.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   // ── SIGNUP STATE (mirrors SignupPage) ───────────────────────────
   const [companyName, setCompanyName] = useState('');
@@ -307,8 +336,10 @@ export default function InlineAuthCard() {
     }
     setLoginLoading(true);
     try {
-      const lookup = await apiInstance.post('/auth/lookup-tenant', { email: loginEmail.trim() });
-      const lookupSlug: string | undefined = lookup.data?.slug;
+      // Cache mémoire — évite de hammer /lookup-tenant à chaque tentative de
+      // login. Le serveur autorise 30/h/IP désormais ; ce cache supplémentaire
+      // élimine les appels redondants quand l'utilisateur retry après mauvais MDP.
+      const lookupSlug = await lookupTenantCached(loginEmail);
       if (!lookupSlug) {
         feedback.showError('Aucun compte trouvé avec cet email.');
         setLoginLoading(false);
@@ -410,7 +441,7 @@ export default function InlineAuthCard() {
         <button type="button" className={`auth-tab${tab === 'register' ? ' active' : ''}`} onClick={() => setTab('register')}>Créer un compte</button>
       </div>
 
-      {tab === 'login' && (
+      {tab === 'login' && loginStep === 'creds' && (
         <form onSubmit={handleLogin}>
           <div className="form-group">
             <label className="form-label">Email professionnel</label>
@@ -428,7 +459,7 @@ export default function InlineAuthCard() {
             </div>
           </div>
           <div className="form-forgot">
-            <a onClick={() => navigate('/login')}>Mot de passe oublié ?</a>
+            <a onClick={() => setLoginStep('forgot')}>Mot de passe oublié ?</a>
           </div>
           <button type="submit" className="auth-submit" disabled={loginLoading}>
             {loginLoading ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Se connecter →'}
@@ -439,17 +470,55 @@ export default function InlineAuthCard() {
         </form>
       )}
 
+      {/* Mot de passe oublié — formulaire INLINE : juste envoyer le code par mail,
+          sans rediriger vers /login. L'utilisateur reçoit le code et suit le lien
+          contenu dans le mail pour finaliser la réinitialisation. */}
+      {tab === 'login' && loginStep === 'forgot' && (
+        <form onSubmit={handleSendResetCode}>
+          <div className="form-group">
+            <label className="form-label">Email professionnel</label>
+            <input className="form-input" type="email" autoComplete="email" placeholder="directeur@entreprise.com"
+              value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required autoFocus />
+            <div className="form-hint form-hint--info" style={{ fontSize: 12, marginTop: 4 }}>
+              Nous enverrons un code de réinitialisation à cet email. Suivez les instructions du mail pour choisir un nouveau mot de passe.
+            </div>
+          </div>
+          <button type="submit" className="auth-submit" disabled={forgotLoading}>
+            {forgotLoading ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Envoyer le code par mail →'}
+          </button>
+          <div className="auth-footer">
+            <a onClick={() => setLoginStep('creds')}>← Revenir à la connexion</a>
+          </div>
+        </form>
+      )}
+
+      {tab === 'login' && loginStep === 'forgot-sent' && (
+        <div className="forgot-sent-card">
+          <div className="forgot-sent-icon">📬</div>
+          <h3 className="forgot-sent-title">Code envoyé</h3>
+          <p className="forgot-sent-text">
+            Si un compte existe pour <strong>{loginEmail}</strong>, vous recevrez un email contenant un code de réinitialisation dans quelques instants.
+          </p>
+          <p className="forgot-sent-hint">
+            Pensez à vérifier vos spams. Le code expire après 30 minutes.
+          </p>
+          <button type="button" className="auth-submit" onClick={() => setLoginStep('creds')}>
+            ← Revenir à la connexion
+          </button>
+        </div>
+      )}
+
       {tab === 'register' && (
         <form onSubmit={handleSignup}>
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Prénom</label>
-              <input className="form-input" type="text" autoComplete="given-name" placeholder="Samir"
+              <input className="form-input" type="text" autoComplete="given-name" placeholder="Sophie"
                 value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
             </div>
             <div className="form-group">
               <label className="form-label">Nom</label>
-              <input className="form-input" type="text" autoComplete="family-name" placeholder="Benali"
+              <input className="form-input" type="text" autoComplete="family-name" placeholder="Gaultier"
                 value={lastName} onChange={(e) => setLastName(e.target.value)} required />
             </div>
           </div>

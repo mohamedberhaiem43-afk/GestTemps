@@ -102,10 +102,32 @@ export default function HomePage() {
     <div className="home-page" ref={containerRef}>
       <div className="bg-mesh" />
 
+      {/* MARQUEE — barre défilante d'offres / arguments commerciaux fixée tout en
+          haut de l'écran (au-dessus de la nav). Le contenu est dupliqué une fois
+          pour que l'animation CSS (translateX -50%) boucle sans saut visible. */}
+      <div className="offers-marquee offers-marquee-top" aria-hidden="false">
+        <div className="offers-marquee-track">
+          {[0, 1].map((dup) => (
+            <div className="offers-marquee-row" key={dup}>
+              <span className="offer-chip"><span className="offer-chip-icon">🎁</span> Essai gratuit 1 mois — sans CB</span>
+              <span className="offer-chip"><span className="offer-chip-icon">📉</span> −20 % en facturation annuelle</span>
+              <span className="offer-chip"><span className="offer-chip-icon">⚡</span> Déploiement en 2 semaines</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🤖</span> IA Assistant RH dès 49 € / mois</span>
+              <span className="offer-chip"><span className="offer-chip-icon">💾</span> +100 Go de stockage à 29 €</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🇫🇷</span> Hébergement France (OVH)</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🔒</span> Conformité RGPD · AES-256</span>
+              <span className="offer-chip"><span className="offer-chip-icon">📱</span> Application iOS / Android incluse</span>
+              <span className="offer-chip"><span className="offer-chip-icon">✋</span> Sans engagement — annulation en 1 clic</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🌍</span> Multi-pays FR · BE · MA · SN</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* NAV */}
       <nav className={`hp-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-logo">
-          <div className="logo-mark">C</div>
+          <img className="logo-mark" src="/logo-256.png" alt="Concorde Workforce" />
           <span>Concorde Workforce</span>
         </div>
         <ul className="nav-links">
@@ -241,28 +263,6 @@ export default function HomePage() {
         <div className="stat-item">
           <div className="stat-num">2 sem.</div>
           <div className="stat-label">Pour déployer</div>
-        </div>
-      </div>
-
-      {/* MARQUEE — barre défilante d'offres / arguments commerciaux. Le contenu
-          est dupliqué une fois pour que l'animation CSS (translateX -50%) fasse
-          une boucle infinie sans saut visible. */}
-      <div className="offers-marquee" aria-hidden="false">
-        <div className="offers-marquee-track">
-          {[0, 1].map((dup) => (
-            <div className="offers-marquee-row" key={dup}>
-              <span className="offer-chip"><span className="offer-chip-icon">🎁</span> Essai gratuit 1 mois — sans CB</span>
-              <span className="offer-chip"><span className="offer-chip-icon">📉</span> −20 % en facturation annuelle</span>
-              <span className="offer-chip"><span className="offer-chip-icon">⚡</span> Déploiement en 2 semaines</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🤖</span> IA Assistant RH dès 49 € / mois</span>
-              <span className="offer-chip"><span className="offer-chip-icon">💾</span> +100 Go de stockage à 29 €</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🇫🇷</span> Hébergement France (OVH)</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🔒</span> Conformité RGPD · AES-256</span>
-              <span className="offer-chip"><span className="offer-chip-icon">📱</span> Application iOS / Android incluse</span>
-              <span className="offer-chip"><span className="offer-chip-icon">✋</span> Sans engagement — annulation en 1 clic</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🌍</span> Multi-pays FR · BE · MA · SN</span>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -764,7 +764,7 @@ export default function HomePage() {
         <div className="footer-grid">
           <div>
             <div className="footer-logo nav-logo">
-              <div className="logo-mark">C</div>
+              <img className="logo-mark" src="/logo-256.png" alt="Concorde Workforce" />
               <span>Concorde Workforce</span>
             </div>
             <div className="footer-desc">

@@ -6,6 +6,7 @@ import {
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiInstance from '../API/apiInstance';
+import { lookupTenantCached } from '../API/tenantLookupCache';
 import { useAuth } from '../helper/AuthProvider';
 import { startStripeCheckout, resumeStripeCheckout } from '../Pricing/stripeCheckout';
 import MailIcon from '@mui/icons-material/Mail';
@@ -132,8 +133,9 @@ export default function CredentialsSignInPage() {
     try {
       // 1. Résolution du tenant depuis l'email (control-plane lookup, pas besoin de slug
       //    dans l'URL ni dans un champ de formulaire).
-      const lookup = await apiInstance.post('/auth/lookup-tenant', { email: utimail.trim() });
-      const slug: string | undefined = lookup.data?.slug;
+      // Cache mémoire (5 min) pour éviter les 429 du throttler /lookup-tenant
+      // sur les retry de login. Cf. components/API/tenantLookupCache.ts.
+      const slug = await lookupTenantCached(utimail);
       if (!slug) {
         setError(t('login.noAccount'));
         setLoading(false);

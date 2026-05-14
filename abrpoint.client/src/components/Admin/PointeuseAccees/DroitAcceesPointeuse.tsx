@@ -7,6 +7,12 @@ import RolePointeuseAccess from "../../DonneeDeBase/Utilisteur/RolePointeuseAcce
 
 import { Shield, People, Fingerprint } from "@mui/icons-material";
 import "../PointeuseAccees/DroitAccees.css";
+// Les composants enfants (ListeUtilisateurRoles, DroitAcceesRoles, RolePointeuseAccess)
+// utilisent les classes `.aut-*` et `.list-utilisateur-*` définies dans Utilisateur.css.
+// Sans cet import, la page apparaît dénudée si l'utilisateur arrive directement sur
+// /dashboard/droit-accees (refresh, deep-link) sans avoir d'abord visité
+// /dashboard/gestion-utilisateur (qui charge ce CSS en premier).
+import "../../DonneeDeBase/Utilisteur/Utilisateur.css";
 function DroitAccessContent() {
   const { t } = useTranslation();
   return (

@@ -138,6 +138,17 @@ namespace ABRPOINT.Server.Services
                 http.Timeout = TimeSpan.FromSeconds(5);
                 http.DefaultRequestHeaders.UserAgent.ParseAdd("ConcordeWorkforce-Signup/1.0");
             });
+            builder.Services.AddHttpClient(SiretValidator.ViesClientName, http =>
+            {
+                // 🇧🇪🇪🇺 VIES — service officiel EU de vérification VAT, gratuit, sans clé.
+                // Pour la Belgique, le numéro BCE EST le numéro TVA (10 chiffres, commence
+                // par 0). VIES renvoie nom + adresse de l'entreprise, exactement comme
+                // Sirene pour la France. Utilisé en fallback si Cbe:ApiKey n'est pas
+                // configuré → parité fonctionnelle FR/BE sans dépendre du service payant.
+                http.BaseAddress = new Uri("https://ec.europa.eu/taxation_customs/vies/rest-api/");
+                http.Timeout = TimeSpan.FromSeconds(6);
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("ConcordeWorkforce-Signup/1.0");
+            });
             builder.Services.AddScoped<ISiretValidator, SiretValidator>();
 
             // HIBP Pwned Passwords (k-anonymity) : refuse les mots de passe déjà connus

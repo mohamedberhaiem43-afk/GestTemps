@@ -86,6 +86,19 @@ namespace ABRPOINT.Server.Controllers
         }
 
         /// <summary>
+        /// URL de la page publique de téléchargement de l'app mobile. La page propose
+        /// iOS, Android et APK direct avec auto-détection de l'OS. À terme, le domaine
+        /// canonique concordeworkly.com (redirection OVH) pointe ici aussi — mais on
+        /// génère le lien sur RootDomain pour ne pas dépendre d'une redirection externe
+        /// qui pourrait ne pas être active dans tous les environnements (staging, dev).
+        /// </summary>
+        private string BuildDownloadUrl()
+        {
+            var rootDomain = _configuration["Hosting:RootDomain"] ?? "concorde.com";
+            return $"https://{rootDomain}/download";
+        }
+
+        /// <summary>
         /// Construit l'URL de définition de mot de passe à usage unique pour un nouvel
         /// employé. La page Login détecte le triplet ?setup=1&amp;email=…&amp;code=… et
         /// bascule directement sur l'étape « Définir mon mot de passe » avec email +
@@ -153,6 +166,7 @@ namespace ABRPOINT.Server.Controllers
                     Services.EmailTemplates.StatusBanner(
                         "Conseil sécurité : changez votre mot de passe provisoire dès votre première connexion.",
                         Services.EmailTemplates.StatusKind.Warning) +
+                    Services.EmailTemplates.MobileAppCard(BuildDownloadUrl()) +
                     "<p style=\"margin-top:24px;\">À très vite,<br/><strong>L'équipe Concorde Workforce</strong></p>";
 
                 var subject = "Bienvenue sur Concorde Workforce — vos identifiants";
@@ -282,6 +296,7 @@ namespace ABRPOINT.Server.Controllers
                     Services.EmailTemplates.StatusBanner(
                         "Ce lien est personnel et expire dans 7 jours. Si vous n'êtes pas à l'origine de cette création, ignorez simplement cet email.",
                         Services.EmailTemplates.StatusKind.Warning) +
+                    Services.EmailTemplates.MobileAppCard(BuildDownloadUrl()) +
                     "<p style=\"margin-top:24px;\">À très vite,<br/><strong>L'équipe Concorde Workforce</strong></p>";
 
                 var subject = "Bienvenue sur Concorde Workforce — définissez votre mot de passe";

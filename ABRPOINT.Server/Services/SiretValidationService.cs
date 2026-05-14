@@ -33,6 +33,7 @@ public class SiretValidator : ISiretValidator
     // Noms des clients nommés HttpClientFactory (cf. ServicesRegistration).
     public const string SireneClientName = "sirene";
     public const string CbeClientName = "cbe";
+    public const string ViesClientName = "vies";
 
     private readonly IHttpClientFactory _httpFactory;
     private readonly IConfiguration _cfg;
@@ -235,11 +236,13 @@ public class SiretValidator : ISiretValidator
         var apiKey = _cfg["Cbe:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains("REPLACE"))
         {
-            // Pas de clé configurée → on s'arrête au check local. Format + mod 97 +
-            // unicité DB suffisent comme défense de base. Log info pour que l'admin
-            // sache qu'il pourrait activer la vérif API si désiré.
-            _log.LogDebug("Cbe:ApiKey non configurée — validation BE limitée au format+mod97 local.");
-            return new(true, null, null, null);
+            // Pas de clé cbeapi.be (service payant) → fallback sur VIES (service EU
+            // gratuit officiel). Pour la BCE belge, le numéro EST le numéro TVA :
+            // VIES renvoie nom + adresse exactement comme Sirene pour la France →
+            // parité d'UX FR/BE sans coût additionnel. fail-open si VIES tombe.
+            _log.LogDebug("Cbe:ApiKey non configurée — fallback sur VIES pour BCE {Bce}.", bce);
+            var vies = await TryViesLookupAsync(bce, ct);
+            return new(true, null, null, vies.Name, vies.Address);
         }
 
         try
@@ -294,13 +297,92 @@ public class SiretValidator : ISiretValidator
             else if (data.TryGetProperty("headquarters_address", out var hq) && hq.ValueKind == JsonValueKind.Object)
                 addressString = FormatCbeAddress(hq);
 
+            // Si cbeapi.be n'a renvoyé NI dénomination NI adresse (réponse partielle,
+            // schéma changé…), on tente VIES en complément pour ne pas afficher un
+            // champ vide à l'utilisateur. C'est exactement le même comportement que
+            // pour Sirene côté FR — l'utilisateur voit toujours quelque chose.
+            if (string.IsNullOrWhiteSpace(denomination) && string.IsNullOrWhiteSpace(addressString))
+            {
+                var vies = await TryViesLookupAsync(bce, ct);
+                denomination = vies.Name;
+                addressString = vies.Address;
+            }
+
             return new(true, null, null, denomination, addressString);
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "Échec appel cbeapi.be pour BCE {Bce}. Fallback sur validation locale (fail-open).", bce);
-            return new(true, null, null, null);
+            _log.LogWarning(ex, "Échec appel cbeapi.be pour BCE {Bce}. Fallback VIES (fail-open).", bce);
+            var vies = await TryViesLookupAsync(bce, ct);
+            return new(true, null, null, vies.Name, vies.Address);
         }
+    }
+
+    /// <summary>
+    /// VIES (VAT Information Exchange System) — service officiel EU, gratuit, sans
+    /// clé. Pour la Belgique le BCE EST le n° TVA. Renvoie { name, address } ou
+    /// (null, null) si l'entreprise n'est pas trouvée ou si VIES est indisponible.
+    /// Toujours fail-open : ne JAMAIS bloquer le signup à cause d'un VIES en panne.
+    /// </summary>
+    private async Task<(string? Name, string? Address)> TryViesLookupAsync(string bce, CancellationToken ct)
+    {
+        try
+        {
+            var http = _httpFactory.CreateClient(ViesClientName);
+            // Endpoint REST : /ms/{country}/vat/{number} — country = BE pour Belgique.
+            using var resp = await http.GetAsync($"ms/BE/vat/{bce}", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _log.LogDebug("VIES a renvoyé {Status} pour BCE {Bce}.", resp.StatusCode, bce);
+                return (null, null);
+            }
+
+            using var stream = await resp.Content.ReadAsStreamAsync(ct);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            var root = doc.RootElement;
+
+            // VIES renvoie isValid=false si l'entreprise n'est pas enregistrée TVA
+            // (cas légitime : asbl, indépendants en franchise…). On ne traite pas
+            // ça comme une erreur — on laisse simplement les champs vides.
+            var isValid = root.TryGetProperty("isValid", out var v) && v.ValueKind == JsonValueKind.True;
+            if (!isValid)
+            {
+                _log.LogDebug("VIES : BCE {Bce} non enregistré TVA (asbl / franchise probablement).", bce);
+                return (null, null);
+            }
+
+            string? name = root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
+                ? n.GetString()?.Trim()
+                : null;
+            string? address = root.TryGetProperty("address", out var a) && a.ValueKind == JsonValueKind.String
+                ? NormalizeViesAddress(a.GetString())
+                : null;
+
+            // VIES renvoie parfois "---" comme nom quand l'État membre masque la donnée
+            // (option opt-out côté entreprise). On filtre ces placeholders inutiles.
+            if (!string.IsNullOrWhiteSpace(name) && (name == "---" || name.StartsWith("Reserved", StringComparison.OrdinalIgnoreCase)))
+                name = null;
+            if (!string.IsNullOrWhiteSpace(address) && address == "---")
+                address = null;
+
+            return (name, address);
+        }
+        catch (Exception ex)
+        {
+            _log.LogDebug(ex, "VIES indisponible pour BCE {Bce} (fail-open).", bce);
+            return (null, null);
+        }
+    }
+
+    /// <summary>VIES renvoie l'adresse en multi-lignes (séparées par \n). On la
+    /// reformate en une seule ligne lisible séparée par des virgules pour qu'elle
+    /// s'affiche proprement dans la carte d'aide UI (identique à Sirene FR).</summary>
+    private static string? NormalizeViesAddress(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var lines = raw.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var joined = string.Join(", ", lines);
+        return string.IsNullOrWhiteSpace(joined) ? null : joined;
     }
 
     private static string? FormatCbeAddress(JsonElement addr)

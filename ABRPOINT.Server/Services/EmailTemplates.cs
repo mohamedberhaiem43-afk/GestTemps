@@ -154,5 +154,44 @@ namespace ABRPOINT.Server.Services
         }
 
         public enum StatusKind { Info, Success, Warning, Error }
+
+        /// <summary>
+        /// Helper : carte « Application mobile » à inclure dans les emails de bienvenue.
+        /// L'employé voit dès le 1er email qu'il peut pointer, demander congés et
+        /// recevoir des notifs depuis son téléphone — pas seulement depuis le web.
+        /// On affiche l'URL canonique en clair (utile si l'utilisateur lit en plain text
+        /// ou si l'image ne charge pas) ET un bouton CTA cliquable.
+        /// </summary>
+        public static string MobileAppCard(string downloadUrl)
+        {
+            var safeHref = System.Net.WebUtility.HtmlEncode(downloadUrl ?? "#");
+            return $@"<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0""
+       style=""background:linear-gradient(135deg,#eef4ff 0%,#ffffff 100%);border:1px solid #c7d8ff;border-radius:12px;margin:22px 0;"">
+  <tr>
+    <td style=""padding:18px 20px;"">
+      <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0"">
+        <tr>
+          <td valign=""top"" width=""44"" style=""padding-right:14px;"">
+            <div style=""width:42px;height:42px;border-radius:10px;background:{PrimaryColor};color:#ffffff;font-size:22px;font-weight:800;text-align:center;line-height:42px;font-family:'Helvetica Neue',Arial,sans-serif;"">📱</div>
+          </td>
+          <td valign=""top"" style=""font-family:'Helvetica Neue',Arial,sans-serif;"">
+            <div style=""font-size:14px;font-weight:800;color:#0d1f3c;margin-bottom:2px;"">Application mobile Concorde Workly</div>
+            <div style=""font-size:13px;color:#475569;line-height:1.5;"">
+              Pointage, congés, notifications — tout dans votre poche.<br>
+              iOS · Android · QR code : <a href=""{safeHref}"" style=""color:{PrimaryColor};text-decoration:none;font-weight:700;"">concordeworkly.com</a>
+            </div>
+            <div style=""margin-top:10px;"">
+              <a href=""{safeHref}""
+                 style=""display:inline-block;padding:9px 18px;font-size:13px;font-weight:700;color:#ffffff;background-color:{PrimaryColor};text-decoration:none;border-radius:8px;font-family:'Helvetica Neue',Arial,sans-serif;letter-spacing:0.3px;"">
+                Télécharger l'app
+              </a>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>";
+        }
     }
 }

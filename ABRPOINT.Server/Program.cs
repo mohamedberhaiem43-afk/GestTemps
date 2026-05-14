@@ -194,11 +194,9 @@ builder.Services.AddRateLimiter(options =>
             });
     });
 
-    // SEC — Endpoints publics potentiellement abusables :
-    //   - /api/contact/* : envoie un email via SMTP authentifié → abus = blacklist OVH.
-    //   - /api/auth/lookup-tenant : permet d'énumérer les emails clients.
-    // 5/heure/IP : adapté à un usage humain normal (un visiteur ne soumet pas plus
-    // de 5 formulaires de contact à l'heure), mais coupe les bots.
+    // SEC — Endpoint /api/contact/* : envoie un email via SMTP authentifié → abus
+    // = blacklist OVH. 5/heure/IP adapté à un usage humain normal (un visiteur ne
+    // soumet pas plus de 5 formulaires de contact à l'heure), mais coupe les bots.
     options.AddPolicy("public-form", httpContext =>
     {
         var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
@@ -207,6 +205,29 @@ builder.Services.AddRateLimiter(options =>
             _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+            });
+    });
+
+    // SEC — Policy dédiée pour /api/auth/lookup-tenant. Profil d'abus différent
+    // de /api/contact : la lookup ne déclenche AUCUNE action coûteuse (pas de mail,
+    // pas d'écriture, juste un SELECT indexé) et l'anti-énumération réelle est
+    // assurée par la réponse uniforme (le contrôleur renvoie toujours { slug?: … }
+    // sans distinguer "trouvé" vs "pas trouvé" côté HTTP). La limite stricte 5/h/IP
+    // de l'ancien partage cassait l'UX légitime : un utilisateur derrière un NAT
+    // d'entreprise + 2-3 tentatives de login avec mauvais mot de passe + re-login
+    // après déconnexion → 429 au bout de quelques minutes. 30/heure/IP couvre
+    // largement l'usage humain (incluant les retours après déconnexion et le
+    // partage de bureau / NAT) tout en restant un plafond anti-scraping.
+    options.AddPolicy("tenant-lookup", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ip,
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
                 Window = TimeSpan.FromHours(1),
                 QueueLimit = 0,
             });

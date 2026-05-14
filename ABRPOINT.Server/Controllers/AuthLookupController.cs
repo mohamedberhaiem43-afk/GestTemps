@@ -46,11 +46,12 @@ public class AuthLookupController : ControllerBase
     public sealed record LookupTenantRequest(string Email);
 
     [HttpPost("lookup-tenant")]
-    // SEC — Rate limit strict : sans limite, cet endpoint permettait l'énumération
-    // exhaustive des emails clients (un attaquant essaie des emails et lit la réponse
-    // 200/404). 5/h/IP coupe les bots. Sur cookie + IP rotation, le fallback "scan
-    // toutes les bases" reste coûteux côté serveur — limite supplémentaire utile.
-    [EnableRateLimiting("public-form")]
+    // SEC — Rate limit dédié (policy "tenant-lookup" dans Program.cs) : 30/h/IP.
+    // Anti-énumération réelle = uniformité de la réponse, pas le throttling. La
+    // limite est donc large pour ne pas casser l'UX (retry login, déconnexion/
+    // reconnexion, NAT d'entreprise). L'ancienne limite 5/h/IP partagée avec
+    // /api/contact générait des 429 spurieux après quelques tentatives légitimes.
+    [EnableRateLimiting("tenant-lookup")]
     public async Task<IActionResult> LookupTenant([FromBody] LookupTenantRequest req, CancellationToken ct)
     {
         var email = (req?.Email ?? string.Empty).Trim().ToLowerInvariant();
