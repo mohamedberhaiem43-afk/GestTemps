@@ -142,6 +142,7 @@ import {
   XCircle,
   History,
   ShieldCheck,
+  Smartphone,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
@@ -624,6 +625,10 @@ function makeToolbarActions(
     const handleClose = () => setAnchorEl(null);
 
     const handleProfile = () => { handleClose(); onNavigate('/dashboard/profile'); };
+    // Application mobile : on ouvre la page /download dans un nouvel onglet pour
+    // ne pas faire perdre le contexte de travail à l'utilisateur. La page propose
+    // App Store / Play Store / APK direct + QR code (auto-détection iOS/Android).
+    const handleDownloadApp = () => { handleClose(); window.open('/download', '_blank', 'noopener,noreferrer'); };
     const handleLogout = () => { handleClose(); clearAuth(); onNavigate('/'); };
 
     // Photo de profil : lue depuis localStorage (alimentée au login + au upload).
@@ -687,6 +692,15 @@ function makeToolbarActions(
           <MenuItem onClick={handleProfile}>
             <ListItemIcon><User size={22} /></ListItemIcon>
             <ListItemText primary={t('navigation.myProfile')} primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
+          </MenuItem>
+          <MenuItem onClick={handleDownloadApp}>
+            <ListItemIcon><Smartphone size={22} /></ListItemIcon>
+            <ListItemText
+              primary={t('navigation.mobileApp', 'Application mobile')}
+              secondary={t('navigation.mobileAppHint', 'Télécharger pour iOS / Android')}
+              primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }}
+              secondaryTypographyProps={{ fontSize: '11px' }}
+            />
           </MenuItem>
           <Divider />
           <MenuItem onClick={handleLogout} sx={{ color: '#ba1a1a' }}>

@@ -11,6 +11,7 @@ import {
   Alert,
   StatusBar,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,6 +25,45 @@ import {
   isBiometricLoginEnabled,
   biometricLoginFlow,
 } from '../services/biometric';
+
+// URL du portail web où l'admin peut upgrader son plan. On garde "concorde-work-force.com"
+// (et non concordeworkly.com, qui redirige vers /download) parce que c'est le portail
+// applicatif où la facturation se gère.
+const UPGRADE_URL = 'https://www.concorde-work-force.com/dashboard/pricing';
+
+/**
+ * Affiche un dialog dédié quand le backend renvoie 402 plan_feature_locked sur
+ * un login mobile : l'utilisateur est sur le pack Starter, qui n'inclut PAS
+ * l'application mobile. On ne le laisse pas patauger dans un "Erreur" générique —
+ * on lui dit ce qui se passe et on lui ouvre la page d'upgrade dans le navigateur.
+ *
+ * Retourne `true` si le cas a été géré (le caller doit s'arrêter là).
+ */
+function handlePlanLockedIfApplicable(error: any): boolean {
+  const status = error?.response?.status;
+  const data = error?.response?.data;
+  const isPlanLocked =
+    status === 402 || data?.code === 'plan_feature_locked';
+  if (!isPlanLocked) return false;
+
+  const currentPlan = data?.currentPlan || 'Starter';
+  Alert.alert(
+    `🔒 Pack ${currentPlan} — mobile non inclus`,
+    `L'application mobile fait partie des packs Standard et Premium.\n\n` +
+    `Sur le pack ${currentPlan}, vous gardez l'accès complet à l'application web ` +
+    `depuis votre ordinateur, mais le mobile est verrouillé.\n\n` +
+    `Pour activer l'app mobile, demandez à votre administrateur d'upgrader le ` +
+    `compte depuis le portail web.`,
+    [
+      { text: 'Fermer', style: 'cancel' },
+      {
+        text: 'Mettre à niveau',
+        onPress: () => { Linking.openURL(UPGRADE_URL).catch(() => { /* noop */ }); },
+      },
+    ]
+  );
+  return true;
+}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -97,6 +137,10 @@ export default function LoginScreen() {
       // sur AppStack automatiquement (isAuthenticated devient true).
       hydrateAfterBiometric(result.user);
     } catch (error: any) {
+      // Cas spécial : tenant Starter qui essaie de se connecter en biométrie après
+      // avoir downgradé son plan — on lui montre le pop-up dédié plutôt qu'un
+      // message générique. Cf. RequirePlanFeature(MobileApp) côté serveur.
+      if (handlePlanLockedIfApplicable(error)) return;
       const msg = error?.response?.data?.message || 'Connexion biométrique échouée.';
       Alert.alert('Erreur', msg);
     } finally {
@@ -125,7 +169,12 @@ export default function LoginScreen() {
       } else {
         console.log('Error Message:', error.message);
       }
-      
+
+      // Cas spécial : pack Starter qui n'inclut pas la feature MobileApp. Le
+      // backend renvoie 402 + { code: 'plan_feature_locked' }. On affiche le
+      // dialog dédié avec CTA d'upgrade plutôt qu'un "Erreur" générique.
+      if (handlePlanLockedIfApplicable(error)) return;
+
       const msg = error?.response?.data?.message || 'Erreur de connexion. Vérifiez vos identifiants.';
       Alert.alert('Erreur', msg);
     } finally {
