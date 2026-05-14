@@ -296,7 +296,7 @@ export default function HomePage() {
                 <span className="store-btn-large">Google Play</span>
               </span>
             </a>
-            <a className="store-btn store-btn-apk" href="/api/download/android" download>
+            <a className="store-btn store-btn-apk" href="/download">
               <span className="store-btn-icon">⬇</span>
               <span className="store-btn-text">
                 <span className="store-btn-small">APK direct</span>

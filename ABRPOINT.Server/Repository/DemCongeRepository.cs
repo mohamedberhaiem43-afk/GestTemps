@@ -13,35 +13,58 @@ namespace ABRPOINT.Server.Repository
         private readonly IUtilisateurRepository _utilisateurRepository;
         private readonly IEmailService _emailService;
         private readonly IRttCalculationService _rttService;
+        private readonly ILogger<DemCongeRepository> _log;
 
         public DemCongeRepository(
             ApplicationDbContext dbContext,
             IUtilisateurRepository utilisateurRepository,
             IEmailService emailService,
-            IRttCalculationService rttService)
+            IRttCalculationService rttService,
+            ILogger<DemCongeRepository> log)
         {
             _dbContext = dbContext;
             _utilisateurRepository = utilisateurRepository;
             _emailService = emailService;
             _rttService = rttService;
+            _log = log;
         }
         public async Task AddAsync(Demconge demconge)
         {
+            // Étape 1 — persistance. C'est la SEULE chose qui doit pouvoir
+            // remonter une exception. Si elle échoue, la demande n'est pas
+            // créée et le client doit voir l'erreur.
+            await _dbContext.Demconges.AddAsync(demconge);
+            await _dbContext.SaveChangesAsync();
+
+            // Étape 2 — notifications par email aux admins (best-effort).
+            // Avant : ces emails étaient `await`és dans le même try-catch que
+            // SaveChanges, donc un SMTP timeout ou une adresse admin invalide
+            // faisait retomber le client sur HTTP 500 alors que la demande
+            // était bien créée. Maintenant : try-catch dédié, logué mais
+            // jamais propagé — exactement le même pattern que le notify push
+            // côté contrôleur.
             try
             {
-                await _dbContext.Demconges.AddAsync(demconge);
-                await _dbContext.SaveChangesAsync();
-                        var admins = await _utilisateurRepository.GetAdminsEmailsAsync();
-                        foreach (var email in admins)
-                        {
-                            await _emailService.SendEmailAsync(email, "Nouvelle Demande de Congé",
-                                $"Une nouvelle demande de congé a été déposée par l'employé {demconge.Empcod}.<br/>" +
-                                $"Période : du {demconge.Condep:dd/MM/yyyy} au {demconge.Conret:dd/MM/yyyy}.");
-                        }  
+                var admins = await _utilisateurRepository.GetAdminsEmailsAsync();
+                foreach (var email in admins)
+                {
+                    try
+                    {
+                        await _emailService.SendEmailAsync(email, "Nouvelle Demande de Congé",
+                            $"Une nouvelle demande de congé a été déposée par l'employé {demconge.Empcod}.<br/>" +
+                            $"Période : du {demconge.Condep:dd/MM/yyyy} au {demconge.Conret:dd/MM/yyyy}.");
+                    }
+                    catch (Exception mailEx)
+                    {
+                        // Un admin avec une adresse cassée ne doit pas empêcher les autres
+                        // d'être notifiés — on isole l'erreur par destinataire.
+                        _log.LogWarning(mailEx, "DemConge: échec notif email admin {Email} (ignoré).", email);
+                    }
+                }
             }
-            catch (Exception ex)
+            catch (Exception notifyEx)
             {
-                throw new Exception("",ex);
+                _log.LogWarning(notifyEx, "DemConge: bloc notifications admins en échec (demande déjà persistée, ignoré).");
             }
         }
 

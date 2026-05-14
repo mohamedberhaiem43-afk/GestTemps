@@ -56,19 +56,23 @@ export default function DownloadPage() {
       .catch(() => setApkInfo({ available: false }));
   }, []);
 
-  // QR code pointant vers l'URL canonique. On utilise une URL "publique"
-  // (concordeworkly.com une fois la redirection OVH active), sinon le hostname
-  // courant pour le dev/staging.
-  const canonicalUrl = useMemo(() => {
-    if (typeof window === 'undefined') return 'https://concordeworkly.com';
-    const host = window.location.hostname;
-    if (host === 'localhost' || host.endsWith('.local')) {
-      return `${window.location.origin}/download`;
-    }
-    return 'https://concordeworkly.com';
+  // QR code : on encode TOUJOURS l'URL réellement servie (window.location.origin
+  // + /download). Le domaine vanity concordeworkly.com n'est pas encore actif
+  // (redirection OVH en attente), donc le pointer dans le QR donnait "site
+  // indisponible" au scan. Quand la redirection OVH sera active, on pourra
+  // basculer ici sur l'URL canonique pour la marque — mais sans casser les QR
+  // déjà imprimés / partagés, qui pointent sur l'URL réelle.
+  const scanUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '/download';
+    return `${window.location.origin}/download`;
   }, []);
 
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(canonicalUrl)}`;
+  // Label affiché sous le QR — séparé de l'URL réellement encodée. On garde
+  // « concordeworkly.com » en branding (vanity URL future) pour la lisibilité,
+  // mais l'utilisateur voit aussi l'URL effectivement encodée en plus petit.
+  const brandedLabel = 'concordeworkly.com';
+
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(scanUrl)}`;
 
   return (
     <div className="dl-page">
@@ -106,18 +110,39 @@ export default function DownloadPage() {
 
             {os === 'android' && (
               <>
-                <a className="dl-btn dl-btn-primary" href={APK_DIRECT_URL} download>
-                  <span className="dl-btn-icon">⬇</span>
-                  <span className="dl-btn-content">
-                    <span className="dl-btn-small">Télécharger l'APK</span>
-                    <span className="dl-btn-large">Installation directe</span>
-                    {apkInfo?.available && (
+                {apkInfo === null ? (
+                  // Chargement initial des métadonnées de l'APK (taille / date / disponibilité).
+                  <div className="dl-btn dl-btn-loading">
+                    <span className="dl-btn-icon">⏳</span>
+                    <span className="dl-btn-content">
+                      <span className="dl-btn-large">Vérification de la disponibilité…</span>
+                    </span>
+                  </div>
+                ) : apkInfo.available ? (
+                  <a className="dl-btn dl-btn-primary" href={APK_DIRECT_URL} download>
+                    <span className="dl-btn-icon">⬇</span>
+                    <span className="dl-btn-content">
+                      <span className="dl-btn-small">Télécharger l'APK</span>
+                      <span className="dl-btn-large">Installation directe</span>
                       <span className="dl-btn-meta">
                         v. {apkInfo.publishedAt?.slice(0, 10)} · {apkInfo.sizeMb} Mo
                       </span>
-                    )}
-                  </span>
-                </a>
+                    </span>
+                  </a>
+                ) : (
+                  // APK pas encore publié : on N'affiche PAS de lien cliquable (qui
+                  // déclencherait un téléchargement de 404 sauvegardé en "android.txt").
+                  // À la place, message clair + CTA vers le Play Store / contact support.
+                  <div className="dl-apk-unavailable">
+                    <div className="dl-apk-unavailable-icon">📦</div>
+                    <div className="dl-apk-unavailable-title">APK pas encore publié</div>
+                    <div className="dl-apk-unavailable-text">
+                      La première version Android est en préparation. En attendant, utilisez
+                      le Google Play ci-dessous (si disponible) ou contactez-nous pour
+                      recevoir l'APK en avant-première.
+                    </div>
+                  </div>
+                )}
                 <a className="dl-btn dl-btn-secondary" href={STORE_LINKS.android} target="_blank" rel="noreferrer">
                   <span className="dl-btn-icon">▶</span>
                   <span className="dl-btn-content">
@@ -125,15 +150,17 @@ export default function DownloadPage() {
                     <span className="dl-btn-large">Google Play</span>
                   </span>
                 </a>
-                <details className="dl-howto">
-                  <summary>Comment installer l'APK ?</summary>
-                  <ol>
-                    <li>Téléchargez le fichier APK avec le bouton ci-dessus.</li>
-                    <li>Ouvrez le fichier depuis votre dossier <em>Téléchargements</em>.</li>
-                    <li>Si Android demande l'autorisation, acceptez « Sources inconnues » <strong>pour cette installation uniquement</strong>.</li>
-                    <li>L'app apparaîtra sur votre écran d'accueil.</li>
-                  </ol>
-                </details>
+                {apkInfo?.available && (
+                  <details className="dl-howto">
+                    <summary>Comment installer l'APK ?</summary>
+                    <ol>
+                      <li>Téléchargez le fichier APK avec le bouton ci-dessus.</li>
+                      <li>Ouvrez le fichier depuis votre dossier <em>Téléchargements</em>.</li>
+                      <li>Si Android demande l'autorisation, acceptez « Sources inconnues » <strong>pour cette installation uniquement</strong>.</li>
+                      <li>L'app apparaîtra sur votre écran d'accueil.</li>
+                    </ol>
+                  </details>
+                )}
               </>
             )}
 
@@ -176,29 +203,47 @@ export default function DownloadPage() {
                     </span>
                   </a>
                 </div>
-                <a className="dl-btn dl-btn-apk-inline" href={APK_DIRECT_URL} download>
-                  <span className="dl-btn-icon">⬇</span>
-                  <span className="dl-btn-content">
-                    <span className="dl-btn-large">Télécharger l'APK Android directement</span>
-                    {apkInfo?.available && (
+                {apkInfo === null ? (
+                  <div className="dl-btn dl-btn-loading">
+                    <span className="dl-btn-icon">⏳</span>
+                    <span className="dl-btn-content">
+                      <span className="dl-btn-large">Vérification de l'APK direct…</span>
+                    </span>
+                  </div>
+                ) : apkInfo.available ? (
+                  <a className="dl-btn dl-btn-apk-inline" href={APK_DIRECT_URL} download>
+                    <span className="dl-btn-icon">⬇</span>
+                    <span className="dl-btn-content">
+                      <span className="dl-btn-large">Télécharger l'APK Android directement</span>
                       <span className="dl-btn-meta">{apkInfo.sizeMb} Mo · {apkInfo.publishedAt?.slice(0, 10)}</span>
-                    )}
-                  </span>
-                </a>
+                    </span>
+                  </a>
+                ) : (
+                  <div className="dl-apk-unavailable dl-apk-unavailable--inline">
+                    <span className="dl-apk-unavailable-icon">📦</span>
+                    <span>
+                      <strong>APK pas encore publié.</strong>{' '}
+                      Reviendra ici dès la première mise en ligne.
+                    </span>
+                  </div>
+                )}
               </>
             )}
           </section>
 
-          {/* Colonne QR + URL canonique. */}
+          {/* Colonne QR + URL. Le QR encode l'URL réellement servie (origin/download)
+              et non l'URL « vanity » concordeworkly.com, qui n'est pas encore active
+              côté DNS — sinon le scan tomberait sur "site indisponible". */}
           <section className="dl-qr-card">
             <h2 className="dl-qr-title">Scannez avec votre téléphone</h2>
-            <img className="dl-qr-img" src={qrSrc} alt={`QR code pointant vers ${canonicalUrl}`} />
-            <div className="dl-qr-url">{canonicalUrl}</div>
+            <img className="dl-qr-img" src={qrSrc} alt={`QR code pointant vers ${scanUrl}`} />
+            <div className="dl-qr-brand">{brandedLabel}</div>
+            <div className="dl-qr-url">{scanUrl}</div>
             <button
               type="button"
               className="dl-qr-copy"
               onClick={() => {
-                navigator.clipboard?.writeText(canonicalUrl);
+                navigator.clipboard?.writeText(scanUrl);
               }}
             >
               📋 Copier le lien

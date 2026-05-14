@@ -20,11 +20,17 @@ namespace ABRPOINT.Server.Controllers
         private readonly IDemCongeRepository _demandecongeRepository;
         private readonly ApplicationDbContext _context;
         private readonly IUserNotificationService? _notify;
-        public DemCongesController(IDemCongeRepository demandecongeRepository, ApplicationDbContext context, IUserNotificationService? notify = null)
+        private readonly ILogger<DemCongesController> _log;
+        public DemCongesController(
+            IDemCongeRepository demandecongeRepository,
+            ApplicationDbContext context,
+            ILogger<DemCongesController> log,
+            IUserNotificationService? notify = null)
         {
             _demandecongeRepository = demandecongeRepository;
             _context = context;
             _notify = notify;
+            _log = log;
         }
 
         // GET: api/DemConges/get-next-concod/{soccod}
@@ -230,9 +236,16 @@ namespace ABRPOINT.Server.Controllers
             {
                 await _demandecongeRepository.AddAsync(conge);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500);
+                // Avant : catch silencieux → impossible de diagnostiquer un 500 en prod.
+                // Maintenant : on log avec stack + payload identifiant. La réponse au
+                // client reste générique (pas de fuite d'info), mais l'admin peut
+                // grepper les logs pour comprendre.
+                _log.LogError(ex,
+                    "DemConge.Post — échec persistance pour Soccod={Soccod} Empcod={Empcod} Concod={Concod} Abscod={Abscod}",
+                    conge.Soccod, conge.Empcod, conge.Concod, conge.Abscod);
+                return StatusCode(500, new { message = "Échec d'enregistrement de la demande de congé." });
             }
 
             // Best-effort : un échec de notification (DbContext concurrent, employé
