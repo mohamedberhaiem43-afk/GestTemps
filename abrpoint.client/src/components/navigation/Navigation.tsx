@@ -14,6 +14,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
  * (route '/' = LCP critique). Le reste est React.lazy.
  */
 import HomePage from '../Home/HomePage';
+import DownloadPage from '../Download/DownloadPage';
 import { RequireAuth, RequireAdmin, classifyRoute } from '../helper/RouteGuards';
 import NotificationCenter from './NotificationCenter';
 import SidebarNavigationDualTier, { type NavGroup, type FooterItem } from './SidebarNavigationDualTier';
@@ -443,6 +444,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/about': content = <AboutPage />; break;
     case '/login': content = <CredentialsSignInPage />; break;
     case '/signup': content = <SignupPage />; break;
+    case '/download': content = <DownloadPage />; break;
     case '/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/contact-sales': content = <ContactSalesPage />; break;
     case '/dashboard': content = <DashboardModernSync />; break;
@@ -805,7 +807,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   // Pour le rendu (tabs, breadcrumb, switch de la page courante), on raisonne toujours sur la
   // forme canonique avec /dashboard/ préfixée : la nav config et les case '/dashboard/X' du
   // switch restent inchangées. La barre d'URL, elle, montre la version courte.
-  const PUBLIC_PATHS = ['/', '/about', '/login', '/signup', '/plan-configuration', '/payment', '/contact-sales'];
+  const PUBLIC_PATHS = ['/', '/about', '/login', '/signup', '/plan-configuration', '/payment', '/contact-sales', '/download'];
   const canonicalPathname = (pathname === '/dashboard' || pathname.startsWith('/dashboard/') || PUBLIC_PATHS.includes(pathname))
     ? pathname
     : `/dashboard${pathname}`;
@@ -882,7 +884,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // Track navigation to add tabs (cap MAX_OPEN_TABS, FIFO eviction).
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download') return;
     // Le dashboard est la page d'accueil par défaut, pas un onglet : on ne le
     // crée pas dans la barre d'onglets pour ne pas l'encombrer dès le login.
     if (canonicalPathname === '/dashboard' || pathname === '/dashboard') return;
@@ -911,7 +913,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // ── Recent Pages Tracking ──
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || canonicalPathname === '/dashboard') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || canonicalPathname === '/dashboard') return;
 
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
@@ -986,7 +988,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   ];
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
-  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales';
+  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download';
   const isProfilePage = canonicalPathname === '/dashboard/profil-employe';
 
   if (!authReady) {

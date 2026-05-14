@@ -277,26 +277,26 @@ export default function HomePage() {
             <h3 className="download-band-title">Téléchargez l'app Concorde Workly</h3>
             <p className="download-band-sub">
               iOS · Android · Mode offline · Géolocalisation optionnelle. Rendez-vous sur{' '}
-              <a className="download-band-url" href="https://concordeworkly.com" target="_blank" rel="noreferrer">concordeworkly.com</a>
+              <a className="download-band-url" href="/download">concordeworkly.com</a>
               {' '}pour récupérer la dernière version.
             </p>
           </div>
           <div className="download-band-buttons">
-            <a className="store-btn" href="https://concordeworkly.com/ios" target="_blank" rel="noreferrer">
+            <a className="store-btn" href="/download">
               <span className="store-btn-icon"></span>
               <span className="store-btn-text">
                 <span className="store-btn-small">Télécharger sur</span>
                 <span className="store-btn-large">App Store</span>
               </span>
             </a>
-            <a className="store-btn" href="https://concordeworkly.com/android" target="_blank" rel="noreferrer">
+            <a className="store-btn" href="/download">
               <span className="store-btn-icon">▶</span>
               <span className="store-btn-text">
                 <span className="store-btn-small">DISPONIBLE SUR</span>
                 <span className="store-btn-large">Google Play</span>
               </span>
             </a>
-            <a className="store-btn store-btn-apk" href="https://concordeworkly.com" target="_blank" rel="noreferrer">
+            <a className="store-btn store-btn-apk" href="/api/download/android" download>
               <span className="store-btn-icon">⬇</span>
               <span className="store-btn-text">
                 <span className="store-btn-small">APK direct</span>
@@ -437,11 +437,11 @@ export default function HomePage() {
                 <div className="step-illus-title">Mobile-first</div>
                 <div className="step-illus-desc">iOS · Android · Mode offline · Géolocalisation optionnelle · Pointeuses biométriques compatibles</div>
                 <div className="step-stores">
-                  <a className="step-store" href="https://concordeworkly.com/ios" target="_blank" rel="noreferrer">↓ App Store</a>
-                  <a className="step-store" href="https://concordeworkly.com/android" target="_blank" rel="noreferrer">↓ Google Play</a>
+                  <a className="step-store" href="/download" target="_blank" rel="noreferrer">↓ App Store</a>
+                  <a className="step-store" href="/download" target="_blank" rel="noreferrer">↓ Google Play</a>
                 </div>
                 <div className="step-store-url">
-                  ou téléchargez l'APK depuis <a href="https://concordeworkly.com" target="_blank" rel="noreferrer"><strong>concordeworkly.com</strong></a>
+                  ou téléchargez l'APK depuis <a href="/download"><strong>concordeworkly.com</strong></a>
                 </div>
               </div>
             )}
@@ -779,7 +779,7 @@ export default function HomePage() {
               <a href="#pricing">Tarifs</a>
               <a href="#how">Démo</a>
               <a href="#download">Application mobile</a>
-              <a href="https://concordeworkly.com" target="_blank" rel="noreferrer">concordeworkly.com</a>
+              <a href="/download">concordeworkly.com</a>
               <a href="#temoignages">Cas clients</a>
             </div>
           </div>

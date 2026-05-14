@@ -1,0 +1,224 @@
+/* DownloadPage : page publique de téléchargement de l'app mobile.
+   Préfixée `.dl-page` pour ne pas fuiter dans le reste de l'app. */
+
+.dl-page {
+  --dl-primary: #0040a1;
+  --dl-primary-container: #0056d2;
+  --dl-on-surface: #191c1e;
+  --dl-on-surface-variant: #424654;
+  --dl-outline: #737785;
+  --dl-surface: #f7f9fb;
+  --dl-surface-low: #ffffff;
+  --dl-surface-high: #eceef0;
+
+  background: var(--dl-surface);
+  color: var(--dl-on-surface);
+  min-height: 100vh;
+  font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.dl-page *,
+.dl-page *::before,
+.dl-page *::after { box-sizing: border-box; }
+
+.dl-page .dl-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 10% 5%, rgba(0,86,210,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 25%, rgba(0,86,210,0.05) 0%, transparent 60%);
+}
+
+/* ── HEADER ── */
+.dl-page .dl-header {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--dl-surface-high);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(20px);
+}
+.dl-page .dl-brand {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none; color: var(--dl-on-surface);
+  font-weight: 800; font-size: 17px; letter-spacing: -0.02em;
+}
+.dl-page .dl-logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--dl-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900;
+}
+.dl-page .dl-brand-name { font-family: 'Manrope', 'Inter', sans-serif; }
+.dl-page .dl-back {
+  color: var(--dl-on-surface-variant); text-decoration: none;
+  font-size: 13px; font-weight: 600;
+}
+.dl-page .dl-back:hover { color: var(--dl-primary); }
+
+/* ── MAIN ── */
+.dl-page .dl-main {
+  position: relative; z-index: 1;
+  max-width: 1100px; margin: 0 auto; padding: 56px 24px 80px;
+}
+.dl-page .dl-hero { text-align: center; margin-bottom: 48px; }
+.dl-page .dl-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #dae2ff; color: var(--dl-primary);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 6px 14px; border-radius: 999px; text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.dl-page .dl-title {
+  font-family: 'Manrope', 'Inter', sans-serif;
+  font-size: clamp(32px, 5vw, 52px); font-weight: 900;
+  letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 16px;
+}
+.dl-page .dl-accent {
+  background: linear-gradient(135deg, var(--dl-primary), var(--dl-primary-container));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.dl-page .dl-sub {
+  font-size: 16px; color: var(--dl-on-surface-variant);
+  max-width: 620px; margin: 0 auto; line-height: 1.55;
+}
+
+/* ── GRID 2 col ── */
+.dl-page .dl-grid {
+  display: grid; grid-template-columns: 1.3fr 0.9fr; gap: 32px;
+  align-items: start;
+}
+
+/* ── CTA card ── */
+.dl-page .dl-cta-card {
+  background: var(--dl-surface-low);
+  border: 1px solid var(--dl-surface-high);
+  border-radius: 20px; padding: 32px;
+  box-shadow: 0 8px 32px rgba(0,64,161,0.06);
+}
+.dl-page .dl-os-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--dl-surface); color: var(--dl-on-surface-variant);
+  font-size: 12.5px; font-weight: 700;
+  padding: 6px 12px; border-radius: 999px;
+  margin-bottom: 18px;
+}
+.dl-page .dl-btn {
+  display: flex; align-items: center; gap: 14px;
+  text-decoration: none; color: #fff;
+  border-radius: 14px; padding: 14px 22px; margin-bottom: 12px;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.dl-page .dl-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15,23,42,0.2); }
+.dl-page .dl-btn-primary {
+  background: linear-gradient(135deg, var(--dl-primary), var(--dl-primary-container));
+  box-shadow: 0 8px 22px rgba(0,64,161,0.28);
+}
+.dl-page .dl-btn-secondary { background: #111418; }
+.dl-page .dl-btn-apk-inline {
+  background: var(--dl-surface); color: var(--dl-on-surface);
+  border: 1.5px dashed var(--dl-primary);
+}
+.dl-page .dl-btn-apk-inline:hover { background: #f0f5ff; }
+.dl-page .dl-btn-icon { font-size: 24px; line-height: 1; min-width: 24px; text-align: center; }
+.dl-page .dl-btn-content { display: flex; flex-direction: column; line-height: 1.2; }
+.dl-page .dl-btn-small {
+  font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  opacity: 0.8;
+}
+.dl-page .dl-btn-large { font-size: 16px; font-weight: 700; }
+.dl-page .dl-btn-meta { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+.dl-page .dl-btn-apk-inline .dl-btn-small,
+.dl-page .dl-btn-apk-inline .dl-btn-meta { color: var(--dl-outline); opacity: 1; }
+
+.dl-page .dl-stores-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
+}
+.dl-page .dl-stores-row .dl-btn { margin-bottom: 0; }
+
+.dl-page .dl-desktop-intro {
+  font-size: 13.5px; color: var(--dl-on-surface-variant);
+  margin: 0 0 18px; line-height: 1.55;
+}
+.dl-page .dl-note {
+  font-size: 13px; color: var(--dl-on-surface-variant);
+  background: #fff7e6; border: 1px solid #f5b94d;
+  border-radius: 12px; padding: 12px 14px; margin: 14px 0 0; line-height: 1.5;
+}
+.dl-page .dl-howto {
+  margin-top: 16px; font-size: 13.5px;
+  background: var(--dl-surface); border: 1px solid var(--dl-surface-high);
+  border-radius: 12px; padding: 14px 16px;
+}
+.dl-page .dl-howto summary {
+  cursor: pointer; font-weight: 700; color: var(--dl-primary);
+}
+.dl-page .dl-howto ol { margin: 12px 0 0 18px; padding: 0; line-height: 1.6; }
+.dl-page .dl-howto li { margin-bottom: 6px; }
+
+/* ── QR card ── */
+.dl-page .dl-qr-card {
+  background: linear-gradient(135deg, #f3f7ff 0%, #ffffff 100%);
+  border: 1px solid var(--dl-surface-high);
+  border-radius: 20px; padding: 28px 24px;
+  text-align: center;
+  position: sticky; top: 24px;
+}
+.dl-page .dl-qr-title {
+  font-size: 14px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--dl-on-surface-variant);
+  margin: 0 0 18px;
+}
+.dl-page .dl-qr-img {
+  width: 240px; height: 240px;
+  background: #fff; border-radius: 12px; padding: 8px;
+  border: 1px solid var(--dl-surface-high);
+}
+.dl-page .dl-qr-url {
+  margin-top: 18px;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 13.5px; color: var(--dl-primary); font-weight: 700;
+  word-break: break-all;
+}
+.dl-page .dl-qr-copy {
+  margin-top: 12px;
+  background: var(--dl-surface); color: var(--dl-on-surface);
+  border: 1px solid var(--dl-surface-high); border-radius: 999px;
+  padding: 7px 16px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.dl-page .dl-qr-copy:hover { background: #fff; border-color: var(--dl-primary); color: var(--dl-primary); }
+
+/* ── Features strip ── */
+.dl-page .dl-features {
+  margin-top: 56px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.dl-page .dl-feat {
+  background: var(--dl-surface-low); border: 1px solid var(--dl-surface-high);
+  border-radius: 16px; padding: 18px;
+  display: flex; flex-direction: column; gap: 4px; text-align: center;
+}
+.dl-page .dl-feat > span:first-child { font-size: 28px; }
+.dl-page .dl-feat strong { font-size: 14px; font-weight: 800; margin-top: 4px; }
+.dl-page .dl-feat > span:last-child { font-size: 12px; color: var(--dl-outline); }
+
+/* ── Footer ── */
+.dl-page .dl-footer {
+  position: relative; z-index: 2;
+  text-align: center; padding: 24px;
+  font-size: 12.5px; color: var(--dl-outline);
+  border-top: 1px solid var(--dl-surface-high);
+}
+.dl-page .dl-footer a { color: var(--dl-primary); text-decoration: none; }
+.dl-page .dl-footer a:hover { text-decoration: underline; }
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .dl-page .dl-main { padding: 32px 16px 60px; }
+  .dl-page .dl-grid { grid-template-columns: 1fr; }
+  .dl-page .dl-qr-card { position: static; }
+  .dl-page .dl-features { grid-template-columns: repeat(2, 1fr); }
+  .dl-page .dl-stores-row { grid-template-columns: 1fr; }
+}
