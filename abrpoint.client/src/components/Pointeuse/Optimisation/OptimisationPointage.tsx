@@ -12,7 +12,7 @@ interface Props {
 
 const OptimisationPointage = ({ empcod, date, onSuccess }: Props) => {
   const { soccod } = useAuth();
-  const { mutate, isLoading } = useOptimisePresence();
+  const { mutate, isPending: isLoading } = useOptimisePresence();
   const { t } = useTranslation();
 
   const [dateDeb, setDateDeb] = useState<string>(date);

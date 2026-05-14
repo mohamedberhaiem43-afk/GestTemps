@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserContext } from "../../helper/UserProvider";
 import { useAuth } from "../../helper/AuthProvider";
 import RolesService from "../../../services/RolesService/RolesService";
@@ -68,16 +68,14 @@ export default function RolePointeuseAccess() {
     setHasChanges(true);
   };
 
-  const saveMutation = useMutation(
-    (pointdroits: UpdateRolePointdroitRequest[]) =>
+  const saveMutation = useMutation({
+    mutationFn: (pointdroits: UpdateRolePointdroitRequest[]) =>
       RolesService.updatePointdroits(selectedRole!, pointdroits),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['rolePointdroits', selectedRole, socCode]);
-        setHasChanges(false);
-      }
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rolePointdroits', selectedRole, socCode] });
+      setHasChanges(false);
+    },
+  });
 
   const handleSave = () => {
     if (!selectedRole) return;
@@ -105,9 +103,9 @@ export default function RolePointeuseAccess() {
               {selectedRoleData.roleName}
             </span>
             {hasChanges && (
-              <button className="aut-perm-save-btn" onClick={handleSave} disabled={saveMutation.isLoading}>
+              <button className="aut-perm-save-btn" onClick={handleSave} disabled={saveMutation.isPending}>
                 <Save sx={{ fontSize: 14 }} />
-                {saveMutation.isLoading ? 'Enregistrement...' : 'Enregistrer'}
+                {saveMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
               </button>
             )}
           </div>

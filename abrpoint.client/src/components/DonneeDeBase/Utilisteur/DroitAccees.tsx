@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useUserContext } from "../../helper/UserProvider";
 import RolesService from "../../../services/RolesService/RolesService";
@@ -128,16 +128,14 @@ export default function DroitAccees(_props: DroitAcceesProps) {
     setHasChanges(true);
   };
 
-  const saveMutation = useMutation(
-    ({ roleId, perms }: { roleId: number; perms: UpdatePermissionRequest[] }) =>
+  const saveMutation = useMutation({
+    mutationFn: ({ roleId, perms }: { roleId: number; perms: UpdatePermissionRequest[] }) =>
       RolesService.updatePermissions(roleId, perms),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('roles');
-        setHasChanges(false);
-      }
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      setHasChanges(false);
+    },
+  });
 
   const handleSave = async () => {
     if (!selectedRole || !selectedRoleData) return;
@@ -212,9 +210,9 @@ export default function DroitAccees(_props: DroitAcceesProps) {
               {selectedRoleData.roleName}
             </span>
             {hasChanges && (
-              <button className="aut-perm-save-btn" onClick={handleSave} disabled={saveMutation.isLoading || isSyncing}>
+              <button className="aut-perm-save-btn" onClick={handleSave} disabled={saveMutation.isPending || isSyncing}>
                 <Save sx={{ fontSize: 14 }} />
-                {saveMutation.isLoading || isSyncing ? t('donneeDeBase.utilisateur.syncing') : t('donneeDeBase.utilisateur.save')}
+                {saveMutation.isPending || isSyncing ? t('donneeDeBase.utilisateur.syncing') : t('donneeDeBase.utilisateur.save')}
               </button>
             )}
           </div>

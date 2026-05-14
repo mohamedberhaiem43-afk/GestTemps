@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useUserContext } from '../../helper/UserProvider';
 import RolesService from '../../../services/RolesService/RolesService';
@@ -23,15 +23,15 @@ export default function ListeUtilisateur() {
     queryFn: RolesService.getAll,
   });
 
-  const createMutation = useMutation(
-    (data: Partial<Role>) => RolesService.create(data),
-    { onSuccess: () => { queryClient.invalidateQueries('roles'); setShowAddForm(false); setNewRoleName(''); setNewRoleDesc(''); } }
-  );
+  const createMutation = useMutation({
+    mutationFn: (data: Partial<Role>) => RolesService.create(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['roles'] }); setShowAddForm(false); setNewRoleName(''); setNewRoleDesc(''); },
+  });
 
-  const deleteMutation = useMutation(
-    (id: number) => RolesService.delete(id),
-    { onSuccess: () => { queryClient.invalidateQueries('roles'); if (selectedRole) setSelectedRole(null as any); } }
-  );
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => RolesService.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['roles'] }); if (selectedRole) setSelectedRole(null as any); },
+  });
 
   const filteredRoles = roles.filter((role: Role) => {
     if (!searchTerm) return true;
@@ -143,7 +143,7 @@ export default function ListeUtilisateur() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && editName.trim()) {
                           RolesService.update(role.roleId!, { roleName: editName.trim() }).then(() => {
-                            queryClient.invalidateQueries('roles');
+                            queryClient.invalidateQueries({ queryKey: ['roles'] });
                             setEditingRole(null);
                           });
                         }

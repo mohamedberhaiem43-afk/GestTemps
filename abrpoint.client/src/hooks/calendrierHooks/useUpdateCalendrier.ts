@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import CalendrierService from "../../services/CalendrierService/CalendrierService";
 
 const useUpdateCalendrier = (
@@ -12,11 +12,12 @@ const useUpdateCalendrier = (
 ) => {
   const soccod = localStorage.getItem("soccod") || "01";
 
-  return useMutation(() =>
-    CalendrierService.putWithParams(
-      `update-calendrier/${soccod}/${caltype}/${annee}/${tousMois}/${mois}/${nbhJours}/${jourRepos}/${nbhSamedi}`
-    )
-  );
+  return useMutation({
+    mutationFn: () =>
+      CalendrierService.putWithParams(
+        `update-calendrier/${soccod}/${caltype}/${annee}/${tousMois}/${mois}/${nbhJours}/${jourRepos}/${nbhSamedi}`
+      ),
+  });
 };
 
 export default useUpdateCalendrier;

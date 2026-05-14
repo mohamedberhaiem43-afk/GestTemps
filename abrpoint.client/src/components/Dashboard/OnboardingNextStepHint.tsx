@@ -50,7 +50,7 @@ const STEPS: StepMeta[] = [
   { key: 'classe',      index: 2, label: 'Classe horaire',           cta: 'Créer une classe',    route: '/dashboard/saisie-classe-horaire',   icon: <ScheduleIcon />,    successNoun: 'Classe enregistrée' },
   { key: 'calendrier',  index: 3, label: 'Calendrier (jours fériés)', cta: 'Configurer les fériés', route: '/dashboard/Repos',                   icon: <EventIcon />,       successNoun: 'Calendrier configuré' },
   { key: 'employe',     index: 4, label: 'Employé',                  cta: 'Ajouter un employé',  route: '/dashboard/gestion-employe',         icon: <GroupAddIcon />,    successNoun: 'Employé ajouté' },
-  { key: 'contrat',     index: 5, label: 'Contrat',                  cta: 'Créer un contrat',    route: '/dashboard/contrat/contrat',         icon: <DescriptionIcon />, successNoun: 'Contrat créé' },
+  { key: 'contrat',     index: 5, label: 'Contrat',                  cta: 'Créer un contrat',    route: '/dashboard/contrat',                 icon: <DescriptionIcon />, successNoun: 'Contrat créé' },
 ];
 
 interface OnboardingState {

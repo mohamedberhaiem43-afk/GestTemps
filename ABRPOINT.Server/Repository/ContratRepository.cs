@@ -319,9 +319,19 @@ namespace ABRPOINT.Server.Repository
                         Soccod = s.Soccod,
                         Concod = c.Concod,
                         Sitcod = e.Sitcod,
-                        Empmat = e.Empmat,
+                        // Fallback Empmat → Empcod : sur les tenants migrés depuis des bases
+                        // anciennes, `empmat` est souvent vide (le champ a été ajouté plus tard)
+                        // et la colonne "Matricule" affichait '—'. Le code employé reste un
+                        // identifiant fonctionnellement équivalent côté UI.
+                        Empmat = string.IsNullOrEmpty(e.Empmat) ? e.Empcod : e.Empmat,
                         Emplib = e.Emplib,
-                        Condat = c.Condat.HasValue ? c.Condat.Value.Date : (DateTime?)null,
+                        // Fallback Condat → Empemb : Condat (date de signature du contrat) est
+                        // null pour les contrats créés via flux legacy / import bulk. La date
+                        // d'embauche du contrat est la meilleure approximation disponible —
+                        // sinon la colonne "Date contrat" reste vide alors que la donnée existe.
+                        Condat = c.Condat.HasValue
+                            ? c.Condat.Value.Date
+                            : (c.Empemb.HasValue ? c.Empemb.Value.Date : (DateTime?)null),
                         Empemb = c.Empemb.HasValue ? c.Empemb.Value.Date : (DateTime?)null,
                         Empsort = c.Empsort.HasValue ? c.Empsort.Value.Date : (DateTime?)null
                     }).ToListAsync();

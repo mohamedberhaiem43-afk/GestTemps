@@ -111,7 +111,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
   const { soccod } = useAuth();
   const { data: absences = [] } = useGetCongeAbsenceLibs();
   const { data: employeOptions = [] } = useGetEmployee();
-  const { mutate: addConge, isLoading: adding } = useAddConge();
+  const { mutate: addConge, isPending: adding } = useAddConge();
   const { mutate: updateConge, isPending: updating } = useUpdateTitreConge();
 
   const [empcod, setEmpcod] = useState('');

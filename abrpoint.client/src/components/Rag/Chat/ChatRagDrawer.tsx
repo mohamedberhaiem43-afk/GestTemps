@@ -126,7 +126,7 @@ function ChatRagDrawerContent() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, ask.isLoading]);
+  }, [messages, ask.isPending]);
 
   const handleSend = async () => {
     const q = input.trim();
@@ -232,7 +232,7 @@ function ChatRagDrawerContent() {
         </Box>
 
         <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', p: 2, bgcolor: 'background.default' }}>
-          {messages.length === 0 && !ask.isLoading && (
+          {messages.length === 0 && !ask.isPending && (
             <Fade in timeout={500}>
               <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', color: 'text.secondary', gap: 1 }}>
                 <Box
@@ -337,7 +337,7 @@ function ChatRagDrawerContent() {
               </Grow>
             ))}
 
-            {ask.isLoading && (
+            {ask.isPending && (
               <Fade in timeout={200}>
                 <Stack
                   direction="row"
@@ -380,12 +380,12 @@ function ChatRagDrawerContent() {
             fullWidth
             multiline
             maxRows={4}
-            disabled={ask.isLoading}
+            disabled={ask.isPending}
           />
           <IconButton
             color="primary"
             onClick={handleSend}
-            disabled={ask.isLoading || !input.trim()}
+            disabled={ask.isPending || !input.trim()}
             sx={{
               alignSelf: 'flex-end',
               transition: 'transform 0.18s ease, background-color 0.2s ease',

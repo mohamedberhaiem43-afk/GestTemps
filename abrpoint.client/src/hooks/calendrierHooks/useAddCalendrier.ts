@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import CalendriersService from "../../services/CalendrierService/CalendriersService";
 
 interface AddCalendrierParams {
@@ -8,9 +8,10 @@ interface AddCalendrierParams {
 }
 
 const useAddCalendrier = () => {
-  return useMutation(({ soccod, annee, caltype }: AddCalendrierParams) =>
-    CalendriersService.postWithParams(`add-calendrier/${soccod}/${annee}/${caltype}`, {})
-  );
+  return useMutation({
+    mutationFn: ({ soccod, annee, caltype }: AddCalendrierParams) =>
+      CalendriersService.postWithParams(`add-calendrier/${soccod}/${annee}/${caltype}`, {}),
+  });
 };
 
 export default useAddCalendrier;

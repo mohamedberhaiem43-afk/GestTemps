@@ -40,6 +40,14 @@ namespace ABRPOINT.Server.Services
         {
             if (string.IsNullOrEmpty(plainText)) return plainText;
 
+            // Idempotence : si l'entrée est DÉJÀ un ciphertext v2 valide, on la retourne
+            // telle quelle. Sans ce garde, un upsert dont la form data conserve la valeur
+            // chiffrée (ex: champ non modifié populé depuis un cache front non déchiffré)
+            // produisait `v2:base64(v2:base64(plain))`. Au prochain Decrypt, on récupérait
+            // le ciphertext interne `v2:base64(plain)` qui s'affichait tel quel dans l'UI
+            // (CIN/téléphone "cryptés" sur la fiche collaborateur).
+            if (IsValidV2Ciphertext(plainText)) return plainText;
+
             var plainBytes = Encoding.UTF8.GetBytes(plainText);
             var nonce = RandomNumberGenerator.GetBytes(GcmNonceSize);
             var cipher = new byte[plainBytes.Length];
@@ -85,7 +93,17 @@ namespace ABRPOINT.Server.Services
                 // (donnée tampered ou clé incorrecte) — c'est le comportement voulu :
                 // on N'AVALE PLUS l'erreur, on remonte.
                 aes.Decrypt(nonce, cipher, tag, plain);
-                return Encoding.UTF8.GetString(plain);
+                var result = Encoding.UTF8.GetString(plain);
+
+                // Récupération des données déjà doublement chiffrées en base (bug
+                // historique : Encrypt n'était pas idempotent, certaines updates
+                // ré-encryptaient une valeur déjà v2: → `v2:base64(v2:base64(plain))`).
+                // Si le clair décodé est lui-même un ciphertext v2 valide, on dépile
+                // une couche supplémentaire pour restituer le vrai plaintext.
+                if (IsValidV2Ciphertext(result))
+                    return Decrypt(result);
+
+                return result;
             }
 
             // Legacy — AES-CBC, IV statique. Conservé en lecture pour les données
@@ -124,6 +142,27 @@ namespace ABRPOINT.Server.Services
             if (string.IsNullOrEmpty(value)) return value;
             try { return Decrypt(value); }
             catch { return value; }
+        }
+
+        /// <summary>
+        /// Vérifie si une chaîne ressemble à un ciphertext v2 valide :
+        /// préfixe "v2:" + base64 décodable + taille payload >= nonce + tag.
+        /// On NE déchiffre PAS — pas de coût AES, pas de besoin de la bonne clé —
+        /// on vérifie juste que la forme est cohérente, suffisant pour rejeter
+        /// un re-encrypt qui produirait une double-couche.
+        /// </summary>
+        private static bool IsValidV2Ciphertext(string value)
+        {
+            if (!value.StartsWith(V2Prefix, StringComparison.Ordinal)) return false;
+            try
+            {
+                var payload = Convert.FromBase64String(value.AsSpan(V2Prefix.Length).ToString());
+                return payload.Length >= GcmNonceSize + GcmTagSize;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
     }
 }

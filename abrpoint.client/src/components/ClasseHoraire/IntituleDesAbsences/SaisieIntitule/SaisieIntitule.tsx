@@ -61,7 +61,7 @@ export default function SaisieIntitule() {
 };
 
   const{refetch} = useGetAllAbsences();
-  const { mutate: addAbsence, isLoading } = useAddAbsence();
+  const { mutate: addAbsence, isPending: isLoading } = useAddAbsence();
   const { mutate: editAbsence } = useUpdateAbsence();
   const saveAbsence = async () => {
     const absenceData = {

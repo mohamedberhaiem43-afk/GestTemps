@@ -31,7 +31,7 @@ import AlertModal from '../../AlertModal/AlertModal';
 import apiInstance from '../../API/apiInstance';
 import AccessDenied from '../../helper/AccessDenied';
 import OnboardingNextStepHint from '../../Dashboard/OnboardingNextStepHint';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import './GestionContratsModern.css';
 
@@ -161,14 +161,14 @@ const GestionContratsModernInner = () => {
     return <AccessDenied message={t('contrat.noConsultRight')} />;
   }
 
-  const { data: contratsRaw = [], isLoading, refetch } = useQuery(
-    ['contrats', soccod, uticod],
-    async () => {
+  const { data: contratsRaw, isLoading, refetch } = useQuery({
+    queryKey: ['contrats', soccod, uticod],
+    queryFn: async () => {
       const res = await apiInstance.get(`/Contrats/${soccod}/${uticod}`);
       return res.data;
     },
-    { enabled: !!soccod && !!uticod }
-  );
+    enabled: !!soccod && !!uticod,
+  });
   const { mutateAsync: updateContrat } = useUpdateContrat();
   const { mutateAsync: deleteContrat } = useDeleteContrat();
   const { data: empLibsRaw = {} } = useGetEmployeesLibs();

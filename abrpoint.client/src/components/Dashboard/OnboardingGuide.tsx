@@ -82,7 +82,7 @@ const STEPS: Step[] = [
     title: '5. Créer le contrat',
     description: 'Le contrat lie l\'employé à une période, un régime (mensuel/horaire) et un salaire. Indispensable pour la préparation paie.',
     cta: 'Créer un contrat',
-    route: '/dashboard/contrat/contrat',
+    route: '/dashboard/contrat',
     icon: <DescriptionIcon />,
   },
 ];

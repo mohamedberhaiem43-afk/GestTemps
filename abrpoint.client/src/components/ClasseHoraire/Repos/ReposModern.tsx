@@ -93,7 +93,7 @@ function ReposModernInner() {
   }
 
   const { data = [], isLoading, refetch } = useGetRepos();
-  const { mutate: addRepos, isLoading: adding } = useAddRepos();
+  const { mutate: addRepos, isPending: adding } = useAddRepos();
   const { mutate: editRepos, isPending: editing } = useUpdateRepos();
   const { mutate: deleteRepos } = useDeleteRepos();
 

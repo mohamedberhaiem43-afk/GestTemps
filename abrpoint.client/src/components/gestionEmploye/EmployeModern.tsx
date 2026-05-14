@@ -1813,8 +1813,8 @@ const EmployeModernInner = () => {
                             const code = pendingContractEmpcod;
                             setContractPromptOpen(false);
                             setPendingContractEmpcod(null);
-                            if (code) navigate(`/dashboard/contrat/contrat?empcod=${encodeURIComponent(code)}`);
-                            else navigate('/dashboard/contrat/contrat');
+                            if (code) navigate(`/dashboard/contrat?empcod=${encodeURIComponent(code)}`);
+                            else navigate('/dashboard/contrat');
                         }}
                         sx={{
                             borderRadius: '8px', textTransform: 'none', fontWeight: 700,

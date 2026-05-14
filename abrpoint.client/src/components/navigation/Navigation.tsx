@@ -307,7 +307,7 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
         ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
-        ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat/contrat', icon: FileText }] : []),
+        ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
         ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
         // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
         // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
@@ -477,7 +477,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/societe': content = <BasicTabs />; break;
     case '/dashboard/parametres': content = <BasicTabs />; break;
     case '/dashboard/allaitement': content = <AllaitementModern />; break;
-    case '/dashboard/contrat/contrat': content = <GestionContratsModern />; break;
+    case '/dashboard/contrat': content = <GestionContratsModern />; break;
     // /dashboard/contrat/renouvellement-contrat retiré : flux intégré à la liste des contrats
     // et au dashboard (KPI échéance → dialog).
     case '/dashboard/saisie-classe-horaire': content = <ClasseHoraireModern />; break;

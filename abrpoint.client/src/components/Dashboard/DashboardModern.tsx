@@ -663,7 +663,7 @@ function DashboardModernAdmin() {
             secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Créer une fiche employé</Typography>}
           />
         </MenuItem>
-        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/contrat/contrat'); }}>
+        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/contrat'); }}>
           <ListItemIcon><DescriptionIcon fontSize="small" sx={{ color: '#005136' }} /></ListItemIcon>
           <ListItemText
             primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Gérer les contrats</Typography>}

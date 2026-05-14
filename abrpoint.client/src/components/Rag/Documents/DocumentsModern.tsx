@@ -178,9 +178,9 @@ function DocumentsModernContent() {
           </Select>
           <Button
             variant="contained"
-            startIcon={upload.isLoading ? <CircularProgress size={18} color="inherit" /> : <CloudUploadIcon />}
+            startIcon={upload.isPending ? <CircularProgress size={18} color="inherit" /> : <CloudUploadIcon />}
             onClick={handlePickFile}
-            disabled={upload.isLoading}
+            disabled={upload.isPending}
           >
             {t('rag.documents.uploadCta')}
           </Button>

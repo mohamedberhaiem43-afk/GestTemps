@@ -468,10 +468,10 @@ const MissionPage: React.FC = () => {
           <Button
             variant="contained"
             onClick={submit}
-            disabled={createMut.isLoading || updateMut.isLoading}
+            disabled={createMut.isPending || updateMut.isPending}
             sx={{ bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' } }}
           >
-            {(createMut.isLoading || updateMut.isLoading) ? <CircularProgress size={16} sx={{ color: 'white' }} /> : t('mission.dialog.save')}
+            {(createMut.isPending || updateMut.isPending) ? <CircularProgress size={16} sx={{ color: 'white' }} /> : t('mission.dialog.save')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -483,8 +483,8 @@ const MissionPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDelete(null)}>{t('mission.delete.cancel')}</Button>
-          <Button color="error" variant="contained" onClick={doDelete} disabled={deleteMut.isLoading}>
-            {deleteMut.isLoading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : t('mission.delete.confirm')}
+          <Button color="error" variant="contained" onClick={doDelete} disabled={deleteMut.isPending}>
+            {deleteMut.isPending ? <CircularProgress size={16} sx={{ color: 'white' }} /> : t('mission.delete.confirm')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -272,7 +272,7 @@ function LetterTemplatesModernContent() {
           <Button
             onClick={handleSave}
             variant="contained"
-            disabled={create.isLoading || update.isLoading}
+            disabled={create.isPending || update.isPending}
           >
             {t('rag.letters.save')}
           </Button>

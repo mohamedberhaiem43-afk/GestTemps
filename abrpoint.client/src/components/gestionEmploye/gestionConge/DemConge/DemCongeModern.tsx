@@ -136,7 +136,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   const { data: employeOptions = [] } = useGetEmployee();
   const { mutate: addConge, isPending: adding } = useAddDemConge();
   const { mutate: updateConge, isPending: updating } = useUpdateDemConge();
-  const { mutate: addAbsence, isLoading: addingAbsence } = useAddAbsence();
+  const { mutate: addAbsence, isPending: addingAbsence } = useAddAbsence();
   const canAddAbsence = hasPermission('Paramètres de Temps', 'add');
 
   // Inline "ajouter une nature d'absence" — affiché dans le même dialog quand
@@ -1184,8 +1184,8 @@ function DemCongeModernInner() {
               setCongeToDelete(null);
             }}
             variant="contained" color="error"
-            disabled={deleteMutation.isLoading}
-            startIcon={deleteMutation.isLoading ? <CircularProgress size={14} color="inherit" /> : <DeleteIcon />}
+            disabled={deleteMutation.isPending}
+            startIcon={deleteMutation.isPending ? <CircularProgress size={14} color="inherit" /> : <DeleteIcon />}
             sx={{ textTransform: 'none', borderRadius: '8px' }}
           >
             {t('conge.demConge.dialog.deleteYes')}

@@ -125,8 +125,8 @@ export default function LetterGenerateDialog({ open, template, onClose }: Props)
         <Button
           onClick={handleGenerate}
           variant="contained"
-          startIcon={generate.isLoading ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
-          disabled={!empcod || generate.isLoading}
+          startIcon={generate.isPending ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
+          disabled={!empcod || generate.isPending}
         >
           {t('rag.letters.generateAndDownload')}
         </Button>

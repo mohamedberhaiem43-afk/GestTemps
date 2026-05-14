@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import RagService from '../../services/RagService';
 import {
   RagLetterTemplateUpsert,
@@ -12,26 +12,28 @@ export const useLetterTemplates = () =>
 
 export const useCreateLetterTemplate = () => {
   const qc = useQueryClient();
-  return useMutation((req: RagLetterTemplateUpsert) => RagService.createTemplate(req), {
-    onSuccess: () => qc.invalidateQueries(KEY),
+  return useMutation({
+    mutationFn: (req: RagLetterTemplateUpsert) => RagService.createTemplate(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
 
 export const useUpdateLetterTemplate = () => {
   const qc = useQueryClient();
-  return useMutation(
-    ({ id, req }: { id: number; req: RagLetterTemplateUpsert }) =>
+  return useMutation({
+    mutationFn: ({ id, req }: { id: number; req: RagLetterTemplateUpsert }) =>
       RagService.updateTemplate(id, req),
-    { onSuccess: () => qc.invalidateQueries(KEY) },
-  );
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
 };
 
 export const useDeleteLetterTemplate = () => {
   const qc = useQueryClient();
-  return useMutation((id: number) => RagService.deleteTemplate(id), {
-    onSuccess: () => qc.invalidateQueries(KEY),
+  return useMutation({
+    mutationFn: (id: number) => RagService.deleteTemplate(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
 
 export const useGenerateLetter = () =>
-  useMutation((req: RagLetterGenerateRequest) => RagService.generateLetter(req));
+  useMutation({ mutationFn: (req: RagLetterGenerateRequest) => RagService.generateLetter(req) });

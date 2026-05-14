@@ -172,7 +172,7 @@ Posez-moi votre question !`;
   // Auto-scroll au bas de la conversation visible.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [assistantMsgs, ragMsgs, askRag.isLoading, assistantLoading, tab]);
+  }, [assistantMsgs, ragMsgs, askRag.isPending, assistantLoading, tab]);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -229,7 +229,7 @@ Posez-moi votre question !`;
   };
 
   const sendRag = async (q: string) => {
-    if (!q.trim() || askRag.isLoading) return;
+    if (!q.trim() || askRag.isPending) return;
     setRagError(null);
     setRagMsgs((m) => [...m, { id: genId(), role: 'user', content: q }]);
     try {
@@ -291,7 +291,7 @@ Posez-moi votre question !`;
         'Comment voir mon emploi du temps ?',
       ];
 
-  const isLoading = tab === 'assistant' ? assistantLoading : askRag.isLoading;
+  const isLoading = tab === 'assistant' ? assistantLoading : askRag.isPending;
   const placeholder =
     tab === 'assistant'
       ? 'Posez votre question…'
@@ -477,7 +477,7 @@ Posez-moi votre question !`;
           {/* ── Onglet RAG ── */}
           {tab === 'rag' && (
             <>
-              {ragMsgs.length === 0 && !askRag.isLoading && (
+              {ragMsgs.length === 0 && !askRag.isPending && (
                 <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', color: 'text.secondary' }}>
                   <GavelIcon sx={{ fontSize: 64, opacity: 0.2, mb: 2 }} />
                   <Typography variant="body2" textAlign="center" sx={{ maxWidth: 320 }}>
@@ -536,7 +536,7 @@ Posez-moi votre question !`;
                   </Box>
                 ))}
 
-                {askRag.isLoading && (
+                {askRag.isPending && (
                   <Stack direction="row" alignItems="center" gap={1} sx={{ alignSelf: 'flex-start' }}>
                     <CircularProgress size={16} />
                     <Typography variant="caption" color="text.secondary">

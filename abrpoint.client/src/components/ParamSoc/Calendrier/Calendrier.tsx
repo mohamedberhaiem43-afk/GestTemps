@@ -194,7 +194,7 @@ function CalendrierContent() {
     const currentYear = new Date().getFullYear().toString();
     if (selectedYear !== currentYear) return;
     if (autoCloneTried) return;
-    if (cloneCalendrier.isLoading) return;
+    if (cloneCalendrier.isPending) return;
     if (!Array.isArray(data)) return;
     if ((data as CalendarEntry[]).length > 0) return;
 

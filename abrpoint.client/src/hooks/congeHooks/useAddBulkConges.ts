@@ -1,12 +1,11 @@
 import apiInstance from "../../components/API/apiInstance";
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 
 const useAddBulkConges = () => {
-    return useMutation((conge:any) =>
-        apiInstance.post(
-            `/Conges/bulk`,
-            conge
-        ).then(res=>res.data)
-    );
+    return useMutation({
+        mutationFn: (conge: any) =>
+            apiInstance.post(`/Conges/bulk`, conge).then(res => res.data),
+    });
 };
+
 export default useAddBulkConges;

@@ -1,10 +1,10 @@
 // useOptimizePresence.ts
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import OptimiserPointageService from "../../services/PersenceService/OptimiserPointageService";
 
 const useOptimisePresence = () => {
-  return useMutation(
-    async ({
+  return useMutation({
+    mutationFn: async ({
       soccod,
       empMat,
       dateDeb,
@@ -21,8 +21,8 @@ const useOptimisePresence = () => {
         dateDeb,
         dateFin
       );
-    }
-  );
+    },
+  });
 };
 
 export default useOptimisePresence;

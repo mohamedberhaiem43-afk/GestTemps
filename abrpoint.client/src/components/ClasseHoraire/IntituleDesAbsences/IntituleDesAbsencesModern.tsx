@@ -101,7 +101,7 @@ function IntituleDesAbsencesModernInner() {
   }
 
   const { data: absences = [], isLoading, refetch } = useGetAllAbsences();
-  const { mutate: addAbsence, isLoading: adding } = useAddAbsence();
+  const { mutate: addAbsence, isPending: adding } = useAddAbsence();
   const { mutate: editAbsence, isPending: editing } = useUpdateAbsence();
   const { mutate: deleteAbsence } = useDeleteAbsence();
 

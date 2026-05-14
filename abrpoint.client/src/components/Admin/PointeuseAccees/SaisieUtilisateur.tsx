@@ -39,7 +39,7 @@ function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProp
     const { data: sitLibs = [] } = useGetSiteLibs();
     const { selectedUser } = useUserContext();
 
-    const { error, isLoading } = useAddUser(); 
+    const { error, isPending: isLoading } = useAddUser();
 
     // Call onDataChange whenever form data changes
     useEffect(() => {
