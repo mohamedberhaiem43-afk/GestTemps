@@ -2714,6 +2714,15 @@
     "presence": {
       "noConsultRight": "Vous n'avez pas le droit de consulter l'état de présence.",
       "title": "Etat de Presence",
+      "subtitle": "Analyse et suivi des pointages du personnel",
+      "tableTitle": "Détails de la Présence",
+      "tableSubtitle": "Periode du {{start}} au {{end}}",
+      "summary": {
+        "lateRateFooter": "Part d'employes en retard",
+        "totalLateFooter": "Cumul sur la periode",
+        "avgFooter": "{{count}} employes filtres",
+        "nightFooter": "Cumul heures de nuit"
+      },
       "analyticTitle": "Analytique Presence",
       "punctuality": "Ponctualite {{value}}%",
       "kpiLateRate": "Taux de retard global",
@@ -2757,13 +2766,21 @@
     "retard": {
       "noConsultRight": "Vous n'avez pas le droit de consulter l'état de retard.",
       "title": "Suivi des Retards",
+      "subtitle": "Analyse et suivi des retards du personnel",
       "analyticTitle": "Analytique Presence",
       "upToDate": "Donnees a jour",
       "kpiGlobalRate": "Taux de retard global",
       "kpiTotalDuration": "Temps de retard total",
       "kpiAvgByPunch": "Moyenne par pointage",
       "kpiImpacted": "Employes concernes",
+      "summary": {
+        "rateFooter": "Part d'employes en retard",
+        "totalFooter": "Cumul sur la periode",
+        "avgFooter": "Par pointage impacte",
+        "impactedFooter": "Sur l'effectif filtre"
+      },
       "tableTitle": "Détails des Retards",
+      "tableSubtitle": "Periode du {{start}} au {{end}}",
       "period": "Periode",
       "site": "Site",
       "regimePrefix": "Regime {{value}}",

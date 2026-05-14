@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, TextField, MenuItem, Snackbar, Alert, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, TextField, MenuItem, CircularProgress } from '@mui/material';
+import { useFeedbackSnackbar } from '../helper/FeedbackSnackbar';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -24,12 +25,12 @@ const ContactPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [subjectKey, setSubjectKey] = useState(SUBJECT_KEYS[0]);
   const [message, setMessage] = useState('');
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as 'success' | 'error' });
+  const feedback = useFeedbackSnackbar();
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || !message.trim()) {
-      setSnack({ open: true, msg: t('support.contact.errors.requiredFields'), sev: 'error' });
+      feedback.showError(t('support.contact.errors.requiredFields'));
       return;
     }
     setSending(true);
@@ -40,14 +41,13 @@ const ContactPage: React.FC = () => {
         subject: t(`support.contact.subjects.${subjectKey}`),
         message: message.trim(),
       });
-      setSnack({ open: true, msg: t('support.contact.successMessage'), sev: 'success' });
+      feedback.showSuccess(t('support.contact.successMessage'));
       setName('');
       setEmail('');
       setSubjectKey(SUBJECT_KEYS[0]);
       setMessage('');
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || t('support.contact.errors.sendFailed');
-      setSnack({ open: true, msg, sev: 'error' });
+    } catch (err) {
+      feedback.showError(err, t('support.contact.errors.sendFailed'));
     } finally {
       setSending(false);
     }
@@ -103,9 +103,7 @@ const ContactPage: React.FC = () => {
           </Button>
         </Box>
       </Box>
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack({ ...snack, open: false })}>
-        <Alert severity={snack.sev} onClose={() => setSnack({ ...snack, open: false })} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 };

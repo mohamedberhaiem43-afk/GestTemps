@@ -1,4 +1,4 @@
-import { Snackbar, Alert } from "@mui/material";
+import { useFeedbackSnackbar, extractErrorMessage } from "../../helper/FeedbackSnackbar";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import useGetSocLibs from "../../../hooks/societeHooks/useGetSocLibs";
@@ -15,15 +15,6 @@ import useUpdateUser from "../../../hooks/userHooks/useUpdateUser";
 interface SaisieUtilisateurProps {
     onDataChange: (data: any) => void;
     profil: boolean;
-}
-
-interface ApiError {
-    response?: {
-        data?: {
-            message?: string;
-        };
-    };
-    message?: string;
 }
 
 export interface SaisieUtilisateurHandle {
@@ -101,19 +92,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
             enabled: !!selectedUser,
         });
 
-        const [snackbarOpen, setSnackbarOpen] = useState(false);
-        const [snackbarMessage, setSnackbarMessage] = useState('');
-        const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-
-        const handleSnackbarOpen = (message: string, severity: 'success' | 'error') => {
-            setSnackbarMessage(message);
-            setSnackbarSeverity(severity);
-            setSnackbarOpen(true);
-        };
-
-        const handleSnackbarClose = () => {
-            setSnackbarOpen(false);
-        };
+        const feedback = useFeedbackSnackbar();
 
         // Sync role with admin checkbox (utilise les noms officiels PermissionCatalog.Roles)
         useEffect(() => {
@@ -133,7 +112,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
 
         const handleSave = async () => {
             if (!uticod || !utiprn || !utinom || !societe || !site) {
-                handleSnackbarOpen(t('utilisateur.form.requiredFields'), 'error');
+                feedback.showError(t('utilisateur.form.requiredFields'));
                 return false;
             }
 
@@ -170,13 +149,9 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
 
         useEffect(() => {
             if (error) {
-                const apiError = error as ApiError;
-                const errorMessage =
-                    apiError.response?.data?.message ||
-                    apiError.message ||
-                    t('utilisateur.form.addError');
-                handleSnackbarOpen(errorMessage, 'error');
+                feedback.showError(extractErrorMessage(error, t('utilisateur.form.addError')));
             }
+            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [error]);
 
         return (
@@ -267,11 +242,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                     </div>
                 </div>
 
-                <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose}>
-                    <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
-                        {snackbarMessage}
-                    </Alert>
-                </Snackbar>
+                {feedback.element}
             </>
         );
     });

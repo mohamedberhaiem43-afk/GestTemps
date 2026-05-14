@@ -1,4 +1,5 @@
-import { Alert, Box, Grid, IconButton, Snackbar } from "@mui/material";
+import { Box, Grid, IconButton } from "@mui/material";
+import { useFeedbackSnackbar } from "../../helper/FeedbackSnackbar";
 import { Search } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -115,12 +116,7 @@ function FilterPointageMois() {
   const [dateFin, setEndDate] = useState("");
   const [annee, setAnnee] = useState(getCurrentYearValue());
   const [selectedSemaine, setSelectedSemaine] = useState("0");
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-  };
+  const feedback = useFeedbackSnackbar();
 
   useEffect(() => {
     if (!soccod) {
@@ -194,8 +190,7 @@ function FilterPointageMois() {
 
   const handleApplyFilter = () => {
     if (selectedEmpcods.length === 0) {
-      setSnackbarMessage("Veuillez selectionner au moins un employe.");
-      setSnackbarOpen(true);
+      feedback.showWarning("Veuillez sélectionner au moins un employé.");
       return;
     }
 
@@ -315,16 +310,7 @@ function FilterPointageMois() {
         </Grid>
       </Grid>
 
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={handleSnackbarClose} severity="warning" variant="filled">
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

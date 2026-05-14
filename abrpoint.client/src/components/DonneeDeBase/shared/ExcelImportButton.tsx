@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Button, CircularProgress, Snackbar, Alert } from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import * as XLSX from 'xlsx';
 import apiInstance from '../../API/apiInstance';
@@ -26,7 +27,7 @@ export default function ExcelImportButton({
 }: ExcelImportButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as 'success' | 'error' | 'warning' });
+  const feedback = useFeedbackSnackbar();
 
   const handlePick = () => inputRef.current?.click();
 
@@ -56,7 +57,7 @@ export default function ExcelImportButton({
       }).filter(r => Object.values(r).some(v => v !== undefined && v !== ''));
 
       if (rows.length === 0) {
-        setSnack({ open: true, msg: 'Aucune ligne valide trouvée dans le fichier.', sev: 'warning' });
+        feedback.showWarning('Aucune ligne valide trouvée dans le fichier.');
         return;
       }
 
@@ -68,10 +69,11 @@ export default function ExcelImportButton({
       if (skipped) msg += `, ${skipped} ignorée(s)`;
       if (created) msg += `, ${created} entité(s) auto-créée(s)`;
       const errs: string[] = data.errors ?? [];
-      setSnack({ open: true, msg: errs.length ? `${msg}. ${errs.length} erreur(s).` : msg, sev: errs.length ? 'warning' : 'success' });
+      if (errs.length) feedback.showWarning(`${msg}. ${errs.length} erreur(s).`);
+      else feedback.showSuccess(msg);
       onImported?.();
-    } catch (err: any) {
-      setSnack({ open: true, msg: err?.response?.data?.error || 'Erreur lors de l\'import du fichier.', sev: 'error' });
+    } catch (err) {
+      feedback.showError(err, "Erreur lors de l'import du fichier.");
     } finally {
       setImporting(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -100,11 +102,7 @@ export default function ExcelImportButton({
       >
         {importing ? 'Import…' : label}
       </Button>
-      <Snackbar open={snack.open} autoHideDuration={6000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
-          {snack.msg}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </>
   );
 }

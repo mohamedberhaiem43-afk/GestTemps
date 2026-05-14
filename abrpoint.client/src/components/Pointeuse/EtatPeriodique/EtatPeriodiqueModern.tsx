@@ -1,4 +1,5 @@
-import { Box, Typography, CircularProgress, Avatar, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, CircularProgress, Avatar } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useContext, useEffect, useState, useMemo } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import PrintIcon from '@mui/icons-material/Print';
@@ -498,11 +499,12 @@ function EtatPeriodiqueModernInner() {
   // Dialog "Ajuster un pointage" — pré-rempli avec l'employé sélectionné dans la
   // sidebar et la journée actuellement ouverte dans le panneau de détail.
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' | 'warning' }>({
-    open: false, msg: '', sev: 'success',
-  });
-  const showSnack = (msg: string, sev: 'success' | 'error' | 'warning') =>
-    setSnack({ open: true, msg, sev });
+  const feedback = useFeedbackSnackbar();
+  const showSnack = (msg: string, sev: 'success' | 'error' | 'warning') => {
+    if (sev === 'success') feedback.showSuccess(msg);
+    else if (sev === 'warning') feedback.showWarning(msg);
+    else feedback.showError(msg);
+  };
 
   // Employee multi-select dropdown — list filtered by current filiale/service/regime selection.
   const { data: employeesLibs = {} } = useGetEmployeesLibs(
@@ -1048,19 +1050,7 @@ function EtatPeriodiqueModernInner() {
         initialDate={selectedDay ? dayjs(selectedDay.predat).format('YYYY-MM-DD') : ''}
       />
 
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={4000}
-        onClose={() => setSnack(s => ({ ...s, open: false }))}
-      >
-        <Alert
-          severity={snack.sev}
-          onClose={() => setSnack(s => ({ ...s, open: false }))}
-          sx={{ borderRadius: '10px' }}
-        >
-          {snack.msg}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

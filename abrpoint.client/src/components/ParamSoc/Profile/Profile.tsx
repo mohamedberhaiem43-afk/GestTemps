@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Alert, Snackbar } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -39,11 +39,7 @@ function ProfilePage() {
   const { uticod } = useAuth();
   const [userData, setUserData] = useState<User | null>(null);
   const [profileImage, setProfileImage] = useState<string>('');
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info';
-  }>({ open: false, message: '', severity: 'success' });
+  const feedback = useFeedbackSnackbar();
 
   // Password dialog
   const [pwdDialogOpen, setPwdDialogOpen] = useState(false);
@@ -94,14 +90,11 @@ function ProfilePage() {
     };
     updateUserMutation.mutate(utilisateurUpdate, {
       onSuccess: (response: any) => {
-        setSnackbar({
-          open: true,
-          message: response ? t('paramSoc.profile.msg.profileUpdated') : t('paramSoc.profile.msg.noChanges'),
-          severity: response ? 'success' : 'info',
-        });
+        if (response) feedback.showSuccess(t('paramSoc.profile.msg.profileUpdated'));
+        else feedback.showInfo(t('paramSoc.profile.msg.noChanges'));
       },
-      onError: () => {
-        setSnackbar({ open: true, message: t('paramSoc.profile.msg.updateError'), severity: 'error' });
+      onError: (err: any) => {
+        feedback.showError(err, t('paramSoc.profile.msg.updateError'));
       },
     });
   };
@@ -125,17 +118,17 @@ function ProfilePage() {
         localStorage.setItem('profileImage', filePath);
         setProfileImage(resolveAssetUrl(filePath));
         window.dispatchEvent(new Event('imageUpdated'));
-        setSnackbar({ open: true, message: t('paramSoc.profile.msg.photoUpdated'), severity: 'success' });
+        feedback.showSuccess(t('paramSoc.profile.msg.photoUpdated'));
       }
     } catch (error) {
       console.error('Erreur image:', error);
-      setSnackbar({ open: true, message: t('paramSoc.profile.msg.photoSaveError'), severity: 'error' });
+      feedback.showError(error, t('paramSoc.profile.msg.photoSaveError'));
     }
   };
 
   const handleChangePassword = () => {
     if (!userData?.uticod || !currentPassword || !newPassword) {
-      setSnackbar({ open: true, message: t('paramSoc.profile.msg.fillAllFields'), severity: 'error' });
+      feedback.showError(t('paramSoc.profile.msg.fillAllFields'));
       return;
     }
     const payload: PasswordUpdate = {
@@ -145,13 +138,13 @@ function ProfilePage() {
     };
     updatePasswordMutation.mutate(payload, {
       onSuccess: () => {
-        setSnackbar({ open: true, message: t('paramSoc.profile.msg.passwordChanged'), severity: 'success' });
+        feedback.showSuccess(t('paramSoc.profile.msg.passwordChanged'));
         setCurrentPassword('');
         setNewPassword('');
         setPwdDialogOpen(false);
       },
-      onError: () => {
-        setSnackbar({ open: true, message: t('paramSoc.profile.msg.passwordChangeError'), severity: 'error' });
+      onError: (err: any) => {
+        feedback.showError(err, t('paramSoc.profile.msg.passwordChangeError'));
       },
     });
   };
@@ -168,7 +161,7 @@ function ProfilePage() {
         setTwoFADialogOpen(true);
       }
     } catch (err) {
-      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFAEnableError'), severity: 'error' });
+      feedback.showError(err, t('paramSoc.profile.msg.twoFAEnableError'));
     } finally {
       setTwoFALoading(false);
     }
@@ -183,9 +176,9 @@ function ProfilePage() {
       setTwoFADialogOpen(false);
       setTwoFACode('');
       setTwoFAQRUrl('');
-      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFAEnabled'), severity: 'success' });
+      feedback.showSuccess(t('paramSoc.profile.msg.twoFAEnabled'));
     } catch (err) {
-      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFAInvalidCode'), severity: 'error' });
+      feedback.showError(err, t('paramSoc.profile.msg.twoFAInvalidCode'));
     } finally {
       setTwoFALoading(false);
     }
@@ -197,9 +190,9 @@ function ProfilePage() {
     try {
       await apiInstance.post(`/Utilisateurs/disable-2fa/${userData.uticod}`);
       setTwoFAEnabled(false);
-      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFADisabled'), severity: 'info' });
+      feedback.showInfo(t('paramSoc.profile.msg.twoFADisabled'));
     } catch (err) {
-      setSnackbar({ open: true, message: t('paramSoc.profile.msg.twoFADisableError'), severity: 'error' });
+      feedback.showError(err, t('paramSoc.profile.msg.twoFADisableError'));
     } finally {
       setTwoFALoading(false);
     }
@@ -609,21 +602,7 @@ function ProfilePage() {
         </div>
       )}
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </div>
   );
 }

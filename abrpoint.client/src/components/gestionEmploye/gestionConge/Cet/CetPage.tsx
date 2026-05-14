@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Button, TextField, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody, Chip } from '@mui/material';
+import { Box, Typography, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody, Chip } from '@mui/material';
+import { useFeedbackSnackbar } from '../../../helper/FeedbackSnackbar';
 import SaveIcon from '@mui/icons-material/Save';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -34,7 +35,7 @@ const CetPage: React.FC = () => {
   const [preview, setPreview] = useState<TransferResult | null>(null);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as 'success' | 'error' | 'info' });
+  const feedback = useFeedbackSnackbar();
 
   const canModify = hasPermission('Données de Base', 'modify');
 
@@ -54,19 +55,19 @@ const CetPage: React.FC = () => {
 
   const saveParams = async () => {
     if (!/^\d{2}-\d{2}$/.test(datelim)) {
-      setSnack({ open: true, msg: t('conge.cet.msg.invalidDate'), sev: 'error' });
+      feedback.showError(t('conge.cet.msg.invalidDate'));
       return;
     }
     if (maxJours < 0) {
-      setSnack({ open: true, msg: t('conge.cet.msg.invalidCeiling'), sev: 'error' });
+      feedback.showError(t('conge.cet.msg.invalidCeiling'));
       return;
     }
     setLoading(true);
     try {
       await apiInstance.put('/Cet/parametres', { soccod, datelim, maxjours: maxJours });
-      setSnack({ open: true, msg: t('conge.cet.msg.saveSuccess'), sev: 'success' });
-    } catch (e: any) {
-      setSnack({ open: true, msg: e?.response?.data?.error || t('conge.cet.msg.saveError'), sev: 'error' });
+      feedback.showSuccess(t('conge.cet.msg.saveSuccess'));
+    } catch (e) {
+      feedback.showError(e, t('conge.cet.msg.saveError'));
     } finally {
       setLoading(false);
     }
@@ -77,9 +78,9 @@ const CetPage: React.FC = () => {
     try {
       const { data } = await apiInstance.get<TransferResult>(`/Cet/preview/${soccod}/${annee}`);
       setPreview(data);
-      setSnack({ open: true, msg: t('conge.cet.msg.previewMsg', { employees: data.employesTraites, days: data.totalJoursTransferes }), sev: 'info' });
-    } catch (e: any) {
-      setSnack({ open: true, msg: e?.response?.data?.error || t('conge.cet.msg.previewError'), sev: 'error' });
+      feedback.showInfo(t('conge.cet.msg.previewMsg', { employees: data.employesTraites, days: data.totalJoursTransferes }));
+    } catch (e) {
+      feedback.showError(e, t('conge.cet.msg.previewError'));
     } finally {
       setLoading(false);
     }
@@ -91,9 +92,9 @@ const CetPage: React.FC = () => {
     try {
       const { data } = await apiInstance.post<TransferResult>(`/Cet/apply/${soccod}/${annee}`);
       setPreview(data);
-      setSnack({ open: true, msg: t('conge.cet.msg.applySuccess', { employees: data.employesTraites, days: data.totalJoursTransferes }), sev: 'success' });
-    } catch (e: any) {
-      setSnack({ open: true, msg: e?.response?.data?.error || t('conge.cet.msg.applyError'), sev: 'error' });
+      feedback.showSuccess(t('conge.cet.msg.applySuccess', { employees: data.employesTraites, days: data.totalJoursTransferes }));
+    } catch (e) {
+      feedback.showError(e, t('conge.cet.msg.applyError'));
     } finally {
       setLoading(false);
     }
@@ -237,9 +238,7 @@ const CetPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snack.open} autoHideDuration={5000} onClose={() => setSnack({ ...snack, open: false })}>
-        <Alert severity={snack.sev} onClose={() => setSnack({ ...snack, open: false })} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Box, Button, Typography, Snackbar, Alert, Menu, MenuItem } from '@mui/material';
+import { Box, Button, Typography, Menu, MenuItem } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import EditIcon from '@mui/icons-material/Edit';
@@ -46,7 +47,7 @@ function OrgStructureContent() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'direction' | 'service' | 'section'>('all');
   const [page, setPage] = useState(1);
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
+  const feedback = useFeedbackSnackbar();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'direction' | 'service' | 'section'>('direction');
   const [editUnit, setEditUnit] = useState<OrgUnit | null>(null);
@@ -113,23 +114,23 @@ function OrgStructureContent() {
   };
 
   const handleSave = async () => {
-    if (!form.libelle) { setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.labelRequired'), sev: 'error' }); return; }
-    if (editUnit && !form.code) { setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.codeRequiredEdit'), sev: 'error' }); return; }
-    if (!editUnit && dialogMode === 'direction' && !form.code) { setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.codeRequiredDir'), sev: 'error' }); return; }
+    if (!form.libelle) { feedback.showError(t('donneeBase.orgStructure.msg.labelRequired')); return; }
+    if (editUnit && !form.code) { feedback.showError(t('donneeBase.orgStructure.msg.codeRequiredEdit')); return; }
+    if (!editUnit && dialogMode === 'direction' && !form.code) { feedback.showError(t('donneeBase.orgStructure.msg.codeRequiredDir')); return; }
     try {
       if (editUnit) {
         if (dialogMode === 'direction') await apiInstance.put(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
         else if (dialogMode === 'service') await apiInstance.put(`/Services/${soccod}/${form.code}`, { soccod, sercod: form.code, serlib: form.libelle, serloc: form.location, seremail: form.email, sermail: form.email });
         else await apiInstance.put(`/Sections/${soccod}/${form.code}`, { soccod, seccod: form.code, seclib: form.libelle, secemail: form.email, secmail: form.email });
-        setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.updated'), sev: 'success' });
+        feedback.showSuccess(t('donneeBase.orgStructure.msg.updated'));
       } else {
         if (dialogMode === 'direction') await apiInstance.post(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
         else if (dialogMode === 'service') await apiInstance.post(`/Services`, { soccod, sercod: form.code || undefined, serlib: form.libelle, serloc: form.location, effectif: 0, seremail: form.email, sermail: form.email });
         else await apiInstance.post(`/Sections`, { soccod, seccod: form.code || undefined, seclib: form.libelle, effectif: 0, secemail: form.email, secmail: form.email });
-        setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.added'), sev: 'success' });
+        feedback.showSuccess(t('donneeBase.orgStructure.msg.added'));
       }
       setDialogOpen(false); fetchData();
-    } catch (err: any) { setSnack({ open: true, msg: err?.response?.data?.message || t('donneeBase.orgStructure.msg.error'), sev: 'error' }); }
+    } catch (err) { feedback.showError(err, t('donneeBase.orgStructure.msg.error')); }
   };
 
   const handleDelete = async (unit: OrgUnit) => {
@@ -138,8 +139,9 @@ function OrgStructureContent() {
       if (unit.type === 'direction') await apiInstance.delete(`/Directions/${unit.soccod}/${unit.code}`);
       else if (unit.type === 'service') await apiInstance.delete(`/Services/${unit.soccod}/${unit.code}`);
       else await apiInstance.delete(`/Sections/${unit.soccod}/${unit.code}`);
-      setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.deleted'), sev: 'success' }); fetchData();
-    } catch { setSnack({ open: true, msg: t('donneeBase.orgStructure.msg.deleteError'), sev: 'error' }); }
+      feedback.showSuccess(t('donneeBase.orgStructure.msg.deleted'));
+      fetchData();
+    } catch (err) { feedback.showError(err, t('donneeBase.orgStructure.msg.deleteError')); }
   };
 
   const iconForType = (type: string) => type === 'direction' ? <DomainIcon sx={{ fontSize: 16 }} /> : type === 'service' ? <BadgeIcon sx={{ fontSize: 16 }} /> : <LocationCityIcon sx={{ fontSize: 16 }} />;
@@ -370,9 +372,7 @@ function OrgStructureContent() {
         </Box>
       )}
 
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={()=>setSnack(s=>({...s,open:false}))}>
-        <Alert severity={snack.sev} onClose={()=>setSnack(s=>({...s,open:false}))}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

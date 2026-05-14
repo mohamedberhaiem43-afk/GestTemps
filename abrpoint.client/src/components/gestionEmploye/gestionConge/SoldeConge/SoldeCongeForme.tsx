@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Grid, Box, IconButton, Snackbar, Alert, Button } from '@mui/material';
+import { Grid, Box, IconButton, Button } from '@mui/material';
+import { useFeedbackSnackbar } from '../../../helper/FeedbackSnackbar';
 import SaveIcon from "@mui/icons-material/Save";
 import { Solde } from '../../../../models/Solde';
 import InputComponent from '../../../Inputs/Input';
@@ -29,10 +30,7 @@ const SoldeForm = () => {
   const addSoldeMutation = useAddSolde();
   const {mutate:updateSolde} = useUpdateSolde();
   const {refetch} = useGetSolde();
-  // Snackbar states
-  const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [severity, setSeverity] = useState<'success' | 'error'>('success');
+  const feedback = useFeedbackSnackbar();
   const [mode,setMode] = useState('save');
   const handleInputChange = (name: string, value: string | number) => {
     setSolde((prev) => ({ ...prev, [name]: value }));
@@ -61,12 +59,11 @@ const SoldeForm = () => {
         { solde },
         {
           onSuccess: () => {
-            handleSnackbarOpening("Solde ajouté avec succès !",'success');
+            feedback.showSuccess("Solde ajouté avec succès");
             refetch();
           },
-          onError: () => {
-            handleSnackbarOpening("Erreur lors de l'ajout du solde.",'error');
-            setIsSnackbarOpen(true);
+          onError: (err: any) => {
+            feedback.showError(err, "Erreur lors de l'ajout du solde");
           },
         }
       );
@@ -74,23 +71,14 @@ const SoldeForm = () => {
     else if (mode === 'edit'){
       updateSolde(solde,{
         onSuccess: () => {
-          handleSnackbarOpening("Solde modifié avec succées",'success');
+          feedback.showSuccess("Solde modifié avec succès");
           refetch();
         },
-        onError: () => {
-          handleSnackbarOpening("Erreur lors de modification du solde.",'error');
+        onError: (err: any) => {
+          feedback.showError(err, "Erreur lors de modification du solde");
         }
       })
     }
-  };
-
-  const handleSnackbarOpening = (message:string,severity:'success'|'error') => {
-    setMessage(message);
-    setSeverity(severity);
-    setIsSnackbarOpen(true);
-  };
-  const handleSnackbarClose = () => {
-    setIsSnackbarOpen(false);
   };
 
   const resetForm = () => {
@@ -154,12 +142,7 @@ const SoldeForm = () => {
         </Grid>
       </Grid>
 
-      {/* Snackbar */}
-      <Snackbar open={isSnackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose}>
-        <Alert onClose={handleSnackbarClose} severity={severity}>
-          {message}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 };

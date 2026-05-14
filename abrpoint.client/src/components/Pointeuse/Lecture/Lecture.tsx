@@ -1,4 +1,4 @@
-import { Box, Grid, Snackbar, Alert } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 import { useState } from "react";
 import LectureList from "./LectureList";
 import PointageList from "./PointageList";
@@ -8,11 +8,11 @@ import PointageEntryService from "../../../services/PointeuseService/PointageEnt
 import BreadcrumbNavigation from "../../helper/BreadcrumbNavigation";
 import { useAuth } from "../../helper/AuthProvider";
 import AccessDenied from "../../helper/AccessDenied";
+import { useFeedbackSnackbar } from "../../helper/FeedbackSnackbar";
 
 function Lecture() {
   const { hasPermission } = useAuth();
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMsg, setSnackbarMsg] = useState("");
+  const feedback = useFeedbackSnackbar();
 
   // ✅ Lift logs to state
   const [withName, setWithName] = useState<LogEntry[]>([]);
@@ -33,8 +33,7 @@ function Lecture() {
       setWithoutName(logs.filter(log => !log.user_name));
 
     } catch (err) {
-      setSnackbarMsg("Erreur lors de l'appel à l'API !");
-      setSnackbarOpen(true);
+      feedback.showError(err, "Erreur lors de l'appel à l'API.");
     }
   };
 
@@ -57,16 +56,7 @@ function Lecture() {
         </Grid>
       </Grid>
 
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert onClose={() => setSnackbarOpen(false)} severity="error" sx={{ width: "100%" }}>
-          {snackbarMsg}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

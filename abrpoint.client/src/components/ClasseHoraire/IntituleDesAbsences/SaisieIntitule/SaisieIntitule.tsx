@@ -13,8 +13,6 @@ import {
   Select,
   Typography,
   IconButton,
-  Snackbar,
-  Alert,
   Button,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
@@ -26,6 +24,7 @@ import { useAbsenceContext } from "../../../helper/AbsenceContext";
 import useUpdateAbsence from "../../../../hooks/absenceHooks/useUpdateAbsence";
 import RadioGroupComponent, { FormControlLabelComponent } from "../../../RadioGroupComponent/RadioGroupComponent";
 import ForbiddenMessage from "../../../AlertModal/ForbiddenMessage";
+import { useFeedbackSnackbar, extractErrorMessage } from "../../../helper/FeedbackSnackbar";
 
 export default function SaisieIntitule() {
   const { t } = useTranslation();
@@ -43,22 +42,17 @@ export default function SaisieIntitule() {
   const [autoriser, setAutoriser] = useState(false);
   const [abscng, setAbscng] = useState("");
   const [mode,setMode] = useState('save');
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as 'success' | 'error',
-  });
+  const feedback = useFeedbackSnackbar();
+  // Erreur 403 = problème de permission → on garde le composant dédié (ForbiddenMessage)
+  // qui rend une bannière intrusive avec un wording "droits". Pour toute autre erreur,
+  // on utilise le snackbar partagé pour rester cohérent avec la fiche collaborateur.
   const handleError = (error: any, defaultMessage: string) => {
-  if (error?.response?.status === 403) {
-    setForbiddenMsg("Vous n’avez pas la permission d’effectuer cette action.");
-  } else {
-    setSnackbar({
-      open: true,
-      message: `${defaultMessage}: ${error.message}`,
-      severity: "error",
-    });
-  }
-};
+    if (error?.response?.status === 403) {
+      setForbiddenMsg(t('common.forbidden', { defaultValue: "Vous n'avez pas la permission d'effectuer cette action." }));
+    } else {
+      feedback.showError(extractErrorMessage(error, defaultMessage));
+    }
+  };
 
   const{refetch} = useGetAllAbsences();
   const { mutate: addAbsence, isPending: isLoading } = useAddAbsence();
@@ -83,30 +77,22 @@ export default function SaisieIntitule() {
       addAbsence(absenceData, {
         onSuccess() {
           refetch();
-          setSnackbar({
-            open: true,
-            message: "Absence ajoutée avec succès!",
-            severity: "success",
-          });
+          feedback.showSuccess(t('intituleAbsence.addSuccess', { defaultValue: 'Absence ajoutée avec succès' }));
           resetForm();
         },
         onError(error: any) {
-          handleError(error, "Erreur lors de l'ajout");
+          handleError(error, t('intituleAbsence.addError', { defaultValue: "Erreur lors de l'ajout" }));
         },
       });
     } else if (mode === "edit") {
       editAbsence(absenceData, {
         onSuccess() {
           refetch();
-          setSnackbar({
-            open: true,
-            message: "Absence modifiée avec succès!",
-            severity: "success",
-          });
+          feedback.showSuccess(t('intituleAbsence.updateSuccess', { defaultValue: 'Absence modifiée avec succès' }));
           resetForm();
         },
         onError(error: any) {
-          handleError(error, "Erreur lors de la modification");
+          handleError(error, t('intituleAbsence.updateError', { defaultValue: 'Erreur lors de la modification' }));
         },
       });
   }
@@ -358,18 +344,7 @@ export default function SaisieIntitule() {
       </Grid>
        {/* Forbidden message */}
       {forbiddenMsg && <ForbiddenMessage message={forbiddenMsg} />}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

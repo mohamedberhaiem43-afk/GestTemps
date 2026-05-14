@@ -462,12 +462,13 @@ export default function HomePage() {
           <div className="price-card">
             <div className="price-tier">Starter</div>
             <div className="price-amount">
-              <span className="currency">€</span>{prices.starter}<span className="period"> / mois</span>
+              <span className="currency">€</span>{prices.starter}<span className="period"> / mois HT</span>
             </div>
-            <div className="price-included">10 collaborateurs inclus</div>
+            <div className="price-included">10 collaborateurs inclus · 5 Go de stockage</div>
             <div className="price-per">+ 4,90 € / collaborateur supplémentaire</div>
             <div className="price-desc">Pour les TPE et startups qui démarrent la digitalisation RH d'une petite équipe.</div>
             <div className="price-features">
+              <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
               <div className="pf-item"><span className="pf-check">✓</span> Pointage web simple</div>
               <div className="pf-item"><span className="pf-check">✓</span> Gestion RH basique (fiches, contrats)</div>
               <div className="pf-item"><span className="pf-check">✓</span> Absences & dashboard basique</div>
@@ -483,18 +484,19 @@ export default function HomePage() {
             <div className="popular-badge">⭐ Le plus populaire</div>
             <div className="price-tier">Standard</div>
             <div className="price-amount">
-              <span className="currency">€</span>{prices.standard}<span className="period"> / mois</span>
+              <span className="currency">€</span>{prices.standard}<span className="period"> / mois HT</span>
             </div>
-            <div className="price-included">25 collaborateurs inclus</div>
+            <div className="price-included">25 collaborateurs inclus · 20 Go de stockage</div>
             <div className="price-per">+ 6,90 € / collaborateur supplémentaire</div>
             <div className="price-desc">Suite complète mobile + paie pour les PME en croissance et équipes structurées.</div>
             <div className="price-features">
+              <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
               <div className="pf-item"><span className="pf-check">✓</span> Tout le plan Starter</div>
               <div className="pf-item"><span className="pf-check">✓</span> Application mobile + géolocalisation</div>
               <div className="pf-item"><span className="pf-check">✓</span> Congés, RTT, CET, sanctions</div>
               <div className="pf-item"><span className="pf-check">✓</span> Coffre numérique & signature électronique</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Notifications push / email</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Préparation paie complète</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Notifications push / email · Reporting avancé</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Préparation paie · Multi-sites simple</div>
               <div className="pf-item"><span className="pf-check">✓</span> Support prioritaire</div>
             </div>
             <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>Choisir Standard</button>
@@ -503,25 +505,89 @@ export default function HomePage() {
           <div className="price-card">
             <div className="price-tier">Premium</div>
             <div className="price-amount">
-              <span className="currency">€</span>{prices.premium}<span className="period"> / mois</span>
+              <span className="currency">€</span>{prices.premium}<span className="period"> / mois HT</span>
             </div>
-            <div className="price-included">50 collaborateurs inclus</div>
+            <div className="price-included">50 collaborateurs inclus · 100 Go de stockage</div>
             <div className="price-per">+ 9,90 € / collaborateur supplémentaire</div>
             <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
             <div className="price-features">
+              <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
               <div className="pf-item"><span className="pf-check">✓</span> Tout le plan Standard</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Multi-filiales illimité</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Tableaux de bord avancés</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Assistant IA (RAG) sur vos documents</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Multi-filiales illimité · dashboards avancés</div>
               <div className="pf-item"><span className="pf-check">✓</span> Audit logs avancés · branding personnalisé</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Sécurité mobile renforcée</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Onboarding accompagné · SLA premium</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Sécurité mobile renforcée · device trust</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Screenshot blocking · cert pinning</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Conformité RGPD avancée · SLA premium</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Onboarding accompagné · futures intégrations SSO</div>
             </div>
             <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Premium')}>Choisir Premium</button>
           </div>
         </div>
         <div className="pricing-footnote">
           Sans engagement de durée · TVA en sus · Facturation Stripe sécurisée
+        </div>
+
+        {/* Modules optionnels — IA & stockage. Ces extras se cumulent avec n'importe
+            quel pack (sauf mention contraire) et sont configurés depuis l'écran
+            « Plan & Configuration » après inscription. */}
+        <div className="addons-header">
+          <h3 className="addons-title">Modules optionnels</h3>
+          <p className="addons-sub">À ajouter à n'importe quel pack pour étendre les capacités IA et stockage.</p>
+        </div>
+        <div className="pricing-grid reveal addons-grid">
+          {/* IA Assistant RH */}
+          <div className="price-card addon-card">
+            <div className="price-tier">IA Assistant RH</div>
+            <div className="price-amount">
+              <span className="period" style={{ fontSize: 18, fontWeight: 700, color: '#0040a1' }}>à partir de</span><br />
+              <span className="currency">€</span>49<span className="period"> / mois HT</span>
+            </div>
+            <div className="price-included">Assistant intelligent au quotidien</div>
+            <div className="price-desc">Aide à la rédaction, recherche rapide, automatisations simples pour vos équipes RH.</div>
+            <div className="price-features">
+              <div className="pf-item"><span className="pf-check">✓</span> Assistant RH intelligent</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Aide à la rédaction de documents</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Recherche rapide multi-sources</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Assistance opérationnelle</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Automatisations simples</div>
+              <div className="pf-item pf-warn"><span className="pf-x">⚠</span> <span className="pf-muted">Quotas selon usage</span></div>
+            </div>
+          </div>
+
+          {/* IA / RAG avancé */}
+          <div className="price-card addon-card">
+            <div className="price-tier">IA / RAG Avancé</div>
+            <div className="price-amount">
+              <span className="currency" style={{ fontSize: 28 }}>Sur devis</span>
+            </div>
+            <div className="price-included">Exploitation documentaire avancée</div>
+            <div className="price-desc">Recherche documentaire intelligente, embeddings et analyses avancées sur vos archives.</div>
+            <div className="price-features">
+              <div className="pf-item"><span className="pf-check">✓</span> Recherche documentaire intelligente</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Analyse avancée des contenus</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Embeddings vectoriels</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Assistant intelligent avancé</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Exploitation documentaire interne</div>
+              <div className="pf-item pf-warn"><span className="pf-x">⚠</span> <span className="pf-muted">Quotas et limitations selon usage</span></div>
+            </div>
+          </div>
+
+          {/* Stockage supplémentaire */}
+          <div className="price-card addon-card">
+            <div className="price-tier">Stockage supplémentaire</div>
+            <div className="price-amount">
+              <span className="currency">+€</span>29<span className="period"> / 100 Go HT</span>
+            </div>
+            <div className="price-included">Extension de votre quota</div>
+            <div className="price-desc">Coffre numérique, documents salariés, exports archivés — au-delà du quota inclus dans votre pack.</div>
+            <div className="price-features">
+              <div className="pf-item"><span className="pf-check">✓</span> Tranche de 100 Go supplémentaires</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Cumulable avec tout pack</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Activation immédiate</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Facturation mensuelle</div>
+              <div className="pf-item"><span className="pf-check">✓</span> Données chiffrées au repos</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -534,10 +600,10 @@ export default function HomePage() {
             <div className="testi-stars">★★★★★</div>
             <div className="testi-text">« Je peux enfin piloter avec des chiffres fiables. Avant, je découvrais les problèmes après coup. Maintenant, je les vois arriver. Le déploiement sur 3 sites a pris 11 jours. »</div>
             <div className="testi-author">
-              <div className="testi-avatar av1">KM</div>
+              <div className="testi-avatar av1">LM</div>
               <div>
-                <div className="testi-name">Khaled M.</div>
-                <div className="testi-role">Directeur Opérations · Agroalimentaire 🇲🇦</div>
+                <div className="testi-name">Laurent M.</div>
+                <div className="testi-role">Directeur Opérations · Agroalimentaire 🇫🇷</div>
                 <div className="testi-result">↓ Absentéisme −34% en 8 semaines</div>
               </div>
             </div>
@@ -546,9 +612,9 @@ export default function HomePage() {
             <div className="testi-stars">★★★★★</div>
             <div className="testi-text">« Plus aucune modification de planning non autorisée. Je compare mes 14 magasins en 1 clic. L'outil a transformé notre façon de gérer le réseau. »</div>
             <div className="testi-author">
-              <div className="testi-avatar av2">NB</div>
+              <div className="testi-avatar av2">SB</div>
               <div>
-                <div className="testi-name">Nadia B.</div>
+                <div className="testi-name">Sophie B.</div>
                 <div className="testi-role">DRH Réseau · Grande distribution 🇫🇷</div>
                 <div className="testi-result">↓ Erreurs planning −32% en 6 semaines</div>
               </div>
@@ -558,10 +624,10 @@ export default function HomePage() {
             <div className="testi-stars">★★★★★</div>
             <div className="testi-text">« On a doublé nos effectifs sans recruter un seul admin RH supplémentaire. La plateforme absorbe la croissance automatiquement. ROI évident dès le premier mois. »</div>
             <div className="testi-author">
-              <div className="testi-avatar av3">YA</div>
+              <div className="testi-avatar av3">TD</div>
               <div>
-                <div className="testi-name">Youssef A.</div>
-                <div className="testi-role">CEO · Centre d'appels 🇸🇳</div>
+                <div className="testi-name">Thomas D.</div>
+                <div className="testi-role">CEO · Centre d'appels 🇫🇷</div>
                 <div className="testi-result">↑ Capacité ×2 sans admin supplémentaire</div>
               </div>
             </div>

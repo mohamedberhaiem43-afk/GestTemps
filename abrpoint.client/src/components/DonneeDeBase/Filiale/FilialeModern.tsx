@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -30,7 +31,7 @@ function FilialeModernContent() {
   const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
   const [form, setForm] = useState<FilialeModel>({ ...emptyForm, soccod: soccod || '' });
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
+  const feedback = useFeedbackSnackbar();
   const [search, setSearch] = useState('');
 
   const { mutate: addSite, isPending: isAdding } = useAddSite();
@@ -71,10 +72,10 @@ function FilialeModernContent() {
 
   const handleUseMyPosition = () => {
     if (!navigator.geolocation) {
-      setSnack({ open: true, msg: t('donneeBase.filiale.geo.unsupported'), sev: 'error' });
+      feedback.showError(t('donneeBase.filiale.geo.unsupported'));
       return;
     }
-    setSnack({ open: true, msg: t('donneeBase.filiale.geo.locating'), sev: 'success' });
+    feedback.showInfo(t('donneeBase.filiale.geo.locating'));
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setForm(prev => ({
@@ -83,7 +84,7 @@ function FilialeModernContent() {
           sitlon: Number(pos.coords.longitude.toFixed(7)),
           sitrad: prev.sitrad ?? 200,
         }));
-        setSnack({ open: true, msg: t('donneeBase.filiale.geo.captured'), sev: 'success' });
+        feedback.showSuccess(t('donneeBase.filiale.geo.captured'));
       },
       (err) => {
         const msg = err.code === err.PERMISSION_DENIED
@@ -91,7 +92,7 @@ function FilialeModernContent() {
           : err.code === err.POSITION_UNAVAILABLE
           ? t('donneeBase.filiale.geo.unavailable')
           : t('donneeBase.filiale.geo.error');
-        setSnack({ open: true, msg, sev: 'error' });
+        feedback.showError(msg);
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
@@ -103,16 +104,16 @@ function FilialeModernContent() {
 
   const handleSubmit = () => {
     if (!form.sitcod || !form.sitlib) {
-      setSnack({ open: true, msg: t('donneeBase.filiale.codeRequired'), sev: 'error' });
+      feedback.showError(t('donneeBase.filiale.codeRequired'));
       return;
     }
     const payload = { ...form, soccod: soccod || '' };
     const onSuccess = () => {
-      setSnack({ open: true, msg: isEditMode ? t('donneeBase.filiale.msgUpdated') : t('donneeBase.filiale.msgAdded'), sev: 'success' });
+      feedback.showSuccess(isEditMode ? t('donneeBase.filiale.msgUpdated') : t('donneeBase.filiale.msgAdded'));
       setForm({ ...emptyForm, soccod: soccod || '' });
       refetch();
     };
-    const onError = () => setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
+    const onError = (err: any) => feedback.showError(err, t('donneeBase.common.saveError'));
     if (isEditMode) { updateSite(payload, { onSuccess, onError }); } else { addSite(payload, { onSuccess, onError }); }
   };
 
@@ -358,9 +359,7 @@ function FilialeModernContent() {
 
       </Box>
 
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

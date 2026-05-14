@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Box, Typography, Paper, Button, Snackbar, Alert, CircularProgress,
+  Box, Typography, Paper, Button, CircularProgress,
   TablePagination, IconButton, Avatar, Divider, Dialog, DialogTitle,
   DialogContent, DialogActions, FormControl, Select, MenuItem, TextField,
   Tooltip,
 } from '@mui/material';
+import { useFeedbackSnackbar, extractErrorMessage } from '../../../../helper/FeedbackSnackbar';
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
@@ -372,7 +373,7 @@ function AutSortieModernContent() {
   const { data: sorties = [], refetch, isLoading } = useGetSortie(uticod);
 
   // UI state
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as 'success' | 'error' });
+  const feedback = useFeedbackSnackbar();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [empFilter, setEmpFilter] = useState<string>('');
@@ -386,7 +387,7 @@ function AutSortieModernContent() {
   const [sortieToDelete, setSortieToDelete] = useState<Autoriser | null>(null);
 
   const showSnack = (msg: string, sev: 'success' | 'error' = 'success') =>
-    setSnack({ open: true, msg, sev });
+    sev === 'success' ? feedback.showSuccess(msg) : feedback.showError(msg);
 
   // Filtered table data : recherche libre + type d'autorisation + employé + plage de dates
   const filteredData = useMemo(() => {
@@ -730,13 +731,11 @@ function AutSortieModernContent() {
         employes={employes as any[]}
         absences={absences as any[]}
         soccod={soccod}
-        onSuccess={(mode) => showSnack(mode === 'edit' ? t('autSortie.msg.updated') : t('autSortie.msg.added'), 'success')}
+        onSuccess={(mode) => feedback.showSuccess(mode === 'edit' ? t('autSortie.msg.updated') : t('autSortie.msg.added'))}
         onError={(mode, err) => {
-          const serverMsg = err?.response?.data?.message
-            ?? err?.response?.data?.title
-            ?? err?.message;
           const fallback = mode === 'edit' ? t('autSortie.msg.updateError') : t('autSortie.msg.addError');
-          showSnack(serverMsg ? `${fallback} — ${serverMsg}` : fallback, 'error');
+          // extractErrorMessage gère message / title / detail / err.message dans l'ordre.
+          feedback.showError(extractErrorMessage(err, fallback));
         }}
       />
 
@@ -763,11 +762,7 @@ function AutSortieModernContent() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
-          {snack.msg}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

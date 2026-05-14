@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Button, Snackbar, Alert, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
 import PublicIcon from '@mui/icons-material/Public';
@@ -8,6 +8,7 @@ import apiInstance from '../../API/apiInstance';
 import { PaysModel } from '../../../models/Pays';
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import '../shared/RefModern.css';
 import useGetRestCountries from '../../../hooks/restCountriesHooks/useGetRestCountries';
 import { RestCountry } from '../../../models/RestCountry';
@@ -18,7 +19,7 @@ function PaysModernContent() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const [form, setForm] = useState<PaysModel>(emptyForm);
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
+  const feedback = useFeedbackSnackbar();
   const [search, setSearch] = useState('');
 
   const { data: countriesData, isLoading, isError, refetch } = useGetRestCountries();
@@ -45,15 +46,15 @@ function PaysModernContent() {
 
   const handleSubmit = async () => {
     if (!form.natlib) {
-      setSnack({ open: true, msg: t('donneeBase.common.labelRequired'), sev: 'error' });
+      feedback.showError(t('donneeBase.common.labelRequired'));
       return;
     }
     try {
       await apiInstance.post('/Pays', { natcod: '', natlib: form.natlib });
-      setSnack({ open: true, msg: t('donneeBase.pays.msgAdded'), sev: 'success' });
+      feedback.showSuccess(t('donneeBase.pays.msgAdded'));
       setForm(emptyForm);
-    } catch {
-      setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
+    } catch (err) {
+      feedback.showError(err, t('donneeBase.common.saveError'));
     }
   };
 
@@ -187,9 +188,7 @@ function PaysModernContent() {
         </Box>
       </Box>
 
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

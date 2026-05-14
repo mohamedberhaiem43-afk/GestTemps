@@ -1,5 +1,5 @@
 import { CheckCircle, Cancel } from "@mui/icons-material";
-import { Alert, Box, Container, Grid, Skeleton, Snackbar } from "@mui/material";
+import { Box, Container, Grid, Skeleton } from "@mui/material";
 import { MRT_ColumnDef } from "material-react-table";
 import { useState, useEffect, useMemo } from "react";
 import useDeleteAbsence from "../../../hooks/absenceHooks/useDeleteAbsence";
@@ -8,6 +8,7 @@ import { Absence, AbsenceDto } from "../../../models/Absence";
 import { useAbsenceContext } from "../../helper/AbsenceContext";
 import DataList from "../../lists/list";
 import ForbiddenMessage from "../../AlertModal/ForbiddenMessage";
+import { useFeedbackSnackbar, extractErrorMessage } from "../../helper/FeedbackSnackbar";
 
 const AbsenceListContent = () => {
   const soccod = sessionStorage.getItem('soccod');
@@ -17,11 +18,7 @@ const AbsenceListContent = () => {
   const { data: fetchedData = [], refetch, isLoading } = useGetAllAbsences();
   const { mutate: deleteAbsence } = useDeleteAbsence();
   const [forbiddenMsg, setForbiddenMsg] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error",
-  });
+  const feedback = useFeedbackSnackbar();
 
   useEffect(() => {
     setData(fetchedData);
@@ -35,21 +32,13 @@ const AbsenceListContent = () => {
       {
         onSuccess() {
           setData((prev) => prev.filter((abs) => abs.abscod !== absence.abscod));
-          setSnackbar({
-            open: true,
-            message: "Absence supprimée avec succès!",
-            severity: "success",
-          });
+          feedback.showSuccess("Absence supprimée avec succès");
         },
         onError(error: any) {
           if (error?.response?.status === 403) {
             setForbiddenMsg("Vous n’avez pas la permission de supprimer cette absence.");
           } else {
-            setSnackbar({
-              open: true,
-              message: `Erreur: ${error.message}`,
-              severity: "error",
-            });
+            feedback.showError(extractErrorMessage(error, 'Erreur lors de la suppression'));
           }
         },
       }
@@ -140,21 +129,7 @@ const AbsenceListContent = () => {
             />
         </Grid>
 
-        {/* Snackbar notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          variant="filled"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        {feedback.element}
       </Grid>
     </Box>
   );

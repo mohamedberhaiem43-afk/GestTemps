@@ -1,4 +1,5 @@
-import { Box, Grid, Button, Snackbar, Alert, Card, CardContent, Typography, CircularProgress, RadioGroup, FormControlLabel, Radio, FormControl, FormLabel } from "@mui/material";
+import { Box, Grid, Button, Card, CardContent, Typography, CircularProgress, RadioGroup, FormControlLabel, Radio, FormControl, FormLabel } from "@mui/material";
+import { useFeedbackSnackbar, extractErrorMessage } from "../../../helper/FeedbackSnackbar";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useEffect, useState } from "react";
@@ -21,9 +22,7 @@ export default function SaisieRepos() {
   const { t } = useTranslation();
   const { selectedFerier } = useFerierContext();
   const [forbiddenMsg, setForbiddenMsg] = useState<string | null>(null);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const feedback = useFeedbackSnackbar();
   const [mode, setMode] = useState('save');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -72,9 +71,7 @@ export default function SaisieRepos() {
 
     const { annee, ferdate, fermotif, fertrv, ferheure } = formState;
     if (!annee || !fermotif || !fertrv || !ferdate || !ferheure) {
-      setSnackbarMessage('Veuillez remplir tous les champs obligatoires');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
+      feedback.showError('Veuillez remplir tous les champs obligatoires');
       setIsLoading(false);
       return;
     }
@@ -90,9 +87,7 @@ export default function SaisieRepos() {
     };
 
     const onSuccess = (message: string) => {
-      setSnackbarMessage(message);
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
+      feedback.showSuccess(message);
       resetForm();
       setIsLoading(false);
     };
@@ -102,9 +97,7 @@ export default function SaisieRepos() {
       if (error?.response?.status === 403) {
         setForbiddenMsg("Vous n'avez pas la permission d'effectuer cette action.");
       } else {
-        setSnackbarMessage(defaultMessage);
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
+        feedback.showError(extractErrorMessage(error, defaultMessage));
       }
     };
 
@@ -134,10 +127,6 @@ export default function SaisieRepos() {
     });
     setMode('save');
     refetch();
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbarOpen(false);
   };
 
   return (
@@ -289,13 +278,7 @@ export default function SaisieRepos() {
 
         {/* Forbidden message */}
         {forbiddenMsg && <ForbiddenMessage message={forbiddenMsg} />}
-
-        {/* Snackbar for notifications */}
-        <Snackbar open={snackbarOpen} autoHideDuration={1500} onClose={handleCloseSnackbar}>
-          <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
+        {feedback.element}
       </Box>
     </LocalizationProvider>
   );

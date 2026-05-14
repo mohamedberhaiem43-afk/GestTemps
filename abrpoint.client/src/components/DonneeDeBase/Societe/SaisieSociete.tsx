@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Box, Grid, Snackbar, Alert } from '@mui/material';
+import { Button, Box, Grid } from '@mui/material';
 import "./Societe.css";
 import InputComponent from '../../Inputs/Input';
 import { Save, Cancel } from '@mui/icons-material';
@@ -8,6 +8,7 @@ import useAddSociete from '../../../hooks/societeHooks/useAddSociete';
 import useUpdateSociete from '../../../hooks/societeHooks/useUpdateSociete';
 import useGetSocietes from '../../../hooks/societeHooks/useGetSocietes';
 import { Societe } from '../../../models/Societe';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 
 const emptyForm: Societe = {
     soccod: '', soclib: '', socresp: '', socadr: '', socville: '', soctel: '', socfax: '',
@@ -33,9 +34,7 @@ interface SaisieSocieteProps {
 
 export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocieteProps) {
     const [societeData, setSocieteData] = useState<Societe>(emptyForm);
-    const [snackbarOpen, setSnackbarOpen] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState('');
-    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('error');
+    const feedback = useFeedbackSnackbar();
 
     const { mutate: addSociete, isPending: isAdding } = useAddSociete();
     const { mutate: updateSociete, isPending: isUpdating } = useUpdateSociete();
@@ -53,8 +52,6 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
         }
     }, [societeToEdit]);
 
-    const handleSnackbarClose = () => setSnackbarOpen(false);
-
     const handleCancel = () => {
         setSocieteData(emptyForm);
         onEditComplete?.();
@@ -62,25 +59,19 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
 
     const handleSubmit = () => {
         if (!societeData.soccod || !societeData.soclib) {
-            setSnackbarMessage(t('donneeSociete.requiredFields'));
-            setSnackbarSeverity('error');
-            setSnackbarOpen(true);
+            feedback.showError(t('donneeSociete.requiredFields'));
             return;
         }
 
         const onSuccess = () => {
             refetch();
-            setSnackbarMessage(isEditMode ? t('donneeSociete.updated') : t('donneeSociete.added'));
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
+            feedback.showSuccess(isEditMode ? t('donneeSociete.updated') : t('donneeSociete.added'));
             setSocieteData(emptyForm);
             onEditComplete?.();
         };
 
-        const onError = () => {
-            setSnackbarMessage(isEditMode ? t('donneeSociete.updateError') : t('donneeSociete.addError'));
-            setSnackbarSeverity('error');
-            setSnackbarOpen(true);
+        const onError = (err: any) => {
+            feedback.showError(err, isEditMode ? t('donneeSociete.updateError') : t('donneeSociete.addError'));
         };
 
         if (isEditMode) {
@@ -190,11 +181,7 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
                         )}
                     </Box>
                 </Box>
-                <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose}>
-                    <Alert onClose={handleSnackbarClose} severity={snackbarSeverity}>
-                        {snackbarMessage}
-                    </Alert>
-                </Snackbar>
+                {feedback.element}
             </Box>
         </>
     );

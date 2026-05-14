@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -20,7 +21,7 @@ function FonctionModernContent() {
   const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
   const [form, setForm] = useState<FonctionModel>({ ...emptyForm, soccod: soccod || '' });
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
+  const feedback = useFeedbackSnackbar();
   const [search, setSearch] = useState('');
 
   const { data: fonctions = [], refetch, isLoading } = useGetFonctions();
@@ -42,7 +43,7 @@ function FonctionModernContent() {
 
   const handleSubmit = async () => {
     if (!form.fonlib) {
-      setSnack({ open: true, msg: t('donneeBase.common.labelRequired'), sev: 'error' });
+      feedback.showError(t('donneeBase.common.labelRequired'));
       return;
     }
     try {
@@ -54,11 +55,11 @@ function FonctionModernContent() {
       } else {
         await apiInstance.post('/Fonctions', payload);
       }
-      setSnack({ open: true, msg: isEditMode ? t('donneeBase.fonction.msgUpdated') : t('donneeBase.fonction.msgAdded'), sev: 'success' });
+      feedback.showSuccess(isEditMode ? t('donneeBase.fonction.msgUpdated') : t('donneeBase.fonction.msgAdded'));
       setForm({ ...emptyForm, soccod: soccod || '' });
       refetch();
-    } catch {
-      setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
+    } catch (err) {
+      feedback.showError(err, t('donneeBase.common.saveError'));
     }
   };
 
@@ -163,9 +164,7 @@ function FonctionModernContent() {
           <Box className="ref-table-footer"><span>{t('donneeBase.fonction.footerCount', { count: filtered.length })}</span></Box>
         </Box>
       </Box>
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

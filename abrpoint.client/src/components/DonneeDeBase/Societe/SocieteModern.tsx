@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -65,11 +66,9 @@ function SocieteModernContent() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const [form, setForm] = useState<SocieteModel>(emptyForm);
-  // `code` permet de spécialiser l'affichage (ex. plan_limit_societes ⇒ CTA upgrade).
-  // `actionUrl` redirige vers la page d'upgrade quand le quota plan est atteint.
-  const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' | 'warning' | 'info'; code?: string; actionUrl?: string }>({
-    open: false, msg: '', sev: 'success',
-  });
+  // Pour le quota plan_limit_societes (HTTP 402), on injecte un CTA "Mettre à
+  // niveau" directement dans l'Alert via l'option `action` du hook.
+  const feedback = useFeedbackSnackbar();
   const [filterType, setFilterType] = useState('');
 
   const getTypeLabel = (type: string) => {
@@ -152,28 +151,24 @@ function SocieteModernContent() {
     };
 
     if (!normalized.soccod || !normalized.soclib) {
-      setSnack({ open: true, msg: t('societe.msg.codeLibelleRequired'), sev: 'error' });
+      feedback.showError(t('societe.msg.codeLibelleRequired'));
       return;
     }
     if (normalized.soccod.length !== 2) {
-      setSnack({ open: true, msg: t('societe.msg.codeMustBeTwoChars'), sev: 'error' });
+      feedback.showError(t('societe.msg.codeMustBeTwoChars'));
       return;
     }
     for (const [field, max] of Object.entries(FIELD_LIMITS) as Array<[keyof SocieteModel, number]>) {
       const value = String((normalized[field] ?? '') as string);
       if (max && value.length > max) {
-        setSnack({ open: true, msg: t('societe.msg.fieldExceeds', { field: String(field), max }), sev: 'error' });
+        feedback.showError(t('societe.msg.fieldExceeds', { field: String(field), max }));
         return;
       }
     }
 
     const onSuccess = () => {
       refetch();
-      setSnack({
-        open: true,
-        msg: isEditMode ? t('societe.msg.updated') : t('societe.msg.added'),
-        sev: 'success',
-      });
+      feedback.showSuccess(isEditMode ? t('societe.msg.updated') : t('societe.msg.added'));
       setForm(emptyForm);
     };
     const onError = (err: any) => {
@@ -187,31 +182,30 @@ function SocieteModernContent() {
 
       // 402 Payment Required = quota du plan atteint (cf. SocietesController.Post →
       // `plan_limit_societes` quand on tente d'ajouter une société sur un plan
-      // mono-société). Le message du backend est déjà parlant ; on relaie en sev
-      // "warning" plutôt que "error" parce que ce n'est pas un bug, c'est un quota.
-      if (status === 402) {
-        setSnack({
-          open: true,
-          msg: apiMsg || t('societe.msg.planLimitDefault'),
-          sev: 'warning',
-          code,
-          actionUrl: '/dashboard/pricing',
+      // mono-société). On affiche en `warning` avec un CTA "Mettre à niveau".
+      if (status === 402 && code === 'plan_limit_societes') {
+        feedback.showWarning(apiMsg || t('societe.msg.planLimitDefault'), {
+          action: (
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => { window.location.href = '/dashboard/pricing'; }}
+              sx={{ fontWeight: 800, textTransform: 'none' }}
+            >
+              {t('societe.msg.upgradeCta')}
+            </Button>
+          ),
         });
         return;
       }
 
-      // Cas réseau / serveur muet : pas de réponse exploitable. On le loggue côté
-      // console pour faciliter le diagnostic et on affiche un message générique.
+      // Cas réseau / serveur muet : pas de réponse exploitable. On loggue pour
+      // faciliter le diagnostic et on affiche un message générique.
       if (!err?.response) {
         // eslint-disable-next-line no-console
         console.error('[Societe] erreur sans réponse HTTP :', err);
       }
-
-      setSnack({
-        open: true,
-        msg: apiMsg || (isEditMode ? t('societe.msg.updateError') : t('societe.msg.addError')),
-        sev: 'error',
-      });
+      feedback.showError(err, isEditMode ? t('societe.msg.updateError') : t('societe.msg.addError'));
     };
 
     if (isEditMode) {
@@ -261,7 +255,7 @@ function SocieteModernContent() {
         SMIG: s.socsmig,
       }));
       if (rows.length === 0) {
-        setSnack({ open: true, msg: t('societe.exportEmpty', { defaultValue: 'Aucune société à exporter.' }), sev: 'warning' });
+        feedback.showWarning(t('societe.exportEmpty', { defaultValue: 'Aucune société à exporter.' }));
         return;
       }
       const ws = XLSX.utils.json_to_sheet(rows);
@@ -275,9 +269,9 @@ function SocieteModernContent() {
       XLSX.utils.book_append_sheet(wb, ws, 'Sociétés');
       const date = new Date().toISOString().split('T')[0];
       XLSX.writeFile(wb, `societes-${date}.xlsx`);
-      setSnack({ open: true, msg: t('societe.exportSuccess', { defaultValue: 'Export terminé.' }), sev: 'success' });
+      feedback.showSuccess(t('societe.exportSuccess', { defaultValue: 'Export terminé.' }));
     } catch (e) {
-      setSnack({ open: true, msg: t('societe.exportError', { defaultValue: 'Échec de l\'export.' }), sev: 'error' });
+      feedback.showError(e, t('societe.exportError', { defaultValue: "Échec de l'export." }));
     }
   };
 
@@ -480,7 +474,7 @@ function SocieteModernContent() {
                     if (!file) return;
                     const target = form.soccod || form.soccod === '' ? form.soccod : '';
                     if (!target) {
-                      setSnack({ open: true, msg: t('societe.logo.selectFirst'), sev: 'warning' as any });
+                      feedback.showWarning(t('societe.logo.selectFirst'));
                       return;
                     }
                     try {
@@ -493,10 +487,10 @@ function SocieteModernContent() {
                       if (filePath) {
                         localStorage.setItem('societeImage', filePath);
                         window.dispatchEvent(new Event('imageUpdated'));
-                        setSnack({ open: true, msg: t('societe.logo.uploadSuccess'), sev: 'success' });
+                        feedback.showSuccess(t('societe.logo.uploadSuccess'));
                       }
-                    } catch (err: any) {
-                      setSnack({ open: true, msg: err?.response?.data?.message || t('societe.logo.uploadError'), sev: 'error' });
+                    } catch (err) {
+                      feedback.showError(err, t('societe.logo.uploadError'));
                     }
                   }}
                   style={{ fontSize: '12px' }}
@@ -612,43 +606,7 @@ function SocieteModernContent() {
         </Box>
       </Box>
 
-      {/* Snackbar — top-center pour rester visible sur les pages longues, durée
-          adaptée à la sévérité (les warnings/errors ont besoin d'être lus en
-          entier). En cas de quota plan atteint (402), on propose un CTA direct
-          vers la page d'upgrade. */}
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={snack.sev === 'success' ? 4000 : 8000}
-        onClose={() => setSnack(s => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert
-          severity={snack.sev}
-          variant="filled"
-          onClose={() => setSnack(s => ({ ...s, open: false }))}
-          sx={{
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: 500,
-            minWidth: 320,
-            maxWidth: 560,
-            boxShadow: '0 10px 30px rgba(15,23,42,0.18)',
-            '& .MuiAlert-message': { whiteSpace: 'pre-line' },
-          }}
-          action={snack.code === 'plan_limit_societes' && snack.actionUrl ? (
-            <Button
-              size="small"
-              color="inherit"
-              onClick={() => { window.location.href = snack.actionUrl!; }}
-              sx={{ fontWeight: 800, textTransform: 'none' }}
-            >
-              {t('societe.msg.upgradeCta')}
-            </Button>
-          ) : undefined}
-        >
-          {snack.msg}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

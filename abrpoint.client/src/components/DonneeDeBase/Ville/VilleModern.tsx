@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Button, Snackbar, Alert, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -20,7 +21,7 @@ function VilleModernContent() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const [form, setForm] = useState<VilleModel>(emptyForm);
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
+  const feedback = useFeedbackSnackbar();
   const [search, setSearch] = useState('');
   const [importing, setImporting] = useState(false);
 
@@ -43,7 +44,7 @@ function VilleModernContent() {
 
   const handleSubmit = async () => {
     if (!form.villib) {
-      setSnack({ open: true, msg: t('donneeBase.common.labelRequired'), sev: 'error' });
+      feedback.showError(t('donneeBase.common.labelRequired'));
       return;
     }
     try {
@@ -52,11 +53,11 @@ function VilleModernContent() {
       } else {
         await apiInstance.post('/Villes', { vilcod: '', villib: form.villib });
       }
-      setSnack({ open: true, msg: isEditMode ? t('donneeBase.ville.msgUpdated') : t('donneeBase.ville.msgAdded'), sev: 'success' });
+      feedback.showSuccess(isEditMode ? t('donneeBase.ville.msgUpdated') : t('donneeBase.ville.msgAdded'));
       setForm(emptyForm);
       refetch();
-    } catch {
-      setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
+    } catch (err) {
+      feedback.showError(err, t('donneeBase.common.saveError'));
     }
   };
 
@@ -65,14 +66,10 @@ function VilleModernContent() {
     setImporting(true);
     try {
       const { data } = await apiInstance.post('/Villes/import-france');
-      setSnack({
-        open: true,
-        msg: t('donneeBase.ville.importSuccess', { inserted: data.inserted, skipped: data.skipped }),
-        sev: 'success'
-      });
+      feedback.showSuccess(t('donneeBase.ville.importSuccess', { inserted: data.inserted, skipped: data.skipped }));
       refetch();
-    } catch (e: any) {
-      setSnack({ open: true, msg: e?.response?.data?.message || t('donneeBase.ville.importError'), sev: 'error' });
+    } catch (err) {
+      feedback.showError(err, t('donneeBase.ville.importError'));
     } finally {
       setImporting(false);
     }
@@ -171,9 +168,7 @@ function VilleModernContent() {
           <Box className="ref-table-footer"><span>{t('donneeBase.ville.footerCount', { count: filtered.length })}</span></Box>
         </Box>
       </Box>
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

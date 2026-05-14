@@ -527,7 +527,14 @@ export default function CredentialsSignInPage() {
           {/* Footer */}
           <Box className="login-footer">
             <Typography className="login-footer-text">
-              {t('login.needHelp')} <span className="login-footer-link">{t('login.contactSupport')}</span>
+              {t('login.needHelp')}{' '}
+              <a
+                className="login-footer-link"
+                href="mailto:contact@concorde-tech.fr?subject=Demande%20d%27assistance%20%E2%80%94%20Concorde%20Workforce"
+                rel="noopener noreferrer"
+              >
+                {t('login.contactSupport')}
+              </a>
             </Typography>
           </Box>
         </Box>

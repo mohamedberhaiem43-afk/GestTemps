@@ -2715,6 +2715,15 @@
     "presence": {
       "noConsultRight": "You do not have the right to view the attendance report.",
       "title": "Attendance Report",
+      "subtitle": "Staff attendance analysis and tracking",
+      "tableTitle": "Attendance Details",
+      "tableSubtitle": "Period from {{start}} to {{end}}",
+      "summary": {
+        "lateRateFooter": "Share of late employees",
+        "totalLateFooter": "Cumulative over the period",
+        "avgFooter": "{{count}} employees filtered",
+        "nightFooter": "Cumulative night hours"
+      },
       "analyticTitle": "Attendance Analytics",
       "punctuality": "Punctuality {{value}}%",
       "kpiLateRate": "Global lateness rate",
@@ -2758,13 +2767,21 @@
     "retard": {
       "noConsultRight": "You do not have the right to view the lateness report.",
       "title": "Lateness Tracking",
+      "subtitle": "Staff lateness analysis and tracking",
       "analyticTitle": "Attendance Analytics",
       "upToDate": "Up to date",
       "kpiGlobalRate": "Global lateness rate",
       "kpiTotalDuration": "Total lateness time",
       "kpiAvgByPunch": "Average per punch",
       "kpiImpacted": "Affected employees",
+      "summary": {
+        "rateFooter": "Share of late employees",
+        "totalFooter": "Cumulative over the period",
+        "avgFooter": "Per impacted punch",
+        "impactedFooter": "Of the filtered headcount"
+      },
       "tableTitle": "Lateness Details",
+      "tableSubtitle": "Period from {{start}} to {{end}}",
       "period": "Period",
       "site": "Site",
       "regimePrefix": "Regime {{value}}",

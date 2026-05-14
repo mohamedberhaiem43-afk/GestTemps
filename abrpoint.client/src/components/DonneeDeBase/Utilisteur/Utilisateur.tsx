@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
-import { Alert, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
+import { useFeedbackSnackbar } from "../../helper/FeedbackSnackbar";
 import { useTranslation, Trans } from "react-i18next";
 import SaisieUtilisateur, { SaisieUtilisateurHandle } from "./SaisieUtilisateur";
 import { useQuery } from '@tanstack/react-query';
@@ -31,11 +32,7 @@ function UtilisateurContent() {
   const { selectedUser, setSelectedUser } = useUserContext();
   const saisieRef = useRef<SaisieUtilisateurHandle>(null);
 
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error" | "info";
-  }>({ open: false, message: "", severity: "success" });
+  const feedback = useFeedbackSnackbar();
 
   // Filters
   const [roleFilter, setRoleFilter] = useState("all");
@@ -137,10 +134,10 @@ function UtilisateurContent() {
   const handleToggleStatus = (user: any) => {
     toggleStatus(user.uticod, {
       onSuccess: () => {
-        setSnackbar({ open: true, message: t('utilisateur.msg.statusUpdated'), severity: "success" });
+        feedback.showSuccess(t('utilisateur.msg.statusUpdated'));
         refetch();
       },
-      onError: () => setSnackbar({ open: true, message: t('utilisateur.msg.statusUpdateError'), severity: "error" })
+      onError: (err: any) => feedback.showError(err, t('utilisateur.msg.statusUpdateError'))
     });
   };
 
@@ -148,11 +145,11 @@ function UtilisateurContent() {
     if (!userToProcess) return;
     deleteUser(userToProcess.uticod, {
       onSuccess: () => {
-        setSnackbar({ open: true, message: t('utilisateur.msg.userDeleted'), severity: "success" });
+        feedback.showSuccess(t('utilisateur.msg.userDeleted'));
         setDeleteDialogOpen(false);
         refetch();
       },
-      onError: () => setSnackbar({ open: true, message: t('utilisateur.msg.deleteError'), severity: "error" })
+      onError: (err: any) => feedback.showError(err, t('utilisateur.msg.deleteError'))
     });
   };
 
@@ -160,10 +157,10 @@ function UtilisateurContent() {
     if (!userToProcess || !newPassword) return;
     resetPassword({ uticod: userToProcess.uticod, newPassword }, {
       onSuccess: () => {
-        setSnackbar({ open: true, message: t('utilisateur.msg.passwordReset'), severity: "success" });
+        feedback.showSuccess(t('utilisateur.msg.passwordReset'));
         setResetDialogOpen(false);
       },
-      onError: () => setSnackbar({ open: true, message: t('utilisateur.msg.resetError'), severity: "error" })
+      onError: (err: any) => feedback.showError(err, t('utilisateur.msg.resetError'))
     });
   };
 
@@ -398,11 +395,7 @@ function UtilisateurContent() {
                 onClick={async () => {
                   const success = await saisieRef.current?.handleSave();
                   if (success) {
-                    setSnackbar({
-                      open: true,
-                      message: selectedUser ? t('utilisateur.msg.userUpdated') : t('utilisateur.msg.userCreated'),
-                      severity: "success"
-                    });
+                    feedback.showSuccess(selectedUser ? t('utilisateur.msg.userUpdated') : t('utilisateur.msg.userCreated'));
                     refetch();
                     setShowAddModal(false);
                     setSelectedUser(null);
@@ -416,20 +409,7 @@ function UtilisateurContent() {
         </div>
       )}
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: '12px' } }}>

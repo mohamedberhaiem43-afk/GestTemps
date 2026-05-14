@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Grid, IconButton, Button, Snackbar, Alert, CircularProgress } from '@mui/material';
+import { Box, Grid, IconButton, Button, CircularProgress } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import SaveIcon from "@mui/icons-material/Save";
 import useGetAbsencesLibs from '../../../hooks/absenceHooks/useGetAbsenceLibs';
 import useAddConge from '../../../hooks/congeHooks/useAddConge';
@@ -46,9 +47,7 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
   const { data: existingConge, isLoading: isLoadingConge } = useGetCongeByDate(empcod, date);
   const { mutate: addConge } = useAddConge();
   const [writable, setWritable] = useState(true);
-  const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [severity, setSeverity] = useState<'success' | 'error'>('success');
+  const feedback = useFeedbackSnackbar();
   const [isEditMode, setIsEditMode] = useState(false);
 
   // Load existing congé data when available
@@ -94,10 +93,6 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
     }
   }, [condep, conret]);
 
-  const handleSnackbarClose = () => {
-    setIsSnackbarOpen(false);
-  };
-
   const handleSubmit = () => {
     const congeData: Conge = {
       soccod: soccod || "01",
@@ -121,25 +116,19 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
     };
 
     if (congeData.empcod === '' && congeData.concod === '') {
-      handleSnackbarOpening(t('common.requiredFields'), 'error');
+      feedback.showError(t('common.requiredFields'));
       return;
     }
 
     addConge(congeData, {
       onSuccess: () => {
-        handleSnackbarOpening(t('conge.added'), 'success');
+        feedback.showSuccess(t('conge.added'));
         resetForm();
       },
-      onError: () => {
-        handleSnackbarOpening(t('conge.addError'), 'error');
+      onError: (err: any) => {
+        feedback.showError(err, t('conge.addError'));
       }
     });
-  };
-
-  const handleSnackbarOpening = (message: string, severity: 'success' | 'error') => {
-    setMessage(message);
-    setSeverity(severity);
-    setIsSnackbarOpen(true);
   };
 
   const resetForm = () => {
@@ -260,11 +249,7 @@ export default function SaisieConge({ empcod, date }: { empcod: string; date: st
           )} 
         </Grid>
       </Grid>
-      <Snackbar open={isSnackbarOpen} autoHideDuration={1000} onClose={handleSnackbarClose}>
-        <Alert onClose={handleSnackbarClose} severity={severity}>
-          {message}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

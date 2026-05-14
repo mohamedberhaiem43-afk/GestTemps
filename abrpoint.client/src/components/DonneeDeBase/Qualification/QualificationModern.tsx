@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -22,7 +23,7 @@ function QualificationModernContent() {
   const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
   const [form, setForm] = useState<QualificationModel>({ ...emptyForm, soccod: soccod || '' });
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
+  const feedback = useFeedbackSnackbar();
   const [search, setSearch] = useState('');
 
   const { data: qualifications = [], refetch, isLoading } = useGetQualifications();
@@ -59,16 +60,16 @@ function QualificationModernContent() {
 
   const handleSubmit = () => {
     if (!form.qualib) {
-      setSnack({ open: true, msg: t('donneeBase.common.labelRequired'), sev: 'error' });
+      feedback.showError(t('donneeBase.common.labelRequired'));
       return;
     }
     const payload = { ...form, soccod: soccod || '' };
     const onSuccess = () => {
-      setSnack({ open: true, msg: isEditMode ? t('donneeBase.qualification.msgUpdated') : t('donneeBase.qualification.msgAdded'), sev: 'success' });
+      feedback.showSuccess(isEditMode ? t('donneeBase.qualification.msgUpdated') : t('donneeBase.qualification.msgAdded'));
       setForm({ ...emptyForm, soccod: soccod || '' });
       refetch();
     };
-    const onError = () => setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
+    const onError = (err: any) => feedback.showError(err, t('donneeBase.common.saveError'));
     if (isEditMode) { updateQual(payload, { onSuccess, onError }); } else { addQual(payload, { onSuccess, onError }); }
   };
 
@@ -148,9 +149,7 @@ function QualificationModernContent() {
           <Box className="ref-table-footer"><span>{t('donneeBase.qualification.footerCount', { count: filtered.length })}</span></Box>
         </Box>
       </Box>
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

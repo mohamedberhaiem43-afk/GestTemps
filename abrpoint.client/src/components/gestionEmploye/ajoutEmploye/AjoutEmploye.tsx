@@ -2,7 +2,8 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import './AjoutEmploye.css'
 import EmployeDetails from '../EmployeDetails/EmployeDetails';
-import { Alert, Button, IconButton, Snackbar, Tooltip } from '@mui/material';
+import { Button, IconButton, Tooltip } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { Item } from '../../helper/Item/Item';
@@ -17,9 +18,7 @@ import { useTranslation } from 'react-i18next';
 export default function BasicGrid() {
   const { soccod, sitcod } = useAuth();
   const { t } = useTranslation();
-  const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [severity, setSeverity] = useState<'success' | 'error'>();
+  const feedback = useFeedbackSnackbar();
   const [mode, setMode] = useState<'save' | 'update'>('save');
 
   const { selectedEmp } = useContext(EmployeeContext);
@@ -143,23 +142,16 @@ export default function BasicGrid() {
 
       addEmploye(employeToSave, {
         onSuccess: (res: any) => {
-          setMessage(res.message || t('employe.addSuccess'));
-          setSeverity('success');
-          setIsSnackbarOpen(true);
+          feedback.showSuccess(res?.message || t('employe.addSuccess'));
         },
         onError: (error: any) => {
           console.error('Error saving employee:', error);
-          const errorMessage = error?.response?.data?.message || t('employe.addError');
-          setMessage(errorMessage);
-          setSeverity('error');
-          setIsSnackbarOpen(true);
+          feedback.showError(error, t('employe.addError'));
         },
       });
     } catch (error) {
       console.error('Error preparing employee data:', error);
-      setMessage(t('employe.prepareError'));
-      setSeverity('error');
-      setIsSnackbarOpen(true);
+      feedback.showError(error, t('employe.prepareError'));
     }
   };
 
@@ -176,26 +168,19 @@ export default function BasicGrid() {
         empdcin: formatDate(combinedData.empdcin),
         empoptim: formatDate(combinedData.empoptim),
       };
-      
+
       updateEmploye(employeToUpdate, {
         onSuccess: (res: any) => {
-          setMessage(res.message || t('employe.updateSuccess'));
-          setSeverity('success');
-          setIsSnackbarOpen(true);
+          feedback.showSuccess(res?.message || t('employe.updateSuccess'));
         },
         onError: (error: any) => {
           console.error('Error updating employee:', error);
-          const errorMessage = error?.response?.data?.message || t('employe.updateError');
-          setMessage(errorMessage);
-          setSeverity('error');
-          setIsSnackbarOpen(true);
+          feedback.showError(error, t('employe.updateError'));
         },
       });
     } catch (error) {
       console.error('Error preparing employee update data:', error);
-      setMessage('Erreur lors de la préparation des données');
-      setSeverity('error');
-      setIsSnackbarOpen(true);
+      feedback.showError(error, 'Erreur lors de la préparation des données');
     }
   };
   return (
@@ -224,11 +209,7 @@ export default function BasicGrid() {
               </Item>
             </Grid>
           </Grid>
-          <Snackbar open={isSnackbarOpen} autoHideDuration={6000} onClose={() => setIsSnackbarOpen(false)}>
-            <Alert onClose={() => setIsSnackbarOpen(false)} severity={severity}>
-              {message}
-            </Alert>
-          </Snackbar>
+          {feedback.element}
         </Box>
       </EmployeeProvider>
   );

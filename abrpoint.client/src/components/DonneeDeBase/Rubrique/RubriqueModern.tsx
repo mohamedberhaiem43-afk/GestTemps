@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Button, Snackbar, Alert, Collapse, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, Collapse, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -102,7 +103,7 @@ function RubriqueModernContent() {
   const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
   const [form, setForm] = useState<Rubrique>({ ...emptyForm, soccod: soccod || '' });
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
+  const feedback = useFeedbackSnackbar();
   const [search, setSearch] = useState('');
   const [showGuide, setShowGuide] = useState(true);
   const [defaultsOpen, setDefaultsOpen] = useState(false);
@@ -131,16 +132,16 @@ function RubriqueModernContent() {
 
   const handleSubmit = () => {
     if (!form.rubcod || !form.rublib) {
-      setSnack({ open: true, msg: t('donneeBase.rubrique.codeRequired'), sev: 'error' });
+      feedback.showError(t('donneeBase.rubrique.codeRequired'));
       return;
     }
     const payload = { ...form, soccod: soccod || '' };
     const onSuccess = () => {
-      setSnack({ open: true, msg: isEditMode ? t('donneeBase.rubrique.msgUpdated') : t('donneeBase.rubrique.msgAdded'), sev: 'success' });
+      feedback.showSuccess(isEditMode ? t('donneeBase.rubrique.msgUpdated') : t('donneeBase.rubrique.msgAdded'));
       setForm({ ...emptyForm, soccod: soccod || '' });
       refetch();
     };
-    const onError = () => setSnack({ open: true, msg: t('donneeBase.common.saveError'), sev: 'error' });
+    const onError = (err: any) => feedback.showError(err, t('donneeBase.common.saveError'));
     if (isEditMode) { updateRub(payload, { onSuccess, onError }); } else { addRub(payload, { onSuccess, onError }); }
   };
 
@@ -187,19 +188,15 @@ function RubriqueModernContent() {
       const errs: string[] = data.errors ?? [];
       let msg = `${inserted} rubrique(s) importée(s)`;
       if (skipped) msg += `, ${skipped} ignorée(s) (déjà présente)`;
-      setSnack({
-        open: true,
-        msg: errs.length ? `${msg}. ${errs.length} erreur(s).` : msg,
-        sev: errs.length ? 'warning' : 'success',
-      });
+      if (errs.length) {
+        feedback.showWarning(`${msg}. ${errs.length} erreur(s).`);
+      } else {
+        feedback.showSuccess(msg);
+      }
       setDefaultsOpen(false);
       refetch();
-    } catch (err: any) {
-      setSnack({
-        open: true,
-        msg: err?.response?.data?.error || 'Erreur lors de l\'import des rubriques par défaut.',
-        sev: 'error',
-      });
+    } catch (err) {
+      feedback.showError(err, "Erreur lors de l'import des rubriques par défaut.");
     } finally {
       setImportingDefaults(false);
     }
@@ -490,9 +487,7 @@ function RubriqueModernContent() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
-        <Alert severity={snack.sev} onClose={() => setSnack(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snack.msg}</Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

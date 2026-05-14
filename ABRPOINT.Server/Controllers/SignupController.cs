@@ -159,7 +159,7 @@ public class SignupController : ControllerBase
         if (alreadyUsed)
             return Ok(new { available = false, reason = "siret_already_used", message = "Un compte existe déjà pour ce numéro d'entreprise. Connectez-vous depuis l'écran de login pour y accéder." });
 
-        return Ok(new { available = true, companyName = validation.CompanyName });
+        return Ok(new { available = true, companyName = validation.CompanyName, companyAddress = validation.CompanyAddress });
     }
 
     [HttpPost]

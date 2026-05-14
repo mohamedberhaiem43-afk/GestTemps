@@ -1,4 +1,4 @@
-import { Box, Grid, Button, Snackbar, Alert } from "@mui/material";
+import { Box, Grid, Button } from "@mui/material";
 import SaveIcon from '@mui/icons-material/Save';
 import InputComponent from "../../Inputs/Input";
 import { useTranslation } from 'react-i18next';
@@ -12,20 +12,14 @@ import Utilisateur from "../../../models/Utilisateur";
 import { useQuery } from "@tanstack/react-query";
 import { useUserContext } from "../../helper/UserProvider";
 import UtilisateurService from "../../../services/UtilisateurService/UtilisateurService";
+import { useFeedbackSnackbar, extractErrorMessage } from "../../helper/FeedbackSnackbar";
 
 interface SaisieUtilisateurProps {
     state:boolean,
     onDataChange: (data: any) => void;
     onSave: () => void;
 }
-interface ApiError {
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
-  message?: string;
-}
+
 function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProps) {
     const [uticod, setCode] = useState("");
     const { t } = useTranslation();
@@ -72,46 +66,28 @@ function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProp
     enabled: !!selectedUser,
     });
 
-    const [snackbarOpen, setSnackbarOpen] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState('');
-    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-
-    const handleSnackbarOpen = (message: string, severity: 'success' | 'error') => {
-        setSnackbarMessage(message);
-        setSnackbarSeverity(severity);
-        setSnackbarOpen(true);
-    };
-
-    const handleSnackbarClose = () => {
-        setSnackbarOpen(false);
-    };
+    const feedback = useFeedbackSnackbar();
 
     const handleSave = async () => {
         if (!uticod || !utiprn || !utinom || !societe || !site) {
-            handleSnackbarOpen(t('common.requiredFields'), 'error');
+            feedback.showError(t('common.requiredFields'));
             return;
         }
-        onSave()
-
+        onSave();
         try {
-
-        handleSnackbarOpen(t('user.updateSuccess'), "success");
-    } catch (err) {
-        handleSnackbarOpen(t('user.updateError'), "error");
-    }
-
+            feedback.showSuccess(t('user.updateSuccess'));
+        } catch (err) {
+            feedback.showError(err, t('user.updateError'));
+        }
     };
-    
+
 
     useEffect(() => {
         if (error) {
-            const apiError = error as ApiError;
-            const errorMessage =
-                apiError.response?.data?.message ||
-                apiError.message || // Fallback to error.message
-                t('pointeuseAccees.form.addError');
-            handleSnackbarOpen(errorMessage, 'error');
+            // Fallback i18n si la réponse API n'a pas de message structuré.
+            feedback.showError(extractErrorMessage(error, t('pointeuseAccees.form.addError')));
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [error]);
 
     return (
@@ -161,12 +137,7 @@ function SaisieUtilisateur({ onDataChange,state, onSave }: SaisieUtilisateurProp
                 </Grid>
             </Grid>
 
-            {/* Snackbar for notifications */}
-            <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose}>
-                <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
-                    {snackbarMessage}
-                </Alert>
-            </Snackbar>
+            {feedback.element}
         </Box>
     );
 }

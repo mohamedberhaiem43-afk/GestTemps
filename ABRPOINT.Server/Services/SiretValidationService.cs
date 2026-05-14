@@ -13,7 +13,8 @@ public sealed record SiretValidationResult(
     bool IsValid,
     string? ErrorCode,
     string? ErrorMessage,
-    string? CompanyName);
+    string? CompanyName,
+    string? CompanyAddress = null);
 
 /// <summary>
 /// Validator multi-pays pour l'identifiant entreprise saisi au signup. Couvre FR (SIRET
@@ -101,13 +102,65 @@ public class SiretValidator : ISiretValidator
 
             var nom = entreprise.TryGetProperty("nom_complet", out var n) ? n.GetString() :
                       entreprise.TryGetProperty("nom_raison_sociale", out var nr) ? nr.GetString() : null;
-            return new(true, null, null, nom);
+            var adresse = TryExtractFrenchAddress(entreprise, siret);
+            return new(true, null, null, nom, adresse);
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Échec appel API recherche-entreprises pour SIRET {Siret}. Validation tolérée.", siret);
             return new(true, null, null, null);
         }
+    }
+
+    /// <summary>
+    /// Recompose l'adresse postale depuis la réponse Sirene (recherche-entreprises.api.gouv.fr).
+    /// On cherche d'abord dans le siège, puis dans matching_etablissements pour le SIRET demandé.
+    /// On préfère `adresse` (déjà formatée) ; sinon on concatène les composants.
+    /// </summary>
+    private static string? TryExtractFrenchAddress(JsonElement entreprise, string siret)
+    {
+        // Priorité au siège quand son SIRET correspond — c'est l'adresse "principale".
+        if (entreprise.TryGetProperty("siege", out var siege)
+            && siege.TryGetProperty("siret", out var sgSiret)
+            && string.Equals(sgSiret.GetString(), siret, StringComparison.Ordinal))
+        {
+            var fromSiege = ExtractAddressFromEtablissement(siege);
+            if (!string.IsNullOrWhiteSpace(fromSiege)) return fromSiege;
+        }
+        if (entreprise.TryGetProperty("matching_etablissements", out var matchs)
+            && matchs.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var et in matchs.EnumerateArray())
+            {
+                if (et.TryGetProperty("siret", out var etSiret)
+                    && string.Equals(etSiret.GetString(), siret, StringComparison.Ordinal))
+                {
+                    var addr = ExtractAddressFromEtablissement(et);
+                    if (!string.IsNullOrWhiteSpace(addr)) return addr;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static string? ExtractAddressFromEtablissement(JsonElement et)
+    {
+        // recherche-entreprises expose un champ `adresse` déjà concaténé — on préfère.
+        if (et.TryGetProperty("adresse", out var pre) && pre.ValueKind == JsonValueKind.String)
+        {
+            var s = pre.GetString();
+            if (!string.IsNullOrWhiteSpace(s)) return s.Trim();
+        }
+        // Fallback : reconstruction depuis composants individuels.
+        string? Part(string prop) => et.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+        var num = Part("numero_voie");
+        var typ = Part("type_voie");
+        var lib = Part("libelle_voie");
+        var cp = Part("code_postal");
+        var ville = Part("libelle_commune") ?? Part("commune");
+        var rue = string.Join(' ', new[] { num, typ, lib }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        var full = string.Join(", ", new[] { rue, $"{cp} {ville}".Trim() }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        return string.IsNullOrWhiteSpace(full) ? null : full;
     }
 
     private static string? TryFindEtatForSiret(JsonElement entreprise, string siret)
@@ -233,13 +286,35 @@ public class SiretValidator : ISiretValidator
             else if (data.TryGetProperty("commercial_name", out var d3) && d3.ValueKind == JsonValueKind.String)
                 denomination = d3.GetString();
 
-            return new(true, null, null, denomination);
+            // Adresse — cbeapi.be expose un objet `address` avec street / zipcode / city,
+            // ou parfois `headquarters_address`. On tente les deux et on tolère le format.
+            string? addressString = null;
+            if (data.TryGetProperty("address", out var addr) && addr.ValueKind == JsonValueKind.Object)
+                addressString = FormatCbeAddress(addr);
+            else if (data.TryGetProperty("headquarters_address", out var hq) && hq.ValueKind == JsonValueKind.Object)
+                addressString = FormatCbeAddress(hq);
+
+            return new(true, null, null, denomination, addressString);
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Échec appel cbeapi.be pour BCE {Bce}. Fallback sur validation locale (fail-open).", bce);
             return new(true, null, null, null);
         }
+    }
+
+    private static string? FormatCbeAddress(JsonElement addr)
+    {
+        string? Get(string prop) => addr.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+        var street = Get("street") ?? Get("street_name");
+        var num = Get("street_number") ?? Get("number");
+        var zip = Get("zipcode") ?? Get("postal_code") ?? Get("zip");
+        var city = Get("city") ?? Get("municipality");
+        var box = Get("box") ?? Get("box_number");
+        var rue = string.Join(' ', new[] { num, street, string.IsNullOrWhiteSpace(box) ? null : $"bte {box}" }
+                                    .Where(s => !string.IsNullOrWhiteSpace(s)));
+        var full = string.Join(", ", new[] { rue, $"{zip} {city}".Trim() }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        return string.IsNullOrWhiteSpace(full) ? null : full;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -5,7 +5,8 @@ import {
   MRT_Row,
   useMaterialReactTable,
 } from 'material-react-table';
-import { Box,Snackbar,Alert, CircularProgress, IconButton, Tooltip, Checkbox } from '@mui/material';
+import { Box, CircularProgress, IconButton, Tooltip, Checkbox } from '@mui/material';
+import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 
@@ -24,8 +25,7 @@ const Service = () => {
   const [services, setServices] = useState<ServiceModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
-  const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const feedback = useFeedbackSnackbar();
 
   const openDeleteConfirmModal = (row: MRT_Row<ServiceModel>) => {
     if (window.confirm(t('donneeDeBase.service.confirmDelete'))) {
@@ -172,13 +172,9 @@ const Service = () => {
       })
     );
     setEditedServices({});
-  } catch (error: any) {
-    if (error.response && error.response.data) {
-        setErrorMessage(error.response.data.message);
-        setIsSnackbarOpen(true);
-    } else {
-      console.error('Error saving services:', error);
-    }
+  } catch (error) {
+    console.error('Error saving services:', error);
+    feedback.showError(error, t('donneeDeBase.service.saveError', { defaultValue: "Échec de l'enregistrement des services." }));
   }
 };
 
@@ -293,12 +289,7 @@ const Service = () => {
       <Box height={'90vh'} width={'95vw'}>
         <BreadcrumbNavigation />
         <MaterialReactTable table={table} />
-         {/* Snackbar for error messages */}
-    <Snackbar open={isSnackbarOpen} autoHideDuration={6000} onClose={() => setIsSnackbarOpen(false)}>
-      <Alert onClose={() => setIsSnackbarOpen(false)} severity="error">
-        {errorMessage}
-      </Alert>
-    </Snackbar>
+        {feedback.element}
       </Box>
   );
 };

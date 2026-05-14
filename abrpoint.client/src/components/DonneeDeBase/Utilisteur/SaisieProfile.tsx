@@ -1,4 +1,5 @@
-import { Box, Grid, Button, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
+import { Box, Grid, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
+import { useFeedbackSnackbar } from "../../helper/FeedbackSnackbar";
 import { useTranslation } from 'react-i18next';
 import InputComponent from "../../Inputs/Input";
 import { useState, useEffect } from "react";
@@ -32,9 +33,7 @@ export default function SaisieProfile({ onDataChange, profil, initialData }: Sai
 
 const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
+  const feedback = useFeedbackSnackbar();
 
   // change password dialog state
   const [changePwdOpen, setChangePwdOpen] = useState(false);
@@ -102,14 +101,10 @@ const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => 
         globalThis.window.dispatchEvent(new Event('imageUpdated'));
       }
 
-      setSnackbarMessage(t('profile.imageSaved'));
-      setSnackbarSeverity("success");
-      setSnackbarOpen(true);
+      feedback.showSuccess(t('profile.imageSaved'));
     } catch (error) {
       console.error("Erreur lors de la sauvegarde de l'image:", error);
-      setSnackbarMessage(t('profile.imageSaveError'));
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
+      feedback.showError(error, t('profile.imageSaveError'));
     }
   } else {
     setSelectedImage(null);
@@ -127,9 +122,7 @@ const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => 
 
   const handleSavePassword = async () => {
     if (!currentPassword || !newPassword) {
-      setSnackbarMessage(t('profile.changePassword.fillFields'));
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
+      feedback.showError(t('profile.changePassword.fillFields'));
       return;
     }
     try {
@@ -141,14 +134,10 @@ const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => 
       setChangePwdOpen(false);
       setCurrentPassword("");
       setNewPassword("");
-      setSnackbarMessage(t('profile.changePassword.success'));
-      setSnackbarSeverity("success");
-      setSnackbarOpen(true);
+      feedback.showSuccess(t('profile.changePassword.success'));
     } catch (error) {
       console.error("Erreur lors du changement de mot de passe:", error);
-      setSnackbarMessage(t('profile.changePassword.error'));
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
+      feedback.showError(error, t('profile.changePassword.error'));
     }
   };
 
@@ -237,11 +226,7 @@ const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => 
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={() => setSnackbarOpen(false)}>
-        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

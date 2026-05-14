@@ -8,7 +8,8 @@ import useGetProfile from '../../hooks/profileHooks/useGetProfile';
 import useGetMyKPIs from '../../hooks/useGetMyKPIs';
 import useGetDemConges from '../../hooks/congeHooks/useGetDemConges';
 import useAddPointage from '../../hooks/pointeuseHooks/useAddPointage';
-import { CircularProgress, Snackbar, Alert } from '@mui/material';
+import { CircularProgress } from '@mui/material';
+import { useFeedbackSnackbar } from '../helper/FeedbackSnackbar';
 
 dayjs.locale('fr');
 
@@ -24,7 +25,7 @@ export default function EmployeeDashboardMobile() {
   const { data: leaveRequests, isLoading: loadingLeaves } = useGetDemConges();
   const { mutate: addPointage, isPending: isPointing } = useAddPointage();
 
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const feedback = useFeedbackSnackbar();
 
   // Update clock every minute
   useEffect(() => {
@@ -43,10 +44,10 @@ export default function EmployeeDashboardMobile() {
       },
       {
         onSuccess: () => {
-          setSnackbar({ open: true, message: t('employeeDashboard.attendanceMarked'), severity: 'success' });
+          feedback.showSuccess(t('employeeDashboard.attendanceMarked'));
         },
         onError: (err: any) => {
-          setSnackbar({ open: true, message: err?.response?.data?.message || t('employeeDashboard.attendanceError'), severity: 'error' });
+          feedback.showError(err, t('employeeDashboard.attendanceError'));
         }
       }
     );
@@ -296,17 +297,7 @@ export default function EmployeeDashboardMobile() {
       </main>
 
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: '12px' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </div>
   );
 }

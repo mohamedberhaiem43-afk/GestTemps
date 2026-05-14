@@ -125,6 +125,12 @@ export default function SignupPage() {
   const [siret, setSiret] = useState('');
   const [siretStatus, setSiretStatus] = useState<SiretStatus>('idle');
   const [siretCompanyName, setSiretCompanyName] = useState<string | null>(null);
+  // Adresse récupérée de l'API officielle (Sirene FR / cbeapi.be BE). Pour MA/SN où
+  // aucune API publique n'existe, reste null — l'utilisateur ne voit pas la zone.
+  const [siretCompanyAddress, setSiretCompanyAddress] = useState<string | null>(null);
+  // True quand l'auto-fill a déjà été appliqué : permet à l'utilisateur de surcharger
+  // le nom proposé sans qu'on l'écrase à chaque re-validation du SIRET.
+  const [companyNameAutofilled, setCompanyNameAutofilled] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -181,6 +187,8 @@ export default function SignupPage() {
     setSiret('');
     setSiretStatus('idle');
     setSiretCompanyName(null);
+    setSiretCompanyAddress(null);
+    setCompanyNameAutofilled(false);
   }, [country]);
 
   // Auto-suggère un slug à partir du nom de société tant que l'utilisateur ne l'a pas modifié.
@@ -264,10 +272,11 @@ export default function SignupPage() {
   // format seul. Timeout 6s — adapté au pire cas (API Sirene lente).
   useEffect(() => {
     const digits = siret.replace(/\D/g, '');
-    if (!digits) { setSiretStatus('idle'); setSiretCompanyName(null); return; }
+    if (!digits) { setSiretStatus('idle'); setSiretCompanyName(null); setSiretCompanyAddress(null); return; }
     if (digits.length !== countryConfig.idDigits) {
       setSiretStatus('format');
       setSiretCompanyName(null);
+      setSiretCompanyAddress(null);
       return;
     }
 
@@ -285,6 +294,14 @@ export default function SignupPage() {
         if (data.available) {
           setSiretStatus('available');
           setSiretCompanyName(data.companyName ?? null);
+          setSiretCompanyAddress(data.companyAddress ?? null);
+          // Auto-fill : on ne remplit le nom de société que s'il est vide OU qu'on
+          // n'a pas encore appliqué l'auto-fill pour cette session. L'utilisateur
+          // peut ensuite éditer sans qu'on écrase à chaque re-validation du SIRET.
+          if (data.companyName && (!companyName.trim() || !companyNameAutofilled)) {
+            setCompanyName(data.companyName);
+            setCompanyNameAutofilled(true);
+          }
         } else {
           // Mapping des codes serveur vers les statuts locaux pour le helper text.
           const reason = data.reason as string | undefined;
@@ -295,6 +312,7 @@ export default function SignupPage() {
           else if (reason === 'siret_already_used') setSiretStatus('already_used');
           else setSiretStatus('invalid');
           setSiretCompanyName(null);
+          setSiretCompanyAddress(null);
         }
       } catch {
         clearTimeout(timeoutId);
@@ -585,6 +603,20 @@ export default function SignupPage() {
               <Typography variant="caption" color={`${siretHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>
                 {siretHelper.text}
               </Typography>
+            )}
+            {/* Adresse récupérée de l'API officielle — affichée en lecture seule
+                pour confirmer visuellement à l'utilisateur que c'est bien la bonne
+                entreprise. Le nom de société, lui, a déjà été auto-rempli dans le
+                champ « Nom de votre entreprise » (cf. useEffect SIRET). */}
+            {siretStatus === 'available' && siretCompanyAddress && (
+              <Box sx={{ mt: 1, p: 1.2, borderRadius: 1.5, bgcolor: '#f0f9ff', border: '1px solid #bae6fd' }}>
+                <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
+                  Adresse officielle
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#0c4a6e', mt: 0.3, lineHeight: 1.3 }}>
+                  {siretCompanyAddress}
+                </Typography>
+              </Box>
             )}
           </Box>
 

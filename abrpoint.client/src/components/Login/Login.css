@@ -342,6 +342,7 @@ body:has(.login-root) .MuiAppBar-root {
   color: #0040a1;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .login-footer-link:hover {

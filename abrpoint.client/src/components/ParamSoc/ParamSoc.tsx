@@ -334,13 +334,13 @@ export default function ParamSocModern() {
             <div className="ps-modern-switch-row"><span>{t('paramSoc.calculs.travailFerie')}</span><Switch checked={formData.fertrv === 1} onChange={(e) => handleInputChange('fertrv', e.target.checked ? 1 : 0)} /></div>
           </div>
 
-          <div className="ps-modern-card ps-modern-card--small">
+          <div className="ps-modern-card" style={{ gridColumn: '1 / -1' }}>
             <h3 className="ps-modern-card-title">{t('paramSoc.tabsHeader.pointageCalcul')}</h3>
-            <div className="ps-modern-form-group">
-              <label className="ps-modern-label">{t('paramSoc.calculs.ecartMin')}</label>
-              <input type="number" className="ps-modern-input" value={formData.parecart || 0} onChange={(e) => handleInputChange('parecart', parseInt(e.target.value) || 0)} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+              <div className="ps-modern-form-group">
+                <label className="ps-modern-label">{t('paramSoc.calculs.ecartMin')}</label>
+                <input type="number" className="ps-modern-input" value={formData.parecart || 0} onChange={(e) => handleInputChange('parecart', parseInt(e.target.value) || 0)} />
+              </div>
               <div className="ps-modern-form-group">
                 <label className="ps-modern-label">{t('paramSoc.calculs.minHoursDay')}</label>
                 <div className="ps-modern-input-wrapper">
@@ -355,32 +355,32 @@ export default function ParamSocModern() {
                   <span className="ps-modern-unit">h</span>
                 </div>
               </div>
-            </div>
-            <div className="ps-modern-form-group">
-              <label className="ps-modern-label">{t('paramSoc.calculs.maxFerieMajore')}</label>
-              <div className="ps-modern-input-wrapper">
-                <input type="number" className="ps-modern-input" value={formData.parmaxfer ?? 0} onChange={(e) => handleInputChange('parmaxfer', Number(e.target.value))} />
-                <span className="ps-modern-unit">h</span>
+              <div className="ps-modern-form-group">
+                <label className="ps-modern-label">{t('paramSoc.calculs.maxFerieMajore')}</label>
+                <div className="ps-modern-input-wrapper">
+                  <input type="number" className="ps-modern-input" value={formData.parmaxfer ?? 0} onChange={(e) => handleInputChange('parmaxfer', Number(e.target.value))} />
+                  <span className="ps-modern-unit">h</span>
+                </div>
               </div>
-            </div>
-            <div className="ps-modern-form-group">
-              <label className="ps-modern-label">{t('paramSoc.calculs.eliminerFerie')}</label>
-              <Select fullWidth variant="standard" value={formData.parelimftrv || '0'} onChange={(e) => handleInputChange('parelimftrv', e.target.value)}>
-                <MenuItem value="0">{t('paramSoc.calculs.elim0')}</MenuItem>
-                <MenuItem value="1">{t('paramSoc.calculs.elim1')}</MenuItem>
-                <MenuItem value="2">{t('paramSoc.calculs.elim2')}</MenuItem>
-                <MenuItem value="3">{t('paramSoc.calculs.elim3')}</MenuItem>
-                <MenuItem value="4">{t('paramSoc.calculs.elim4')}</MenuItem>
-              </Select>
-            </div>
-            <div className="ps-modern-form-group">
-              <label className="ps-modern-label">{t('paramSoc.calculs.modeDeductionRepos')}</label>
-              <Select fullWidth variant="standard" value={formData.parreptrv || '0'} onChange={(e) => handleInputChange('parreptrv', e.target.value)}>
-                <MenuItem value="0">{t('paramSoc.calculs.rep0')}</MenuItem>
-                <MenuItem value="1">{t('paramSoc.calculs.rep1')}</MenuItem>
-                <MenuItem value="2">{t('paramSoc.calculs.rep2')}</MenuItem>
-                <MenuItem value="3">{t('paramSoc.calculs.rep3')}</MenuItem>
-              </Select>
+              <div className="ps-modern-form-group">
+                <label className="ps-modern-label">{t('paramSoc.calculs.eliminerFerie')}</label>
+                <Select fullWidth variant="standard" value={formData.parelimftrv || '0'} onChange={(e) => handleInputChange('parelimftrv', e.target.value)}>
+                  <MenuItem value="0">{t('paramSoc.calculs.elim0')}</MenuItem>
+                  <MenuItem value="1">{t('paramSoc.calculs.elim1')}</MenuItem>
+                  <MenuItem value="2">{t('paramSoc.calculs.elim2')}</MenuItem>
+                  <MenuItem value="3">{t('paramSoc.calculs.elim3')}</MenuItem>
+                  <MenuItem value="4">{t('paramSoc.calculs.elim4')}</MenuItem>
+                </Select>
+              </div>
+              <div className="ps-modern-form-group">
+                <label className="ps-modern-label">{t('paramSoc.calculs.modeDeductionRepos')}</label>
+                <Select fullWidth variant="standard" value={formData.parreptrv || '0'} onChange={(e) => handleInputChange('parreptrv', e.target.value)}>
+                  <MenuItem value="0">{t('paramSoc.calculs.rep0')}</MenuItem>
+                  <MenuItem value="1">{t('paramSoc.calculs.rep1')}</MenuItem>
+                  <MenuItem value="2">{t('paramSoc.calculs.rep2')}</MenuItem>
+                  <MenuItem value="3">{t('paramSoc.calculs.rep3')}</MenuItem>
+                </Select>
+              </div>
             </div>
           </div>
         </div>

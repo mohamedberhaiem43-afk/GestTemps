@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Box, Grid, Button, Snackbar, Alert, Collapse, Typography, Card, CardContent, CircularProgress } from '@mui/material';
+import { Box, Grid, Button, Collapse, Typography, Card, CardContent, CircularProgress, Alert } from '@mui/material';
+import { useFeedbackSnackbar } from '../../../../helper/FeedbackSnackbar';
 import SaveIcon from "@mui/icons-material/Save";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import PeopleIcon from '@mui/icons-material/People';
@@ -91,9 +92,7 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
   const { data: congeToEdit = [] } = useGetTitreCongeById(selectedConge?.concod || '');
   const [mode, setMode] = useState('save');
   const [writable, setWritable] = useState(true);
-  const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [severity, setSeverity] = useState<'success' | 'error'>('success');
+  const feedback = useFeedbackSnackbar();
 
   const { refetch } = useGetTitreConge();
 
@@ -152,10 +151,6 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
     setCheckedEmployees(newChecked);
   };
 
-  const handleSnackbarClose = () => {
-    setIsSnackbarOpen(false);
-  };
-
   const handleSubmit = () => {
     setIsLoading(true);
 
@@ -182,12 +177,12 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
 
       addBulkConge(congeDataArray, {
         onSuccess: () => {
-          handleSnackbarOpening(t('conge.messages.bulkAddSuccess') || 'Leaves added successfully', 'success');
+          feedback.showSuccess(t('conge.messages.bulkAddSuccess') || 'Leaves added successfully');
           resetForm();
           setIsLoading(false);
         },
-        onError: () => {
-          handleSnackbarOpening(t('conge.messages.bulkAddError') || 'Error adding leaves', 'error');
+        onError: (err: any) => {
+          feedback.showError(err, t('conge.messages.bulkAddError') || 'Error adding leaves');
           setIsLoading(false);
         }
       });
@@ -214,7 +209,7 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
       };
 
       if (congeData.empcod == '' && congeData.concod == '') {
-        handleSnackbarOpening(t('common.requiredFields') || 'Please fill all required fields', 'error');
+        feedback.showError(t('common.requiredFields') || 'Please fill all required fields');
         setIsLoading(false);
         return;
       }
@@ -222,24 +217,24 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
       if (mode === 'save') {
         addConge(congeData, {
           onSuccess: () => {
-            handleSnackbarOpening(t('conge.messages.addSuccess') || 'Leave added successfully', 'success');
+            feedback.showSuccess(t('conge.messages.addSuccess') || 'Leave added successfully');
             resetForm();
             setIsLoading(false);
           },
-          onError: () => {
-            handleSnackbarOpening(t('conge.messages.addError') || 'Failed to add leave', 'error');
+          onError: (err: any) => {
+            feedback.showError(err, t('conge.messages.addError') || 'Failed to add leave');
             setIsLoading(false);
           }
         });
       } else if (mode === 'edit') {
         updateConge(congeData, {
           onSuccess() {
-            handleSnackbarOpening(t('conge.messages.updateSuccess') || 'Leave updated successfully', 'success');
+            feedback.showSuccess(t('conge.messages.updateSuccess') || 'Leave updated successfully');
             resetForm();
             setIsLoading(false);
           },
-          onError() {
-            handleSnackbarOpening(t('conge.messages.updateError') || 'Failed to update leave', 'error');
+          onError(err: any) {
+            feedback.showError(err, t('conge.messages.updateError') || 'Failed to update leave');
             setIsLoading(false);
           },
         });
@@ -249,12 +244,6 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
 
   const toggleExceptionList = () => {
     setShowExceptionList(prev => !prev);
-  };
-
-  const handleSnackbarOpening = (message: string, severity: 'error' | 'success') => {
-    setMessage(message);
-    setSeverity(severity);
-    setIsSnackbarOpen(true);
   };
 
   const resetForm = () => {
@@ -536,11 +525,7 @@ export default function TitreCongeForm({ titre }:{titre:string}) {
         </Grid>
       )}
 
-      <Snackbar open={isSnackbarOpen} autoHideDuration={1500} onClose={handleSnackbarClose}>
-        <Alert onClose={handleSnackbarClose} severity={severity}>
-          {message}
-        </Alert>
-      </Snackbar>
+      {feedback.element}
     </Box>
   );
 }

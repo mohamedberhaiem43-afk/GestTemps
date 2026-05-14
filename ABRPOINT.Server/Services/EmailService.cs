@@ -69,6 +69,24 @@ namespace ABRPOINT.Server.Services
                 throw new InvalidOperationException("SMTP FromEmail n'est pas configuré.");
             }
 
+            // Garde-fou : si les credentials sont restés sur les placeholders de
+            // appsettings.json (REPLACE_WITH_*), on lève AVANT la connexion SMTP
+            // plutôt que de laisser MailKit échouer 20 s plus tard. Le contrôleur
+            // ForgotPassword catche déjà cette exception, mais le message est plus
+            // parlant dans les logs (« SMTP non configuré » > « 535 Authentication
+            // failed »).
+            if (IsPlaceholder(_settings.FromEmail) || IsPlaceholder(_settings.Username) || IsPlaceholder(_settings.Password))
+            {
+                var msg = "SMTP non configuré : les credentials d'envoi sont restés sur les valeurs " +
+                          "placeholder de appsettings.json. Définir Smtp__Host / Smtp__Port / Smtp__Username / " +
+                          "Smtp__Password / Smtp__FromEmail via variables d'environnement (cf. docker-compose.yml).";
+                _logger.LogError(msg);
+                // Console.WriteLine garantit la sortie dans `docker logs` même si le
+                // logger ASP.NET filtre par défaut les LogError au niveau Information.
+                Console.WriteLine("[EmailService] " + msg);
+                throw new InvalidOperationException(msg);
+            }
+
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(_settings.FromName ?? string.Empty, _settings.FromEmail));
             message.To.Add(MailboxAddress.Parse(to));
@@ -198,6 +216,12 @@ namespace ABRPOINT.Server.Services
                     try { await client.DisconnectAsync(true); } catch { /* best-effort */ }
                 }
             }
+        }
+
+        private static bool IsPlaceholder(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            return value.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
