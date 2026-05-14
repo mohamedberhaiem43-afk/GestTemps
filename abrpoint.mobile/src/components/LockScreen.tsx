@@ -96,7 +96,7 @@ export default function LockScreen() {
         colors={[COLORS.primary, COLORS.primaryContainer ?? '#0056d2']}
         style={StyleSheet.absoluteFillObject}
       />
-      <Image source={require('../../assets/Concorde.png')} style={styles.logo} resizeMode="contain" />
+      <Image source={require('../../assets/concorde-workly-logo.png')} style={styles.logo} resizeMode="contain" />
       <Text style={styles.title}>Session verrouillée</Text>
       <Text style={styles.subtitle}>
         {user?.utilib ? `${user.utilib} — ` : ''}Inactivité détectée

@@ -7,7 +7,7 @@
     "userInterfaceStyle": "light",
     "icon": "./assets/icon-padded.png",
     "splash": {
-      "image": "./assets/Concorde.png",
+      "image": "./assets/concorde-workly-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#0040a1"
     },
@@ -53,7 +53,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/Concorde.png",
+          "icon": "./assets/concorde-workly-logo.png",
           "color": "#0040a1",
           "sounds": []
         }

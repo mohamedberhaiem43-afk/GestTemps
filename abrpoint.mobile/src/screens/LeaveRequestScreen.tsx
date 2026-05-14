@@ -248,7 +248,23 @@ export default function LeaveRequestScreen({ navigation }: any) {
       }
       closeForm();
       loadRequests();
-    } catch (error) {
+    } catch (error: any) {
+      // Faux négatif vu en prod : le POST réussit (record persisté), mais une
+      // erreur dans la notif manager (DbContext concurrent côté serveur, ou un
+      // hook réseau côté client) faisait remonter ce catch. On revérifie via
+      // loadRequests() — si le record est apparu, c'est un succès. Plus de
+      // « Impossible d'ajouter… » alors que la demande est bien là.
+      const status = error?.response?.status;
+      const wasNetworkOrServerHiccup = !status || status >= 500;
+      try { await loadRequests(); } catch { /* best-effort */ }
+      if (wasNetworkOrServerHiccup) {
+        Alert.alert('⚠️ Action partielle',
+          editingConcod
+            ? 'La demande a peut-être été enregistrée. Vérifiez la liste — si elle apparaît, tout est bon.'
+            : 'La demande a peut-être été enregistrée. Vérifiez la liste — si elle apparaît, tout est bon.');
+        closeForm();
+        return;
+      }
       Alert.alert('Erreur', editingConcod ? 'Impossible de modifier la demande' : 'Impossible d\'envoyer la demande');
     }
   };

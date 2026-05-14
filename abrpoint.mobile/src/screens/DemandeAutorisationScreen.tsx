@@ -229,7 +229,19 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
       setShowForm(false);
       setEditDemande(null);
       loadDemandes();
-    } catch (e) {
+    } catch (e: any) {
+      // Même filet de sécurité que LeaveRequestScreen : on a vu des 500 remontés
+      // alors que le record était bien créé (notif manager qui échoue côté serveur).
+      const status = e?.response?.status;
+      const wasNetworkOrServerHiccup = !status || status >= 500;
+      try { await loadDemandes(); } catch { /* best-effort */ }
+      if (wasNetworkOrServerHiccup) {
+        Alert.alert('⚠️ Action partielle',
+          'La demande a peut-être été enregistrée. Vérifiez la liste — si elle apparaît, tout est bon.');
+        setShowForm(false);
+        setEditDemande(null);
+        return;
+      }
       Alert.alert('Erreur', "Impossible d'envoyer la demande");
     }
   };

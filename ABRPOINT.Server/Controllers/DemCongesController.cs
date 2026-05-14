@@ -229,7 +229,17 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 await _demandecongeRepository.AddAsync(conge);
-                // Notifier les managers qu'une nouvelle demande arrive (best-effort).
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+
+            // Best-effort : un échec de notification (DbContext concurrent, employé
+            // introuvable, push provider down…) NE DOIT PAS faire retomber le client
+            // sur "Impossible d'ajouter" alors que la demande est bien persistée.
+            try
+            {
                 if (_notify != null)
                 {
                     var who = await _context.Employes.AsNoTracking()
@@ -237,19 +247,18 @@ namespace ABRPOINT.Server.Controllers
                         .Select(e => e.Emplib)
                         .FirstOrDefaultAsync()
                         ?? conge.Empcod ?? "Un employé";
-                    // Formulation orientée action : le manager doit comprendre en 1 seconde
-                    // qu'il a un acte à poser, pas qu'il a "reçu un message".
                     _ = _notify.NotifyManagersAsync(
                         "🗓️ Demande de congé à valider",
                         $"{who} attend votre validation.",
                         new { type = "leave_request_created", concod = conge.Concod, soccod = conge.Soccod });
                 }
-                return Ok("Demande ajouté avec succées");
             }
-            catch (Exception)
+            catch (Exception notifyEx)
             {
-                return StatusCode(500);
+                Console.WriteLine($"[DemConges.Post] Notification side-effect failed (ignored, record was saved): {notifyEx.Message}");
             }
+
+            return Ok("Demande ajouté avec succées");
         }
 
         // PUT api/<DirectionsController>/5

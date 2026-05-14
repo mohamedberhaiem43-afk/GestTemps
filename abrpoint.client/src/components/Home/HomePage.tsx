@@ -113,6 +113,7 @@ export default function HomePage() {
           <li><a href="#how">Comment ça marche</a></li>
           <li><a href="#secteurs">Secteurs</a></li>
           <li><a href="#pricing">Tarifs</a></li>
+          <li><a href="#download">Téléchargement</a></li>
           <li><a href="#temoignages">Témoignages</a></li>
         </ul>
         <div className="nav-right">
@@ -265,6 +266,47 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* MOBILE DOWNLOAD — bandeau dédié pour rendre le lien de téléchargement
+          mobile (URL canonique : concordeworkly.com) immédiatement repérable
+          en haut de page, sans avoir à scroller jusqu'à l'étape « Déployez sur
+          le terrain ». */}
+      <section id="download" className="download-band reveal">
+        <div className="download-band-inner">
+          <div className="download-band-left">
+            <div className="download-band-tag">📱 Application mobile</div>
+            <h3 className="download-band-title">Téléchargez l'app Concorde Workly</h3>
+            <p className="download-band-sub">
+              iOS · Android · Mode offline · Géolocalisation optionnelle. Rendez-vous sur{' '}
+              <a className="download-band-url" href="https://concordeworkly.com" target="_blank" rel="noreferrer">concordeworkly.com</a>
+              {' '}pour récupérer la dernière version.
+            </p>
+          </div>
+          <div className="download-band-buttons">
+            <a className="store-btn" href="https://concordeworkly.com/ios" target="_blank" rel="noreferrer">
+              <span className="store-btn-icon"></span>
+              <span className="store-btn-text">
+                <span className="store-btn-small">Télécharger sur</span>
+                <span className="store-btn-large">App Store</span>
+              </span>
+            </a>
+            <a className="store-btn" href="https://concordeworkly.com/android" target="_blank" rel="noreferrer">
+              <span className="store-btn-icon">▶</span>
+              <span className="store-btn-text">
+                <span className="store-btn-small">DISPONIBLE SUR</span>
+                <span className="store-btn-large">Google Play</span>
+              </span>
+            </a>
+            <a className="store-btn store-btn-apk" href="https://concordeworkly.com" target="_blank" rel="noreferrer">
+              <span className="store-btn-icon">⬇</span>
+              <span className="store-btn-text">
+                <span className="store-btn-small">APK direct</span>
+                <span className="store-btn-large">concordeworkly.com</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* FEATURES */}
       <section id="features">
         <div className="section-tag">Fonctionnalités</div>
@@ -395,8 +437,11 @@ export default function HomePage() {
                 <div className="step-illus-title">Mobile-first</div>
                 <div className="step-illus-desc">iOS · Android · Mode offline · Géolocalisation optionnelle · Pointeuses biométriques compatibles</div>
                 <div className="step-stores">
-                  <div className="step-store">↓ App Store</div>
-                  <div className="step-store">↓ Google Play</div>
+                  <a className="step-store" href="https://concordeworkly.com/ios" target="_blank" rel="noreferrer">↓ App Store</a>
+                  <a className="step-store" href="https://concordeworkly.com/android" target="_blank" rel="noreferrer">↓ Google Play</a>
+                </div>
+                <div className="step-store-url">
+                  ou téléchargez l'APK depuis <a href="https://concordeworkly.com" target="_blank" rel="noreferrer"><strong>concordeworkly.com</strong></a>
                 </div>
               </div>
             )}
@@ -733,6 +778,8 @@ export default function HomePage() {
               <a href="#features">Fonctionnalités</a>
               <a href="#pricing">Tarifs</a>
               <a href="#how">Démo</a>
+              <a href="#download">Application mobile</a>
+              <a href="https://concordeworkly.com" target="_blank" rel="noreferrer">concordeworkly.com</a>
               <a href="#temoignages">Cas clients</a>
             </div>
           </div>

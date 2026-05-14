@@ -486,6 +486,71 @@
 .home-page .step-store {
   background: var(--hp-surface-container-low); border: 1px solid var(--hp-surface-container-high);
   border-radius: 12px; padding: 11px 22px; font-size: 13px; font-weight: 600; color: var(--hp-on-surface);
+  text-decoration: none; transition: transform .15s ease, border-color .15s ease;
+}
+.home-page .step-store:hover { transform: translateY(-1px); border-color: var(--hp-primary-fixed-dim); }
+.home-page .step-store-url {
+  margin-top: 14px; font-size: 12.5px; color: var(--hp-on-surface-variant);
+}
+.home-page .step-store-url a { color: var(--hp-primary); text-decoration: none; }
+.home-page .step-store-url a:hover { text-decoration: underline; }
+
+/* ── DOWNLOAD BAND ── bandeau dédié pour le téléchargement mobile. */
+.home-page .download-band {
+  margin: 0 -48px;
+  padding: 56px 48px;
+  background: linear-gradient(135deg, #f3f7ff 0%, #ffffff 60%, #eef3fb 100%);
+  border-top: 1px solid var(--hp-surface-container);
+  border-bottom: 1px solid var(--hp-surface-container);
+}
+.home-page .download-band-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1.1fr; gap: 40px; align-items: center;
+}
+.home-page .download-band-left { display: flex; flex-direction: column; gap: 10px; }
+.home-page .download-band-tag {
+  display: inline-flex; align-self: flex-start; align-items: center; gap: 6px;
+  background: var(--hp-primary-fixed); color: var(--hp-primary);
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 6px 14px; border-radius: 999px; text-transform: uppercase;
+}
+.home-page .download-band-title {
+  font-family: var(--hp-font-headline);
+  font-size: clamp(24px, 3vw, 34px); font-weight: 800;
+  color: var(--hp-on-surface); letter-spacing: -0.02em; margin: 4px 0 0;
+}
+.home-page .download-band-sub {
+  font-size: 15px; color: var(--hp-on-surface-variant); margin: 0; line-height: 1.55;
+}
+.home-page .download-band-url {
+  color: var(--hp-primary); font-weight: 700; text-decoration: none;
+  border-bottom: 1.5px dashed rgba(0,64,161,0.35);
+}
+.home-page .download-band-url:hover { border-bottom-style: solid; }
+
+.home-page .download-band-buttons {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end;
+}
+.home-page .store-btn {
+  display: inline-flex; align-items: center; gap: 12px;
+  background: #111418; color: #ffffff;
+  border-radius: 14px; padding: 12px 22px;
+  text-decoration: none;
+  transition: transform .18s ease, box-shadow .18s ease;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.15);
+  min-width: 200px;
+}
+.home-page .store-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,23,42,0.22); }
+.home-page .store-btn-icon { font-size: 22px; line-height: 1; }
+.home-page .store-btn-text { display: flex; flex-direction: column; line-height: 1.15; }
+.home-page .store-btn-small { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; }
+.home-page .store-btn-large { font-size: 16px; font-weight: 700; }
+.home-page .store-btn-apk { background: linear-gradient(135deg, var(--hp-primary), var(--hp-primary-container)); }
+
+@media (max-width: 860px) {
+  .home-page .download-band { margin: 0 -20px; padding: 40px 20px; }
+  .home-page .download-band-inner { grid-template-columns: 1fr; gap: 24px; }
+  .home-page .download-band-buttons { justify-content: flex-start; }
 }
 .home-page .mini-profile {
   background: var(--hp-surface-container-low); border: 1px solid var(--hp-surface-container-high);

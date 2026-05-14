@@ -34,7 +34,7 @@ export default function BackgroundShield({ children }: { children: React.ReactNo
       {hidden && (
         <View style={styles.shield} pointerEvents="none">
           <Image
-            source={require('../../assets/Concorde.png')}
+            source={require('../../assets/concorde-workly-logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />

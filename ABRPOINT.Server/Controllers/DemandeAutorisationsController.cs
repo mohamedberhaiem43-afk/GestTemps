@@ -156,6 +156,7 @@ namespace ABRPOINT.Server.Controllers
         {
             if (demande == null)
                 return BadRequest("Veuillez saisir les champs obligatoires");
+            object? result;
             try
             {
                 var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -169,11 +170,20 @@ namespace ABRPOINT.Server.Controllers
                     return Forbid();
                 }
 
-                var result = await _repository.AddAsync(demande);
+                result = await _repository.AddAsync(demande);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+
+            // Best-effort : un échec de notification (DbContext concurrent, employé
+            // introuvable, push provider down…) NE DOIT PAS faire retomber le client
+            // sur "Impossible d'envoyer la demande" alors qu'elle est bien créée.
+            try
+            {
                 if (_notify != null)
                 {
-                    // Récupère le nom de l'employé pour rendre la notif intelligible au manager
-                    // sans qu'il ait à ouvrir l'écran ("X attend votre validation" >>> "Une demande a été soumise").
                     var who = await _context.Employes.AsNoTracking()
                         .Where(e => e.Soccod == demande.Soccod && e.Empcod == demande.Empcod)
                         .Select(e => e.Emplib)
@@ -184,12 +194,13 @@ namespace ABRPOINT.Server.Controllers
                         $"{who} attend votre validation.",
                         new { type = "auth_request_created", id = (result as DemandeAutorisation)?.Id, soccod = demande.Soccod });
                 }
-                return Ok(new { success = true, message = "Demande d'autorisation créée avec succès", data = result });
             }
-            catch (Exception)
+            catch (Exception notifyEx)
             {
-                return StatusCode(500);
+                Console.WriteLine($"[DemandeAutorisations.Create] Notification side-effect failed (ignored, record was saved): {notifyEx.Message}");
             }
+
+            return Ok(new { success = true, message = "Demande d'autorisation créée avec succès", data = result });
         }
 
         // PUT: api/DemandeAutorisations
