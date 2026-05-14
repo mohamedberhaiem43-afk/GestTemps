@@ -5,6 +5,12 @@ using MimeKit;
 
 namespace ABRPOINT.Server.Services
 {
+    /// <summary>
+    /// Snapshot lisible de la config SMTP (sans le password) — exposé via l'endpoint
+    /// admin de diagnostic et utilisé pour la bannière de boot.
+    /// </summary>
+    public sealed record SmtpConfigStatus(bool IsConfigured, string Reason, string? Host, int Port, string? FromEmail, bool HasAuth);
+
     public class SmtpSettings
     {
         public const string SectionName = "Smtp";
@@ -51,6 +57,41 @@ namespace ABRPOINT.Server.Services
         {
             _settings = configuration.GetSection(SmtpSettings.SectionName).Get<SmtpSettings>() ?? new SmtpSettings();
             _logger = logger;
+
+            // Bannière au démarrage : on log VISIBLEMENT l'état SMTP au boot. Sans ça,
+            // un utilisateur qui n'a pas configuré le .env découvre le problème seulement
+            // au 1er forgot-password (et silencieusement, via anti-énumération). Avec ça,
+            // `docker logs abrpoint.server` montre immédiatement la cause au boot.
+            var status = GetConfigStatus();
+            if (status.IsConfigured)
+            {
+                Console.WriteLine($"[EmailService] SMTP configured: {status.Host}:{status.Port}, From={status.FromEmail}, Auth={(status.HasAuth ? "yes" : "no")}");
+                _logger.LogInformation("SMTP ready — Host={Host} Port={Port} From={From}", status.Host, status.Port, status.FromEmail);
+            }
+            else
+            {
+                Console.WriteLine("[EmailService] ⚠️  SMTP NOT CONFIGURED — emails (forgot-password, validations) ne seront PAS envoyés.");
+                Console.WriteLine($"[EmailService] ⚠️  Reason: {status.Reason}");
+                Console.WriteLine("[EmailService] ⚠️  Fix: créer un fichier .env à côté de docker-compose.yml avec SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM_EMAIL puis `docker compose up -d --force-recreate abrpoint.server`.");
+                _logger.LogError("SMTP NOT configured at boot: {Reason}", status.Reason);
+            }
+        }
+
+        /// <summary>
+        /// Diagnostic en lecture seule de la config SMTP. N'effectue aucun envoi, aucun
+        /// appel réseau — c'est juste un check de présence / placeholder des variables.
+        /// Utilisé au boot (bannière) et par l'endpoint admin /api/admin/diagnostics/email.
+        /// </summary>
+        public SmtpConfigStatus GetConfigStatus()
+        {
+            if (string.IsNullOrWhiteSpace(_settings.Host))
+                return new SmtpConfigStatus(false, "Smtp.Host est vide (variable d'env Smtp__Host).", _settings.Host, _settings.Port, _settings.FromEmail, false);
+            if (string.IsNullOrWhiteSpace(_settings.FromEmail))
+                return new SmtpConfigStatus(false, "Smtp.FromEmail est vide (variable d'env Smtp__FromEmail).", _settings.Host, _settings.Port, _settings.FromEmail, false);
+            if (IsPlaceholder(_settings.FromEmail) || IsPlaceholder(_settings.Username) || IsPlaceholder(_settings.Password))
+                return new SmtpConfigStatus(false, "Les credentials SMTP sont restés sur les valeurs placeholder de appsettings.json (REPLACE_WITH_*).", _settings.Host, _settings.Port, _settings.FromEmail, false);
+            var hasAuth = !string.IsNullOrEmpty(_settings.Username) && !string.IsNullOrEmpty(_settings.Password);
+            return new SmtpConfigStatus(true, "OK", _settings.Host, _settings.Port, _settings.FromEmail, hasAuth);
         }
 
         public async Task SendEmailAsync(string to, string subject, string body)

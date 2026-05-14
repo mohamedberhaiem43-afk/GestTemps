@@ -147,12 +147,22 @@ public class AuthLookupController : ControllerBase
         {
             var tenantDbName = await ResolveTenantDbNameAsync(email, ct);
             if (string.IsNullOrEmpty(tenantDbName))
+            {
+                // Diagnostic léger : on ne révèle PAS au client mais on logge pour l'admin.
+                // Sans ça, "no email received" peut signifier 3 choses (email inconnu,
+                // SMTP cassé, ou user inconnu côté tenant) et l'admin ne peut pas
+                // trancher sans accéder au flow back-end.
+                _log.LogInformation("ForgotPassword — aucun tenant trouvé pour {Email}. Réponse générique renvoyée.", email);
                 return Ok(new { message = genericResponse });
+            }
 
             await using var tdb = CreateTenantDb(tenantDbName);
             var user = await tdb.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail != null && u.Utimail.ToLower() == email, ct);
             if (user is null)
+            {
+                _log.LogInformation("ForgotPassword — tenant {Tenant} trouvé mais utilisateur {Email} absent de Utilisateurs. Réponse générique renvoyée.", tenantDbName, email);
                 return Ok(new { message = genericResponse });
+            }
 
             var resetCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString("D6");
             user.UtiResetCode = resetCode;
@@ -187,7 +197,21 @@ public class AuthLookupController : ControllerBase
                 preview: $"Votre code à usage unique : {resetCode}",
                 innerHtml: inner);
 
-            await _emailService.SendEmailAsync(email, subject, body);
+            try
+            {
+                await _emailService.SendEmailAsync(email, subject, body);
+                _log.LogInformation("ForgotPassword — code envoyé à {Email} (tenant {Tenant}).", email, tenantDbName);
+            }
+            catch (Exception sendEx)
+            {
+                // Marquer clairement dans les logs : c'est un échec D'ENVOI (user trouvé,
+                // code généré, SMTP cassé). L'admin doit corriger la config SMTP, sinon
+                // tous les forgot-password échoueront silencieusement côté client.
+                // `Console.WriteLine` redonde le LogError au cas où le niveau de log
+                // global filtrerait — la criticité justifie le doublon.
+                _log.LogError(sendEx, "ForgotPassword — code généré pour {Email} (tenant {Tenant}) mais ENVOI SMTP ÉCHOUÉ. Tester /api/admin/diagnostics/test-email pour diagnostiquer.", email, tenantDbName);
+                Console.WriteLine($"[ForgotPassword] SMTP send failed for {email}: {sendEx.GetType().Name}: {sendEx.Message}");
+            }
             return Ok(new { message = genericResponse });
         }
         catch (Exception ex)

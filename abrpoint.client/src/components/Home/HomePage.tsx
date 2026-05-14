@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import InlineAuthCard from './InlineAuthCard';
 import './HomePage.css';
 
 // Landing publique dérivée de Maquette_Concorde_Workforce.html.
@@ -9,7 +10,6 @@ import './HomePage.css';
 // d'essai gratuit.
 
 type StepIndex = 0 | 1 | 2 | 3;
-type AuthTab = 'login' | 'register';
 type BillingCycle = 'monthly' | 'annual';
 
 const STEPS: { num: string; title: string; desc: string }[] = [
@@ -37,7 +37,6 @@ const STEPS: { num: string; title: string; desc: string }[] = [
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [authTab, setAuthTab] = useState<AuthTab>('login');
   const [activeStep, setActiveStep] = useState<StepIndex>(0);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [scrolled, setScrolled] = useState(false);
@@ -90,18 +89,14 @@ export default function HomePage() {
     premium: monthly ? '119' : '95,20',
   };
 
-  const goToSignup = () => navigate('/signup');
-  const goToLogin = () => navigate('/login');
-  const goToPlanConfig = (plan: string) => navigate(`/plan-configuration?plan=${plan}`);
-
-  const handleAuthSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (authTab === 'login') {
-      navigate('/login');
-    } else {
-      navigate('/signup');
-    }
+  // Smooth-scroll vers la section "Rejoindre Concorde Workforce" : nav header
+  // + CTAs hero/promo cliquent ici plutôt que de partir vers /signup ou /login.
+  const scrollToAuth = () => {
+    authSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+  const goToSignup = () => scrollToAuth();
+  const goToLogin = () => scrollToAuth();
+  const goToPlanConfig = (plan: string) => navigate(`/plan-configuration?plan=${plan}`);
 
   return (
     <div className="home-page" ref={containerRef}>
@@ -668,75 +663,12 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <div className="auth-card reveal">
-            <div className="auth-tabs">
-              <button type="button" className={`auth-tab${authTab === 'login' ? ' active' : ''}`} onClick={() => setAuthTab('login')}>Connexion</button>
-              <button type="button" className={`auth-tab${authTab === 'register' ? ' active' : ''}`} onClick={() => setAuthTab('register')}>Créer un compte</button>
-            </div>
-
-            {authTab === 'login' && (
-              <form onSubmit={handleAuthSubmit}>
-                <div className="form-group">
-                  <label className="form-label">Email professionnel</label>
-                  <input className="form-input" type="email" placeholder="directeur@entreprise.com" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Mot de passe</label>
-                  <input className="form-input" type="password" placeholder="••••••••" />
-                </div>
-                <div className="form-forgot">
-                  <a onClick={goToLogin}>Mot de passe oublié ?</a>
-                </div>
-                <button type="submit" className="auth-submit">Se connecter →</button>
-                <div className="auth-footer">
-                  Pas encore de compte ? <a onClick={() => setAuthTab('register')}>Créer un compte</a>
-                </div>
-              </form>
-            )}
-
-            {authTab === 'register' && (
-              <form onSubmit={handleAuthSubmit}>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Prénom</label>
-                    <input className="form-input" type="text" placeholder="Samir" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Nom</label>
-                    <input className="form-input" type="text" placeholder="Benali" />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Email professionnel</label>
-                  <input className="form-input" type="email" placeholder="directeur@entreprise.com" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Entreprise</label>
-                  <input className="form-input" type="text" placeholder="Nom de votre entreprise" />
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Pays</label>
-                    <select className="form-input" style={{ cursor: 'pointer' }} defaultValue="FR">
-                      <option value="FR">🇫🇷 France</option>
-                      <option value="BE">🇧🇪 Belgique</option>
-                      <option value="MA">🇲🇦 Maroc</option>
-                      <option value="SN">🇸🇳 Sénégal</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">N° entreprise (SIRET / BCE / ICE / NINEA)</label>
-                    <input className="form-input" type="text" placeholder="14 chiffres" />
-                  </div>
-                </div>
-                <button type="submit" className="auth-submit">Créer mon compte →</button>
-                <div className="auth-footer">
-                  En créant un compte, vous acceptez nos <a>CGU</a> et notre <a>politique de confidentialité</a>.<br />
-                  Déjà un compte ? <a onClick={() => setAuthTab('login')}>Se connecter</a>
-                </div>
-              </form>
-            )}
-          </div>
+          <InlineAuthCard />
+          {/* Précédemment : formulaires "shells" qui redirigeaient vers /login & /signup.
+              Remplacés par InlineAuthCard qui fait login + signup complet (slug, SIRET/BCE/
+              ICE/NINEA validé via API, captcha anti-bot, auto-fill nom+adresse) dans la
+              page d'accueil. Les routes /login et /signup restent disponibles comme deep-
+              links (lien dans emails de reset, etc.). */}
         </div>
       </section>
 

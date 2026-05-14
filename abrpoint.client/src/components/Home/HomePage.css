@@ -643,6 +643,39 @@
 .home-page .auth-submit:hover { transform: translateY(-1px); box-shadow: 0 16px 40px rgba(0,64,161,0.32); }
 .home-page .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--hp-on-surface-variant); }
 .home-page .auth-footer a { color: var(--hp-primary); cursor: pointer; font-weight: 600; }
+/* ── InlineAuthCard : feedback de validation (slug, email, SIRET) ── */
+.home-page .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.home-page .form-forgot { text-align: right; margin: 4px 0 12px; font-size: 13px; }
+.home-page .form-forgot a { color: var(--hp-primary); cursor: pointer; font-weight: 500; }
+.home-page .form-input-wrap { position: relative; display: flex; align-items: center; }
+.home-page .form-input-wrap .form-input { flex: 1; padding-right: 36px; }
+.home-page .form-input-icon {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; cursor: pointer; padding: 4px;
+  color: var(--hp-on-surface-variant);
+  display: flex; align-items: center; justify-content: center;
+}
+.home-page .form-input-icon:hover { color: var(--hp-primary); }
+.home-page .form-input-flag {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: auto; border-radius: 2px; pointer-events: none;
+}
+.home-page .form-input-suffix {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; color: var(--hp-on-surface-variant); pointer-events: none;
+  background: rgba(255,255,255,0.85); padding: 0 4px;
+}
+.home-page .form-hint { font-size: 12px; margin-top: 4px; font-weight: 500; }
+.home-page .form-hint--info { color: var(--hp-on-surface-variant); }
+.home-page .form-hint--ok { color: #16a34a; }
+.home-page .form-hint--err { color: #dc2626; }
+.home-page .captcha-question {
+  padding: 8px 12px; background: #f1f5f9; border-radius: 8px;
+  border: 1px solid var(--hp-outline-variant); color: var(--hp-on-surface);
+  font-size: 14px; min-width: 80px; text-align: center;
+}
+.home-page .auth-submit:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
+.home-page .auth-submit:disabled:hover { transform: none; box-shadow: none; }
 .home-page .auth-benefits { display: flex; flex-direction: column; gap: 32px; }
 .home-page .benefit-item { display: flex; gap: 20px; align-items: flex-start; }
 .home-page .benefit-icon {
