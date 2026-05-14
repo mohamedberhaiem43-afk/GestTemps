@@ -4,10 +4,10 @@ import InlineAuthCard from './InlineAuthCard';
 import './HomePage.css';
 
 // Landing publique dérivée de Maquette_Concorde_Workforce.html.
-// Politique : on a sciemment retiré toute mention "essai gratuit 30 jours" /
-// "sans carte bancaire" — les CTA renvoient vers /signup (création de compte
-// payante) et /login. La page reste un argumentaire commercial, sans promesse
-// d'essai gratuit.
+// Politique actuelle (2026) : on annonce l'essai gratuit 1 mois sans CB sur
+// le hero, les packs et la promo CTA. Les CTAs scrollent désormais vers la
+// section "Rejoindre Concorde Workforce" (composant InlineAuthCard) plutôt
+// que de naviguer vers /signup ou /login.
 
 type StepIndex = 0 | 1 | 2 | 3;
 type BillingCycle = 'monthly' | 'annual';
@@ -129,6 +129,11 @@ export default function HomePage() {
           <div className="hero-badge-dot" />
           Plateforme RH multi-pays · Pointage, congés, paie
         </div>
+        <div className="hero-trial-badge" onClick={scrollToAuth} role="button" tabIndex={0}>
+          <span className="hero-trial-icon">🎁</span>
+          <span className="hero-trial-text"><strong>Essai gratuit 1 mois</strong> — sans carte bancaire, sans engagement</span>
+          <span className="hero-trial-arrow">→</span>
+        </div>
         <h1 className="hero-title">
           Le pointage et la gestion<br />du temps <span className="accent">simplifiés</span>
         </h1>
@@ -137,7 +142,7 @@ export default function HomePage() {
         </p>
         <div className="hero-cta-row">
           <button type="button" className="btn-hero-primary" onClick={goToSignup}>
-            Créer mon compte
+            Démarrer mon essai gratuit
             <span>→</span>
           </button>
           <button type="button" className="btn-hero-secondary" onClick={() => scrollTo(howSectionRef)}>
@@ -238,6 +243,28 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* MARQUEE — barre défilante d'offres / arguments commerciaux. Le contenu
+          est dupliqué une fois pour que l'animation CSS (translateX -50%) fasse
+          une boucle infinie sans saut visible. */}
+      <div className="offers-marquee" aria-hidden="false">
+        <div className="offers-marquee-track">
+          {[0, 1].map((dup) => (
+            <div className="offers-marquee-row" key={dup}>
+              <span className="offer-chip"><span className="offer-chip-icon">🎁</span> Essai gratuit 1 mois — sans CB</span>
+              <span className="offer-chip"><span className="offer-chip-icon">📉</span> −20 % en facturation annuelle</span>
+              <span className="offer-chip"><span className="offer-chip-icon">⚡</span> Déploiement en 2 semaines</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🤖</span> IA Assistant RH dès 49 € / mois</span>
+              <span className="offer-chip"><span className="offer-chip-icon">💾</span> +100 Go de stockage à 29 €</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🇫🇷</span> Hébergement France (OVH)</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🔒</span> Conformité RGPD · AES-256</span>
+              <span className="offer-chip"><span className="offer-chip-icon">📱</span> Application iOS / Android incluse</span>
+              <span className="offer-chip"><span className="offer-chip-icon">✋</span> Sans engagement — annulation en 1 clic</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🌍</span> Multi-pays FR · BE · MA · SN</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* FEATURES */}
       <section id="features">
         <div className="section-tag">Fonctionnalités</div>
@@ -267,7 +294,7 @@ export default function HomePage() {
           <div className="feature-card">
             <div className="feature-icon blue-icon">▦</div>
             <div className="feature-title">Contrats & Coffre numérique</div>
-            <div className="feature-desc">Générez, faites signer électroniquement et archivez vos contrats. Coffre-fort numérique sécurisé par collaborateur. Conformité droit du travail FR / BE / MA / SN.</div>
+            <div className="feature-desc">Générez, faites signer électroniquement et archivez vos contrats. Coffre-fort numérique sécurisé par collaborateur. Conformité droit du travail.</div>
             <div className="feature-tags">
               <span className="ftag">Signature électronique</span>
               <span className="ftag">Coffre RGPD</span>
@@ -664,11 +691,6 @@ export default function HomePage() {
             </div>
           </div>
           <InlineAuthCard />
-          {/* Précédemment : formulaires "shells" qui redirigeaient vers /login & /signup.
-              Remplacés par InlineAuthCard qui fait login + signup complet (slug, SIRET/BCE/
-              ICE/NINEA validé via API, captcha anti-bot, auto-fill nom+adresse) dans la
-              page d'accueil. Les routes /login et /signup restent disponibles comme deep-
-              links (lien dans emails de reset, etc.). */}
         </div>
       </section>
 
@@ -676,18 +698,18 @@ export default function HomePage() {
       <div className="promo-cta-wrap">
         <div className="promo-cta reveal">
           <div className="promo-cta-badge">
-            🚀 Prêt à transformer la gestion du temps ?
+            🎁 Essai gratuit 1 mois — sans carte bancaire
           </div>
           <h2>Rejoignez les entreprises<br />qui ont fait le choix de la sérénité.</h2>
-          <p>Déploiement en 2 semaines · Support francophone humain · ROI mesurable dès J+30.</p>
+          <p>Testez Concorde Workforce gratuitement pendant 1 mois — sans CB, sans engagement.<br />Déploiement en 2 semaines · Support francophone humain · ROI mesurable dès J+30.</p>
           <div className="promo-features">
+            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> 1 mois gratuit sans CB</div>
             <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Onboarding expert inclus</div>
             <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Sans engagement de durée</div>
             <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Annulation en 1 clic</div>
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Hébergement France</div>
           </div>
           <button type="button" className="btn-cta-light" onClick={goToSignup}>
-            Créer mon compte →
+            Démarrer mon essai gratuit →
           </button>
         </div>
       </div>
