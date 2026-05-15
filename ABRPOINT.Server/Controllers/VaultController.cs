@@ -26,13 +26,20 @@ namespace ABRPOINT.Server.Controllers
         private readonly IReportsGenerationService _reportsService;
         private readonly EncryptionService _encryptionService;
         private readonly ApplicationDbContext _db;
+        private readonly ILogger<VaultController> _log;
 
-        public VaultController(IVaultRepository vaultRepository, IReportsGenerationService reportsService, EncryptionService encryptionService, ApplicationDbContext db)
+        public VaultController(
+            IVaultRepository vaultRepository,
+            IReportsGenerationService reportsService,
+            EncryptionService encryptionService,
+            ApplicationDbContext db,
+            ILogger<VaultController> log)
         {
             _vaultRepository = vaultRepository;
             _reportsService = reportsService;
             _encryptionService = encryptionService;
             _db = db;
+            _log = log;
         }
 
         [HttpGet("{soccod}/{empcod}")]
@@ -431,7 +438,17 @@ namespace ABRPOINT.Server.Controllers
         public async Task<IActionResult> DownloadDocument(int id)
         {
             var doc = await _vaultRepository.GetDocumentByIdAsync(id);
-            if (doc == null) return NotFound();
+            if (doc == null)
+            {
+                // Document ID inconnu de la base. Le plus souvent : référence UI
+                // périmée (doc supprimé entre-temps, ou ID copié d'un autre tenant).
+                _log.LogWarning("Vault.Download : document Id={Id} introuvable en base.", id);
+                return NotFound(new
+                {
+                    code = "vault_doc_not_found",
+                    message = "Le document demandé n'existe plus. Rafraîchissez la page pour voir la liste à jour."
+                });
+            }
             if (!await CallerCanAccessDocAsync(doc)) return Forbid();
 
             doc.DocPath = _encryptionService.Decrypt(doc.DocPath);
@@ -439,7 +456,19 @@ namespace ABRPOINT.Server.Controllers
             var filePath = Path.Combine(FileHelper.GetUploadsPath(), fileName);
 
             if (!System.IO.File.Exists(filePath))
-                return NotFound("File not found on disk.");
+            {
+                // Le doc existe en DB mais le fichier n'est plus sur disque. Causes
+                // possibles : volume Docker /app/uploads pas correctement monté,
+                // restauration de DB sans restauration des fichiers, ménage manuel.
+                _log.LogError(
+                    "Vault.Download : document Id={Id} (Soccod={Soccod}, Empcod={Empcod}, DocName={DocName}) référence le fichier {File} qui est ABSENT du disque ({Path}).",
+                    id, doc.Soccod, doc.Empcod, doc.DocName, fileName, filePath);
+                return NotFound(new
+                {
+                    code = "vault_file_missing_on_disk",
+                    message = "Le fichier physique de ce document n'est plus disponible sur le serveur. Contactez votre administrateur."
+                });
+            }
 
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
 
@@ -478,7 +507,15 @@ namespace ABRPOINT.Server.Controllers
         public async Task<IActionResult> PreviewDocument(int id)
         {
             var doc = await _vaultRepository.GetDocumentByIdAsync(id);
-            if (doc == null) return NotFound();
+            if (doc == null)
+            {
+                _log.LogWarning("Vault.Preview : document Id={Id} introuvable en base.", id);
+                return NotFound(new
+                {
+                    code = "vault_doc_not_found",
+                    message = "Le document demandé n'existe plus. Rafraîchissez la page pour voir la liste à jour."
+                });
+            }
             if (!await CallerCanAccessDocAsync(doc)) return Forbid();
 
             doc.DocPath = _encryptionService.Decrypt(doc.DocPath);
@@ -486,7 +523,16 @@ namespace ABRPOINT.Server.Controllers
             var filePath = Path.Combine(FileHelper.GetUploadsPath(), fileName);
 
             if (!System.IO.File.Exists(filePath))
-                return NotFound("File not found on disk.");
+            {
+                _log.LogError(
+                    "Vault.Preview : document Id={Id} référence le fichier {File} ABSENT du disque ({Path}).",
+                    id, fileName, filePath);
+                return NotFound(new
+                {
+                    code = "vault_file_missing_on_disk",
+                    message = "Le fichier physique de ce document n'est plus disponible sur le serveur. Contactez votre administrateur."
+                });
+            }
 
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
 

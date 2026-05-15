@@ -114,8 +114,36 @@ const CoffreFortModern = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur lors du téléchargement", err);
+      // Cas particulier : responseType='blob' fait que err.response.data est aussi
+      // un Blob, même pour les erreurs (le contrôleur renvoie { code, message } en JSON).
+      // On tente de relire le Blob comme JSON pour récupérer le message utile.
+      const status = err?.response?.status;
+      let backendMsg: string | null = null;
+      const data = err?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const text = await data.text();
+          const parsed = JSON.parse(text);
+          backendMsg = parsed?.message ?? null;
+        } catch { /* pas du JSON, ignore */ }
+      } else if (typeof data?.message === 'string') {
+        backendMsg = data.message;
+      }
+      let msg = backendMsg;
+      if (!msg) {
+        if (status === 404) msg = "Le document est introuvable ou n'est plus disponible. Rafraîchissez la liste.";
+        else if (status === 403) msg = "Vous n'avez pas la permission d'accéder à ce document.";
+        else if (status === 402) msg = "Cette fonctionnalité n'est pas incluse dans votre plan.";
+        else msg = "Impossible de télécharger le document. Réessayez plus tard.";
+      }
+      setSnack({ open: true, sev: 'error', msg });
+      // Si le doc n'existe plus côté serveur, refresh la liste pour ne pas laisser
+      // une référence morte sur laquelle l'utilisateur va re-cliquer en boucle.
+      if (status === 404) {
+        try { await fetchDocuments(); } catch { /* best-effort */ }
+      }
     }
   };
 

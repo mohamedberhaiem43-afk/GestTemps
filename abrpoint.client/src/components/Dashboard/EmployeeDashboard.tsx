@@ -10,8 +10,18 @@ import useGetMyKPIs from '../../hooks/useGetMyKPIs';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
 import { useCountUp } from '../helper/animations/useCountUp';
+import apiInstance from '../API/apiInstance';
 import './DashboardModern.css';
 import EmployeeDashboardMobile from './EmployeeDashboardMobile';
+
+// Document type tel que renvoyé par GET /api/Vault/{soccod}/{empcod}.
+// On ne reprend que les champs qu'on affiche dans le spotlight.
+interface VaultDocLite {
+  id: number;
+  docName: string;
+  docType?: string | null;
+  uploadDate?: string | null;
+}
 
 export default function EmployeeDashboard() {
   const navigate = useNavigate();
@@ -35,6 +45,41 @@ export default function EmployeeDashboard() {
   const { data: profile, isLoading: loadingProfile } = useGetProfile();
   const { data: kpiData, isLoading: loadingKPIs } = useGetMyKPIs(soccod ?? undefined, uticod ?? undefined);
   const { data: leaveRequests } = useGetDemConges();
+
+  // Dernier document publié dans le coffre numérique de l'employé connecté.
+  // Remplace le placeholder hard-codé « Guide de la Politique de Télétravail 2024 »
+  // qui était un texte fictif issu de la maquette. Si rien n'est trouvé (vault vide
+  // ou employé n'a pas la feature Coffre dans son plan → 402), on masque la section
+  // au lieu d'afficher une carte vide.
+  const [latestVaultDoc, setLatestVaultDoc] = useState<VaultDocLite | null>(null);
+  const [latestVaultLoaded, setLatestVaultLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!soccod || !uticod) return;
+    let cancelled = false;
+    apiInstance.get<VaultDocLite[]>(`/Vault/${soccod}/${uticod}`)
+      .then((res) => {
+        if (cancelled) return;
+        const docs = Array.isArray(res.data) ? res.data : [];
+        // On classe par date de dépôt décroissante quand disponible, sinon par
+        // Id décroissant (les Id auto-incrémentés sont chronologiques).
+        const sorted = [...docs].sort((a, b) => {
+          const ta = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+          const tb = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+          if (tb !== ta) return tb - ta;
+          return (b.id ?? 0) - (a.id ?? 0);
+        });
+        setLatestVaultDoc(sorted[0] ?? null);
+        setLatestVaultLoaded(true);
+      })
+      .catch(() => {
+        // 402 (pack sans coffre), 403 (perm), 5xx, réseau… → on masque la section.
+        if (cancelled) return;
+        setLatestVaultDoc(null);
+        setLatestVaultLoaded(true);
+      });
+    return () => { cancelled = true; };
+  }, [soccod, uticod]);
 
   // Sentinel interne pour le statut d'une demande. On garde des codes ASCII stables
   // ('approved' / 'refused' / 'pending') au lieu des libellés français pour que la
@@ -415,29 +460,47 @@ export default function EmployeeDashboard() {
         </section>
       </div>
 
-      {/* Lower Section: Document Spotlight */}
-      <section className="mt-10 bg-slate-900 rounded-2xl p-8 overflow-hidden relative group">
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="max-w-md">
-            <span className="inline-block px-3 py-1 rounded-full bg-[#0040a1] text-white text-[10px] font-bold uppercase tracking-widest mb-4">{t('employeeDashboard.hrNews')}</span>
-            <h4 className="text-2xl font-['Manrope'] font-bold text-white mb-2">{t('employeeDashboard.remoteGuideTitle')}</h4>
-            <p className="text-slate-400 text-sm mb-6 leading-relaxed">{t('employeeDashboard.remoteGuideText')}</p>
-            <button className="flex items-center gap-2 text-[#0040a1] font-bold group-hover:gap-3 transition-all">
-              <span>{t('employeeDashboard.readDocument')}</span>
-              <span className="material-symbols-outlined">arrow_forward</span>
-            </button>
-          </div>
-          <div className="hidden md:block w-72 h-44 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 p-4 transform rotate-3 hover:rotate-0 transition-all duration-500 shadow-2xl">
-            <div className="w-full h-full bg-white/5 rounded-lg border border-dashed border-white/20 flex items-center justify-center">
-              <span className="material-symbols-outlined text-4xl text-white/20">description</span>
+      {/* Lower Section: Document Spotlight
+          Avant : carte fictive « Guide de la Politique de Télétravail 2024 » issue
+          de la maquette, sans handler ni données réelles. Maintenant : on affiche
+          le DERNIER document déposé dans le coffre numérique de l'employé. La
+          section disparaît entièrement si le coffre est vide ou indisponible
+          (pas de carte vide affichée pour rien). */}
+      {latestVaultLoaded && latestVaultDoc && (
+        <section className="mt-10 bg-slate-900 rounded-2xl p-8 overflow-hidden relative group">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="max-w-md">
+              <span className="inline-block px-3 py-1 rounded-full bg-[#0040a1] text-white text-[10px] font-bold uppercase tracking-widest mb-4">
+                {t('employeeDashboard.hrNews')}
+              </span>
+              <h4 className="text-2xl font-['Manrope'] font-bold text-white mb-2">
+                {latestVaultDoc.docName}
+              </h4>
+              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                {latestVaultDoc.docType
+                  ? `${latestVaultDoc.docType}${latestVaultDoc.uploadDate ? ' · ajouté le ' + dayjs(latestVaultDoc.uploadDate).format('DD/MM/YYYY') : ''}`
+                  : (latestVaultDoc.uploadDate ? `Ajouté le ${dayjs(latestVaultDoc.uploadDate).format('DD/MM/YYYY')}` : t('employeeDashboard.hrNews'))}
+              </p>
+              <button
+                onClick={() => navigate('/dashboard/coffre-fort')}
+                className="flex items-center gap-2 text-[#0040a1] font-bold group-hover:gap-3 transition-all bg-white px-5 py-2.5 rounded-lg hover:bg-slate-100"
+              >
+                <span>{t('employeeDashboard.readDocument')}</span>
+                <span className="material-symbols-outlined">arrow_forward</span>
+              </button>
+            </div>
+            <div className="hidden md:block w-72 h-44 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 p-4 transform rotate-3 hover:rotate-0 transition-all duration-500 shadow-2xl">
+              <div className="w-full h-full bg-white/5 rounded-lg border border-dashed border-white/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-4xl text-white/20">description</span>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Decorative elements */}
-        <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -left-20 -top-20 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl pointer-events-none"></div>
-      </section>
+
+          {/* Decorative elements */}
+          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -left-20 -top-20 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl pointer-events-none"></div>
+        </section>
+      )}
     </div>
   );
 }
