@@ -78,16 +78,22 @@ services:
       DatabaseInitialization__AdminPassword: "123"
       DatabaseInitialization__ApplicationCode: "GRH"
       # ── RAG ACTIVÉ ────────────────────────────────────────────────────
-      # OpenRouter (clé déjà dans appsettings.json) → modèle Llama 3.3 gratuit.
-      # Pour basculer sur Anthropic direct, mettez Rag__Anthropic__UseOpenRouter à "false"
-      # et fournissez ANTHROPIC_API_KEY dans un fichier .env à côté du compose.
+      # OpenRouter — utilisé par : RAG (assistant IA), DocumentScan (OCR/extract
+      # employé), AiService (génération de templates HTML). La clé d'API DOIT
+      # être fournie via le fichier .env (variable OPENROUTER_API_KEY), sinon
+      # appsettings.json contient juste un placeholder "REPLACE_WITH_..." qui
+      # est envoyé tel quel à OpenRouter → 401 Missing Authentication header.
+      # Récupérer une clé sur https://openrouter.ai/keys (compte payant ou
+      # crédit gratuit). Pour basculer sur Anthropic direct, mettre
+      # Rag__Anthropic__UseOpenRouter à "false" + fournir ANTHROPIC_API_KEY.
+      OpenRouter__ApiKey: "${OPENROUTER_API_KEY:-}"
       Rag__Enabled: "true"
       Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
       Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
       Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
-      # Modèle LLM via OpenRouter (clé déjà dans appsettings). Gemini 2.0 Flash est
-      # stable et très bon marché. Les modèles `:free` (llama-3.3, etc.) sont
-      # régulièrement rate-limited 429 en amont — éviter en prod.
+      # Modèle LLM via OpenRouter. Gemini 2.0 Flash est stable et très bon marché.
+      # Les modèles `:free` (llama-3.3, etc.) sont régulièrement rate-limited 429
+      # en amont — éviter en prod.
       Rag__Anthropic__OpenRouterModel: "google/gemini-2.0-flash-001"
       # ── SMTP (OVH ssl0.ovh.net) ───────────────────────────────────────
       # Sans ces variables, les emails de réinit. mot de passe, validations

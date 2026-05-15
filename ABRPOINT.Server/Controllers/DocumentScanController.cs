@@ -52,8 +52,11 @@ namespace ABRPOINT.Server.Controllers
 
                 var apiKey = _config["OpenRouter:ApiKey"];
                 var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-2.0-flash-001";
-                if (string.IsNullOrEmpty(apiKey))
-                    return StatusCode(500, new { message = "Clé API OpenRouter non configurée." });
+                // Le placeholder de appsettings.json passe IsNullOrEmpty mais provoque
+                // un 401 trompeur côté OpenRouter ("Missing Authentication header"). On
+                // l'intercepte ici pour renvoyer un message actionnable côté UI.
+                if (string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
+                    return StatusCode(500, new { message = "Clé API OpenRouter non configurée. Définir OPENROUTER_API_KEY dans le fichier .env du serveur puis redémarrer abrpoint.server." });
 
                 // Build the AI Vision prompt for employee data extraction
                 var extractionPrompt = @"Tu es un assistant expert en extraction de données à partir de documents RH/employé.
@@ -317,8 +320,11 @@ Règles importantes:
 
                 var apiKey = _config["OpenRouter:ApiKey"];
                 var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-2.0-flash-001";
-                if (string.IsNullOrEmpty(apiKey))
-                    return StatusCode(500, new { message = "Clé API OpenRouter non configurée." });
+                // Le placeholder de appsettings.json passe IsNullOrEmpty mais provoque
+                // un 401 trompeur côté OpenRouter ("Missing Authentication header"). On
+                // l'intercepte ici pour renvoyer un message actionnable côté UI.
+                if (string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
+                    return StatusCode(500, new { message = "Clé API OpenRouter non configurée. Définir OPENROUTER_API_KEY dans le fichier .env du serveur puis redémarrer abrpoint.server." });
 
                 var quickPrompt = @"Extrais rapidement les informations de cet employé depuis ce document.
 Réponds UNIQUEMENT en JSON sans markdown:
