@@ -62,14 +62,15 @@
 }
 
 /* ── NAV ── */
-/* Marquee fixe tout en haut. Hauteur 46px → la nav et le hero se décalent
-   d'autant pour ne pas se faire recouvrir. */
+/* Nav fixée en tête de page (top:0). La marquee d'offres défile juste en
+   dessous (top:76px = hauteur de la nav). Le hero se décale du total
+   nav (76px) + marquee (46px) + air (~78px) pour ne pas être recouvert. */
 .home-page .offers-marquee-top {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 110;
+  position: fixed; top: 76px; left: 0; right: 0; z-index: 100;
   margin: 0; padding: 11px 0;
 }
 .home-page .hp-nav {
-  position: fixed; top: 46px; left: 0; right: 0; z-index: 100;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 110;
   padding: 0 48px;
   height: 76px;
   display: flex; align-items: center; justify-content: space-between;

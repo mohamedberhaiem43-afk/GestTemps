@@ -243,10 +243,13 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
     emppost: form.poste || '',
     emptel: '',
     empemb: toApiDate(form.dateDebut),
-    empsort: toApiDate(form.dateFin),
+    // CDI : pas de date de fin contractuelle. On envoie null plutôt qu'une date
+    // arbitraire pour que les rapports/échéances n'affichent pas une "fin" qui
+    // n'en est pas une.
+    empsort: form.typeContrat === '1' || !form.dateFin ? (null as unknown as Date) : toApiDate(form.dateFin),
     condg: '',
     empmotif: form.observations,
-    empdcin: toApiDate(form.dateFin),
+    empdcin: form.typeContrat === '1' || !form.dateFin ? (null as unknown as Date) : toApiDate(form.dateFin),
     empacin: '',
     quacod: '',
     empech: '',
@@ -282,8 +285,15 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
     setIsSnackbarOpen(true);
   };
 
+  // CDI (typeContrat === '1') = contrat à durée indéterminée : la date de fin
+  // n'a aucun sens (le contrat dure jusqu'à démission/licenciement). On la cache
+  // de l'UI et on la rend optionnelle dans la validation/payload.
+  const isCDI = form.typeContrat === '1';
+
   const saveContrat = () => {
-    if (!form.selectedEmployee || !form.numOrdre || !form.dateContrat || !form.dateDebut || !form.dateFin) {
+    const missingBase = !form.selectedEmployee || !form.numOrdre || !form.dateContrat || !form.dateDebut;
+    const missingDateFin = !isCDI && !form.dateFin;
+    if (missingBase || missingDateFin) {
       setMessage('Veuillez remplir les informations obligatoires du contrat.');
       setSeverity('error');
       setIsSnackbarOpen(true);
@@ -551,8 +561,8 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
             />
           </Box>
 
-          {/* Date Range */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+          {/* Date Range — pour CDI, on n'affiche que Date Début (pas de fin de contrat). */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: isCDI ? '1fr' : '1fr 1fr', gap: 1.5 }}>
             <Box>
               <Typography
                 sx={{
@@ -581,34 +591,36 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
                 }}
               />
             </Box>
-            <Box>
-              <Typography
-                sx={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  color: '#515f74',
-                  mb: 0.5,
-                }}
-              >
-                Date Fin
-              </Typography>
-              <TextField
-                type="date"
-                size="small"
-                fullWidth
-                value={form.dateFin}
-                onChange={(e) => updateField('dateFin', e.target.value)}
-                sx={{
-                  backgroundColor: '#f2f4f6',
-                  borderRadius: '8px',
-                  '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                  '&:hover': { backgroundColor: '#ffffff' },
-                  '&.Mui-focused': { backgroundColor: '#ffffff' },
-                }}
-              />
-            </Box>
+            {!isCDI && (
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    color: '#515f74',
+                    mb: 0.5,
+                  }}
+                >
+                  Date Fin
+                </Typography>
+                <TextField
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={form.dateFin}
+                  onChange={(e) => updateField('dateFin', e.target.value)}
+                  sx={{
+                    backgroundColor: '#f2f4f6',
+                    borderRadius: '8px',
+                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                    '&:hover': { backgroundColor: '#ffffff' },
+                    '&.Mui-focused': { backgroundColor: '#ffffff' },
+                  }}
+                />
+              </Box>
+            )}
           </Box>
 
           {/* Duration Info */}

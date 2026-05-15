@@ -16,7 +16,7 @@ import {
 import './RemboursementModern.css';
 import { useAuth } from '../../helper/AuthProvider';
 import { resolveAssetUrl } from '../../../helpers/assetUrl';
-import { useMissionsByEmp } from '../../../hooks/missionHooks/useMissions';
+import { useMissionsByEmp, useMissionsBySoc } from '../../../hooks/missionHooks/useMissions';
 import { useTranslation, Trans } from 'react-i18next';
 const ROWS_PER_PAGE = 10;
 
@@ -138,10 +138,18 @@ function RemboursementModernContent() {
     const [missionId, setMissionId] = useState<number | ''>('');
     const [file, setFile] = useState<File | null>(null);
 
-    // Missions du collaborateur courant — la note de frais doit obligatoirement
-    // pointer sur l'une d'elles (la mission porte la nature d'absence "Formation
-    // et mission" abscng=6 nécessaire au rapprochement paie).
-    const { data: missions = [], isLoading: missionsLoading } = useMissionsByEmp(currentSoccod, currentEmpcod);
+    // Missions à présenter dans le dropdown :
+    //   - Employé (self-service)  : ses propres missions uniquement.
+    //   - Admin/Manager           : toutes les missions de la société, pour saisir
+    //                               une dépense au nom d'un autre collaborateur ou
+    //                               vérifier les missions en cours du parc.
+    // Avant : on filtrait toujours par `currentEmpcod = uticod`, donc un admin
+    // sans mission personnelle voyait une liste vide même quand la BD en
+    // contenait pour d'autres employés.
+    const { data: missionsEmp = [], isLoading: loadingMissionsEmp } = useMissionsByEmp(currentSoccod, isEmp ? currentEmpcod : '');
+    const { data: missionsSoc = [], isLoading: loadingMissionsSoc } = useMissionsBySoc(!isEmp ? currentSoccod : '');
+    const missions = isEmp ? missionsEmp : missionsSoc;
+    const missionsLoading = isEmp ? loadingMissionsEmp : loadingMissionsSoc;
     const [dateDepense, setDateDepense] = useState(dayjs().format('YYYY-MM-DD'));
     const [formSuccess, setFormSuccess] = useState(false);
 

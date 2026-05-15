@@ -51,7 +51,9 @@ function FonctionModernContent() {
         ? { ...form, soccod: soccod || '' }
         : { ...form, foncod: '', soccod: soccod || '' };
       if (isEditMode) {
-        await apiInstance.put('/Fonctions', payload);
+        // Le contrôleur attend `/Fonctions/{soccod}/{foncod}` (verrouillage tenant +
+        // identification de la ressource). PUT sur `/Fonctions` retournait 405.
+        await apiInstance.put(`/Fonctions/${payload.soccod}/${payload.foncod}`, payload);
       } else {
         await apiInstance.post('/Fonctions', payload);
       }
@@ -66,7 +68,7 @@ function FonctionModernContent() {
   const handleEdit = (row: FonctionModel) => { setForm(row); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleDelete = async (row: FonctionModel) => {
     if (window.confirm(t('donneeBase.fonction.deleteConfirm'))) {
-      try { await apiInstance.delete(`/Fonctions/${row.foncod}`); refetch(); } catch { console.error('Erreur'); }
+      try { await apiInstance.delete(`/Fonctions/${row.soccod || soccod}/${row.foncod}`); refetch(); } catch { console.error('Erreur'); }
     }
   };
 

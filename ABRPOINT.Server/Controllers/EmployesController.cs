@@ -584,6 +584,36 @@ namespace ABRPOINT.Server.Controllers
                             .Select(v => v.Villib)
                             .FirstOrDefaultAsync();
                     }
+
+                    // Fonction : Empfonc est un libellé libre saisi à la création. S'il est vide
+                    // mais que Foncod (FK vers la table Fonction) est renseigné, on résout le
+                    // Fonlib correspondant — sans cette résolution, la fiche affiche
+                    // "Fonction —" alors que l'employé a bien une fonction codifiée.
+                    if (string.IsNullOrWhiteSpace(employe.Empfonc) && !string.IsNullOrWhiteSpace(employe.Foncod))
+                    {
+                        var fonlib = await _db.Fonctions
+                            .AsNoTracking()
+                            .Where(f => f.Soccod == soccod && f.Foncod == employe.Foncod)
+                            .Select(f => f.Fonlib)
+                            .FirstOrDefaultAsync();
+                        if (!string.IsNullOrWhiteSpace(fonlib))
+                            employe.Empfonc = fonlib;
+                    }
+
+                    // Manager : Empresp stocke l'Empcod du responsable, pas son nom. On le
+                    // résout vers Emplib pour que la fiche affiche "Jean Dupont" plutôt que
+                    // "EMP00042". Si l'Empcod ne pointe sur personne (ancien manager parti),
+                    // on garde la valeur brute pour ne pas masquer l'incohérence.
+                    if (!string.IsNullOrWhiteSpace(employe.Empresp))
+                    {
+                        var managerName = await _db.Employes
+                            .AsNoTracking()
+                            .Where(e => e.Soccod == soccod && e.Empcod == employe.Empresp)
+                            .Select(e => e.Emplib)
+                            .FirstOrDefaultAsync();
+                        if (!string.IsNullOrWhiteSpace(managerName))
+                            employe.Empresp = managerName;
+                    }
                 }
                 return Ok(employe);
             }

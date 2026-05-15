@@ -102,29 +102,8 @@ export default function HomePage() {
     <div className="home-page" ref={containerRef}>
       <div className="bg-mesh" />
 
-      {/* MARQUEE — barre défilante d'offres / arguments commerciaux fixée tout en
-          haut de l'écran (au-dessus de la nav). Le contenu est dupliqué une fois
-          pour que l'animation CSS (translateX -50%) boucle sans saut visible. */}
-      <div className="offers-marquee offers-marquee-top" aria-hidden="false">
-        <div className="offers-marquee-track">
-          {[0, 1].map((dup) => (
-            <div className="offers-marquee-row" key={dup}>
-              <span className="offer-chip"><span className="offer-chip-icon">🎁</span> Essai gratuit 1 mois — sans CB</span>
-              <span className="offer-chip"><span className="offer-chip-icon">📉</span> −20 % en facturation annuelle</span>
-              <span className="offer-chip"><span className="offer-chip-icon">⚡</span> Déploiement en 2 semaines</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🤖</span> IA Assistant RH dès 49 € / mois</span>
-              <span className="offer-chip"><span className="offer-chip-icon">💾</span> +100 Go de stockage à 29 €</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🇫🇷</span> Hébergement France (OVH)</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🔒</span> Conformité RGPD · AES-256</span>
-              <span className="offer-chip"><span className="offer-chip-icon">📱</span> Application iOS / Android incluse</span>
-              <span className="offer-chip"><span className="offer-chip-icon">✋</span> Sans engagement — annulation en 1 clic</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🌍</span> Multi-pays FR · BE · MA · SN</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* NAV */}
+      {/* NAV — fixée en tête de page. La marquee d'offres défile juste en
+          dessous (cf. .offers-marquee-top dans HomePage.css). */}
       <nav className={`hp-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-logo">
           <img className="logo-mark" src="/logo-256.png" alt="Concorde Workforce" />
@@ -145,6 +124,28 @@ export default function HomePage() {
           </button>
         </div>
       </nav>
+
+      {/* MARQUEE — barre défilante d'offres / arguments commerciaux fixée
+          juste sous la nav. Le contenu est dupliqué une fois pour que
+          l'animation CSS (translateX -50%) boucle sans saut visible. */}
+      <div className="offers-marquee offers-marquee-top" aria-hidden="false">
+        <div className="offers-marquee-track">
+          {[0, 1].map((dup) => (
+            <div className="offers-marquee-row" key={dup}>
+              <span className="offer-chip"><span className="offer-chip-icon">🎁</span> Essai gratuit 1 mois — sans CB</span>
+              <span className="offer-chip"><span className="offer-chip-icon">📉</span> −20 % en facturation annuelle</span>
+              <span className="offer-chip"><span className="offer-chip-icon">⚡</span> Déploiement en 2 semaines</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🤖</span> IA Assistant RH dès 49 € / mois</span>
+              <span className="offer-chip"><span className="offer-chip-icon">💾</span> +100 Go de stockage à 29 €</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🇫🇷</span> Hébergement France (OVH)</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🔒</span> Conformité RGPD · AES-256</span>
+              <span className="offer-chip"><span className="offer-chip-icon">📱</span> Application iOS / Android incluse</span>
+              <span className="offer-chip"><span className="offer-chip-icon">✋</span> Sans engagement — annulation en 1 clic</span>
+              <span className="offer-chip"><span className="offer-chip-icon">🌍</span> Multi-pays FR · BE · MA · SN</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* HERO */}
       <section className="hero">
