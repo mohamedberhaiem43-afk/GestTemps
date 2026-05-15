@@ -38,6 +38,11 @@ public sealed class TenantResolverMiddleware
         "/api/master",
         "/api/auth",
         "/api/contact",
+        "/api/download",
+        // /api/download/* : page publique de téléchargement de l'app mobile.
+        // Pas de tenant requis — un visiteur anonyme qui arrive depuis
+        // concordeworkly.com doit pouvoir lire les métadonnées et télécharger
+        // l'APK avant même de s'être inscrit / authentifié.
         "/swagger",
         // SEC — /api/uploads N'EST PLUS en bypass : passe par UploadsController
         // qui exige [Authorize] et donc passe par le check tenant_slug.
