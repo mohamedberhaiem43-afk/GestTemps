@@ -150,6 +150,14 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
 
   const [empcod, setEmpcod] = useState(() => isEmp && uticod ? uticod : '');
   const [concod, setConcod] = useState('');
+  // État de chargement du numéro de demande (concod). Avant : si l'appel
+  // `get-next-concod` plantait (rate-limit, réseau, base indispo), on masquait
+  // silencieusement l'erreur (.catch(() => {})) → concod restait '' → le POST
+  // partait avec un Concod vide → la DB rejetait sur la PK → 500 incompréhensible.
+  // Maintenant : on suit l'état (loading / ok / error), on bloque le submit tant
+  // que concod n'est pas chargé, et on affiche un bouton « Réessayer » à l'admin.
+  const [concodStatus, setConcodStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+  const [concodError, setConcodError] = useState<string | null>(null);
   const [condat, setCondat] = useState(today());
   const [condep, setCondep] = useState(today());
   const [conret, setConret] = useState(today());
@@ -217,15 +225,43 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
     }
   }, [open, editConge, absences, abscod]);
 
-  // Fetch next concod from database when form opens in add mode
+  // Fetch next concod from database when form opens in add mode.
+  // Extracté en handler nommé pour permettre un "Réessayer" en cas d'échec
+  // (rate-limit transitoire, base momentanément indispo).
+  const fetchNextConcod = () => {
+    if (!soccod) return;
+    setConcodStatus('loading');
+    setConcodError(null);
+    apiInstance.get(`/DemConges/get-next-concod/${soccod}`)
+      .then(res => {
+        const nextConcod = (res.data?.concod || res.data || '').toString().trim();
+        if (!nextConcod) {
+          setConcodStatus('error');
+          setConcodError('Le serveur n\'a pas pu générer le numéro de demande. Réessayez.');
+          return;
+        }
+        setConcod(nextConcod);
+        setConcodStatus('ok');
+      })
+      .catch((err) => {
+        setConcodStatus('error');
+        setConcodError(
+          err?.response?.data?.message
+          || err?.response?.status === 429
+            ? 'Trop de tentatives — patientez un instant et réessayez.'
+            : 'Impossible de générer le numéro de demande. Vérifiez votre connexion.'
+        );
+      });
+  };
+
   useEffect(() => {
     if (!editConge && open && soccod) {
-      apiInstance.get(`/DemConges/get-next-concod/${soccod}`)
-        .then(res => {
-          const nextConcod = res.data?.concod || res.data || '';
-          setConcod(nextConcod);
-        })
-        .catch(() => { /* silent */ });
+      fetchNextConcod();
+    }
+    // Reset le statut quand on bascule sur un edit (le concod vient de editConge).
+    if (editConge) {
+      setConcodStatus('ok');
+      setConcodError(null);
     }
   }, [open, editConge, soccod]);
 
@@ -276,6 +312,12 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
       setFormError(t('conge.demConge.form.employeeRequired'));
       return;
     }
+    // Garde anti-Concod-vide : sans numéro, l'INSERT côté serveur viole la PK
+    // ou la contrainte NOT NULL → 500 incompréhensible. On refuse l'envoi.
+    if (!editConge && (!concod || concod.trim() === '')) {
+      setFormError('Le numéro de demande n\'a pas pu être généré. Cliquez sur « Réessayer » avant de soumettre.');
+      return;
+    }
     setFormError(null);
     const payload: Conge = {
       soccod: soccod || '', empcod, concod,
@@ -293,7 +335,24 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
         if (onSuccess) onSuccess();
         onClose();
       },
-      onError: () => {}
+      onError: (err: any) => {
+        // Avant : on avalait silencieusement les erreurs ({}). L'utilisateur
+        // ne voyait que la console F12 (« 500 »). Maintenant on affiche le
+        // message backend (ex: « Le numéro est déjà utilisé », « Type de congé
+        // introuvable »…) — sinon un fallback générique.
+        const status = err?.response?.status;
+        const backendMsg = err?.response?.data?.message
+          || (typeof err?.response?.data === 'string' ? err.response.data : null);
+        let msg = backendMsg;
+        if (!msg) {
+          if (status === 402) msg = 'Plan insuffisant pour cette fonctionnalité.';
+          else if (status === 403) msg = 'Permission refusée — contactez votre administrateur.';
+          else if (status === 429) msg = 'Trop de tentatives. Patientez quelques instants et réessayez.';
+          else if (status >= 500) msg = 'Erreur serveur lors de l\'enregistrement. Réessayez ou contactez le support.';
+          else msg = 'Échec de l\'enregistrement de la demande.';
+        }
+        setFormError(msg);
+      }
     };
     editConge ? updateConge(payload, cb) : addConge(payload, cb);
   };
@@ -340,6 +399,9 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   };
 
   const isBusy = adding || updating;
+  // Le submit est désactivé tant que concod n'est pas généré (mode add seulement) :
+  // évite l'envoi d'un POST avec Concod='' qui produit un 500 incompréhensible.
+  const submitDisabled = isBusy || (!editConge && concodStatus !== 'ok');
   const fieldSx = { '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#f8fafc', '& fieldset': { borderColor: '#e2e8f0' } } };
 
   return (
@@ -362,7 +424,22 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.orderNo')}</Typography>
-            <TextField size="small" fullWidth value={concod} onChange={(e) => setConcod(e.target.value)} InputProps={{ readOnly: true }} sx={fieldSx} />
+            <TextField
+              size="small" fullWidth
+              value={concodStatus === 'loading' ? 'Génération…' : concodStatus === 'error' ? '⚠️ Échec' : concod}
+              onChange={(e) => setConcod(e.target.value)}
+              InputProps={{
+                readOnly: true,
+                endAdornment: !editConge && concodStatus === 'error' ? (
+                  <Button size="small" onClick={fetchNextConcod} sx={{ minWidth: 'auto', fontSize: 11, textTransform: 'none', px: 1.2 }}>
+                    Réessayer
+                  </Button>
+                ) : undefined,
+              }}
+              error={!editConge && concodStatus === 'error'}
+              helperText={!editConge && concodStatus === 'error' ? concodError : undefined}
+              sx={fieldSx}
+            />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.requestDate')}</Typography>
@@ -535,7 +612,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
       <Divider />
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
         <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('conge.demConge.form.cancel')}</Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={isBusy}
+        <Button variant="contained" onClick={handleSubmit} disabled={submitDisabled}
           startIcon={isBusy ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
           sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
           {editConge ? t('conge.demConge.form.modify') : t('conge.demConge.form.submit')}
