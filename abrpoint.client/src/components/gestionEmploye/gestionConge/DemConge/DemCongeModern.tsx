@@ -215,15 +215,62 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
       .catch(() => {});
   }, [empcod, isEmp, uticod, editConge]);
 
+  // Méthode RTT de l'employé ciblé (le demandeur ou la personne sélectionnée par
+  // un manager/admin). Sert à FILTRER les types RTT (abscng='R') de la liste de
+  // sélection : un employé non éligible ne doit pas pouvoir choisir « RTT » du
+  // tout. Le backend renforce ce check au POST (renvoie 400 rtt_not_eligible si
+  // jamais le frontend était contourné).
+  const [empRttMethode, setEmpRttMethode] = useState<string | null>(null);
+  useEffect(() => {
+    const targetEmpcod = empcod || (isEmp && uticod ? uticod : '');
+    if (!soccod || !targetEmpcod) {
+      setEmpRttMethode(null);
+      return;
+    }
+    apiInstance.get(`/Employes/get-employe/${soccod}/${targetEmpcod}`)
+      .then((res) => setEmpRttMethode(res.data?.empRttMethode ?? null))
+      .catch(() => setEmpRttMethode(null));
+  }, [empcod, isEmp, uticod, soccod]);
+
+  const isRttEligible = useMemo(() => {
+    const m = (empRttMethode || '').trim().toUpperCase();
+    return m !== '' && m !== 'N';
+  }, [empRttMethode]);
+
+  // Liste filtrée : on retire les types RTT pour les employés non éligibles.
+  // Le composant utilise toujours un Record<abscod, abslib> en interne pour
+  // minimiser la diff — on construit cette structure côté client à partir du
+  // tableau enrichi renvoyé par useGetCongeAbsenceLibs.
+  const visibleAbsencesArr = useMemo(() => {
+    const arr = Array.isArray(absences) ? absences : [];
+    return arr.filter((a) => isRttEligible || (a.abscng || '').toUpperCase() !== 'R');
+  }, [absences, isRttEligible]);
+
+  const visibleAbsencesDict = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const a of visibleAbsencesArr) {
+      if (a && a.abscod) out[a.abscod] = a.abslib ?? a.abscod;
+    }
+    return out;
+  }, [visibleAbsencesArr]);
+
   // Set default type de congé when absences load
   useEffect(() => {
-    if (!editConge && open && absences && !abscod) {
-      const absEntries = Object.entries(absences);
-      if (absEntries.length > 0) {
-        setAbscod(absEntries[0][0]);
-      }
+    if (!editConge && open && visibleAbsencesArr.length > 0 && !abscod) {
+      setAbscod(visibleAbsencesArr[0].abscod);
     }
-  }, [open, editConge, absences, abscod]);
+  }, [open, editConge, visibleAbsencesArr, abscod]);
+
+  // Si l'employé change ET que le type sélectionné devient invalide pour ce
+  // nouvel employé (ex: RTT sélectionné, on bascule vers un non-éligible),
+  // on reset abscod vers le 1er type visible.
+  useEffect(() => {
+    if (!abscod) return;
+    const stillVisible = visibleAbsencesArr.some((a) => a.abscod === abscod);
+    if (!stillVisible) {
+      setAbscod(visibleAbsencesArr[0]?.abscod ?? '');
+    }
+  }, [visibleAbsencesArr, abscod]);
 
   // Fetch next concod from database when form opens in add mode.
   // Extracté en handler nommé pour permettre un "Réessayer" en cas d'échec
@@ -481,17 +528,28 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
             >
               <MenuItem value="" disabled>
                 <em style={{ color: '#94a3b8' }}>
-                  {Object.keys(absences).length === 0
+                  {Object.keys(visibleAbsencesDict).length === 0
                     ? t('conge.demConge.form.typeEmpty')
                     : t('conge.demConge.form.typePlaceholder')}
                 </em>
               </MenuItem>
-              {Object.entries(absences).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
+              {Object.entries(visibleAbsencesDict).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
             </Select>
           </FormControl>
-          {Object.keys(absences).length === 0 && canAddAbsence && !showAddType && (
+          {Object.keys(visibleAbsencesDict).length === 0 && canAddAbsence && !showAddType && (
             <Typography sx={{ fontSize: '11px', color: '#b45309', mt: 0.5 }}>
               {t('conge.demConge.form.typeEmptyHint')}
+            </Typography>
+          )}
+          {/* Avertissement RTT : si le tenant a configuré des types RTT mais que
+              l'employé n'est pas éligible, on l'indique explicitement plutôt que
+              de masquer silencieusement les options (l'admin doit savoir pourquoi
+              le bouton « RTT » n'apparaît pas). */}
+          {!isRttEligible
+            && Array.isArray(absences)
+            && absences.some((a) => (a.abscng || '').toUpperCase() === 'R') && (
+            <Typography sx={{ fontSize: '11px', color: '#0369a1', mt: 0.5, fontStyle: 'italic' }}>
+              ℹ️ Cet employé n'est pas éligible aux congés RTT (méthode RTT non activée sur sa fiche). Les types RTT sont masqués de la liste.
             </Typography>
           )}
           {showAddType && (
@@ -639,7 +697,16 @@ function DemCongeModernInner() {
   const { setSelectedConge } = useCongeContext();
   const { data = [], isLoading, refetch } = useGetDemConges();
   const { mutate: acceptConge } = useAcceptDemConge();
-  const { data: absenceLibs = [] } = useGetCongeAbsenceLibs();
+  const { data: absenceLibsArr = [] } = useGetCongeAbsenceLibs();
+  // Le hook renvoie [{abscod, abslib, abscng}] (format enrichi pour le filtre RTT
+  // côté formulaire). Cette page-ci n'a besoin que d'un lookup abscod→abslib.
+  const absenceLibs = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const a of absenceLibsArr) {
+      if (a?.abscod) out[a.abscod] = a.abslib ?? a.abscod;
+    }
+    return out;
+  }, [absenceLibsArr]);
   const [managerEmployeeCodes, setManagerEmployeeCodes] = useState<Set<string> | null>(null);
   const [isManagerScopeLoading, setIsManagerScopeLoading] = useState(false);
 
@@ -914,7 +981,7 @@ function DemCongeModernInner() {
                 sx={{ height: 34, fontSize: '13px', background: '#fff', borderRadius: '8px' }}
               >
                 <MenuItem value=""><em>{t('conge.demConge.filters.typeAll')}</em></MenuItem>
-                {Object.entries((absenceLibs as Record<string, string>) || {}).map(([code, lib]) => (
+                {Object.entries(absenceLibs || {}).map(([code, lib]) => (
                   <MenuItem key={code} value={code}>{lib}</MenuItem>
                 ))}
               </Select>
@@ -1025,7 +1092,7 @@ function DemCongeModernInner() {
                     {/* Type */}
                     <Box className="dcm-col-type">
                       <Box className="dcm-type-badge" style={{ backgroundColor: typeColor.bg, color: typeColor.text }}>
-                        {(absenceLibs as Record<string, string>)?.[c.abscod] || c.abscod || '—'}
+                        {absenceLibs?.[c.abscod] || c.abscod || '—'}
                       </Box>
                     </Box>
 
@@ -1157,8 +1224,8 @@ function DemCongeModernInner() {
           <Typography sx={{ color: '#475569', fontSize: '14px', mt: 1 }}>
             {t('conge.demConge.dialog.acceptPrompt', {
               employee: congeToAccept ? ` de ${congeToAccept.emplib || congeToAccept.empcod}` : '',
-              type: (congeToAccept && (absenceLibs as Record<string, string>)?.[congeToAccept.abscod])
-                ? ` (${(absenceLibs as Record<string, string>)[congeToAccept.abscod]})`
+              type: (congeToAccept && absenceLibs?.[congeToAccept.abscod])
+                ? ` (${absenceLibs[congeToAccept.abscod]})`
                 : '',
             })}
           </Typography>

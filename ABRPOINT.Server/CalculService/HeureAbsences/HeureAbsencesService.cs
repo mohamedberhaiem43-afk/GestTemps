@@ -91,9 +91,53 @@ namespace ABRPOINT.Server.CalculService.HeureAbsences
                             }
                         }
 
+                        // Correctif 2026-05-15 : avant on traitait toute plage non-pointée
+                        // (hasMorningPunch=false OU hasAfternoonPunch=false) comme « manquée »
+                        // dans sa totalité, ignorant le cas du pointage continu. Exemple buggé :
+                        // arrivée 10:39, sortie 17:00 → tous les champs sont sur Preentmatup/
+                        // Presortmatup → hasAfternoonPunch=false → 3h d'absence comptées sur
+                        // l'aprem, alors que la présence couvre physiquement 14:00-17:00.
+                        // Maintenant : on construit le span continu de présence depuis les
+                        // champs effectivement remplis (morning-only / afternoon-only / both)
+                        // et on calcule l'absence par CHEVAUCHEMENT avec chaque plage planifiée.
+                        TimeSpan? actualStart = null, actualEnd = null;
+                        if (TimeSpan.TryParse(presence.Preentmatup, out var pem)) actualStart = pem;
+                        else if (TimeSpan.TryParse(presence.Preentamidiup, out var pea)) actualStart = pea;
+                        if (TimeSpan.TryParse(presence.Presortamidiup, out var psa)) actualEnd = psa;
+                        else if (TimeSpan.TryParse(presence.Presortmatup, out var psm)) actualEnd = psm;
+
                         float missedShiftHours = 0f;
-                        if (!hasMorningPunch && morningHours > 0) missedShiftHours += morningHours;
-                        if (!hasAfternoonPunch && afternoonHours > 0) missedShiftHours += afternoonHours;
+                        if (actualStart.HasValue && actualEnd.HasValue && actualEnd.Value > actualStart.Value)
+                        {
+                            // Calcul par chevauchement effectif (pointage continu géré correctement).
+                            if (mStartTs.HasValue && mEndTs.HasValue && morningHours > 0)
+                            {
+                                float workedInMorning = OverlapHours(actualStart.Value, actualEnd.Value, mStartTs.Value, mEndTs.Value);
+                                missedShiftHours += MathF.Max(0f, morningHours - workedInMorning);
+                            }
+                            else if (!hasMorningPunch && morningHours > 0)
+                            {
+                                missedShiftHours += morningHours;
+                            }
+
+                            if (eStartTs.HasValue && eEndTs.HasValue && afternoonHours > 0)
+                            {
+                                float workedInAfternoon = OverlapHours(actualStart.Value, actualEnd.Value, eStartTs.Value, eEndTs.Value);
+                                missedShiftHours += MathF.Max(0f, afternoonHours - workedInAfternoon);
+                            }
+                            else if (!hasAfternoonPunch && afternoonHours > 0)
+                            {
+                                missedShiftHours += afternoonHours;
+                            }
+                        }
+                        else
+                        {
+                            // Span de présence indéterminé (parsing échoué) → on retombe sur la
+                            // logique binaire d'origine.
+                            if (!hasMorningPunch && morningHours > 0) missedShiftHours += morningHours;
+                            if (!hasAfternoonPunch && afternoonHours > 0) missedShiftHours += afternoonHours;
+                        }
+
                         if (missedShiftHours > 0)
                         {
                             // Correctif 2026-05-12 : ne créditer authHoursCredit que pour la

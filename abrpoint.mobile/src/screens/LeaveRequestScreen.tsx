@@ -170,8 +170,10 @@ export default function LeaveRequestScreen({ navigation }: any) {
   const loadAbsences = async () => {
     if (!user?.soccod) return;
     try {
-      // Même backend que le web : Dictionary<abscod, abslib> filtré sur les types de congé.
-      const data = await apiService.getCongeAbsenceLibs(user.soccod);
+      // Endpoint enrichi (renvoie aussi abscng) pour pouvoir filtrer les types RTT
+      // aux employés non éligibles. Fallback sur l'ancien dict si le serveur n'a
+      // pas encore la version backend qui expose abscng.
+      const data = await apiService.getCongeAbsenceLibsDetailed(user.soccod);
       let absData: any[] = [];
       if (Array.isArray(data)) {
         absData = data;
@@ -203,6 +205,18 @@ export default function LeaveRequestScreen({ navigation }: any) {
     }
     if (form.conret < form.condep) {
       Alert.alert('Erreur', 'La date de retour doit être après la date de départ');
+      return;
+    }
+    // Garde supplémentaire RTT — défense en profondeur (le backend refusera aussi
+    // si jamais l'UI était bypassée).
+    const selectedAbs = absences.find((a: any) => a.abscod === form.abscod);
+    const isRttType = (selectedAbs?.abscng || '').toUpperCase() === 'R';
+    const isRttEligible = kpiSummary?.rtt != null;
+    if (isRttType && !isRttEligible) {
+      Alert.alert(
+        'Non éligible',
+        "Vous n'êtes pas éligible aux congés RTT. Contactez votre administrateur pour activer la méthode RTT sur votre fiche."
+      );
       return;
     }
     if (!user?.soccod || !user?.uticod) return;
@@ -522,27 +536,52 @@ export default function LeaveRequestScreen({ navigation }: any) {
 
             <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.label}>Type de congé</Text>
-              {absences.length > 0 ? (
-                <View style={styles.typeRow}>
-                  {absences.map((abs: any) => (
-                    <TouchableOpacity key={abs.abscod}
-                      style={[styles.typeBtn, form.abscod === abs.abscod && styles.typeBtnActive]}
-                      onPress={() => setForm({ ...form, abscod: abs.abscod })}>
-                      <Text style={[styles.typeText, form.abscod === abs.abscod && styles.typeTextActive]}>
-                        {abs.abslib || abs.abscod}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.typeEmptyRow}>
-                  <ActivityIndicator size="small" color={COLORS.primary} />
-                  <Text style={styles.typeEmptyText}>Chargement des types…</Text>
-                  <TouchableOpacity onPress={loadAbsences} style={styles.typeReloadBtn}>
-                    <Text style={styles.typeReloadText}>Réessayer</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+              {/* Filtre RTT — masque les types abscng='R' aux employés non éligibles.
+                  L'éligibilité est connue via kpiSummary.rtt (renvoyé par /get-my-kpis :
+                  null si l'employé n'a pas la méthode RTT activée). Le backend
+                  refuse aussi le POST avec code rtt_not_eligible si jamais ce filtre
+                  est contourné. */}
+              {(() => {
+                const isRttEligible = kpiSummary?.rtt != null;
+                const visibleAbsences = absences.filter(
+                  (a: any) => isRttEligible || (a.abscng || '').toUpperCase() !== 'R'
+                );
+                const hasHiddenRtt = !isRttEligible
+                  && absences.some((a: any) => (a.abscng || '').toUpperCase() === 'R');
+                return (
+                  <>
+                    {hasHiddenRtt && (
+                      <View style={styles.rttHint}>
+                        <MaterialCommunityIcons name="information-outline" size={14} color={COLORS.primary} />
+                        <Text style={styles.rttHintText}>
+                          Vous n'êtes pas éligible aux congés RTT. Demandez à votre RH d'activer la méthode RTT sur votre fiche pour les voir.
+                        </Text>
+                      </View>
+                    )}
+                    {visibleAbsences.length > 0 ? (
+                      <View style={styles.typeRow}>
+                        {visibleAbsences.map((abs: any) => (
+                          <TouchableOpacity key={abs.abscod}
+                            style={[styles.typeBtn, form.abscod === abs.abscod && styles.typeBtnActive]}
+                            onPress={() => setForm({ ...form, abscod: abs.abscod })}>
+                            <Text style={[styles.typeText, form.abscod === abs.abscod && styles.typeTextActive]}>
+                              {abs.abslib || abs.abscod}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={styles.typeEmptyRow}>
+                        <ActivityIndicator size="small" color={COLORS.primary} />
+                        <Text style={styles.typeEmptyText}>Chargement des types…</Text>
+                        <TouchableOpacity onPress={loadAbsences} style={styles.typeReloadBtn}>
+                          <Text style={styles.typeReloadText}>Réessayer</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
 
               <Text style={styles.label}>Date départ</Text>
               <TouchableOpacity style={styles.dateInput} onPress={() => setShowStartPicker(true)}>
@@ -691,6 +730,14 @@ const styles = StyleSheet.create({
   formScroll: { flexGrow: 0 },
   label: { fontSize: 12, fontWeight: '700', color: COLORS.outline, marginBottom: 8, marginTop: 16 },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  rttHint: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: COLORS.primaryFixed, borderRadius: 10,
+    padding: 10, marginBottom: 10,
+  },
+  rttHintText: {
+    flex: 1, fontSize: 11.5, color: COLORS.primary, lineHeight: 15,
+  },
   typeBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surfaceContainerLow },
   typeBtnActive: { backgroundColor: COLORS.primary },
   typeText: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },

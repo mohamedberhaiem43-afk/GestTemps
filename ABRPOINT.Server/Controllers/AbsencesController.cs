@@ -93,6 +93,28 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Variante enrichie du dictionnaire conge-libs : renvoie un tableau d'objets
+        /// { abscod, abslib, abscng } pour que le front puisse identifier les types
+        /// spéciaux — en particulier abscng='R' (RTT), qu'on veut masquer aux employés
+        /// non éligibles. L'ancien endpoint /get-conge-libs reste actif pour compat.
+        /// </summary>
+        [HttpGet("get-conge-libs-detailed/{soccod}")]
+        public async Task<IActionResult> GetCongeAbsLibsDetailed(string soccod)
+        {
+            if (string.IsNullOrEmpty(soccod))
+                return BadRequest(new { Message = "Veuillez saisie le soccod des absences." });
+            try
+            {
+                var rows = await _absenceRepository.GetCongeAbsencesDetailedAsync(soccod);
+                return Ok(rows);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "problème de récupération des types de congé");
+            }
+        }
+
         [HttpGet("get-libs/{soccod}")]
         public async Task<IActionResult> GetAbsLibs(string soccod)
         {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box, Typography, Button, CircularProgress, Avatar,
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -55,7 +55,18 @@ interface DashboardCongeListProps {
 export default function DashboardCongeList({ data = [], isLoading }: DashboardCongeListProps) {
   const { mutate: acceptConge, isPending: accepting } = useAcceptDemConge();
   const { mutate: refuseConge, isPending: refusing } = useRefuseDemConge();
-  const { data: absenceLibs } = useGetCongeAbsenceLibs();
+  const { data: absenceLibsArr } = useGetCongeAbsenceLibs();
+  // Conversion array→dict pour préserver l'usage [abscod] dans le rendu.
+  // Le hook renvoie désormais [{abscod, abslib, abscng}] (pour permettre le
+  // filtrage RTT côté formulaire de demande). Ici on n'a besoin que du lookup
+  // abscod→abslib, donc on reconstruit le dict.
+  const absenceLibs = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const a of absenceLibsArr ?? []) {
+      if (a?.abscod) out[a.abscod] = a.abslib ?? a.abscod;
+    }
+    return out;
+  }, [absenceLibsArr]);
 
   const [congeToAccept, setCongeToAccept] = useState<Conge | null>(null);
   const [congeToRefuse, setCongeToRefuse] = useState<Conge | null>(null);
@@ -231,7 +242,7 @@ export default function DashboardCongeList({ data = [], isLoading }: DashboardCo
                     backgroundColor: typeColor.bg,
                     color: typeColor.text,
                   }}>
-                    {(absenceLibs as Record<string, string>)?.[c.abscod] || c.abscod || '—'}
+                    {absenceLibs?.[c.abscod] || c.abscod || '—'}
                   </Box>
                 </Box>
 
@@ -344,7 +355,7 @@ export default function DashboardCongeList({ data = [], isLoading }: DashboardCo
                 Du {fmtDate(congeToAccept.condep)} au {fmtDate(congeToAccept.conret)} — {congeToAccept.connbjour} jour{congeToAccept.connbjour !== 1 ? 's' : ''}
               </Typography>
               <Typography sx={{ fontSize: '11px', color: '#166534', mt: 0.5 }}>
-                Type : {(absenceLibs as Record<string, string>)?.[congeToAccept.abscod] || congeToAccept.abscod || '—'}
+                Type : {absenceLibs?.[congeToAccept.abscod] || congeToAccept.abscod || '—'}
               </Typography>
             </Box>
           )}

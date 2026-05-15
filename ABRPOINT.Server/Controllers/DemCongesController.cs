@@ -232,6 +232,41 @@ namespace ABRPOINT.Server.Controllers
         {
             if (conge == null)
                 return BadRequest("Veuillez saisie les champs obligatoires");
+
+            // Garde d'éligibilité RTT — refuse une demande sur un type Abscng='R' si
+            // l'employé n'a pas le RTT activé (EmpRttMethode='N' ou null). Avant ce
+            // garde, l'admin acceptait la demande puis la décrémentation de solde
+            // RTT tombait dans le vide (pas de ligne RTT à décrémenter) → confusion.
+            // Le front fait déjà le filtrage UX mais on garde la défense en profondeur
+            // ici au cas où le filtrage côté client est contourné.
+            if (!string.IsNullOrWhiteSpace(conge.Abscod))
+            {
+                var abscng = await _context.Absences.AsNoTracking()
+                    .Where(a => a.Soccod == conge.Soccod && a.Abscod == conge.Abscod)
+                    .Select(a => a.Abscng)
+                    .FirstOrDefaultAsync();
+                if (string.Equals(abscng, "R", StringComparison.OrdinalIgnoreCase))
+                {
+                    var rttMethode = await _context.Employes.AsNoTracking()
+                        .Where(e => e.Soccod == conge.Soccod && e.Empcod == conge.Empcod)
+                        .Select(e => e.EmpRttMethode)
+                        .FirstOrDefaultAsync();
+                    var isEligible = !string.IsNullOrEmpty(rttMethode)
+                        && !string.Equals(rttMethode, "N", StringComparison.OrdinalIgnoreCase);
+                    if (!isEligible)
+                    {
+                        _log.LogWarning(
+                            "DemConge.Post — refus RTT non-éligible : Soccod={Soccod} Empcod={Empcod} Abscod={Abscod} EmpRttMethode={Methode}",
+                            conge.Soccod, conge.Empcod, conge.Abscod, rttMethode ?? "(null)");
+                        return BadRequest(new
+                        {
+                            code = "rtt_not_eligible",
+                            message = "Cet employé n'est pas éligible aux congés RTT. Activez la méthode RTT sur sa fiche (M, H ou F) avant de soumettre ce type de demande."
+                        });
+                    }
+                }
+            }
+
             try
             {
                 await _demandecongeRepository.AddAsync(conge);

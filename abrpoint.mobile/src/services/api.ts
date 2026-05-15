@@ -694,6 +694,21 @@ class ApiService {
     return response.data;
   }
 
+  // Variante enrichie : renvoie [{abscod, abslib, abscng}] pour permettre au
+  // formulaire de demande de cacher les types RTT (abscng='R') aux employés
+  // non éligibles. Fallback transparent sur l'ancien endpoint si 404 (vieux backend).
+  async getCongeAbsenceLibsDetailed(soccod: string) {
+    try {
+      const response = await this.client.get(`/Absences/get-conge-libs-detailed/${soccod}`);
+      return response.data;
+    } catch (e: any) {
+      if (e?.response?.status === 404) {
+        return this.getCongeAbsenceLibs(soccod);
+      }
+      throw e;
+    }
+  }
+
   // Types d'autorisation de sortie. Mêmes données que le web (useGetAutorisationLibs).
   async getAutorisationLibs(soccod: string) {
     const response = await this.client.get(`/Absences/get-autorisations-libs/${soccod}`);

@@ -378,10 +378,27 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 var employees = await _employeRepository.GetAllAsync(soccod, uticod);
+                // Déchiffrement des champs sensibles avant retour à l'UI. Avant : la liste
+                // renvoyait Empcin/Emptel en Base64 chiffré tel que stocké en base, ce qui
+                // s'affichait dans la fiche collaborateur comme une chaîne illisible
+                // (« BASE64+/=… »). Aligné sur get-employe/{empcod} (vue détail).
+                // Le DTO de liste n'expose pas les salaires (Empsbase/Empsbrut/Empsnet) —
+                // ils ne sont décryptés que dans la vue détail où ils sont effectivement
+                // affichés.
+                if (employees != null)
+                {
+                    foreach (var emp in employees)
+                    {
+                        if (emp == null) continue;
+                        emp.Empcin = _encryptionService.Decrypt(emp.Empcin);
+                        emp.Emptel = _encryptionService.Decrypt(emp.Emptel);
+                    }
+                }
                 return Ok(employees);
             }
             catch (Exception ex)
             {
+                _log.LogError(ex, "Employes.Get — échec récupération liste pour Soccod={Soccod} Uticod={Uticod}", soccod, uticod);
                 return StatusCode(500, new { message = "Erreur lors de la récupération des employés", details = "Erreur interne. Consultez les logs serveur pour le détail." });
             }
         }

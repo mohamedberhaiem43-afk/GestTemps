@@ -578,6 +578,31 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
+        /// <summary>
+        /// Variante enrichie : renvoie aussi l'Abscng pour que le front puisse filtrer
+        /// les types RTT ('R') quand l'employé courant n'est pas éligible
+        /// (EmpRttMethode='N' ou null). Garde l'ordre par Abscod pour un affichage stable.
+        /// </summary>
+        public async Task<IEnumerable<object>> GetCongeAbsencesDetailedAsync(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                throw new ArgumentException("Soccod cannot be null or empty.", nameof(soccod));
+
+            try
+            {
+                var congeTypes = new[] { "0", "1", "5", "R" };
+                return await _dbContext.Absences
+                    .Where(a => a.Soccod == soccod && congeTypes.Contains(a.Abscng))
+                    .OrderBy(a => a.Abscod)
+                    .Select(a => new { abscod = a.Abscod, abslib = a.Abslib, abscng = a.Abscng })
+                    .ToListAsync<object>();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Erreur lors de la récupération des types de congé", ex);
+            }
+        }
+
         public async Task<IEnumerable<Absence>> GetAutorisationAbsencesAsync(string soccod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
