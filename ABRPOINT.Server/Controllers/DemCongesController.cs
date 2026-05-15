@@ -267,20 +267,76 @@ namespace ABRPOINT.Server.Controllers
                 }
             }
 
-            try
+            // Génération authoritative du Concod côté serveur, avec retry sur
+            // collision PK. Avant : le client appelait `get-next-concod` puis
+            // POSTait — deux clients quasi-simultanés obtenaient le même numéro
+            // (race entre SELECT MAX et INSERT) et le second se prenait une
+            // violation PK_demconge → 500. Maintenant : on calcule MAX une fois,
+            // on tente l'insert ; si conflit PK on incrémente la séquence et on
+            // retente, jusqu'à 10 essais. La valeur client-suggérée est ignorée.
+            const int maxRetries = 10;
+            var now = DateTime.Now;
+            var prefix = "D" + now.ToString("yyMM");
+
+            int nextSeq;
             {
-                await _demandecongeRepository.AddAsync(conge);
+                var maxConcod = await _context.Demconges.AsNoTracking()
+                    .Where(c => c.Soccod == conge.Soccod && c.Concod.StartsWith(prefix))
+                    .OrderByDescending(c => c.Concod)
+                    .Select(c => c.Concod)
+                    .FirstOrDefaultAsync();
+
+                nextSeq = 1;
+                if (!string.IsNullOrEmpty(maxConcod) && maxConcod.Length >= 7
+                    && int.TryParse(maxConcod.Substring(5), out int lastSeq))
+                {
+                    nextSeq = lastSeq + 1;
+                }
             }
-            catch (Exception ex)
+
+            bool saved = false;
+            Exception? lastEx = null;
+            for (int attempt = 0; attempt < maxRetries && !saved; attempt++)
             {
-                // Avant : catch silencieux → impossible de diagnostiquer un 500 en prod.
-                // Maintenant : on log avec stack + payload identifiant. La réponse au
-                // client reste générique (pas de fuite d'info), mais l'admin peut
-                // grepper les logs pour comprendre.
-                _log.LogError(ex,
-                    "DemConge.Post — échec persistance pour Soccod={Soccod} Empcod={Empcod} Concod={Concod} Abscod={Abscod}",
-                    conge.Soccod, conge.Empcod, conge.Concod, conge.Abscod);
-                return StatusCode(500, new { message = "Échec d'enregistrement de la demande de congé." });
+                conge.Concod = prefix + nextSeq.ToString("D2");
+                try
+                {
+                    await _demandecongeRepository.AddAsync(conge);
+                    saved = true;
+                }
+                catch (DbUpdateException ex) when (
+                    ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx
+                    && (sqlEx.Number == 2627 || sqlEx.Number == 2601))
+                {
+                    // Conflit PK : un autre process a pris ce numéro entre notre
+                    // SELECT MAX et notre INSERT. On détache l'entité (sinon EF
+                    // garde un État Added avec la même PK et re-rejette) et on
+                    // tente la séquence suivante.
+                    lastEx = ex;
+                    var entry = _context.Entry(conge);
+                    if (entry.State != EntityState.Detached) entry.State = EntityState.Detached;
+                    _log.LogWarning(
+                        "DemConge.Post — conflit PK sur {Concod}, retry {Attempt}/{Max} pour Soccod={Soccod}",
+                        conge.Concod, attempt + 1, maxRetries, conge.Soccod);
+                    nextSeq++;
+                }
+                catch (Exception ex)
+                {
+                    // Autre erreur (FK, NOT NULL, contexte concurrent…) — on
+                    // remonte avec log détaillé et 500 générique au client.
+                    _log.LogError(ex,
+                        "DemConge.Post — échec persistance pour Soccod={Soccod} Empcod={Empcod} Concod={Concod} Abscod={Abscod}",
+                        conge.Soccod, conge.Empcod, conge.Concod, conge.Abscod);
+                    return StatusCode(500, new { message = "Échec d'enregistrement de la demande de congé." });
+                }
+            }
+
+            if (!saved)
+            {
+                _log.LogError(lastEx,
+                    "DemConge.Post — abandon après {Max} tentatives (conflits PK persistants) pour Soccod={Soccod} Empcod={Empcod}",
+                    maxRetries, conge.Soccod, conge.Empcod);
+                return StatusCode(500, new { message = "Impossible de générer un numéro de demande unique. Réessayez." });
             }
 
             // Best-effort : un échec de notification (DbContext concurrent, employé
@@ -306,7 +362,7 @@ namespace ABRPOINT.Server.Controllers
                 Console.WriteLine($"[DemConges.Post] Notification side-effect failed (ignored, record was saved): {notifyEx.Message}");
             }
 
-            return Ok("Demande ajouté avec succées");
+            return Ok(new { message = "Demande ajoutée avec succès", concod = conge.Concod });
         }
 
         // PUT api/<DirectionsController>/5

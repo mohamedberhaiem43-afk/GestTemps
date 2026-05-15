@@ -541,17 +541,6 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
               {t('conge.demConge.form.typeEmptyHint')}
             </Typography>
           )}
-          {/* Avertissement RTT : si le tenant a configuré des types RTT mais que
-              l'employé n'est pas éligible, on l'indique explicitement plutôt que
-              de masquer silencieusement les options (l'admin doit savoir pourquoi
-              le bouton « RTT » n'apparaît pas). */}
-          {!isRttEligible
-            && Array.isArray(absences)
-            && absences.some((a) => (a.abscng || '').toUpperCase() === 'R') && (
-            <Typography sx={{ fontSize: '11px', color: '#0369a1', mt: 0.5, fontStyle: 'italic' }}>
-              ℹ️ Cet employé n'est pas éligible aux congés RTT (méthode RTT non activée sur sa fiche). Les types RTT sont masqués de la liste.
-            </Typography>
-          )}
           {showAddType && (
             <Box sx={{ mt: 1.25, p: 1.5, borderRadius: '10px', border: '1px dashed #bfdbfe', background: '#f8fbff' }}>
               <Typography sx={{ fontSize: '11px', fontWeight: 800, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
