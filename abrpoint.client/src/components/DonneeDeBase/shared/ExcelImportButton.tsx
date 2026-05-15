@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { Button, CircularProgress } from '@mui/material';
+import { Box, Button, CircularProgress } from '@mui/material';
 import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import DownloadIcon from '@mui/icons-material/Download';
 import * as XLSX from 'xlsx';
 import apiInstance from '../../API/apiInstance';
 
@@ -16,14 +17,26 @@ interface ExcelImportButtonProps {
   /** Callback après import réussi (pour refetch). */
   onImported?: () => void;
   label?: string;
+  /** Nom du fichier modèle téléchargé. Par défaut dérivé de l'endpoint
+   *  (ex: '/BulkImport/fonctions' → 'modele-fonctions.xlsx'). */
+  templateFileName?: string;
+  /** Optionnel : une ligne d'exemple (clés = clés de columnMap, valeurs = échantillon)
+   *  pour montrer à l'utilisateur le format attendu. La ligne reste éditable
+   *  ou supprimable dans Excel. */
+  templateExample?: Record<string, string | number>;
 }
 
 /**
  * Bouton d'import Excel générique. Parse le fichier côté client avec SheetJS, mappe
  * les colonnes et POST le résultat sur l'endpoint indiqué.
+ *
+ * Inclut aussi un bouton « Modèle » qui télécharge un .xlsx vierge avec les
+ * en-têtes attendues pré-remplies — l'utilisateur n'a plus à deviner la
+ * structure et la collision noms de colonnes / aliases est évitée.
  */
 export default function ExcelImportButton({
-  endpoint, columnMap, extraBody, onImported, label = 'Importer Excel'
+  endpoint, columnMap, extraBody, onImported, label = 'Importer Excel',
+  templateFileName, templateExample,
 }: ExcelImportButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -80,28 +93,84 @@ export default function ExcelImportButton({
     }
   };
 
+  const handleDownloadTemplate = () => {
+    try {
+      const headers = Object.keys(columnMap);
+      if (headers.length === 0) {
+        feedback.showWarning('Aucune colonne définie pour le modèle.');
+        return;
+      }
+      // Une seule ligne : la ligne d'en-tête. Si templateExample est fourni,
+      // on ajoute une ligne d'exemple pour aider à la saisie.
+      const rows: Record<string, any>[] = templateExample
+        ? [headers.reduce<Record<string, any>>((acc, h) => {
+            acc[h] = templateExample[h] ?? '';
+            return acc;
+          }, {})]
+        : [];
+      const sheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, sheet, 'Modèle');
+
+      // Largeur de colonnes approximative basée sur la longueur de l'en-tête.
+      // Sans ça, les colonnes "Empemail" ou "Empadr" sont compressées à 8 chars
+      // dans Excel et l'utilisateur ne voit pas l'en-tête en entier.
+      sheet['!cols'] = headers.map(h => ({ wch: Math.max(12, h.length + 4) }));
+
+      // Nom du fichier : préfixe "modele-" + dernier segment de l'endpoint si pas
+      // de templateFileName explicite. '/BulkImport/fonctions' → 'modele-fonctions.xlsx'.
+      const fallback = `modele-${endpoint.split('/').filter(Boolean).pop() || 'import'}.xlsx`;
+      XLSX.writeFile(wb, templateFileName || fallback);
+      feedback.showSuccess('Modèle téléchargé.');
+    } catch (err) {
+      feedback.showError(err, 'Erreur lors de la génération du modèle.');
+    }
+  };
+
   return (
     <>
       <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={handleFile} />
-      <Button
-        variant="outlined"
-        startIcon={importing ? <CircularProgress size={16} /> : <UploadFileIcon />}
-        onClick={handlePick}
-        disabled={importing}
-        // Mobile : pleine largeur (le label long "Importer Directions (Excel)"
-        // débordait sur petits écrans). Desktop : largeur auto.
-        sx={{
-          borderRadius: '10px',
-          textTransform: 'none',
-          fontWeight: 600,
-          width: { xs: '100%', sm: 'auto' },
-          fontSize: { xs: '12px', sm: '13px' },
-          whiteSpace: 'nowrap',
-          minHeight: 36,
-        }}
-      >
-        {importing ? 'Import…' : label}
-      </Button>
+      <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
+        <Button
+          variant="text"
+          startIcon={<DownloadIcon />}
+          onClick={handleDownloadTemplate}
+          // Le bouton modèle est secondaire (variant text) : il ne doit pas
+          // détourner l'attention du bouton d'import principal, mais il doit
+          // être visible pour les utilisateurs qui découvrent le format.
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 600,
+            color: '#0040a1',
+            fontSize: { xs: '12px', sm: '13px' },
+            whiteSpace: 'nowrap',
+            minHeight: 36,
+            flex: { xs: 1, sm: 'unset' },
+          }}
+        >
+          Modèle
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={importing ? <CircularProgress size={16} /> : <UploadFileIcon />}
+          onClick={handlePick}
+          disabled={importing}
+          // Mobile : pleine largeur (le label long "Importer Directions (Excel)"
+          // débordait sur petits écrans). Desktop : largeur auto.
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 600,
+            flex: { xs: 1, sm: 'unset' },
+            fontSize: { xs: '12px', sm: '13px' },
+            whiteSpace: 'nowrap',
+            minHeight: 36,
+          }}
+        >
+          {importing ? 'Import…' : label}
+        </Button>
+      </Box>
       {feedback.element}
     </>
   );

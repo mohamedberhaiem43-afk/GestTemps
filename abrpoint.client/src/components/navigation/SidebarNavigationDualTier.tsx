@@ -200,10 +200,9 @@ export default function SidebarNavigationDualTier({
       <div className="sndt-root">
         {/* ── Icon Rail (primary) ── */}
         <aside className="sndt-rail">
-          {/* Logo */}
-          <div className="sndt-rail-logo">
-            {logo ?? <LayoutGrid size={22} color="#0040a1" />}
-          </div>
+          {/* Le logo société est désormais affiché dans la topbar à côté du nom
+              de la société (cf. .sndt-topbar). Le rail commence directement par
+              les items de navigation pour une utilisation verticale plus dense. */}
 
           {/* Primary items */}
           <nav className="sndt-rail-nav">
@@ -279,7 +278,7 @@ export default function SidebarNavigationDualTier({
                 le parent flex grandit à la taille du contenu. Avec un soclib long
                 ("Société Internationale de Maintenance Industrielle"), la barre
                 débordait et masquait les actions à droite. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
               <div className="sndt-mobile-menu-trigger">
                 <IconButton
                   size="small"
@@ -289,6 +288,12 @@ export default function SidebarNavigationDualTier({
                   <Menu size={24} />
                 </IconButton>
               </div>
+              {/* Logo société : collé à gauche du nom pour identifier visuellement
+                  le tenant courant. Si aucun logo n'est fourni par le parent on
+                  retombe sur l'icône générique LayoutGrid. */}
+              <span className="sndt-topbar-logo" aria-hidden>
+                {logo ?? <LayoutGrid size={22} color="#0040a1" />}
+              </span>
               <span className="sndt-topbar-title" title={title}>{title}</span>
             </div>
             <div className="sndt-topbar-actions">{toolbarActions}</div>
@@ -953,6 +958,24 @@ const styles = `
   .sndt-mobile-menu-trigger {
     display: block;
   }
+}
+
+.sndt-topbar-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.sndt-topbar-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .sndt-topbar-title {
