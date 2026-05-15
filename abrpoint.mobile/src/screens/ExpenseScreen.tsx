@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Alert, RefreshControl, Image, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,6 +59,9 @@ const fmtDate = (d: any) => {
 export default function ExpenseScreen({ navigation }: any) {
   const { user } = useAuth();
   const tabBarPadding = useTabBarPadding();
+  // Coussin bas du modal — voir LeaveRequestScreen pour le contexte.
+  const insets = useSafeAreaInsets();
+  const formCardPaddingBottom = Math.max(24, insets.bottom + 12);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -333,7 +336,7 @@ export default function ExpenseScreen({ navigation }: any) {
       {/* ── Form Overlay (style LeaveRequestScreen) ── */}
       {showForm && (
         <View style={styles.modalOverlay}>
-          <View style={[styles.formCard, { paddingBottom: 24 + tabBarPadding * 0.4 }]}>
+          <View style={[styles.formCard, { paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>Nouvelle note de frais</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}>
@@ -467,7 +470,7 @@ export default function ExpenseScreen({ navigation }: any) {
       {/* Picker devise — bottom sheet ISO 4217 */}
       {showCurrencyPicker && (
         <View style={styles.modalOverlay}>
-          <View style={[styles.formCard, { maxHeight: '60%' }]}>
+          <View style={[styles.formCard, { maxHeight: '60%', paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>Devise</Text>
               <TouchableOpacity onPress={() => setShowCurrencyPicker(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>

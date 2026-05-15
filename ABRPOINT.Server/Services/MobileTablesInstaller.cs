@@ -213,7 +213,16 @@ CREATE INDEX [IX_notifications_uticod_read] ON [notifications]([uticod]) WHERE [
     private static async Task<bool> EnsurePushTokensAsync(ApplicationDbContext db, CancellationToken ct)
     {
         var existed = await TableExistsAsync(db, "push_tokens", ct);
-        if (existed) return false;
+        if (existed)
+        {
+            // Tenants déployés avant l'application de BaseEntity à PushToken : la table
+            // n'a ni deleted_at ni retention_date, et EF Core ajoute toujours le filtre
+            // global "WHERE deleted_at IS NULL" → SQL Server renvoie 207 (Invalid column
+            // name) et toutes les notifications cassent (`/api/roles/test-push/...` ainsi
+            // que l'envoi automatique sur acceptation/refus de demandes).
+            await EnsureBaseEntityColumnsAsync(db, "push_tokens", "pt", ct);
+            return false;
+        }
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE [push_tokens] (
     [pt_id]        INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_push_tokens] PRIMARY KEY,
@@ -225,6 +234,9 @@ CREATE TABLE [push_tokens] (
     [created_at]   DATETIME2     NOT NULL CONSTRAINT [DF_push_tokens_created]   DEFAULT (SYSUTCDATETIME()),
     [last_seen_at] DATETIME2     NOT NULL CONSTRAINT [DF_push_tokens_last_seen] DEFAULT (SYSUTCDATETIME()),
     [active]       BIT           NOT NULL CONSTRAINT [DF_push_tokens_active]    DEFAULT (1),
+    -- Colonnes héritées de BaseEntity (EF Core les attend pour le filtre global soft-delete).
+    [deleted_at]   DATETIME      NULL,
+    [retention_date] DATETIME    NULL,
     [created_at_audit] DATETIME2 NULL,
     [updated_at_audit] DATETIME2 NULL,
     [deleted_at_audit] DATETIME2 NULL
@@ -238,7 +250,12 @@ CREATE UNIQUE INDEX [UX_push_tokens_token] ON [push_tokens]([token]);
     private static async Task<bool> EnsurePushReminderLogAsync(ApplicationDbContext db, CancellationToken ct)
     {
         var existed = await TableExistsAsync(db, "push_reminder_log", ct);
-        if (existed) return false;
+        if (existed)
+        {
+            // Même rattrapage que push_tokens : PushReminderLog hérite aussi de BaseEntity.
+            await EnsureBaseEntityColumnsAsync(db, "push_reminder_log", "prl", ct);
+            return false;
+        }
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE [push_reminder_log] (
     [prl_id]   INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_push_reminder_log] PRIMARY KEY,
@@ -247,6 +264,10 @@ CREATE TABLE [push_reminder_log] (
     [type]     NVARCHAR(10) NOT NULL,
     [for_date] DATETIME2    NOT NULL,
     [sent_at]  DATETIME2    NOT NULL CONSTRAINT [DF_push_reminder_log_sent_at] DEFAULT (SYSUTCDATETIME()),
+    -- Colonnes BaseEntity, cf. commentaire dans push_tokens.
+    [created_at] DATETIME   NULL,
+    [deleted_at] DATETIME   NULL,
+    [retention_date] DATETIME NULL,
     [created_at_audit] DATETIME2 NULL,
     [updated_at_audit] DATETIME2 NULL,
     [deleted_at_audit] DATETIME2 NULL

@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
@@ -77,6 +77,9 @@ const fmtDuration = (hours: number | null | undefined) => {
 export default function DemandeAutorisationScreen({ navigation }: any) {
   const { user, isEmployee, isAdmin, isManager } = useAuth();
   const tabBarPadding = useTabBarPadding();
+  // Coussin bas du modal — voir LeaveRequestScreen pour le contexte.
+  const insets = useSafeAreaInsets();
+  const formCardPaddingBottom = Math.max(24, insets.bottom + 12);
   const [demandes, setDemandes] = useState<DemandeAutorisation[]>([]);
   const [absences, setAbsences] = useState<AbsenceOption[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -426,7 +429,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
       {/* ── Form Overlay (style LeaveRequestScreen) ── */}
       {showForm && (
         <View style={styles.modalOverlay}>
-          <View style={[styles.formCard, { paddingBottom: 24 + tabBarPadding * 0.4 }]}>
+          <View style={[styles.formCard, { paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>
                 {editDemande ? 'Modifier la demande' : 'Nouvelle Demande'}

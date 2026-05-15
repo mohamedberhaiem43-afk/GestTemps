@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Image, Switch, Dimensions, TextInput, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
@@ -20,6 +20,14 @@ export default function ProfileScreen({ navigation, route }: any) {
   useSecureScreen();
   const { user, logout, refreshUser, isAdmin, isManager } = useAuth();
   const tabBarPadding = useTabBarPadding();
+  // Padding bas dynamique pour les modales : sur Android avec barre de
+  // navigation système (3 boutons ou pill gesture), un paddingBottom statique
+  // laissait passer le bouton "Enregistrer" SOUS les boutons home/back du
+  // téléphone. On garde un plancher de 24px pour la marge visuelle, et on
+  // ajoute insets.bottom quand le système a un inset (Android edge-to-edge,
+  // iPhone avec home indicator).
+  const insets = useSafeAreaInsets();
+  const modalCardPaddingBottom = Math.max(24, insets.bottom + 12);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,7 +43,17 @@ export default function ProfileScreen({ navigation, route }: any) {
   // Édition self-service des coordonnées (téléphone / mobile / adresse / ville
   // / email). L'employé peut tenir ses infos à jour sans solliciter les RH.
   const [contactEdit, setContactEdit] = useState(false);
-  const [contactForm, setContactForm] = useState({ emptel: '', empmob: '', empadr: '', vilcod: '', empemail: '' });
+  // Self-service profile : l'employé peut éditer toutes ses infos personnelles
+  // SAUF role/service/société/site/fonction/date d'embauche (verrouillés côté
+  // backend par la whitelist de /Employes/update-my-contact).
+  const [contactForm, setContactForm] = useState({
+    // Coordonnées
+    emptel: '', empmob: '', empadr: '', vilcod: '', empemail: '',
+    // État civil
+    empsexe: '', empsitfam: '', empnbp: '', empdnais: '', emplnais: '', natcod: '',
+    // Identité arabe (optionnel, pour les tenants multilingues)
+    emplibar: '', empadrar: '',
+  });
   const [savingContact, setSavingContact] = useState(false);
   // Modale "Changer le mot de passe" — bouton initialement non câblé.
   const [pwdModal, setPwdModal] = useState(false);
@@ -141,6 +159,14 @@ export default function ProfileScreen({ navigation, route }: any) {
       empadr: e?.empadr || '',
       vilcod: e?.vilcod || '',
       empemail: e?.empemail || '',
+      empsexe: (e?.empsexe || '').toUpperCase(),
+      empsitfam: (e?.empsitfam || '').toUpperCase(),
+      empnbp: e?.empnbp != null ? String(e.empnbp) : '',
+      empdnais: e?.empdnais || '',
+      emplnais: e?.emplnais || '',
+      natcod: e?.natcod || '',
+      emplibar: e?.emplibar || '',
+      empadrar: e?.empadrar || '',
     });
     setContactEdit(true);
   };
@@ -149,6 +175,7 @@ export default function ProfileScreen({ navigation, route }: any) {
     if (!user?.soccod || !user?.uticod) return;
     setSavingContact(true);
     try {
+      const empnbpNum = contactForm.empnbp.trim() === '' ? undefined : Number(contactForm.empnbp);
       await apiService.updateMyContact({
         soccod: user.soccod,
         empcod: user.uticod,
@@ -157,6 +184,14 @@ export default function ProfileScreen({ navigation, route }: any) {
         empadr: contactForm.empadr.trim() || undefined,
         vilcod: contactForm.vilcod.trim() || undefined,
         empemail: contactForm.empemail.trim() || undefined,
+        empsexe: contactForm.empsexe.trim() || undefined,
+        empsitfam: contactForm.empsitfam.trim() || undefined,
+        empnbp: Number.isFinite(empnbpNum as number) ? (empnbpNum as number) : undefined,
+        empdnais: contactForm.empdnais.trim() || undefined,
+        emplnais: contactForm.emplnais.trim() || undefined,
+        natcod: contactForm.natcod.trim() || undefined,
+        emplibar: contactForm.emplibar.trim() || undefined,
+        empadrar: contactForm.empadrar.trim() || undefined,
       });
       setContactEdit(false);
       await loadAll();
@@ -663,7 +698,7 @@ export default function ProfileScreen({ navigation, route }: any) {
       {/* ── Modal "Changer le mot de passe" ── */}
       <Modal visible={pwdModal} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setPwdModal(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contactModalOverlay}>
-          <View style={styles.contactModalCard}>
+          <View style={[styles.contactModalCard, { paddingBottom: modalCardPaddingBottom }]}>
             <View style={styles.contactModalHeader}>
               <Text style={styles.contactModalTitle}>Changer le mot de passe</Text>
               <TouchableOpacity onPress={() => setPwdModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -734,7 +769,7 @@ export default function ProfileScreen({ navigation, route }: any) {
         onRequestClose={() => { setTwoFAState('idle'); setTwoFAQr(null); }}
       >
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contactModalOverlay}>
-          <View style={styles.contactModalCard}>
+          <View style={[styles.contactModalCard, { paddingBottom: modalCardPaddingBottom }]}>
             <View style={styles.contactModalHeader}>
               <Text style={styles.contactModalTitle}>Activer la double authentification</Text>
               <TouchableOpacity
@@ -791,22 +826,25 @@ export default function ProfileScreen({ navigation, route }: any) {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal d'édition des coordonnées (téléphone, mobile, adresse, ville, email).
-          Limité aux champs de contact — le backend bloque toute modification de
-          fonction/service/site/salaires côté update-my-contact. */}
+      {/* Modal d'édition du profil (coordonnées + état civil + identité arabe).
+          Le backend bloque toute modification de fonction/service/site/société/
+          date d'embauche/salaires/rôle (whitelist côté update-my-contact). */}
       <Modal visible={contactEdit} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setContactEdit(false)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.contactModalOverlay}
         >
-          <View style={styles.contactModalCard}>
+          <View style={[styles.contactModalCard, { paddingBottom: modalCardPaddingBottom }]}>
             <View style={styles.contactModalHeader}>
-              <Text style={styles.contactModalTitle}>Mes coordonnées</Text>
+              <Text style={styles.contactModalTitle}>Mon profil</Text>
               <TouchableOpacity onPress={() => setContactEdit(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
+              {/* ─── COORDONNÉES ─── */}
+              <Text style={styles.modalSectionHeader}>Coordonnées</Text>
+
               <Text style={styles.fieldLabel}>EMAIL</Text>
               <TextInput
                 style={styles.contactInput}
@@ -859,9 +897,104 @@ export default function ProfileScreen({ navigation, route }: any) {
                 keyboardType="numeric"
               />
 
+              {/* ─── ÉTAT CIVIL ─── */}
+              <Text style={styles.modalSectionHeader}>État civil</Text>
+
+              <Text style={styles.fieldLabel}>SEXE</Text>
+              <View style={styles.chipRow}>
+                {[
+                  { code: 'M', label: 'Homme' },
+                  { code: 'F', label: 'Femme' },
+                ].map((opt) => (
+                  <TouchableOpacity
+                    key={opt.code}
+                    style={[styles.chip, contactForm.empsexe === opt.code && styles.chipActive]}
+                    onPress={() => setContactForm({ ...contactForm, empsexe: contactForm.empsexe === opt.code ? '' : opt.code })}
+                  >
+                    <Text style={[styles.chipText, contactForm.empsexe === opt.code && styles.chipTextActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.fieldLabel}>SITUATION FAMILIALE</Text>
+              <View style={styles.chipRow}>
+                {[
+                  { code: 'C', label: 'Célibataire' },
+                  { code: 'M', label: 'Marié(e)' },
+                  { code: 'D', label: 'Divorcé(e)' },
+                  { code: 'V', label: 'Veuf/ve' },
+                ].map((opt) => (
+                  <TouchableOpacity
+                    key={opt.code}
+                    style={[styles.chip, contactForm.empsitfam === opt.code && styles.chipActive]}
+                    onPress={() => setContactForm({ ...contactForm, empsitfam: contactForm.empsitfam === opt.code ? '' : opt.code })}
+                  >
+                    <Text style={[styles.chipText, contactForm.empsitfam === opt.code && styles.chipTextActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.fieldLabel}>NOMBRE D'ENFANTS À CHARGE</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="0"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.empnbp}
+                onChangeText={(t) => setContactForm({ ...contactForm, empnbp: t.replace(/\D+/g, '').slice(0, 2) })}
+                keyboardType="number-pad"
+              />
+
+              <Text style={styles.fieldLabel}>DATE DE NAISSANCE</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="JJ/MM/AAAA"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.empdnais}
+                onChangeText={(t) => setContactForm({ ...contactForm, empdnais: t })}
+              />
+
+              <Text style={styles.fieldLabel}>LIEU DE NAISSANCE</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="Ville, pays"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.emplnais}
+                onChangeText={(t) => setContactForm({ ...contactForm, emplnais: t })}
+              />
+
+              <Text style={styles.fieldLabel}>CODE NATIONALITÉ</Text>
+              <TextInput
+                style={styles.contactInput}
+                placeholder="Ex. FR, MA, TN…"
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.natcod}
+                onChangeText={(t) => setContactForm({ ...contactForm, natcod: t.toUpperCase().slice(0, 4) })}
+                autoCapitalize="characters"
+              />
+
+              {/* ─── IDENTITÉ MULTILINGUE (optionnelle) ─── */}
+              <Text style={styles.modalSectionHeader}>Identité (arabe)</Text>
+
+              <Text style={styles.fieldLabel}>NOM EN ARABE</Text>
+              <TextInput
+                style={[styles.contactInput, { textAlign: 'right' }]}
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.emplibar}
+                onChangeText={(t) => setContactForm({ ...contactForm, emplibar: t })}
+              />
+
+              <Text style={styles.fieldLabel}>ADRESSE EN ARABE</Text>
+              <TextInput
+                style={[styles.contactInput, { minHeight: 60, textAlignVertical: 'top', textAlign: 'right' }]}
+                placeholderTextColor={COLORS.outline}
+                value={contactForm.empadrar}
+                onChangeText={(t) => setContactForm({ ...contactForm, empadrar: t })}
+                multiline
+              />
+
               <Text style={styles.contactHint}>
-                Seules vos coordonnées sont modifiables. Pour tout autre changement (fonction,
-                service, salaire), contactez les RH.
+                Vous pouvez modifier vos informations personnelles. La fonction, le service,
+                le site, la société et la date d'embauche restent sous le contrôle des RH.
               </Text>
             </ScrollView>
 
@@ -1028,6 +1161,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   contactHint: { fontSize: 11, color: COLORS.outline, marginTop: 16, lineHeight: 16, fontStyle: 'italic' },
+  modalSectionHeader: {
+    fontSize: 12, fontWeight: '800', color: COLORS.primary,
+    marginTop: 18, marginBottom: 4, letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  chip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    borderWidth: 1, borderColor: COLORS.outlineVariant,
+    backgroundColor: COLORS.surfaceContainerLow,
+  },
+  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipText: { fontSize: 12, fontWeight: '700', color: COLORS.onSurfaceVariant },
+  chipTextActive: { color: '#fff' },
   contactModalFooter: {
     flexDirection: 'row', gap: 10, marginTop: 16,
   },

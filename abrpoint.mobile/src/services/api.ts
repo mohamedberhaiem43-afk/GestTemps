@@ -459,11 +459,23 @@ class ApiService {
   async updateMyContact(payload: {
     soccod: string;
     empcod: string;
+    // Coordonnées
     emptel?: string;
     empmob?: string;
     empadr?: string;
     vilcod?: string;
     empemail?: string;
+    // État civil (self-service étendu — la fonction/service/site/société/date
+    // d'embauche restent toujours sous contrôle RH côté backend).
+    empsexe?: string;
+    empsitfam?: string;
+    empnbp?: number;
+    empdnais?: string;
+    emplnais?: string;
+    natcod?: string;
+    // Identité arabe
+    emplibar?: string;
+    empadrar?: string;
   }) {
     const response = await this.client.put('/Employes/update-my-contact', {
       Soccod: payload.soccod,
@@ -473,6 +485,14 @@ class ApiService {
       Empadr: payload.empadr,
       Vilcod: payload.vilcod,
       Empemail: payload.empemail,
+      Empsexe: payload.empsexe,
+      Empsitfam: payload.empsitfam,
+      Empnbp: payload.empnbp,
+      Empdnais: payload.empdnais,
+      Emplnais: payload.emplnais,
+      Natcod: payload.natcod,
+      Emplibar: payload.emplibar,
+      Empadrar: payload.empadrar,
     });
     return response.data;
   }

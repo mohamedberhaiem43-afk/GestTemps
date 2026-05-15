@@ -1200,13 +1200,37 @@ namespace ABRPOINT.Server.Controllers
                     return Conflict(new { message = "Cet email est déjà utilisé par un autre compte." });
                 }
 
-                // Whitelist : uniquement les champs de contact. Le téléphone et le mobile
-                // sont chiffrés en BD (cf. update-employe), on conserve la même politique.
+                // Whitelist : coordonnées + état civil + identité (arabe). Le téléphone
+                // est chiffré en BD (cf. update-employe), on conserve la même politique.
+                // VOLONTAIREMENT exclus : Foncod, Empfonc, Sercod, Sitcod, Soccod, Empemb,
+                // Empsbase, Empsbrut, Empsnet, Empcin (sensible — réservé RH).
                 if (dto.Emptel != null) employe.Emptel = _encryptionService.Encrypt(dto.Emptel);
                 if (dto.Empmob != null) employe.Empmob = dto.Empmob;
                 if (dto.Empadr != null) employe.Empadr = dto.Empadr;
                 if (dto.Vilcod != null) employe.Vilcod = dto.Vilcod;
                 if (newEmail != null) employe.Empemail = newEmail;
+
+                // État civil — validation légère ; les codes inconnus passent (les
+                // dropdowns mobiles imposent déjà des valeurs valides).
+                if (dto.Empsexe != null)
+                {
+                    var sexe = dto.Empsexe.Trim().ToUpperInvariant();
+                    if (sexe == "M" || sexe == "F" || sexe == "") employe.Empsexe = sexe;
+                }
+                if (dto.Empsitfam != null)
+                {
+                    var sf = dto.Empsitfam.Trim().ToUpperInvariant();
+                    if (sf == "C" || sf == "M" || sf == "D" || sf == "V" || sf == "") employe.Empsitfam = sf;
+                }
+                if (dto.Empnbp.HasValue && dto.Empnbp.Value >= 0 && dto.Empnbp.Value <= 30)
+                    employe.Empnbp = dto.Empnbp.Value;
+                if (dto.Empdnais != null) employe.Empdnais = dto.Empdnais.Trim();
+                if (dto.Emplnais != null) employe.Emplnais = dto.Emplnais.Trim();
+                if (dto.Natcod != null) employe.Natcod = dto.Natcod.Trim();
+
+                // Identité arabe
+                if (dto.Emplibar != null) employe.Emplibar = dto.Emplibar;
+                if (dto.Empadrar != null) employe.Empadrar = dto.Empadrar;
 
                 await _db.SaveChangesAsync();
 
@@ -1285,10 +1309,28 @@ namespace ABRPOINT.Server.Controllers
     {
         public string Soccod { get; set; } = null!;
         public string Empcod { get; set; } = null!;
+
+        // ── Coordonnées (originaux) ──
         public string? Emptel { get; set; }
         public string? Empmob { get; set; }
         public string? Empadr { get; set; }
         public string? Vilcod { get; set; }
         public string? Empemail { get; set; }
+
+        // ── État civil (extension self-service) ──
+        // L'employé peut corriger ses propres informations personnelles depuis
+        // l'application mobile sans solliciter les RH. Volontairement EXCLUS :
+        // Foncod / Empfonc / Sercod / Sitcod / Soccod / Empemb / salaires —
+        // ces champs restent sous contrôle RH.
+        public string? Empsexe { get; set; }       // "M" | "F"
+        public string? Empsitfam { get; set; }     // "C" | "M" | "D" | "V"
+        public int? Empnbp { get; set; }           // Nombre de personnes à charge
+        public string? Empdnais { get; set; }      // Date de naissance (string legacy)
+        public string? Emplnais { get; set; }      // Lieu de naissance
+        public string? Natcod { get; set; }        // Code nationalité
+
+        // ── Identité (arabe) ──
+        public string? Emplibar { get; set; }      // Nom en arabe
+        public string? Empadrar { get; set; }      // Adresse en arabe
     }
 }

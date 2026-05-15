@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Alert, RefreshControl, Dimensions, Image, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +31,11 @@ interface KPISummary {
 export default function LeaveRequestScreen({ navigation }: any) {
   const { user } = useAuth();
   const tabBarPadding = useTabBarPadding();
+  // Inset bas système : sur Android avec barre de nav (3-boutons ou gesture),
+  // le bouton ENVOYER au pied du modal se faisait masquer par les boutons
+  // home/back. On garantit un coussin minimal sous le formulaire.
+  const insets = useSafeAreaInsets();
+  const formCardPaddingBottom = Math.max(24, insets.bottom + 12);
   const [requests, setRequests] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -526,7 +531,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
       {/* Form Overlay - Simple Modal logic integrated */}
       {showForm && (
         <View style={styles.modalOverlay}>
-          <View style={[styles.formCard, { paddingBottom: 24 + tabBarPadding * 0.4 }]}>
+          <View style={[styles.formCard, { paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>{editingConcod ? 'Modifier la demande' : 'Nouvelle Demande'}</Text>
               <TouchableOpacity onPress={closeForm} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
