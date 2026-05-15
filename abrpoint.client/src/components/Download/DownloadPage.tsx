@@ -31,7 +31,13 @@ interface ApkInfo {
   available: boolean;
   fileName?: string;
   sizeMb?: number;
+  version?: string;
   publishedAt?: string;
+  // URL effective à utiliser pour le bouton de download. Soit /api/download/android
+  // (qui sert le fichier local ou fait un 302 vers EAS selon la config serveur),
+  // soit potentiellement une URL externe absolue.
+  downloadUrl?: string;
+  source?: 'local' | 'external';
 }
 
 function detectOs(): DetectedOs {
@@ -133,13 +139,16 @@ export default function DownloadPage() {
                     </span>
                   </div>
                 ) : apkInfo.available ? (
-                  <a className="dl-btn dl-btn-primary" href={APK_DIRECT_URL} download>
+                  <a className="dl-btn dl-btn-primary" href={apkInfo?.downloadUrl || APK_DIRECT_URL} download>
                     <span className="dl-btn-icon">⬇</span>
                     <span className="dl-btn-content">
                       <span className="dl-btn-small">Télécharger l'APK</span>
                       <span className="dl-btn-large">Installation directe</span>
                       <span className="dl-btn-meta">
-                        v. {apkInfo.publishedAt?.slice(0, 10)} · {apkInfo.sizeMb} Mo
+                        {[
+                          apkInfo.version ? `v. ${apkInfo.version}` : (apkInfo.publishedAt ? apkInfo.publishedAt.slice(0, 10) : null),
+                          apkInfo.sizeMb ? `${apkInfo.sizeMb} Mo` : null,
+                        ].filter(Boolean).join(' · ')}
                       </span>
                     </span>
                   </a>
@@ -225,7 +234,7 @@ export default function DownloadPage() {
                     </span>
                   </div>
                 ) : apkInfo.available ? (
-                  <a className="dl-btn dl-btn-apk-inline" href={APK_DIRECT_URL} download>
+                  <a className="dl-btn dl-btn-apk-inline" href={apkInfo?.downloadUrl || APK_DIRECT_URL} download>
                     <span className="dl-btn-icon">⬇</span>
                     <span className="dl-btn-content">
                       <span className="dl-btn-large">Télécharger l'APK Android directement</span>
