@@ -44,6 +44,57 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         source: "docker-compose.yml,,nginx.conf"
         target: "/home/ubuntu/"
+    # Construit /home/ubuntu/.env à partir des secrets GitHub avant chaque
+    # déploiement. Le fichier est régénéré à chaque run → permet la rotation
+    # de clé sans intervention manuelle (changer la valeur dans GitHub →
+    # push → la prochaine deploy l'applique). Le fichier .env reste sur le
+    # serveur uniquement, jamais dans l'image Docker, jamais sur Docker Hub.
+    #
+    # Secrets attendus côté GitHub (Settings → Secrets and variables → Actions) :
+    #   OPENROUTER_API_KEY   — clé OpenRouter (DocumentScan, RAG, AI templates)
+    #   SMTP_HOST            — défaut ssl0.ovh.net si vide
+    #   SMTP_PORT            — défaut 587 si vide
+    #   SMTP_USERNAME        — boîte expéditrice OVH
+    #   SMTP_PASSWORD        — mot de passe mailbox (PAS le compte OVH)
+    #   SMTP_FROM_EMAIL      — DOIT = SMTP_USERNAME pour OVH
+    #   SMTP_FROM_NAME       — nom affiché ("Concorde Work Force")
+    #   ANTHROPIC_API_KEY    — optionnel, si RAG bascule sur Anthropic direct
+    #   RAG_SIDECAR_KEY      — optionnel, clé interne RAG
+    #   APK_URL              — URL EAS de l'APK courant (optionnel)
+    - name: Write .env on VPS
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        envs: OPENROUTER_API_KEY,SMTP_HOST,SMTP_PORT,SMTP_USERNAME,SMTP_PASSWORD,SMTP_FROM_EMAIL,SMTP_FROM_NAME,ANTHROPIC_API_KEY,RAG_SIDECAR_KEY,APK_URL
+        script: |
+          umask 077
+          cat > /home/ubuntu/.env <<EOF
+          OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+          SMTP_HOST=${SMTP_HOST}
+          SMTP_PORT=${SMTP_PORT}
+          SMTP_USERNAME=${SMTP_USERNAME}
+          SMTP_PASSWORD=${SMTP_PASSWORD}
+          SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+          SMTP_FROM_NAME=${SMTP_FROM_NAME}
+          ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+          RAG_SIDECAR_KEY=${RAG_SIDECAR_KEY}
+          APK_URL=${APK_URL}
+          EOF
+          chmod 600 /home/ubuntu/.env
+      env:
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        SMTP_HOST: ${{ secrets.SMTP_HOST }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
+        SMTP_FROM_NAME: ${{ secrets.SMTP_FROM_NAME }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        RAG_SIDECAR_KEY: ${{ secrets.RAG_SIDECAR_KEY }}
+        APK_URL: ${{ secrets.APK_URL }}
+
     - name: Deploy to VPS
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -53,5 +104,7 @@ jobs:
         script: |
           docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest
           docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest
-          docker compose -f /home/ubuntu/docker-compose.yml down
-          docker compose -f /home/ubuntu/docker-compose.yml up -d
+          # --force-recreate : si seul le .env a changé (rotation de clé),
+          # docker-compose ne redémarre pas naturellement le conteneur sans ce flag.
+          docker compose --env-file /home/ubuntu/.env -f /home/ubuntu/docker-compose.yml down
+          docker compose --env-file /home/ubuntu/.env -f /home/ubuntu/docker-compose.yml up -d --force-recreate
