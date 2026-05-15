@@ -9,7 +9,7 @@ import { useAuth } from '../helper/AuthProvider';
 import { ActionButton } from '../helper/animations/ActionButton';
 
 /**
- * Page d'affectation des droits d'accès par site (table Socuser).
+ * *Page d'affectation des droits d'accès par site (table Socuser).
  *
  * Pourquoi : avant, la table Socuser était peuplée à la création d'un user
  * (1 ligne pour le site initial), puis manipulée nulle part dans l'UI.
