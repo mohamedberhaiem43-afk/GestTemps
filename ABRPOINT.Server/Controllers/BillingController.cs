@@ -334,6 +334,107 @@ public class BillingController : ControllerBase
     /// données sont lues depuis la master DB — pas d'appel Stripe (les webhooks gardent
     /// CurrentPeriodEndsAt à jour, ce qui suffit pour l'affichage).
     /// </summary>
+    public sealed record ChangePlanRequest(string PlanCode, string BillingCycle, int? UserCount);
+
+    /// <summary>
+    /// Preview chiffré d'un changement de plan AVANT confirmation. Renvoie le différentiel
+    /// prorata-temporis que Stripe ajoutera (ou crédite) sur la prochaine facture. Aucun
+    /// effet de bord (pas d'update Stripe, pas d'update tenant). Réservé Admin/Manager.
+    /// </summary>
+    [HttpPost("preview-plan-change")]
+    public async Task<IActionResult> PreviewPlanChange([FromBody] ChangePlanRequest req, CancellationToken ct)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.PlanCode) || string.IsNullOrWhiteSpace(req.BillingCycle))
+            return BadRequest(new { error = "PlanCode et BillingCycle requis." });
+
+        if (!await CallerIsAdminOrManagerAsync()) return Forbid();
+
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug)) return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null) return NotFound(new { error = "Tenant introuvable." });
+
+        // Quantité = même règle que CreateCheckout : on prend max(req, employés actifs)
+        // pour empêcher un admin de sous-déclarer son effectif pour réduire l'overage.
+        var requested = req.UserCount.HasValue && req.UserCount.Value > 0 ? req.UserCount.Value : 1;
+        if (requested > 10_000) return BadRequest(new { error = "Nombre d'utilisateurs irréaliste.", code = "user_count_too_high" });
+        var activeEmployees = await _tenantDb.Employes
+            .CountAsync(e => e.Actif == "A" || e.Actif == "1" || e.Actif == "Oui", ct);
+        var billedSeats = Math.Max(Math.Max(1, activeEmployees), requested);
+
+        var preview = await _billing.PreviewPlanChangeAsync(tenant, req.PlanCode, req.BillingCycle, billedSeats, ct);
+        if (!preview.Available)
+            return BadRequest(new { error = preview.UnavailableReason ?? "Preview indisponible." });
+
+        return Ok(new
+        {
+            currentPlan = preview.CurrentPlan,
+            newPlan = preview.NewPlan,
+            prorationAmount = preview.ProrationAmount,
+            currency = preview.Currency,
+            nextInvoiceAt = preview.NextInvoiceAt,
+            nextInvoiceTotal = preview.NextInvoiceTotal,
+            billedSeats,
+            activeEmployees,
+        });
+    }
+
+    /// <summary>
+    /// Applique le changement de plan : Stripe Subscription.UpdateAsync avec proration
+    /// puis bascule du Tenant.PlanCode local. Les features deviennent immédiatement
+    /// disponibles/inaccessibles (selon le sens upgrade/downgrade) ; le différentiel
+    /// monétaire est ajouté à la prochaine facture régulière. Réservé Admin/Manager.
+    /// </summary>
+    [HttpPost("change-plan")]
+    public async Task<IActionResult> ChangePlan([FromBody] ChangePlanRequest req, CancellationToken ct)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.PlanCode) || string.IsNullOrWhiteSpace(req.BillingCycle))
+            return BadRequest(new { error = "PlanCode et BillingCycle requis." });
+
+        if (!await CallerIsAdminOrManagerAsync()) return Forbid();
+
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug)) return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null) return NotFound(new { error = "Tenant introuvable." });
+
+        // Statut bloquant : on autorise le change-plan uniquement pour les tenants
+        // Active / Trialing. Un tenant PendingPayment / Suspended / Cancelled doit
+        // d'abord passer par /checkout ou /resume-checkout.
+        var allowedStatuses = new[] { "Active", "Trialing" };
+        if (!allowedStatuses.Contains(tenant.Status, StringComparer.OrdinalIgnoreCase))
+            return BadRequest(new
+            {
+                error = $"Le changement de plan n'est pas disponible pour le statut '{tenant.Status}'. " +
+                        "Réactivez d'abord votre abonnement.",
+                code = "invalid_status",
+            });
+
+        var requested = req.UserCount.HasValue && req.UserCount.Value > 0 ? req.UserCount.Value : 1;
+        if (requested > 10_000) return BadRequest(new { error = "Nombre d'utilisateurs irréaliste.", code = "user_count_too_high" });
+        var activeEmployees = await _tenantDb.Employes
+            .CountAsync(e => e.Actif == "A" || e.Actif == "1" || e.Actif == "Oui", ct);
+        var billedSeats = Math.Max(Math.Max(1, activeEmployees), requested);
+
+        var result = await _billing.ChangePlanAsync(tenant, req.PlanCode, req.BillingCycle, billedSeats, ct);
+        if (!result.Success)
+            return StatusCode(502, new { error = result.ErrorMessage ?? "Échec du changement de plan." });
+
+        return Ok(new
+        {
+            success = true,
+            previousPlan = result.PreviousPlan,
+            newPlan = result.NewPlan,
+            netAmountOnNextInvoice = result.NetAmountOnNextInvoice,
+            currency = result.Currency,
+            nextInvoiceAt = result.NextInvoiceAt,
+        });
+    }
+
     [HttpGet("subscription")]
     public async Task<IActionResult> GetSubscription(CancellationToken ct)
     {
