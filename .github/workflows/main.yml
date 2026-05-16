@@ -70,7 +70,7 @@ jobs:
         envs: OPENROUTER_API_KEY,SMTP_HOST,SMTP_PORT,SMTP_USERNAME,SMTP_PASSWORD,SMTP_FROM_EMAIL,SMTP_FROM_NAME,ANTHROPIC_API_KEY,RAG_SIDECAR_KEY,APK_URL
         script: |
           umask 077
-          cat > /home/ubuntu/.env <<EOF
+          cat > /root/.env <<EOF
           OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
           SMTP_HOST=${SMTP_HOST}
           SMTP_PORT=${SMTP_PORT}
@@ -82,7 +82,7 @@ jobs:
           RAG_SIDECAR_KEY=${RAG_SIDECAR_KEY}
           APK_URL=${APK_URL}
           EOF
-          chmod 600 /home/ubuntu/.env
+          chmod 600 /root/.env
       env:
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -106,5 +106,5 @@ jobs:
           docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest
           # --force-recreate : si seul le .env a changé (rotation de clé),
           # docker-compose ne redémarre pas naturellement le conteneur sans ce flag.
-          docker compose --env-file /home/ubuntu/.env -f /home/ubuntu/docker-compose.yml down
-          docker compose --env-file /home/ubuntu/.env -f /home/ubuntu/docker-compose.yml up -d --force-recreate
+          docker compose --env-file /root/.env -f /root/docker-compose.yml down
+          docker compose --env-file /root/.env -f /root/docker-compose.yml up -d --force-recreate
