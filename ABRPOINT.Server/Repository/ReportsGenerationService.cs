@@ -16,7 +16,7 @@ namespace ABRPOINT.Server.Repository
 {
     public class ReportsGenerationService : IReportsGenerationService
     {
-        private readonly MsSqlDataConnection _sqlConnection;
+        private readonly PostgresDataConnection _sqlConnection;
         private readonly string _vaultPath;
         private readonly IConverter _pdfConverter;
 
@@ -26,7 +26,7 @@ namespace ABRPOINT.Server.Repository
             _vaultPath = Path.Combine(env.ContentRootPath, "VaultTemplates");
             if (!Directory.Exists(_vaultPath)) Directory.CreateDirectory(_vaultPath);
 
-            FastReport.Utils.RegisteredObjects.AddConnection(typeof(MsSqlDataConnection));
+            FastReport.Utils.RegisteredObjects.AddConnection(typeof(PostgresDataConnection));
 
             // Multi-tenant: utiliser la base du tenant courant via le template de connexion.
             // Fallback sur DefaultConnection (mono-tenant / migrations / dev sans slug).
@@ -43,7 +43,7 @@ namespace ABRPOINT.Server.Repository
                     ?? config.GetConnectionString("DefaultConnection")
                     ?? throw new InvalidOperationException("Aucune chaÃ®ne de connexion configurÃ©e pour les rapports.");
             }
-            _sqlConnection = new MsSqlDataConnection { ConnectionString = connectionString };
+            _sqlConnection = new PostgresDataConnection { ConnectionString = connectionString };
         }
 
         private Report CreateReport(string reportFilePath)
@@ -52,7 +52,7 @@ namespace ABRPOINT.Server.Repository
             report.Load(reportFilePath);
             foreach (DataConnectionBase conn in report.Dictionary.Connections)
             {
-                if (conn is MsSqlDataConnection sqlConn)
+                if (conn is PostgresDataConnection sqlConn)
                 {
                     sqlConn.ConnectionString = _sqlConnection.ConnectionString;
                     sqlConn.Enabled = true;

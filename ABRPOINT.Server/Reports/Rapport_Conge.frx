@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Report ScriptLanguage="CSharp">
 
 	<Dictionary>
@@ -6,7 +6,7 @@
 		<!-- PARAMETRE -->
 		<Parameter Name="Concod" DataType="System.String"/>
 
-		<MsSqlDataConnection Name="Connection" ConnectionString="YOUR_CONNECTION">
+		<PostgresDataConnection Name="Connection" ConnectionString="YOUR_CONNECTION">
 
 			<TableDataSource Name="Table" Enabled="true"
 			  SelectCommand="
@@ -49,7 +49,7 @@ WHERE c.concod = @Concod">
 
 			</TableDataSource>
 
-		</MsSqlDataConnection>
+		</PostgresDataConnection>
 	</Dictionary>
 
 	<ReportPage Name="Page1">
@@ -82,7 +82,7 @@ WHERE c.concod = @Concod">
 			<TextObject Left="10" Top="80" Text="Adresse:"/>
 			<TextObject Left="150" Top="80" Text="[Table.empadr]"/>
 
-			<TextObject Left="10" Top="110" Text="Téléphone:"/>
+			<TextObject Left="10" Top="110" Text="TÃ©lÃ©phone:"/>
 			<TextObject Left="150" Top="110" Text="[Table.emptel]"/>
 
 			<TextObject Left="10" Top="140" Text="Mobile:"/>
@@ -90,10 +90,10 @@ WHERE c.concod = @Concod">
 
 			<!-- TEXTE -->
 			<TextObject Left="10" Top="200" Width="700"
-			  Text="Je demande un congé de [Table.connbjour] jour(s) du [FormatDateTime([Table.condep], &quot;dd/MM/yyyy&quot;)] au [FormatDateTime([Table.conret], &quot;dd/MM/yyyy&quot;)]"/>
+			  Text="Je demande un congÃ© de [Table.connbjour] jour(s) du [FormatDateTime([Table.condep], &quot;dd/MM/yyyy&quot;)] au [FormatDateTime([Table.conret], &quot;dd/MM/yyyy&quot;)]"/>
 
 			<!-- TYPE -->
-			<TextObject Left="500" Top="20" Text="Congé annuel"/>
+			<TextObject Left="500" Top="20" Text="CongÃ© annuel"/>
 			<TextObject Left="500" Top="50" Text="Maladie"/>
 			<TextObject Left="500" Top="80" Text="Sans solde"/>
 			<TextObject Left="500" Top="110" Text="Exceptionnel"/>
@@ -111,7 +111,7 @@ WHERE c.concod = @Concod">
 			<TextObject Left="460" Top="110"
 			  Text="[Table.abscng] != &quot;0&quot; &amp;&amp; [Table.abscng] != &quot;N&quot; &amp;&amp; [Table.abscng] != &quot;5&quot; ? &quot;X&quot; : &quot;&quot;"/>
 
-			<TextObject Left="10" Top="350" Text="Signature Employé"/>
+			<TextObject Left="10" Top="350" Text="Signature EmployÃ©"/>
 
 		</DataBand>
 
