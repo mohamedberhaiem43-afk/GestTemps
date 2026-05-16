@@ -57,11 +57,14 @@ public sealed class UserNotificationService : IUserNotificationService
             // legacy "Oui", cf. UtilisateurRepository.ToggleUtiactif) ou sans valeur saisie
             // (NULL). Résultat observé : aucune notif n'arrivait aux managers d'un tenant
             // hérité d'un dump legacy. On considère désormais ACTIF tout sauf "0" / "Non".
+            // PG : LIKE est case-sensitive. Sur SQL Server (French_CI_AS) LIKE '%manager%'
+            // matchait "Manager"/"MANAGER" ; sur Postgres on doit utiliser ILIKE pour la
+            // même sémantique. ILIKE est une extension PG fournie par Npgsql.
             var uticods = await db.Utilisateurs
                 .AsNoTracking()
                 .Where(u => (u.Utiactif == null || (u.Utiactif != "0" && u.Utiactif != "Non")) &&
                             (u.Utirole == managerCode ||
-                             (u.Utirole != null && EF.Functions.Like(u.Utirole, "%manager%")) ||
+                             (u.Utirole != null && EF.Functions.ILike(u.Utirole, "%manager%")) ||
                              u.Utiadm == "1" ||
                              u.Utirole == adminCode))
                 .Select(u => u.Uticod!)

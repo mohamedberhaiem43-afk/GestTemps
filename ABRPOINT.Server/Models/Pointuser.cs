@@ -19,35 +19,35 @@ public partial class Pointuser : BaseEntity
     [Column("FINGERID")]
     public int Fingerid { get; set; }
 
-    [Column("TEMPLATE", TypeName = "image")]
+    [Column("TEMPLATE", TypeName = "bytea")]
     public byte[] Template { get; set; } = null!;
 
-    [Column("TEMPLATE2", TypeName = "image")]
+    [Column("TEMPLATE2", TypeName = "bytea")]
     public byte[]? Template2 { get; set; }
 
-    [Column("BITMAPPICTURE", TypeName = "image")]
+    [Column("BITMAPPICTURE", TypeName = "bytea")]
     public byte[]? Bitmappicture { get; set; }
 
-    [Column("BITMAPPICTURE2", TypeName = "image")]
+    [Column("BITMAPPICTURE2", TypeName = "bytea")]
     public byte[]? Bitmappicture2 { get; set; }
 
-    [Column("BITMAPPICTURE3", TypeName = "image")]
+    [Column("BITMAPPICTURE3", TypeName = "bytea")]
     public byte[]? Bitmappicture3 { get; set; }
 
-    [Column("BITMAPPICTURE4", TypeName = "image")]
+    [Column("BITMAPPICTURE4", TypeName = "bytea")]
     public byte[]? Bitmappicture4 { get; set; }
 
     [Column("USETYPE")]
     public short? Usetype { get; set; }
 
-    [Column("TEMPLATE3", TypeName = "image")]
+    [Column("TEMPLATE3", TypeName = "bytea")]
     public byte[]? Template3 { get; set; }
 
     [Column("EMACHINENUM")]
     [StringLength(3)]
     public string? Emachinenum { get; set; }
 
-    [Column("TEMPLATE1", TypeName = "image")]
+    [Column("TEMPLATE1", TypeName = "bytea")]
     public byte[]? Template1 { get; set; }
 
     public short? Flag { get; set; }
@@ -55,6 +55,6 @@ public partial class Pointuser : BaseEntity
     [Column("DivisionFP")]
     public short? DivisionFp { get; set; }
 
-    [Column("TEMPLATE4", TypeName = "image")]
+    [Column("TEMPLATE4", TypeName = "bytea")]
     public byte[]? Template4 { get; set; }
 }

@@ -3,16 +3,30 @@ using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Text.RegularExpressions;
 
 namespace ABRPOINT.Server.Provisioning;
 
 /// <summary>
-/// Implémentation par défaut : pilote SQL Server via les connexions
-///   - MasterConnection (pour CREATE / DROP DATABASE — exige dbcreator).
+/// Implémentation par défaut : pilote PostgreSQL via les connexions
+///   - MasterConnection (pour CREATE / DROP DATABASE — exige le rôle CREATEDB).
 ///   - TenantTemplate   (template avec {DbName} pour les migrations + seed).
+///
+/// Migré de SQL Server → PostgreSQL :
+///   - SqlConnection → NpgsqlConnection
+///   - CREATE DATABASE Postgres : refusée DANS une transaction. Npgsql ouvre
+///     une transaction implicite par défaut → on désactive via la connexion
+///     standard (ExecuteNonQueryAsync sans BEGIN explicite, ce qui marche).
+///   - PostgreSQL n'a pas d'équivalent direct à "IF DB_ID IS NULL ... CREATE" en
+///     une seule instruction → on regarde d'abord pg_database, puis CREATE.
+///   - COLLATE French_CI_AS supprimée : PostgreSQL utilise des collations ICU
+///     différentes (LC_COLLATE/LC_CTYPE par DB, ou collations COLLATE x USING).
+///     Si le tenant a besoin de comparaisons insensibles à la casse sur libellés,
+///     préférer LOWER() côté queries ou créer une collation ICU dédiée.
+///   - ALTER DATABASE ... SINGLE_USER → DROP DATABASE WITH (FORCE) sous PG 13+,
+///     ou kill manuel des connexions via pg_terminate_backend pour PG 11-12.
 /// </summary>
 public sealed class ProvisioningService : IProvisioningService
 {
@@ -29,22 +43,37 @@ public sealed class ProvisioningService : IProvisioningService
     {
         ValidateDbName(dbName);
         var masterCs = GetMasterConnection();
-        // Connexion vers master physique de SQL Server (pas ABRPOINT_master) pour CREATE DATABASE.
-        var serverCs = SwitchInitialCatalog(masterCs, "master");
+        // PostgreSQL : pour créer/dropper une base, il faut être connecté à UNE AUTRE base
+        // (typiquement "postgres", la base système toujours présente). On clone la connection
+        // string en pointant Database=postgres.
+        var serverCs = SwitchDatabase(masterCs, "postgres");
 
-        await using var conn = new SqlConnection(serverCs);
+        await using var conn = new NpgsqlConnection(serverCs);
         await conn.OpenAsync(ct);
-        await using var cmd = conn.CreateCommand();
-        // SQL Server n'autorise PAS de paramètre pour un identifiant (nom de base) — on doit
-        // donc l'interpoler. Défense en profondeur : (1) ValidateDbName impose la regex
-        // ^[A-Za-z0-9_]{1,64}$ ; (2) BracketIdent échappe les ']' (impossible vu la regex,
-        // mais cap au cas où la validation évolue) ; (3) le test d'existence DB_ID(@dbName)
-        // EST paramétrable (DB_ID accepte un argument), donc on le paramètre.
+
+        // 1) Check d'existence (équivalent de DB_ID() en T-SQL).
+        await using (var check = conn.CreateCommand())
+        {
+            check.CommandText = "SELECT 1 FROM pg_database WHERE datname = @dbName LIMIT 1";
+            check.Parameters.AddWithValue("@dbName", dbName);
+            var found = await check.ExecuteScalarAsync(ct);
+            if (found != null)
+            {
+                _log.LogInformation("Database already exists, skipping CREATE: {DbName}", dbName);
+                return;
+            }
+        }
+
+        // 2) CREATE DATABASE — l'identifiant ne peut PAS être paramétré, donc on l'interpole
+        // après l'avoir passé par ValidateDbName + QuoteIdent (échappe les guillemets doubles).
+        // Défense en profondeur identique à l'ancienne implémentation SQL Server.
         // nosemgrep: csharp.lang.security.sqli.csharp-sqli.csharp-sqli
-        cmd.CommandText = $"IF DB_ID(@dbName) IS NULL CREATE DATABASE {BracketIdent(dbName)} COLLATE French_CI_AS;";
-        cmd.Parameters.Add(new SqlParameter("@dbName", System.Data.SqlDbType.NVarChar, 128) { Value = dbName });
-        await cmd.ExecuteNonQueryAsync(ct);
-        _log.LogInformation("Database created (or already existed): {DbName}", dbName);
+        await using (var create = conn.CreateCommand())
+        {
+            create.CommandText = $"CREATE DATABASE {QuoteIdent(dbName)}";
+            await create.ExecuteNonQueryAsync(ct);
+        }
+        _log.LogInformation("Database created: {DbName}", dbName);
     }
 
     public async Task RunMigrationsAsync(string dbName, CancellationToken ct = default)
@@ -52,15 +81,14 @@ public sealed class ProvisioningService : IProvisioningService
         ValidateDbName(dbName);
         var connStr = GetTenantConnection(dbName);
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+            .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
             .Options;
 
         await using var db = new ApplicationDbContext(options);
         await db.Database.MigrateAsync(ct);
 
         // Migrations "in place" non couvertes par EF (colonnes ajoutées au modèle après
-        // 'InitialCreate' : socville, vilcod élargi, parmodemp, CET, etc.). Sans ça,
-        // SeedInitialAsync échoue dès qu'il insère une Societe avec Socville.
+        // 'InitialCreate' : socville, vilcod élargi, parmodemp, CET, etc.).
         await BaseDataSchemaMigrator.MigrateAsync(db, ct);
 
         _log.LogInformation("Migrations applied to {DbName}", dbName);
@@ -71,13 +99,12 @@ public sealed class ProvisioningService : IProvisioningService
         ValidateDbName(tenant.DbName);
         var connStr = GetTenantConnection(tenant.DbName);
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+            .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
             .Options;
 
         await using var db = new ApplicationDbContext(options);
 
         // Convention : un tenant = une société (Soccod="01"), un site (Sitcod="01"), un admin (Uticod="AD").
-        // LegacySoccod du tenant master est synchronisé avec ce code.
         const string Soccod = "01";
         const string Sitcod = "01";
         const string AdminCode = "AD";
@@ -127,16 +154,9 @@ public sealed class ProvisioningService : IProvisioningService
             });
         }
 
-        // 5. Utilisateur du tenant (BCrypt). Désormais créé par défaut comme
-        //    "Responsable RH" et non plus directement Administrator : on attend
-        //    qu'il prenne effectivement la responsabilité d'au moins un collaborateur
-        //    (champ Empresp côté Employe) pour qu'il soit auto-promu Administrator
-        //    via EmployesController.Put. Cette progression suit le parcours métier :
-        //    "tu es RH → quand tu encadres quelqu'un, tu deviens admin".
-        //
-        //    Le flag legacy `Utiadm = "1"` est conservé : c'est le créateur du tenant,
-        //    il doit pouvoir bootstrapper sa configuration (ajouter ses 1ers employés,
-        //    paramétrer son entreprise) sans bloquer derrière un check legacy.
+        // 5. Utilisateur du tenant (BCrypt) — créé comme "Responsable RH" avec promotion
+        //    automatique vers Administrator quand il prend la responsabilité d'au moins
+        //    un collaborateur. Voir EmployesController.Put pour la logique de promotion.
         var existingUser = await db.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == AdminCode, ct);
         if (existingUser is null)
         {
@@ -166,17 +186,13 @@ public sealed class ProvisioningService : IProvisioningService
 
         await db.SaveChangesAsync(ct);
 
-        // 7. Permissions modules legacy : on accorde tous les modules existants à l'admin.
-        //    (Conservé pour compat avec le code legacy qui lit encore Modusers.)
+        // 7. Permissions modules legacy (Modusers).
         await GrantAllModulesToAdminAsync(db, AdminCode, ct);
 
-        // 8. Rôles système RBAC : Administrator / Manager / Employee avec permissions par défaut.
-        //    L'admin du signup est déjà associé au rôle Administrator via Utilisateur.Utirole.
+        // 8. Rôles système RBAC.
         await SystemRoleSeeder.SeedAsync(db, ct);
 
-        // 9. Tables mobiles (push_tokens, push_reminder_log) — créées si absentes.
-        //    Permet aux nouveaux tenants de recevoir des notifications push immédiatement,
-        //    sans intervention DBA.
+        // 9. Tables mobiles (push_tokens, push_reminder_log).
         await MobileTablesInstaller.InstallAsync(db, ct);
 
         _log.LogInformation("Seed initial completed for tenant {Slug} (db={DbName})", tenant.Slug, tenant.DbName);
@@ -186,23 +202,21 @@ public sealed class ProvisioningService : IProvisioningService
     {
         ValidateDbName(dbName);
         var masterCs = GetMasterConnection();
-        var serverCs = SwitchInitialCatalog(masterCs, "master");
+        var serverCs = SwitchDatabase(masterCs, "postgres");
 
-        await using var conn = new SqlConnection(serverCs);
+        await using var conn = new NpgsqlConnection(serverCs);
         await conn.OpenAsync(ct);
-        await using var cmd = conn.CreateCommand();
-        // Mêmes garanties que CreateDatabaseAsync : ValidateDbName + BracketIdent + paramètre
-        // pour DB_ID. ALTER DATABASE / DROP DATABASE n'acceptent PAS d'identifiant paramétrable.
-        // Forcer SINGLE_USER pour casser les connexions ouvertes avant DROP.
-        var bracketed = BracketIdent(dbName);
+
+        // PostgreSQL ≥ 13 : DROP DATABASE x WITH (FORCE) tue les connexions actives,
+        // équivalent direct du ALTER DATABASE x SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+        // de SQL Server. Pour PG 11-12, il faudrait d'abord pg_terminate_backend sur
+        // toutes les sessions liées à dbName, mais on cible PG 16 dans docker-compose
+        // donc on prend la voie courte.
+        //
+        // L'identifiant ne peut PAS être paramétré → ValidateDbName + QuoteIdent.
         // nosemgrep: csharp.lang.security.sqli.csharp-sqli.csharp-sqli
-        cmd.CommandText = $@"
-IF DB_ID(@dbName) IS NOT NULL
-BEGIN
-    ALTER DATABASE {bracketed} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE {bracketed};
-END";
-        cmd.Parameters.Add(new SqlParameter("@dbName", System.Data.SqlDbType.NVarChar, 128) { Value = dbName });
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"DROP DATABASE IF EXISTS {QuoteIdent(dbName)} WITH (FORCE)";
         await cmd.ExecuteNonQueryAsync(ct);
         _log.LogWarning("Database dropped: {DbName}", dbName);
     }
@@ -238,20 +252,29 @@ END";
         return template.Replace("{DbName}", dbName);
     }
 
-    private static string SwitchInitialCatalog(string connectionString, string newCatalog)
+    /// <summary>
+    /// Remplace Database=... dans une connection string Npgsql par newDatabase.
+    /// Utilisé pour basculer du master tenant vers la base postgres système (où
+    /// on a le droit de faire CREATE/DROP DATABASE).
+    /// </summary>
+    private static string SwitchDatabase(string connectionString, string newDatabase)
     {
-        var b = new SqlConnectionStringBuilder(connectionString) { InitialCatalog = newCatalog };
+        var b = new NpgsqlConnectionStringBuilder(connectionString) { Database = newDatabase };
         return b.ConnectionString;
     }
 
-    // Whitelist stricte : lettres ASCII, chiffres, underscore, max 64 caractères. Format compatible
-    // avec les conventions internes (`tenant_<slug>_<8hex>`, `ABRPOINT_*`) tout en excluant les
-    // caractères qui pourraient casser la quoting d'un identifiant SQL Server (espace, ']', '-', '"', ';'…).
-    private static readonly Regex DbNamePattern = new(@"^[A-Za-z0-9_]{1,64}$",
+    // Whitelist stricte : lettres ASCII, chiffres, underscore, max 63 caractères (limite
+    // NAMEDATALEN de PostgreSQL par défaut). Format compatible avec les conventions
+    // internes (`tenant_<slug>_<8hex>`, `abrpoint_*`) tout en excluant les caractères
+    // qui pourraient casser la quoting d'un identifiant ("'\;).
+    //
+    // Note : SQL Server tolérait 64 caractères ; PG en limite à 63. La regex passe
+    // donc à 63 pour éviter les noms tronqués silencieusement par le moteur.
+    private static readonly Regex DbNamePattern = new(@"^[A-Za-z0-9_]{1,63}$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>
-    /// Valide le nom de base : strictement <c>^[A-Za-z0-9_]{1,64}$</c>.
+    /// Valide le nom de base : strictement <c>^[A-Za-z0-9_]{1,63}$</c>.
     /// Évite l'injection SQL via le nom de DB (les identifiants ne sont pas paramétrables).
     /// </summary>
     private static void ValidateDbName(string dbName)
@@ -259,18 +282,18 @@ END";
         if (string.IsNullOrWhiteSpace(dbName))
             throw new ArgumentException("DbName vide", nameof(dbName));
         if (!DbNamePattern.IsMatch(dbName))
-            throw new ArgumentException("DbName invalide (lettres/chiffres/underscore, max 64).", nameof(dbName));
+            throw new ArgumentException("DbName invalide (lettres/chiffres/underscore, max 63).", nameof(dbName));
     }
 
     /// <summary>
-    /// Quote un identifiant SQL Server entre crochets, en doublant tout ']' interne.
-    /// Combiné avec <see cref="ValidateDbName"/> (qui interdit déjà ']'), c'est une défense
+    /// Quote un identifiant PostgreSQL entre double-quotes, en doublant tout '"' interne.
+    /// Combiné avec <see cref="ValidateDbName"/> (qui interdit déjà '"'), c'est une défense
     /// en profondeur : si la validation est un jour assouplie, l'échappement reste correct.
     /// </summary>
-    private static string BracketIdent(string identifier)
+    private static string QuoteIdent(string identifier)
     {
         ValidateDbName(identifier);
-        return "[" + identifier.Replace("]", "]]") + "]";
+        return "\"" + identifier.Replace("\"", "\"\"") + "\"";
     }
 
     private static string Truncate(string? s, int max)

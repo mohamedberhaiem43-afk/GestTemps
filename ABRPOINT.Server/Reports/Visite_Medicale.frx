@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Report GuiVisible="True" ReportInfo.Created="04/15/2026 10:00:00" ReportInfo.Modified="04/15/2026 12:00:00" ReportInfo.CreatorVersion="2025.1.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="">
+    <PostgresDataConnection Name="Connection" ConnectionString="">
       <TableDataSource Name="Table" DataType="System.Int32" Enabled="true" SelectCommand="SELECT * FROM employe WHERE empcod = @empcod">
         <Column Name="soclib" DataType="System.String"/>
         <Column Name="socadr" DataType="System.String"/>
@@ -11,7 +11,7 @@
         <Column Name="empdatemb" DataType="System.DateTime"/>
         <Column Name="empsal" DataType="System.Decimal"/>
       </TableDataSource>
-    </MsSqlDataConnection>
+    </PostgresDataConnection>
     <Parameter Name="empcod" DataType="System.String"/>
     <Parameter Name="soccod" DataType="System.String"/>
   </Dictionary>

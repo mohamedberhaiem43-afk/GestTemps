@@ -11,7 +11,6 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace ABRPOINT.Server.Repository
@@ -1073,66 +1072,6 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-
-        // PERF / SEC — `async void` était dangereux ici : les exceptions remontaient
-        // au SynchronizationContext (pouvant crasher le process) et le caller croyait
-        // l'opération synchrone, partant avant le SaveChanges. Conversion en
-        // `async Task` pour que les rares appelants puissent l'await proprement.
-        public async Task Update(Presence presence)
-        {
-            if (presence is null) return;
-            await CalculatePresenceAsync(presence);
-            _dbContext.Presences.Update(presence);
-            await _dbContext.SaveChangesAsync();
-        }
-        public async Task CalculatePresenceAsync(Presence presence)
-        {
-            var transaction = await _dbContext.Database.BeginTransactionAsync();
-
-            try
-            {
-                if (presence != null)
-                {
-                    var parameters = new[]
-                    {
-                        new SqlParameter("@psoccod", presence.Soccod ?? (object)DBNull.Value),
-                        new SqlParameter("@psocmere", presence.Soccod ?? (object)DBNull.Value), // Assuming same as psoccod
-                        new SqlParameter("@psitcod", presence.Sitcod ?? (object)DBNull.Value),
-                        new SqlParameter("@pannee", presence.Predat?.Year.ToString() ?? (object)DBNull.Value),
-                        new SqlParameter("@pmois", presence.Predat?.Month.ToString("00") ?? (object)DBNull.Value),
-                        new SqlParameter("@pmodcod", presence.Preobs ?? "SYSTEM"), // Using Preobs as modcod?
-                        new SqlParameter("@puticod", "API"), // Or get from auth context
-                        new SqlParameter("@pempcod", presence.Empcod ?? (object)DBNull.Value),
-                        new SqlParameter("@pempreg", presence.Empreg ?? "0"),
-                        new SqlParameter("@pfontype", "1"), // Default value
-                        new SqlParameter("@pempnuit", "0"), // Default value
-                        new SqlParameter("@pempmaxhre", 10.0), // Default value or get from employee
-                        new SqlParameter("@pempminhjour", 4.0), // Default value or get from employee
-                        new SqlParameter("@pcaltype", "STANDARD"), // Default value
-                        new SqlParameter("@pdte", presence.Predat ?? DateTime.Now),
-                        new SqlParameter("@pcatcod", presence.Catcod ?? (object)DBNull.Value),
-                        new SqlParameter("@pcodposte", presence.Codposte ?? (object)DBNull.Value),
-                        new SqlParameter("@pdtedeb", presence.Predat ?? DateTime.Now), // Same as pdte
-                        new SqlParameter("@pdtefin", presence.Predat ?? DateTime.Now),
-            };
-
-                    await _dbContext.Database.ExecuteSqlRawAsync(
-                        "EXEC [dbo].[calcul_impupd] @psoccod, @psocmere, @psitcod, @pannee, @pmois, @pmodcod, @puticod, " +
-                        "@pempcod, @pempreg, @pfontype, @pempnuit, @pempmaxhre, @pempminhjour, @pcaltype, @pdte, @pcatcod, " +
-                        "@pcodposte, @pdtedeb, @pdtefin",
-                        parameters);
-
-                    await _dbContext.Entry(presence).ReloadAsync();
-                    await transaction.CommitAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                throw new Exception("Error calculating presence", ex);
-            }
-        }
-
 
         private async Task<(double? nbHeurSupp, int nbRetard)> CalculateDayWorkMetrics(PresenceDto presence)
         {

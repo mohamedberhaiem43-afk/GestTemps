@@ -51,6 +51,14 @@ jobs:
           source: "docker-compose.yml,nginx.conf"
           target: "/root/"
 
+      # Secrets ATTENDUS côté GitHub (Settings → Secrets and variables → Actions) :
+      #   POSTGRES_PASSWORD    — superuser PG (utilisé par le conteneur abrpoint.database
+      #                          ET injecté dans les connection strings de l'app)
+      #   OPENROUTER_API_KEY   — clé OpenRouter (DocumentScan, RAG, AI templates)
+      #   SMTP_*               — config OVH SMTP (cf. compose pour défauts)
+      #   ANTHROPIC_API_KEY    — optionnel, RAG direct Anthropic
+      #   RAG_SIDECAR_KEY      — optionnel
+      #   APK_URL              — URL EAS APK courante
       - name: Write .env on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -60,6 +68,7 @@ jobs:
           script: |
             umask 077
             cat > /root/.env <<EOF
+            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
             OPENROUTER_API_KEY=$OPENROUTER_API_KEY
             SMTP_HOST=$SMTP_HOST
             SMTP_PORT=$SMTP_PORT
@@ -73,6 +82,7 @@ jobs:
             EOF
             chmod 600 /root/.env
         env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}

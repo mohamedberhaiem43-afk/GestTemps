@@ -305,8 +305,11 @@ namespace ABRPOINT.Server.Controllers
                     saved = true;
                 }
                 catch (DbUpdateException ex) when (
-                    ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx
-                    && (sqlEx.Number == 2627 || sqlEx.Number == 2601))
+                    // Postgres : SQLSTATE 23505 = unique_violation (couvre l'équivalent
+                    // SQL Server 2627 (PRIMARY KEY violation) + 2601 (UNIQUE INDEX
+                    // violation), distingués historiquement mais regroupés sous 23505 en PG).
+                    ex.InnerException is Npgsql.PostgresException pgEx
+                    && pgEx.SqlState == "23505")
                 {
                     // Conflit PK : un autre process a pris ce numéro entre notre
                     // SELECT MAX et notre INSERT. On détache l'entité (sinon EF

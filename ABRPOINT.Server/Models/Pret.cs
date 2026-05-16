@@ -22,17 +22,17 @@ public partial class Pret : BaseEntity
     [StringLength(6)]
     public string? Empcod { get; set; }
 
-    [Column("predat", TypeName = "datetime")]
+    [Column("predat", TypeName = "timestamp without time zone")]
     public DateTime? Predat { get; set; }
 
     [Column("rubcod")]
     [StringLength(10)]
     public string? Rubcod { get; set; }
 
-    [Column("predeb", TypeName = "datetime")]
+    [Column("predeb", TypeName = "timestamp without time zone")]
     public DateTime? Predeb { get; set; }
 
-    [Column("prefin", TypeName = "datetime")]
+    [Column("prefin", TypeName = "timestamp without time zone")]
     public DateTime? Prefin { get; set; }
 
     [Column("premnt")]

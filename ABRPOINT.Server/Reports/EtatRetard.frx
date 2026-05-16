@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report ScriptLanguage="CSharp" ReportInfo.Created="07/15/2025 11:04:09" ReportInfo.Modified="02/12/2026 19:43:16" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM0tAwaD6ud4BCMYfFiEMdZR">
+    <PostgresDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM0tAwaD6ud4BCMYfFiEMdZR">
       <TableDataSource Name="Table" Alias="EtatRetard" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;    e.empmat,&#13;&#10;    e.emplib,&#13;&#10;    s.soclib,&#13;&#10;    p.*,&#13;&#10;    -- Calcul du total retard en minutes&#13;&#10;    RIGHT('0' + CAST((DATEDIFF(MINUTE, CAST(CAST(preretmateup AS DATE) AS DATETIME), preretmateup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretmatsup AS DATE) AS DATETIME), preretmatsup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretameup AS DATE) AS DATETIME), preretameup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretamsup AS DATE) AS DATETIME), preretamsup)&#13;&#10;    ) / 60 AS VARCHAR), 2)&#13;&#10;    + ':' +&#13;&#10;    RIGHT('0' + CAST((DATEDIFF(MINUTE, CAST(CAST(preretmateup AS DATE) AS DATETIME), preretmateup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretmatsup AS DATE) AS DATETIME), preretmatsup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretameup AS DATE) AS DATETIME), preretameup)&#13;&#10;      + DATEDIFF(MINUTE, CAST(CAST(preretamsup AS DATE) AS DATETIME), preretamsup)&#13;&#10;    ) % 60 AS VARCHAR), 2) AS Totret&#13;&#10;FROM presence p&#13;&#10;JOIN employe e ON p.empcod = e.empcod AND e.soccod = p.soccod&#13;&#10;JOIN societe s ON e.soccod = s.soccod&#13;&#10;WHERE p.predat BETWEEN @datedebut AND @datefin&#13;&#10;  AND e.soccod = @soccod&#13;&#10;  AND (&#13;&#10;        @empcod = '' &#13;&#10;        OR e.empcod IN (&#13;&#10;            SELECT value &#13;&#10;            FROM STRING_SPLIT(@empcod, ',')&#13;&#10;        )&#13;&#10;      );&#13;&#10;">
         <Column Name="empcod" DataType="System.String"/>
         <Column Name="predat" DataType="System.DateTime"/>
@@ -63,7 +63,7 @@
         <CommandParameter Name="datedebut" DataType="31" Expression="[datedebut]"/>
         <CommandParameter Name="empcod" DataType="22" Expression="[empcod]"/>
       </TableDataSource>
-    </MsSqlDataConnection>
+    </PostgresDataConnection>
     <Parameter Name="datedebut" DataType="System.String" AsString=""/>
     <Parameter Name="datefin" DataType="System.String" AsString=""/>
   </Dictionary>

@@ -18,6 +18,6 @@ public partial class Empchg : BaseEntity
     [StringLength(12)]
     public string? Empref { get; set; }
 
-    [Column("empdat", TypeName = "datetime")]
+    [Column("empdat", TypeName = "timestamp without time zone")]
     public DateTime? Empdat { get; set; }
 }

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ABRPOINT.Server.Models;
 
@@ -8,12 +8,12 @@ namespace ABRPOINT.Server.Models;
 /// </summary>
 public abstract class BaseEntity
 {
-    [Column("created_at", TypeName = "datetime")]
+    [Column("created_at", TypeName = "timestamp without time zone")]
     public DateTime? CreatedAt { get; set; }
 
-    [Column("deleted_at", TypeName = "datetime")]
+    [Column("deleted_at", TypeName = "timestamp without time zone")]
     public DateTime? DeletedAt { get; set; }
 
-    [Column("retention_date", TypeName = "datetime")]
+    [Column("retention_date", TypeName = "timestamp without time zone")]
     public DateTime? RetentionDate { get; set; }
 }

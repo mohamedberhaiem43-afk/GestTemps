@@ -8,7 +8,7 @@ namespace ABRPOINT.Server.Models;
 [Table("lcalendsoc")]
 public partial class Lcalendsoc : BaseEntity
 {
-    [Column("cal_date", TypeName = "datetime")]
+    [Column("cal_date", TypeName = "timestamp without time zone")]
     public DateTime? CalDate { get; set; }
 
     [Column("soccod")]

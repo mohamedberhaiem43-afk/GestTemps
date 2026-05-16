@@ -10,7 +10,7 @@ namespace ABRPOINT.Server.Models;
 [Table("suv_calend")]
 public partial class SuvCalend : BaseEntity
 {
-    [Column("cal_date", TypeName = "datetime")]
+    [Column("cal_date", TypeName = "timestamp without time zone")]
     public DateTime? CalDate { get; set; }
 
     [Column("cal_an")]

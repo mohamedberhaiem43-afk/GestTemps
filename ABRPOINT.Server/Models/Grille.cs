@@ -18,10 +18,10 @@ public partial class Grille : BaseEntity
     [StringLength(1)]
     public string? Grireg { get; set; }
 
-    [Column("grideb", TypeName = "datetime")]
+    [Column("grideb", TypeName = "timestamp without time zone")]
     public DateTime? Grideb { get; set; }
 
-    [Column("grifin", TypeName = "datetime")]
+    [Column("grifin", TypeName = "timestamp without time zone")]
     public DateTime? Grifin { get; set; }
 
     [Column("soccod")]

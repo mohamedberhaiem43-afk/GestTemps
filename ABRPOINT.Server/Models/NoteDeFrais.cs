@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ABRPOINT.Server.Models
@@ -38,8 +38,8 @@ namespace ABRPOINT.Server.Models
         public string? Projet { get; set; }
 
         /// <summary>
-        /// Mission rattachée (FK vers gt_mission.id). Toute note de frais doit pointer
-        /// sur une mission validée — c'est elle qui porte la nature d'absence
+        /// Mission rattachÃ©e (FK vers gt_mission.id). Toute note de frais doit pointer
+        /// sur une mission validÃ©e â€” c'est elle qui porte la nature d'absence
         /// "Formation et mission" (abscng="6") qui sert au rapprochement paie.
         /// </summary>
         [Required]
@@ -49,7 +49,7 @@ namespace ABRPOINT.Server.Models
         [ForeignKey(nameof(MissionId))]
         public virtual Mission? Mission { get; set; }
 
-        [Column("datedepense", TypeName = "datetime")]
+        [Column("datedepense", TypeName = "timestamp without time zone")]
         public DateTime DateDepense { get; set; }
 
         [Column("justificatif")]
@@ -61,9 +61,9 @@ namespace ABRPOINT.Server.Models
         public string Etat { get; set; } = "Pending"; // Pending, Approved, Reimbursed, Rejected
 
         /// <summary>
-        /// Code ISO 4217 de la devise (EUR, USD, TND, MAD, GBP…). NULL = devise
-        /// tenant par défaut (côté client, EUR par défaut). Sert à éviter de
-        /// figer toutes les notes en EUR pour les déplacements internationaux.
+        /// Code ISO 4217 de la devise (EUR, USD, TND, MAD, GBPâ€¦). NULL = devise
+        /// tenant par dÃ©faut (cÃ´tÃ© client, EUR par dÃ©faut). Sert Ã  Ã©viter de
+        /// figer toutes les notes en EUR pour les dÃ©placements internationaux.
         /// </summary>
         [Column("devise")]
         [StringLength(3)]

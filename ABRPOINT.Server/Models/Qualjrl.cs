@@ -25,7 +25,7 @@ public partial class Qualjrl : BaseEntity
     [StringLength(2)]
     public string? Sitcod { get; set; }
 
-    [Column("quadate", TypeName = "datetime")]
+    [Column("quadate", TypeName = "timestamp without time zone")]
     public DateTime? Quadate { get; set; }
 
     [Column("moncod")]

@@ -18,7 +18,7 @@ public partial class Dmpresence : BaseEntity
     [StringLength(6)]
     public string? Soccod { get; set; }
 
-    [Column("dmdat", TypeName = "datetime")]
+    [Column("dmdat", TypeName = "timestamp without time zone")]
     public DateTime? Dmdat { get; set; }
 
     [Column("ordre")]
@@ -28,7 +28,7 @@ public partial class Dmpresence : BaseEntity
     [StringLength(4)]
     public string? Dmpnt { get; set; }
 
-    [Column("dmhre", TypeName = "datetime")]
+    [Column("dmhre", TypeName = "timestamp without time zone")]
     public DateTime? Dmhre { get; set; }
 
     [Column("dmsem")]

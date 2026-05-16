@@ -53,7 +53,6 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IlposteRepository, LposteRepository>();
             builder.Services.AddScoped<IPosteRepository, PosteRepository>();
             builder.Services.AddScoped<ICalendrierRepository, CalendrierRepository>();
-            builder.Services.AddScoped<IAttendanceService, AttendaceRepository>();
             builder.Services.AddScoped<IPresenceRepository, PresenceRepository>();
             builder.Services.AddScoped<IAvanceRepository, AvanceRepository>();
             builder.Services.AddScoped<IParametreRepository, ParametreRepository>();

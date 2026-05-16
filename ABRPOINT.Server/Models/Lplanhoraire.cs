@@ -10,7 +10,7 @@ namespace ABRPOINT.Server.Models;
 [Table("lplanhoraire")]
 public partial class Lplanhoraire : BaseEntity
 {
-    [Column("plandate", TypeName = "datetime")]
+    [Column("plandate", TypeName = "timestamp without time zone")]
     public DateTime? Plandate { get; set; }
 
     [Column("soccod")]

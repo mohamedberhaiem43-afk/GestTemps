@@ -35,7 +35,7 @@ public partial class Empaff : BaseEntity
     [Column("heurefin")]
     public int? Heurefin { get; set; }
 
-    [Column("affdate", TypeName = "datetime")]
+    [Column("affdate", TypeName = "timestamp without time zone")]
     public DateTime? Affdate { get; set; }
 
     [Column("empsexe")]
@@ -50,14 +50,14 @@ public partial class Empaff : BaseEntity
     [StringLength(2)]
     public string? Sitcod { get; set; }
 
-    [Column("empdu", TypeName = "datetime")]
+    [Column("empdu", TypeName = "timestamp without time zone")]
     public DateTime? Empdu { get; set; }
 
     [Column("empfonc")]
     [StringLength(30)]
     public string? Empfonc { get; set; }
 
-    [Column("empau", TypeName = "datetime")]
+    [Column("empau", TypeName = "timestamp without time zone")]
     public DateTime? Empau { get; set; }
 
     [Column("empreg")]

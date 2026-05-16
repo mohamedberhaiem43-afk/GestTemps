@@ -25,10 +25,10 @@ public partial class Semaine : BaseEntity
     [Column("semcod")]
     public int? Semcod { get; set; }
 
-    [Column("semdeb", TypeName = "datetime")]
+    [Column("semdeb", TypeName = "timestamp without time zone")]
     public DateTime? Semdeb { get; set; }
 
-    [Column("semfin", TypeName = "datetime")]
+    [Column("semfin", TypeName = "timestamp without time zone")]
     public DateTime? Semfin { get; set; }
 
     [Column("semnbheure")]

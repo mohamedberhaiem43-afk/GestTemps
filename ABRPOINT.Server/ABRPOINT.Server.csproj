@@ -19,7 +19,12 @@
 	  <PackageReference Include="AutoMapper" Version="14.0.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Dapper" Version="2.1.66" />
-    <PackageReference Include="FastReport.Data.MsSql" Version="2024.1.0" />
+    <!-- Migré : FastReport.Data.MsSql → FastReport.Data.Postgres pour aligner
+         le moteur rapport sur PostgreSQL. Si la version 2024.1.0 ne résout pas,
+         essayer la dernière 2025.x. À tester en runtime : génération PDF d'un
+         Rapport_Conge ou EtatPresence. Les .frx ont été migrés en parallèle
+         (MsSqlDataConnection → PostgresDataConnection). -->
+    <PackageReference Include="FastReport.Data.Postgres" Version="2024.1.0" />
     <PackageReference Include="FastReport.OpenSource" Version="2025.1.0" />
     <PackageReference Include="FastReport.OpenSource.Export.PdfSimple" Version="2025.1.0" />
     <PackageReference Include="FastReport.OpenSource.Web" Version="2025.1.0" />
@@ -27,15 +32,19 @@
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
       <Version>8.*-*</Version>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.7" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.7">
+    <!-- EF Core bumped 8.0.7 → 8.0.10 pour aligner sur la version requise par
+         Npgsql.EntityFrameworkCore.PostgreSQL 8.0.10 (sinon NU1605 downgrade). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.7" />
+    <!-- Migration SQL Server → PostgreSQL : provider EF Core officiel maintenu par
+         Npgsql. La version doit suivre la majeure d'EF Core (EF 8 → Npgsql 8.x). -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.10" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.7">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

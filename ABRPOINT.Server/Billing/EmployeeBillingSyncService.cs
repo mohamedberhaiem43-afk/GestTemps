@@ -122,7 +122,7 @@ public sealed class EmployeeBillingSyncService : BackgroundService
                     // 1. Compte les salariés actifs sur la base du tenant.
                     var connStr = template.Replace("{DbName}", tenant.DbName);
                     var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                        .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+                        .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
                         .Options;
                     int employeeCount;
                     await using (var tenantDb = new ApplicationDbContext(options))

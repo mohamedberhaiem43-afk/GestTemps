@@ -120,12 +120,16 @@ namespace GestionDesTickets.Server.Controllers
                 var query = _dbContext.Utilisateurs.AsNoTracking();
                 if (!string.IsNullOrWhiteSpace(q))
                 {
-                    var term = q.Trim();
+                    // PG : on lowercase des deux côtés. Sur SQL Server la collation
+                    // French_CI_AS rendait Contains case-insensitive ; sur Postgres
+                    // VARCHAR.Contains() devient LIKE '%term%' case-sensitive — la
+                    // recherche "smith" ne trouvait plus "Smith" / "SMITH".
+                    var term = q.Trim().ToLowerInvariant();
                     query = query.Where(u =>
-                        (u.Uticod != null && u.Uticod.Contains(term)) ||
-                        (u.Utimail != null && u.Utimail.Contains(term)) ||
-                        (u.Utinom != null && u.Utinom.Contains(term)) ||
-                        (u.Utiprn != null && u.Utiprn.Contains(term)));
+                        (u.Uticod  != null && u.Uticod.ToLower().Contains(term)) ||
+                        (u.Utimail != null && u.Utimail.ToLower().Contains(term)) ||
+                        (u.Utinom  != null && u.Utinom.ToLower().Contains(term)) ||
+                        (u.Utiprn  != null && u.Utiprn.ToLower().Contains(term)));
                 }
 
                 if (paginationRequested)
@@ -291,8 +295,14 @@ namespace GestionDesTickets.Server.Controllers
                     });
                 }
 
+                // PG migration : on lowercase les DEUX côtés. SQL Server avait une
+                // collation CI par défaut (French_CI_AS) qui rendait WHERE Utimail = 'X'
+                // match indifféremment 'x'/'X'. Postgres est case-sensitive sur VARCHAR —
+                // sans LOWER() un utilisateur existant en base avec 'John@x.com' ne
+                // pourrait plus se connecter en tapant 'john@x.com'.
+                var emailLower = user.Utimail.Trim().ToLowerInvariant();
                 Utilisateur? dbUser = await _dbContext.Utilisateurs
-                    .FirstOrDefaultAsync(u => u.Utimail == user.Utimail);
+                    .FirstOrDefaultAsync(u => u.Utimail != null && u.Utimail.ToLower() == emailLower);
 
                 // Account lockout : si l'utilisateur est verrouillé, on refuse SANS comparer
                 // le mot de passe (timing-safe : pas d'info sur la validité du mdp pendant le
@@ -1187,7 +1197,10 @@ namespace GestionDesTickets.Server.Controllers
                 if (string.IsNullOrEmpty(request.Utimail))
                     return BadRequest(new { Message = "L'email est requis." });
 
-                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail == request.Utimail);
+                // PG : LOWER() des deux côtés (cf. Connect). Sans ça, un utilisateur
+                // avec un email mixed-case en base ne peut pas demander de reset.
+                var emailLower = request.Utimail.Trim().ToLowerInvariant();
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail != null && u.Utimail.ToLower() == emailLower);
                 if (user == null)
                     return Ok(new { Message = "Si un compte existe avec cet email, un code de réinitialisation a été généré." });
 
@@ -1227,7 +1240,9 @@ namespace GestionDesTickets.Server.Controllers
                 if (string.IsNullOrEmpty(request.Utimail) || string.IsNullOrEmpty(request.Code) || string.IsNullOrEmpty(request.NewPassword))
                     return BadRequest(new { Message = "Tous les champs sont requis." });
 
-                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail == request.Utimail);
+                // PG : LOWER() des deux côtés (cf. Connect / ForgotPassword).
+                var emailLower = request.Utimail.Trim().ToLowerInvariant();
+                var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail != null && u.Utimail.ToLower() == emailLower);
                 if (user == null)
                     return BadRequest(new { Message = "Code invalide ou expiré." });
 

@@ -106,7 +106,7 @@ public sealed class PunctualityReminderHostedService : BackgroundService
     private async Task ProcessOneAsync(string connStr, string tenantTag, CancellationToken ct)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+            .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
             .Options;
 
         await using var db = new ApplicationDbContext(options);

@@ -1,5 +1,9 @@
 volumes:
-  sqlserver-data:
+  # Renommé sqlserver-data → postgres-data lors de la migration SQL Server →
+  # PostgreSQL. Sur un serveur qui avait l'ancien volume, l'ancien sqlserver-data
+  # persiste (jamais supprimé automatiquement) — à nettoyer manuellement via
+  # `docker volume rm <project>_sqlserver-data` après migration des données.
+  postgres-data:
   uploads_data:
   letsencrypt_data:
   qdrant_data:
@@ -32,20 +36,40 @@ services:
     command: certonly --webroot -w /var/www/certbot -d concorde-work-force.com --email mohamedberhaiem43@gmail.com --agree-tos --non-interactive
 
   abrpoint.database:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    # PostgreSQL 16 alpine : footprint ~80 Mo vs ~1.5 Go pour mssql.
+    # POSTGRES_USER détermine le superuser créé au premier démarrage. Il faut
+    # qu'il garde le rôle CREATEDB pour que ProvisioningService puisse créer
+    # de nouvelles bases tenant — c'est par défaut le cas pour le superuser.
+    image: postgres:16-alpine
     container_name: abrpoint.database
     environment:
-      SA_PASSWORD: "PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A="
-      ACCEPT_EULA: "Y"
+      POSTGRES_USER: "abrpoint"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=}"
+      # Crée automatiquement la "master" DB au premier démarrage. Les DB tenant
+      # sont créées dynamiquement par ProvisioningService.
+      POSTGRES_DB: "abrpoint_master"
+      # Force fr_FR.UTF-8 pour rester aligné avec l'ancienne COLLATE French_CI_AS
+      # (les LIKE/comparaisons sur libellés étaient case-insensitive sur SQL Server ;
+      # à reverifier avec ICU collation côté Postgres au cas par cas).
+      LANG: "fr_FR.utf8"
     volumes:
-      - sqlserver-data:/var/opt/mssql
-      - ./sql-backup:/var/opt/sql-backup
+      - postgres-data:/var/lib/postgresql/data
+      # Dossier monté pour les dumps/restores manuels (pg_dump / pg_restore).
+      - ./postgres-backup:/var/lib/postgresql/backups
+    ports:
+      # Bound à 127.0.0.1 uniquement — JAMAIS exposé à l'extérieur du VPS.
+      # Utilisé pour : dotnet ef migrations en local, psql diagnostic, pg_dump
+      # depuis l'hôte. Sur le VPS, seul un user SSHé sur la machine peut s'y
+      # connecter (le firewall UFW/iptables doit refuser 5432 en entrée).
+      - "127.0.0.1:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1"]
+      # pg_isready est inclus dans l'image postgres officielle, pas besoin
+      # d'outil externe comme c'était le cas pour sqlcmd.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 30s
+      start_period: 20s
     networks:
       - app-network
 
@@ -55,12 +79,15 @@ services:
     volumes:
       - uploads_data:/app/uploads
     environment:
+      # ── PostgreSQL connection (ex-SQL Server) ─────────────────────────
+      # Format Npgsql : Host=...;Database=...;Username=...;Password=...
+      # Plus de TrustServerCertificate (option SQL Server-spécifique).
       DB_HOST: "abrpoint.database"
-      DB_NAME: "ABRPOINT"
-      DB_USER: "sa"
-      DB_PASSWORD: "PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A="
-      ConnectionStrings__MasterConnection: "Server=abrpoint.database;Database=ABRPOINT_master;User Id=sa;Password=PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=;TrustServerCertificate=True;"
-      ConnectionStrings__TenantTemplate: "Server=abrpoint.database;Database={DbName};User Id=sa;Password=PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=;TrustServerCertificate=True;"
+      DB_NAME: "abrpoint_master"
+      DB_USER: "abrpoint"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:-PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=}"
+      ConnectionStrings__MasterConnection: "Host=abrpoint.database;Database=abrpoint_master;Username=abrpoint;Password=${POSTGRES_PASSWORD:-PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=}"
+      ConnectionStrings__TenantTemplate: "Host=abrpoint.database;Database={DbName};Username=abrpoint;Password=${POSTGRES_PASSWORD:-PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=}"
       Hosting__RootDomain: "concorde-work-force.com"
       ASPNETCORE_URLS: "http://+:8080"
       DatabaseInitialization__Enabled: "true"

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report ScriptLanguage="CSharp" ReportInfo.Created="07/16/2025 08:26:15" ReportInfo.Modified="01/29/2026 23:14:54" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
-    <MsSqlDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM1LTAbaeyCKyH7WKqSnwxEF">
+    <PostgresDataConnection Name="Connection" ConnectionString="rijcmlqM7gJFg/iaLrqMhRfGy5lGvB3Y37kLeBVz2YTw22Ol9Lqu+kZvs5l8+CYJsPTi4tZ5lBrhUgxrw0B8V8ZIX78DY/l2fTcVlaKaFNrKdkyImluZjkavnWRXRwT6NuWc1psuz95yF6bPQ1Bz0KlQzsfwTt+LAB2fJH7aaS4eBkLBl+obLK/LGzWGpS6CtjXiGZbx0c3e46jnhFVJrMnxjt9tb6yA98EMC66Eg2DKsClRM1LTAbaeyCKyH7WKqSnwxEF">
       <TableDataSource Name="Table" Alias="EtatPresence" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;    e.empmat,&#13;&#10;    e.emplib,&#13;&#10;    s.soclib,&#13;&#10;    p.*,&#13;&#10;    -- Calcul de la somme des retards en minutes (seulement retards d'ENTRÉE)&#13;&#10;    CASE &#13;&#10;        WHEN p.preretmateup IS NOT NULL AND p.preretameup IS NOT NULL&#13;&#10;        THEN &#13;&#10;            -- Somme uniquement des retards d'entrée (matin + après-midi)&#13;&#10;            (DATEPART(HOUR, p.preretmateup) * 60 + DATEPART(MINUTE, p.preretmateup)) +&#13;&#10;            (DATEPART(HOUR, p.preretameup) * 60 + DATEPART(MINUTE, p.preretameup))&#13;&#10;        ELSE 0&#13;&#10;    END AS TotalRetardMinutes,&#13;&#10;    &#13;&#10;    -- Format HH:mm pour affichage&#13;&#10;    CASE &#13;&#10;        WHEN p.preretmateup IS NOT NULL AND p.preretameup IS NOT NULL&#13;&#10;        THEN &#13;&#10;            RIGHT('0' + CAST(&#13;&#10;                ((DATEPART(HOUR, p.preretmateup) * 60 + DATEPART(MINUTE, p.preretmateup)) +&#13;&#10;                 (DATEPART(HOUR, p.preretameup) * 60 + DATEPART(MINUTE, p.preretameup))) / 60 &#13;&#10;                AS VARCHAR), 2&#13;&#10;            ) + ':' + &#13;&#10;            RIGHT('0' + CAST(&#13;&#10;                ((DATEPART(HOUR, p.preretmateup) * 60 + DATEPART(MINUTE, p.preretmateup)) +&#13;&#10;                 (DATEPART(HOUR, p.preretameup) * 60 + DATEPART(MINUTE, p.preretameup))) % 60 &#13;&#10;                AS VARCHAR), 2&#13;&#10;            )&#13;&#10;        ELSE '00:00'&#13;&#10;    END AS TotalRetardFormat&#13;&#10;FROM presence p&#13;&#10;JOIN employe e ON p.empcod = e.empcod AND e.soccod = p.soccod&#13;&#10;JOIN societe s ON e.soccod = s.soccod&#13;&#10;WHERE p.predat BETWEEN @datedebut AND @datefin&#13;&#10;  AND e.soccod = @soccod&#13;&#10;  AND (&#13;&#10;        @empcods = '' &#13;&#10;        OR e.empcod IN (&#13;&#10;            SELECT value &#13;&#10;            FROM STRING_SPLIT(@empcods, ',')&#13;&#10;        )&#13;&#10;      );">
         <Column Name="empmat" DataType="System.String"/>
         <Column Name="emplib" DataType="System.String"/>
@@ -65,7 +65,7 @@
         <CommandParameter Name="soccod" DataType="22" Expression="[soccod]"/>
         <CommandParameter Name="empcods" DataType="22" Expression="[empcods]"/>
       </TableDataSource>
-    </MsSqlDataConnection>
+    </PostgresDataConnection>
   </Dictionary>
   <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
     <ReportTitleBand Name="ReportTitle1" Width="718.2"/>

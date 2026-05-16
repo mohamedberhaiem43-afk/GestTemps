@@ -23,21 +23,21 @@ public class Conge : BaseEntity
     [StringLength(12)]
     public string? Empcod { get; set; }
 
-    [Column("condat", TypeName = "datetime")]
+    [Column("condat", TypeName = "timestamp without time zone")]
     public DateTime? Condat { get; set; }
 
     [Column("conjour")]
     [StringLength(1)]
     public string? Conjour { get; set; }
 
-    [Column("condep", TypeName = "datetime")]
+    [Column("condep", TypeName = "timestamp without time zone")]
     public DateTime? Condep { get; set; }
 
     [Column("conamdep")]
     [StringLength(1)]
     public string? Conamdep { get; set; }
 
-    [Column("conret", TypeName = "datetime")]
+    [Column("conret", TypeName = "timestamp without time zone")]
     public DateTime? Conret { get; set; }
 
     [Column("conamret")]

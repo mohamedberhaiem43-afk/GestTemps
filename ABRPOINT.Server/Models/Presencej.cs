@@ -22,7 +22,7 @@ public partial class Presencej : BaseEntity
     [StringLength(12)]
     public string? Empcod { get; set; }
 
-    [Column("predat", TypeName = "datetime")]
+    [Column("predat", TypeName = "timestamp without time zone")]
     public DateTime? Predat { get; set; }
 
     [Column("ordre")]
@@ -178,7 +178,7 @@ public partial class Presencej : BaseEntity
     [StringLength(20)]
     public string? Preobs { get; set; }
 
-    [Column("dmdate", TypeName = "datetime")]
+    [Column("dmdate", TypeName = "timestamp without time zone")]
     public DateTime? Dmdate { get; set; }
 
     [Column("catcod")]
@@ -371,10 +371,10 @@ public partial class Presencej : BaseEntity
     [Column("jourfer")]
     public float? Jourfer { get; set; }
 
-    [Column("empemb", TypeName = "datetime")]
+    [Column("empemb", TypeName = "timestamp without time zone")]
     public DateTime? Empemb { get; set; }
 
-    [Column("empsort", TypeName = "datetime")]
+    [Column("empsort", TypeName = "timestamp without time zone")]
     public DateTime? Empsort { get; set; }
 
     [Column("jourreptrv")]

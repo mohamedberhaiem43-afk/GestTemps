@@ -18,7 +18,7 @@ public partial class Lferier : BaseEntity
     [StringLength(6)]
     public string? Soccod { get; set; }
 
-    [Column("ferdate", TypeName = "datetime")]
+    [Column("ferdate", TypeName = "timestamp without time zone")]
     public DateTime? Ferdate { get; set; }
 
     [Column("fertype")]

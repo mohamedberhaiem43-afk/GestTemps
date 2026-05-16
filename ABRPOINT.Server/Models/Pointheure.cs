@@ -22,7 +22,7 @@ public partial class Pointheure : BaseEntity
     [StringLength(4)]
     public string? Sitcod { get; set; }
 
-    [Column("pointdat", TypeName = "datetime")]
+    [Column("pointdat", TypeName = "timestamp without time zone")]
     public DateTime? Pointdat { get; set; }
 
     [Column("numheure")]

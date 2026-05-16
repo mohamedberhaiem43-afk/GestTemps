@@ -1,14 +1,14 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ABRPOINT.Server.Models;
 
 /// <summary>
-/// Mission / formation rattachée à un collaborateur. Toute note de frais doit pointer
-/// sur une mission via FK, ce qui garantit que les remboursements correspondent à un
-/// déplacement / formation tracé. La mission est elle-même rattachée à une nature
-/// d'absence (Absence.Abscng = "6" → "Formation et mission") pour que les heures
-/// déclarées impactent correctement la paie.
+/// Mission / formation rattachÃ©e Ã  un collaborateur. Toute note de frais doit pointer
+/// sur une mission via FK, ce qui garantit que les remboursements correspondent Ã  un
+/// dÃ©placement / formation tracÃ©. La mission est elle-mÃªme rattachÃ©e Ã  une nature
+/// d'absence (Absence.Abscng = "6" â†’ "Formation et mission") pour que les heures
+/// dÃ©clarÃ©es impactent correctement la paie.
 /// </summary>
 [Table("mission")]
 public partial class Mission : BaseEntity
@@ -39,39 +39,39 @@ public partial class Mission : BaseEntity
     public string? Misdest { get; set; }
 
     [Required]
-    [Column("misdatedeb", TypeName = "datetime")]
+    [Column("misdatedeb", TypeName = "timestamp without time zone")]
     public DateTime Misdatedeb { get; set; }
 
     [Required]
-    [Column("misdatefin", TypeName = "datetime")]
+    [Column("misdatefin", TypeName = "timestamp without time zone")]
     public DateTime Misdatefin { get; set; }
 
     [Column("misnote")]
     [StringLength(500)]
     public string? Misnote { get; set; }
 
-    /// <summary>État de la mission : Pending | Approved | InProgress | Completed | Cancelled.</summary>
+    /// <summary>Ã‰tat de la mission : Pending | Approved | InProgress | Completed | Cancelled.</summary>
     [Column("misetat")]
     [StringLength(20)]
     public string Misetat { get; set; } = "Pending";
 
-    /// <summary>Budget alloué en devise <see cref="Misdevise"/>. Optionnel — informatif pour le suivi des notes de frais.</summary>
+    /// <summary>Budget allouÃ© en devise <see cref="Misdevise"/>. Optionnel â€” informatif pour le suivi des notes de frais.</summary>
     [Column("misbudget")]
     public double? Misbudget { get; set; }
 
     /// <summary>
-    /// Code ISO 4217 de la devise du budget (EUR, USD, TND, MAD, GBP…).
-    /// NULL = devise par défaut tenant (côté client, EUR par défaut). Permet
-    /// les missions internationales sans imposer la devise du siège.
+    /// Code ISO 4217 de la devise du budget (EUR, USD, TND, MAD, GBPâ€¦).
+    /// NULL = devise par dÃ©faut tenant (cÃ´tÃ© client, EUR par dÃ©faut). Permet
+    /// les missions internationales sans imposer la devise du siÃ¨ge.
     /// </summary>
     [Column("misdevise")]
     [StringLength(3)]
     public string? Misdevise { get; set; }
 
     /// <summary>
-    /// Code nature d'absence rattaché. Doit pointer sur une Absence dont Abscng="6"
-    /// (Formation et mission), validé côté contrôleur. Permet d'absenter automatiquement
-    /// le collaborateur sur la période de mission lors de la génération du pointage.
+    /// Code nature d'absence rattachÃ©. Doit pointer sur une Absence dont Abscng="6"
+    /// (Formation et mission), validÃ© cÃ´tÃ© contrÃ´leur. Permet d'absenter automatiquement
+    /// le collaborateur sur la pÃ©riode de mission lors de la gÃ©nÃ©ration du pointage.
     /// </summary>
     [Required]
     [Column("abscod")]

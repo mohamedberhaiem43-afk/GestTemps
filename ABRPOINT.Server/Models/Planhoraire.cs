@@ -18,7 +18,7 @@ public partial class Planhoraire : BaseEntity
     [StringLength(4)]
     public string? Soccod { get; set; }
 
-    [Column("plandate", TypeName = "datetime")]
+    [Column("plandate", TypeName = "timestamp without time zone")]
     public DateTime? Plandate { get; set; }
 
     [Column("plancat")]

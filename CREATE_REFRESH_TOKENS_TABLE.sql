@@ -1,26 +1,20 @@
--- Create refresh_tokens table for secure token implementation
--- Run this SQL script on your ABRPOINT database
-
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='refresh_tokens' AND xtype='U')
-BEGIN
-    CREATE TABLE refresh_tokens (
-        id INT PRIMARY KEY IDENTITY(1,1),
-        uticod NVARCHAR(20) NOT NULL,
-        token NVARCHAR(500) NOT NULL UNIQUE,
-        expires_at DATETIME NOT NULL,
-        created_at DATETIME NOT NULL DEFAULT GETUTCDATE(),
-        revoked BIT NOT NULL DEFAULT 0,
-        CONSTRAINT FK_RefreshToken_User FOREIGN KEY (uticod) REFERENCES Utilisateur(Uticod) ON DELETE CASCADE
-    );
-
-    -- Create indexes for efficient queries
-    CREATE INDEX IX_RefreshToken_UserToken ON refresh_tokens(uticod, token, revoked);
-    CREATE INDEX IX_RefreshToken_ExpiresAt ON refresh_tokens(expires_at);
-    CREATE INDEX IX_RefreshToken_Revoked ON refresh_tokens(revoked);
-
-    PRINT 'refresh_tokens table created successfully'
-END
-ELSE
-BEGIN
-    PRINT 'refresh_tokens table already exists'
-END
+-- =============================================================================
+-- ⚠ OBSOLÈTE — NE PAS EXÉCUTER.
+--
+-- Ce script servait, à l'époque SQL Server, à créer manuellement la table
+-- `refresh_tokens` sur une installation existante avant que l'EF migration
+-- correspondante existe.
+--
+-- Depuis la migration SQL Server → PostgreSQL (mai 2026) :
+--   - La table est créée par la migration EF "InitialCreate" :
+--     ABRPOINT.Server/Migrations/20260516100635_InitialCreate.cs:3007
+--   - À chaque création de tenant, ProvisioningService.RunMigrationsAsync()
+--     applique InitialCreate (qui inclut refresh_tokens).
+--   - Pour les tenants déjà provisionnés, BaseDataSchemaMigrator gère les
+--     ajouts de colonnes ultérieurs (cf. AddRefreshTokenPurposeAndQuota.sql
+--     dans ABRPOINT.Server/Migrations/ — celui-là, lui, est PG-natif).
+--
+-- Si vous avez encore une installation SQL Server à migrer, le contenu
+-- T-SQL original reste accessible via :
+--   git show <commit-pre-migration>:CREATE_REFRESH_TOKENS_TABLE.sql
+-- =============================================================================

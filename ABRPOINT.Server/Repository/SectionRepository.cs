@@ -2,7 +2,7 @@ using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Data.SqlClient;
+using Npgsql;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -23,7 +23,8 @@ namespace ABRPOINT.Server.Repository
             }
             catch (DbUpdateException ex)
             {
-                if (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2627)
+                // Postgres : SQLSTATE 23505 = unique_violation (équivalent SQL Server 2627).
+                if (ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
                 {
                     throw new Exception("Le section avec ce code existe déjà. Veuillez utiliser un autre code..", ex);
                 }

@@ -24,7 +24,7 @@ public partial class TPret : BaseEntity
 
     public int? NoDeDecision { get; set; }
 
-    [Column(TypeName = "datetime")]
+    [Column(TypeName = "timestamp without time zone")]
     public DateTime? DateDecision { get; set; }
 
     public int? DureeDuPret { get; set; }
@@ -34,7 +34,7 @@ public partial class TPret : BaseEntity
 
     public int? NbPaliers { get; set; }
 
-    [Column(TypeName = "datetime")]
+    [Column(TypeName = "timestamp without time zone")]
     public DateTime? DatePremiereEcheance { get; set; }
 
     public double? MontantEcheance { get; set; }
@@ -55,14 +55,14 @@ public partial class TPret : BaseEntity
     [StringLength(100)]
     public string? ObjetPret { get; set; }
 
-    [Column(TypeName = "datetime")]
+    [Column(TypeName = "timestamp without time zone")]
     public DateTime? DateDeblocage { get; set; }
 
     public int? Franchise { get; set; }
 
     public int? Bareme { get; set; }
 
-    [Column(TypeName = "datetime")]
+    [Column(TypeName = "timestamp without time zone")]
     public DateTime? FinFranchise { get; set; }
 
     [StringLength(1)]
@@ -70,7 +70,7 @@ public partial class TPret : BaseEntity
 
     public double? PretSolde { get; set; }
 
-    [Column(TypeName = "datetime")]
+    [Column(TypeName = "timestamp without time zone")]
     public DateTime? DateProchaineEcheance { get; set; }
 
     public double? MontantAmortissement { get; set; }
@@ -84,7 +84,7 @@ public partial class TPret : BaseEntity
     [StringLength(1)]
     public string? ModePaiement { get; set; }
 
-    [Column(TypeName = "datetime")]
+    [Column(TypeName = "timestamp without time zone")]
     public DateTime? DateRemboursementAnticipe { get; set; }
 
     public double? MontantGarantie { get; set; }

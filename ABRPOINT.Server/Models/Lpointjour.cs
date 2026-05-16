@@ -16,7 +16,7 @@ public partial class Lpointjour : BaseEntity
     [StringLength(12)]
     public string? Empcod { get; set; }
 
-    [Column("saljour", TypeName = "datetime")]
+    [Column("saljour", TypeName = "timestamp without time zone")]
     public DateTime? Saljour { get; set; }
 
     [Column("sitcod")]

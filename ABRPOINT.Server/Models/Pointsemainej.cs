@@ -65,25 +65,25 @@ public partial class Pointsemainej : BaseEntity
     [StringLength(10)]
     public string? Caltype { get; set; }
 
-    [Column("semaine1d", TypeName = "datetime")]
+    [Column("semaine1d", TypeName = "timestamp without time zone")]
     public DateTime? Semaine1d { get; set; }
 
-    [Column("semaine2d", TypeName = "datetime")]
+    [Column("semaine2d", TypeName = "timestamp without time zone")]
     public DateTime? Semaine2d { get; set; }
 
-    [Column("semaine3d", TypeName = "datetime")]
+    [Column("semaine3d", TypeName = "timestamp without time zone")]
     public DateTime? Semaine3d { get; set; }
 
-    [Column("semaine4d", TypeName = "datetime")]
+    [Column("semaine4d", TypeName = "timestamp without time zone")]
     public DateTime? Semaine4d { get; set; }
 
-    [Column("semaine5d", TypeName = "datetime")]
+    [Column("semaine5d", TypeName = "timestamp without time zone")]
     public DateTime? Semaine5d { get; set; }
 
-    [Column("semaine6d", TypeName = "datetime")]
+    [Column("semaine6d", TypeName = "timestamp without time zone")]
     public DateTime? Semaine6d { get; set; }
 
-    [Column("semaine6f", TypeName = "datetime")]
+    [Column("semaine6f", TypeName = "timestamp without time zone")]
     public DateTime? Semaine6f { get; set; }
 
     [Column("semaine1n")]

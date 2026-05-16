@@ -3,8 +3,8 @@ using System;
 using ABRPOINT.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -17,155 +17,155 @@ namespace ABRPOINT.Server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.7")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("ProductVersion", "8.0.10")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Absence", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Abscod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("abscod");
 
                     b.Property<int?>("Absaut")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("absaut");
 
                     b.Property<string>("Abscng")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("abscng");
 
                     b.Property<string>("Absferier")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("absferier");
 
                     b.Property<string>("Abslib")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
+                        .HasColumnType("character varying(60)")
                         .HasColumnName("abslib");
 
                     b.Property<string>("Abspar")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("abspar");
 
                     b.Property<string>("Abspayer")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("abspayer");
 
                     b.Property<string>("Absrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("absrepos");
 
                     b.Property<string>("Abssanc")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("abssanc");
 
                     b.Property<string>("Absunite")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("absunite");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("rubcod");
 
                     b.HasKey("Soccod", "Abscod");
 
-                    b.ToTable("absence", (string)null);
+                    b.ToTable("absence");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Aide", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Modcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("modcod");
 
                     b.Property<string>("Modhelp")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("text")
                         .HasColumnName("modhelp");
 
                     b.Property<string>("Modzone")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("modzone");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("aide", (string)null);
+                    b.ToTable("aide");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Allaitement", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("concod");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condep");
 
                     b.Property<string>("Conjour")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conjour");
 
                     b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("conret");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<float?>("Dimanche")
@@ -174,7 +174,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<float?>("Jeudi")
@@ -194,7 +194,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("mercredi");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<float?>("Samedi")
@@ -207,80 +207,80 @@ namespace ABRPOINT.Server.Migrations
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("allaitement", (string)null);
+                    b.ToTable("allaitement");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Anomalie", b =>
                 {
                     b.Property<DateTime?>("Anodat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("anodat");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Modcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("modcod");
 
                     b.Property<string>("Motif")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("motif");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("anomalie", (string)null);
+                    b.ToTable("anomalie");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Article", b =>
                 {
                     b.Property<string>("Artcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("artcod");
 
                     b.Property<string>("Artean")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("artean");
 
                     b.Property<string>("Artimg")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("artimg");
 
                     b.Property<string>("Artlib")
                         .HasMaxLength(160)
-                        .HasColumnType("nvarchar(160)")
+                        .HasColumnType("character varying(160)")
                         .HasColumnName("artlib");
 
                     b.Property<float?>("Artqemb")
@@ -288,106 +288,97 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("artqemb");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("article", (string)null);
+                    b.ToTable("article");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.AuditLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Action")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("DateAction")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TableName")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLog", (string)null);
+                    b.ToTable("AuditLog");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Autoriser", b =>
                 {
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
-                        .HasColumnType("nchar(10)")
+                        .HasColumnType("character(10)")
                         .HasColumnName("concod")
                         .IsFixedLength();
 
                     b.Property<string>("Abscod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("abscod");
 
                     b.Property<string>("Conaffecte")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("conaffecte");
 
                     b.Property<string>("Conamdep")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamdep");
 
                     b.Property<string>("Conamret")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamret");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condep");
 
                     b.Property<string>("Conjour")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conjour");
 
                     b.Property<string>("Conmotif")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("conmotif");
 
                     b.Property<float?>("Connbjour")
@@ -396,69 +387,69 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Conref")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("conref");
 
                     b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("conret");
 
                     b.Property<string>("Consanc")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("consanc");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.HasKey("Concod");
 
-                    b.ToTable("autoriser", (string)null);
+                    b.ToTable("autoriser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Avance", b =>
                 {
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("mois");
 
                     b.Property<float?>("Montant")
@@ -467,144 +458,144 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Niveau")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("niveau");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Titcod")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("titcod");
 
                     b.HasIndex("Empcod", "Soccod", "Sitcod");
 
-                    b.ToTable("avance", (string)null);
+                    b.ToTable("avance");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Banque", b =>
                 {
                     b.Property<string>("Banadr")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("banadr");
 
                     b.Property<string>("Bancod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("bancod");
 
                     b.Property<string>("Bancpt")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("bancpt");
 
                     b.Property<string>("Banfax")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("banfax");
 
                     b.Property<string>("Banlib")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("banlib");
 
                     b.Property<string>("Bantel")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("bantel");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("banque", (string)null);
+                    b.ToTable("banque");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Billet", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("empmat");
 
                     b.Property<string>("Motif")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("motif");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<DateTime?>("Predat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predat");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("billet", (string)null);
+                    b.ToTable("billet");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Calendsoc", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("CalAn")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("cal_an");
 
                     b.Property<string>("CalMois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("cal_mois");
 
                     b.Property<int?>("CalSem")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_sem");
 
                     b.Property<float?>("CalHjour")
@@ -629,179 +620,179 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Callib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("callib");
 
                     b.Property<string>("Caltype")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("caltype");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "CalAn", "CalMois", "CalSem");
 
-                    b.ToTable("calendsoc", (string)null);
+                    b.ToTable("calendsoc");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Categorie", b =>
                 {
                     b.Property<string>("Catcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Cathsup")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("cathsup");
 
                     b.Property<string>("Catlib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("catlib");
 
                     b.Property<string>("Catperiode")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("catperiode");
 
                     b.Property<string>("Catsem10")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem10");
 
                     b.Property<string>("Catsem11")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem11");
 
                     b.Property<string>("Catsem12")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem12");
 
                     b.Property<string>("Catsem2")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem2");
 
                     b.Property<string>("Catsem3")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem3");
 
                     b.Property<string>("Catsem4")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem4");
 
                     b.Property<string>("Catsem5")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem5");
 
                     b.Property<string>("Catsem6")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem6");
 
                     b.Property<string>("Catsem7")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem7");
 
                     b.Property<string>("Catsem8")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem8");
 
                     b.Property<string>("Catsem9")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catsem9");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Catcod", "Soccod");
 
-                    b.ToTable("categorie", (string)null);
+                    b.ToTable("categorie");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Cloture", b =>
                 {
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("Clodat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("clodat");
 
                     b.Property<string>("Clousr")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("clousr");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("mois");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Titcod")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("titcod");
 
-                    b.ToTable("cloture", (string)null);
+                    b.ToTable("cloture");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Cnss", b =>
@@ -816,7 +807,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Cnscod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("cnscod");
 
                     b.Property<float?>("Cnsemp")
@@ -825,17 +816,17 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Cnsexp")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("cnsexp");
 
                     b.Property<string>("Cnsirpp")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("cnsirpp");
 
                     b.Property<string>("Cnslib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("cnslib");
 
                     b.Property<float?>("Cnspat")
@@ -844,230 +835,230 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Cnstype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("cnstype");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("cnss", (string)null);
+                    b.ToTable("cnss");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Coltable", b =>
                 {
                     b.Property<string>("Abréviation")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Champs")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("champs");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Editer")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("editer");
 
                     b.Property<string>("Latable")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("latable");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Tablelier")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("tablelier");
 
                     b.Property<int?>("Taille")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("taille");
 
                     b.Property<string>("Typech")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("typech");
 
-                    b.ToTable("coltable", (string)null);
+                    b.ToTable("coltable");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Compenser", b =>
                 {
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
-                        .HasColumnType("nchar(10)")
+                        .HasColumnType("character(10)")
                         .HasColumnName("concod")
                         .IsFixedLength();
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Abscod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("abscod");
 
                     b.Property<string>("Conaffecte")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("conaffecte");
 
                     b.Property<string>("Conamdep")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamdep");
 
                     b.Property<string>("Conamret")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamret");
 
                     b.Property<DateTime?>("Concmp")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("concmp");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condep");
 
                     b.Property<string>("Conjour")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conjour");
 
                     b.Property<string>("Conmotif")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("conmotif");
 
                     b.Property<double?>("Connbjour")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("connbjour");
 
                     b.Property<string>("Conref")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("conref");
 
                     b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("conret");
 
                     b.Property<string>("Consanc")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("consanc");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Concod", "Soccod");
 
-                    b.ToTable("compenser", (string)null);
+                    b.ToTable("compenser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Conge", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("concod");
 
                     b.Property<string>("Abscod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("abscod");
 
                     b.Property<string>("Conadr")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("conadr");
 
                     b.Property<string>("Conamdep")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamdep");
 
                     b.Property<string>("Conamret")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamret");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condep");
 
                     b.Property<string>("Condg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("condg");
 
                     b.Property<string>("Conjour")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conjour");
 
                     b.Property<float?>("Connbjour")
@@ -1076,16 +1067,16 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Conref")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("conref");
 
                     b.Property<string>("Conrefus")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("conrefus");
 
                     b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("conret");
 
                     b.Property<float?>("Consolde")
@@ -1094,92 +1085,92 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Contel")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("contel");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("conge", (string)null);
+                    b.ToTable("conge");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Congenon", b =>
                 {
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("concod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("congenon", (string)null);
+                    b.ToTable("congenon");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Contrat", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Concod")
                         .HasMaxLength(9)
-                        .HasColumnType("nvarchar(9)")
+                        .HasColumnType("character varying(9)")
                         .HasColumnName("concod");
 
                     b.Property<string>("Catcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catcod");
 
                     b.Property<string>("Cnscod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("cnscod");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<string>("Condg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("condg");
 
                     b.Property<float?>("Conmois")
@@ -1188,79 +1179,79 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Contype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("contype");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Dircod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("dircod");
 
                     b.Property<string>("Empacin")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("empacin");
 
                     b.Property<string>("Empadr")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("empadr");
 
                     b.Property<string>("Empcat")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("empcat");
 
                     b.Property<string>("Empcod")
                         .IsRequired()
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Empcontrat")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("empcontrat");
 
                     b.Property<DateTime?>("Empdcin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empdcin");
 
                     b.Property<string>("Empech")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("empech");
 
                     b.Property<string>("Empelon")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("empelon");
 
                     b.Property<DateTime?>("Empemb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empemb");
 
                     b.Property<string>("Empmotif")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("empmotif");
 
                     b.Property<string>("Emppost")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
+                        .HasColumnType("character varying(60)")
                         .HasColumnName("emppost");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<float?>("Empsbase")
@@ -1273,76 +1264,77 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Empscat")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("empscat");
 
                     b.Property<DateTime?>("Empsort")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empsort");
 
                     b.Property<string>("Emptel")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("emptel");
 
                     b.Property<string>("Quacod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("quacod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sercod");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Socresp")
                         .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)")
+                        .HasColumnType("character varying(80)")
                         .HasColumnName("socresp");
 
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("vilcod");
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("contrat", (string)null);
+                    b.ToTable("contrat");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Contrat2", b =>
                 {
                     b.Property<string>("Catcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catcod");
 
                     b.Property<string>("Cnscod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("cnscod");
 
                     b.Property<string>("Concod")
                         .HasMaxLength(9)
-                        .HasColumnType("nvarchar(9)")
+                        .HasColumnType("character varying(9)")
                         .HasColumnName("concod");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<string>("Condg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("condg");
 
                     b.Property<float?>("Conmois")
@@ -1351,78 +1343,78 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Contype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("contype");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Dircod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("dircod");
 
                     b.Property<string>("Empacin")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("empacin");
 
                     b.Property<string>("Empadr")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
+                        .HasColumnType("character varying(60)")
                         .HasColumnName("empadr");
 
                     b.Property<string>("Empcat")
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
+                        .HasColumnType("character varying(40)")
                         .HasColumnName("empcat");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Empcontrat")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
+                        .HasColumnType("character varying(60)")
                         .HasColumnName("empcontrat");
 
                     b.Property<DateTime?>("Empdcin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empdcin");
 
                     b.Property<string>("Empech")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("empech");
 
                     b.Property<string>("Empelon")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("empelon");
 
                     b.Property<DateTime?>("Empemb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empemb");
 
                     b.Property<string>("Empmotif")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("empmotif");
 
                     b.Property<string>("Emppost")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("emppost");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<float?>("Empsbase")
@@ -1435,117 +1427,117 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Empscat")
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
+                        .HasColumnType("character varying(40)")
                         .HasColumnName("empscat");
 
                     b.Property<DateTime?>("Empsort")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empsort");
 
                     b.Property<string>("Emptel")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("emptel");
 
                     b.Property<string>("Quacod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("quacod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sercod");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Socresp")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("socresp");
 
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("vilcod");
 
-                    b.ToTable("contrat2", (string)null);
+                    b.ToTable("contrat2");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Defaut", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("Defcod")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("defcod");
 
                     b.Property<string>("Deflib")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("deflib");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("defaut", (string)null);
+                    b.ToTable("defaut");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.DemandeAutorisation", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Abscod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("abscod");
 
                     b.Property<string>("Commentaire")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("commentaire");
 
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("concod");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condep");
 
                     b.Property<string>("Conmotif")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("conmotif");
 
                     b.Property<float?>("Connbjour")
@@ -1553,105 +1545,105 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("connbjour");
 
                     b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("conret");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DateDemande")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("date_demande");
 
                     b.Property<DateTime?>("DateTraitement")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("date_traitement");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .IsRequired()
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Statut")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("statut");
 
                     b.Property<string>("TraitePar")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("traite_par");
 
                     b.HasKey("Id");
 
-                    b.ToTable("demande_autorisation", (string)null);
+                    b.ToTable("demande_autorisation");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Demconge", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("concod");
 
                     b.Property<string>("Abscod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("abscod");
 
                     b.Property<string>("Conadr")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("conadr");
 
                     b.Property<string>("Conamdep")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamdep");
 
                     b.Property<string>("Conamret")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamret");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condep");
 
                     b.Property<string>("Condg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("condg");
 
                     b.Property<string>("Conjour")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conjour");
 
                     b.Property<float?>("Connbjour")
@@ -1660,16 +1652,16 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Conref")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("conref");
 
                     b.Property<string>("Conrefus")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("conrefus");
 
                     b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("conret");
 
                     b.Property<float?>("Consolde")
@@ -1678,239 +1670,239 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Contel")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("contel");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("demconge", (string)null);
+                    b.ToTable("demconge");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Direction", b =>
                 {
                     b.Property<string>("Dircod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("dircod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Diremail")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("diremail");
 
                     b.Property<string>("Dirlib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("dirlib");
 
                     b.Property<string>("Dirloc")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("dirloc");
 
                     b.Property<string>("Dirresp")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("dirresp");
 
                     b.Property<string>("Dirrespar")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("dirrespar");
 
                     b.Property<string>("Dirtitre")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("dirtitre");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Dircod", "Soccod");
 
-                    b.ToTable("direction", (string)null);
+                    b.ToTable("direction");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Dmpoint", b =>
                 {
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("Dmdat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("dmdat");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Dmhre")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("dmhre");
 
                     b.Property<string>("Dmlue")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("dmlue");
 
                     b.Property<string>("Dmpnt")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("dmpnt");
 
                     b.Property<int?>("Dmsem")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("dmsem");
 
                     b.Property<string>("Dmtype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("dmtype");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Empcod", "Soccod", "Dmdat");
 
-                    b.ToTable("dmpoint", (string)null);
+                    b.ToTable("dmpoint");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Dmpresence", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Dmdat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("dmdat");
 
                     b.Property<DateTime?>("Dmhre")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("dmhre");
 
                     b.Property<string>("Dmlue")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("dmlue");
 
                     b.Property<string>("Dmpnt")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("dmpnt");
 
                     b.Property<int?>("Dmsem")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("dmsem");
 
                     b.Property<string>("Dmtype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("dmtype");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("dmpresence", (string)null);
+                    b.ToTable("dmpresence");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.DocumentVault", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime>("DocDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("docdate");
 
                     b.Property<string>("DocName")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("docname");
 
                     b.Property<string>("DocPath")
                         .IsRequired()
                         .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)")
+                        .HasColumnType("character varying(1024)")
                         .HasColumnName("docpath");
 
                     b.Property<long>("DocSize")
@@ -1920,99 +1912,99 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<string>("DocType")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("doctype");
 
                     b.Property<string>("Empcod")
                         .IsRequired()
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<bool>("IsSigned")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("issigned");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<DateTime?>("SignatureDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("signaturedate");
 
                     b.Property<string>("SignaturePath")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("signaturepath");
 
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
                     b.HasKey("Id");
 
-                    b.ToTable("documentvault", (string)null);
+                    b.ToTable("documentvault");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Donne", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Doncle1")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("doncle1");
 
                     b.Property<string>("Doncle2")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("doncle2");
 
                     b.Property<string>("Doncle3")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("doncle3");
 
                     b.Property<string>("Doncle4")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("doncle4");
 
                     b.Property<string>("Doncod")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("doncod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("donne", (string)null);
+                    b.ToTable("donne");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Echelle", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<float?>("Griech01")
@@ -2100,73 +2092,73 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("griech21");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("echelle", (string)null);
+                    b.ToTable("echelle");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empaff", b =>
                 {
                     b.Property<DateTime?>("Affdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("affdate");
 
                     b.Property<string>("Catcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empadr")
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
+                        .HasColumnType("character varying(40)")
                         .HasColumnName("empadr");
 
                     b.Property<DateTime?>("Empau")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empau");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("Empdu")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empdu");
 
                     b.Property<string>("Empfonc")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("empfonc");
 
                     b.Property<string>("Emplib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("emplib");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("empmat");
 
                     b.Property<string>("Empmob")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("empmob");
 
                     b.Property<float?>("Empnbp")
@@ -2175,389 +2167,406 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<string>("Empsexe")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empsexe");
 
                     b.Property<string>("Emptel")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("emptel");
 
                     b.Property<string>("Foncod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("foncod");
 
                     b.Property<int?>("Heuredeb")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("heuredeb");
 
                     b.Property<int?>("Heurefin")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("heurefin");
 
                     b.Property<string>("Natcod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("natcod");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<string>("Quacod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("quacod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sercod");
 
                     b.Property<string>("Sitaff")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitaff");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Socaff")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("socaff");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("vilcod");
 
-                    b.ToTable("empaff", (string)null);
+                    b.ToTable("empaff");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empcat", b =>
                 {
                     b.Property<string>("Catcod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("catcod");
 
                     b.Property<DateTime?>("Catdeb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("catdeb");
 
                     b.Property<DateTime?>("Catfin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("catfin");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("empcat", (string)null);
+                    b.ToTable("empcat");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empchg", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("Empdat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empdat");
 
                     b.Property<string>("Empref")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empref");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("empchg", (string)null);
+                    b.ToTable("empchg");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empchoisie", b =>
                 {
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Emplib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("emplib");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
                     b.HasKey("Empcod", "Soccod");
 
-                    b.ToTable("empchoisie", (string)null);
+                    b.ToTable("empchoisie");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empgrh", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Emplib")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("emplib");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Soclib")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("soclib");
 
-                    b.ToTable("empgrh", (string)null);
+                    b.ToTable("empgrh");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Employe", b =>
                 {
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Actif")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("actif");
 
                     b.Property<string>("Caltype")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("caltype");
 
                     b.Property<string>("Catcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Dircod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("dircod");
+
+                    b.Property<int?>("EmpRttForfaitJours")
+                        .HasColumnType("integer")
+                        .HasColumnName("emp_rtt_forfait_jours");
+
+                    b.Property<float?>("EmpRttHeuresContrat")
+                        .HasColumnType("real")
+                        .HasColumnName("emp_rtt_heures_contrat");
+
+                    b.Property<float?>("EmpRttJoursAnnuel")
+                        .HasColumnType("real")
+                        .HasColumnName("emp_rtt_jours_annuel");
+
+                    b.Property<string>("EmpRttMethode")
+                        .HasMaxLength(1)
+                        .HasColumnType("character varying(1)")
+                        .HasColumnName("emp_rtt_methode");
 
                     b.Property<string>("Empacin")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("empacin");
 
                     b.Property<string>("Empadr")
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("empadr");
 
                     b.Property<string>("Empadrar")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("empadrar");
 
                     b.Property<string>("Empcat")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("empcat");
 
                     b.Property<string>("Empcin")
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("empcin");
 
                     b.Property<string>("Empcmp")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empcmp");
 
                     b.Property<string>("Empcontrat")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("empcontrat");
 
                     b.Property<DateTime?>("Empdcin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empdcin");
 
                     b.Property<string>("Empdir")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empdir");
 
                     b.Property<string>("Empdnais")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("empdnais");
 
                     b.Property<string>("Empech")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("empech");
 
                     b.Property<string>("Empelon")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("empelon");
 
                     b.Property<string>("Empemail")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("empemail");
 
                     b.Property<DateTime?>("Empemb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empemb");
 
                     b.Property<string>("Empferepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empferepos");
 
                     b.Property<string>("Empfonc")
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
+                        .HasColumnType("character varying(40)")
                         .HasColumnName("empfonc");
 
                     b.Property<string>("Empfoncar")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("empfoncar");
 
                     b.Property<string>("Emplib")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("emplib");
 
                     b.Property<string>("Emplibar")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("emplibar");
 
                     b.Property<string>("Emplnais")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("emplnais");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empmat");
 
                     b.Property<double?>("Empmaxhre")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("empmaxhre");
 
                     b.Property<double?>("Empmaxjour")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("empmaxjour");
 
                     b.Property<double?>("Empminhjour")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("empminhjour");
 
                     b.Property<string>("Empmob")
@@ -2566,272 +2575,272 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Empmotif")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("empmotif");
 
                     b.Property<int?>("Empnbp")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("empnbp");
 
                     b.Property<string>("Empniv")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empniv");
 
                     b.Property<string>("Empnuit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empnuit");
 
                     b.Property<DateTime?>("Empoptim")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empoptim");
 
                     b.Property<string>("Emppanier")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("emppanier");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<string>("Empresp")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empresp");
 
                     b.Property<string>("Empretard")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empretard");
 
                     b.Property<DateTime?>("Empretraite")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empretraite");
 
                     b.Property<string>("Empsbase")
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("empsbase");
 
                     b.Property<string>("Empsbrut")
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("empsbrut");
 
                     b.Property<string>("Empscat")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("empscat");
 
                     b.Property<string>("Empsexe")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empsexe");
 
                     b.Property<string>("Empsitfam")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empsitfam");
 
                     b.Property<string>("Empsnet")
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("empsnet");
 
                     b.Property<DateTime?>("Empsort")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empsort");
 
                     b.Property<string>("Emptel")
                         .HasMaxLength(256)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("emptel");
 
                     b.Property<string>("Emptype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("emptype");
 
                     b.Property<string>("Foncod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("foncod");
 
                     b.Property<string>("Natcod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("natcod");
 
                     b.Property<string>("Poscod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("poscod");
 
                     b.Property<string>("Quacod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("quacod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Seccod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("seccod");
 
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sercod");
 
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("vilcod");
 
                     b.HasKey("Empcod", "Soccod", "Sitcod");
 
-                    b.ToTable("employe", (string)null);
+                    b.ToTable("employe");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Emprnd", b =>
                 {
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("mois");
 
                     b.Property<double?>("Nbhpre")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("nbhpre");
 
                     b.Property<double?>("Nbhprod")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("nbhprod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rnddate")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("rnddate");
 
                     b.Property<double?>("Rndnote")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("rndnote");
 
                     b.Property<double?>("Rndvaleur")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("rndvaleur");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("rubcod");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("emprnd", (string)null);
+                    b.ToTable("emprnd");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Empuser", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Nchamps")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("nchamps");
 
                     b.Property<string>("Ntable")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("ntable");
 
                     b.Property<string>("Paie")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("paie");
 
                     b.Property<string>("Point")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("point");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("empuser", (string)null);
+                    b.ToTable("empuser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Ferier", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("Ferdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("ferdate");
 
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Ferfixe")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("ferfixe");
 
                     b.Property<float?>("Ferheure")
@@ -2840,98 +2849,98 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Fermotif")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("fermotif");
 
                     b.Property<string>("Fernpaye")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("fernpaye");
 
                     b.Property<DateTime?>("Fertrv")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("fertrv");
 
                     b.Property<string>("Fertype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("fertype");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Ferdate");
 
-                    b.ToTable("ferier", (string)null);
+                    b.ToTable("ferier");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Fonction", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Foncod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("foncod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Fonlib")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("fonlib");
 
                     b.Property<string>("Fonpchoix")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("fonpchoix");
 
                     b.Property<string>("Fonpqual")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("fonpqual");
 
                     b.Property<string>("Fontype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("fontype");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Foncod");
 
-                    b.ToTable("fonction", (string)null);
+                    b.ToTable("fonction");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Grille", b =>
                 {
                     b.Property<string>("Catcod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("catcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Grideb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("grideb");
 
                     b.Property<float?>("Griech01")
@@ -3019,52 +3028,52 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("griech21");
 
                     b.Property<DateTime?>("Grifin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("grifin");
 
                     b.Property<string>("Grireg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("grireg");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("grille", (string)null);
+                    b.ToTable("grille");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Hsalaire", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("Joudeb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("joudeb");
 
                     b.Property<DateTime?>("Joufin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("joufin");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<float?>("Salabs")
@@ -3089,7 +3098,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salannee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("salannee");
 
                     b.Property<float?>("Salconge")
@@ -3101,11 +3110,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("salcsf");
 
                     b.Property<DateTime?>("Saldat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("saldat");
 
                     b.Property<DateTime?>("Saldatac")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("saldatac");
 
                     b.Property<float?>("Saldep")
@@ -3182,7 +3191,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("salmat");
 
                     b.Property<float?>("Salmens")
@@ -3191,7 +3200,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salmois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("salmois");
 
                     b.Property<float?>("Salnbh")
@@ -3216,12 +3225,12 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salpoint")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("salpoint");
 
                     b.Property<string>("Salreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("salreg");
 
                     b.Property<float?>("Salret")
@@ -3242,50 +3251,95 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Saltit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("saltit");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("hsalaire", (string)null);
+                    b.ToTable("hsalaire");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.KnownDevice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("kd_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DeviceLabel")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("device_label");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<string>("IpPrefix")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ip_prefix");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("UaHash")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("ua_hash");
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("known_devices");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lcalendsoc", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Caltype")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("caltype");
 
                     b.Property<DateTime?>("CalDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("cal_date");
 
                     b.Property<string>("CalAn")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("cal_an");
 
                     b.Property<int?>("CalCol")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_col");
 
                     b.Property<string>("CalMois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("cal_mois");
 
                     b.Property<float?>("CalNbh")
@@ -3293,11 +3347,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("cal_nbh");
 
                     b.Property<int?>("CalRow")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_row");
 
                     b.Property<int?>("CalSem")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_sem");
 
                     b.Property<float?>("CalTrav")
@@ -3305,132 +3359,132 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("cal_trav");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Motif")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("motif");
 
                     b.Property<string>("Payer")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("payer");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Caltype", "CalDate");
 
-                    b.ToTable("lcalendsoc", (string)null);
+                    b.ToTable("lcalendsoc");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lcategorie", b =>
                 {
                     b.Property<int>("Ordre")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Ordre"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Ordre"));
 
                     b.Property<string>("Cat100a")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat100a");
 
                     b.Property<string>("Cat100de")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat100de");
 
                     b.Property<string>("Cat100ra")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat100ra");
 
                     b.Property<string>("Cat100rde")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat100rde");
 
                     b.Property<string>("Cat25a")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat25a");
 
                     b.Property<string>("Cat25de")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat25de");
 
                     b.Property<string>("Cat50a")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat50a");
 
                     b.Property<string>("Cat50de")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat50de");
 
                     b.Property<string>("Cat75a")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat75a");
 
                     b.Property<string>("Cat75de")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("cat75de");
 
                     b.Property<DateTime?>("Catau")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("catau");
 
                     b.Property<string>("Catcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catcod");
 
                     b.Property<DateTime?>("Catdu")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("catdu");
 
                     b.Property<string>("Catfixe")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("catfixe");
 
                     b.Property<string>("Catjour100")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("catjour100");
 
                     b.Property<string>("Catjour25")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("catjour25");
 
                     b.Property<string>("Catjour50")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("catjour50");
 
                     b.Property<string>("Catjour75")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("catjour75");
 
                     b.Property<string>("Catjourr100")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("catjourr100");
 
                     b.Property<float?>("Cattaux100")
@@ -3455,118 +3509,118 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Codposte")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("codposte");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.HasKey("Ordre");
 
-                    b.ToTable("lcategorie", (string)null);
+                    b.ToTable("lcategorie");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lcontrat", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Concod")
                         .HasMaxLength(9)
-                        .HasColumnType("nvarchar(9)")
+                        .HasColumnType("character varying(9)")
                         .HasColumnName("concod");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("rubcod");
 
                     b.Property<string>("Rublib")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("rublib");
 
                     b.Property<double?>("Rubmnt")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("rubmnt");
 
                     b.Property<string>("Rubunite")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rubunite");
 
                     b.HasKey("Soccod", "Concod", "Empcod");
 
-                    b.ToTable("lcontrat", (string)null);
+                    b.ToTable("lcontrat");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lferier", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Dircod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("dircod");
 
                     b.Property<DateTime?>("Ferdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("ferdate");
 
                     b.Property<string>("Fertype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("fertype");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("lferier", (string)null);
+                    b.ToTable("lferier");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lmotifpoint", b =>
@@ -3574,109 +3628,109 @@ namespace ABRPOINT.Server.Migrations
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("char(10)")
+                        .HasColumnType("character(10)")
                         .HasColumnName("concod")
                         .IsFixedLength();
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Motcod")
                         .HasMaxLength(12)
                         .IsUnicode(false)
-                        .HasColumnType("char(12)")
+                        .HasColumnType("character(12)")
                         .HasColumnName("motcod")
                         .IsFixedLength();
 
                     b.Property<double?>("Motmnt")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("motmnt");
 
                     b.Property<double?>("Mottotal")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("mottotal");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<double?>("Qte")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("qte");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("char(10)")
+                        .HasColumnType("character(10)")
                         .HasColumnName("soccod")
                         .IsFixedLength();
 
-                    b.ToTable("lmotifpoint", (string)null);
+                    b.ToTable("lmotifpoint");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lplanhoraire", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Motif")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("motif");
 
                     b.Property<string>("Payer")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("payer");
 
                     b.Property<string>("Planan")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("planan");
 
                     b.Property<string>("Plancat")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("plancat");
 
                     b.Property<int?>("Plancol")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("plancol");
 
                     b.Property<DateTime?>("Plandate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("plandate");
 
                     b.Property<string>("Planmois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("planmois");
 
                     b.Property<string>("Planposte")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("planposte");
 
                     b.Property<int?>("Planrow")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("planrow");
 
                     b.Property<int?>("Plansem")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("plansem");
 
                     b.Property<float?>("Plantrav")
@@ -3684,34 +3738,34 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("plantrav");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("lplanhoraire", (string)null);
+                    b.ToTable("lplanhoraire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lpointjour", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<float?>("Salabs")
@@ -3799,7 +3853,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("saljnfer");
 
                     b.Property<DateTime?>("Saljour")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("saljour");
 
                     b.Property<float?>("Saljreptrv")
@@ -3832,7 +3886,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("salrepos");
 
                     b.Property<float?>("Salret")
@@ -3853,130 +3907,130 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("lpointjour", (string)null);
+                    b.ToTable("lpointjour");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lpointmoi", b =>
                 {
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empmat");
 
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("mois");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rubcod");
 
                     b.Property<string>("Rublib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("rublib");
 
                     b.Property<double?>("Rubnbr")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("rubnbr");
 
                     b.Property<string>("Rubregime")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rubregime");
 
                     b.Property<string>("Rubtype")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rubtype");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Vartype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("vartype");
 
-                    b.ToTable("lpointmois", (string)null);
+                    b.ToTable("lpointmois");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lposte", b =>
                 {
                     b.Property<string>("Codposte")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("codposte");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<string>("Poshredeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("poshredeb");
 
                     b.Property<string>("Poshrefin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("poshrefin");
 
                     b.Property<string>("Posjour")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("posjour");
 
                     b.Property<float?>("Postaux")
@@ -3988,47 +4042,47 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("postxrepos");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Codposte", "Soccod");
 
-                    b.ToTable("lposte", (string)null);
+                    b.ToTable("lposte");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lpret", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Fchannee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("fchannee");
 
                     b.Property<string>("Fchmois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("fchmois");
 
                     b.Property<string>("Fchtit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("fchtit");
 
                     b.Property<string>("Preannee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("preannee");
 
                     b.Property<string>("Precod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("precod");
 
                     b.Property<float?>("Premnt")
@@ -4037,899 +4091,1044 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Premois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("premois");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Titcod")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("titcod");
 
-                    b.ToTable("lpret", (string)null);
+                    b.ToTable("lpret");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lregleremp", b =>
                 {
                     b.Property<string>("Cheordre")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("cheordre");
 
                     b.Property<string>("Chetype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("chetype");
 
                     b.Property<string>("Codsite")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("codsite");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Faccod")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("character varying(15)")
                         .HasColumnName("faccod");
 
                     b.Property<double?>("Facreg")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("facreg");
 
                     b.Property<int?>("Ligne")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ligne");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("lregleremp", (string)null);
+                    b.ToTable("lregleremp");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Lsalaire", b =>
                 {
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empmat");
 
                     b.Property<DateTime?>("Jour")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("jour");
 
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("mois");
 
                     b.Property<string>("Motif")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("motif");
 
                     b.Property<string>("Nbhjour")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("nbhjour");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rubcod");
 
                     b.Property<double?>("Rubnbr")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("rubnbr");
 
                     b.Property<string>("Rubregime")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rubregime");
 
                     b.Property<string>("Rubtype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rubtype");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Tothre")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("tothre");
 
-                    b.ToTable("lsalaire", (string)null);
+                    b.ToTable("lsalaire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Mission", b =>
                 {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
                     b.Property<string>("Abscod")
-                        .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("abscod");
 
-                    b.Property<string>("Conadrdep")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("conadrdep");
-
-                    b.Property<string>("Conamdep")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("conamdep");
-
-                    b.Property<string>("Conamret")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("conamret");
-
-                    b.Property<string>("Concod")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasColumnName("concod");
-
-                    b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
-                        .HasColumnName("condat");
-
-                    b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
-                        .HasColumnName("condep");
-
-                    b.Property<string>("Condepense")
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("char(100)")
-                        .HasColumnName("condepense")
-                        .IsFixedLength();
-
-                    b.Property<string>("Condest")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("condest");
-
-                    b.Property<string>("Conjour")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("conjour");
-
-                    b.Property<double?>("Conmnt")
-                        .HasColumnType("float")
-                        .HasColumnName("conmnt");
-
-                    b.Property<string>("Conmodep")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("conmodep");
-
-                    b.Property<string>("Conmotif")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("conmotif");
-
-                    b.Property<float?>("Connbjour")
-                        .HasColumnType("real")
-                        .HasColumnName("connbjour");
-
-                    b.Property<string>("Conref")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("conref");
-
-                    b.Property<string>("Conresp")
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
-                        .HasColumnName("conresp");
-
-                    b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
-                        .HasColumnName("conret");
-
-                    b.Property<string>("Consanc")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
-                        .HasColumnName("consanc");
-
-                    b.Property<string>("Contransp")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("contransp");
-
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
+                        .IsRequired()
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
+                    b.Property<double?>("Misbudget")
+                        .HasColumnType("double precision")
+                        .HasColumnName("misbudget");
+
+                    b.Property<DateTime>("Misdatedeb")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("misdatedeb");
+
+                    b.Property<DateTime>("Misdatefin")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("misdatefin");
+
+                    b.Property<string>("Misdest")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("misdest");
+
+                    b.Property<string>("Misdevise")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("misdevise");
+
+                    b.Property<string>("Misetat")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Pending")
+                        .HasColumnName("misetat");
+
+                    b.Property<string>("Misnote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("misnote");
+
+                    b.Property<string>("Misobj")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("misobj");
+
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("mission", (string)null);
+                    b.HasKey("Id");
+
+                    b.HasIndex("Soccod", "Empcod");
+
+                    b.ToTable("mission");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Modeopr", b =>
                 {
                     b.Property<string>("Artcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("artcod");
 
                     b.Property<string>("Artmethode")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("artmethode");
 
                     b.Property<double?>("Artqte")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("artqte");
 
                     b.Property<double?>("Arttemps")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("arttemps");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Opecod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("opecod");
 
                     b.Property<int?>("Opeordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("opeordre");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("modeopr", (string)null);
+                    b.ToTable("modeopr");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Module", b =>
                 {
                     b.Property<string>("Appcod")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("appcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("description");
 
                     b.Property<string>("Modcod")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("character varying(15)")
                         .HasColumnName("modcod");
 
                     b.Property<string>("Modconsult")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("modconsult");
 
                     b.Property<string>("Modlib")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("modlib");
 
                     b.Property<string>("Modsais")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("modsais");
 
                     b.Property<string>("Modsupp")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("modsupp");
 
                     b.Property<string>("Modupd")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("modupd");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("module", (string)null);
+                    b.ToTable("module");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Moduser", b =>
                 {
                     b.Property<int?>("Ordre")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int?>("Ordre"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int?>("Ordre"));
 
                     b.Property<string>("Appcod")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("appcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("description");
 
                     b.Property<string>("Modcod")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("character varying(15)")
                         .HasColumnName("modcod");
 
                     b.Property<string>("Modconsult")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("modconsult");
 
                     b.Property<string>("Modsais")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("modsais");
 
                     b.Property<string>("Modsupp")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("modsupp");
 
                     b.Property<string>("Modupd")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("modupd");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
                     b.HasKey("Ordre");
 
-                    b.ToTable("moduser", (string)null);
+                    b.ToTable("moduser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Motifpoint", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Motcod")
                         .HasMaxLength(12)
                         .IsUnicode(false)
-                        .HasColumnType("char(12)")
+                        .HasColumnType("character(12)")
                         .HasColumnName("motcod")
                         .IsFixedLength();
 
                     b.Property<string>("Motlib")
                         .HasMaxLength(50)
                         .IsUnicode(false)
-                        .HasColumnType("char(50)")
+                        .HasColumnType("character(50)")
                         .HasColumnName("motlib")
                         .IsFixedLength();
 
                     b.Property<double?>("Motmnt")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("motmnt");
 
                     b.Property<string>("Mottype")
                         .HasMaxLength(1)
                         .IsUnicode(false)
-                        .HasColumnType("char(1)")
+                        .HasColumnType("character(1)")
                         .HasColumnName("mottype")
                         .IsFixedLength();
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("char(10)")
+                        .HasColumnType("character(10)")
                         .HasColumnName("soccod")
                         .IsFixedLength();
 
-                    b.ToTable("motifpoint", (string)null);
+                    b.ToTable("motifpoint");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Nation", b =>
                 {
                     b.Property<string>("Natcod")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("natcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Natlib")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("natlib");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Natcod");
 
-                    b.ToTable("nation", (string)null);
+                    b.ToTable("nation");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.NoteDeFrais", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Categorie")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("categorie");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime>("DateDepense")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("datedepense");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
+
+                    b.Property<string>("Devise")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("devise");
 
                     b.Property<string>("Empcod")
                         .IsRequired()
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Etat")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("etat");
 
                     b.Property<string>("Justificatif")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("justificatif");
 
+                    b.Property<int>("MissionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("missionid");
+
                     b.Property<double>("Montant")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("montant");
 
                     b.Property<string>("Projet")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("projet");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Titre")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("titre");
 
                     b.HasKey("Id");
 
-                    b.ToTable("notedefrais", (string)null);
+                    b.HasIndex("MissionId");
+
+                    b.ToTable("notedefrais");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("notif_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("body");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DataJson")
+                        .HasColumnType("text")
+                        .HasColumnName("data_json");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("Soccod")
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("notifications");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.NotificationPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("np_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<bool>("InappEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("inapp_enabled");
+
+                    b.Property<bool>("PushEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("push_enabled");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("retention_date");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("notification_preferences");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.NotificationUserSettings", b =>
+                {
+                    b.Property<string>("Uticod")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("uticod");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("QuietEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("quiet_enabled");
+
+                    b.Property<string>("QuietEnd")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("quiet_end");
+
+                    b.Property<string>("QuietMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("quiet_mode");
+
+                    b.Property<string>("QuietStart")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("quiet_start");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("retention_date");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Uticod");
+
+                    b.ToTable("notification_user_settings");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Opbarre", b =>
                 {
                     b.Property<string>("Codbarre")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("codbarre");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Numpaq")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("numpaq");
 
                     b.Property<string>("Opcod")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("opcod");
 
                     b.Property<string>("Opduree")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("opduree");
 
                     b.Property<string>("Phcod")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("phcod");
 
                     b.Property<string>("Phtype")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("phtype");
 
                     b.Property<string>("Proj")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("proj");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Unite")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("unite");
 
-                    b.ToTable("opbarre", (string)null);
+                    b.ToTable("opbarre");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Operation", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Opecod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("opecod");
 
                     b.Property<string>("Opelib")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("opelib");
 
                     b.Property<string>("Opemethode")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("opemethode");
 
                     b.Property<double?>("Opepiece")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("opepiece");
 
                     b.Property<double?>("Opetemps")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("opetemps");
 
                     b.Property<string>("Opetype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("opetype");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("operation", (string)null);
+                    b.ToTable("operation");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Paieuser", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Dircod")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("character varying(15)")
                         .HasColumnName("dircod");
 
                     b.Property<string>("Exercice")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("exercice");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("paieuser", (string)null);
+                    b.ToTable("paieuser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Paquet", b =>
                 {
                     b.Property<string>("Artbarre")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("artbarre");
 
                     b.Property<string>("Artcod")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("artcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("Date")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("date");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Num")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("num");
 
                     b.Property<string>("Proj")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("proj");
 
                     b.Property<int?>("Qtepaq")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("qtepaq");
 
                     b.Property<string>("Qteproj")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("qteproj");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)")
+                        .HasColumnType("character varying(25)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("paquet", (string)null);
+                    b.ToTable("paquet");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parametre", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Affech")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("affech");
 
                     b.Property<string>("Ajustupd")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("ajustupd");
 
                     b.Property<int?>("Arrhemajore")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhemajore");
 
                     b.Property<int?>("Arrhentree")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhentree");
 
                     b.Property<int?>("Arrhsmajore")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsmajore");
 
                     b.Property<int?>("Arrhsortie")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsortie");
 
                     b.Property<int?>("Arrhsup")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsup");
 
                     b.Property<int?>("Arrondi")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrondi");
 
                     b.Property<string>("Billet")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("billet");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Dtepres")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("dtepres");
 
                     b.Property<int?>("Fertrv")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("fertrv");
 
                     b.Property<string>("Hsuphebd")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("hsuphebd");
 
                     b.Property<string>("Hsuphebdm")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("hsuphebdm");
 
                     b.Property<string>("Joudeb")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("joudeb");
 
                     b.Property<string>("Joufin")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("joufin");
 
                     b.Property<string>("Jourrepos")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("jourrepos");
 
                     b.Property<short?>("Longbdg")
@@ -4938,25 +5137,25 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Minuit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("minuit");
 
                     b.Property<int?>("Moinsrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("moinsrepas");
 
                     b.Property<string>("Moisdeb")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("moisdeb");
 
                     b.Property<string>("Moisfin")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("moisfin");
 
                     b.Property<int?>("Nbdigit")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nbdigit");
 
                     b.Property<float?>("Nbhconge")
@@ -4964,11 +5163,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("nbhconge");
 
                     b.Property<double?>("Nbhdemij")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("nbhdemij");
 
                     b.Property<int?>("Nbhferier")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nbhferier");
 
                     b.Property<float?>("Nbhmax1")
@@ -4988,7 +5187,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("nbhmax2m");
 
                     b.Property<int?>("Nbhrepos")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nbhrepos");
 
                     b.Property<float?>("Nbhtr1")
@@ -5025,36 +5224,36 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Ncom")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("ncom");
 
                     b.Property<string>("Nuitdeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nuitdeb");
 
                     b.Property<string>("Nuitfin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nuitfin");
 
                     b.Property<string>("Nuitsdeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nuitsdeb");
 
                     b.Property<string>("Nuitsfin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nuitsfin");
 
                     b.Property<DateTime?>("Optimise")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("optimise");
 
                     b.Property<string>("Paie")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("paie");
 
                     b.Property<float?>("Paiearrondi")
@@ -5063,27 +5262,36 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Parabsconge")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parabsconge");
 
                     b.Property<string>("Parallaite")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("parallaite");
 
                     b.Property<string>("Parancemp")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parancemp");
 
                     b.Property<string>("Parcadre")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parcadre");
+
+                    b.Property<string>("Parcetdatelim")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("parcetdatelim");
+
+                    b.Property<float?>("Parcetmaxjours")
+                        .HasColumnType("real")
+                        .HasColumnName("parcetmaxjours");
 
                     b.Property<string>("Pardecimal")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("pardecimal");
 
                     b.Property<float?>("Pardroitnbj")
@@ -5091,27 +5299,27 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("pardroitnbj");
 
                     b.Property<int?>("Parecart")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parecart");
 
                     b.Property<string>("Parelimftrv")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parelimftrv");
 
                     b.Property<string>("Parexec")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parexec");
 
                     b.Property<string>("Parferabs")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parferabs");
 
                     b.Property<string>("Parhnuitspec")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("parhnuitspec");
 
                     b.Property<float?>("Parite")
@@ -5136,110 +5344,115 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Parmaitrise")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parmaitrise");
 
                     b.Property<string>("Parmanuel")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parmanuel");
 
                     b.Property<int?>("Parmaxfer")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parmaxfer");
 
                     b.Property<int?>("Parmaxhjour")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parmaxhjour");
 
                     b.Property<int?>("Parminhjour")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parminhjour");
+
+                    b.Property<string>("Parmodemp")
+                        .HasMaxLength(1)
+                        .HasColumnType("character varying(1)")
+                        .HasColumnName("parmodemp");
 
                     b.Property<string>("Parnrepas")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parnrepas");
 
                     b.Property<string>("Parnuit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parnuit");
 
                     b.Property<double?>("Parpaquet")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("parpaquet");
 
                     b.Property<string>("Parpostlundi")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parpostlundi");
 
                     b.Property<string>("Parpresence")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parpresence");
 
                     b.Property<string>("Parreperiod")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parreperiod");
 
                     b.Property<string>("Parreptrv")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parreptrv");
 
                     b.Property<string>("Parretabs")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parretabs");
 
                     b.Property<double?>("Parsaisconge")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("parsaisconge");
 
                     b.Property<string>("Parscomplet")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parscomplet");
 
                     b.Property<string>("Parsem")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parsem");
 
                     b.Property<int?>("Parsom")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parsom");
 
                     b.Property<string>("Planhoraire")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("planhoraire");
 
                     b.Property<string>("Point")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("point");
 
                     b.Property<string>("Repasnuit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("repasnuit");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sansferie")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("sansferie");
 
                     b.Property<string>("Separe")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("separe");
 
                     b.Property<float?>("Tauxmax1")
@@ -5296,95 +5509,95 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Xonoff")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("xonoff");
 
                     b.HasKey("Soccod");
 
-                    b.ToTable("parametre", (string)null);
+                    b.ToTable("parametre");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Paramsite", b =>
                 {
                     b.Property<string>("Affech")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("affech");
 
                     b.Property<string>("Ajustupd")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("ajustupd");
 
                     b.Property<int?>("Arrhemajore")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhemajore");
 
                     b.Property<int?>("Arrhentree")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhentree");
 
                     b.Property<int?>("Arrhsmajore")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsmajore");
 
                     b.Property<int?>("Arrhsortie")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsortie");
 
                     b.Property<int?>("Arrhsup")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsup");
 
                     b.Property<int?>("Arrondi")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrondi");
 
                     b.Property<string>("Billet")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("billet");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Dtepres")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("dtepres");
 
                     b.Property<int?>("Fertrv")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("fertrv");
 
                     b.Property<string>("Hsuphebd")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("hsuphebd");
 
                     b.Property<string>("Hsuphebdm")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("hsuphebdm");
 
                     b.Property<string>("Joudeb")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("joudeb");
 
                     b.Property<string>("Joufin")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("joufin");
 
                     b.Property<string>("Jourrepos")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("jourrepos");
 
                     b.Property<short?>("Longbdg")
@@ -5393,37 +5606,37 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Minuit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("minuit");
 
                     b.Property<int?>("Moinsrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("moinsrepas");
 
                     b.Property<string>("Moisdeb")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("moisdeb");
 
                     b.Property<string>("Moisfin")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("moisfin");
 
                     b.Property<int?>("Nbdigit")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nbdigit");
 
                     b.Property<int?>("Nbhconge")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nbhconge");
 
                     b.Property<double?>("Nbhdemij")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("nbhdemij");
 
                     b.Property<int?>("Nbhferier")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nbhferier");
 
                     b.Property<float?>("Nbhmax1")
@@ -5443,7 +5656,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("nbhmax2m");
 
                     b.Property<int?>("Nbhrepos")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nbhrepos");
 
                     b.Property<float?>("Nbhtr1")
@@ -5480,36 +5693,36 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Ncom")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("ncom");
 
                     b.Property<string>("Nuitdeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nuitdeb");
 
                     b.Property<string>("Nuitfin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nuitfin");
 
                     b.Property<string>("Nuitsdeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nuitsdeb");
 
                     b.Property<string>("Nuitsfin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nuitsfin");
 
                     b.Property<DateTime?>("Optimise")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("optimise");
 
                     b.Property<string>("Paie")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("paie");
 
                     b.Property<float?>("Paiearrondi")
@@ -5518,27 +5731,27 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Parabsconge")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parabsconge");
 
                     b.Property<string>("Parallaite")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("parallaite");
 
                     b.Property<string>("Parancemp")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parancemp");
 
                     b.Property<string>("Parcadre")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parcadre");
 
                     b.Property<string>("Pardecimal")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("pardecimal");
 
                     b.Property<float?>("Pardroitnbj")
@@ -5546,31 +5759,31 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("pardroitnbj");
 
                     b.Property<int?>("Parecart")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parecart");
 
                     b.Property<string>("Parelimftrv")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parelimftrv");
 
                     b.Property<string>("Parexec")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parexec");
 
                     b.Property<string>("Parferabs")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parferabs");
 
                     b.Property<string>("Parhnuitspec")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("parhnuitspec");
 
                     b.Property<int?>("Parite")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parite");
 
                     b.Property<float?>("Parjhnfixe")
@@ -5591,121 +5804,121 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Parmaitrise")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parmaitrise");
 
                     b.Property<string>("Parmanuel")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parmanuel");
 
                     b.Property<int?>("Parmaxfer")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parmaxfer");
 
                     b.Property<int?>("Parmaxhjour")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parmaxhjour");
 
                     b.Property<int?>("Parminhjour")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parminhjour");
 
                     b.Property<string>("Parnrepas")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("parnrepas");
 
                     b.Property<string>("Parnuit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parnuit");
 
                     b.Property<double?>("Parpaquet")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("parpaquet");
 
                     b.Property<string>("Parpostlundi")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parpostlundi");
 
                     b.Property<string>("Parpresence")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parpresence");
 
                     b.Property<string>("Parreperiod")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parreperiod");
 
                     b.Property<string>("Parreptrv")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parreptrv");
 
                     b.Property<string>("Parretabs")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parretabs");
 
                     b.Property<double?>("Parsaisconge")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("parsaisconge");
 
                     b.Property<string>("Parscomplet")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parscomplet");
 
                     b.Property<string>("Parsem")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("parsem");
 
                     b.Property<int?>("Parsom")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parsom");
 
                     b.Property<string>("Planhoraire")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("planhoraire");
 
                     b.Property<string>("Point")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("point");
 
                     b.Property<string>("Repasnuit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("repasnuit");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sansferie")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("sansferie");
 
                     b.Property<string>("Separe")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("separe");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .IsRequired()
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<float?>("Tauxmax1")
@@ -5757,38 +5970,38 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("tauxtr4M");
 
                     b.Property<int?>("Vitesse")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("vitesse");
 
                     b.Property<string>("Xonoff")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("xonoff");
 
-                    b.ToTable("paramsite", (string)null);
+                    b.ToTable("paramsite");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parapprent", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<double?>("Parmnt")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("parmnt");
 
                     b.Property<int?>("Parmois")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("parmois");
 
                     b.Property<string>("Parrub")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("parrub");
 
                     b.Property<float?>("Partaux")
@@ -5796,49 +6009,49 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("partaux");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("parapprent", (string)null);
+                    b.ToTable("parapprent");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parposte", b =>
                 {
                     b.Property<string>("Codposte")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("codposte");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<string>("Poshredeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("poshredeb");
 
                     b.Property<string>("Poshrefin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("poshrefin");
 
                     b.Property<string>("Posjour")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("character varying(15)")
                         .HasColumnName("posjour");
 
                     b.Property<float?>("Postaux")
@@ -5850,44 +6063,44 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("postxrepos");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("parposte", (string)null);
+                    b.ToTable("parposte");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Parpostsite", b =>
                 {
                     b.Property<string>("Codposte")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("codposte");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<string>("Poshredeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("poshredeb");
 
                     b.Property<string>("Poshrefin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("poshrefin");
 
                     b.Property<string>("Posjour")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("character varying(15)")
                         .HasColumnName("posjour");
 
                     b.Property<float?>("Postaux")
@@ -5899,44 +6112,44 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("postxrepos");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitcod");
 
-                    b.ToTable("parpostsite", (string)null);
+                    b.ToTable("parpostsite");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Partranche", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Caltype")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("caltype");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<float?>("Partaux1")
@@ -5956,36 +6169,36 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("partranche2");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Caltype", "Empreg");
 
-                    b.ToTable("partranche", (string)null);
+                    b.ToTable("partranche");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Partranchsite", b =>
                 {
                     b.Property<string>("Caltype")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("caltype");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<float?>("Partaux1")
@@ -6005,293 +6218,293 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("partranche2");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("partranchsite", (string)null);
+                    b.ToTable("partranchsite");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Planhoraire", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Plancat")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("plancat");
 
                     b.Property<DateTime?>("Plandate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("plandate");
 
                     b.Property<string>("Planposte")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("planposte");
 
                     b.Property<string>("Planrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("planrepos");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("planhoraire", (string)null);
+                    b.ToTable("planhoraire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointacce", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Duree")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("duree");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("empmat");
 
                     b.Property<string>("Entree")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("entree");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<int?>("Ordreent")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordreent");
 
                     b.Property<int?>("Ordresort")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordresort");
 
                     b.Property<string>("Pntentree")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("pntentree");
 
                     b.Property<string>("Pntsortie")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("pntsortie");
 
                     b.Property<DateTime?>("Predat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predat");
 
                     b.Property<DateTime?>("Predatent")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predatent");
 
                     b.Property<DateTime?>("Predatsort")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predatsort");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Sortie")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("sortie");
 
                     b.Property<string>("Valider")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("valider");
 
-                    b.ToTable("pointacce", (string)null);
+                    b.ToTable("pointacce");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointdroit", b =>
                 {
                     b.Property<string>("Poicod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("poicod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
                     b.Property<string>("Config")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("config");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Lire")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("lire");
 
                     b.Property<string>("Purger")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("purger");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Poicod", "Soccod", "Uticod");
 
-                    b.ToTable("pointdroit", (string)null);
+                    b.ToTable("pointdroit");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointeuse", b =>
                 {
                     b.Property<string>("Poicod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("poicod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("Poiadrip1")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("poiadrip1");
 
                     b.Property<int?>("Poiadrip2")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("poiadrip2");
 
                     b.Property<int?>("Poiadrip3")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("poiadrip3");
 
                     b.Property<int?>("Poiadrip4")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("poiadrip4");
 
                     b.Property<string>("Poicom")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("poicom");
 
                     b.Property<string>("Poietat")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("poietat");
 
                     b.Property<string>("Poilib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("poilib");
 
                     b.Property<int?>("Poiport")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("poiport");
 
                     b.Property<string>("Poipwd")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Poicod", "Soccod");
 
-                    b.ToTable("pointeuse", (string)null);
+                    b.ToTable("pointeuse");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointheure", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Foncod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("foncod");
 
                     b.Property<float?>("Nbminute")
@@ -6299,33 +6512,33 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("nbminute");
 
                     b.Property<int?>("Numheure")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("numheure");
 
                     b.Property<DateTime?>("Pointdat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("pointdat");
 
                     b.Property<string>("Quacod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("quacod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("pointheure", (string)null);
+                    b.ToTable("pointheure");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointmoisj", b =>
@@ -6339,504 +6552,504 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("absnj");
 
                     b.Property<double?>("Abspaye")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("abspaye");
 
                     b.Property<int?>("Allait")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("allait");
 
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<string>("C01")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c01");
 
                     b.Property<string>("C02")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c02");
 
                     b.Property<string>("C03")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c03");
 
                     b.Property<string>("C04")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c04");
 
                     b.Property<string>("C05")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c05");
 
                     b.Property<string>("C06")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c06");
 
                     b.Property<string>("C07")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c07");
 
                     b.Property<string>("C08")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c08");
 
                     b.Property<string>("C09")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c09");
 
                     b.Property<string>("C10")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c10");
 
                     b.Property<string>("C11")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c11");
 
                     b.Property<string>("C12")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c12");
 
                     b.Property<string>("C13")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c13");
 
                     b.Property<string>("C14")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c14");
 
                     b.Property<string>("C15")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c15");
 
                     b.Property<string>("C16")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c16");
 
                     b.Property<string>("C17")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c17");
 
                     b.Property<string>("C18")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c18");
 
                     b.Property<string>("C19")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c19");
 
                     b.Property<string>("C20")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c20");
 
                     b.Property<string>("C21")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c21");
 
                     b.Property<string>("C22")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c22");
 
                     b.Property<string>("C23")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c23");
 
                     b.Property<string>("C24")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c24");
 
                     b.Property<string>("C25")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c25");
 
                     b.Property<string>("C26")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c26");
 
                     b.Property<string>("C27")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c27");
 
                     b.Property<string>("C28")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c28");
 
                     b.Property<string>("C29")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c29");
 
                     b.Property<string>("C30")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c30");
 
                     b.Property<string>("C31")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c31");
 
                     b.Property<string>("C32")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c32");
 
                     b.Property<string>("C33")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c33");
 
                     b.Property<string>("C34")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c34");
 
                     b.Property<string>("C35")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c35");
 
                     b.Property<string>("C36")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c36");
 
                     b.Property<string>("C37")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c37");
 
                     b.Property<string>("C38")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c38");
 
                     b.Property<string>("C39")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c39");
 
                     b.Property<string>("C40")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c40");
 
                     b.Property<string>("C41")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("c41");
 
                     b.Property<string>("Caltype")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("caltype");
 
                     b.Property<string>("Catcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("catcod");
 
                     b.Property<string>("Cathsup")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("cathsup");
 
                     b.Property<int?>("Chantier")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("chantier");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Emplib")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("emplib");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empmat");
 
                     b.Property<string>("Empniv")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empniv");
 
                     b.Property<string>("Empnuit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empnuit");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<double?>("Empsbase")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("empsbase");
 
                     b.Property<string>("Hallait")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("hallait");
 
                     b.Property<string>("J01")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j01");
 
                     b.Property<string>("J02")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j02");
 
                     b.Property<string>("J03")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j03");
 
                     b.Property<string>("J04")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j04");
 
                     b.Property<string>("J05")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j05");
 
                     b.Property<string>("J06")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j06");
 
                     b.Property<string>("J07")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j07");
 
                     b.Property<string>("J08")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j08");
 
                     b.Property<string>("J09")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j09");
 
                     b.Property<string>("J10")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j10");
 
                     b.Property<string>("J11")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j11");
 
                     b.Property<string>("J12")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j12");
 
                     b.Property<string>("J13")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j13");
 
                     b.Property<string>("J14")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j14");
 
                     b.Property<string>("J15")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j15");
 
                     b.Property<string>("J16")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j16");
 
                     b.Property<string>("J17")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j17");
 
                     b.Property<string>("J18")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j18");
 
                     b.Property<string>("J19")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j19");
 
                     b.Property<string>("J20")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j20");
 
                     b.Property<string>("J21")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j21");
 
                     b.Property<string>("J22")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j22");
 
                     b.Property<string>("J23")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j23");
 
                     b.Property<string>("J24")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j24");
 
                     b.Property<string>("J25")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j25");
 
                     b.Property<string>("J26")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j26");
 
                     b.Property<string>("J27")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j27");
 
                     b.Property<string>("J28")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j28");
 
                     b.Property<string>("J29")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j29");
 
                     b.Property<string>("J30")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j30");
 
                     b.Property<string>("J31")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j31");
 
                     b.Property<string>("J32")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j32");
 
                     b.Property<string>("J33")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j33");
 
                     b.Property<string>("J34")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j34");
 
                     b.Property<string>("J35")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j35");
 
                     b.Property<string>("J36")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j36");
 
                     b.Property<string>("J37")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j37");
 
                     b.Property<string>("J38")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j38");
 
                     b.Property<string>("J39")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j39");
 
                     b.Property<string>("J40")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j40");
 
                     b.Property<string>("J41")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("j41");
 
                     b.Property<double?>("Jfertrv")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("jfertrv");
 
                     b.Property<double?>("Jourabs")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("jourabs");
 
                     b.Property<double?>("Jourequis")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("jourequis");
 
                     b.Property<float?>("Jours")
@@ -6845,40 +7058,40 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Modcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("modcod");
 
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("mois");
 
                     b.Property<int?>("Nsemaine")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nsemaine");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<string>("Pre100")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("pre100");
 
                     b.Property<string>("Pre25hre")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("pre25hre");
 
                     b.Property<string>("Pre50hre")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("pre50hre");
 
                     b.Property<string>("Pre75")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("pre75");
 
                     b.Property<float?>("Preabsa")
@@ -6899,61 +7112,61 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Rephaut")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("rephaut");
 
                     b.Property<string>("Rephret")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("rephret");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Semaine1")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine1");
 
                     b.Property<string>("Semaine2")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine2");
 
                     b.Property<string>("Semaine3")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine3");
 
                     b.Property<string>("Semaine4")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine4");
 
                     b.Property<string>("Semaine5")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine5");
 
                     b.Property<string>("Semaine6")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine6");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Sitlib")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("sitlib");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("soccod");
 
                     b.Property<float?>("Totcsf")
@@ -6966,125 +7179,125 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Tothabs")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("tothabs");
 
                     b.Property<string>("Tothart")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("tothart");
 
                     b.Property<string>("Tothaut")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("tothaut");
 
                     b.Property<string>("Tothauta")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("tothauta");
 
                     b.Property<string>("Tothconge")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("tothconge");
 
                     b.Property<string>("Tothcsf")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("tothcsf");
 
                     b.Property<string>("Tothfer2trv")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("tothfer2trv");
 
                     b.Property<string>("Tothferie")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("tothferie");
 
                     b.Property<string>("Tothfertrv")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("tothfertrv");
 
                     b.Property<string>("Tothre")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("tothre");
 
                     b.Property<string>("Tothren")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("tothren");
 
                     b.Property<string>("Tothrep")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("tothrep");
 
                     b.Property<string>("Tothreta")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("tothreta");
 
                     b.Property<string>("Totimp")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("totimp");
 
                     b.Property<double?>("Totjact")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjact");
 
                     b.Property<double?>("Totjaj")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjaj");
 
                     b.Property<double?>("Totjanj")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjanj");
 
                     b.Property<double?>("Totjart")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjart");
 
                     b.Property<double?>("Totjcss")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjcss");
 
                     b.Property<double?>("Totjdouche")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjdouche");
 
                     b.Property<double?>("Totjfm")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjfm");
 
                     b.Property<double?>("Totjmal")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjmal");
 
                     b.Property<double?>("Totjmap")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjmap");
 
                     b.Property<double?>("Totjnuit")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjnuit");
 
                     b.Property<double?>("Totjpanier")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjpanier");
 
                     b.Property<double?>("Totjpoint")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totjpoint");
 
                     b.Property<string>("Totnuit")
                         .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)")
+                        .HasColumnType("character varying(7)")
                         .HasColumnName("totnuit");
 
                     b.Property<float?>("Totrepos")
@@ -7093,40 +7306,40 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Totret")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("totret");
 
                     b.Property<string>("Totsem")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("totsem");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("pointmoisj", (string)null);
+                    b.ToTable("pointmoisj");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointsemainej", b =>
                 {
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<string>("Caltype")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("caltype");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<float?>("Jours")
@@ -7135,25 +7348,25 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Modcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("modcod");
 
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("mois");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Semaine1")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine1");
 
                     b.Property<DateTime?>("Semaine1d")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semaine1d");
 
                     b.Property<float?>("Semaine1n")
@@ -7162,11 +7375,11 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Semaine2")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine2");
 
                     b.Property<DateTime?>("Semaine2d")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semaine2d");
 
                     b.Property<float?>("Semaine2n")
@@ -7175,11 +7388,11 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Semaine3")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine3");
 
                     b.Property<DateTime?>("Semaine3d")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semaine3d");
 
                     b.Property<float?>("Semaine3n")
@@ -7188,11 +7401,11 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Semaine4")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine4");
 
                     b.Property<DateTime?>("Semaine4d")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semaine4d");
 
                     b.Property<float?>("Semaine4n")
@@ -7201,11 +7414,11 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Semaine5")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine5");
 
                     b.Property<DateTime?>("Semaine5d")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semaine5d");
 
                     b.Property<float?>("Semaine5n")
@@ -7214,15 +7427,15 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Semaine6")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("semaine6");
 
                     b.Property<DateTime?>("Semaine6d")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semaine6d");
 
                     b.Property<DateTime?>("Semaine6f")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semaine6f");
 
                     b.Property<float?>("Semaine6n")
@@ -7231,46 +7444,46 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Totsem")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("totsem");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("pointsemainej", (string)null);
+                    b.ToTable("pointsemainej");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pointuser", b =>
                 {
                     b.Property<byte[]>("Bitmappicture")
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("BITMAPPICTURE");
 
                     b.Property<byte[]>("Bitmappicture2")
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("BITMAPPICTURE2");
 
                     b.Property<byte[]>("Bitmappicture3")
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("BITMAPPICTURE3");
 
                     b.Property<byte[]>("Bitmappicture4")
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("BITMAPPICTURE4");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<short?>("DivisionFp")
@@ -7279,130 +7492,130 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Emachinenum")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("EMACHINENUM");
 
                     b.Property<int>("Fingerid")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("FINGERID");
 
                     b.Property<short?>("Flag")
                         .HasColumnType("smallint");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<byte[]>("Template")
                         .IsRequired()
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("TEMPLATE");
 
                     b.Property<byte[]>("Template1")
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("TEMPLATE1");
 
                     b.Property<byte[]>("Template2")
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("TEMPLATE2");
 
                     b.Property<byte[]>("Template3")
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("TEMPLATE3");
 
                     b.Property<byte[]>("Template4")
-                        .HasColumnType("image")
+                        .HasColumnType("bytea")
                         .HasColumnName("TEMPLATE4");
 
                     b.Property<int>("Templateid")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("TEMPLATEID");
 
                     b.Property<int>("Userid")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("USERID");
 
                     b.Property<short?>("Usetype")
                         .HasColumnType("smallint")
                         .HasColumnName("USETYPE");
 
-                    b.ToTable("pointuser", (string)null);
+                    b.ToTable("pointuser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Poste", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Codposte")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("codposte");
 
                     b.Property<int?>("Apresent")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("apresent");
 
                     b.Property<int?>("Apressort")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("apressort");
 
                     b.Property<int?>("Arrhemajore")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhemajore");
 
                     b.Property<int?>("Arrhentree")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhentree");
 
                     b.Property<int?>("Arrhsmajore")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsmajore");
 
                     b.Property<int?>("Arrhsortie")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsortie");
 
                     b.Property<int?>("Arrhsup")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrhsup");
 
                     b.Property<int?>("Arrondi")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("arrondi");
 
                     b.Property<int?>("Avabon")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avabon");
 
                     b.Property<int?>("Avabonam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avabonam");
 
                     b.Property<int?>("Avamn")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avamn");
 
                     b.Property<int?>("Avamnam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avamnam");
 
                     b.Property<int?>("Avantent")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avantent");
 
                     b.Property<int?>("Avantsort")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avantsort");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<float?>("Dimdouche")
@@ -7411,61 +7624,61 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Dimhdam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhdam");
 
                     b.Property<string>("Dimhdeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhdeamidi");
 
                     b.Property<string>("Dimhdematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhdematin");
 
                     b.Property<string>("Dimhdmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhdmat");
 
                     b.Property<string>("Dimhdrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhdrep");
 
                     b.Property<string>("Dimhfam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhfam");
 
                     b.Property<string>("Dimhfeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhfeamidi");
 
                     b.Property<string>("Dimhfematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhfematin");
 
                     b.Property<string>("Dimhfmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhfmat");
 
                     b.Property<string>("Dimhfrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("dimhfrep");
 
                     b.Property<int?>("Dimrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("dimrepas");
 
                     b.Property<string>("Dimrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("dimrepos");
 
                     b.Property<float?>("Jeudouche")
@@ -7474,66 +7687,66 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Jeuhdam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhdam");
 
                     b.Property<string>("Jeuhdeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhdeamidi");
 
                     b.Property<string>("Jeuhdematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhdematin");
 
                     b.Property<string>("Jeuhdmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhdmat");
 
                     b.Property<string>("Jeuhdrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhdrep");
 
                     b.Property<string>("Jeuhfam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhfam");
 
                     b.Property<string>("Jeuhfeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhfeamidi");
 
                     b.Property<string>("Jeuhfematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhfematin");
 
                     b.Property<string>("Jeuhfmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhfmat");
 
                     b.Property<string>("Jeuhfrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("jeuhfrep");
 
                     b.Property<int?>("Jeurepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("jeurepas");
 
                     b.Property<string>("Jeurepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("jeurepos");
 
                     b.Property<string>("Libposte")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("libposte");
 
                     b.Property<float?>("Lundouche")
@@ -7542,61 +7755,61 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Lunhdam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhdam");
 
                     b.Property<string>("Lunhdeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhdeamidi");
 
                     b.Property<string>("Lunhdematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhdematin");
 
                     b.Property<string>("Lunhdmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhdmat");
 
                     b.Property<string>("Lunhdrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhdrep");
 
                     b.Property<string>("Lunhfam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhfam");
 
                     b.Property<string>("Lunhfeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhfeamidi");
 
                     b.Property<string>("Lunhfematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhfematin");
 
                     b.Property<string>("Lunhfmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhfmat");
 
                     b.Property<string>("Lunhfrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("lunhfrep");
 
                     b.Property<int?>("Lunrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("lunrepas");
 
                     b.Property<string>("Lunrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("lunrepos");
 
                     b.Property<float?>("Mardouche")
@@ -7605,96 +7818,96 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Marhdam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhdam");
 
                     b.Property<string>("Marhdeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhdeamidi");
 
                     b.Property<string>("Marhdematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhdematin");
 
                     b.Property<string>("Marhdmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhdmat");
 
                     b.Property<string>("Marhdrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhdrep");
 
                     b.Property<string>("Marhfam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhfam");
 
                     b.Property<string>("Marhfeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhfeamidi");
 
                     b.Property<string>("Marhfematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhfematin");
 
                     b.Property<string>("Marhfmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhfmat");
 
                     b.Property<string>("Marhfrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("marhfrep");
 
                     b.Property<int?>("Marrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("marrepas");
 
                     b.Property<string>("Marrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("marrepos");
 
                     b.Property<string>("Maxhredim")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhredim");
 
                     b.Property<string>("Maxhrejeu")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhrejeu");
 
                     b.Property<string>("Maxhrelun")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhrelun");
 
                     b.Property<string>("Maxhremar")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhremar");
 
                     b.Property<string>("Maxhremer")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhremer");
 
                     b.Property<string>("Maxhresam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhresam");
 
                     b.Property<string>("Maxhreven")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhreven");
 
                     b.Property<float?>("Merdouche")
@@ -7703,137 +7916,137 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Merhdam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhdam");
 
                     b.Property<string>("Merhdeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhdeamidi");
 
                     b.Property<string>("Merhdematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhdematin");
 
                     b.Property<string>("Merhdmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhdmat");
 
                     b.Property<string>("Merhdrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhdrep");
 
                     b.Property<string>("Merhfam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhfam");
 
                     b.Property<string>("Merhfeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhfeamidi");
 
                     b.Property<string>("Merhfematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhfematin");
 
                     b.Property<string>("Merhfmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhfmat");
 
                     b.Property<string>("Merhfrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("merhfrep");
 
                     b.Property<int?>("Merrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("merrepas");
 
                     b.Property<string>("Merrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("merrepos");
 
                     b.Property<int?>("Minhdemijourdim")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijourdim");
 
                     b.Property<int?>("Minhdemijourjeu")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijourjeu");
 
                     b.Property<int?>("Minhdemijourlun")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijourlun");
 
                     b.Property<int?>("Minhdemijourmar")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijourmar");
 
                     b.Property<int?>("Minhdemijourmer")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijourmer");
 
                     b.Property<int?>("Minhdemijoursam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijoursam");
 
                     b.Property<int?>("Minhdemijourven")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijourven");
 
                     b.Property<int?>("Minhjourdim")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjourdim");
 
                     b.Property<int?>("Minhjourjeu")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjourjeu");
 
                     b.Property<int?>("Minhjourlun")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjourlun");
 
                     b.Property<int?>("Minhjourmar")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjourmar");
 
                     b.Property<int?>("Minhjourmer")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjourmer");
 
                     b.Property<int?>("Minhjoursam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjoursam");
 
                     b.Property<int?>("Minhjourven")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjourven");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<int?>("Retmin")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("retmin");
 
                     b.Property<int?>("Retminam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("retminam");
 
                     b.Property<int?>("Retsanc")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("retsanc");
 
                     b.Property<int?>("Retsancam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("retsancam");
 
                     b.Property<float?>("Samdouche")
@@ -7842,61 +8055,61 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Samhdam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdam");
 
                     b.Property<string>("Samhdeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdeamidi");
 
                     b.Property<string>("Samhdematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdematin");
 
                     b.Property<string>("Samhdmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdmat");
 
                     b.Property<string>("Samhdrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdrep");
 
                     b.Property<string>("Samhfam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfam");
 
                     b.Property<string>("Samhfeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfeamidi");
 
                     b.Property<string>("Samhfematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfematin");
 
                     b.Property<string>("Samhfmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfmat");
 
                     b.Property<string>("Samhfrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfrep");
 
                     b.Property<int?>("Samrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("samrepas");
 
                     b.Property<string>("Samrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("samrepos");
 
                     b.Property<float?>("Vendouche")
@@ -7905,392 +8118,392 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Venhdam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhdam");
 
                     b.Property<string>("Venhdeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhdeamidi");
 
                     b.Property<string>("Venhdematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhdematin");
 
                     b.Property<string>("Venhdmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhdmat");
 
                     b.Property<string>("Venhdrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhdrep");
 
                     b.Property<string>("Venhfam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhfam");
 
                     b.Property<string>("Venhfeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhfeamidi");
 
                     b.Property<string>("Venhfematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhfematin");
 
                     b.Property<string>("Venhfmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhfmat");
 
                     b.Property<string>("Venhfrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("venhfrep");
 
                     b.Property<int?>("Venrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("venrepas");
 
                     b.Property<string>("Venrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("venrepos");
 
                     b.HasKey("Soccod", "Codposte");
 
-                    b.ToTable("poste", (string)null);
+                    b.ToTable("poste");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Postemploye", b =>
                 {
                     b.Property<int?>("Apresent")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("apresent");
 
                     b.Property<int?>("Apressort")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("apressort");
 
                     b.Property<int?>("Avabon")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avabon");
 
                     b.Property<int?>("Avabonam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avabonam");
 
                     b.Property<int?>("Avamn")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avamn");
 
                     b.Property<int?>("Avamnam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avamnam");
 
                     b.Property<int?>("Avantent")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avantent");
 
                     b.Property<int?>("Avantsort")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("avantsort");
 
                     b.Property<DateTime?>("Catdeb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("catdeb");
 
                     b.Property<DateTime?>("Catfin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("catfin");
 
                     b.Property<string>("Codposte")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("codposte");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Hredam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hredam");
 
                     b.Property<string>("Hredeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hredeamidi");
 
                     b.Property<string>("Hredematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hredematin");
 
                     b.Property<string>("Hredmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hredmat");
 
                     b.Property<string>("Hredrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hredrep");
 
                     b.Property<string>("Hrefam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hrefam");
 
                     b.Property<string>("Hrefeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hrefeamidi");
 
                     b.Property<string>("Hrefematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hrefematin");
 
                     b.Property<string>("Hrefmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hrefmat");
 
                     b.Property<string>("Hrefrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hrefrep");
 
                     b.Property<int?>("Hrerepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("hrerepas");
 
                     b.Property<string>("Jourrepos")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("jourrepos");
 
                     b.Property<string>("Maxhre")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhre");
 
                     b.Property<string>("Maxhresam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("maxhresam");
 
                     b.Property<int?>("Minhdemijour")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijour");
 
                     b.Property<int?>("Minhdemijoursam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhdemijoursam");
 
                     b.Property<int?>("Minhjour")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjour");
 
                     b.Property<int?>("Minhjoursam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("minhjoursam");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<int?>("Retmin")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("retmin");
 
                     b.Property<int?>("Retminam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("retminam");
 
                     b.Property<int?>("Retsanc")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("retsanc");
 
                     b.Property<int?>("Retsancam")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("retsancam");
 
                     b.Property<string>("Samhdam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdam");
 
                     b.Property<string>("Samhdeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdeamidi");
 
                     b.Property<string>("Samhdematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdematin");
 
                     b.Property<string>("Samhdmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdmat");
 
                     b.Property<string>("Samhdrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhdrep");
 
                     b.Property<string>("Samhfam")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfam");
 
                     b.Property<string>("Samhfeamidi")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfeamidi");
 
                     b.Property<string>("Samhfematin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfematin");
 
                     b.Property<string>("Samhfmat")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfmat");
 
                     b.Property<string>("Samhfrep")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("samhfrep");
 
                     b.Property<int?>("Samrepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("samrepas");
 
                     b.Property<string>("Samrepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("samrepos");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("postemploye", (string)null);
+                    b.ToTable("postemploye");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Postesite", b =>
                 {
                     b.Property<string>("Code")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("code");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Nature")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("nature");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("postesite", (string)null);
+                    b.ToTable("postesite");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Presence", b =>
                 {
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("Predat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predat");
 
                     b.Property<string>("Catcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catcod");
 
                     b.Property<string>("Codposte")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("codposte");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Dmdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("dmdate");
 
                     b.Property<string>("Empcharge")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empcharge");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empmat");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<string>("Optimise")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("optimise");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<float?>("Preapresent")
@@ -8315,47 +8528,47 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Preentamidi")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentamidi");
 
                     b.Property<string>("Preentamidiup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentamidiup");
 
                     b.Property<string>("Preentasup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentasup");
 
                     b.Property<string>("Preentasupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentasupup");
 
                     b.Property<string>("Preentmat")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentmat");
 
                     b.Property<string>("Preentmatup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentmatup");
 
                     b.Property<string>("Preentsup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentsup");
 
                     b.Property<string>("Preentsupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentsupup");
 
                     b.Property<string>("Preobs")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("preobs");
 
                     b.Property<float?>("Prerepas")
@@ -8364,39 +8577,39 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Prerepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("prerepos");
 
                     b.Property<DateTime?>("Preretame")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretame");
 
                     b.Property<DateTime?>("Preretameup")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretameup");
 
                     b.Property<DateTime?>("Preretams")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretams");
 
                     b.Property<DateTime?>("Preretamsup")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretamsup");
 
                     b.Property<DateTime?>("Preretmate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretmate");
 
                     b.Property<DateTime?>("Preretmateup")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretmateup");
 
                     b.Property<DateTime?>("Preretmats")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretmats");
 
                     b.Property<DateTime?>("Preretmatsup")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretmatsup");
 
                     b.Property<float?>("Presem")
@@ -8405,61 +8618,61 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Presortamidi")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortamidi");
 
                     b.Property<string>("Presortamidiup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortamidiup");
 
                     b.Property<string>("Presortasup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortasup");
 
                     b.Property<string>("Presortasupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortasupup");
 
                     b.Property<string>("Presortmat")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortmat");
 
                     b.Property<string>("Presortmatup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortmatup");
 
                     b.Property<string>("Presortsup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortsup");
 
                     b.Property<string>("Presortsupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortsupup");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sercod");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<float?>("Totcmp")
@@ -8468,44 +8681,44 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Tothabs")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothabs");
 
                     b.Property<string>("Tothnuit")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothnuit");
 
                     b.Property<string>("Tothre")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothre");
 
                     b.Property<string>("Tothsup")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothsup");
 
                     b.HasKey("Empcod", "Predat");
 
-                    b.ToTable("presence", (string)null);
+                    b.ToTable("presence");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Presencej", b =>
                 {
                     b.Property<string>("Abscng")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("abscng");
 
                     b.Property<string>("Abspayer")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("abspayer");
 
                     b.Property<string>("Abssanc")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("abssanc");
 
                     b.Property<float?>("Allait")
@@ -8530,142 +8743,142 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Catcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("catcod");
 
                     b.Property<string>("Codposte")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("codposte");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Dmdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("dmdate");
 
                     b.Property<string>("Empcharge")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empcharge");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("Empemb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empemb");
 
                     b.Property<string>("Emplib")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("emplib");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empmat");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<DateTime?>("Empsort")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("empsort");
 
                     b.Property<string>("Emptype")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("emptype");
 
                     b.Property<string>("Habsj")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("habsj");
 
                     b.Property<string>("Hallait")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("hallait");
 
                     b.Property<string>("Hconge")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hconge");
 
                     b.Property<string>("Hdrepas")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hdrepas");
 
                     b.Property<string>("Henta")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("henta");
 
                     b.Property<string>("Hentadeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hentadeb");
 
                     b.Property<string>("Hentafin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hentafin");
 
                     b.Property<string>("Hentm")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hentm");
 
                     b.Property<string>("Hentmdeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hentmdeb");
 
                     b.Property<string>("Hentmfin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hentmfin");
 
                     b.Property<string>("Hferie")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("hferie");
 
                     b.Property<string>("Hfrepas")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hfrepas");
 
                     b.Property<string>("Hrepostrv")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("hrepostrv");
 
                     b.Property<string>("Hsorta")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hsorta");
 
                     b.Property<string>("Hsortm")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hsortm");
 
                     b.Property<string>("Jouralt")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("jouralt");
 
                     b.Property<float?>("Jourfer")
@@ -8682,42 +8895,42 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Modcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("modcod");
 
                     b.Property<string>("Motif")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("motif");
 
                     b.Property<string>("Nbhabs")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("nbhabs");
 
                     b.Property<string>("Nbhjour")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("nbhjour");
 
                     b.Property<string>("Nbhmaxjour")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nbhmaxjour");
 
                     b.Property<string>("Nbhre")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("nbhre");
 
                     b.Property<string>("Nbhrepos")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("nbhrepos");
 
                     b.Property<string>("Nbhsem")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("nbhsem");
 
                     b.Property<float?>("Nbjabs")
@@ -8726,31 +8939,31 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Optimise")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("optimise");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<string>("Pre100")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("pre100");
 
                     b.Property<string>("Pre25hre")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("pre25hre");
 
                     b.Property<string>("Pre50hre")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("pre50hre");
 
                     b.Property<string>("Pre75")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("pre75");
 
                     b.Property<float?>("Preapresent")
@@ -8774,52 +8987,52 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("preconge");
 
                     b.Property<DateTime?>("Predat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predat");
 
                     b.Property<string>("Preentamidi")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentamidi");
 
                     b.Property<string>("Preentamidiup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentamidiup");
 
                     b.Property<string>("Preentasup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentasup");
 
                     b.Property<string>("Preentasupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentasupup");
 
                     b.Property<string>("Preentmat")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentmat");
 
                     b.Property<string>("Preentmatup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentmatup");
 
                     b.Property<string>("Preentsup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentsup");
 
                     b.Property<string>("Preentsupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentsupup");
 
                     b.Property<string>("Preobs")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("preobs");
 
                     b.Property<float?>("Prerepas")
@@ -8828,47 +9041,47 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Prerepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("prerepos");
 
                     b.Property<string>("Preretame")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preretame");
 
                     b.Property<string>("Preretameup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preretameup");
 
                     b.Property<string>("Preretams")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preretams");
 
                     b.Property<string>("Preretamsup")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("preretamsup");
 
                     b.Property<string>("Preretmate")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preretmate");
 
                     b.Property<string>("Preretmateup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preretmateup");
 
                     b.Property<string>("Preretmats")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preretmats");
 
                     b.Property<string>("Preretmatsup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preretmatsup");
 
                     b.Property<float?>("Presem")
@@ -8877,42 +9090,42 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Presortamidi")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortamidi");
 
                     b.Property<string>("Presortamidiup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortamidiup");
 
                     b.Property<string>("Presortasup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortasup");
 
                     b.Property<string>("Presortasupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortasupup");
 
                     b.Property<string>("Presortmat")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortmat");
 
                     b.Property<string>("Presortmatup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortmatup");
 
                     b.Property<string>("Presortsup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortsup");
 
                     b.Property<string>("Presortsupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortsupup");
 
                     b.Property<float?>("Repas")
@@ -8920,7 +9133,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("repas");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<float?>("Retmin")
@@ -8941,22 +9154,22 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Rubtype")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rubtype");
 
                     b.Property<string>("Sercod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("sercod");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<float?>("Totcmp")
@@ -8965,107 +9178,107 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Tothabs")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothabs");
 
                     b.Property<string>("Tothaut")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothaut");
 
                     b.Property<string>("Tothavance")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothavance");
 
                     b.Property<string>("Tothcmp")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("tothcmp");
 
                     b.Property<string>("Tothnuit")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothnuit");
 
                     b.Property<string>("Tothplus")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("tothplus");
 
                     b.Property<string>("Tothre")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothre");
 
                     b.Property<string>("Tothrepas")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothrepas");
 
                     b.Property<string>("Tothretrepas")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothretrepas");
 
                     b.Property<string>("Tothsup")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothsup");
 
                     b.Property<string>("Totret")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("totret");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("presencej", (string)null);
+                    b.ToTable("presencej");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Pret", b =>
                 {
                     b.Property<string>("Condg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("condg");
 
                     b.Property<string>("Conrefus")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("conrefus");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Precod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("precod");
 
                     b.Property<DateTime?>("Predat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predat");
 
                     b.Property<DateTime?>("Predeb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predeb");
 
                     b.Property<DateTime?>("Prefin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("prefin");
 
                     b.Property<float?>("Premnt")
@@ -9077,164 +9290,276 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("preret");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rubcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("pret", (string)null);
+                    b.ToTable("pret");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Probarre", b =>
                 {
                     b.Property<string>("Artclr")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("artclr");
 
                     b.Property<string>("Artcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("artcod");
 
                     b.Property<string>("Artcodac")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("artcodac");
 
                     b.Property<string>("Artean")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("artean");
 
                     b.Property<string>("Artlib")
                         .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)")
+                        .HasColumnType("character varying(250)")
                         .HasColumnName("artlib");
 
                     b.Property<double?>("Artprix")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("artprix");
 
                     b.Property<string>("Artref")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("artref");
 
                     b.Property<string>("Arttaille")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("arttaille");
 
                     b.Property<string>("Clicod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("clicod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Gender")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("gender");
 
                     b.Property<int?>("Qte")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("qte");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("probarre", (string)null);
+                    b.ToTable("probarre");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.PushReminderLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("prl_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Empcod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("empcod");
+
+                    b.Property<DateTime>("ForDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("for_date");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("retention_date");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Soccod")
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("push_reminder_log");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.PushToken", b =>
+                {
+                    b.Property<int>("PtId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("pt_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PtId"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Platform")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("platform");
+
+                    b.Property<DateTime?>("RetentionDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("retention_date");
+
+                    b.Property<string>("Soccod")
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("token");
+
+                    b.Property<string>("Uticod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("PtId");
+
+                    b.ToTable("push_tokens");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Qualif", b =>
                 {
                     b.Property<string>("Quacod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("quacod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Catcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("catcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Qualib")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("qualib");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Quacod", "Soccod");
 
-                    b.ToTable("qualif", (string)null);
+                    b.ToTable("qualif");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Qualjrl", b =>
                 {
                     b.Property<string>("Artcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("artcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("Defcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("defcod");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Moncod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("moncod");
 
                     b.Property<float?>("Nbpaccepte")
@@ -9250,58 +9575,58 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("nombre");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<DateTime?>("Quadate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("quadate");
 
                     b.Property<string>("Quaobs")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
+                        .HasColumnType("character varying(60)")
                         .HasColumnName("quaobs");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("qualjrl", (string)null);
+                    b.ToTable("qualjrl");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Qualmen", b =>
                 {
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Mois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("mois");
 
                     b.Property<float?>("Montant")
@@ -9321,557 +9646,761 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("nbprefuse");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rubcod");
 
                     b.Property<string>("Rubsigne")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rubsigne");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Titcod")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("titcod");
 
-                    b.ToTable("qualmens", (string)null);
+                    b.ToTable("qualmens");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RagChatLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Answer")
+                        .HasColumnType("text")
+                        .HasColumnName("answer");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FeedbackComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("feedback_comment");
+
+                    b.Property<byte?>("FeedbackScore")
+                        .HasColumnType("smallint")
+                        .HasColumnName("feedback_score");
+
+                    b.Property<int?>("LatencyMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("latency_ms");
+
+                    b.Property<string>("Question")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("question");
+
+                    b.Property<string>("Soccod")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("SourcesJson")
+                        .HasColumnType("text")
+                        .HasColumnName("sources_json");
+
+                    b.Property<int?>("TokensIn")
+                        .HasColumnType("integer")
+                        .HasColumnName("tokens_in");
+
+                    b.Property<int?>("TokensOut")
+                        .HasColumnType("integer")
+                        .HasColumnName("tokens_out");
+
+                    b.Property<string>("Uticod")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("uticod");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("rag_chat_log");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RagDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("category");
+
+                    b.Property<int?>("ChunksCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("chunks_count");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("content_type");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error_message");
+
+                    b.Property<string>("Filename")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)")
+                        .HasColumnName("filename");
+
+                    b.Property<string>("OriginalName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)")
+                        .HasColumnName("original_name");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("Soccod")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("soccod");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.Property<string>("UploadedBy")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("uploaded_by");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("rag_document");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.RagLetterTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BodyHtml")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body_html");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PlaceholdersJson")
+                        .HasColumnType("text")
+                        .HasColumnName("placeholders_json");
+
+                    b.Property<string>("Soccod")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("soccod");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("rag_letter_template");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("purpose");
+
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<bool>("Revoked")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("revoked");
 
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("token");
 
                     b.Property<string>("Uticod")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
                     b.HasKey("Id");
 
-                    b.ToTable("refresh_tokens", (string)null);
+                    b.ToTable("refresh_tokens");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Regleremp", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("Datecheance")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("datecheance");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<int?>("Idamortis")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("idamortis");
 
                     b.Property<int?>("Nopret")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nopret");
 
                     b.Property<int?>("Pretmnt")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("pretmnt");
 
                     b.Property<DateTime?>("Regdat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("regdat");
 
                     b.Property<DateTime?>("Regech")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("regech");
 
                     b.Property<string>("Reglib")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("reglib");
 
                     b.Property<double?>("Regmnt")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("regmnt");
 
                     b.Property<string>("Regordre")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("regordre");
 
                     b.Property<string>("Regref")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("regref");
 
                     b.Property<string>("Regtit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("regtit");
 
                     b.Property<string>("Regtype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("regtype");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("regleremp", (string)null);
+                    b.ToTable("regleremp");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rendjour", b =>
                 {
                     b.Property<string>("Artcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("artcod");
 
                     b.Property<string>("Artmethode")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("artmethode");
 
                     b.Property<double?>("Artqte")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("artqte");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Opecod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("opecod");
 
                     b.Property<int?>("Opeordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("opeordre");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<DateTime?>("Rnddate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("rnddate");
 
                     b.Property<double?>("Rndpre")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("rndpre");
 
                     b.Property<double?>("Rndprod")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("rndprod");
 
                     b.Property<double?>("Rndtemps")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("rndtemps");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.Property<double?>("Totpre")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totpre");
 
-                    b.ToTable("rendjour", (string)null);
+                    b.ToTable("rendjour");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Repo", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Hredeb")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hredeb");
 
                     b.Property<string>("Hrefin")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("hrefin");
 
                     b.Property<string>("Motif")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("motif");
 
                     b.Property<string>("Nbheure")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("nbheure");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<DateTime?>("Predat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predat");
 
                     b.Property<string>("Prerepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("prerepos");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("repos", (string)null);
+                    b.ToTable("repos");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rndbareme", b =>
                 {
                     b.Property<string>("Barabs")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("barabs");
 
                     b.Property<double?>("Barinf")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("barinf");
 
                     b.Property<double?>("Barmnt")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("barmnt");
 
                     b.Property<double?>("Barpabs")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("barpabs");
 
                     b.Property<string>("Barrub")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("barrub");
 
                     b.Property<double?>("Barsup")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("barsup");
 
                     b.Property<string>("Bartype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("bartype");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("rndbareme", (string)null);
+                    b.ToTable("rndbareme");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Role", b =>
                 {
                     b.Property<int>("RoleId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("role_id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("RoleId"));
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("RoleColor")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("role_color");
 
                     b.Property<DateTime>("RoleCreatedAt")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("role_created_at");
 
                     b.Property<string>("RoleDescription")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("role_description");
 
                     b.Property<bool>("RoleIsSystem")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("role_is_system");
 
                     b.Property<string>("RoleName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("role_name");
 
                     b.HasKey("RoleId");
 
-                    b.ToTable("roles", (string)null);
+                    b.ToTable("roles");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.RolePermission", b =>
                 {
                     b.Property<int>("RpId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("rp_id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RpId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("RpId"));
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("RpAdd")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("text")
                         .HasColumnName("rp_add");
 
                     b.Property<string>("RpConsult")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("text")
                         .HasColumnName("rp_consult");
 
                     b.Property<string>("RpDelete")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("text")
                         .HasColumnName("rp_delete");
 
                     b.Property<string>("RpModify")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("text")
                         .HasColumnName("rp_modify");
 
                     b.Property<string>("RpModule")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("rp_module");
 
                     b.Property<int>("RpRoleId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("rp_role_id");
 
                     b.HasKey("RpId");
 
                     b.HasIndex("RpRoleId");
 
-                    b.ToTable("role_permissions", (string)null);
+                    b.ToTable("role_permissions");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.RolePointdroit", b =>
                 {
                     b.Property<int>("RpdId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("rpd_id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RpdId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("RpdId"));
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("RpdConfig")
                         .IsRequired()
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rpd_config");
 
                     b.Property<string>("RpdLire")
                         .IsRequired()
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rpd_lire");
 
                     b.Property<string>("RpdPoicod")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rpd_poicod");
 
                     b.Property<string>("RpdPurger")
                         .IsRequired()
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rpd_purger");
 
                     b.Property<int>("RpdRoleId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("rpd_role_id");
 
                     b.Property<string>("RpdSoccod")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rpd_soccod");
 
                     b.HasKey("RpdId");
 
                     b.HasIndex("RpdRoleId");
 
-                    b.ToTable("role_pointdroit", (string)null);
+                    b.ToTable("role_pointdroit");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rubrique", b =>
                 {
                     b.Property<string>("Rubcod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rubcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rublib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("rublib");
 
                     b.Property<string>("Rubregime")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rubregime");
 
                     b.Property<float?>("Rubtaux")
@@ -9880,76 +10409,76 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Rubtype")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("rubtype");
 
                     b.Property<string>("Rubunite")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("rubunite");
 
                     b.Property<string>("Vartype")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
+                        .HasColumnType("character varying(5)")
                         .HasColumnName("vartype");
 
                     b.HasKey("Rubcod", "Soccod");
 
-                    b.ToTable("rubrique", (string)null);
+                    b.ToTable("rubrique");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Rubtype", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rublib")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("rublib");
 
                     b.Property<string>("Rubtype1")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rubtype");
 
-                    b.ToTable("rubtype", (string)null);
+                    b.ToTable("rubtype");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Salaire", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("Joudeb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("joudeb");
 
                     b.Property<DateTime?>("Joufin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("joufin");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<float?>("Salabs")
@@ -9974,7 +10503,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salannee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("salannee");
 
                     b.Property<float?>("Salconge")
@@ -9986,11 +10515,11 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("salcsf");
 
                     b.Property<DateTime?>("Saldat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("saldat");
 
                     b.Property<DateTime?>("Saldatac")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("saldatac");
 
                     b.Property<float?>("Saldep")
@@ -10071,7 +10600,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("salmat");
 
                     b.Property<float?>("Salmens")
@@ -10080,7 +10609,7 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salmois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("salmois");
 
                     b.Property<float?>("Salnbh")
@@ -10105,12 +10634,12 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Salpoint")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("salpoint");
 
                     b.Property<string>("Salreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("salreg");
 
                     b.Property<float?>("Salret")
@@ -10131,65 +10660,65 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Saltit")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("saltit");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("salaire", (string)null);
+                    b.ToTable("salaire");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Sanction", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Concod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("concod");
 
                     b.Property<string>("Abscod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("abscod");
 
                     b.Property<string>("Conamdep")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamdep");
 
                     b.Property<string>("Conamret")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conamret");
 
                     b.Property<DateTime?>("Condat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condat");
 
                     b.Property<DateTime?>("Condep")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("condep");
 
                     b.Property<string>("Conjour")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("conjour");
 
                     b.Property<string>("Conmotif")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("conmotif");
 
                     b.Property<float?>("Connbjour")
@@ -10198,104 +10727,104 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Conref")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("conref");
 
                     b.Property<DateTime?>("Conret")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("conret");
 
                     b.Property<string>("Consanc")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("consanc");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Concod");
 
-                    b.ToTable("sanction", (string)null);
+                    b.ToTable("sanction");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Section", b =>
                 {
                     b.Property<string>("Seccod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("seccod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("Effectif")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("effectif");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Seclib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("seclib");
 
                     b.Property<string>("Sectype")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("sectype");
 
                     b.HasKey("Seccod", "Soccod");
 
-                    b.ToTable("section", (string)null);
+                    b.ToTable("section");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Semaine", b =>
                 {
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<int?>("Semcod")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("semcod");
 
                     b.Property<float?>("Semconge")
@@ -10303,7 +10832,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("semconge");
 
                     b.Property<DateTime?>("Semdeb")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semdeb");
 
                     b.Property<float?>("Semferie")
@@ -10311,7 +10840,7 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("semferie");
 
                     b.Property<DateTime?>("Semfin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("semfin");
 
                     b.Property<float?>("Semhjdemi")
@@ -10348,87 +10877,87 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("semaine", (string)null);
+                    b.ToTable("semaine");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Service", b =>
                 {
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sercod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("Effectif")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("effectif");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Serlib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("serlib");
 
                     b.Property<string>("Serloc")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("serloc");
 
                     b.HasKey("Sercod", "Soccod");
 
-                    b.ToTable("service", (string)null);
+                    b.ToTable("service");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Site", b =>
                 {
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Sitadr")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("sitadr");
 
                     b.Property<float?>("Sitconge")
@@ -10441,183 +10970,200 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("Sitemail")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("sitemail");
 
                     b.Property<string>("Sitfax")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("sitfax");
+
+                    b.Property<decimal?>("Sitlat")
+                        .HasColumnType("decimal(10,7)")
+                        .HasColumnName("sitlat");
 
                     b.Property<string>("Sitlib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("sitlib");
 
+                    b.Property<decimal?>("Sitlon")
+                        .HasColumnType("decimal(10,7)")
+                        .HasColumnName("sitlon");
+
                     b.Property<int?>("Sitmois")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("sitmois");
 
                     b.Property<string>("Sitpaie")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitpaie");
+
+                    b.Property<int?>("Sitrad")
+                        .HasColumnType("integer")
+                        .HasColumnName("sitrad");
 
                     b.Property<string>("Sitsanch")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("sitsanch");
 
                     b.Property<string>("Sitsancm")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("sitsancm");
 
                     b.Property<string>("Sitsoc")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("sitsoc");
 
                     b.Property<string>("Sittel")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("sittel");
 
                     b.HasKey("Sitcod", "Soccod");
 
-                    b.ToTable("site", (string)null);
+                    b.ToTable("site");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Societe", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("soccod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Socadr")
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
+                        .HasColumnType("character varying(40)")
                         .HasColumnName("socadr");
 
                     b.Property<string>("Socadrar")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("socadrar");
 
                     b.Property<string>("Socccb")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("socccb");
 
                     b.Property<string>("Socemail")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("socemail");
 
                     b.Property<string>("Socfax")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("socfax");
 
                     b.Property<string>("Sochsup")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("sochsup");
 
                     b.Property<string>("Socimg")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("socimg");
 
                     b.Property<string>("Soclib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("soclib");
 
                     b.Property<string>("Soclibar")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("soclibar");
 
                     b.Property<string>("Socmere")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("socmere");
 
                     b.Property<int?>("Socmois")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("socmois");
 
                     b.Property<string>("Socpresence")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("socpresence");
 
                     b.Property<int?>("Socreg")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("socreg");
 
                     b.Property<string>("Socresp")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("socresp");
 
                     b.Property<string>("Socrespar")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("socrespar");
 
                     b.Property<double?>("Socsmig")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("socsmig");
 
                     b.Property<string>("Soctel")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("soctel");
 
                     b.Property<string>("Soctva")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("soctva");
 
                     b.Property<string>("Soctva000")
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
+                        .HasColumnType("character varying(3)")
                         .HasColumnName("soctva000");
 
                     b.Property<string>("Soctva1")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("soctva1");
 
                     b.Property<string>("Soctva2")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("soctva2");
 
                     b.Property<string>("Soctva3")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("soctva3");
 
                     b.Property<string>("Soctype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("soctype");
+
+                    b.Property<string>("Socville")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("socville");
 
                     b.HasKey("Soccod");
 
@@ -10628,100 +11174,104 @@ namespace ABRPOINT.Server.Migrations
                 {
                     b.Property<string>("Basesql")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("BASESQL");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("SocCod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("SOC_COD");
 
                     b.Property<string>("SocLib")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("SOC_LIB");
 
-                    b.ToTable("socsage", (string)null);
+                    b.ToTable("socsage");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Socuser", b =>
                 {
                     b.Property<string>("Soccod")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("character varying(15)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("sitcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Exercice")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("exercice");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.HasKey("Soccod", "Uticod", "Sitcod");
 
-                    b.ToTable("socuser", (string)null);
+                    b.ToTable("socuser");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Solde", b =>
                 {
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Annee")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("annee");
+
+                    b.Property<float?>("Cetjours")
+                        .HasColumnType("real")
+                        .HasColumnName("cetjours");
 
                     b.Property<float?>("Conge")
                         .HasColumnType("real")
                         .HasColumnName("conge");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<float?>("Empconge")
@@ -10729,345 +11279,353 @@ namespace ABRPOINT.Server.Migrations
                         .HasColumnName("empconge");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
+
+                    b.Property<float?>("RttJours")
+                        .HasColumnType("real")
+                        .HasColumnName("rtt_jours");
+
+                    b.Property<float?>("RttUtilises")
+                        .HasColumnType("real")
+                        .HasColumnName("rtt_utilises");
 
                     b.HasKey("Empcod", "Soccod");
 
-                    b.ToTable("solde", (string)null);
+                    b.ToTable("solde");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Soldecmp", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<double?>("Heure")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("heure");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
-                    b.ToTable("soldecmp", (string)null);
+                    b.ToTable("soldecmp");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Suivemp", b =>
                 {
                     b.Property<int?>("Annee")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("annee");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("Date")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("date");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("empcod");
 
                     b.Property<int?>("Mois")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("mois");
 
                     b.Property<int?>("Panne")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("panne");
 
                     b.Property<string>("Paqcod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("paqcod");
 
                     b.Property<int?>("Presence")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("presence");
 
                     b.Property<string>("Rend")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("rend");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Temprod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("temprod");
 
-                    b.ToTable("suivemp", (string)null);
+                    b.ToTable("suivemp");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.SuvCalend", b =>
                 {
                     b.Property<string>("CalAn")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("cal_an");
 
                     b.Property<int?>("CalCol")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_col");
 
                     b.Property<DateTime?>("CalDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("cal_date");
 
                     b.Property<string>("CalMois")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("cal_mois");
 
                     b.Property<int?>("CalNbh")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_nbh");
 
                     b.Property<int?>("CalRow")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_row");
 
                     b.Property<int?>("CalSem")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_sem");
 
                     b.Property<int?>("CalTrav")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cal_trav");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Motif")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("motif");
 
                     b.Property<string>("Payer")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("payer");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("suv_calend", (string)null);
+                    b.ToTable("suv_calend");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TAmort", b =>
                 {
                     b.Property<double?>("Annuite")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("CapitalAmorti")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DateEcheance")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DateEcheancePrevue")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<double?>("EcartArrondiSurEcheance")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("FlagagePret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("IdAmortis")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<double?>("InteretsIntercalaires")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("MontantCapitalDu")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("MontantDesInterets")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("NoEcheance")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NoPret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NombreDeReports")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("t_amorts", (string)null);
+                    b.ToTable("t_amorts");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TPret", b =>
                 {
                     b.Property<int?>("Bareme")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CalculAutomatique")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
+                        .HasColumnType("character varying(1)");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DateDeblocage")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DateDecision")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DatePremiereEcheance")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DateProchaineEcheance")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DateRemboursementAnticipe")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<double?>("DifferentielMontant")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("DureeDuPret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("EtabPreteur")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
+                        .HasColumnType("character varying(1)");
 
                     b.Property<DateTime?>("FinFranchise")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("FlagInfosGenerales")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
+                        .HasColumnType("character varying(1)");
 
                     b.Property<int?>("Franchise")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<double?>("GarantieSalarie")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("IdPret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LibelleDuPret")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("ModePaiement")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
+                        .HasColumnType("character varying(1)");
 
                     b.Property<double?>("MontantAmortissement")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("MontantDuPret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<double?>("MontantEcheance")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("MontantGarantie")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("MontantRestant")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("NbEcheance")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NbEcheancesRestantes")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NbPaliers")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NoDeDecision")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NoPret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NumSalarie")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ObjetPret")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("PeriodiciteEcheance")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)");
+                        .HasColumnType("character varying(2)");
 
                     b.Property<string>("PretDebloque")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
+                        .HasColumnType("character varying(1)");
 
                     b.Property<double?>("PretSolde")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("RubriqueRemboursement")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<float?>("TauxInteret")
                         .HasColumnType("real");
@@ -11077,646 +11635,654 @@ namespace ABRPOINT.Server.Migrations
 
                     b.Property<string>("TypeDePret")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("TypeDeTable")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
-                    b.ToTable("t_pret", (string)null);
+                    b.ToTable("t_pret");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TRemboursement", b =>
                 {
                     b.Property<double?>("Annuite")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("CapitalAmorti")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DateEcheance")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DateEcheancePrevue")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DateRemboursement")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<double?>("EcartArrondiSurEcheance")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("FlagagePret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("IdAmortis")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<double?>("InteretsIntercalaires")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("MontantCapitalDu")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("MontantDesInterets")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("NoEcheance")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NoPret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("NoQuittnce")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<int?>("NombreDeReports")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("TypeRemboursement")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
+                        .HasColumnType("character varying(1)");
 
-                    b.ToTable("t_remboursement", (string)null);
+                    b.ToTable("t_remboursement");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TSal", b =>
                 {
                     b.Property<string>("Civilite")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<int?>("MatriculeSalarie")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Nom")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<string>("NomJeuneFille")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<string>("Prenom")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<string>("Prenom2")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<int?>("SaCompteurNumero")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("SA_CompteurNumero");
 
-                    b.ToTable("t_sal", (string)null);
+                    b.ToTable("t_sal");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.TTyperemb", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<double?>("MontantBultin")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("MontantEspece")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("No")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("NoPret")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
-                    b.ToTable("t_typeremb", (string)null);
+                    b.ToTable("t_typeremb");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Titre", b =>
                 {
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Titarrondi")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("titarrondi");
 
                     b.Property<string>("Titcod")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("titcod");
 
                     b.Property<string>("Titlib")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("titlib");
 
                     b.Property<string>("Titsens")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("titsens");
 
                     b.Property<string>("Tittype")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("tittype");
 
-                    b.ToTable("titre", (string)null);
+                    b.ToTable("titre");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Tmpclp651021", b =>
                 {
                     b.Property<string>("Catcod")
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("catcod");
 
                     b.Property<string>("Catcod1")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("catcod1");
 
                     b.Property<string>("Codposte")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("codposte");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("Dmdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("dmdate");
 
                     b.Property<string>("Empcharge")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empcharge");
 
                     b.Property<string>("Empcod")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empcod");
 
                     b.Property<string>("Empmat")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("empmat");
 
                     b.Property<string>("Empreg")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("empreg");
 
                     b.Property<string>("Emptype")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("emptype");
 
                     b.Property<string>("Hferie")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("hferie");
 
                     b.Property<string>("Nbhjour")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("nbhjour");
 
                     b.Property<string>("Nbhsem")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("nbhsem");
 
                     b.Property<string>("Optimise")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("optimise");
 
                     b.Property<string>("Optimise1")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("optimise1");
 
                     b.Property<int?>("Ordre")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ordre");
 
                     b.Property<int?>("Preapresent")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("preapresent");
 
                     b.Property<int?>("Preapressort")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("preapressort");
 
                     b.Property<int?>("Preavantent")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("preavantent");
 
                     b.Property<int?>("Preavantsort")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("preavantsort");
 
                     b.Property<DateTime?>("Predat")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("predat");
 
                     b.Property<string>("Preentamidi")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentamidi");
 
                     b.Property<string>("Preentamidiup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentamidiup");
 
                     b.Property<string>("Preentasup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentasup");
 
                     b.Property<string>("Preentasupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentasupup");
 
                     b.Property<string>("Preentmat")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentmat");
 
                     b.Property<string>("Preentmatup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentmatup");
 
                     b.Property<string>("Preentsup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentsup");
 
                     b.Property<string>("Preentsupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("preentsupup");
 
                     b.Property<string>("Preobs")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("preobs");
 
                     b.Property<string>("Preobs1")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("preobs1");
 
                     b.Property<int?>("Prerepas")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("prerepas");
 
                     b.Property<string>("Prerepos")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("prerepos");
 
                     b.Property<DateTime?>("Preretame")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretame");
 
                     b.Property<DateTime?>("Preretameup")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretameup");
 
                     b.Property<DateTime?>("Preretams")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretams");
 
                     b.Property<DateTime?>("Preretamsup")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretamsup");
 
                     b.Property<DateTime?>("Preretmate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretmate");
 
                     b.Property<DateTime?>("Preretmateup")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretmateup");
 
                     b.Property<DateTime?>("Preretmats")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretmats");
 
                     b.Property<DateTime?>("Preretmatsup")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("preretmatsup");
 
                     b.Property<int?>("Presem")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("presem");
 
                     b.Property<string>("Presortamidi")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortamidi");
 
                     b.Property<string>("Presortamidiup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortamidiup");
 
                     b.Property<string>("Presortasup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortasup");
 
                     b.Property<string>("Presortasupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortasupup");
 
                     b.Property<string>("Presortmat")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortmat");
 
                     b.Property<string>("Presortmatup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortmatup");
 
                     b.Property<string>("Presortsup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortsup");
 
                     b.Property<string>("Presortsupup")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("presortsupup");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Rubtype")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("rubtype");
 
                     b.Property<string>("Sercod")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("sercod");
 
                     b.Property<string>("Sitcod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("sitcod");
 
                     b.Property<string>("Soccod")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("soccod");
 
                     b.Property<string>("Soccod1")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("soccod1");
 
                     b.Property<int?>("Totcmp")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("totcmp");
 
                     b.Property<double?>("Totcmp1")
-                        .HasColumnType("float")
+                        .HasColumnType("double precision")
                         .HasColumnName("totcmp1");
 
                     b.Property<string>("Tothabs")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothabs");
 
                     b.Property<string>("Tothabs1")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("tothabs1");
 
                     b.Property<string>("Tothaut")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("tothaut");
 
                     b.Property<string>("Tothavance")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("tothavance");
 
                     b.Property<string>("Tothnuit")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothnuit");
 
                     b.Property<string>("Tothre")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothre");
 
                     b.Property<string>("Tothrepas")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("tothrepas");
 
                     b.Property<string>("Tothretrepas")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("tothretrepas");
 
                     b.Property<string>("Tothsup")
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("tothsup");
 
                     b.Property<string>("Tothsup1")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("tothsup1");
 
                     b.Property<string>("Totnuit")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("totnuit");
 
                     b.Property<string>("Uticod")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("uticod");
 
-                    b.ToTable("~TMPCLP651021", (string)null);
+                    b.ToTable("~TMPCLP651021");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Utilisateur", b =>
                 {
                     b.Property<string>("Uticod")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("uticod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
+                    b.Property<int?>("UtiFailedLogins")
+                        .HasColumnType("integer")
+                        .HasColumnName("uti_failed_logins");
+
+                    b.Property<DateTime?>("UtiLockoutUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uti_lockout_until");
+
                     b.Property<string>("UtiResetCode")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("UtiResetCodeExpiry")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UtiTwoFactorEnabled")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("uti2fa_enabled");
 
                     b.Property<string>("UtiTwoFactorSecret")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("uti2fa_secret");
 
                     b.Property<string>("Utiactif")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("utiactif");
 
                     b.Property<string>("Utiadm")
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
+                        .HasColumnType("character varying(150)")
                         .HasColumnName("utiadm");
 
                     b.Property<string>("Utiimg")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("utiimg");
 
                     b.Property<string>("Utimail")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Utimps")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("utimps");
 
                     b.Property<string>("Utinom")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("utinom");
 
                     b.Property<string>("Utiprn")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("utiprn");
 
                     b.Property<string>("Utirole")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("utirole");
 
                     b.HasKey("Uticod");
 
-                    b.ToTable("utilisateur", (string)null);
+                    b.ToTable("utilisateur");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Ville", b =>
                 {
                     b.Property<string>("Vilcod")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
                         .HasColumnName("vilcod");
 
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime?>("RetentionDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("retention_date");
 
                     b.Property<string>("Villib")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("villib");
 
                     b.HasKey("Vilcod");
 
-                    b.ToTable("ville", (string)null);
+                    b.ToTable("ville");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.Avance", b =>
@@ -11726,6 +12292,17 @@ namespace ABRPOINT.Server.Migrations
                         .HasForeignKey("Empcod", "Soccod", "Sitcod");
 
                     b.Navigation("Employe");
+                });
+
+            modelBuilder.Entity("ABRPOINT.Server.Models.NoteDeFrais", b =>
+                {
+                    b.HasOne("ABRPOINT.Server.Models.Mission", "Mission")
+                        .WithMany()
+                        .HasForeignKey("MissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Mission");
                 });
 
             modelBuilder.Entity("ABRPOINT.Server.Models.RolePermission", b =>

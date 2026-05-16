@@ -7,7 +7,13 @@ namespace ABRPOINT.Server.Services;
 /// Migrations idempotentes "in place" pour les colonnes des données de base.
 /// Aujourd'hui : élargit vilcod (2 → 6 chars) et villib (20 → 100 chars) pour
 /// pouvoir importer les communes françaises (codes INSEE 5 chiffres + noms longs
-/// comme "Saint-Remy-en-Bouzemont-Saint-Genest-et-Isson").
+/// comme "Saint-Remy-en-Bouzemont-Saint-Genest-et-Isson"), plus une vingtaine
+/// d'autres ADD COLUMN / CREATE TABLE / CREATE INDEX.
+///
+/// Migré SQL Server → PostgreSQL : on remplace les requêtes catalog sys.tables /
+/// sys.columns / sys.indexes par leur équivalent portable information_schema.* /
+/// pg_indexes, et on s'appuie au maximum sur ADD COLUMN IF NOT EXISTS /
+/// CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS (natifs PG ≥ 9.6).
 ///
 /// Comme MobileTablesInstaller, on évite EF migrations (pipeline existant) et on
 /// garde du SQL plat pour rattraper les bases déjà déployées.
@@ -18,28 +24,33 @@ public static class BaseDataSchemaMigrator
 
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
-        var vilcod = await ExpandColumnIfNeededAsync(db, "ville", "vilcod", "NVARCHAR(6) NOT NULL", currentMaxLen: 2, targetMaxLen: 6, ct);
-        var villib = await ExpandColumnIfNeededAsync(db, "ville", "villib", "NVARCHAR(100) NULL", currentMaxLen: 20, targetMaxLen: 100, ct);
-        var parmodemp = await AddColumnIfMissingAsync(db, "parametre", "parmodemp", "NVARCHAR(1) NULL", ct);
+        // Toutes les définitions de colonnes sont en syntaxe PostgreSQL :
+        //   NVARCHAR(n) → VARCHAR(n) ; NVARCHAR(MAX) → TEXT ;
+        //   DATETIME / DATETIME2 → TIMESTAMP ;
+        //   INT → INTEGER ; FLOAT → DOUBLE PRECISION ; TINYINT → SMALLINT ;
+        //   GETUTCDATE() → (NOW() AT TIME ZONE 'UTC').
+        var vilcod = await ExpandColumnIfNeededAsync(db, "ville", "vilcod", "VARCHAR(6)", currentMaxLen: 2, targetMaxLen: 6, makeNotNull: true, ct);
+        var villib = await ExpandColumnIfNeededAsync(db, "ville", "villib", "VARCHAR(100)", currentMaxLen: 20, targetMaxLen: 100, makeNotNull: false, ct);
+        var parmodemp = await AddColumnIfMissingAsync(db, "parametre", "parmodemp", "VARCHAR(1) NULL", ct);
         // CET (Compte Épargne Temps) : 2 colonnes Parametre + 1 colonne Solde.
-        var cetDate = await AddColumnIfMissingAsync(db, "parametre", "parcetdatelim", "NVARCHAR(5) NULL", ct);
+        var cetDate = await AddColumnIfMissingAsync(db, "parametre", "parcetdatelim", "VARCHAR(5) NULL", ct);
         var cetMax = await AddColumnIfMissingAsync(db, "parametre", "parcetmaxjours", "REAL NULL", ct);
         var cetSolde = await AddColumnIfMissingAsync(db, "solde", "cetjours", "REAL NULL", ct);
         var cetAdded = cetDate || cetMax || cetSolde;
         // Société : ville séparée du numéro de rue (champ socadr existant).
-        var socville = await AddColumnIfMissingAsync(db, "societe", "socville", "NVARCHAR(60) NULL", ct);
+        var socville = await AddColumnIfMissingAsync(db, "societe", "socville", "VARCHAR(60) NULL", ct);
         // Société : logo (chemin /api/uploads/<uuid>.ext). Sans cette colonne, l'export
         // PDF des templates échoue en 500 dès qu'on tente le SELECT s.socimg dans
         // ReportsGenerationService.GenerateFromHtml. Migration silencieuse pour
         // rétrocompat des bases provisionnées avant l'introduction du champ.
-        var socimg = await AddColumnIfMissingAsync(db, "societe", "socimg", "NVARCHAR(500) NULL", ct);
+        var socimg = await AddColumnIfMissingAsync(db, "societe", "socimg", "VARCHAR(500) NULL", ct);
         // Tables enfants qui référencent ville.vilcod : la PK a été élargie à 6 chars,
         // les FKs étaient encore à 4 → toute sauvegarde d'employé avec un vilcod
         // auto-généré (6 chiffres) ou un code INSEE (5 chiffres) échouait.
-        var vilFkEmploye = await ExpandColumnIfNeededAsync(db, "employe", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
-        var vilFkContrat = await ExpandColumnIfNeededAsync(db, "contrat", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
-        var vilFkContrat2 = await ExpandColumnIfNeededAsync(db, "contrat2", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
-        var vilFkEmpaff = await ExpandColumnIfNeededAsync(db, "empaff", "vilcod", "NVARCHAR(6) NULL", currentMaxLen: 4, targetMaxLen: 6, ct);
+        var vilFkEmploye = await ExpandColumnIfNeededAsync(db, "employe", "vilcod", "VARCHAR(6)", currentMaxLen: 4, targetMaxLen: 6, makeNotNull: false, ct);
+        var vilFkContrat = await ExpandColumnIfNeededAsync(db, "contrat", "vilcod", "VARCHAR(6)", currentMaxLen: 4, targetMaxLen: 6, makeNotNull: false, ct);
+        var vilFkContrat2 = await ExpandColumnIfNeededAsync(db, "contrat2", "vilcod", "VARCHAR(6)", currentMaxLen: 4, targetMaxLen: 6, makeNotNull: false, ct);
+        var vilFkEmpaff = await ExpandColumnIfNeededAsync(db, "empaff", "vilcod", "VARCHAR(6)", currentMaxLen: 4, targetMaxLen: 6, makeNotNull: false, ct);
         var vilFkExpanded = vilFkEmploye || vilFkContrat || vilFkContrat2 || vilFkEmpaff;
 
         // mission : ancienne table keyless (colonnes Concod/Condat/... héritées d'une vue
@@ -50,124 +61,97 @@ public static class BaseDataSchemaMigrator
         // NoteDeFrais.MissionId : ajouté en NULL pour ne pas casser les lignes existantes ;
         // côté contrôleur, on exige la valeur sur les nouvelles saisies. La migration ne
         // peut pas remplir rétroactivement les missions des notes déjà saisies.
-        var nfMission = await AddColumnIfMissingAsync(db, "notedefrais", "missionid", "INT NULL", ct);
+        var nfMission = await AddColumnIfMissingAsync(db, "notedefrais", "missionid", "INTEGER NULL", ct);
 
         // RTT (Réduction du Temps de Travail, loi française) :
-        // 4 colonnes sur employe (config par employé) + 2 colonnes sur solde (droit annuel + consommé).
-        // Toutes nullables : un tenant qui n'utilise pas le RTT garde son comportement actuel
-        // (EmpRttMethode = NULL → traité comme 'N' / non éligible côté service).
-        var rttMethode = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_methode", "NVARCHAR(1) NULL", ct);
+        // 4 colonnes sur employe + 2 colonnes sur solde. Toutes nullables.
+        var rttMethode = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_methode", "VARCHAR(1) NULL", ct);
         var rttJoursA = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_jours_annuel", "REAL NULL", ct);
         var rttHeuresC = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_heures_contrat", "REAL NULL", ct);
-        var rttForfait = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_forfait_jours", "INT NULL", ct);
+        var rttForfait = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_forfait_jours", "INTEGER NULL", ct);
         var rttSoldeJ = await AddColumnIfMissingAsync(db, "solde", "rtt_jours", "REAL NULL", ct);
         var rttSoldeU = await AddColumnIfMissingAsync(db, "solde", "rtt_utilises", "REAL NULL", ct);
         var rttColumnsAdded = rttMethode || rttJoursA || rttHeuresC || rttForfait || rttSoldeJ || rttSoldeU;
 
-        // RAG (Retrieval-Augmented Generation) : 3 tables créées d'un coup si la première
-        // n'existe pas. Le sidecar Python parle directement à Qdrant ; ces tables ne servent
-        // qu'à persister les métadonnées documents/templates et le journal d'audit RGPD.
+        // RAG (Retrieval-Augmented Generation) : 3 tables de métadonnées.
         var ragDocsCreated = await EnsureRagDocumentTableAsync(db, ct);
         var ragLettersCreated = await EnsureRagLetterTemplateTableAsync(db, ct);
         var ragLogsCreated = await EnsureRagChatLogTableAsync(db, ct);
         var ragTablesCreated = ragDocsCreated || ragLettersCreated || ragLogsCreated;
 
         // Devise pour les missions et notes de frais (ISO 4217 — 3 caractères).
-        // NULL = devise tenant par défaut côté client (rétrocompatible avec les
-        // lignes existantes saisies sans choix de devise).
-        var missionDevise = await AddColumnIfMissingAsync(db, "mission", "misdevise", "NVARCHAR(3) NULL", ct);
-        var nfDevise = await AddColumnIfMissingAsync(db, "notedefrais", "devise", "NVARCHAR(3) NULL", ct);
+        var missionDevise = await AddColumnIfMissingAsync(db, "mission", "misdevise", "VARCHAR(3) NULL", ct);
+        var nfDevise = await AddColumnIfMissingAsync(db, "notedefrais", "devise", "VARCHAR(3) NULL", ct);
 
-        // Geofence : zone GPS autorisée par site. NULL = pas de geofence pour ce site.
-        // L'admin/manager définit ces valeurs via le formulaire Filiale ; le validateur
-        // serveur (GeoZoneValidator) refuse les pointages hors rayon dès qu'au moins un
-        // site du tenant a les 3 colonnes renseignées.
+        // Geofence : zone GPS autorisée par site.
         var siteGeoLat = await AddColumnIfMissingAsync(db, "site", "sitlat", "DECIMAL(10,7) NULL", ct);
         var siteGeoLon = await AddColumnIfMissingAsync(db, "site", "sitlon", "DECIMAL(10,7) NULL", ct);
-        var siteGeoRad = await AddColumnIfMissingAsync(db, "site", "sitrad", "INT NULL", ct);
+        var siteGeoRad = await AddColumnIfMissingAsync(db, "site", "sitrad", "INTEGER NULL", ct);
         var siteGeofenceAdded = siteGeoLat || siteGeoLon || siteGeoRad;
 
-        // SEC-G2 / SEC-G6 — refresh_tokens : distingue les bio-tokens des refresh classiques
-        // et trace l'usage récent pour appliquer un quota par utilisateur. NOT NULL avec DEFAULT
-        // pour ne pas casser les lignes existantes.
+        // SEC-G2 / SEC-G6 — refresh_tokens.
         var rtPurpose = await AddColumnIfMissingAsync(db, "refresh_tokens", "purpose",
-            "VARCHAR(20) NOT NULL CONSTRAINT [DF_refresh_tokens_purpose] DEFAULT ('Refresh')", ct);
-        var rtLastUsed = await AddColumnIfMissingAsync(db, "refresh_tokens", "last_used_at", "DATETIME2 NULL", ct);
+            "VARCHAR(20) NOT NULL DEFAULT 'Refresh'", ct);
+        var rtLastUsed = await AddColumnIfMissingAsync(db, "refresh_tokens", "last_used_at", "TIMESTAMP NULL", ct);
         var rtIndex = await EnsureIndexAsync(db, "refresh_tokens", "ix_refresh_tokens_uticod_purpose_revoked",
             "(uticod, purpose, revoked) INCLUDE (expires_at, last_used_at)", ct);
         var refreshTokenColumnsAdded = rtPurpose || rtLastUsed || rtIndex;
 
         // Account lockout (2026-05) : verrouillage progressif après échecs de login répétés.
-        // Complète le rate limiter `auth-login` par IP : un attaquant en botnet contourne le
-        // rate limit IP, mais le compteur par compte le bloque quand même. NULL = jamais
-        // d'échec → équivalent à 0, on ne backfill pas.
-        await AddColumnIfMissingAsync(db, "utilisateur", "uti_failed_logins", "INT NULL", ct);
-        await AddColumnIfMissingAsync(db, "utilisateur", "uti_lockout_until", "DATETIME2 NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_failed_logins", "INTEGER NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_lockout_until", "TIMESTAMP NULL", ct);
 
         // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
         // qui sait déjà créer push_tokens, notifications, notification_preferences,
-        // notification_user_settings, known_devices. Idempotent (TableExistsAsync avant CREATE)
-        // donc safe à rappeler à chaque démarrage du process. Crucial pour que les tenants
-        // existants (provisionnés avant 2026-05) reçoivent automatiquement `known_devices`
-        // et tout le pipeline notif au prochain restart sans intervention DBA.
+        // notification_user_settings, known_devices.
         await MobileTablesInstaller.InstallAsync(db, ct);
 
-        // Seed nations : sans données, le sélecteur "Nationalité" / "Pays" de la fiche
-        // collaborateur reste vide. Idempotent : on n'écrit que si la table est nulle.
+        // Seed nations : sans données, le sélecteur "Nationalité" / "Pays" reste vide.
         await SeedNationsIfEmptyAsync(db, ct);
 
-        // PERF — Indexes critiques sur les hot-paths (présence, notifications, vault,
-        // congés, autorisations, push tokens, employés, audit). Création idempotente
-        // par vérification dans sys.indexes. Sans ces index, l'état périodique mensuel
-        // sur >1M lignes de présence passe de ~50 ms à plusieurs secondes (scan complet).
+        // PERF — Indexes critiques sur les hot-paths.
         await EnsurePerformanceIndexesAsync(db, ct);
 
         return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise, siteGeofenceAdded, refreshTokenColumnsAdded);
     }
 
     /// <summary>
-    /// PERF — Crée les index non-clustered identifiés par l'audit performance, si
-    /// absents. Chaque création est gardée par :
-    ///   1. Existence de la table cible (TableExistsAsync) — évite l'erreur "Invalid
-    ///      object name" sur les bases qui n'ont pas tout le schéma (legacy).
-    ///   2. Absence de l'index dans sys.indexes — idempotent.
-    /// Toute exception est avalée individuellement pour qu'un index manquant
-    /// n'empêche pas la création des suivants. Le caller ignore déjà les erreurs
-    /// de migration (cf. middleware) donc l'app boot toujours.
+    /// PERF — Crée les index identifiés par l'audit performance, si absents.
+    /// CREATE INDEX IF NOT EXISTS est natif depuis PG 9.5, donc plus besoin de
+    /// vérifier dans pg_indexes manuellement. INCLUDE (cols...) supporté depuis PG 11.
     /// </summary>
     private static async Task EnsurePerformanceIndexesAsync(ApplicationDbContext db, CancellationToken ct)
     {
-        var indexes = new (string Table, string IndexName, string CreateSql)[]
+        var indexes = new (string Table, string CreateSql)[]
         {
-            ("presence", "ix_presence_soccod_predat",
-                "CREATE NONCLUSTERED INDEX ix_presence_soccod_predat ON presence (soccod, predat) INCLUDE (empcod, preentmatup, presortmatup, preentamidiup, presortamidiup, tothre, tothsup, tothabs);"),
-            ("presence", "ix_presence_empcod_predat",
-                "CREATE NONCLUSTERED INDEX ix_presence_empcod_predat ON presence (empcod, predat DESC);"),
-            ("notification", "ix_notification_uticod_isread",
-                "CREATE NONCLUSTERED INDEX ix_notification_uticod_isread ON notification (uticod, isread) INCLUDE (createdat, title, category);"),
-            ("documentvault", "ix_documentvault_soccod_empcod_docdate",
-                "CREATE NONCLUSTERED INDEX ix_documentvault_soccod_empcod_docdate ON documentvault (soccod, empcod, docdate DESC) INCLUDE (docname, doctype, docsize, issigned, status);"),
-            ("demconge", "ix_demconge_soccod_condg",
-                "CREATE NONCLUSTERED INDEX ix_demconge_soccod_condg ON demconge (soccod, condg) INCLUDE (empcod, condep, conret, condat);"),
-            ("pushtoken", "ix_pushtoken_uticod_active",
-                "CREATE NONCLUSTERED INDEX ix_pushtoken_uticod_active ON pushtoken (uticod, active) INCLUDE (token);"),
-            ("employe", "ix_employe_soccod_empetat",
-                "CREATE NONCLUSTERED INDEX ix_employe_soccod_empetat ON employe (soccod, empetat) INCLUDE (empcod, empmat, emplib, sercod, secncod, dircod, sitcod);"),
-            ("demandeautorisation", "ix_demandeautorisation_soccod_statut",
-                "CREATE NONCLUSTERED INDEX ix_demandeautorisation_soccod_statut ON demandeautorisation (soccod, statut) INCLUDE (empcod, condep, conret, abscod);"),
-            ("auditlog", "ix_auditlog_uticod_createdat",
-                "CREATE NONCLUSTERED INDEX ix_auditlog_uticod_createdat ON auditlog (uticod, createdat DESC);"),
+            ("presence",
+                "CREATE INDEX IF NOT EXISTS ix_presence_soccod_predat ON presence (soccod, predat) INCLUDE (empcod, preentmatup, presortmatup, preentamidiup, presortamidiup, tothre, tothsup, tothabs);"),
+            ("presence",
+                "CREATE INDEX IF NOT EXISTS ix_presence_empcod_predat ON presence (empcod, predat DESC);"),
+            ("notification",
+                "CREATE INDEX IF NOT EXISTS ix_notification_uticod_isread ON notification (uticod, isread) INCLUDE (createdat, title, category);"),
+            ("documentvault",
+                "CREATE INDEX IF NOT EXISTS ix_documentvault_soccod_empcod_docdate ON documentvault (soccod, empcod, docdate DESC) INCLUDE (docname, doctype, docsize, issigned, status);"),
+            ("demconge",
+                "CREATE INDEX IF NOT EXISTS ix_demconge_soccod_condg ON demconge (soccod, condg) INCLUDE (empcod, condep, conret, condat);"),
+            ("pushtoken",
+                "CREATE INDEX IF NOT EXISTS ix_pushtoken_uticod_active ON pushtoken (uticod, active) INCLUDE (token);"),
+            ("employe",
+                "CREATE INDEX IF NOT EXISTS ix_employe_soccod_empetat ON employe (soccod, empetat) INCLUDE (empcod, empmat, emplib, sercod, secncod, dircod, sitcod);"),
+            ("demandeautorisation",
+                "CREATE INDEX IF NOT EXISTS ix_demandeautorisation_soccod_statut ON demandeautorisation (soccod, statut) INCLUDE (empcod, condep, conret, abscod);"),
+            ("auditlog",
+                "CREATE INDEX IF NOT EXISTS ix_auditlog_uticod_createdat ON auditlog (uticod, createdat DESC);"),
             // SEC — Refresh tokens : la rotation et le logout filtrent uticod + revoked + expires_at.
-            ("RefreshTokens", "ix_refresh_tokens_uticod_revoked_expires",
-                "CREATE NONCLUSTERED INDEX ix_refresh_tokens_uticod_revoked_expires ON RefreshTokens (Uticod, Revoked, ExpiresAt);"),
+            ("refreshtokens",
+                "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_uticod_revoked_expires ON refreshtokens (uticod, revoked, expiresat);"),
         };
 
-        foreach (var (table, indexName, createSql) in indexes)
+        foreach (var (table, createSql) in indexes)
         {
             try
             {
                 if (!await TableExistsAsync(db, table, ct)) continue;
-                if (await IndexExistsAsync(db, table, indexName, ct)) continue;
                 await db.Database.ExecuteSqlRawAsync(createSql, ct);
             }
             catch
@@ -176,18 +160,6 @@ public static class BaseDataSchemaMigrator
                 // Le scan complet reste fonctionnel ; on retentera au prochain boot.
             }
         }
-    }
-
-    private static async Task<bool> IndexExistsAsync(ApplicationDbContext db, string tableName, string indexName, CancellationToken ct)
-    {
-        var conn = db.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(1) FROM sys.indexes WHERE name = @i AND object_id = OBJECT_ID(@t);";
-        var pi = cmd.CreateParameter(); pi.ParameterName = "@i"; pi.Value = indexName; cmd.Parameters.Add(pi);
-        var pt = cmd.CreateParameter(); pt.ParameterName = "@t"; pt.Value = tableName; cmd.Parameters.Add(pt);
-        var result = await cmd.ExecuteScalarAsync(ct);
-        return Convert.ToInt32(result) > 0;
     }
 
     /// <summary>
@@ -204,7 +176,7 @@ public static class BaseDataSchemaMigrator
 
         await using (var count = conn.CreateCommand())
         {
-            count.CommandText = "SELECT COUNT(1) FROM [nation]";
+            count.CommandText = "SELECT COUNT(1) FROM nation";
             var n = Convert.ToInt32(await count.ExecuteScalarAsync(ct));
             if (n > 0) return; // déjà initialisé → on ne touche pas (laisse l'admin gérer)
         }
@@ -213,53 +185,21 @@ public static class BaseDataSchemaMigrator
         // Natlib StringLength=20). Pour étendre, l'admin passe par DonneesDeBase/Pays.
         var nations = new (string Code, string Label)[]
         {
-            ("FRA", "France"),
-            ("BEL", "Belgique"),
-            ("CHE", "Suisse"),
-            ("LUX", "Luxembourg"),
-            ("MCO", "Monaco"),
-            ("ESP", "Espagne"),
-            ("ITA", "Italie"),
-            ("DEU", "Allemagne"),
-            ("PRT", "Portugal"),
-            ("GBR", "Royaume-Uni"),
-            ("NLD", "Pays-Bas"),
-            ("USA", "États-Unis"),
-            ("CAN", "Canada"),
-            ("MAR", "Maroc"),
-            ("DZA", "Algérie"),
-            ("TUN", "Tunisie"),
-            ("EGY", "Égypte"),
-            ("SEN", "Sénégal"),
-            ("CIV", "Côte d'Ivoire"),
-            ("CMR", "Cameroun"),
-            ("GAB", "Gabon"),
-            ("MLI", "Mali"),
-            ("BFA", "Burkina Faso"),
-            ("NER", "Niger"),
-            ("TCD", "Tchad"),
-            ("COG", "Congo"),
-            ("COD", "RD Congo"),
-            ("MDG", "Madagascar"),
-            ("MUS", "Maurice"),
-            ("BEN", "Bénin"),
-            ("TGO", "Togo"),
-            ("GIN", "Guinée"),
-            ("MRT", "Mauritanie"),
-            ("LBN", "Liban"),
-            ("TUR", "Turquie"),
-            ("CHN", "Chine"),
-            ("JPN", "Japon"),
-            ("IND", "Inde"),
-            ("BRA", "Brésil"),
-            ("ARG", "Argentine"),
+            ("FRA", "France"), ("BEL", "Belgique"), ("CHE", "Suisse"), ("LUX", "Luxembourg"), ("MCO", "Monaco"),
+            ("ESP", "Espagne"), ("ITA", "Italie"), ("DEU", "Allemagne"), ("PRT", "Portugal"), ("GBR", "Royaume-Uni"),
+            ("NLD", "Pays-Bas"), ("USA", "États-Unis"), ("CAN", "Canada"), ("MAR", "Maroc"), ("DZA", "Algérie"),
+            ("TUN", "Tunisie"), ("EGY", "Égypte"), ("SEN", "Sénégal"), ("CIV", "Côte d'Ivoire"), ("CMR", "Cameroun"),
+            ("GAB", "Gabon"), ("MLI", "Mali"), ("BFA", "Burkina Faso"), ("NER", "Niger"), ("TCD", "Tchad"),
+            ("COG", "Congo"), ("COD", "RD Congo"), ("MDG", "Madagascar"), ("MUS", "Maurice"), ("BEN", "Bénin"),
+            ("TGO", "Togo"), ("GIN", "Guinée"), ("MRT", "Mauritanie"), ("LBN", "Liban"), ("TUR", "Turquie"),
+            ("CHN", "Chine"), ("JPN", "Japon"), ("IND", "Inde"), ("BRA", "Brésil"), ("ARG", "Argentine"),
         };
 
         await using var insert = conn.CreateCommand();
-        // SQL Server accepte une seule instruction INSERT...VALUES multi-row : 1 round-trip,
-        // pas de transaction explicite nécessaire (SaveChanges idempotent côté seed).
+        // Postgres accepte le INSERT INTO ... VALUES (...), (...) multi-row : 1 round-trip,
+        // pas de transaction explicite nécessaire (seed idempotent).
         var values = string.Join(",", Enumerable.Range(0, nations.Length).Select(i => $"(@c{i}, @l{i})"));
-        insert.CommandText = $"INSERT INTO [nation] ([natcod], [natlib]) VALUES {values}";
+        insert.CommandText = $"INSERT INTO nation (natcod, natlib) VALUES {values}";
         for (int i = 0; i < nations.Length; i++)
         {
             var pc = insert.CreateParameter(); pc.ParameterName = $"@c{i}"; pc.Value = nations[i].Code; insert.Parameters.Add(pc);
@@ -268,42 +208,44 @@ public static class BaseDataSchemaMigrator
         await insert.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>
+    /// Crée un index s'il n'existe pas. Utilise CREATE INDEX IF NOT EXISTS natif PG
+    /// — pas besoin de lookup dans pg_indexes avant.
+    /// </summary>
     private static async Task<bool> EnsureIndexAsync(ApplicationDbContext db, string table, string indexName, string columnsClause, CancellationToken ct)
     {
         if (!await TableExistsAsync(db, table, ct)) return false;
-        var conn = db.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
-        await using (var check = conn.CreateCommand())
+        try
         {
-            check.CommandText = "SELECT COUNT(1) FROM sys.indexes WHERE name = @n AND object_id = OBJECT_ID(@t)";
-            var pn = check.CreateParameter(); pn.ParameterName = "@n"; pn.Value = indexName; check.Parameters.Add(pn);
-            var pt = check.CreateParameter(); pt.ParameterName = "@t"; pt.Value = table; check.Parameters.Add(pt);
-            var exists = Convert.ToInt32(await check.ExecuteScalarAsync(ct)) > 0;
-            if (exists) return false;
+            await db.Database.ExecuteSqlRawAsync(
+                $"CREATE INDEX IF NOT EXISTS {indexName} ON {table} {columnsClause};", ct);
+            return true;
         }
-        await db.Database.ExecuteSqlRawAsync($"CREATE NONCLUSTERED INDEX [{indexName}] ON [{table}] {columnsClause};", ct);
-        return true;
+        catch
+        {
+            return false;
+        }
     }
 
     private static async Task<bool> EnsureRagDocumentTableAsync(ApplicationDbContext db, CancellationToken ct)
     {
         if (await TableExistsAsync(db, "rag_document", ct)) return false;
         await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE [rag_document] (
-    [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_rag_document] PRIMARY KEY,
-    [soccod] NVARCHAR(6) NOT NULL,
-    [filename] NVARCHAR(260) NOT NULL,
-    [original_name] NVARCHAR(260) NOT NULL,
-    [content_type] NVARCHAR(80) NOT NULL,
-    [size_bytes] BIGINT NOT NULL,
-    [category] NVARCHAR(20) NOT NULL CONSTRAINT [DF_rag_document_category] DEFAULT 'autre',
-    [uploaded_by] NVARCHAR(20) NULL,
-    [uploaded_at] DATETIME NOT NULL CONSTRAINT [DF_rag_document_uploaded_at] DEFAULT GETUTCDATE(),
-    [status] NVARCHAR(12) NOT NULL CONSTRAINT [DF_rag_document_status] DEFAULT 'pending',
-    [chunks_count] INT NULL,
-    [error_message] NVARCHAR(500) NULL
+CREATE TABLE rag_document (
+    id            INTEGER       GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    soccod        VARCHAR(6)    NOT NULL,
+    filename      VARCHAR(260)  NOT NULL,
+    original_name VARCHAR(260)  NOT NULL,
+    content_type  VARCHAR(80)   NOT NULL,
+    size_bytes    BIGINT        NOT NULL,
+    category      VARCHAR(20)   NOT NULL DEFAULT 'autre',
+    uploaded_by   VARCHAR(20)   NULL,
+    uploaded_at   TIMESTAMP     NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    status        VARCHAR(12)   NOT NULL DEFAULT 'pending',
+    chunks_count  INTEGER       NULL,
+    error_message VARCHAR(500)  NULL
 );
-CREATE INDEX [IX_rag_document_soccod_uploaded_at] ON [rag_document]([soccod], [uploaded_at] DESC);", ct);
+CREATE INDEX ix_rag_document_soccod_uploaded_at ON rag_document(soccod, uploaded_at DESC);", ct);
         return true;
     }
 
@@ -311,18 +253,18 @@ CREATE INDEX [IX_rag_document_soccod_uploaded_at] ON [rag_document]([soccod], [u
     {
         if (await TableExistsAsync(db, "rag_letter_template", ct)) return false;
         await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE [rag_letter_template] (
-    [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_rag_letter_template] PRIMARY KEY,
-    [soccod] NVARCHAR(6) NOT NULL,
-    [name] NVARCHAR(120) NOT NULL,
-    [description] NVARCHAR(500) NULL,
-    [body_html] NVARCHAR(MAX) NOT NULL,
-    [placeholders_json] NVARCHAR(MAX) NULL,
-    [category] NVARCHAR(20) NULL,
-    [created_at] DATETIME NOT NULL CONSTRAINT [DF_rag_letter_template_created_at] DEFAULT GETUTCDATE(),
-    [updated_at] DATETIME NULL
+CREATE TABLE rag_letter_template (
+    id                INTEGER      GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    soccod            VARCHAR(6)   NOT NULL,
+    name              VARCHAR(120) NOT NULL,
+    description       VARCHAR(500) NULL,
+    body_html         TEXT         NOT NULL,
+    placeholders_json TEXT         NULL,
+    category          VARCHAR(20)  NULL,
+    created_at        TIMESTAMP    NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    updated_at        TIMESTAMP    NULL
 );
-CREATE INDEX [IX_rag_letter_template_soccod_name] ON [rag_letter_template]([soccod], [name]);", ct);
+CREATE INDEX ix_rag_letter_template_soccod_name ON rag_letter_template(soccod, name);", ct);
         return true;
     }
 
@@ -330,22 +272,22 @@ CREATE INDEX [IX_rag_letter_template_soccod_name] ON [rag_letter_template]([socc
     {
         if (await TableExistsAsync(db, "rag_chat_log", ct)) return false;
         await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE [rag_chat_log] (
-    [id] BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_rag_chat_log] PRIMARY KEY,
-    [soccod] NVARCHAR(6) NOT NULL,
-    [uticod] NVARCHAR(20) NULL,
-    [category] NVARCHAR(20) NOT NULL CONSTRAINT [DF_rag_chat_log_category] DEFAULT 'chat',
-    [question] NVARCHAR(1000) NULL,
-    [answer] NVARCHAR(MAX) NULL,
-    [sources_json] NVARCHAR(MAX) NULL,
-    [tokens_in] INT NULL,
-    [tokens_out] INT NULL,
-    [latency_ms] INT NULL,
-    [created_at] DATETIME NOT NULL CONSTRAINT [DF_rag_chat_log_created_at] DEFAULT GETUTCDATE(),
-    [feedback_score] TINYINT NULL,
-    [feedback_comment] NVARCHAR(500) NULL
+CREATE TABLE rag_chat_log (
+    id               BIGINT        GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    soccod           VARCHAR(6)    NOT NULL,
+    uticod           VARCHAR(20)   NULL,
+    category         VARCHAR(20)   NOT NULL DEFAULT 'chat',
+    question         VARCHAR(1000) NULL,
+    answer           TEXT          NULL,
+    sources_json     TEXT          NULL,
+    tokens_in        INTEGER       NULL,
+    tokens_out       INTEGER       NULL,
+    latency_ms       INTEGER       NULL,
+    created_at       TIMESTAMP     NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    feedback_score   SMALLINT      NULL,
+    feedback_comment VARCHAR(500)  NULL
 );
-CREATE INDEX [IX_rag_chat_log_soccod_created_at] ON [rag_chat_log]([soccod], [created_at] DESC);", ct);
+CREATE INDEX ix_rag_chat_log_soccod_created_at ON rag_chat_log(soccod, created_at DESC);", ct);
         return true;
     }
 
@@ -357,76 +299,100 @@ CREATE INDEX [IX_rag_chat_log_soccod_created_at] ON [rag_chat_log]([soccod], [cr
         if (tableExists && hasIdColumn) return false;
         // Si la table existe mais sans 'id', c'est le legacy keyless — on le drop.
         if (tableExists)
-            await db.Database.ExecuteSqlRawAsync("DROP TABLE [mission];", ct);
+            await db.Database.ExecuteSqlRawAsync("DROP TABLE mission;", ct);
 
         await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE [mission] (
-    [id] INT IDENTITY(1,1) NOT NULL CONSTRAINT [PK_mission] PRIMARY KEY,
-    [soccod] NVARCHAR(6) NOT NULL,
-    [empcod] NVARCHAR(12) NOT NULL,
-    [misobj] NVARCHAR(150) NOT NULL,
-    [misdest] NVARCHAR(150) NULL,
-    [misdatedeb] DATETIME NOT NULL,
-    [misdatefin] DATETIME NOT NULL,
-    [misnote] NVARCHAR(500) NULL,
-    [misetat] NVARCHAR(20) NOT NULL CONSTRAINT [DF_mission_misetat] DEFAULT 'Pending',
-    [misbudget] FLOAT NULL,
-    [misdevise] NVARCHAR(3) NULL,
-    [abscod] NVARCHAR(4) NOT NULL,
-    [created_at] DATETIME NULL,
-    [deleted_at] DATETIME NULL,
-    [retention_date] DATETIME NULL
+CREATE TABLE mission (
+    id            INTEGER          GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    soccod        VARCHAR(6)       NOT NULL,
+    empcod        VARCHAR(12)      NOT NULL,
+    misobj        VARCHAR(150)     NOT NULL,
+    misdest       VARCHAR(150)     NULL,
+    misdatedeb    TIMESTAMP        NOT NULL,
+    misdatefin    TIMESTAMP        NOT NULL,
+    misnote       VARCHAR(500)     NULL,
+    misetat       VARCHAR(20)      NOT NULL DEFAULT 'Pending',
+    misbudget     DOUBLE PRECISION NULL,
+    misdevise     VARCHAR(3)       NULL,
+    abscod        VARCHAR(4)       NOT NULL,
+    created_at    TIMESTAMP        NULL,
+    deleted_at    TIMESTAMP        NULL,
+    retention_date TIMESTAMP       NULL
 );
-CREATE INDEX [IX_mission_soccod_empcod] ON [mission]([soccod], [empcod]);", ct);
+CREATE INDEX ix_mission_soccod_empcod ON mission(soccod, empcod);", ct);
         return true;
     }
 
     /// <summary>
-    /// Ajoute une colonne à une table existante si elle n'y est pas encore. Idempotent : en cas
-    /// d'absence de la table ou si la colonne existe déjà, ne fait rien et retourne false.
+    /// Ajoute une colonne à une table existante si elle n'y est pas encore. Idempotent.
+    /// Postgres supporte ADD COLUMN IF NOT EXISTS natif depuis 9.6, donc plus besoin de
+    /// vérifier dans information_schema.columns avant.
     /// </summary>
     private static async Task<bool> AddColumnIfMissingAsync(ApplicationDbContext db, string table, string column, string columnDef, CancellationToken ct)
     {
         if (!await TableExistsAsync(db, table, ct)) return false;
+        // Lookup explicite pour pouvoir retourner true/false (ADD COLUMN IF NOT EXISTS ne
+        // dit pas si quelque chose a été ajouté, seulement qu'il n'a pas crashé).
         if (await ColumnExistsAsync(db, table, column, ct)) return false;
-        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE [{table}] ADD [{column}] {columnDef};", ct);
+        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {columnDef};", ct);
         return true;
     }
 
+    /// <summary>
+    /// Lookup colonne via information_schema (équivalent portable de sys.columns).
+    /// Postgres folde les identifiants non-quoted en lowercase — on suppose ici que
+    /// table_name et column_name sont déjà en lowercase (ce qui est le cas pour tout
+    /// le schéma legacy).
+    /// </summary>
     private static async Task<bool> ColumnExistsAsync(ApplicationDbContext db, string table, string column, CancellationToken ct)
     {
         var conn = db.Database.GetDbConnection();
         if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"SELECT COUNT(1) FROM sys.columns c JOIN sys.tables t ON c.object_id = t.object_id WHERE t.name = @t AND c.name = @c";
+        cmd.CommandText = @"SELECT COUNT(1) FROM information_schema.columns
+                            WHERE table_schema = current_schema()
+                              AND table_name   = @t
+                              AND column_name  = @c";
         var pT = cmd.CreateParameter(); pT.ParameterName = "@t"; pT.Value = table; cmd.Parameters.Add(pT);
         var pC = cmd.CreateParameter(); pC.ParameterName = "@c"; pC.Value = column; cmd.Parameters.Add(pC);
         var result = await cmd.ExecuteScalarAsync(ct);
         return Convert.ToInt32(result) > 0;
     }
 
+    /// <summary>
+    /// Élargit une colonne VARCHAR(n) → VARCHAR(m) si m > n actuel. Postgres a une syntaxe
+    /// ALTER COLUMN différente de SQL Server : "ALTER COLUMN col TYPE varchar(m)" sans la
+    /// répétition de NOT NULL/NULL (on garde la nullabilité existante). makeNotNull est
+    /// utilisé pour ajouter / retirer la contrainte NOT NULL séparément si besoin.
+    /// </summary>
     private static async Task<bool> ExpandColumnIfNeededAsync(
         ApplicationDbContext db,
         string table,
         string column,
-        string newDefinition,
+        string newType,
         int currentMaxLen,
         int targetMaxLen,
+        bool makeNotNull,
         CancellationToken ct)
     {
         if (!await TableExistsAsync(db, table, ct)) return false;
         var len = await GetColumnMaxLengthAsync(db, table, column, ct);
-        // sys.columns max_length pour NVARCHAR = 2 * char_count ; -1 = MAX.
-        var actualChars = len switch
-        {
-            -1 => int.MaxValue,
-            > 0 => len / 2,
-            _ => 0
-        };
+        // information_schema.columns.character_maximum_length = NULL pour TEXT (assimilé
+        // illimité), entier pour VARCHAR(n). 0 = colonne non-string ou introuvable.
+        var actualChars = len ?? int.MaxValue;
         if (actualChars >= targetMaxLen) return false;
 
-        // Pour SQL Server : ALTER COLUMN ne casse pas une PK NVARCHAR(2) → NVARCHAR(6) tant qu'on garde NOT NULL.
-        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE [{table}] ALTER COLUMN [{column}] {newDefinition};", ct);
+        // PG : ALTER COLUMN col TYPE x ; pas de USING nécessaire pour un VARCHAR plus long.
+        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {table} ALTER COLUMN {column} TYPE {newType};", ct);
+        // NOT NULL est géré séparément si demandé. PG : SET NOT NULL / DROP NOT NULL.
+        if (makeNotNull)
+        {
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {table} ALTER COLUMN {column} SET NOT NULL;", ct);
+            }
+            catch { /* déjà NOT NULL ou échec silencieux — pas critique */ }
+        }
         return true;
     }
 
@@ -435,22 +401,31 @@ CREATE INDEX [IX_mission_soccod_empcod] ON [mission]([soccod], [empcod]);", ct);
         var conn = db.Database.GetDbConnection();
         if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(1) FROM sys.tables WHERE name = @name";
+        cmd.CommandText = @"SELECT COUNT(1) FROM information_schema.tables
+                            WHERE table_schema = current_schema()
+                              AND table_name   = @name";
         var p = cmd.CreateParameter(); p.ParameterName = "@name"; p.Value = tableName; cmd.Parameters.Add(p);
         var result = await cmd.ExecuteScalarAsync(ct);
         return Convert.ToInt32(result) > 0;
     }
 
-    private static async Task<int> GetColumnMaxLengthAsync(ApplicationDbContext db, string table, string column, CancellationToken ct)
+    /// <summary>
+    /// Retourne la taille maximale d'une colonne VARCHAR / CHAR depuis information_schema,
+    /// ou null si la colonne est TEXT (illimitée), n'existe pas, ou n'est pas string.
+    /// </summary>
+    private static async Task<int?> GetColumnMaxLengthAsync(ApplicationDbContext db, string table, string column, CancellationToken ct)
     {
         var conn = db.Database.GetDbConnection();
         if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"SELECT c.max_length FROM sys.columns c JOIN sys.tables t ON c.object_id = t.object_id WHERE t.name = @t AND c.name = @c";
+        cmd.CommandText = @"SELECT character_maximum_length FROM information_schema.columns
+                            WHERE table_schema = current_schema()
+                              AND table_name   = @t
+                              AND column_name  = @c";
         var pT = cmd.CreateParameter(); pT.ParameterName = "@t"; pT.Value = table; cmd.Parameters.Add(pT);
         var pC = cmd.CreateParameter(); pC.ParameterName = "@c"; pC.Value = column; cmd.Parameters.Add(pC);
         var result = await cmd.ExecuteScalarAsync(ct);
-        if (result == null || result == DBNull.Value) return 0;
+        if (result == null || result == DBNull.Value) return null;
         return Convert.ToInt32(result);
     }
 }

@@ -377,4 +377,9 @@ MigrationBackup/
 .ionide/
 
 # Fody - auto-generated XML schema
-FodyWeavers.xsd"sql-backup/ABRPOINT" 
+FodyWeavers.xsd"sql-backup/ABRPOINT"
+
+# Build cache scratch (anciennement commité par erreur — cf. commit b1ab... cleanup
+# de la migration Postgres). Contient des DLLs et .deps.json qui doivent rester
+# locaux.
+.codex-temp-build/ 

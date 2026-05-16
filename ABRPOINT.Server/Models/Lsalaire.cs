@@ -26,7 +26,7 @@ public partial class Lsalaire : BaseEntity
     [StringLength(2)]
     public string? Mois { get; set; }
 
-    [Column("jour", TypeName = "datetime")]
+    [Column("jour", TypeName = "timestamp without time zone")]
     public DateTime? Jour { get; set; }
 
     [Column("rubcod")]

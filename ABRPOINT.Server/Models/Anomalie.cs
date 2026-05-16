@@ -22,7 +22,7 @@ public partial class Anomalie : BaseEntity
     [StringLength(10)]
     public string? Sitcod { get; set; }
 
-    [Column("anodat", TypeName = "datetime")]
+    [Column("anodat", TypeName = "timestamp without time zone")]
     public DateTime? Anodat { get; set; }
 
     [Column("motif")]

@@ -1,7 +1,7 @@
 using ABRPOINT.Server.Models;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace ABRPOINT.Server.Data;
 
@@ -58,17 +58,17 @@ public sealed class DatabaseInitializer
             return;
         }
 
-        // En mode SaaS multi-tenant, la base legacy "ABRPOINT" est optionnelle : chaque tenant
+        // En mode SaaS multi-tenant, la base legacy "abrpoint" est optionnelle : chaque tenant
         // a sa propre base créée au signup. On vérifie d'abord la connexion via un open SQL
-        // brut (timeout 3s, pas de retry strategy) — sinon CanConnectAsync passe par le
-        // SqlServerRetryingExecutionStrategy et bloque 30s au boot quand la base n'existe pas.
+        // brut (Timeout=3s, pas de retry strategy) — sinon CanConnectAsync passe par le
+        // EnableRetryOnFailure() Npgsql et bloque ~30s au boot quand la base n'existe pas.
         var connStr = _dbContext.Database.GetConnectionString();
         if (!string.IsNullOrWhiteSpace(connStr))
         {
             try
             {
-                var b = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connStr) { ConnectTimeout = 3 };
-                await using var probe = new Microsoft.Data.SqlClient.SqlConnection(b.ConnectionString);
+                var b = new NpgsqlConnectionStringBuilder(connStr) { Timeout = 3 };
+                await using var probe = new NpgsqlConnection(b.ConnectionString);
                 await probe.OpenAsync(cancellationToken);
             }
             catch (Exception ex)
@@ -218,25 +218,24 @@ public sealed class DatabaseInitializer
 
     private async Task EnsureModulesAsync(SeedSettings settings, CancellationToken cancellationToken)
     {
+        // Migré T-SQL → PostgreSQL : UPSERT natif via INSERT ... ON CONFLICT DO UPDATE
+        // remplace le pattern UPDATE-then-IF-ROWCOUNT-0-INSERT. Implique que la colonne
+        // PK (modcod) ait un index unique (c'est le cas via la définition de l'entité).
+        // NULLIF(x, '') empêche d'écraser une valeur existante non vide par notre default.
         foreach (var module in DefaultModules)
         {
             await _dbContext.Database.ExecuteSqlInterpolatedAsync($@"
-UPDATE [module]
-SET
-    [modlib] = COALESCE(NULLIF([modlib], ''), {module.Label}),
-    [appcod] = COALESCE(NULLIF([appcod], ''), {settings.ApplicationCode}),
-    [modsais] = COALESCE(NULLIF([modsais], ''), {'1'}),
-    [modupd] = COALESCE(NULLIF([modupd], ''), {'1'}),
-    [modsupp] = COALESCE(NULLIF([modsupp], ''), {'1'}),
-    [modconsult] = COALESCE(NULLIF([modconsult], ''), {'1'}),
-    [description] = COALESCE(NULLIF([description], ''), {module.Description})
-WHERE [modcod] = {module.Code};
-
-IF @@ROWCOUNT = 0
-BEGIN
-    INSERT INTO [module] ([modcod], [modlib], [appcod], [modsais], [modupd], [modsupp], [modconsult], [description])
-    VALUES ({module.Code}, {module.Label}, {settings.ApplicationCode}, {'1'}, {'1'}, {'1'}, {'1'}, {module.Description});
-END", cancellationToken);
+INSERT INTO module (modcod, modlib, appcod, modsais, modupd, modsupp, modconsult, description)
+VALUES ({module.Code}, {module.Label}, {settings.ApplicationCode}, {'1'}, {'1'}, {'1'}, {'1'}, {module.Description})
+ON CONFLICT (modcod) DO UPDATE SET
+    modlib      = COALESCE(NULLIF(module.modlib, ''),      EXCLUDED.modlib),
+    appcod      = COALESCE(NULLIF(module.appcod, ''),      EXCLUDED.appcod),
+    modsais     = COALESCE(NULLIF(module.modsais, ''),     EXCLUDED.modsais),
+    modupd      = COALESCE(NULLIF(module.modupd, ''),      EXCLUDED.modupd),
+    modsupp     = COALESCE(NULLIF(module.modsupp, ''),     EXCLUDED.modsupp),
+    modconsult  = COALESCE(NULLIF(module.modconsult, ''),  EXCLUDED.modconsult),
+    description = COALESCE(NULLIF(module.description, ''), EXCLUDED.description)
+;", cancellationToken);
         }
     }
 
@@ -294,9 +293,14 @@ END", cancellationToken);
 
     private static bool IsTransient(Exception ex)
     {
+        // Sous Npgsql, les erreurs SQL remontent via NpgsqlException (qui hérite de
+        // DbException). On considère toute NpgsqlException comme transitoire ici, en
+        // partant du principe que ce code n'est appelé qu'au boot pour la migration —
+        // un retry coûte peu et permet de passer outre les états transitoires
+        // (server starting, too_many_connections, etc.).
         return ex switch
         {
-            SqlException => true,
+            NpgsqlException => true,
             TimeoutException => true,
             DbUpdateException dbUpdateException when dbUpdateException.InnerException is not null => IsTransient(dbUpdateException.InnerException),
             InvalidOperationException invalidOperationException when invalidOperationException.InnerException is not null => IsTransient(invalidOperationException.InnerException),
