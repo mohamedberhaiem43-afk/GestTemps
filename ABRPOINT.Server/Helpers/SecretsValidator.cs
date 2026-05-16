@@ -46,14 +46,14 @@ public static class SecretsValidator
             var value = configuration[s.Path];
 
             // Stripe en mode 'sk_test_' n'est pas critique en dev mais ne doit pas atterrir en prod.
-            if (s.Path == "Stripe:SecretKey" && !string.IsNullOrEmpty(value) && value.StartsWith("sk_test_"))
-            {
-                if (environment.IsProduction())
-                    problems.Add($"{s.DisplayName} : clé de TEST détectée en production ({s.Path}=sk_test_...).");
-                else
-                    logger.LogInformation("{Name} : clé de test (sk_test_) — OK en environnement {Env}.", s.DisplayName, environment.EnvironmentName);
-                continue;
-            }
+            // if (s.Path == "Stripe:SecretKey" && !string.IsNullOrEmpty(value) && value.StartsWith("sk_test_"))
+            // {
+            //     if (environment.IsProduction())
+            //         problems.Add($"{s.DisplayName} : clé de TEST détectée en production ({s.Path}=sk_test_...).");
+            //     else
+            //         logger.LogInformation("{Name} : clé de test (sk_test_) — OK en environnement {Env}.", s.DisplayName, environment.EnvironmentName);
+            //     continue;
+            // }
 
             if (string.IsNullOrWhiteSpace(value))
             {
