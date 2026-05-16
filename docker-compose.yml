@@ -56,6 +56,12 @@ services:
       - postgres-data:/var/lib/postgresql/data
       # Dossier monté pour les dumps/restores manuels (pg_dump / pg_restore).
       - ./postgres-backup:/var/lib/postgresql/backups
+    ports:
+      # Bound à 127.0.0.1 uniquement — JAMAIS exposé à l'extérieur du VPS.
+      # Utilisé pour : dotnet ef migrations en local, psql diagnostic, pg_dump
+      # depuis l'hôte. Sur le VPS, seul un user SSHé sur la machine peut s'y
+      # connecter (le firewall UFW/iptables doit refuser 5432 en entrée).
+      - "127.0.0.1:5432:5432"
     healthcheck:
       # pg_isready est inclus dans l'image postgres officielle, pas besoin
       # d'outil externe comme c'était le cas pour sqlcmd.
