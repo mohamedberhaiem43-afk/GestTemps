@@ -56,8 +56,12 @@ namespace ABRPOINT.Server.Controllers
 
             try
             {
+                // PG : LOWER() des deux côtés (cf. UtilisateursController.Connect).
+                // Sur SQL Server (collation CI), 'John@x.com' matchait 'john@x.com' —
+                // sur Postgres VARCHAR la comparaison est case-sensitive.
+                var emailLower = model.Email.Trim().ToLowerInvariant();
                 var dbUser = await _dbContext.Utilisateurs
-                    .FirstOrDefaultAsync(u => u.Utimail == model.Email);
+                    .FirstOrDefaultAsync(u => u.Utimail != null && u.Utimail.ToLower() == emailLower);
 
                 if (dbUser == null || !BCrypt.Net.BCrypt.Verify(model.Password, dbUser.Utimps))
                     return Unauthorized(new { message = "Identifiants invalides" });

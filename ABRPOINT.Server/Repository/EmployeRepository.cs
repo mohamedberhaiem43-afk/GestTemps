@@ -1884,7 +1884,13 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                var employes = await _dbContext.Employes.Where(e => e.Soccod == soccod && e.Emplib == name).ToListAsync();
+                // PG : LOWER() des deux côtés. Sur SQL Server (French_CI_AS) la
+                // comparaison ignorait la casse, sur Postgres VARCHAR elle ne l'ignore
+                // plus — une recherche d'employé "Dupont" ne trouve plus "dupont"/"DUPONT".
+                var nameLower = (name ?? string.Empty).Trim().ToLowerInvariant();
+                var employes = await _dbContext.Employes
+                    .Where(e => e.Soccod == soccod && e.Emplib != null && e.Emplib.ToLower() == nameLower)
+                    .ToListAsync();
                 return employes;
             }
             catch (Exception)

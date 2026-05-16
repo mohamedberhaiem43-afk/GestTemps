@@ -253,7 +253,9 @@ public class BillingController : ControllerBase
                 });
         }
 
-        var user = await _tenantDb.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail == req.Email, ct);
+        // PG : LOWER() des deux côtés (cf. UtilisateursController.Connect).
+        var emailLower = req.Email.Trim().ToLowerInvariant();
+        var user = await _tenantDb.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail != null && u.Utimail.ToLower() == emailLower, ct);
         if (user is null || !BCrypt.Net.BCrypt.Verify(req.Password, user.Utimps))
             return Unauthorized(new { error = "Identifiants invalides." });
 
